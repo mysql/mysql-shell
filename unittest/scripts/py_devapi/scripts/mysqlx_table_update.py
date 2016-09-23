@@ -31,27 +31,27 @@ validate_crud_functions(crud, ['set'])
 
 #@ TableUpdate: valid operations after set
 crud = crud.set('name', 'Jack')
-validate_crud_functions(crud, ['set', 'where', 'order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'where', 'order_by', 'limit', 'bind', 'execute'])
 
 #@ TableUpdate: valid operations after where
 crud = crud.where("age < 100")
-validate_crud_functions(crud, ['order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['order_by', 'limit', 'bind', 'execute'])
 
 #@ TableUpdate: valid operations after order_by
 crud = crud.order_by(['name'])
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ TableUpdate: valid operations after limit
 crud = crud.limit(2)
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ TableUpdate: valid operations after bind
 crud = table.update().set('age', 15).where('name = :data').bind('data', 'angel')
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ TableUpdate: valid operations after execute
 result = crud.execute()
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ Reusing CRUD with binding
 print 'Updated Angel:', result.affected_item_count, '\n'

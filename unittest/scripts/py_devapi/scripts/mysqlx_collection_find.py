@@ -24,39 +24,39 @@ result = collection.add({"name": 'angel', "age": 14, "gender": 'male'}).execute(
 # ----------------------------------------------
 #@ CollectionFind: valid operations after find
 crud = collection.find()
-validate_crud_functions(crud, ['fields', 'group_by', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['fields', 'group_by', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after fields
 crud = crud.fields(['name'])
-validate_crud_functions(crud, ['group_by', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['group_by', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after group_by
 crud = crud.group_by(['name'])
-validate_crud_functions(crud, ['having', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['having', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after having
 crud = crud.having('age > 10')
-validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after sort
 crud = crud.sort(['age'])
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after limit
 crud = crud.limit(1)
-validate_crud_functions(crud, ['skip', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['skip', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after skip
 crud = crud.skip(1)
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ CollectionFind: valid operations after bind
 crud = collection.find('name = :data').bind('data', 'adam')
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ CollectionFind: valid operations after execute
 result = crud.execute()
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ Reusing CRUD with binding
 print result.fetch_one().name + '\n'

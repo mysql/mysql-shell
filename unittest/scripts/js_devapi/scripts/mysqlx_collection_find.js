@@ -24,39 +24,39 @@ result = collection.add({ name: 'angel', age: 14, gender: 'male' }).execute();
 // ----------------------------------------------
 //@ CollectionFind: valid operations after find
 var crud = collection.find();
-validate_crud_functions(crud, ['fields', 'groupBy', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['fields', 'groupBy', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after fields
 var crud = crud.fields(['name']);
-validate_crud_functions(crud, ['groupBy', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['groupBy', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after groupBy
 var crud = crud.groupBy(['name']);
-validate_crud_functions(crud, ['having', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['having', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after having
 var crud = crud.having('age > 10');
-validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after sort
 var crud = crud.sort(['age']);
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after limit
 var crud = crud.limit(1);
-validate_crud_functions(crud, ['skip', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['skip', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after skip
 var crud = crud.skip(1);
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionFind: valid operations after bind
 var crud = crud = collection.find('name = :data').bind('data', 'adam')
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionFind: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ Reusing CRUD with binding
 print(result.fetchOne().name + '\n');

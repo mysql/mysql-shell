@@ -27,27 +27,27 @@ result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()
 # ------------------------------------------------
 #@ TableDelete: valid operations after delete
 crud = table.delete()
-validate_crud_functions(crud, ['where', 'order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['where', 'order_by', 'limit', 'bind', 'execute'])
 
 #@ TableDelete: valid operations after where
 crud = crud.where("id < 100")
-validate_crud_functions(crud, ['order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['order_by', 'limit', 'bind', 'execute'])
 
 #@ TableDelete: valid operations after order_by
 crud = crud.order_by(['name'])
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ TableDelete: valid operations after limit
 crud = crud.limit(1)
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ TableDelete: valid operations after bind
 crud = table.delete().where('name = :data').bind('data', 'donna')
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ TableDelete: valid operations after execute
 result = crud.execute()
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ Reusing CRUD with binding
 print 'Deleted donna:', result.affected_item_count, '\n'

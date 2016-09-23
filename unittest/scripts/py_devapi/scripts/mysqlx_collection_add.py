@@ -15,15 +15,15 @@ collection = schema.create_collection('collection1')
 # ---------------------------------------------
 #@ CollectionAdd: valid operations after add with no documents
 crud = collection.add([])
-validate_crud_functions(crud, ['add', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['add', 'execute'])
 
 #@ CollectionAdd: valid operations after add
 crud = collection.add({"name":"john", "age":17})
-validate_crud_functions(crud, ['add', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['add', 'execute'])
 
 #@ CollectionAdd: valid operations after execute
 result = crud.execute()
-validate_crud_functions(crud, ['add', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['add', 'execute'])
 
 
 # ---------------------------------------------

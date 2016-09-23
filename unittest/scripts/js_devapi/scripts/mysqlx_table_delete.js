@@ -27,27 +27,27 @@ var result = table.insert({ name: 'angel', age: 14, gender: 'male' }).execute();
 // ------------------------------------------------
 //@ TableDelete: valid operations after delete
 var crud = table.delete();
-validate_crud_functions(crud, ['where', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['where', 'orderBy', 'limit', 'bind', 'execute']);
 
 //@ TableDelete: valid operations after where
 var crud = crud.where("id < 100");
-validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute']);
 
 //@ TableDelete: valid operations after orderBy
 var crud = crud.orderBy(['name']);
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ TableDelete: valid operations after limit
 var crud = crud.limit(1);
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ TableDelete: valid operations after bind
 var crud = table.delete().where('name = :data').bind('data', 'donna');
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ TableDelete: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ Reusing CRUD with binding
 print('Deleted donna:', result.affectedItemCount, '\n');
@@ -140,40 +140,32 @@ print('Records Left:', records.length, '\n');
 var result = table.delete().limit(2).execute();
 print('Affected Rows:', result.affectedItemCount, '\n');
 
-try
-{
+try {
   print("lastDocumentId:", result.lastDocumentId, "\n");
 }
-catch(err)
-{
+catch (err) {
   print("lastDocumentId:", err.message, "\n");
 }
 
-try
-{
-  print ("getLastDocumentId():", result.getLastDocumentId());
+try {
+  print("getLastDocumentId():", result.getLastDocumentId());
 }
-catch(err)
-{
-  print ("getLastDocumentId():", err.message, "\n");
+catch (err) {
+  print("getLastDocumentId():", err.message, "\n");
 }
 
-try
-{
-  print ("lastDocumentIds:", result.lastDocumentIds);
+try {
+  print("lastDocumentIds:", result.lastDocumentIds);
 }
-catch(err)
-{
-  print ("lastDocumentIds:", err.message, "\n");
+catch (err) {
+  print("lastDocumentIds:", err.message, "\n");
 }
 
-try
-{
-  print ("getLastDocumentIds():", result.getLastDocumentIds());
+try {
+  print("getLastDocumentIds():", result.getLastDocumentIds());
 }
-catch(err)
-{
-  print ("getLastDocumentIds():", err.message, "\n");
+catch (err) {
+  print("getLastDocumentIds():", err.message, "\n");
 }
 
 var records = table.select().execute().fetchAll();

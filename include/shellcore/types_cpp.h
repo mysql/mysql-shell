@@ -147,6 +147,9 @@ protected:
   // Used mostly for errors in function validations
   std::string get_function_name(const std::string& member, bool fully_specified = true) const;
 
+  // Returns the base name of the given member
+  std::string get_base_name(const std::string& member) const;
+
   typedef std::pair< std::string, std::shared_ptr<Cpp_function> > FunctionEntry;
   std::map<std::string, std::shared_ptr<Cpp_function> > _funcs;
   std::vector<std::shared_ptr<Cpp_property_name> > _properties;

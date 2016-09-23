@@ -26,7 +26,7 @@ var result = collection.add({ name: 'angel', age: 14, gender: 'male' }).execute(
 var crud = collection.modify();
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.set('name', 'dummy');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and unset empty
 var crud = collection.modify();
@@ -38,53 +38,53 @@ validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayApp
 var crud = collection.modify();
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.unset(['name', 'type']);
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and unset multiple params
 var crud = collection.modify();
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.unset('name', 'type');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and merge
 var crud = collection.modify();
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.merge({ 'att': 'value', 'second': 'final' });
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and arrayInsert
 var crud = collection.modify();
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.arrayInsert('hobbies[3]', 'run');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and arrayAppend
 var crud = collection.modify();
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.arrayAppend('hobbies', 'skate');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and arrayDelete
 var crud = collection.modify();
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.arrayDelete('hobbies[5]')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after sort
 var crud = crud.sort(['name']);
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after limit
 var crud = crud.limit(2);
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionModify: valid operations after bind
 var crud = collection.modify('name = :data').set('age', 15).bind('data', 'angel');
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionModify: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ Reusing CRUD with binding
 print('Updated Angel:', result.affectedItemCount, '\n');
@@ -160,40 +160,32 @@ crud = collection.modify('name = :data and age > :years').set('hobby', 'swim').b
 var result = collection.modify('name = "brian"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute();
 print('Set Affected Rows:', result.affectedItemCount, '\n');
 
-try
-{
+try {
   print("lastDocumentId:", result.lastDocumentId, "\n");
 }
-catch(err)
-{
+catch (err) {
   print("lastDocumentId:", err.message, "\n");
 }
 
-try
-{
-  print ("getLastDocumentId():", result.getLastDocumentId());
+try {
+  print("getLastDocumentId():", result.getLastDocumentId());
 }
-catch(err)
-{
-  print ("getLastDocumentId():", err.message, "\n");
+catch (err) {
+  print("getLastDocumentId():", err.message, "\n");
 }
 
-try
-{
-  print ("lastDocumentIds:", result.lastDocumentIds);
+try {
+  print("lastDocumentIds:", result.lastDocumentIds);
 }
-catch(err)
-{
-  print ("lastDocumentIds:", err.message, "\n");
+catch (err) {
+  print("lastDocumentIds:", err.message, "\n");
 }
 
-try
-{
-  print ("getLastDocumentIds():", result.getLastDocumentIds());
+try {
+  print("getLastDocumentIds():", result.getLastDocumentIds());
 }
-catch(err)
-{
-  print ("getLastDocumentIds():", err.message, "\n");
+catch (err) {
+  print("getLastDocumentIds():", err.message, "\n");
 }
 
 var result = collection.find('name = "brian"').execute();
@@ -201,7 +193,7 @@ var doc = result.fetchOne();
 print(dir(doc));
 
 //@# CollectionModify: Set Execution Binding Array
-var result = collection.modify('name = "brian"').set('hobbies', mysqlx.expr(':list')).bind('list', ['soccer','dance','read']).execute();
+var result = collection.modify('name = "brian"').set('hobbies', mysqlx.expr(':list')).bind('list', ['soccer', 'dance', 'read']).execute();
 print('Set Affected Rows:', result.affectedItemCount, '\n');
 
 var result = collection.find('name = "brian"').execute();

@@ -24,23 +24,23 @@ var result = collection.add({ name: 'angel', age: 14, gender: 'male' }).execute(
 // ------------------------------------------------
 //@ CollectionRemove: valid operations after remove
 var crud = collection.remove();
-validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionRemove: valid operations after sort
 var crud = crud.sort(['name']);
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ CollectionRemove: valid operations after limit
 var crud = crud.limit(1);
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionRemove: valid operations after bind
 var crud = collection.remove('name = :data').bind('data', 'donna');
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionRemove: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ Reusing CRUD with binding
 print('Deleted donna:', result.affectedItemCount, '\n');

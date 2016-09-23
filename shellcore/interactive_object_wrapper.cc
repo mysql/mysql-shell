@@ -196,7 +196,7 @@ shcore::Value Interactive_object_wrapper::help(const shcore::Argument_list &args
   if (!_target)
     ret_val = Cpp_object_bridge::help(args);
   else
-    ret_val = _target->call("help", args);
+    ret_val = _target->call_advanced("help", args, naming_style);
 
   return ret_val;
 }

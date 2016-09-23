@@ -31,27 +31,27 @@ validate_crud_functions(crud, ['set']);
 
 //@ TableUpdate: valid operations after set
 var crud = crud.set('name', 'Jack');
-validate_crud_functions(crud, ['set', 'where', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['set', 'where', 'orderBy', 'limit', 'bind', 'execute']);
 
 //@ TableUpdate: valid operations after where
 var crud = crud.where("age < 100");
-validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute']);
 
 //@ TableUpdate: valid operations after orderBy
 var crud = crud.orderBy(['name']);
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ TableUpdate: valid operations after limit
 var crud = crud.limit(2);
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ TableUpdate: valid operations after bind
 var crud = table.update().set('age', 15).where('name = :data').bind('data', 'angel');
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ TableUpdate: valid operations after execute
 result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ Reusing CRUD with binding
 print('Updated Angel:', result.affectedItemCount, '\n');
@@ -119,40 +119,32 @@ print("Updated Record:", record.name, record.age);
 var result = table.update().set('age', mysqlx.expr(':new_year')).where('age = :old_year').limit(2).bind('new_year', 16).bind('old_year', 15).execute();
 print('Affected Rows:', result.affectedItemCount, '\n');
 
-try
-{
+try {
   print("lastDocumentId:", result.lastDocumentId, "\n");
 }
-catch(err)
-{
+catch (err) {
   print("lastDocumentId:", err.message, "\n");
 }
 
-try
-{
-  print ("getLastDocumentId():", result.getLastDocumentId());
+try {
+  print("getLastDocumentId():", result.getLastDocumentId());
 }
-catch(err)
-{
-  print ("getLastDocumentId():", err.message, "\n");
+catch (err) {
+  print("getLastDocumentId():", err.message, "\n");
 }
 
-try
-{
-  print ("lastDocumentIds:", result.lastDocumentIds);
+try {
+  print("lastDocumentIds:", result.lastDocumentIds);
 }
-catch(err)
-{
-  print ("lastDocumentIds:", err.message, "\n");
+catch (err) {
+  print("lastDocumentIds:", err.message, "\n");
 }
 
-try
-{
-  print ("getLastDocumentIds():", result.getLastDocumentIds());
+try {
+  print("getLastDocumentIds():", result.getLastDocumentIds());
 }
-catch(err)
-{
-  print ("getLastDocumentIds():", err.message, "\n");
+catch (err) {
+  print("getLastDocumentIds():", err.message, "\n");
 }
 
 var records = table.select().where('age = 16').execute().fetchAll();

@@ -24,11 +24,11 @@ validate_crud_functions(crud, ['values'])
 
 #@ TableInsert: valid operations after empty insert and values
 crud.values('john', 25, 'male')
-validate_crud_functions(crud, ['values', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['values', 'execute'])
 
 #@ TableInsert: valid operations after empty insert and values 2
 crud.values('alma', 23, 'female')
-validate_crud_functions(crud, ['values', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['values', 'execute'])
 
 #@ TableInsert: valid operations after insert with field list
 crud = table.insert(['name', 'age', 'gender'])
@@ -36,19 +36,19 @@ validate_crud_functions(crud, ['values'])
 
 #@ TableInsert: valid operations after insert with field list and values
 crud.values('john', 25, 'male')
-validate_crud_functions(crud, ['values', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['values', 'execute'])
 
 #@ TableInsert: valid operations after insert with field list and values 2
 crud.values('alma', 23, 'female')
-validate_crud_functions(crud, ['values', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['values', 'execute'])
 
 #@ TableInsert: valid operations after insert with fields and values
 crud = table.insert({"name":'john', "age":25, "gender":'male'})
-validate_crud_functions(crud, ['execute', '__shell_hook__'])
+validate_crud_functions(crud, ['execute'])
 
 #@ TableInsert: valid operations after execute
 result = crud.execute()
-validate_crud_functions(crud, ['execute', '__shell_hook__'])
+validate_crud_functions(crud, ['execute'])
 
 
 # -------------------------------------------

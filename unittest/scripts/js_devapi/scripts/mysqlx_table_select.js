@@ -27,39 +27,39 @@ var result = table.insert({ name: 'angel', age: 14, gender: 'male' }).execute();
 // ----------------------------------------------
 //@ TableSelect: valid operations after select
 var crud = table.select();
-validate_crud_functions(crud, ['where', 'groupBy', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['where', 'groupBy', 'orderBy', 'limit', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after where
 var crud = crud.where('age > 13');
-validate_crud_functions(crud, ['groupBy', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['groupBy', 'orderBy', 'limit', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after groupBy
 var crud = crud.groupBy(['name']);
-validate_crud_functions(crud, ['having', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['having', 'orderBy', 'limit', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after having
 var crud = crud.having('age > 10');
-validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after orderBy
 var crud = crud.orderBy(['age']);
-validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after limit
 var crud = crud.limit(1);
-validate_crud_functions(crud, ['offset', 'bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['offset', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after offset
 var crud = crud.offset(1);
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ TableSelect: valid operations after bind
 var crud = table.select().where('name = :data').bind('data', 'adam')
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ TableSelect: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ Reusing CRUD with binding
 print(result.fetchOne().name + '\n');
@@ -144,12 +144,12 @@ print("Names With A:", records.length, "\n");
 
 var records = table.select().where('NOT (age = 14)').execute().fetchAll();
 print("Not 14 Years:", records.length, "\n");
-                                                                 
+
 //@ Table.Select Field Selection
 var result = table.select(['name', 'age']).execute();
 var record = result.fetchOne();
 var columns = dir(record)
-print (columns)
+print(columns)
 print('1-Metadata Length:', columns.length, '\n');
 print('1-Metadata Field:', columns[1], '\n');
 print('1-Metadata Field:', columns[2], '\n');

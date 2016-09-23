@@ -46,8 +46,8 @@ std::set<std::string> Dba::_validate_instance_opts = {"host", "port", "user", "d
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL Admin API.");
-REGISTER_HELP(DBA_DETAIL, "The global variable 'dba' is used to access the MySQL AdminAPI functionality ");
-REGISTER_HELP(DBA_DETAIL1, "and perform DBA operations.It is used for managing MySQL InnoDB clusters.");
+REGISTER_HELP(DBA_DETAIL, "The global variable 'dba' is used to access the MySQL AdminAPI functionality "\
+"and perform DBA operations. It is used for managing MySQL InnoDB clusters.");
 REGISTER_HELP(DBA_CLOSING, "For more help on a specific function use dba.help('<functionName>')");
 REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deployLocalInstance')");
 

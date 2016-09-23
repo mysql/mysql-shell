@@ -24,11 +24,11 @@ validate_crud_functions(crud, ['values']);
 
 //@ TableInsert: valid operations after empty insert and values
 crud.values('john', 25, 'male');
-validate_crud_functions(crud, ['values', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['values', 'execute']);
 
 //@ TableInsert: valid operations after empty insert and values 2
 crud.values('alma', 23, 'female');
-validate_crud_functions(crud, ['values', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['values', 'execute']);
 
 //@ TableInsert: valid operations after insert with field list
 crud = table.insert(['name', 'age', 'gender']);
@@ -36,19 +36,19 @@ validate_crud_functions(crud, ['values']);
 
 //@ TableInsert: valid operations after insert with field list and values
 crud.values('john', 25, 'male');
-validate_crud_functions(crud, ['values', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['values', 'execute']);
 
 //@ TableInsert: valid operations after insert with field list and values 2
 crud.values('alma', 23, 'female');
-validate_crud_functions(crud, ['values', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['values', 'execute']);
 
 //@ TableInsert: valid operations after insert with fields and values
 crud = table.insert({ name: 'john', age: 25, gender: 'male' });
-validate_crud_functions(crud, ['execute', '__shell_hook__']);
+validate_crud_functions(crud, ['execute']);
 
 //@ TableInsert: valid operations after execute
 result = crud.execute();
-validate_crud_functions(crud, ['execute', '__shell_hook__']);
+validate_crud_functions(crud, ['execute']);
 
 // -------------------------------------------
 // Table.insert Unit Testing: Error Conditions
@@ -84,42 +84,33 @@ print("Affected Rows Multiple Values:", result.affectedItemCount, "\n");
 result = table.insert({ 'age': 14, 'name': 'jackie', 'gender': 'female' }).execute();
 print("Affected Rows Document:", result.affectedItemCount, "\n");
 
-try
-{
+try {
   print("lastDocumentId:", result.lastDocumentId, "\n");
 }
-catch(err)
-{
+catch (err) {
   print("lastDocumentId:", err.message, "\n");
 }
 
-try
-{
-  print ("getLastDocumentId():", result.getLastDocumentId());
+try {
+  print("getLastDocumentId():", result.getLastDocumentId());
 }
-catch(err)
-{
-  print ("getLastDocumentId():", err.message, "\n");
+catch (err) {
+  print("getLastDocumentId():", err.message, "\n");
 }
 
-try
-{
-  print ("lastDocumentIds:", result.lastDocumentIds);
+try {
+  print("lastDocumentIds:", result.lastDocumentIds);
 }
-catch(err)
-{
-  print ("lastDocumentIds:", err.message, "\n");
+catch (err) {
+  print("lastDocumentIds:", err.message, "\n");
 }
 
-try
-{
-  print ("getLastDocumentIds():", result.getLastDocumentIds());
+try {
+  print("getLastDocumentIds():", result.getLastDocumentIds());
 }
-catch(err)
-{
-  print ("getLastDocumentIds():", err.message, "\n");
+catch (err) {
+  print("getLastDocumentIds():", err.message, "\n");
 }
-
 
 //@ Table.insert execution on a View
 var view = schema.getTable('view1');

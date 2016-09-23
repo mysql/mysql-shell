@@ -31,8 +31,8 @@ using namespace shcore;
 std::vector<std::string> Dynamic_object::get_members() const {
   std::vector<std::string> _members;
   for (auto i : _funcs) {
-    // Only returns the enabled functions
-    if (_enabled_functions.find(i.first) != _enabled_functions.end() && _enabled_functions.at(i.first))
+    // Only returns the public enabled functions
+    if (_enabled_functions.find(i.first) != _enabled_functions.end() && _enabled_functions.at(i.first) && i.first != "__shell_hook__")
       _members.push_back(i.second->name(naming_style));
   }
   return _members;
@@ -56,7 +56,7 @@ Value Dynamic_object::get_member(const std::string &prop) const {
   std::map<std::string, std::shared_ptr<shcore::Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(prop)) == _funcs.end())
     throw shcore::Exception::attrib_error("Invalid object member " + prop);
-  else if (!_enabled_functions.at(prop))
+  else if (prop != "help" && !_enabled_functions.at(prop))
     throw shcore::Exception::logic_error("Forbidden usage of " + prop);
   else
     return Value(std::shared_ptr<shcore::Function_base>(i->second));

@@ -113,6 +113,22 @@ std::vector<std::string> Cpp_object_bridge::get_members() const {
   return members;
 }
 
+std::string Cpp_object_bridge::get_base_name(const std::string& member) const {
+  std::string ret_val;
+  auto style = naming_style;
+
+  auto func = std::find_if(_funcs.begin(), _funcs.end(), [member, style](const FunctionEntry &f) { return f.second->name(style) == member; });
+  if (func != _funcs.end()) {
+    ret_val = (*func).second->name(NamingStyle::LowerCamelCase);
+  } else {
+    auto prop = std::find_if(_properties.begin(), _properties.end(), [member, style](std::shared_ptr<Cpp_property_name> p) { return p->name(style) == member; });
+    if (prop != _properties.end())
+      ret_val = (*prop)->name(NamingStyle::LowerCamelCase);
+  }
+
+  return ret_val;
+}
+
 std::string Cpp_object_bridge::get_function_name(const std::string& member, bool fully_specified) const {
   if (fully_specified)
     return class_name() + "." + _funcs.at(member)->name(naming_style);
@@ -284,7 +300,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("help").c_str());
 
   // Returns a string composed of all the input lines splitted in lines of at most 80 - name_length
-  auto format_sub_items = [](const std::vector<std::string>& lines, size_t name_length)->std::string {
+  auto format_left_padding = [](const std::vector<std::string>& lines, size_t name_length)->std::string {
     std::string ret_val;
     ret_val.reserve(lines.size() * 80);
 
@@ -326,6 +342,29 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
     return ret_val;
   };
 
+  auto format_paragraph = [format_left_padding](const std::vector<std::string>& lines)->std::string {
+    std::string ret_val;
+
+    ret_val.reserve(lines.size() * 80);
+
+    for (auto line : lines) {
+      std::string space;
+      std::vector<size_t> lengths;
+      // handles list items
+      auto pos = line.find("@li");
+      if (0 == pos) {
+        ret_val += " - ";
+        ret_val += format_left_padding({line.substr(4)}, 3);
+      } else {
+        ret_val += format_left_padding({line}, 0);
+      }
+
+      ret_val.append("\n");
+    }
+
+    return ret_val;
+  };
+
   std::string ret_val;
   std::string item;
 
@@ -337,21 +376,27 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   ret_val += "\n";
 
   if (!item.empty()) {
+    auto base_name = get_base_name(item);
+
     // Checks for an invalid member
-    if (!has_member(item)) {
+    if (base_name.empty()) {
       std::string error = get_function_name("help") + ": '" + item + "' is not recognized as a property or function.\n"
         "Use " + get_function_name("help") + "() to get a list of supported members.";
       throw shcore::Exception::argument_error(error);
     }
 
     // The prefix is increased to include the function/property name
-    prefix.append("_" + item);
+    prefix.append("_" + base_name);
 
     auto briefs = get_help_text(prefix + "_BRIEF");
-    ret_val += format_sub_items(briefs, 0);
+
+    if (!briefs.empty()) {
+      ret_val += format_left_padding(briefs, 0);
+      ret_val += "\n";  // Second \n
+    }
 
     // On functions we continue with the rest of the documentation
-    if (has_method(item)) {
+    if (has_method_advanced(item, naming_style)) {
       auto params = get_help_text(prefix + "_PARAM");
       if (!params.empty()) {
         std::vector<std::string> fpnames; // Parameter names as they will look in the signature
@@ -386,12 +431,12 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         }
 
         // Creates the syntax
-        ret_val.append("\n\nSYNTAX\n\n  ");
+        ret_val.append("SYNTAX\n\n  ");
         ret_val.append(item);
-        ret_val.append("(" + shcore::join_strings(fpnames, ", ") + ")");
+        ret_val.append("(" + shcore::join_strings(fpnames, ", ") + ")\n\n");
 
         // Describes the parameters
-        ret_val.append("\n\nWHERE\n\n");
+        ret_val.append("WHERE\n\n");
 
         size_t index;
         for (index = 0; index < params.size(); index++) {
@@ -399,39 +444,33 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
           size_t name_length = pnames[index].size() + 4;
 
-          ret_val.append(format_sub_items({pdescs[index]}, name_length));
+          ret_val.append(format_left_padding({pdescs[index]}, name_length));
         }
 
         ret_val.append("\n");
       } else {
-        ret_val.append("\n\nSYNTAX\n\n  ");
+        ret_val.append("SYNTAX\n\n  ");
         ret_val.append(item);
         ret_val.append("()\n\n");
       }
+    }
+
+    auto returns = get_help_text(prefix + "_RETURNS");
+    if (!returns.empty()) {
+      ret_val.append("RETURNS:\n\n");
+      ret_val.append(format_paragraph(returns));
     }
 
     auto details = get_help_text(prefix + "_DETAIL");
 
     if (!details.empty()) {
       ret_val.append("ADDITIONAL INFO:\n\n");
-
-      for (auto line : details) {
-        std::string space;
-        std::vector<size_t> lengths;
-        // handles list items
-        auto pos = line.find("@li");
-        if (0 == pos) {
-          ret_val += " - ";
-          ret_val += format_sub_items({line.substr(4)}, 3);
-        } else {
-          ret_val += format_sub_items({line}, 0);
-        }
-
-        ret_val.append("\n");
-      }
+      ret_val.append(format_paragraph(details));
     }
   } else {
-    ret_val += join_strings(get_help_text(prefix + "_DETAIL"), "\n");
+    auto details = get_help_text(prefix + "_DETAIL");
+    if (!details.empty())
+      ret_val += format_paragraph(details);
 
     if (_properties.size()) {
       int text_col = 0;
@@ -444,7 +483,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       // and the three spaces for the " - " before the property names
       text_col += 4;
 
-      ret_val += "\n\nThe following properties are currently supported.\n\n";
+      ret_val += "The following properties are currently supported.\n\n";
       for (auto property : _properties) {
         std::string name = property->name(naming_style);
         std::string pname = property->name(shcore::NamingStyle::LowerCamelCase);
@@ -457,10 +496,14 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         std::string first_space(text_col - (pname.size() + 3), ' ');
 
         if (!help_text.empty())
-          text += first_space + format_sub_items(help_text, text_col);
+          text += first_space + format_left_padding(help_text, text_col);
+        else
+          text += "\n";
 
         ret_val += text;
       }
+
+      ret_val += "\n";
     }
 
     if (_funcs.size()) {
@@ -474,10 +517,14 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       // and the three spaces for the " - " before the function names
       text_col += 4;
 
-      ret_val += "\n\nThe following functions are currently supported.\n\n";
+      ret_val += "The following functions are currently supported.\n\n";
 
       for (auto function : _funcs) {
         std::string name = function.second->_name[naming_style];
+
+        // Skips non public functions
+        if (name.find("__") == 0)
+          continue;
 
         std::string fname = function.second->_name[shcore::NamingStyle::LowerCamelCase];
 
@@ -488,18 +535,21 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         if (help_text.empty() && fname == "help")
           help_text.push_back("Provides help about this class and it's members");
 
-        std::string first_space(text_col - (fname.size() + 3), ' ');
+        std::string first_space(text_col - (name.size() + 3), ' ');
         if (!help_text.empty())
-          text += first_space + format_sub_items(help_text, text_col);
+          text += first_space + format_left_padding(help_text, text_col);
+        else
+          text += "\n";
 
         ret_val += text;
       }
+
+      ret_val += "\n";
     }
 
     auto closing = get_help_text(prefix + "_CLOSING", {80});
-
     if (!closing.empty())
-      ret_val += "\n" + format_sub_items(closing, 0);
+      ret_val += format_paragraph(closing) + "\n";
   }
 
   return shcore::Value(ret_val);

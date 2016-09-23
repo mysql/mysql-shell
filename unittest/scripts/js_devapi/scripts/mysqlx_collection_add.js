@@ -15,15 +15,15 @@ var collection = schema.createCollection('collection1');
 // ---------------------------------------------
 //@ CollectionAdd: valid operations after add with no documents
 var crud = collection.add([]);
-validate_crud_functions(crud, ['add', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['add', 'execute']);
 
 //@ CollectionAdd: valid operations after add
 var crud = collection.add({ name: "john", age: 17 });
-validate_crud_functions(crud, ['add', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['add', 'execute']);
 
 //@ CollectionAdd: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['add', 'execute', '__shell_hook__']);
+validate_crud_functions(crud, ['add', 'execute']);
 
 // ---------------------------------------------
 // Collection.add Unit Testing: Error Conditions
@@ -34,7 +34,7 @@ crud = collection.add();
 crud = collection.add(45);
 crud = collection.add(['invalid data']);
 crud = collection.add(mysqlx.expr('5+1'));
-crud = collection.add({_id:45, name: 'sample'});
+crud = collection.add({ _id: 45, name: 'sample' });
 
 // ---------------------------------------
 // Collection.Add Unit Testing: Execution
@@ -60,20 +60,16 @@ print("#getLastDocumentIds Single Known ID:", result.getLastDocumentIds()[0]);
 
 var result = collection.add([{ name: 'my second', passed: 'again', count: 2 }, { name: 'my third', passed: 'once again', count: 3 }]).execute();
 print("Affected Rows Multi:", result.affectedItemCount, "\n");
-try
-{
+try {
   print("lastDocumentId Multi:", result.lastDocumentId);
 }
-catch(err)
-{
+catch (err) {
   print("lastDocumentId Multi:", err.message, "\n");
 }
-try
-{
+try {
   print("getLastDocumentId Multi:", result.getLastDocumentId());
 }
-catch(err)
-{
+catch (err) {
   print("getLastDocumentId Multi:", err.message, "\n");
 }
 
@@ -82,20 +78,16 @@ print("#getLastDocumentIds Multi:", result.getLastDocumentIds().length);
 
 var result = collection.add([{ _id: "known_00", name: 'my second', passed: 'again', count: 2 }, { _id: "known_01", name: 'my third', passed: 'once again', count: 3 }]).execute();
 print("Affected Rows Multi Known IDs:", result.affectedItemCount, "\n");
-try
-{
+try {
   print("lastDocumentId Multi Known IDs:", result.lastDocumentId);
 }
-catch(err)
-{
+catch (err) {
   print("lastDocumentId Multi Known IDs:", err.message, "\n");
 }
-try
-{
+try {
   print("getLastDocumentId Multi Known IDs:", result.getLastDocumentId());
 }
-catch(err)
-{
+catch (err) {
   print("getLastDocumentId Multi Known IDs:", err.message, "\n");
 }
 
@@ -108,26 +100,21 @@ print("Second getLastDocumentIds Multi Known IDs:", result.getLastDocumentIds()[
 
 var result = collection.add([]).execute();
 print("Affected Rows Empty List:", result.affectedItemCount, "\n");
-try
-{
+try {
   print("lastDocumentId Empty List:", result.lastDocumentId);
 }
-catch(err)
-{
+catch (err) {
   print("lastDocumentId Empty List:", err.message, "\n");
 }
-try
-{
+try {
   print("getLastDocumentId Empty List:", result.getLastDocumentId());
 }
-catch(err)
-{
+catch (err) {
   print("getLastDocumentId Empty List:", err.message, "\n");
 }
 
 print("#lastDocumentIds Empty List:", result.lastDocumentIds.length);
 print("#getLastDocumentIds Empty List:", result.getLastDocumentIds().length);
-
 
 var result = collection.add({ name: 'my fourth', passed: 'again', count: 4 }).add({ name: 'my fifth', passed: 'once again', count: 5 }).execute();
 print("Affected Rows Chained:", result.affectedItemCount, "\n");
