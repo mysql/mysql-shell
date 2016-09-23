@@ -921,9 +921,9 @@ void Base_shell::process_line(const std::string &line) {
           std::string executed = _shell->get_handled_input();
 
           if (!executed.empty()) {
-	    shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
-	    (*data)["statement"] = shcore::Value(executed);
-	    shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr, data);
+            shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
+            (*data)["statement"] = shcore::Value(executed);
+            shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr, data);
           }
         }
       } catch (shcore::Exception &exc) {
@@ -1038,6 +1038,9 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source)
   // If interactive is set, it means that the shell was started with the option to
   // Emulate interactive mode while processing the stream
   if (_options.interactive) {
+    if (_options.full_interactive)
+      _shell->print(prompt());
+
     bool comment_first_js_line = _shell->interactive_mode() == shcore::IShell_core::Mode_JScript;
     while (!stream.eof()) {
       std::string line;
@@ -1051,12 +1054,13 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source)
 
       comment_first_js_line = false;
 
-      if (_options.full_interactive) {
-        std::string trace = prompt() + line;
+      if (_options.full_interactive)
         println(line);
-      }
 
       process_line(line);
+
+      if (_options.full_interactive)
+        _shell->print(prompt());
     }
 
     // Being interactive, we do not care about the return value
