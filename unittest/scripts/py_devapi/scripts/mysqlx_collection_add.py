@@ -36,6 +36,9 @@ crud = collection.add(45)
 crud = collection.add(['invalid data'])
 crud = collection.add(mysqlx.expr('5+1'))
 crud = collection.add({'_id':45, 'name': 'sample'});
+crud = collection.add([{'name': 'sample'}, 'error']);
+crud = collection.add({'name': 'sample'}, 'error');
+
 
 # ---------------------------------------
 # Collection.Add Unit Testing: Execution
@@ -107,15 +110,25 @@ except Exception, err:
 print "#last_document_ids Empty List:", len(result.last_document_ids)
 print "#get_last_document_ids Empty List:", len(result.get_last_document_ids())
 
-
+//! [CollectionAdd: Chained Calls]
 result = collection.add({ "name": 'my fourth', "passed": 'again', "count": 4 }).add({ "name": 'my fifth', "passed": 'once again', "count": 5 }).execute()
 print "Affected Rows Chained:", result.affected_item_count, "\n"
+//! [CollectionAdd: Chained Calls]
 
+//! [CollectionAdd: Using an Expression]
 result = collection.add(mysqlx.expr('{"name": "my fifth", "passed": "document", "count": 1}')).execute()
 print "Affected Rows Single Expression:", result.affected_item_count, "\n"
+//! [CollectionAdd: Using an Expression]
 
+//! [CollectionAdd: Document List]
 result = collection.add([{ "name": 'my sexth', "passed": 'again', "count": 5 }, mysqlx.expr('{"name": "my senevth", "passed": "yep again", "count": 5}')]).execute()
 print "Affected Rows Mixed List:", result.affected_item_count, "\n"
+//! [CollectionAdd: Document List]
+
+//! [CollectionAdd: Multiple Parameters]
+result = collection.add({ "name": 'my eigth', "passed": 'yep', "count": 6 }, mysqlx.expr('{"name": "my nineth", "passed": "yep again", "count": 6}')).execute()
+print "Affected Rows Multiple Params:", result.affected_item_count, "\n"
+//! [CollectionAdd: Multiple Parameters]
 
 # Cleanup
 mySession.drop_schema('js_shell_test')

@@ -48,12 +48,10 @@ public:
   virtual shcore::Value execute(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
-  CollectionAdd add(Document document);
-  CollectionAdd add(List documents);
+  CollectionAdd add(DocDefinition document[, DocDefinition document, ...]);
   Result execute();
 #elif DOXYGEN_PY
-  CollectionAdd add(Document document);
-  CollectionAdd add(list documents);
+  CollectionAdd add(DocDefinition document[, DocDefinition document, ...]);
   Result execute();
 #endif
 

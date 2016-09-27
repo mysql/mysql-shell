@@ -23,6 +23,7 @@
 #include "mysqlxtest/common/expr_parser.h"
 #include "mod_mysqlx_expression.h"
 #include "utils/utils_time.h"
+#include "utils/utils_help.h"
 
 #include <iomanip>
 #include <sstream>
@@ -46,97 +47,93 @@ CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-#if DOXYGEN_CPP
-/**
- * Adds documents to a collection.
- * \param args the document(s) to be added.
- * \return A CollectionAdd object.
- *
- * This function supports adding either one or a list of documents, so args may contain either:
- *
- * \li A Map defining the document to be added.
- * \li An array of Maps defining the documents to be added
- *
- * To be added, each document must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
- *
- * This function creates a CollectionAdd object which is a document addition handler, the received document is added into this handler.
- *
- * The CollectionAdd class has other functions that allow specifying the way the addition occurs.
- *
- * The addition is done when the execute function is called on the handler.
- */
-#else
-/**
-* Adds a document into a collection.
-* \param document The document to be added into the collection.
-* \return This CollectionAdd object.
-*
-* To be added, the document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
-*
-* #### Using Expressions for Documents
-*
-* The document parameter could be either a native representation of a document or an expression representing a document.
-*
-* To define an expression use:
-* \code{.py}
-* mysqlx.expr(expression)
-* \endcode
-*
-* To create an expression that represents a document, the expression parameter must be a valid JSON string.
-*
-* The values on this JSON string could be literal values but it is possible to also use the functions available at the MySQL server.
-*
-* #### Method Chaining
-*
-* This method can be called many times, every time it is called the received document will be cached into an internal list.
-*
-* The actual addition into the collection will occur only when the execute method is called.
-*
-* \sa Usage examples at execute().
-*/
-#if DOXYGEN_JS
-CollectionAdd CollectionAdd::add(Document document) {}
-#elif DOXYGEN_PY
-CollectionAdd CollectionAdd::add(Document document) {}
-#endif
+REGISTER_HELP(COLLECTIONADD_ADD_BRIEF, "Adds documents into a collection.");
+REGISTER_HELP(COLLECTIONADD_ADD_PARAM, "@param document A document definition to be added.");
+REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX_TITLE, "<b>Syntax Variations</b>");
+REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX, ".add(document[, document, ...])[.add(...)]");
+REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX1, ".add(documentList)[.add(...)]");
+REGISTER_HELP(COLLECTIONADD_ADD_RETURNS, "@return This CollectionAdd object.");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL, "This function receives one or more document definitions to be added into a collection.");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL1, "A document definition may be provided in two ways:");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL2, "@li Using a dictionary containing the document fields.");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL3, "@li Using A JSON string as a document expression.");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL4, "There are three ways to add multiple documents:");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL5, "@li Passing several parameters to the function, each parameter should be a document definition.");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL6, "@li Passing a list of document definitions.");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL7, "@li Calling this function several times before calling execute().");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL8, "To be added, every document must have a string property named '_id' ideally with a universal unique identifier (UUID) as value. "\
+"If the '_id' property is missing, it is automatically set with an internally generated UUID.");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL9, "<b>JSON as Document Expressions</b>");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL10, "A document can be represented passing a JSON string to the mysqlx.expr(expression) function.");
 
 /**
-* Adds a list of documents into a collection.
-* \param documents A list of documents to be added into the collection.
-* \return This CollectionAdd object.
+* $(COLLECTIONADD_ADD_BRIEF)
 *
-* To be added, each document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+* $(COLLECTIONADD_ADD_PARAM)
 *
-* #### Using Expressions for Documents
+* $(COLLECTIONADD_ADD_RETURNS)
 *
-* Each document on the list could be either a native representation of a document or an expression representing a document.
+* $(COLLECTIONADD_ADD_DETAIL)
 *
-* To define an expression use:
-* \code{.py}
-* mysqlx.expr(expression)
-* \endcode
+* $(COLLECTIONADD_ADD_DETAIL1)
 *
-* To create an expression that represents a document, the expression parameter must be a valid JSON string.
+* $(COLLECTIONADD_ADD_DETAIL2)
+* $(COLLECTIONADD_ADD_DETAIL3)
 *
-* The values on this JSON string could be literal values but it is possible to also use the functions available at the MySQL server.
+* $(COLLECTIONADD_ADD_DETAIL4)
+*
+* $(COLLECTIONADD_ADD_DETAIL5)
+* $(COLLECTIONADD_ADD_DETAIL6)
+* $(COLLECTIONADD_ADD_DETAIL7)
+*
+* $(COLLECTIONADD_ADD_DETAIL8)
 *
 * #### Method Chaining
 *
-* This method can be called many times, every time it is called the received documents will be cached into an internal list.
-*
+* This method can be called many times, every time it is called the received document(s) will be cached into an internal list.
 * The actual addition into the collection will occur only when the execute method is called.
-*
-* \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionAdd CollectionAdd::add(List documents) {}
+/**
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Chained Calls
+*
+* $(COLLECTIONADD_ADD_DETAIL9)
+*
+* $(COLLECTIONADD_ADD_DETAIL10)
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Using an Expression
+*
+* #### Using a Document List
+* Adding document using an existing document list
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Document List
+*
+* #### Multiple Parameters
+* Adding document using a separate parameter for each document on a single call to add(...)
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Multiple Parameters
+*/
+CollectionAdd CollectionAdd::add(DocDefinition document[, DocDefinition document, ...]){}
 #elif DOXYGEN_PY
-CollectionAdd CollectionAdd::add(list documents) {}
-#endif
+/**
+* Adding documents using chained calls to add(...)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Chained Calls
+*
+* $(COLLECTIONADD_ADD_DETAIL9)
+*
+* $(COLLECTIONADD_ADD_DETAIL10)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Using an Expression
+*
+* #### Using a Document List
+* Adding document using an existing document list
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Document List
+*
+* #### Multiple Parameters
+* Adding document using a separate parameter for each document on a single call to add(...)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Multiple Parameters
+*/
+CollectionAdd CollectionAdd::add(DocDefinition document[, DocDefinition document, ...]) {}
 #endif
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
   // Each method validates the received parameters
-  args.ensure_count(1, get_function_name("add").c_str());
+  args.ensure_at_least(1, get_function_name("add").c_str());
 
   std::shared_ptr<DatabaseObject> raw_owner(_owner.lock());
 
@@ -146,16 +143,24 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
     if (collection) {
       try {
         shcore::Value::Array_type_ref shell_docs;
-
-        if (args[0].type == Map || (args[0].type == Object && args[0].as_object()->class_name() == "Expression")) {
-          // On a single document parameter, creates an array and processes it as a list of
-          // documents, only advantage of this is avoid duplicating validation and setup logic
+        std::string error_prefix = "Argument";
+        if (args.size() == 1) {
+          if (args[0].type == Map || (args[0].type == Object && args[0].as_object()->class_name() == "Expression")) {
+            // On a single document parameter, creates an array and processes it as a list of
+            // documents, only advantage of this is avoid duplicating validation and setup logic
+            shell_docs.reset(new Value::Array_type());
+            shell_docs->push_back(args[0]);
+          } else if (args[0].type == Array) {
+            shell_docs = args[0].as_array();
+            error_prefix = "Element";
+          } else
+            throw shcore::Exception::argument_error("Argument is expected to be either a document or a list of documents");
+        } else {
+          // Individual document parameters support
           shell_docs.reset(new Value::Array_type());
-          shell_docs->push_back(args[0]);
-        } else if (args[0].type == Array)
-          shell_docs = args[0].as_array();
-        else
-          throw shcore::Exception::argument_error("Argument is expected to be either a document or a list of documents");
+          for (auto document : args)
+            shell_docs->push_back(document);
+        }
 
         if (shell_docs) {
           if (!_add_statement.get())
@@ -177,9 +182,9 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
               if (document.type == Map)
                 shell_doc = document.as_map();
               else
-                throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a JSON expression") % (index + 1)).str());
+                throw shcore::Exception::argument_error((boost::format("%1% #%2% is expected to be a JSON expression") % error_prefix % (index + 1)).str());
             } else
-              throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a document or a JSON expression") % (index + 1)).str());
+              throw shcore::Exception::argument_error((boost::format("%1% #%2% is expected to be a document or a JSON expression") % error_prefix % (index + 1)).str());
 
             // Verification of the _id existence
             if (shell_doc) {
@@ -226,34 +231,23 @@ std::string CollectionAdd::get_new_uuid() {
   return str.str();
 }
 
+REGISTER_HELP(COLLECTIONADD_EXECUTE_BRIEF, "Executes the add operation, the documents are added to the target collection.");
+REGISTER_HELP(COLLECTIONADD_EXECUTE_RETURN, "@return A Result object.");
+REGISTER_HELP(COLLECTIONADD_EXECUTE_SYNTAX, ".execute()");
+
 /**
-* Executes the document addition for the documents cached on this object.
-* \return A Result object.
+* $(COLLECTIONADD_EXECUTE_BRIEF)
+* $(COLLECTIONADD_EXECUTE_RETURN)
 *
 * #### Method Chaining
 *
 * This function can be invoked once after:
 *
-* - add(Document document)
-* - add(List documents)
+* - add(DocDefinition document[, DocDefinition document, ...])
 */
 #if DOXYGEN_JS
-/**
- *
- * #### Examples
- * \dontinclude "js_devapi/scripts/mysqlx_collection_add.js"
- * \skip //@ Collection.add execution
- * \until print("Affected Rows Mixed List:", result.affectedItemCount, "\n")
- */
 Result CollectionAdd::execute() {}
 #elif DOXYGEN_PY
-/**
- *
- * #### Examples
- * \dontinclude "py_devapi/scripts/mysqlx_collection_add.py"
- * \skip #@ Collection.add execution
- * \until print "Affected Rows Mixed List:", result.affected_item_count, "\n"
- */
 Result CollectionAdd::execute() {}
 #endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args) {

@@ -26,6 +26,7 @@
 #include "mod_mysqlx_collection_modify.h"
 #include "mod_mysqlx_collection_create_index.h"
 #include "mod_mysqlx_collection_drop_index.h"
+#include "utils/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysh;
@@ -55,67 +56,82 @@ void Collection::init() {
 
 Collection::~Collection() {}
 
-#if DOXYGEN_CPP
-/**
- * Adds documents to a collection.
- * \param args the document(s) to be added.
- * \return A CollectionAdd object.
- *
- * This function supports adding either one or a list of documents, so args may contain either:
- *
- * \li A Map defining the document to be added.
- * \li An array of Maps defining the documents to be added
- *
- * To be added, each document must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
- *
- * This function creates a CollectionAdd object which is a document addition handler, the received document is added into this handler.
- *
- * The CollectionAdd class has other functions that allow specifying the way the addition occurs.
- *
- * The addition is done when the execute function is called on the handler.
- */
-#else
-/**
-* Adds a document to a collection.
-* \param document The document to be added into the collection.
-* \return A CollectionAdd object.
-*
-* To be added, the document must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
-*
-* This function creates a CollectionAdd object which is a document addition handler, the received document is added into this handler.
-*
-* The CollectionAdd class has other functions that allow specifying the way the addition occurs.
-*
-* The addition is done when the execute function is called on the handler.
-*
-* \sa CollectionAdd
-*/
-#if DOXYGEN_JS
-CollectionAdd Collection::add(Document document) {}
-#elif DOXYGEN_PY
-CollectionAdd Collection::add(Document document) {}
-#endif
+REGISTER_HELP(COLLECTION_ADD_BRIEF, "Inserts one or more documents into a collection.");
+REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
 
 /**
-* Adds a list of documents to a collection.
-* \param documents The document list to be added into the collection.
-* \return A CollectionAdd object.
+* $(COLLECTIONADD_ADD_BRIEF)
 *
-* Every document to be added must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
+* ### Full Syntax
 *
-* This function creates a CollectionAdd object which is a document addition handler, the received documents are added into this handler.
+* <code>
+*   <table border = "0">
+*     <tr><td>Collection</td><td>$(COLLECTIONADD_ADD_SYNTAX)</td></tr>
+*     <tr><td></td><td>$(COLLECTIONADD_ADD_SYNTAX1)</td></tr>
+*     <tr><td></td><td>$(COLLECTIONADD_EXECUTE_SYNTAX)</td></tr>
+*   </table>
+* </code>
 *
-* The CollectionAdd class has other functions that allow specifying the way the addition occurs.
+* #### .add(...)
 *
-* The addition is done when the execute function is called on the handler.
+* $(COLLECTIONADD_ADD_DETAIL)
 *
-* \sa CollectionAdd
+* $(COLLECTIONADD_ADD_DETAIL1)
+*
+* $(COLLECTIONADD_ADD_DETAIL2)
+* $(COLLECTIONADD_ADD_DETAIL3)
+*
+* $(COLLECTIONADD_ADD_DETAIL4)
+*
+* $(COLLECTIONADD_ADD_DETAIL5)
+* $(COLLECTIONADD_ADD_DETAIL6)
+* $(COLLECTIONADD_ADD_DETAIL7)
+*
+* $(COLLECTIONADD_ADD_DETAIL8)
+*
+* #### .execute()
+*
+* $(COLLECTIONADD_EXECUTE_BRIEF)
+*
+* ### Examples
 */
 #if DOXYGEN_JS
-CollectionAdd Collection::add(List documents) {}
+/**
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Chained Calls
+*
+* $(COLLECTIONADD_ADD_DETAIL9)
+*
+* $(COLLECTIONADD_ADD_DETAIL10)
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Using an Expression
+*
+* #### Using a Document List
+* Adding document using an existing document list
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Document List
+*
+* #### Multiple Parameters
+* Adding document using a separate parameter for each document on a single call to add(...)
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Multiple Parameters
+*/
+CollectionAdd Collection::add(DocDefinition document[, DocDefinition document, ...]) {}
 #elif DOXYGEN_PY
-CollectionAdd Collection::add(list documents) {}
-#endif
+/**
+* Adding documents using chained calls to add(...)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Chained Calls
+*
+* $(COLLECTIONADD_ADD_DETAIL9)
+*
+* $(COLLECTIONADD_ADD_DETAIL10)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Using an Expression
+*
+* #### Using a Document List
+* Adding document using an existing document list
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Document List
+*
+* #### Multiple Parameters
+* Adding document using a separate parameter for each document on a single call to add(...)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Multiple Parameters
+*/
+CollectionAdd Collection::add(DocDefinition document[, DocDefinition document, ...]) {}
 #endif
 shcore::Value Collection::add_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionAdd> collectionAdd(new CollectionAdd(shared_from_this()));

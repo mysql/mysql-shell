@@ -34,7 +34,10 @@ crud = collection.add();
 crud = collection.add(45);
 crud = collection.add(['invalid data']);
 crud = collection.add(mysqlx.expr('5+1'));
-crud = collection.add({ _id: 45, name: 'sample' });
+crud = collection.add({_id:45, name: 'sample'});
+crud = collection.add([{name: 'sample'}, 'error']);
+crud = collection.add({name: 'sample'}, 'error');
+
 
 // ---------------------------------------
 // Collection.Add Unit Testing: Execution
@@ -116,14 +119,25 @@ catch (err) {
 print("#lastDocumentIds Empty List:", result.lastDocumentIds.length);
 print("#getLastDocumentIds Empty List:", result.getLastDocumentIds().length);
 
+//! [CollectionAdd: Chained Calls]
 var result = collection.add({ name: 'my fourth', passed: 'again', count: 4 }).add({ name: 'my fifth', passed: 'once again', count: 5 }).execute();
 print("Affected Rows Chained:", result.affectedItemCount, "\n");
+//! [CollectionAdd: Chained Calls]
 
+//! [CollectionAdd: Using an Expression]
 var result = collection.add(mysqlx.expr('{"name": "my fifth", "passed": "document", "count": 1}')).execute()
 print("Affected Rows Single Expression:", result.affectedItemCount, "\n")
+//! [CollectionAdd: Using an Expression]
 
+//! [CollectionAdd: Document List]
 var result = collection.add([{ "name": 'my sexth', "passed": 'again', "count": 5 }, mysqlx.expr('{"name": "my senevth", "passed": "yep again", "count": 5}')]).execute()
 print("Affected Rows Mixed List:", result.affectedItemCount, "\n")
+//! [CollectionAdd: Document List]
+
+//! [CollectionAdd: Multiple Parameters]
+var result = collection.add({ "name": 'my eigth', "passed": 'yep', "count": 6 }, mysqlx.expr('{"name": "my nineth", "passed": "yep again", "count": 6}')).execute()
+print("Affected Rows Multiple Params:", result.affectedItemCount, "\n")
+//! [CollectionAdd: Multiple Parameters]
 
 // Cleanup
 mySession.dropSchema('js_shell_test');
