@@ -254,6 +254,9 @@ public:
   Value &operator [](size_t i) { return _args[i]; }
   const Value &operator [](size_t i) const { return _args[i]; }
   void clear() { _args.clear(); }
+
+  std::vector<Value>::const_iterator begin() const { return _args.begin(); }
+  std::vector<Value>::const_iterator end() const { return _args.end(); }
 private:
   std::vector<Value> _args;
 };
