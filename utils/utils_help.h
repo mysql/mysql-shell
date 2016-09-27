@@ -51,7 +51,7 @@ struct Help_register {
   Help_register(const std::string &token, const std::string &data);
 };
 
-std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string& token, const std::vector<size_t> &sizes = {});
+std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string& token);
 };
 
 #define REGISTER_HELP(x,y) shcore::Help_register x(#x,y)

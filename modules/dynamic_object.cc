@@ -54,9 +54,9 @@ std::vector<std::string> Dynamic_object::get_members() const {
 #endif
 Value Dynamic_object::get_member(const std::string &prop) const {
   std::map<std::string, std::shared_ptr<shcore::Cpp_function> >::const_iterator i;
-  if ((i = _funcs.find(prop)) == _funcs.end())
+  if ((i = _funcs.find(prop)) == _funcs.end() || prop == "help")
     throw shcore::Exception::attrib_error("Invalid object member " + prop);
-  else if (prop != "help" && !_enabled_functions.at(prop))
+  else if (!_enabled_functions.at(prop))
     throw shcore::Exception::logic_error("Forbidden usage of " + prop);
   else
     return Value(std::shared_ptr<shcore::Function_base>(i->second));

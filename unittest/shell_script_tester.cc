@@ -202,7 +202,9 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
       if (!current_chunk)
         current_chunk = new std::vector<std::string>();
 
-      current_chunk->push_back(line);
+      // Only adds the lines that are NO snippet specifier
+      if (line.find("//! [") != 0)
+        current_chunk->push_back(line);
     }
   }
 
