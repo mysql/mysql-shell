@@ -117,15 +117,19 @@ void Shell_core::print(const std::string &s) {
 
 void Shell_core::println(const std::string &s, const std::string& tag) {
   std::string output(s);
+  bool add_new_line = true;
 
   // When using JSON output ALL must be JSON
   if (!s.empty()) {
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
-    if (format.find("json") != std::string::npos)
+    if (format.find("json") != std::string::npos) {
       output = format_json_output(output, tag.empty() ? "info" : tag);
+      add_new_line = false;
+    }
   }
 
-  output += "\n";
+  if (add_new_line)
+    output += "\n";
 
   _client_delegate->print(_client_delegate->user_data, output.c_str());
 }
@@ -161,7 +165,7 @@ std::string Shell_core::format_json_output(const shcore::Value &info, const std:
   dumper.append_value(tag, info);
   dumper.end_object();
 
-  return dumper.str();
+  return dumper.str() + "\n";
 }
 
 void Shell_core::print_error(const std::string &s) {
@@ -565,14 +569,14 @@ bool Shell_core::reconnect_if_needed() {
           usleep(1500000);
 #endif
           _global_dev_session->reconnect();
-        }
+    }
 
         print("The global session was successfully reconnected.\n");
         ret_val = true;
-      } catch (shcore::Exception &e) {
-        print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
-      }
-    }
+  } catch (shcore::Exception &e) {
+    print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
+  }
+}
 
     _reconnect_session = false;
   }
@@ -646,17 +650,20 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
     deleg->print_value(deleg->user_data, value, tag);
   else {
     std::string output;
+    bool add_new_line = true;
     // When using JSON output ALL must be JSON
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
     if (format.find("json") != std::string::npos) {
       // If no tag is provided, prints the JSON representation of the Value
-      if (mtag.empty())
+      if (mtag.empty()) {
         output = value.json((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
-      else {
+      } else {
         if (value.type == shcore::String)
           output = shcore->format_json_output(value.as_string(), mtag);
         else
           output = shcore->format_json_output(value, mtag);
+
+        add_new_line = false;
       }
     } else {
       if (mtag == "error" && value.type == shcore::Map) {
@@ -681,7 +688,8 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
         output = value.descr(true);
     }
 
-    output += "\n";
+    if (add_new_line)
+      output += "\n";
 
     if (mtag == "error")
       deleg->print_error(deleg->user_data, output.c_str());
