@@ -27,6 +27,10 @@
 #include "common/process_launcher/process_launcher.h"
 #include "utils/utils_file.h"
 
+
+static const char *kRequiredMySQLProvisionInterfaceVersion = "1.0";
+
+
 using namespace mysh;
 using namespace mysh::dba;
 using namespace shcore;
@@ -77,6 +81,10 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   args_script.push_back(cmd.c_str());
 
   args_script.insert(args_script.end(), args.begin(), args.end());
+  // API version check for mysqlprovision
+  args_script.push_back("-xV");
+  args_script.push_back(kRequiredMySQLProvisionInterfaceVersion);
+  args_script.push_back(NULL);
 
   {
     std::string cmdline;
@@ -212,7 +220,6 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
   std::vector<const char *> args;
   args.push_back(instance_param.c_str());
   args.push_back("--stdin");
-  args.push_back(NULL);
 
   return execute_mysqlprovision("check", args, passwords, errors, true);
 }
@@ -265,7 +272,6 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
     args.push_back(extra_args[i].c_str());
   if (!pwd.empty())
     args.push_back("--stdin");
-  args.push_back(NULL);
 
   return execute_mysqlprovision("sandbox", args, passwords, errors, _verbose);
 }
@@ -332,7 +338,6 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
   if (multi_master)
     args.push_back("--single-primary=OFF");
   args.push_back("--stdin");
-  args.push_back(NULL);
 
   return execute_mysqlprovision("start-replicaset", args, passwords, errors, _verbose);
 }
@@ -367,7 +372,6 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
   args.push_back(peer_instance_args.c_str());
 
   args.push_back("--stdin");
-  args.push_back(NULL);
 
   return execute_mysqlprovision("join-replicaset", args, passwords, errors, _verbose);
 }
@@ -387,7 +391,6 @@ int ProvisioningInterface::leave_replicaset(const std::string &instance_url, con
   args.push_back(instance_args.c_str());
 
   args.push_back("--stdin");
-  args.push_back(NULL);
 
   return execute_mysqlprovision("leave-replicaset", args, passwords, errors, _verbose);
 }
