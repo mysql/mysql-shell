@@ -58,11 +58,11 @@ public:
   int get_default_instance_port() { return 3306; }
 
   shcore::Value validate_instance(const shcore::Argument_list &args);
-  shcore::Value deploy_local_instance(const shcore::Argument_list &args, const std::string &fname); // create and start
-  shcore::Value stop_local_instance(const shcore::Argument_list &args);
-  shcore::Value delete_local_instance(const shcore::Argument_list &args);
-  shcore::Value kill_local_instance(const shcore::Argument_list &args);
-  shcore::Value start_local_instance(const shcore::Argument_list &args);
+  shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args, const std::string &fname); // create and start
+  shcore::Value stop_sandbox_instance(const shcore::Argument_list &args);
+  shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
+  shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
+  shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
 
   shcore::Value clone_instance(const shcore::Argument_list &args);
   shcore::Value configure_instance(const shcore::Argument_list &args);
@@ -78,27 +78,27 @@ public:
 #if DOXYGEN_JS
   Boolean verbose; //!< $(DBA_VERBOSE_BRIEF)
   Cluster createCluster(String name, String masterKey, Dictionary options);
-  Undefined deleteLocalInstance(Integer port, Dictionary options);
-  Undefined deployLocalInstance(Integer port, Dictionary options);
+  Undefined deleteSandboxInstance(Integer port, Dictionary options);
+  Undefined deploySandboxInstance(Integer port, Dictionary options);
   Undefined dropMetadataSchema(Dictionary options);
   Cluster getCluster(String name, Dictionary options);
-  Undefined killLocalInstance(Integer port, Dictionary options);
+  Undefined killSandboxInstance(Integer port, Dictionary options);
   Undefined resetSession(Session session);
-  Undefined startLocalInstance(Integer port, Dictionary options);
-  Undefined stopLocalInstance(Integer port, Dictionary options);
+  Undefined startSandboxInstance(Integer port, Dictionary options);
+  Undefined stopSandboxInstance(Integer port, Dictionary options);
   Undefined validateInstance(Variant connectionData, String password);
 #elif DOXYGEN_PY
   bool verbose; //! $(DBA_VERBOSE)
   Cluster create_cluster(str name, str masterKey, dict options);
-  None delete_local_instance(int port, dict options);
-  None deploy_local_instance(int port, dict options);
+  None delete_sandbox_instance(int port, dict options);
+  None deploy_sandbox_instance(int port, dict options);
   None drop_cluster(str name);
   None drop_metadata_schema(dict options);
   Cluster get_cluster(str name, dict options);
-  None kill_local_instance(int port, dict options);
+  None kill_sandbox_instance(int port, dict options);
   None reset_session(Session session);
-  None start_local_instance(int port, dict options);
-  None stop_local_instance(int port, dict options);
+  None start_sandbox_instance(int port, dict options);
+  None stop_sandbox_instance(int port, dict options);
   None validate_instance(variant connectionData, str password);
 #endif
 

@@ -14,17 +14,17 @@ for member in all_members:
 
 print "Session Members: %d" % len(members)
 validateMember(members, 'create_cluster');
-validateMember(members, 'delete_local_instance');
-validateMember(members, 'deploy_local_instance');
+validateMember(members, 'delete_sandbox_instance');
+validateMember(members, 'deploy_sandbox_instance');
 validateMember(members, 'drop_cluster');
 validateMember(members, 'drop_metadata_schema');
 validateMember(members, 'get_cluster');
 validateMember(members, 'help');
-validateMember(members, 'kill_local_instance');
+validateMember(members, 'kill_sandbox_instance');
 validateMember(members, 'reset_session');
-validateMember(members, 'start_local_instance');
+validateMember(members, 'start_sandbox_instance');
 validateMember(members, 'validate_instance');
-validateMember(members, 'stop_local_instance');
+validateMember(members, 'stop_sandbox_instance');
 validateMember(members, 'verbose');
 
 #@# Dba: create_cluster errors

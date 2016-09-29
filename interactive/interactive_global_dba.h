@@ -33,11 +33,11 @@ public:
   void init();
   //virtual void resolve() const;
 
-  shcore::Value deploy_local_instance(const shcore::Argument_list &args, const std::string& fname); // create and start
-  shcore::Value stop_local_instance(const shcore::Argument_list &args);
-  shcore::Value delete_local_instance(const shcore::Argument_list &args);
-  shcore::Value kill_local_instance(const shcore::Argument_list &args);
-  shcore::Value start_local_instance(const shcore::Argument_list &args);
+  shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args, const std::string& fname); // create and start
+  shcore::Value stop_sandbox_instance(const shcore::Argument_list &args);
+  shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
+  shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
+  shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
 
   shcore::Value create_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster(const shcore::Argument_list &args);

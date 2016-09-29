@@ -49,7 +49,7 @@ REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL Admin
 REGISTER_HELP(DBA_DETAIL, "The global variable 'dba' is used to access the MySQL AdminAPI functionality "\
 "and perform DBA operations. It is used for managing MySQL InnoDB clusters.");
 REGISTER_HELP(DBA_CLOSING, "For more help on a specific function use dba.help('<functionName>')");
-REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deployLocalInstance')");
+REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deploySandboxInstance')");
 
 REGISTER_HELP(DBA_VERBOSE_BRIEF, "Enables verbose mode on the Dba operations.");
 
@@ -71,11 +71,11 @@ void Dba::init() {
   add_method("getCluster", std::bind(&Dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1, "deployLocalInstance"), "data", shcore::Map, NULL);
-  add_method("startLocalInstance", std::bind(&Dba::start_local_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("stopLocalInstance", std::bind(&Dba::stop_local_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("deleteLocalInstance", std::bind(&Dba::delete_local_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("killLocalInstance", std::bind(&Dba::kill_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("deploySandboxInstance", std::bind(&Dba::deploy_sandbox_instance, this, _1, "deploySandboxInstance"), "data", shcore::Map, NULL);
+  add_method("startSandboxInstance", std::bind(&Dba::start_sandbox_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("stopSandboxInstance", std::bind(&Dba::stop_sandbox_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("deleteSandboxInstance", std::bind(&Dba::delete_sandbox_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("killSandboxInstance", std::bind(&Dba::kill_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
@@ -678,48 +678,48 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
 //                                    0         1         2         3         4         5         6         7         8
 //                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the new deployed instance.");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL, "This function will deploy a new MySQL Server instance, the result may be "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the new deployed instance.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL, "This function will deploy a new MySQL Server instance, the result may be "\
 "affected by the provided options: ");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL1, "@li portx: port where the new instance will listen for X Protocol connections.");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the new instance will be deployed. ");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the new instance. ");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL4, "If the portx option is not specified, it will be automatically calculated "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1, "@li portx: port where the new instance will listen for X Protocol connections.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the new instance will be deployed. ");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the new instance. ");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4, "If the portx option is not specified, it will be automatically calculated "\
 "as 10 times the value of the provided MySQL port.");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL5, "The password or dbPassword options are mandatory to specify the MySQL root "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5, "The password or dbPassword options are mandatory to specify the MySQL root "\
 "password on the new instance.");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL6, "The sandboxDir must be an existing folder where the new instance will be "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6, "The sandboxDir must be an existing folder where the new instance will be "\
 "deployed. If not specified the new instance will be deployed at:");
-REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
 
 /**
-* $(DBA_DEPLOYLOCALINSTANCE_BRIEF)
+* $(DBA_DEPLOYSANDBOXINSTANCE_BRIEF)
 *
-* $(DBA_DEPLOYLOCALINSTANCE_PARAM)
-* $(DBA_DEPLOYLOCALINSTANCE_PARAM1)
+* $(DBA_DEPLOYSANDBOXINSTANCE_PARAM)
+* $(DBA_DEPLOYSANDBOXINSTANCE_PARAM1)
 *
-* $(DBA_DEPLOYLOCALINSTANCE_DETAIL)
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL)
 *
-* $(DBA_DEPLOYLOCALINSTANCE_DETAIL1)
-* $(DBA_DEPLOYLOCALINSTANCE_DETAIL2)
-* $(DBA_DEPLOYLOCALINSTANCE_DETAIL3)
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1)
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2)
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3)
 *
-* $(DBA_DEPLOYLOCALINSTANCE_DETAIL4)
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4)
 *
-* $(DBA_DEPLOYLOCALINSTANCE_DETAIL5)
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5)
 *
-* $(DBA_DEPLOYLOCALINSTANCE_DETAIL6)
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6)
 *
-* $(DBA_DEPLOYLOCALINSTANCE_DETAIL7)
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
-Undefined Dba::deployLocalInstance(Integer port, Dictionary options) {}
+Undefined Dba::deploySandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::deploy_local_instance(int port, dict options) {}
+None Dba::deploy_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args, const std::string& fname) {
+shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, const std::string& fname) {
   shcore::Value ret_val;
 
   args.ensure_count(1, 2, get_function_name(fname).c_str());
@@ -734,212 +734,212 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args, cons
 
 //                                    0         1         2         3         4         5         6         7         8
 //                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_BRIEF, "Deletes an existing MySQL Server instance on localhost.");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_PARAM, "@param port The port of the instance to be deleted.");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_PARAM1, "@param options Optional dictionary with options that modify the way this function is executed.");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL, "This function will delete an existing MySQL Server instance on the local host. The next options affect the result:");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL1, "@li portx: port where new instance listens for X Protocol connections.");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
-REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_BRIEF, "Deletes an existing MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM, "@param port The port of the instance to be deleted.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options that modify the way this function is executed.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL, "This function will delete an existing MySQL Server instance on the local host. The next options affect the result:");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL1, "@li portx: port where new instance listens for X Protocol connections.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
 
 /**
-* $(DBA_DELETELOCALINSTANCE_BRIEF)
+* $(DBA_DELETESANDBOXINSTANCE_BRIEF)
 *
-* $(DBA_DELETELOCALINSTANCE_PARAM)
-* $(DBA_DELETELOCALINSTANCE_PARAM1)
+* $(DBA_DELETESANDBOXINSTANCE_PARAM)
+* $(DBA_DELETESANDBOXINSTANCE_PARAM1)
 *
-* $(DBA_DELETELOCALINSTANCE_DETAIL)
+* $(DBA_DELETESANDBOXINSTANCE_DETAIL)
 *
-* $(DBA_DELETELOCALINSTANCE_DETAIL1)
-* $(DBA_DELETELOCALINSTANCE_DETAIL2)
-* $(DBA_DELETELOCALINSTANCE_DETAIL3)
+* $(DBA_DELETESANDBOXINSTANCE_DETAIL1)
+* $(DBA_DELETESANDBOXINSTANCE_DETAIL2)
+* $(DBA_DELETESANDBOXINSTANCE_DETAIL3)
 *
-* $(DBA_DELETELOCALINSTANCE_DETAIL4)
+* $(DBA_DELETESANDBOXINSTANCE_DETAIL4)
 *
-* $(DBA_DELETELOCALINSTANCE_DETAIL5)
+* $(DBA_DELETESANDBOXINSTANCE_DETAIL5)
 *
-* $(DBA_DELETELOCALINSTANCE_DETAIL6)
+* $(DBA_DELETESANDBOXINSTANCE_DETAIL6)
 *
-* $(DBA_DELETELOCALINSTANCE_DETAIL7)
+* $(DBA_DELETESANDBOXINSTANCE_DETAIL7)
 *
 */
 #if DOXYGEN_JS
-Undefined Dba::deleteLocalInstance(Integer port, Dictionary options) {}
+Undefined Dba::deleteSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::delete_local_instance(int port, dict options) {}
+None Dba::delete_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::delete_local_instance(const shcore::Argument_list &args) {
+shcore::Value Dba::delete_sandbox_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
-  args.ensure_count(1, 2, get_function_name("deleteLocalInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("deleteSandboxInstance").c_str());
 
   try {
     ret_val = exec_instance_op("delete", args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deleteLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deleteSandboxInstance"));
 
   return ret_val;
 }
 
 //                                    0         1         2         3         4         5         6         7         8
 //                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_BRIEF, "Kills a running MySQL Server instance on localhost.");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_PARAM, "@param port The port of the instance to be killed.");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL, "This function will kill the process of a running MySQL Server instance "\
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_BRIEF, "Kills a running MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_PARAM, "@param port The port of the instance to be killed.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL, "This function will kill the process of a running MySQL Server instance "\
 "on the local host. The next options affect the result:");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
-REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
 
 /**
-* $(DBA_KILLLOCALINSTANCE_BRIEF)
+* $(DBA_KILLSANDBOXINSTANCE_BRIEF)
 *
-* $(DBA_KILLLOCALINSTANCE_PARAM)
-* $(DBA_KILLLOCALINSTANCE_PARAM1)
+* $(DBA_KILLSANDBOXINSTANCE_PARAM)
+* $(DBA_KILLSANDBOXINSTANCE_PARAM1)
 *
-* $(DBA_KILLLOCALINSTANCE_DETAIL)
+* $(DBA_KILLSANDBOXINSTANCE_DETAIL)
 *
-* $(DBA_KILLLOCALINSTANCE_DETAIL1)
-* $(DBA_KILLLOCALINSTANCE_DETAIL2)
-* $(DBA_KILLLOCALINSTANCE_DETAIL3)
+* $(DBA_KILLSANDBOXINSTANCE_DETAIL1)
+* $(DBA_KILLSANDBOXINSTANCE_DETAIL2)
+* $(DBA_KILLSANDBOXINSTANCE_DETAIL3)
 *
-* $(DBA_KILLLOCALINSTANCE_DETAIL4)
+* $(DBA_KILLSANDBOXINSTANCE_DETAIL4)
 *
-* $(DBA_KILLLOCALINSTANCE_DETAIL5)
+* $(DBA_KILLSANDBOXINSTANCE_DETAIL5)
 *
-* $(DBA_KILLLOCALINSTANCE_DETAIL6)
+* $(DBA_KILLSANDBOXINSTANCE_DETAIL6)
 *
-* $(DBA_KILLLOCALINSTANCE_DETAIL7)
+* $(DBA_KILLSANDBOXINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
-Undefined Dba::killLocalInstance(Integer port, Dictionary options) {}
+Undefined Dba::killSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::kill_local_instance(int port, dict options) {}
+None Dba::kill_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::kill_local_instance(const shcore::Argument_list &args) {
+shcore::Value Dba::kill_sandbox_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
-  args.ensure_count(1, 2, get_function_name("killLocalInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("killSandboxInstance").c_str());
 
   try {
     ret_val = exec_instance_op("kill", args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("killLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("killSandboxInstance"));
 
   return ret_val;
 }
 
 //                                    0         1         2         3         4         5         6         7         8
 //                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_BRIEF, "Stops a running MySQL Server instance on localhost.");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_PARAM, "@param port The port of the instance to be stopped.");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL, "This function will gracefully stop a running MySQL Server instance "\
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_BRIEF, "Stops a running MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM, "@param port The port of the instance to be stopped.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL, "This function will gracefully stop a running MySQL Server instance "\
 "on the local host. The next options affect the result:");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
-REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
 
 /**
-* $(DBA_STOPLOCALINSTANCE_BRIEF)
+* $(DBA_STOPSANDBOXINSTANCE_BRIEF)
 *
-* $(DBA_STOPLOCALINSTANCE_PARAM)
-* $(DBA_STOPLOCALINSTANCE_PARAM1)
+* $(DBA_STOPSANDBOXINSTANCE_PARAM)
+* $(DBA_STOPSANDBOXINSTANCE_PARAM1)
 *
-* $(DBA_STOPLOCALINSTANCE_DETAIL)
+* $(DBA_STOPSANDBOXINSTANCE_DETAIL)
 *
-* $(DBA_STOPLOCALINSTANCE_DETAIL1)
-* $(DBA_STOPLOCALINSTANCE_DETAIL2)
-* $(DBA_STOPLOCALINSTANCE_DETAIL3)
+* $(DBA_STOPSANDBOXINSTANCE_DETAIL1)
+* $(DBA_STOPSANDBOXINSTANCE_DETAIL2)
+* $(DBA_STOPSANDBOXINSTANCE_DETAIL3)
 *
-* $(DBA_STOPLOCALINSTANCE_DETAIL4)
+* $(DBA_STOPSANDBOXINSTANCE_DETAIL4)
 *
-* $(DBA_STOPLOCALINSTANCE_DETAIL5)
+* $(DBA_STOPSANDBOXINSTANCE_DETAIL5)
 *
-* $(DBA_STOPLOCALINSTANCE_DETAIL6)
+* $(DBA_STOPSANDBOXINSTANCE_DETAIL6)
 *
-* $(DBA_STOPLOCALINSTANCE_DETAIL7)
+* $(DBA_STOPSANDBOXINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
-Undefined Dba::stopLocalInstance(Integer port, Dictionary options) {}
+Undefined Dba::stopSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::stop_local_instance(int port, dict options) {}
+None Dba::stop_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::stop_local_instance(const shcore::Argument_list &args) {
+shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
-  args.ensure_count(1, 2, get_function_name("stopLocalInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("stopSandboxInstance").c_str());
 
   try {
     ret_val = exec_instance_op("stop", args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("stopLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("stopSandboxInstance"));
 
   return ret_val;
 }
 
 //                                    0         1         2         3         4         5         6         7         8
 //                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_BRIEF, "Starts an existing MySQL Server instance on localhost.");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_PARAM, "@param port The port where the instance listens for MySQL connections.");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL, "This function will start an existing MySQL Server instance on the local"\
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_BRIEF, "Starts an existing MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_PARAM, "@param port The port where the instance listens for MySQL connections.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL, "This function will start an existing MySQL Server instance on the local"\
 "host. The next options affect the result:");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
-REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
 
 /**
-* $(DBA_STARTLOCALINSTANCE_BRIEF)
+* $(DBA_STARTSANDBOXINSTANCE_BRIEF)
 *
-* $(DBA_STARTLOCALINSTANCE_PARAM)
-* $(DBA_STARTLOCALINSTANCE_PARAM1)
+* $(DBA_STARTSANDBOXINSTANCE_PARAM)
+* $(DBA_STARTSANDBOXINSTANCE_PARAM1)
 *
-* $(DBA_STARTLOCALINSTANCE_DETAIL)
+* $(DBA_STARTSANDBOXINSTANCE_DETAIL)
 *
-* $(DBA_STARTLOCALINSTANCE_DETAIL1)
-* $(DBA_STARTLOCALINSTANCE_DETAIL2)
-* $(DBA_STARTLOCALINSTANCE_DETAIL3)
+* $(DBA_STARTSANDBOXINSTANCE_DETAIL1)
+* $(DBA_STARTSANDBOXINSTANCE_DETAIL2)
+* $(DBA_STARTSANDBOXINSTANCE_DETAIL3)
 *
-* $(DBA_STARTLOCALINSTANCE_DETAIL4)
+* $(DBA_STARTSANDBOXINSTANCE_DETAIL4)
 *
-* $(DBA_STARTLOCALINSTANCE_DETAIL5)
+* $(DBA_STARTSANDBOXINSTANCE_DETAIL5)
 *
-* $(DBA_STARTLOCALINSTANCE_DETAIL6)
+* $(DBA_STARTSANDBOXINSTANCE_DETAIL6)
 *
-* $(DBA_STARTLOCALINSTANCE_DETAIL7)
+* $(DBA_STARTSANDBOXINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
-Undefined Dba::startLocalInstance(Integer port, Dictionary options) {}
+Undefined Dba::startSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::start_local_instance(int port, dict options) {}
+None Dba::start_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::start_local_instance(const shcore::Argument_list &args) {
+shcore::Value Dba::start_sandbox_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
-  args.ensure_count(1, 2, get_function_name("startLocalInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("startSandboxInstance").c_str());
 
   try {
     ret_val = exec_instance_op("start", args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("startLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("startSandboxInstance"));
 
   return ret_val;
 }

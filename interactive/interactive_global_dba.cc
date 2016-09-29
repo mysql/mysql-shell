@@ -30,11 +30,11 @@ using namespace std::placeholders;
 using namespace shcore;
 
 void Global_dba::init() {
-  add_varargs_method("deployLocalInstance", std::bind(&Global_dba::deploy_local_instance, this, _1, "deployLocalInstance"));
-  add_varargs_method("startLocalInstance", std::bind(&Global_dba::start_local_instance, this, _1));
-  add_varargs_method("deleteLocalInstance", std::bind(&Global_dba::delete_local_instance, this, _1));
-  add_varargs_method("killLocalInstance", std::bind(&Global_dba::kill_local_instance, this, _1));
-  add_varargs_method("stopLocalInstance", std::bind(&Global_dba::stop_local_instance, this, _1));
+  add_varargs_method("deploySandboxInstance", std::bind(&Global_dba::deploy_sandbox_instance, this, _1, "deploySandboxInstance"));
+  add_varargs_method("startSandboxInstance", std::bind(&Global_dba::start_sandbox_instance, this, _1));
+  add_varargs_method("deleteSandboxInstance", std::bind(&Global_dba::delete_sandbox_instance, this, _1));
+  add_varargs_method("killSandboxInstance", std::bind(&Global_dba::kill_sandbox_instance, this, _1));
+  add_varargs_method("stopSandboxInstance", std::bind(&Global_dba::stop_sandbox_instance, this, _1));
 
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
@@ -86,12 +86,12 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
   return new_args;
 }
 
-shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &args, const std::string& fname) {
+shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &args, const std::string& fname) {
   args.ensure_count(1, 2, get_function_name(fname).c_str());
 
   shcore::Argument_list valid_args;
   int port;
-  bool deploying = (fname == "deployLocalInstance");
+  bool deploying = (fname == "deploySandboxInstance");
   bool cancelled = false;
   try {
     // Verifies and sets default args
@@ -140,7 +140,7 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
         cancelled = true;
     }
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deployLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deploySandboxInstance"));
 
   shcore::Value ret_val;
 
@@ -194,20 +194,20 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
   return ret_val;
 }
 
-shcore::Value Global_dba::delete_local_instance(const shcore::Argument_list &args) {
-  return perform_instance_operation(args, "deleteLocalInstance", "Deleting", "deleted");
+shcore::Value Global_dba::delete_sandbox_instance(const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "deleteSandboxInstance", "Deleting", "deleted");
 }
 
-shcore::Value Global_dba::kill_local_instance(const shcore::Argument_list &args) {
-  return perform_instance_operation(args, "killLocalInstance", "Killing", "killed");
+shcore::Value Global_dba::kill_sandbox_instance(const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "killSandboxInstance", "Killing", "killed");
 }
 
-shcore::Value Global_dba::stop_local_instance(const shcore::Argument_list &args) {
-  return perform_instance_operation(args, "stopLocalInstance", "Stopping", "stopped");
+shcore::Value Global_dba::stop_sandbox_instance(const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "stopSandboxInstance", "Stopping", "stopped");
 }
 
-shcore::Value Global_dba::start_local_instance(const shcore::Argument_list &args) {
-  return perform_instance_operation(args, "startLocalInstance", "Starting", "started");
+shcore::Value Global_dba::start_sandbox_instance(const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "startSandboxInstance", "Starting", "started");
 }
 
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {

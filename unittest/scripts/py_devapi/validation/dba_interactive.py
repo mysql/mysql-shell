@@ -1,15 +1,15 @@
 #@ Session: validating members
 |Session Members: 12|
 |create_cluster: OK|
-|delete_local_instance: OK|
-|deploy_local_instance: OK|
+|delete_sandbox_instance: OK|
+|deploy_sandbox_instance: OK|
 |get_cluster: OK|
 |help: OK|
-|kill_local_instance: OK|
+|kill_sandbox_instance: OK|
 |reset_session: OK|
-|start_local_instance: OK|
+|start_sandbox_instance: OK|
 |validate_instance: OK|
-|stop_local_instance: OK|
+|stop_sandbox_instance: OK|
 |drop_metadata_schema: OK|
 |verbose: OK|
 

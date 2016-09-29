@@ -90,11 +90,11 @@ TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
   execute("dba.verbose = true;");
 
   if (_sandbox_dir.empty()) {
-    execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\"});");
-    execute("dba.deployLocalInstance(" + _mysql_sandbox_port2 + ", {password: \"root\"});");
+    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {password: \"root\"});");
+    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {password: \"root\"});");
   } else {
-    execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deployLocalInstance(" + _mysql_sandbox_port2 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
   }
 }
 
@@ -283,15 +283,15 @@ TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
   reset_shell();
 
   if (_sandbox_dir.empty()) {
-    execute("dba.stopLocalInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.stopLocalInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_sandbox_port2 + ");");
+    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ");");
+    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ");");
+    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ");");
+    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ");");
   } else {
-    execute("dba.stopLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.stopLocalInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteLocalInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
   }
 }
 }

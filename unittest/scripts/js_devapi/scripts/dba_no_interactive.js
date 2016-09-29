@@ -8,16 +8,16 @@ var members = dir(dba);
 
 print("Session Members:", members.length);
 validateMember(members, 'createCluster');
-validateMember(members, 'deleteLocalInstance');
-validateMember(members, 'deployLocalInstance');
+validateMember(members, 'deleteSandboxInstance');
+validateMember(members, 'deploySandboxInstance');
 validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'getCluster');
 validateMember(members, 'help');
-validateMember(members, 'killLocalInstance');
+validateMember(members, 'killSandboxInstance');
 validateMember(members, 'resetSession');
-validateMember(members, 'startLocalInstance');
+validateMember(members, 'startSandboxInstance');
 validateMember(members, 'validateInstance');
-validateMember(members, 'stopLocalInstance');
+validateMember(members, 'stopSandboxInstance');
 validateMember(members, 'verbose');
 
 //@# Dba: createCluster errors
