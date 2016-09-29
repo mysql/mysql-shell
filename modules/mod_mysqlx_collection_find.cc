@@ -446,7 +446,7 @@ REGISTER_HELP(COLLECTIONFIND_SKIP_BRIEF, "Sets number of documents to skip on th
 REGISTER_HELP(COLLECTIONFIND_SKIP_PARAM, "@param offset The number of documents to skip before start including them on the DocResult.");
 REGISTER_HELP(COLLECTIONFIND_SKIP_RETURNS, "@return This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_SKIP_SYNTAX, "skip(offset)");
-REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL, "If used, the the first \#offset records will not be included on the result.");
+REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL, "If used, the first 'offset' records will not be included on the result.");
 
 /**
 * $(COLLECTIONFIND_SKIP_BRIEF)
