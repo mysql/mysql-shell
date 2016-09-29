@@ -48,10 +48,8 @@ CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
 }
 
 REGISTER_HELP(COLLECTIONADD_ADD_BRIEF, "Adds documents into a collection.");
-REGISTER_HELP(COLLECTIONADD_ADD_PARAM, "@param document A document definition to be added.");
-REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX_TITLE, "<b>Syntax Variations</b>");
-REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX, ".add(document[, document, ...])[.add(...)]");
-REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX1, ".add(documentList)[.add(...)]");
+REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX, "add(document[, document, ...])[.add(...)]");
+REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX1, "add(documentList)[.add(...)]");
 REGISTER_HELP(COLLECTIONADD_ADD_RETURNS, "@return This CollectionAdd object.");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL, "This function receives one or more document definitions to be added into a collection.");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL1, "A document definition may be provided in two ways:");
@@ -64,12 +62,16 @@ REGISTER_HELP(COLLECTIONADD_ADD_DETAIL7, "@li Calling this function several time
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL8, "To be added, every document must have a string property named '_id' ideally with a universal unique identifier (UUID) as value. "\
 "If the '_id' property is missing, it is automatically set with an internally generated UUID.");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL9, "<b>JSON as Document Expressions</b>");
-REGISTER_HELP(COLLECTIONADD_ADD_DETAIL10, "A document can be represented passing a JSON string to the mysqlx.expr(expression) function.");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL10, "A document can be represented as a JSON expression as follows:");
+REGISTER_HELP(COLLECTIONADD_ADD_DETAIL11, "mysqlx.expr(<JSON String>)");
 
 /**
 * $(COLLECTIONADD_ADD_BRIEF)
 *
-* $(COLLECTIONADD_ADD_PARAM)
+* #### Parameters
+*
+* @li \b document The definition of a document to be added.
+* @li \b documents A list of documents to be added.
 *
 * $(COLLECTIONADD_ADD_RETURNS)
 *
@@ -93,44 +95,15 @@ REGISTER_HELP(COLLECTIONADD_ADD_DETAIL10, "A document can be represented passing
 * This method can be called many times, every time it is called the received document(s) will be cached into an internal list.
 * The actual addition into the collection will occur only when the execute method is called.
 */
+//@{
 #if DOXYGEN_JS
-/**
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Chained Calls
-*
-* $(COLLECTIONADD_ADD_DETAIL9)
-*
-* $(COLLECTIONADD_ADD_DETAIL10)
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Using an Expression
-*
-* #### Using a Document List
-* Adding document using an existing document list
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Document List
-*
-* #### Multiple Parameters
-* Adding document using a separate parameter for each document on a single call to add(...)
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Multiple Parameters
-*/
-CollectionAdd CollectionAdd::add(DocDefinition document[, DocDefinition document, ...]){}
-#elif DOXYGEN_PY
-/**
-* Adding documents using chained calls to add(...)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Chained Calls
-*
-* $(COLLECTIONADD_ADD_DETAIL9)
-*
-* $(COLLECTIONADD_ADD_DETAIL10)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Using an Expression
-*
-* #### Using a Document List
-* Adding document using an existing document list
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Document List
-*
-* #### Multiple Parameters
-* Adding document using a separate parameter for each document on a single call to add(...)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Multiple Parameters
-*/
 CollectionAdd CollectionAdd::add(DocDefinition document[, DocDefinition document, ...]) {}
+CollectionAdd CollectionAdd::add(List documents) {}
+#elif DOXYGEN_PY
+CollectionAdd CollectionAdd::add(DocDefinition document[, DocDefinition document, ...]) {}
+CollectionAdd CollectionAdd::add(list documents) {}
 #endif
+//@}
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_at_least(1, get_function_name("add").c_str());
@@ -233,10 +206,11 @@ std::string CollectionAdd::get_new_uuid() {
 
 REGISTER_HELP(COLLECTIONADD_EXECUTE_BRIEF, "Executes the add operation, the documents are added to the target collection.");
 REGISTER_HELP(COLLECTIONADD_EXECUTE_RETURN, "@return A Result object.");
-REGISTER_HELP(COLLECTIONADD_EXECUTE_SYNTAX, ".execute()");
+REGISTER_HELP(COLLECTIONADD_EXECUTE_SYNTAX, "execute()");
 
 /**
 * $(COLLECTIONADD_EXECUTE_BRIEF)
+*
 * $(COLLECTIONADD_EXECUTE_RETURN)
 *
 * #### Method Chaining
@@ -244,12 +218,52 @@ REGISTER_HELP(COLLECTIONADD_EXECUTE_SYNTAX, ".execute()");
 * This function can be invoked once after:
 *
 * - add(DocDefinition document[, DocDefinition document, ...])
+*
+* ### Examples
 */
+//@{
 #if DOXYGEN_JS
+/**
+* #### Using a Document List
+* Adding document using an existing document list
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Document List
+*
+* #### Multiple Parameters
+* Adding document using a separate parameter for each document on a single call to add(...)
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Multiple Parameters
+*
+* #### Chaining Addition
+* Adding documents using chained calls to add(...)
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Chained Calls
+*
+* $(COLLECTIONADD_ADD_DETAIL9)
+*
+* $(COLLECTIONADD_ADD_DETAIL10)
+* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Using an Expression
+*/
 Result CollectionAdd::execute() {}
 #elif DOXYGEN_PY
+/**
+* #### Using a Document List
+* Adding document using an existing document list
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Document List
+*
+* #### Multiple Parameters
+* Adding document using a separate parameter for each document on a single call to add(...)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Multiple Parameters
+*
+* #### Chaining Addition
+* Adding documents using chained calls to add(...)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Chained Calls
+*
+* $(COLLECTIONADD_ADD_DETAIL9)
+*
+* $(COLLECTIONADD_ADD_DETAIL10)
+* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Using an Expression
+*/
 Result CollectionAdd::execute() {}
 #endif
+//@}
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args) {
   mysqlx::Result *result = NULL;
 

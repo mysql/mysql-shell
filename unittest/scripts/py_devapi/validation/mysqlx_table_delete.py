@@ -36,10 +36,11 @@
 ||TableDelete.where: Unterminated quoted string starting at position 8
 
 #@# TableDelete: Error conditions on order_by
-||Invalid number of arguments in TableDelete.order_by, expected 1 but got 0
-||TableDelete.order_by: Argument #1 is expected to be an array
+||Invalid number of arguments in TableDelete.order_by, expected at least 1 but got 0
+||TableDelete.order_by: Argument #1 is expected to be a string or an array of strings
 ||TableDelete.order_by: Order criteria can not be empty
 ||TableDelete.order_by: Element #2 is expected to be a string
+||TableDelete.order_by: Argument #2 is expected to be a string
 
 #@# TableDelete: Error conditions on limit
 ||Invalid number of arguments in TableDelete.limit, expected 1 but got 0

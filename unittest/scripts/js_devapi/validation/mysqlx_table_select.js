@@ -40,9 +40,10 @@
 
 
 //@# TableSelect: Error conditions on select
-||TableSelect.select: Argument #1 is expected to be an array
+||TableSelect.select: Argument #1 is expected to be a string or an array of strings
 ||TableSelect.select: Field selection criteria can not be empty
 ||TableSelect.select: Element #2 is expected to be a string
+||TableSelect.select: Argument #2 is expected to be a string
 
 //@# TableSelect: Error conditions on where
 ||Invalid number of arguments in TableSelect.where, expected 1 but got 0
@@ -50,20 +51,22 @@
 ||TableSelect.where: Unterminated quoted string starting at position 8
 
 //@# TableSelect: Error conditions on groupBy
-||Invalid number of arguments in TableSelect.groupBy, expected 1 but got 0
-||TableSelect.groupBy: Argument #1 is expected to be an array
+||Invalid number of arguments in TableSelect.groupBy, expected at least 1 but got 0
+||TableSelect.groupBy: Argument #1 is expected to be a string or an array of strings
 ||TableSelect.groupBy: Grouping criteria can not be empty
 ||TableSelect.groupBy: Element #2 is expected to be a string
+||TableSelect.groupBy: Argument #2 is expected to be a string
 
 //@# TableSelect: Error conditions on having
 ||Invalid number of arguments in TableSelect.having, expected 1 but got 0
 ||TableSelect.having: Argument #1 is expected to be a string
 
 //@# TableSelect: Error conditions on orderBy
-||Invalid number of arguments in TableSelect.orderBy, expected 1 but got 0
-||TableSelect.orderBy: Argument #1 is expected to be an array
+||Invalid number of arguments in TableSelect.orderBy, expected at least 1 but got 0
+||TableSelect.orderBy: Argument #1 is expected to be a string or an array of strings
 ||TableSelect.orderBy: Order criteria can not be empty
 ||TableSelect.orderBy: Element #2 is expected to be a string
+||TableSelect.orderBy: Argument #2 is expected to be a string
 
 //@# TableSelect: Error conditions on limit
 ||Invalid number of arguments in TableSelect.limit, expected 1 but got 0

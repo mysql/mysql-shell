@@ -60,19 +60,23 @@ REGISTER_HELP(COLLECTION_ADD_BRIEF, "Inserts one or more documents into a collec
 REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
 
 /**
-* $(COLLECTIONADD_ADD_BRIEF)
+* $(COLLECTION_ADD_BRIEF)
 *
 * ### Full Syntax
 *
 * <code>
 *   <table border = "0">
-*     <tr><td>Collection</td><td>$(COLLECTIONADD_ADD_SYNTAX)</td></tr>
-*     <tr><td></td><td>$(COLLECTIONADD_ADD_SYNTAX1)</td></tr>
-*     <tr><td></td><td>$(COLLECTIONADD_EXECUTE_SYNTAX)</td></tr>
+*     <tr><td>Collection</td><td>.add(...)</td></tr>
+*     <tr><td></td><td>.$(COLLECTIONADD_EXECUTE_SYNTAX)</td></tr>
 *   </table>
 * </code>
 *
 * #### .add(...)
+*
+* ##### Alternatives
+*
+* @li $(COLLECTIONADD_ADD_SYNTAX)
+* @li $(COLLECTIONADD_ADD_SYNTAX1)
 *
 * $(COLLECTIONADD_ADD_DETAIL)
 *
@@ -112,7 +116,7 @@ REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
 * Adding document using a separate parameter for each document on a single call to add(...)
 * \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Multiple Parameters
 */
-CollectionAdd Collection::add(DocDefinition document[, DocDefinition document, ...]) {}
+CollectionAdd Collection::add(...) {}
 #elif DOXYGEN_PY
 /**
 * Adding documents using chained calls to add(...)
@@ -131,7 +135,7 @@ CollectionAdd Collection::add(DocDefinition document[, DocDefinition document, .
 * Adding document using a separate parameter for each document on a single call to add(...)
 * \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Multiple Parameters
 */
-CollectionAdd Collection::add(DocDefinition document[, DocDefinition document, ...]) {}
+CollectionAdd Collection::add(...) {}
 #endif
 shcore::Value Collection::add_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionAdd> collectionAdd(new CollectionAdd(shared_from_this()));
@@ -195,27 +199,179 @@ shcore::Value Collection::remove_(const shcore::Argument_list &args) {
   return collectionRemove->remove(args);
 }
 
-//! Retrieves documents from a collection.
-#if DOXYGEN_CPP
-//! \param args may contain an optional string with the filter expression of the documents to be retrieved.
-#else
-//! \param searchCriteria An optional string with the filter expression of the documents to be retrieved.
+REGISTER_HELP(COLLECTION_FIND_BRIEF, "Retrieves documents from a collection, matching a specified criteria.");
+REGISTER_HELP(COLLECTION_FIND_CHAINED, "CollectionFind.find.[fields].[groupBy->[having]].[sort].[limit->[skip]].[bind].[execute]");
+
+/**
+* $(COLLECTION_FIND_BRIEF)
+*
+* ### Full Syntax
+*
+* <code>
+*   <table border = "0">
+*     <tr><td>Collection</td><td>.find(...)</td></tr>
+*     <tr><td></td><td>[.fields(...)]</td></tr>
+*/
+
+#if DOXYGEN_JS
+/**     <tr><td></td><td>[.groupBy(...)[.$(COLLECTIONFIND_HAVING_SYNTAX)]]</td></tr>*/
+#elif DOXYGEN_PY
+/**     <tr><td></td><td>[.group_by(...)[.$(COLLECTIONFIND_HAVING_SYNTAX)]]</td></tr>*/
 #endif
 /**
-* \return A CollectionFind object.
+*     <tr><td></td><td>[.sort(...)]</td></tr>
+*     <tr><td></td><td>[.$(COLLECTIONFIND_LIMIT_SYNTAX)[.$(COLLECTIONFIND_SKIP_SYNTAX)]]</td></tr>
+*     <tr><td></td><td>[.$(COLLECTIONFIND_BIND_SYNTAX)]</td></tr>
+*     <tr><td></td><td>.$(COLLECTIONFIND_EXECUTE_SYNTAX)</td></tr>
+*   </table>
+* </code>
 *
-* This function creates a CollectionFind object which is a document selection handler.
+* #### .find(...)
 *
-* The CollectionFind class has several functions that allow specifying what should be retrieved from the collection, if a searchCondition was specified, it will be set on the handler.
+* ##### Alternatives
 *
-* The selection will be returned when the execute function is called on the handler.
+* @li $(COLLECTIONFIND_FIND_SYNTAX)
+* @li $(COLLECTIONFIND_FIND_SYNTAX1)
 *
-* \sa CollectionFind
+* $(COLLECTIONFIND_FIND_DETAIL)
+*
+* $(COLLECTIONFIND_FIND_DETAIL1)
+*
+* #### .fields(...)
+*
+* ##### Alternatives
+*
+* @li $(COLLECTIONFIND_FIELDS_SYNTAX)
+* @li $(COLLECTIONFIND_FIELDS_SYNTAX1)
+* @li $(COLLECTIONFIND_FIELDS_SYNTAX2)
+*
+* $(COLLECTIONFIND_FIELDS_DETAIL)
+*
+* $(COLLECTIONFIND_FIELDS_DETAIL1)
+*
+* $(COLLECTIONFIND_FIELDS_DETAIL2)
+*
+* $(COLLECTIONFIND_FIELDS_DETAIL3)
+* $(COLLECTIONFIND_FIELDS_DETAIL4)
+* $(COLLECTIONFIND_FIELDS_DETAIL5)
+*
+*/
+
+#if DOXYGEN_JS
+/**
+*
+* #### .groupBy(...)
+*
+*/
+#elif DOXYGEN_PY
+/**
+*
+* #### .group_by(...)
+*
+*/
+#endif
+
+/**
+*
+* $(COLLECTIONFIND_GROUPBY_DETAIL)
+*
+* #### .$(COLLECTIONFIND_HAVING_SYNTAX)
+*
+* $(COLLECTIONFIND_HAVING_DETAIL)
+*
+* #### .sort(...)
+*
+* ##### Alternatives
+*
+* @li $(COLLECTIONFIND_SORT_SYNTAX)
+* @li $(COLLECTIONFIND_SORT_SYNTAX1)
+*
+* $(COLLECTIONFIND_SORT_DETAIL)
+*
+* $(COLLECTIONFIND_SORT_DETAIL1)
+*
+* $(COLLECTIONFIND_SORT_DETAIL2)
+*
+* $(COLLECTIONFIND_SORT_DETAIL3)
+*
+* #### .$(COLLECTIONFIND_LIMIT_SYNTAX)
+*
+* $(COLLECTIONFIND_LIMIT_DETAIL)
+*
+* #### .$(COLLECTIONFIND_SKIP_SYNTAX)
+*
+* $(COLLECTIONFIND_SKIP_DETAIL)
+*
+* #### .$(COLLECTIONFIND_BIND_SYNTAX)
+*
+* $(COLLECTIONFIND_BIND_DETAIL)
+*
+* $(COLLECTIONFIND_BIND_DETAIL1)
+*
+* $(COLLECTIONFIND_BIND_DETAIL2)
+*
+* #### .$(COLLECTIONFIND_EXECUTE_SYNTAX)
+*
+* $(COLLECTIONFIND_EXECUTE_BRIEF)
+*
+* ### Examples
 */
 #if DOXYGEN_JS
-CollectionFind Collection::find(String searchCriteria) {}
+/**
+* #### Retrieving All Documents
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: All Records
+*
+* #### Filtering
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Filtering
+*
+* #### Field Selection
+* Using a field selection list
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field Selection List
+*
+* Using separate field selection parameters
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field Selection Parameters
+*
+* Using a projection expression
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field Selection Projection
+*
+* #### Sorting
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Sorting
+*
+* #### Using Limit and Skip
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Limit and Skip
+*
+* #### Parameter Binding
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Parameter Binding
+*/
+CollectionFind Collection::find(...) {}
 #elif DOXYGEN_PY
-CollectionFind Collection::find(str searchCriteria) {}
+/**
+* #### Retrieving All Documents
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: All Records
+*
+* #### Filtering
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Filtering
+*
+* #### Field Selection
+* Using a field selection list
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field Selection List
+*
+* Using separate field selection parameters
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field Selection Parameters
+*
+* Using a projection expression
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field Selection Projection
+*
+* #### Sorting
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Sorting
+*
+* #### Using Limit and Skip
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Limit and Skip
+*
+* #### Parameter Binding
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Parameter Binding
+*/
+CollectionFind Collection::find(...) {}
 #endif
 shcore::Value Collection::find_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionFind> collectionFind(new CollectionFind(shared_from_this()));

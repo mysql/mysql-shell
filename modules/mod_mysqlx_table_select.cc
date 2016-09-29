@@ -87,9 +87,6 @@ TableSelect TableSelect::select(List searchExprStr) {}
 TableSelect TableSelect::select(list searchExprStr) {}
 #endif
 shcore::Value TableSelect::select(const shcore::Argument_list &args) {
-  // Each method validates the received parameters
-  args.ensure_count(0, 1, get_function_name("select").c_str());
-
   std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
   if (table) {
@@ -193,7 +190,7 @@ TableSelect TableSelect::groupBy(List searchExprStr) {}
 TableSelect TableSelect::group_by(list searchExprStr) {}
 #endif
 shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("groupBy").c_str());
+  args.ensure_at_least(1, get_function_name("groupBy").c_str());
 
   try {
     std::vector<std::string> fields;
@@ -295,7 +292,7 @@ TableSelect TableSelect::orderBy(List sortExprStr) {}
 TableSelect TableSelect::order_by(list sortExprStr) {}
 #endif
 shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("orderBy").c_str());
+  args.ensure_at_least(1, get_function_name("orderBy").c_str());
 
   try {
     std::vector<std::string> fields;

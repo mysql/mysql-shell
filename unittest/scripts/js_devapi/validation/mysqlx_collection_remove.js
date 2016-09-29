@@ -27,10 +27,11 @@
 ||CollectionRemove.remove: Unterminated quoted string starting at position 8
 
 //@# CollectionRemove: Error conditions sort
-||Invalid number of arguments in CollectionRemove.sort, expected 1 but got 0
-||CollectionRemove.sort: Argument #1 is expected to be an array
+||Invalid number of arguments in CollectionRemove.sort, expected at least 1 but got 0
+||CollectionRemove.sort: Argument #1 is expected to be a string or an array of strings
 ||CollectionRemove.sort: Sort criteria can not be empty
 ||CollectionRemove.sort: Element #2 is expected to be a string
+||CollectionRemove.sort: Argument #2 is expected to be a string
 
 //@# CollectionRemove: Error conditions on limit
 ||Invalid number of arguments in CollectionRemove.limit, expected 1 but got 0

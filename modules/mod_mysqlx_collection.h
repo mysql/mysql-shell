@@ -47,16 +47,16 @@ public:
   virtual std::string class_name() const { return "Collection"; }
 
 #if DOXYGEN_JS
-  CollectionAdd add(DocDefinition document[, DocDefinition document, ...]);
-  CollectionFind find(String searchCriteria);
+  CollectionAdd add(...);
+  CollectionFind find(...);
   CollectionRemove remove(String searchCondition);
   CollectionModify modify(String searchCondition);
   CollectionCreateIndex createIndex(String name);
   CollectionCreateIndex createIndex(String name, IndexType type);
   CollectionDropIndex dropIndex(String name);
 #elif DOXYGEN_PY
-  CollectionAdd add(DocDefinition document[, DocDefinition document, ...]);
-  CollectionFind find(str search_criteria);
+  CollectionAdd add(...);
+  CollectionFind find(...);
   CollectionRemove remove(str search_condition);
   CollectionModify modify(str search_condition);
   CollectionCreateIndex create_index(str name);

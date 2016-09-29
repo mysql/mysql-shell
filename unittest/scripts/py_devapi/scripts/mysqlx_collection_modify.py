@@ -140,6 +140,7 @@ crud = collection.modify().unset('name').sort()
 crud = collection.modify().unset('name').sort(5)
 crud = collection.modify().unset('name').sort([])
 crud = collection.modify().unset('name').sort(['name', 5])
+crud = collection.modify().unset('name').sort('name', 5)
 
 #@# CollectionModify: Error conditions on limit
 crud = collection.modify().unset('name').limit()

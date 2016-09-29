@@ -688,7 +688,7 @@ CollectionModify CollectionModify::sort(List sortExprStr) {}
 CollectionModify CollectionModify::sort(list sortExprStr) {}
 #endif
 shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("sort").c_str());
+  args.ensure_at_least(1, get_function_name("sort").c_str());
 
   try {
     std::vector<std::string> fields;

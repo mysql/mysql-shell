@@ -49,9 +49,11 @@ public:
 
 #if DOXYGEN_JS
   CollectionAdd add(DocDefinition document[, DocDefinition document, ...]);
+  CollectionAdd add(List documents);
   Result execute();
 #elif DOXYGEN_PY
   CollectionAdd add(DocDefinition document[, DocDefinition document, ...]);
+  CollectionAdd add(list documents);
   Result execute();
 #endif
 

@@ -24,6 +24,7 @@
 #include "mod_mysqlx_expression.h"
 #include "mysqlxtest/common/expr_parser.h"
 #include "utils/utils_time.h"
+#include "utils/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysh::mysqlx;
@@ -57,19 +58,25 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-//! Sets the search condition to identify the Documents to be retrieved from the owner Collection.
-#if DOXYGEN_CPP
-//! \param args may contain an optional string with the filter expression of the documents to be retrieved.
-#else
-//! \param searchCondition An optional string with the filter expression of the documents to be retrieved.
-#endif
+REGISTER_HELP(COLLECTIONFIND_FIND_BRIEF, "Sets the search condition to identify the Documents to be retrieved from the owner Collection.");
+REGISTER_HELP(COLLECTIONFIND_FIND_PARAM, "@param searchCondition Optional String expression defining the condition to be used on the selection.");
+REGISTER_HELP(COLLECTIONFIND_FIND_SYNTAX, "find()");
+REGISTER_HELP(COLLECTIONFIND_FIND_SYNTAX1, "find(searchCondition)");
+REGISTER_HELP(COLLECTIONFIND_FIND_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL, "Sets the search condition to identify the Documents to be retrieved from the owner Collection. "\
+"If the search condition is not specified the find operation will be executed over all the documents in the collection.");
+REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL1, "The search condition supports parameter binding.");
+
 /**
-* if not specified all the documents will be included on the result unless a limit is set.
-* \return This CollectionFind object.
+* $(COLLECTIONFIND_FIND_BRIEF)
 *
-* The searchCondition supports \a [Parameter Binding](param_binding.html).
+* $(COLLECTIONFIND_FIND_PARAM)
 *
-* This function is called automatically when Collection.find(searchCondition) is called.
+* $(COLLECTIONFIND_FIND_RETURNS)
+*
+* $(COLLECTIONFIND_FIND_DETAIL)
+*
+* $(COLLECTIONFIND_FIND_DETAIL1)
 *
 * #### Method Chaining
 *
@@ -81,14 +88,14 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
 * - execute()
-*
-* \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
 CollectionFind CollectionFind::find(String searchCondition) {}
 #elif DOXYGEN_PY
 CollectionFind CollectionFind::find(str searchCondition) {}
 #endif
+//@}
 shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, 1, "CollectionFind.find");
@@ -112,73 +119,35 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#if DOXYGEN_CPP
-/**
- * Sets a document field filter or a projection defining the ourput format.
- * \param args: may contain two different values depending on the desired output:
- *
- * \li To select document fields: should contain list of string expressions identifying the fields to be extracted, alias support is enabled on these fields.
- * \li To define output format: define a expression representing the layout of the documents to be returned. (mysqlx.expr)
- *
- * \return This CollectionFind object.
- *
- * Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
- *
- * #### Method Chaining
- *
- * This function can be invoked only once after:
- * - find(String searchCondition)
- *
- * After this function invocation, the following functions can be invoked:
- *
- * - groupBy(List searchExprStr)
- * - sort(List sortExprStr)
- * - limit(Integer numberOfRows)
- * - bind(String name, Value value)
- * - execute()
- *
- * \sa Usage examples at execute().
- */
-#else
-/**
-* Sets a document field filter.
-* \param projectedSearchExprStr: A list of string expressions identifying the fields to be extracted, alias support is enabled on these fields.
-* \return This CollectionFind object.
-*
-* If called, the CollectionFind operation will only return the fields that were included on the filter.
-*
-* Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-* - find(String searchCondition)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - groupBy(List searchExprStr)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
-#if DOXYGEN_JS
-CollectionFind CollectionFind::fields(List projectedSearchExprStr) {}
-#elif DOXYGEN_PY
-CollectionFind CollectionFind::fields(list projectedSearchExprStr) {}
-#endif
+REGISTER_HELP(COLLECTIONFIND_FIELDS_BRIEF, "Sets the fields to be retrieved from each document matching the criteria on this find operation.");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_PARAM, "@param fieldDefinition Definition of the fields to be retrieved.");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX, "fields(field[, field, ...])");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX1, "fields(fieldList)");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX2, "fields(projectionExpression)");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL, "This function sets the fields to be retrieved from each document matching the criteria on this find operation.");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL1, "A field is defined as a string value containing an expression defining the field to be retrieved.");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL2, "The fields to be retrieved can be set using any of the next methods:");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL3, "@li Passing each field definition as an individual string parameter.");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL4, "@li Passing a list of strings containing the field definitions.");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL5, "@li Passing a JSON expression representing a document projection to be generated.");
 
 /**
-* Sets a document field projection.
-* \param projection: An expression representing the layout of the documents to be returned.
-* \return This CollectionFind object.
+* $(COLLECTIONFIND_FIELDS_BRIEF)
 *
-* If called, the CollectionFind operation will return the fields specified on the document expression, the value of each field on the document
-* will be calculated executing the indicated operations for each field.
+* $(COLLECTIONFIND_FIELDS_PARAM)
 *
-* Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+* $(COLLECTIONFIND_FIELDS_RETURNS)
+*
+* $(COLLECTIONFIND_FIELDS_DETAIL)
+*
+* $(COLLECTIONFIND_FIELDS_DETAIL1)
+*
+* $(COLLECTIONFIND_FIELDS_DETAIL2)
+*
+* $(COLLECTIONFIND_FIELDS_DETAIL3)
+* $(COLLECTIONFIND_FIELDS_DETAIL4)
+* $(COLLECTIONFIND_FIELDS_DETAIL5)
 *
 * #### Method Chaining
 *
@@ -192,57 +161,75 @@ CollectionFind CollectionFind::fields(list projectedSearchExprStr) {}
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
 * - execute()
-*
-* \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::fields(DocExpression projection);
+CollectionFind CollectionFind::fields(String fieldDefinition[, String fieldDefinition, ...]) {}
+CollectionFind CollectionFind::fields(List fieldDefinition) {}
+CollectionFind CollectionFind::fields(DocExpression fieldDefinition);
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::fields(DocExpression projection);
+CollectionFind CollectionFind::fields(str fieldDefinition[, str fieldDefinition, ...]) {}
+CollectionFind CollectionFind::fields(list fieldDefinition) {}
+CollectionFind CollectionFind::fields(DocExpression fieldDefinition);
 #endif
-#endif
+//@}
+
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
-  args.ensure_count(1, "CollectionFind.fields");
+  args.ensure_at_least(1, "CollectionFind.fields");
 
   try {
-    if (args[0].type == Array) {
+    if (args.size() == 1 && args[0].type != String) {
+      if (args[0].type == String || args[0].type == Array) {
+        std::vector<std::string> fields;
+
+        if (args[0].type == Array)
+          parse_string_list(args, fields);
+        else
+          fields.push_back(args.string_at(0));
+
+        if (fields.size() == 0)
+          throw shcore::Exception::argument_error("Field selection criteria can not be empty");
+
+        _find_statement->fields(fields);
+      } else if (args[0].type == Object && args[0].as_object()->class_name() == "Expression") {
+        std::shared_ptr<mysqlx::Expression> expression = std::static_pointer_cast<mysqlx::Expression>(args[0].as_object());
+        ::mysqlx::Expr_parser parser(expression->get_data());
+        std::unique_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
+
+        // Parsing is done just to validate it is a valid JSON expression
+        if (expr_obj->type() == Mysqlx::Expr::Expr_Type_OBJECT)
+          _find_statement->fields(expression->get_data());
+        else
+          throw shcore::Exception::argument_error("Argument #1 is expected to be a JSON expression");
+      } else
+        throw shcore::Exception::argument_error("Argument #1 is expected to be a string, array of strings or a JSON expression");
+
+      update_functions("fields");
+    } else {
       std::vector<std::string> fields;
       parse_string_list(args, fields);
-
-      if (fields.size() == 0)
-        throw shcore::Exception::argument_error("Field selection criteria can not be empty");
-
       _find_statement->fields(fields);
-    } else if (args[0].type == Object && args[0].as_object()->class_name() == "Expression") {
-      std::shared_ptr<mysqlx::Expression> expression = std::static_pointer_cast<mysqlx::Expression>(args[0].as_object());
-      ::mysqlx::Expr_parser parser(expression->get_data());
-      std::unique_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
-
-      // Parsing is done just to validate it is a valid JSON expression
-      if (expr_obj->type() == Mysqlx::Expr::Expr_Type_OBJECT)
-        _find_statement->fields(expression->get_data());
-      else
-        throw shcore::Exception::argument_error("Argument #1 is expected to be a JSON expression");
-    } else
-      throw shcore::Exception::argument_error("Argument #1 is expected to be an array or JSON expression");
-
-    update_functions("fields");
+    }
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.fields");
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets a grouping criteria for the resultset.
-#if DOXYGEN_CPP
-//! \param args should contain a list of string expressions identifying the grouping criteria.
-#else
-//! \param searchExprStr: A list of string expressions identifying the grouping criteria.
-#endif
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_BRIEF, "Sets a grouping criteria for the resultset.");
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_PARAM, "@param groupCriteria A list of string expressions defining the grouping criteria.");
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_SYNTAX, "groupBy(fieldList)");
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_SYNTAX1, "groupBy(field[, field, ...])");
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_DETAIL, "Sets a grouping criteria for the resultset.");
 /**
-* \return This CollectionFind object.
+* $(COLLECTIONFIND_GROUPBY_BRIEF)
 *
-* If used, the CollectionFind operation will group the records using the stablished criteria.
+* $(COLLECTIONFIND_GROUPBY_PARAM)
+*
+* $(COLLECTIONFIND_GROUPBY_RETURNS)
+*
+* $(COLLECTIONFIND_GROUPBY_DETAIL)
 *
 * #### Method Chaining
 *
@@ -257,16 +244,18 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
 * - execute()
-*
-* \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::groupBy(List searchExprStr) {}
+CollectionFind CollectionFind::groupBy(List groupCriteria) {}
+CollectionFind CollectionFind::groupBy(String groupCriteria[, String groupCriteria, ...]) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::group_by(list searchExprStr) {}
+CollectionFind CollectionFind::group_by(list groupCriteria) {}
+CollectionFind CollectionFind::group_by(str groupCriteria[, str groupCriteria, ...]) {}
 #endif
+//@}
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("groupBy").c_str());
+  args.ensure_at_least(1, get_function_name("groupBy").c_str());
 
   try {
     std::vector<std::string> fields;
@@ -285,18 +274,20 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets a condition for records to be considered in agregate function operations.
-#if DOXYGEN_CPP
-//! \param args should contain a condition on the agregate functions used on the grouping criteria.
-#else
-//! \param searchCondition: A condition on the agregate functions used on the grouping criteria.
-#endif
+REGISTER_HELP(COLLECTIONFIND_HAVING_BRIEF, "Sets a condition for records to be considered in agregate function operations.");
+REGISTER_HELP(COLLECTIONFIND_HAVING_PARAM, "@param searchCondition A condition on the agregate functions used on the grouping criteria.");
+REGISTER_HELP(COLLECTIONFIND_HAVING_SYNTAX, "having(searchCondition)");
+REGISTER_HELP(COLLECTIONFIND_HAVING_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL, "Sets a condition for records to be considered in agregate function operations.");
+
 /**
-* \return This CollectionFind object.
+* $(COLLECTIONFIND_HAVING_BRIEF)
 *
-* If used the CollectionFind operation will only consider the records matching the stablished criteria.
+* $(COLLECTIONFIND_HAVING_PARAM)
 *
-* The searchCondition supports \a [Parameter Binding](param_binding.html).
+* $(COLLECTIONFIND_HAVING_RETURNS)
+*
+* $(COLLECTIONFIND_HAVING_DETAIL)
 *
 * #### Method Chaining
 *
@@ -310,14 +301,14 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
 * - execute()
-*
-* \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
 CollectionFind CollectionFind::having(String searchCondition) {}
 #elif DOXYGEN_PY
 CollectionFind CollectionFind::having(str searchCondition) {}
 #endif
+//@}
 shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.having");
 
@@ -331,19 +322,30 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the sorting criteria to be used on the DocResult.
-#if DOXYGEN_CPP
-//! \param args should contain a a list of expression strings defining the sort criteria for the returned documents.
-#else
-//! \param sortExprStr: A list of expression strings defining the sort criteria for the returned documents.
-#endif
+REGISTER_HELP(COLLECTIONFIND_SORT_BRIEF, "Sets the sorting criteria to be used on the DocResult.");
+REGISTER_HELP(COLLECTIONFIND_SORT_PARAM, "@param sortCriteria The sort criteria for the returned documents.");
+REGISTER_HELP(COLLECTIONFIND_SORT_SYNTAX, "sort(sortCriterion[, sortCriterion, ...])");
+REGISTER_HELP(COLLECTIONFIND_SORT_SYNTAX1, "sort(sortCritera)");
+REGISTER_HELP(COLLECTIONFIND_SORT_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL, "If used the CollectionFind operation will return the records sorted with the defined criteria.");
+REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL1, "Every defined sort criterion sollows the next format:");
+REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL2, "name [ ASC | DESC ]");
+REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3, "ASC is used by default if the sort order is not specified.");
+
 /**
-* \return This CollectionFind object.
+* $(COLLECTIONFIND_SORT_BRIEF)
 *
-* If used the CollectionFind operation will return the records sorted with the defined criteria.
+* $(COLLECTIONFIND_SORT_PARAM)
 *
-* The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "attribute [ ASC | DESC ]".
-* If no order criteria is specified, ascending will be used by default.
+* $(COLLECTIONFIND_SORT_RETURNS)
+*
+* $(COLLECTIONFIND_SORT_DETAIL)
+*
+* $(COLLECTIONFIND_SORT_DETAIL1)
+*
+* $(COLLECTIONFIND_SORT_DETAIL2)
+*
+* $(COLLECTIONFIND_SORT_DETAIL3)
 *
 * #### Method Chaining
 *
@@ -359,16 +361,18 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
 * - execute()
-*
-* \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::sort(List sortExprStr) {}
+CollectionFind CollectionFind::sort(List sortCriteria) {}
+CollectionFind CollectionFind::sort(String sortCriteria[, String sortCriteria, ...]) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::sort(list sortExprStr) {}
+CollectionFind CollectionFind::sort(list sortCriteria) {}
+CollectionFind CollectionFind::sort(str sortCriteria[, str sortCriteria, ...]) {}
 #endif
+//@}
 shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
-  args.ensure_count(1, "CollectionFind.sort");
+  args.ensure_at_least(1, "CollectionFind.sort");
 
   try {
     std::vector<std::string> fields;
@@ -387,16 +391,20 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the maximum number of documents to be returned on the find operation.
-#if DOXYGEN_CPP
-//! \param args should contain the maximum number of documents to be retrieved.
-#else
-//! \param numberOfRows: The maximum number of documents to be retrieved.
-#endif
+REGISTER_HELP(COLLECTIONFIND_LIMIT_BRIEF, "Sets the maximum number of documents to be returned on the find operation.");
+REGISTER_HELP(COLLECTIONFIND_LIMIT_PARAM, "@param numberOfRows The maximum number of documents to be retrieved.");
+REGISTER_HELP(COLLECTIONFIND_LIMIT_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_LIMIT_SYNTAX, "limit(numberOfRows)");
+REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL, "If used, the CollectionFind operation will return at most numberOfRows documents.");
+
 /**
-* \return This CollectionFind object.
+* $(COLLECTIONFIND_LIMIT_BRIEF)
 *
-* If used, the CollectionFind operation will return at most numberOfRows documents.
+* $(COLLECTIONFIND_LIMIT_PARAM)
+*
+* $(COLLECTIONFIND_LIMIT_RETURNS)
+*
+* $(COLLECTIONFIND_LIMIT_DETAIL)
 *
 * #### Method Chaining
 *
@@ -413,14 +421,14 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
 * - skip(Integer limitOffset)
 * - bind(String name, Value value)
 * - execute()
-*
-* \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
 CollectionFind CollectionFind::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 CollectionFind CollectionFind::limit(int numberOfRows) {}
 #endif
+//@}
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.limit");
 
@@ -434,14 +442,20 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets number of documents to skip on the resultset when a limit has been defined.
-#if DOXYGEN_CPP
-//! \param args should contain the number of documents to skip before start including them on the DocResult.
-#else
-//! \param limitOffset: The number of documents to skip before start including them on the DocResult.
-#endif
+REGISTER_HELP(COLLECTIONFIND_SKIP_BRIEF, "Sets number of documents to skip on the resultset when a limit has been defined.");
+REGISTER_HELP(COLLECTIONFIND_SKIP_PARAM, "@param offset The number of documents to skip before start including them on the DocResult.");
+REGISTER_HELP(COLLECTIONFIND_SKIP_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_SKIP_SYNTAX, "skip(offset)");
+REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL, "If used, the the first \#offset records will not be included on the result.");
+
 /**
-* \return This CollectionFind object.
+* $(COLLECTIONFIND_SKIP_BRIEF)
+*
+* $(COLLECTIONFIND_SKIP_PARAM)
+*
+* $(COLLECTIONFIND_SKIP_RETURNS)
+*
+* $(COLLECTIONFIND_SKIP_DETAIL)
 *
 * #### Method Chaining
 *
@@ -453,14 +467,14 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
 *
 * - bind(String name, Value value)
 * - execute()
-*
-* \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::skip(Integer limitOffset) {}
+CollectionFind CollectionFind::skip(Integer offset) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::skip(int limitOffset) {}
+CollectionFind CollectionFind::skip(int offset) {}
 #endif
+//@}
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.skip");
 
@@ -474,15 +488,29 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Binds a value to a specific placeholder used on this CollectionFind object.
-#if DOXYGEN_CPP
-//! \param args should contain the place holder name and the value to be bound on it.
-#else
-//! \param name: The name of the placeholder to which the value will be bound.
-//! \param value: The value to be bound on the placeholder.
-#endif
+REGISTER_HELP(COLLECTIONFIND_BIND_BRIEF, "Binds a value to a specific placeholder used on this CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_BIND_PARAM, "@param name The name of the placeholder to which the value will be bound.");
+REGISTER_HELP(COLLECTIONFIND_BIND_PARAM1, "@param value The value to be bound on the placeholder.");
+REGISTER_HELP(COLLECTIONFIND_BIND_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_BIND_SYNTAX, "bind(placeHolder, value)[.bind(...)]");
+REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL, "Binds a value to a specific placeholder used on this CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL1, "An error will be raised if the placeholder indicated by name does not exist.");
+REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL2, "This function must be called once for each used placeohlder or an error will be"\
+"raised when the execute method is called.");
+
 /**
-* \return This CollectionFind object.
+* $(COLLECTIONFIND_BIND_BRIEF)
+*
+* $(COLLECTIONFIND_BIND_PARAM)
+* $(COLLECTIONFIND_BIND_PARAM1)
+*
+* $(COLLECTIONFIND_BIND_RETURNS)
+*
+* $(COLLECTIONFIND_BIND_DETAIL)
+*
+* $(COLLECTIONFIND_BIND_DETAIL1)
+*
+* $(COLLECTIONFIND_BIND_DETAIL2)
 *
 * #### Method Chaining
 *
@@ -492,19 +520,14 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
 *
 * - bind(String name, Value value)
 * - execute()
-*
-* An error will be raised if the placeholder indicated by name does not exist.
-*
-* This function must be called once for each used placeohlder or an error will be
-* raised when the execute method is called.
-*
-* \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
 CollectionFind CollectionFind::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 CollectionFind CollectionFind::bind(str name, Value value) {}
 #endif
+//@}
 shcore::Value CollectionFind::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, "CollectionFind.bind");
 
@@ -518,33 +541,80 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP(COLLECTIONFIND_EXECUTE_BRIEF, "Executes the find operation with all the configured options.");
+REGISTER_HELP(COLLECTIONFIND_EXECUTE_RETURNS, "@return A DocResult object that can be used to traverse the documents returned by this operation.");
+REGISTER_HELP(COLLECTIONFIND_EXECUTE_SYNTAX, "execute()");
+
 /**
-* Executes the Find operation with all the configured options and returns.
-* \return CollectionResultset A DocResult object that can be used to traverse the collections returned by the find operation.
+* $(COLLECTIONFIND_EXECUTE_BRIEF)
+*
+* $(COLLECTIONFIND_EXECUTE_RETURNS)
 *
 * #### Method Chaining
 *
 * This function can be invoked after any other function on this class.
+*
+* ### Examples
 */
+//@{
 #if DOXYGEN_JS
 /**
+* #### Retrieving All Documents
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: All Records
 *
-* #### Examples
-* \dontinclude "js_devapi/scripts/mysqlx_collection_find.js"
-* \skip //@ Collection.Find All
-* \until print(columns[1], ':', record.InThreeYears, '\n');
+* #### Filtering
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Filtering
+*
+* #### Field Selection
+* Using a field selection list
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field Selection List
+*
+* Using separate field selection parameters
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field Selection Parameters
+*
+* Using a projection expression
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field Selection Projection
+*
+* #### Sorting
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Sorting
+*
+* #### Using Limit and Skip
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Limit and Skip
+*
+* #### Parameter Binding
+* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Parameter Binding
 */
 DocResult CollectionFind::execute() {}
 #elif DOXYGEN_PY
 /**
+* #### Retrieving All Documents
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: All Records
 *
-* #### Examples
-* \dontinclude "py_devapi/scripts/mysqlx_collection_find.py"
-* \skip #@ Collection.Find All
-* \until print "%s: %s\n" % (columns[1], record.InThreeYears)
+* #### Filtering
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Filtering
+*
+* #### Field Selection
+* Using a field selection list
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field Selection List
+*
+* Using separate field selection parameters
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field Selection Parameters
+*
+* Using a projection expression
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field Selection Projection
+*
+* #### Sorting
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Sorting
+*
+* #### Using Limit and Skip
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Limit and Skip
+*
+* #### Parameter Binding
+* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Parameter Binding
 */
 DocResult CollectionFind::execute() {}
 #endif
+//@}
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {
   mysqlx::DocResult *result = NULL;
 

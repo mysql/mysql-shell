@@ -52,15 +52,24 @@ shcore::Value Crud_definition::execute(const shcore::Argument_list &UNUSED(args)
 }
 
 void Crud_definition::parse_string_list(const shcore::Argument_list &args, std::vector<std::string> &data) {
-  Value::Array_type_ref shell_fields = args.array_at(0);
-  Value::Array_type::const_iterator index, end = shell_fields->end();
+  // When there is 1 argument, it must be either an array of strings or a string
+  if (args.size() == 1 && args[0].type != Array && args[0].type != String)
+    throw shcore::Exception::argument_error("Argument #1 is expected to be a string or an array of strings");
 
-  int count = 0;
-  for (index = shell_fields->begin(); index != end; index++) {
-    count++;
-    if (index->type != shcore::String)
-      throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
-    else
-      data.push_back(index->as_string());
+  if (args.size() == 1 && args[0].type == Array) {
+    Value::Array_type_ref shell_fields = args.array_at(0);
+    Value::Array_type::const_iterator index, end = shell_fields->end();
+
+    int count = 0;
+    for (index = shell_fields->begin(); index != end; index++) {
+      count++;
+      if (index->type != shcore::String)
+        throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
+      else
+        data.push_back(index->as_string());
+    }
+  } else {
+    for (size_t index = 0; index < args.size(); index++)
+      data.push_back(args.string_at(index));
   }
 }

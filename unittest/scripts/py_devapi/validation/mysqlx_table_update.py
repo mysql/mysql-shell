@@ -46,10 +46,11 @@
 
 
 #@# TableUpdate: Error conditions on order_by
-||Invalid number of arguments in TableUpdate.order_by, expected 1 but got 0
-||TableUpdate.order_by: Argument #1 is expected to be an array
+||Invalid number of arguments in TableUpdate.order_by, expected at least 1 but got 0
+||TableUpdate.order_by: Argument #1 is expected to be a string or an array of strings
 ||TableUpdate.order_by: Order criteria can not be empty
 ||TableUpdate.order_by: Element #2 is expected to be a string
+||TableUpdate.order_by: Argument #2 is expected to be a string
 
 #@# TableUpdate: Error conditions on limit
 ||Invalid number of arguments in TableUpdate.limit, expected 1 but got 0

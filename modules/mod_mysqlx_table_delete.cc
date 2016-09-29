@@ -177,7 +177,7 @@ TableDelete TableDelete::orderBy(List sortExprStr) {}
 TableDelete TableDelete::order_by(list sortExprStr) {}
 #endif
 shcore::Value TableDelete::order_by(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("orderBy").c_str());
+  args.ensure_at_least(1, get_function_name("orderBy").c_str());
 
   try {
     std::vector<std::string> fields;

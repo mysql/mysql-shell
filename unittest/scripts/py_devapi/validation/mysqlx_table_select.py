@@ -40,9 +40,10 @@
 
 
 #@# TableSelect: Error conditions on select
-||TableSelect.select: Argument #1 is expected to be an array
+||TableSelect.select: Argument #1 is expected to be a string or an array of strings
 ||TableSelect.select: Field selection criteria can not be empty
 ||TableSelect.select: Element #2 is expected to be a string
+||TableSelect.select: Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on where
 ||Invalid number of arguments in TableSelect.where, expected 1 but got 0
@@ -50,20 +51,22 @@
 ||TableSelect.where: Unterminated quoted string starting at position 8
 
 #@# TableSelect: Error conditions on group_by
-||Invalid number of arguments in TableSelect.group_by, expected 1 but got 0
-||TableSelect.group_by: Argument #1 is expected to be an array
+||Invalid number of arguments in TableSelect.group_by, expected at least 1 but got 0
+||TableSelect.group_by: Argument #1 is expected to be a string or an array of strings
 ||TableSelect.group_by: Grouping criteria can not be empty
 ||TableSelect.group_by: Element #2 is expected to be a string
+||TableSelect.group_by: Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on having
 ||Invalid number of arguments in TableSelect.having, expected 1 but got 0
 ||TableSelect.having: Argument #1 is expected to be a string
 
 #@# TableSelect: Error conditions on order_by
-||Invalid number of arguments in TableSelect.order_by, expected 1 but got 0
-||TableSelect.order_by: Argument #1 is expected to be an array
+||Invalid number of arguments in TableSelect.order_by, expected at least 1 but got 0
+||TableSelect.order_by: Argument #1 is expected to be a string or an array of strings
 ||TableSelect.order_by: Order criteria can not be empty
 ||TableSelect.order_by: Element #2 is expected to be a string
+||TableSelect.order_by: Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on limit
 ||Invalid number of arguments in TableSelect.limit, expected 1 but got 0

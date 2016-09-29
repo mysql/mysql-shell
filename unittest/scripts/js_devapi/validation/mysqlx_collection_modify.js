@@ -89,10 +89,11 @@
 ||CollectionModify.arrayDelete: An array document path must be specified
 
 //@# CollectionModify: Error conditions on sort
-||Invalid number of arguments in CollectionModify.sort, expected 1 but got 0
-||CollectionModify.sort: Argument #1 is expected to be an array
+||Invalid number of arguments in CollectionModify.sort, expected at least 1 but got 0
+||CollectionModify.sort: Argument #1 is expected to be a string or an array of strings
 ||CollectionModify.sort: Sort criteria can not be empty
 ||CollectionModify.sort: Element #2 is expected to be a string
+||CollectionModify.sort: Argument #2 is expected to be a string
 
 //@# CollectionModify: Error conditions on limit
 ||Invalid number of arguments in CollectionModify.limit, expected 1 but got 0

@@ -78,12 +78,14 @@ crud = collection.find().fields(5)
 crud = collection.find().fields([])
 crud = collection.find().fields(['name as alias', 5])
 crud = collection.find().fields(mysqlx.expr('concat(field, "whatever")'));
+crud = collection.find().fields('name as alias', 5)
 
 #@# CollectionFind: Error conditions on group_by
 crud = collection.find().group_by()
 crud = collection.find().group_by(5)
 crud = collection.find().group_by([])
 crud = collection.find().group_by(['name', 5])
+crud = collection.find().group_by('name', 5)
 
 #@# CollectionFind: Error conditions on having
 crud = collection.find().group_by(['name']).having()
@@ -94,6 +96,7 @@ crud = collection.find().sort()
 crud = collection.find().sort(5)
 crud = collection.find().sort([])
 crud = collection.find().sort(['name', 5])
+crud = collection.find().sort('name', 5)
 
 #@# CollectionFind: Error conditions on limit
 crud = collection.find().limit()
@@ -118,15 +121,19 @@ crud = collection.find('name = :data and age > :years').bind('years', 5).execute
 # ---------------------------------------
 
 #@ Collection.Find All
+//! [CollectionFind: All Records]
 records = collection.find().execute().fetch_all()
 print "All:", len(records), "\n"
+//! [CollectionFind: All Records]
 
 #@ Collection.Find Filtering
+//! [CollectionFind: Filtering]
 records = collection.find('gender = "male"').execute().fetch_all()
 print "Males:", len(records), "\n"
 
 records = collection.find('gender = "female"').execute().fetch_all()
 print "Females:", len(records), "\n"
+//! [CollectionFind: Filtering]
 
 records = collection.find('age = 13').execute().fetch_all()
 print "13 Years:", len(records), "\n"
@@ -165,6 +172,7 @@ print '2-Metadata Length:', len(columns), '\n'
 print '2-Metadata Field:', columns[0], '\n'
 
 #@ Collection.Find Sorting
+//! [CollectionFind: Sorting]
 records = collection.find().sort(['name']).execute().fetch_all()
 for index in xrange(7):
   print 'Find Asc', index, ':', records[index].name, '\n'
@@ -172,27 +180,48 @@ for index in xrange(7):
 records = collection.find().sort(['name desc']).execute().fetch_all()
 for index in xrange(7):
 	print 'Find Desc', index, ':', records[index].name, '\n'
+//! [CollectionFind: Sorting]
 
 #@ Collection.Find Limit and Offset
+//! [CollectionFind: Limit and Skip]
 records = collection.find().limit(4).execute().fetch_all()
 print 'Limit-Skip 0 :', len(records), '\n'
 
 for index in xrange(8):
 	records = collection.find().limit(4).skip(index + 1).execute().fetch_all()
 	print 'Limit-Skip', index + 1, ':', len(records), '\n'
+//! [CollectionFind: Limit and Skip]
 
 #@ Collection.Find Parameter Binding
+//! [CollectionFind: Parameter Binding]
 records = collection.find('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetch_all()
 print 'Find Binding Length:', len(records), '\n'
 print 'Find Binding Name:', records[0].name, '\n'
+//! [CollectionFind: Parameter Binding]
 
+#@ Collection.Find Field Selection Using Field List
+//! [CollectionFind: Field Selection List]
+result = collection.find('name = "jack"').fields(['ucase(name) as FirstName', 'age as Age']).execute();
+record = result.fetch_one();
+print "First Name: %s\n" % record.FirstName
+print "Age: %s\n" % record.Age
+//! [CollectionFind: Field Selection List]
+
+#@ Collection.Find Field Selection Using Field Parameters
+//! [CollectionFind: Field Selection Parameters]
+result = collection.find('name = "jack"').fields('ucase(name) as FirstName', 'age as Age').execute();
+record = result.fetch_one();
+print "First Name: %s\n" % record.FirstName
+print "Age: %s\n" % record.Age
+//! [CollectionFind: Field Selection Parameters]
 
 #@ Collection.Find Field Selection Using Projection Expression
+//! [CollectionFind: Field Selection Projection]
 result = collection.find('name = "jack"').fields(mysqlx.expr('{"FirstName":ucase(name), "InThreeYears":age + 3}')).execute();
 record = result.fetch_one();
-columns = dir(record)
-print "%s: %s\n" % (columns[0], record.FirstName)
-print "%s: %s\n" % (columns[1], record.InThreeYears)
+print "First Name: %s\n" % record.FirstName
+print "In Three Years: %s\n" % record.InThreeYears
+//! [CollectionFind: Field Selection Projection]
 
 # Cleanup
 mySession.drop_schema('js_shell_test')

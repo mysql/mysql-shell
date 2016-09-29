@@ -75,6 +75,7 @@ print result.fetch_one().name + '\n'
 crud = table.select(5)
 crud = table.select([])
 crud = table.select(['name as alias', 5])
+crud = table.select('name as alias', 5)
 
 #@# TableSelect: Error conditions on where
 crud = table.select().where()
@@ -86,6 +87,7 @@ crud = table.select().group_by()
 crud = table.select().group_by(5)
 crud = table.select().group_by([])
 crud = table.select().group_by(['name', 5])
+crud = table.select().group_by('name', 5)
 
 #@# TableSelect: Error conditions on having
 crud = table.select().group_by(['name']).having()
@@ -96,6 +98,7 @@ crud = table.select().order_by()
 crud = table.select().order_by(5)
 crud = table.select().order_by([])
 crud = table.select().order_by(['name', 5])
+crud = table.select().order_by('name', 5)
 
 #@# TableSelect: Error conditions on limit
 crud = table.select().limit()

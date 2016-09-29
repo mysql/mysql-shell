@@ -44,27 +44,30 @@
 ||CollectionFind.find: Unterminated quoted string starting at position 8
 
 //@# CollectionFind: Error conditions on fields
-||Invalid number of arguments in CollectionFind.fields, expected 1 but got 0
-||CollectionFind.fields: Argument #1 is expected to be an array or JSON expression
+||Invalid number of arguments in CollectionFind.fields, expected at least 1 but got 0
+||CollectionFind.fields: Argument #1 is expected to be a string, array of strings or a JSON expression
 ||CollectionFind.fields: Field selection criteria can not be empty
 ||CollectionFind.fields: Element #2 is expected to be a string
 ||CollectionFind.fields: Argument #1 is expected to be a JSON expression
+||CollectionFind.fields: Argument #2 is expected to be a string
 
 //@# CollectionFind: Error conditions on groupBy
-||Invalid number of arguments in CollectionFind.groupBy, expected 1 but got 0
-||CollectionFind.groupBy: Argument #1 is expected to be an array
+||Invalid number of arguments in CollectionFind.groupBy, expected at least 1 but got 0
+||CollectionFind.groupBy: Argument #1 is expected to be a string or an array of strings
 ||CollectionFind.groupBy: Grouping criteria can not be empty
 ||CollectionFind.groupBy: Element #2 is expected to be a string
+||CollectionFind.groupBy: Argument #2 is expected to be a string
 
 //@# CollectionFind: Error conditions on having
 ||Invalid number of arguments in CollectionFind.having, expected 1 but got 0
 ||CollectionFind.having: Argument #1 is expected to be a string
 
 //@# CollectionFind: Error conditions on sort
-||Invalid number of arguments in CollectionFind.sort, expected 1 but got 0
-||CollectionFind.sort: Argument #1 is expected to be an array
+||Invalid number of arguments in CollectionFind.sort, expected at least 1 but got 0
+||CollectionFind.sort: Argument #1 is expected to be a string or an array of strings
 ||CollectionFind.sort: Sort criteria can not be empty
 ||CollectionFind.sort: Element #2 is expected to be a string
+||CollectionFind.sort: Argument #2 is expected to be a string
 
 //@# CollectionFind: Error conditions on limit
 ||Invalid number of arguments in CollectionFind.limit, expected 1 but got 0
@@ -135,6 +138,14 @@
 |Find Binding Length: 1|
 |Find Binding Name: alma|
 
+//@ Collection.Find Field Selection Using Field List
+|First Name: JACK|
+|Age: 17|
+
+//@ Collection.Find Field Selection Using Field Parameters
+|First Name: JACK|
+|Age: 17|
+
 //@ Collection.Find Field Selection Using Projection Expression
-|FirstName : JACK|
-|InThreeYears : 20|
+|First Name: JACK|
+|In Three Years: 20|

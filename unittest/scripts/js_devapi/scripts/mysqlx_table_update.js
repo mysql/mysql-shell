@@ -80,6 +80,7 @@ crud = table.update().set('age', 17).orderBy();
 crud = table.update().set('age', 17).orderBy(5);
 crud = table.update().set('age', 17).orderBy([]);
 crud = table.update().set('age', 17).orderBy(['name', 5]);
+crud = table.update().set('age', 17).orderBy('name', 5);
 
 //@# TableUpdate: Error conditions on limit
 crud = table.update().set('age', 17).limit();

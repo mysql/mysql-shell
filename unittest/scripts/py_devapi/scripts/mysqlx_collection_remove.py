@@ -61,6 +61,7 @@ crud = collection.remove().sort()
 crud = collection.remove().sort(5)
 crud = collection.remove().sort([])
 crud = collection.remove().sort(['name', 5])
+crud = collection.remove().sort('name', 5)
 
 #@# CollectionRemove: Error conditions on limit
 crud = collection.remove().limit()

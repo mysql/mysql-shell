@@ -45,24 +45,30 @@ public:
   virtual std::string class_name() const { return "CollectionFind"; }
 #if DOXYGEN_JS
   CollectionFind find(String searchCondition);
-  CollectionFind fields(List projectedSearchExprStr);
-  CollectionFind fields(DocExpression projection);
-  CollectionFind groupBy(List searchExprStr);
+  CollectionFind fields(String fieldDefinition[, String fieldDefinition, ...]);
+  CollectionFind fields(List fieldDefinition);
+  CollectionFind fields(DocExpression fieldDefinition);
+  CollectionFind groupBy(List groupCriteria);
+  CollectionFind groupBy(String groupCriteria[, String groupCriteria, ...]);
   CollectionFind having(String searchCondition);
-  CollectionFind sort(List sortExprStr);
+  CollectionFind sort(List sortCriteria);
+  CollectionFind sort(String sortCriteria[, String sortCriteria, ...]);
   CollectionFind limit(Integer numberOfRows);
-  CollectionFind skip(Integer limitOffset);
+  CollectionFind skip(Integer offset);
   CollectionFind bind(String name, Value value);
   DocResult execute();
 #elif DOXYGEN_PY
   CollectionFind find(str searchCondition);
-  CollectionFind fields(list projectedSearchExprStr);
-  CollectionFind fields(DocExpression projection);
-  CollectionFind group_by(list searchExprStr);
+  CollectionFind fields(str fieldDefinition[, str fieldDefinition, ...]);
+  CollectionFind fields(list fieldDefinition);
+  CollectionFind fields(DocExpression fieldDefinition);
+  CollectionFind group_by(list groupCriteria);
+  CollectionFind group_by(str groupCriteria[, str groupCriteria, ...]);
   CollectionFind having(str searchCondition);
-  CollectionFind sort(list sortExprStr);
+  CollectionFind sort(list sortCriteria);
+  CollectionFind sort(str sortCriteria[, str sortCriteria, ...]);
   CollectionFind limit(int numberOfRows);
-  CollectionFind skip(int limitOffset);
+  CollectionFind skip(int offset);
   CollectionFind bind(str name, Value value);
   DocResult execute();
 #endif

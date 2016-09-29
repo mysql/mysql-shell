@@ -20,7 +20,7 @@ result = table.insert({"name": 'brian', "age": 14, "gender": 'male'}).execute()
 result = table.insert({"name": 'alma', "age": 13, "gender": 'female'}).execute()
 result = table.insert({"name": 'carol', "age": 14, "gender": 'female'}).execute()
 result = table.insert({"name": 'donna', "age": 16, "gender": 'female'}).execute()
-result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()	
+result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()
 
 # ------------------------------------------------
 # table.delete Unit Testing: Dynamic Behavior
@@ -72,6 +72,7 @@ crud = table.delete().order_by()
 crud = table.delete().order_by(5)
 crud = table.delete().order_by([])
 crud = table.delete().order_by(['name', 5])
+crud = table.delete().order_by('name', 5)
 
 #@# TableDelete: Error conditions on limit
 crud = table.delete().limit()

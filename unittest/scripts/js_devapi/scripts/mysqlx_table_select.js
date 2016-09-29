@@ -74,6 +74,7 @@ print(result.fetchOne().name + '\n');
 crud = table.select(5);
 crud = table.select([]);
 crud = table.select(['name as alias', 5]);
+crud = table.select('name as alias', 5);
 
 //@# TableSelect: Error conditions on where
 crud = table.select().where();
@@ -85,6 +86,7 @@ crud = table.select().groupBy();
 crud = table.select().groupBy(5);
 crud = table.select().groupBy([]);
 crud = table.select().groupBy(['name', 5]);
+crud = table.select().groupBy('name', 5);
 
 //@# TableSelect: Error conditions on having
 crud = table.select().groupBy(['name']).having();
@@ -95,6 +97,7 @@ crud = table.select().orderBy();
 crud = table.select().orderBy(5);
 crud = table.select().orderBy([]);
 crud = table.select().orderBy(['name', 5]);
+crud = table.select().orderBy('name', 5);
 
 //@# TableSelect: Error conditions on limit
 crud = table.select().limit();

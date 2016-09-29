@@ -71,6 +71,7 @@ crud = table.delete().orderBy();
 crud = table.delete().orderBy(5);
 crud = table.delete().orderBy([]);
 crud = table.delete().orderBy(['name', 5]);
+crud = table.delete().orderBy('name', 5);
 
 //@# TableDelete: Error conditions on limit
 crud = table.delete().limit();

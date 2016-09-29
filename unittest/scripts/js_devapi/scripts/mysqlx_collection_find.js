@@ -76,14 +76,15 @@ crud = collection.find().fields();
 crud = collection.find().fields(5);
 crud = collection.find().fields([]);
 crud = collection.find().fields(['name as alias', 5]);
-crud = collection.find().fields(['name as alias', 5]);
 crud = collection.find().fields(mysqlx.expr('concat(field, "whatever")'));
+crud = collection.find().fields('name as alias', 5)
 
 //@# CollectionFind: Error conditions on groupBy
 crud = collection.find().groupBy();
 crud = collection.find().groupBy(5);
 crud = collection.find().groupBy([]);
 crud = collection.find().groupBy(['name', 5]);
+crud = collection.find().groupBy('name', 5)
 
 //@# CollectionFind: Error conditions on having
 crud = collection.find().groupBy(['name']).having();
@@ -94,6 +95,7 @@ crud = collection.find().sort();
 crud = collection.find().sort(5);
 crud = collection.find().sort([]);
 crud = collection.find().sort(['name', 5]);
+crud = collection.find().sort('name', 5);
 
 //@# CollectionFind: Error conditions on limit
 crud = collection.find().limit();
@@ -116,15 +118,19 @@ crud = collection.find('name = :data and age > :years').bind('years', 5).execute
 // Collection.Find Unit Testing: Execution
 // ---------------------------------------
 //@ Collection.Find All
+//! [CollectionFind: All Records]
 var records = collection.find().execute().fetchAll();
 print("All:", records.length, "\n");
+//! [CollectionFind: All Records]
 
 //@ Collection.Find Filtering
+//! [CollectionFind: Filtering]
 var records = collection.find('gender = "male"').execute().fetchAll();
 print("Males:", records.length, "\n");
 
 var records = collection.find('gender = "female"').execute().fetchAll();
 print("Females:", records.length, "\n");
+//! [CollectionFind: Filtering]
 
 var records = collection.find('age = 13').execute().fetchAll();
 print("13 Years:", records.length, "\n");
@@ -153,7 +159,8 @@ print('2-Metadata Length:', columns.length, '\n');
 print('2-Metadata Field:', columns[0], '\n');
 
 //@ Collection.Find Sorting
-var records = collection.find().sort(['name']).execute().fetchAll();
+//! [CollectionFind: Sorting]
+var records = collection.find().sort('name').execute().fetchAll();
 for (index = 0; index < 7; index++) {
   print('Find Asc', index, ':', records[index].name, '\n');
 }
@@ -162,8 +169,10 @@ var records = collection.find().sort(['name desc']).execute().fetchAll();
 for (index = 0; index < 7; index++) {
   print('Find Desc', index, ':', records[index].name, '\n');
 }
+//! [CollectionFind: Sorting]
 
 //@ Collection.Find Limit and Offset
+//! [CollectionFind: Limit and Skip]
 var records = collection.find().limit(4).execute().fetchAll();
 print('Limit-Skip 0 :', records.length, '\n');
 
@@ -171,18 +180,38 @@ for (index = 1; index < 8; index++) {
   var records = collection.find().limit(4).skip(index).execute().fetchAll();
   print('Limit-Skip', index, ':', records.length, '\n');
 }
+//! [CollectionFind: Limit and Skip]
 
 //@ Collection.Find Parameter Binding
+//! [CollectionFind: Parameter Binding]
 var records = collection.find('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetchAll();
 print('Find Binding Length:', records.length, '\n');
 print('Find Binding Name:', records[0].name, '\n');
+//! [CollectionFind: Parameter Binding]
+
+// Collection.Find Field Selection Using Field List
+//! [CollectionFind: Field Selection List]
+result = collection.find('name = "jack"').fields(['ucase(name) as FirstName', 'age as Age']).execute();
+record = result.fetchOne();
+print('First Name:', record.FirstName, '\n');
+print('Age:', record.Age, '\n');
+//! [CollectionFind: Field Selection List]
+
+//@ Collection.Find Field Selection Using Field Parameters
+//! [CollectionFind: Field Selection Parameters]
+result = collection.find('name = "jack"').fields('ucase(name) as FirstName', 'age as Age').execute();
+record = result.fetchOne();
+print('First Name:', record.FirstName, '\n');
+print('Age:', record.Age, '\n');
+//! [CollectionFind: Field Selection Parameters]
 
 //@ Collection.Find Field Selection Using Projection Expression
+//! [CollectionFind: Field Selection Projection]
 var result = collection.find('name = "jack"').fields(mysqlx.expr('{"FirstName":ucase(name), "InThreeYears":age + 3}')).execute();
 var record = result.fetchOne();
-var columns = dir(record)
-print(columns[0], ':', record.FirstName, '\n');
-print(columns[1], ':', record.InThreeYears, '\n');
+print('First Name:', record.FirstName, '\n');
+print('In Three Years:', record.InThreeYears, '\n');
+//! [CollectionFind: Field Selection Projection]
 
 // Cleanup
 mySession.dropSchema('js_shell_test');
