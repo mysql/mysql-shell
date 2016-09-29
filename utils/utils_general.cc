@@ -557,7 +557,7 @@ std::string join_strings(const std::vector<std::string>& strings, const std::str
 // Retrieves a member name on a specific NamingStyle
 // NOTE: Assumption is given that everything is created using a lowerUpperCase naming style
 //       Which is the default to be used on C++ and JS
-std::string shcore::get_member_name(const std::string& name, shcore::NamingStyle style) {
+std::string get_member_name(const std::string& name, shcore::NamingStyle style) {
   std::string new_name;
   switch (style) {
     // This is the default style, input is returned without modifications

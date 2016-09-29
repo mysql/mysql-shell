@@ -49,7 +49,7 @@ Help_register::Help_register(const std::string &token, const std::string &data) 
   shcore::Shell_help::get()->add_help(token, data);
 };
 
-std::vector<std::string> shcore::get_help_text(const std::string& token) {
+std::vector<std::string> get_help_text(const std::string& token) {
   std::string real_token;
   for (auto c : token)
     real_token.append(1, std::toupper(c));
