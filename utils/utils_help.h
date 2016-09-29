@@ -20,6 +20,7 @@
 #ifndef __mysh__utils_help__
 #define __mysh__utils_help__
 
+#include "shellcore/types_cpp.h"
 #include "shellcore/common.h"
 #include <string>
 #include <vector>
@@ -52,6 +53,8 @@ struct Help_register {
 };
 
 std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string& token);
+std::string SHCORE_PUBLIC get_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname);
+std::string SHCORE_PUBLIC get_chained_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname);
 };
 
 #define REGISTER_HELP(x,y) shcore::Help_register x(#x,y)

@@ -22,8 +22,10 @@
 
 #include "shellcore/common.h"
 #include "shellcore/types.h"
+#include "shellcore/types_cpp.h"
 #include <string>
 #include <set>
+#include <vector>
 
 namespace shcore {
 bool SHCORE_PUBLIC is_valid_identifier(const std::string& name);
@@ -66,6 +68,11 @@ std::string SHCORE_PUBLIC join_strings(const std::set<std::string>& strings, con
 std::string SHCORE_PUBLIC join_strings(const std::vector<std::string>& strings, const std::string& separator);
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, const std::string& separator);
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, std::vector<size_t> max_lengths);
+
+std::string SHCORE_PUBLIC get_member_name(const std::string& name, shcore::NamingStyle style);
+std::string SHCORE_PUBLIC format_text(const std::vector<std::string>& lines, size_t width, size_t left_padding, bool paragraph_per_line);
+std::string SHCORE_PUBLIC format_markup_text(const std::vector<std::string>& lines, size_t width, size_t left_padding);
+std::string SHCORE_PUBLIC replace_text(const std::string& source, const std::string& from, const std::string& to);
 }
 
 #endif /* defined(__mysh__utils_general__) */

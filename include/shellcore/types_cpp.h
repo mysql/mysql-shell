@@ -157,10 +157,6 @@ protected:
   // The global active naming style
   NamingStyle naming_style;
 };
-
-// Helper function to get a name on the active naming style, input is expected to be lowerCamelCase (the used all the time)
-//std::string get_member_name(const std::string& name, NamingStyle style = Cpp_object_bridge::get_naming_style());
-std::string get_member_name(const std::string& name, NamingStyle style);
 };
 
 #endif

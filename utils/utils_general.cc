@@ -553,4 +553,165 @@ std::string join_strings(const std::vector<std::string>& strings, const std::str
 
   return ret_val;
 }
+
+// Retrieves a member name on a specific NamingStyle
+// NOTE: Assumption is given that everything is created using a lowerUpperCase naming style
+//       Which is the default to be used on C++ and JS
+std::string shcore::get_member_name(const std::string& name, shcore::NamingStyle style) {
+  std::string new_name;
+  switch (style) {
+    // This is the default style, input is returned without modifications
+    case shcore::LowerCamelCase:
+      return new_name = name;
+    case shcore::LowerCaseUnderscores:
+    {
+      // Uppercase letters will be converted to underscore+lowercase letter
+      // except in two situations:
+      // - When it is the first letter
+      // - When an underscore is already before the uppercase letter
+      bool skip_underscore = true;
+      for (auto character : name) {
+        if (character >= 65 && character <= 90) {
+          if (!skip_underscore)
+            new_name.append(1, '_');
+          else
+            skip_underscore = false;
+
+          new_name.append(1, character + 32);
+        } else {
+          // if character is '_'
+          skip_underscore = character == 95;
+
+          new_name.append(1, character);
+        }
+      }
+      break;
+    }
+    case Constants:
+    {
+      for (auto character : name) {
+        if (character >= 97 && character <= 122)
+          new_name.append(1, character - 32);
+        else
+          new_name.append(1, character);
+      }
+      break;
+    }
+  }
+
+  return new_name;
+}
+
+std::string format_text(const std::vector<std::string>& lines, size_t width, size_t left_padding, bool paragraph_per_line) {
+  std::string ret_val;
+
+  // Considers the new line character being added
+  std::vector<size_t> lengths = {width - (left_padding + 1)};
+  std::vector<std::string> sublines;
+  std::string space(left_padding, ' ');
+
+  if (!lines.empty()) {
+    ret_val.reserve(lines.size() * width);
+
+    sublines = split_string(lines[0], lengths);
+
+    // Processes the first line
+    // The first subline is meant to be returned without any space prefix
+    // Since this will be appended to an existing line
+    ret_val = sublines[0];
+    sublines.erase(sublines.begin());
+
+    // The remaining lines are just appended with the space prefix
+    for (auto subline : sublines) {
+      if (' ' == subline[0])
+        ret_val += "\n" + space + subline.substr(1);
+      else
+        ret_val += "\n" + space + subline;
+    }
+  }
+
+  if (lines.size() > 1) {
+    for (size_t index = 1; index < lines.size(); index++) {
+      if (paragraph_per_line)
+        ret_val += "\n";
+
+      sublines = split_string(lines[index], lengths);
+      for (auto subline : sublines) {
+        if (' ' == subline[0])
+          ret_val += "\n" + space + subline.substr(1);
+        else
+          ret_val += "\n" + space + subline;
+      }
+    }
+  }
+
+  return ret_val;
+};
+
+std::string format_markup_text(const std::vector<std::string>& lines, size_t width, size_t left_padding) {
+  std::string ret_val;
+
+  ret_val.reserve(lines.size() * width);
+  std::string strpadding(left_padding, ' ');
+
+  bool previous_was_item = false;
+  bool current_is_item = false;
+
+  std::string new_line;
+  for (auto line : lines) {
+    ret_val.append(new_line);
+
+    std::string space;
+    std::vector<size_t> lengths;
+    // handles list items
+    auto pos = line.find("@li");
+    if (0 == pos) {
+      current_is_item = true;
+
+      // Adds an extra new line to separate the first item from the previous paragraph
+      if (previous_was_item != current_is_item)
+        ret_val += new_line;
+
+      ret_val += strpadding + " - ";
+      ret_val += shcore::format_text({line.substr(4)}, width, left_padding + 3, false);
+    } else {
+      current_is_item = false;
+
+      // May be a header
+      size_t  hstart = line.find("<b>");
+      size_t  hend = line.find("</b>");
+      if (hstart != std::string::npos && hend != std::string::npos) {
+        ret_val += new_line;
+        line = "** " + line.substr(hstart + 3, hend - hstart - 3) + " **";
+      }
+
+      ret_val += new_line + strpadding + shcore::format_text({line}, width, left_padding, false);
+    }
+
+    previous_was_item = current_is_item;
+
+    // The new line only makes sense after the first line
+    new_line = "\n";
+  }
+
+  return ret_val;
+};
+
+std::string replace_text(const std::string& source, const std::string& from, const std::string& to) {
+  std::string ret_val;
+  size_t start = 0, index = 0;
+
+  index = source.find(from, start);
+  while (index != std::string::npos) {
+    ret_val += source.substr(start, index);
+    ret_val += to;
+    start = index + from.length();
+    index = source.find(from, start);
+  }
+
+  // Appends the remaining text
+  ret_val += source.substr(start);
+
+  return ret_val;
+}
 }

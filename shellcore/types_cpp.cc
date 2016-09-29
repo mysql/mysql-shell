@@ -27,54 +27,6 @@
 using namespace std::placeholders;
 using namespace shcore;
 
-// Retrieves a member name on a specific NamingStyle
-// NOTE: Assumption is given that everything is created using a lowerUpperCase naming style
-//       Which is the default to be used on C++ and JS
-std::string shcore::get_member_name(const std::string& name, NamingStyle style) {
-  std::string new_name;
-  switch (style) {
-    // This is the default style, input is returned without modifications
-    case LowerCamelCase:
-      return new_name = name;
-    case LowerCaseUnderscores:
-    {
-      // Uppercase letters will be converted to underscore+lowercase letter
-      // except in two situations:
-      // - When it is the first letter
-      // - When an underscore is already before the uppercase letter
-      bool skip_underscore = true;
-      for (auto character : name) {
-        if (character >= 65 && character <= 90) {
-          if (!skip_underscore)
-            new_name.append(1, '_');
-          else
-            skip_underscore = false;
-
-          new_name.append(1, character + 32);
-        } else {
-          // if character is '_'
-          skip_underscore = character == 95;
-
-          new_name.append(1, character);
-        }
-      }
-      break;
-    }
-    case Constants:
-    {
-      for (auto character : name) {
-        if (character >= 97 && character <= 122)
-          new_name.append(1, character - 32);
-        else
-          new_name.append(1, character);
-      }
-      break;
-    }
-  }
-
-  return new_name;
-}
-
 Cpp_object_bridge::Cpp_object_bridge() : naming_style(LowerCamelCase) {
   add_varargs_method("help", std::bind(&Cpp_object_bridge::help, this, _1));
 };
@@ -299,183 +251,6 @@ Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args
 shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("help").c_str());
 
-  // Returns a string composed of all the input lines splitted in lines of at most 80 - name_length
-  auto format_left_padding = [](const std::vector<std::string>& lines, size_t name_length, bool paragraph_per_line)->std::string {
-    std::string ret_val;
-
-    // Considers the new line character being added
-    std::vector<size_t> lengths = {80 - (name_length + 1)};
-    std::vector<std::string> sublines;
-    std::string space(name_length, ' ');
-
-    if (!lines.empty()) {
-      ret_val.reserve(lines.size() * 80);
-
-      sublines = split_string(lines[0], lengths);
-
-      // Processes the first line
-      // The first subline is meant to be returned without any space prefix
-      // Since this will be appended to an existing line
-      ret_val = sublines[0] + "\n";
-      sublines.erase(sublines.begin());
-
-      // The remaining lines are just appended with the space prefix
-      for (auto subline : sublines) {
-        if (' ' == subline[0])
-          ret_val += space + subline.substr(1) + "\n";
-        else
-          ret_val += space + subline + "\n";
-      }
-    }
-
-    if (lines.size() > 1) {
-      for (size_t index = 1; index < lines.size(); index++) {
-        if (paragraph_per_line)
-          ret_val += "\n";
-
-        sublines = split_string(lines[index], lengths);
-        for (auto subline : sublines) {
-          if (' ' == subline[0])
-            ret_val += space + subline.substr(1) + "\n";
-          else
-            ret_val += space + subline + "\n";
-        }
-      }
-    }
-
-    return ret_val;
-  };
-
-  auto format_paragraph = [format_left_padding](const std::vector<std::string>& lines, int padding)->std::string {
-    std::string ret_val;
-
-    ret_val.reserve(lines.size() * 80);
-    std::string strpadding(padding, ' ');
-
-    for (auto line : lines) {
-      std::string space;
-      std::vector<size_t> lengths;
-      // handles list items
-      auto pos = line.find("@li");
-      if (0 == pos) {
-        ret_val += strpadding + " - ";
-        ret_val += format_left_padding({line.substr(4)}, padding + 3, false);
-      } else {
-        // May be a header
-        size_t  hstart = line.find("<b>");
-        size_t  hend = line.find("</b>");
-        if (hstart != std::string::npos && hend != std::string::npos) {
-          ret_val += "\n";
-          line = "** " + line.substr(hstart + 3, hend - hstart - 3) + " **";
-        }
-
-        ret_val += strpadding + format_left_padding({line}, padding, false);
-      }
-
-      ret_val.append("\n");
-    }
-
-    return ret_val;
-  };
-
-  auto format_function = [format_left_padding, format_paragraph](const std::string& class_name, const std::string &fname, const std::string &bfname, bool chained)->std::string {
-    std::string ret_val;
-
-    auto params = get_help_text(class_name + "_" + bfname + "_PARAM");
-
-    // On functions we continue with the rest of the documentation
-    if (chained) {
-      ret_val.append("  ." + fname + "(");
-
-      if (params.size())
-        ret_val.append("...");
-
-      ret_val.append(")\n\n");
-
-      auto details = get_help_text(class_name + "_" + bfname + "_DETAIL");
-
-      if (!details.empty())
-        ret_val.append(format_paragraph(details, 4));
-      else {
-        auto brief = get_help_text(class_name + "_" + bfname + "_BRIEF");
-        ret_val.append(format_paragraph(brief, 4));
-      }
-    } else {
-      if (!params.empty()) {
-        std::vector<std::string> fpnames; // Parameter names as they will look in the signature
-        std::vector<std::string> pnames;  // Parameter names for the WHERE section
-        std::vector<std::string> pdescs;  // Parameter descriptions as they are defined
-
-        for (auto paramdef : params) {
-          // 7 is the length of: "\param " or "@param "
-          size_t start_index = 7;
-          auto pname = paramdef.substr(start_index, paramdef.find(" ", start_index) - start_index);
-          pnames.push_back(pname);
-
-          start_index += pname.size() + 1;
-          auto desc = paramdef.substr(start_index);
-          auto first_word = desc.substr(0, desc.find(" "));
-
-          // Updates paramete names to reflect the optional attribute on the signature
-          // Removed the optionsl word from the description
-          if (first_word == "Optional") {
-            if (fpnames.empty())
-              fpnames.push_back("[" + pname + "]"); // First param, creates: [pname]
-            else {
-              fpnames[fpnames.size() - 1].append("[");
-              fpnames.push_back(pname + "]"); // Non first param creates: pname[, pname]
-            }
-            desc = desc.substr(first_word.size() + 1); // Deletes the optional word
-            desc[0] = std::toupper(desc[0]);
-          } else
-            fpnames.push_back(pname);
-
-          pdescs.push_back(desc);
-        }
-
-        // Creates the syntax
-        ret_val.append("SYNTAX\n\n  ");
-        ret_val.append("<" + class_name + ">." + fname);
-        ret_val.append("(" + shcore::join_strings(fpnames, ", ") + ")\n\n");
-
-        // Describes the parameters
-        ret_val.append("WHERE\n\n");
-
-        size_t index;
-        for (index = 0; index < params.size(); index++) {
-          ret_val.append("  " + pnames[index] + ": ");
-
-          size_t name_length = pnames[index].size() + 4;
-
-          ret_val.append(format_left_padding({pdescs[index]}, name_length, true));
-        }
-
-        ret_val.append("\n");
-      } else {
-        ret_val.append("SYNTAX\n\n  ");
-        ret_val.append("<" + class_name + ">." + fname);
-        ret_val.append("()\n\n");
-      }
-
-      auto returns = get_help_text(class_name + "_" + bfname + "_RETURNS");
-      if (!returns.empty()) {
-        ret_val.append("RETURNS:\n\n");
-        // Removes the @returns tag
-        returns[0] = returns[0].substr(8);
-        ret_val.append(format_paragraph(returns, 0));
-      }
-
-      auto details = get_help_text(class_name + "_" + bfname + "_DETAIL");
-
-      if (!details.empty()) {
-        ret_val.append("DESCRIPTION:\n\n");
-        ret_val.append(format_paragraph(details, 0));
-      }
-    }
-
-    return ret_val;
-  };
-
   std::string ret_val;
   std::string item;
 
@@ -502,128 +277,22 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
     auto briefs = get_help_text(prefix + "_BRIEF");
 
     if (!briefs.empty()) {
-      ret_val += format_left_padding(briefs, 0, true);
-      ret_val += "\n";  // Second \n
+      ret_val += shcore::format_text(briefs, 80, 0, true);
+      ret_val += "\n\n";  // Second \n
     }
 
-    auto chained = get_help_text(prefix + "_CHAINED");
-    if (chained.empty()) {
+    auto chain_definition = get_help_text(prefix + "_CHAINED");
+
+    if (chain_definition.empty()) {
       if (has_method_advanced(item, naming_style))
-        ret_val += format_function(class_name(), item, base_name, false);
-      //// On functions we continue with the rest of the documentation
-      //if (has_method_advanced(item, naming_style)) {
-      //  auto params = get_help_text(prefix + "_PARAM");
-      //  if (!params.empty()) {
-      //    std::vector<std::string> fpnames; // Parameter names as they will look in the signature
-      //    std::vector<std::string> pnames;  // Parameter names for the WHERE section
-      //    std::vector<std::string> pdescs;  // Parameter descriptions as they are defined
-
-      //    for (auto paramdef : params) {
-      //      // 7 is the length of: "\param " or "@param "
-      //      size_t start_index = 7;
-      //      auto pname = paramdef.substr(start_index, paramdef.find(" ", start_index) - start_index);
-      //      pnames.push_back(pname);
-
-      //      start_index += pname.size() + 1;
-      //      auto desc = paramdef.substr(start_index);
-      //      auto first_word = desc.substr(0, desc.find(" "));
-
-      //      // Updates paramete names to reflect the optional attribute on the signature
-      //      // Removed the optionsl word from the description
-      //      if (first_word == "Optional") {
-      //        if (fpnames.empty())
-      //          fpnames.push_back("[" + pname + "]"); // First param, creates: [pname]
-      //        else {
-      //          fpnames[fpnames.size() - 1].append("[");
-      //          fpnames.push_back(pname + "]"); // Non first param creates: pname[, pname]
-      //        }
-      //        desc = desc.substr(first_word.size() + 1); // Deletes the optional word
-      //        desc[0] = std::toupper(desc[0]);
-      //      } else
-      //        fpnames.push_back(pname);
-
-      //      pdescs.push_back(desc);
-      //    }
-
-      //    // Creates the syntax
-      //    ret_val.append("SYNTAX\n\n  ");
-      //    ret_val.append(item);
-      //    ret_val.append("(" + shcore::join_strings(fpnames, ", ") + ")\n\n");
-
-      //    // Describes the parameters
-      //    ret_val.append("WHERE\n\n");
-
-      //    size_t index;
-      //    for (index = 0; index < params.size(); index++) {
-      //      ret_val.append("  " + pnames[index] + ": ");
-
-      //      size_t name_length = pnames[index].size() + 4;
-
-      //      ret_val.append(format_left_padding({pdescs[index]}, name_length, true));
-      //    }
-
-      //    ret_val.append("\n");
-      //  } else {
-      //    ret_val.append("SYNTAX\n\n  ");
-      //    ret_val.append(item);
-      //    ret_val.append("()\n\n");
-      //  }
-      //}
-
-      //auto returns = get_help_text(prefix + "_RETURNS");
-      //if (!returns.empty()) {
-      //  ret_val.append("RETURNS:\n\n");
-      //  // Removes the @returns tag
-      //  returns[0] = returns[0].substr(8);
-      //  ret_val.append(format_paragraph(returns));
-      //}
-
-      //auto details = get_help_text(prefix + "_DETAIL");
-
-      //if (!details.empty()) {
-      //  ret_val.append("ADDITIONAL INFO:\n\n");
-      //  ret_val.append(format_paragraph(details));
-      //}
+        ret_val += shcore::get_function_help(naming_style, class_name(), base_name);
     } else {
-      ret_val.append("SYNTAX\n\n  ");
-      auto cname = "<" + class_name() + ">";
-      ret_val.append(cname);
-      auto chained_functions = shcore::split_string(chained[0], ".");
-      std::string tgtcname = chained_functions[0];
-      chained_functions.erase(chained_functions.begin());
-      std::vector<std::string> full_syntax;
-      std::vector<std::string> function_list;
-      for (auto chained_function : chained_functions) {
-        bool optional = false;
-        if (chained_function.find("[") == 0) {
-          optional = true;
-          chained_function = chained_function.substr(1, chained_function.length() - 2);
-          function_list.push_back(chained_function);
-        } else
-          function_list.push_back(chained_function);
-
-        auto item_syntax = get_help_text(tgtcname + "_" + chained_function + "_SYNTAX");
-
-        for (auto element : item_syntax) {
-          if (optional)
-            full_syntax.push_back("[" + element + "]");
-          else
-            full_syntax.push_back(std::move(element));
-        }
-      }
-
-      ret_val += format_left_padding(full_syntax, cname.length() + 2, false);
-
-      ret_val.append("DESCRIPTION:\n\n");
-
-      for (auto fname : function_list) {
-        ret_val += format_function(tgtcname, fname, shcore::get_member_name(fname, naming_style), true);
-      }
+      ret_val += shcore::get_chained_function_help(naming_style, class_name(), base_name);
     }
   } else {
     auto details = get_help_text(prefix + "_DETAIL");
     if (!details.empty())
-      ret_val += format_paragraph(details, 0);
+      ret_val += shcore::format_markup_text(details, 80, 0);
 
     if (_properties.size()) {
       size_t text_col = 0;
@@ -636,7 +305,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       // and the three spaces for the " - " before the property names
       text_col += 4;
 
-      ret_val += "The following properties are currently supported.\n\n";
+      ret_val += "\n\nThe following properties are currently supported.\n\n";
       for (auto property : _properties) {
         std::string name = property->name(naming_style);
         std::string pname = property->name(shcore::NamingStyle::LowerCamelCase);
@@ -649,14 +318,14 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         std::string first_space(text_col - (pname.size() + 3), ' ');
 
         if (!help_text.empty())
-          text += first_space + format_left_padding(help_text, text_col, true);
-        else
-          text += "\n";
+          text += first_space + shcore::format_text(help_text, 80, text_col, true);
+
+        text += "\n";
 
         ret_val += text;
       }
 
-      ret_val += "\n";
+      ret_val += "\n\n";
     }
 
     if (_funcs.size()) {
@@ -697,9 +366,9 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
         std::string first_space(text_col - (name.size() + 3), ' ');
         if (!help_text.empty())
-          text += first_space + format_left_padding(help_text, text_col, true);
-        else
-          text += "\n";
+          text += first_space + shcore::format_text(help_text, 80, text_col, true);
+
+        text += "\n";
 
         ret_val += text;
       }
@@ -709,7 +378,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
     auto closing = get_help_text(prefix + "_CLOSING");
     if (!closing.empty())
-      ret_val += format_paragraph(closing, 0) + "\n";
+      ret_val += shcore::format_markup_text(closing, 80, 0) + "\n";
   }
 
   return shcore::Value(ret_val);
