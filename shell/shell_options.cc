@@ -30,7 +30,7 @@ Shell_options::Shell_options() {
 #endif
 #endif
 
-  log_level = ngcommon::Logger::LOG_ERROR;
+  log_level = ngcommon::Logger::LOG_INFO;
   password = nullptr;
   session_type = mysh::Auto;
 
