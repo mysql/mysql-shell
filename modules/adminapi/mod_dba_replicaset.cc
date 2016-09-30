@@ -58,7 +58,7 @@ static std::string get_my_hostname() {
   char hostname[1024];
   if (gethostname(hostname, sizeof(hostname)) < 0) {
     char msg[1024];
-    strerror_r(errno, msg, sizeof(msg));
+    char *ret = strerror_r(errno, msg, sizeof(msg));
     log_error("Could not get hostname: %s", msg);
     throw std::runtime_error("Could not get local hostname");
   }

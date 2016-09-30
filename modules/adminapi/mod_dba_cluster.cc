@@ -38,12 +38,12 @@ using namespace mysh::dba;
 using namespace shcore;
 
 // Documentation of the Cluster Class
-REGISTER_HELP(CLUSTER_BRIEF, "Represents an instance of MySQL InnoDB Cluster");
+REGISTER_HELP(CLUSTER_BRIEF, "Represents an instance of MySQL InnoDB Cluster.");
 REGISTER_HELP(CLUSTER_DETAIL, "The cluster object is the entrance point to manage the MySQL InnoDB Cluster system.");
 REGISTER_HELP(CLUSTER_DETAIL1, "A cluster is a set of MySQLd Instances which holds the user's data.");
 REGISTER_HELP(CLUSTER_DETAIL2, "It provides high-availability and scalability for the user's data.");
 
-REGISTER_HELP(CLUSTER_CLOSING, "For more help on a specific function use cluster.help('<functionName>'");
+REGISTER_HELP(CLUSTER_CLOSING, "For more help on a specific function use: cluster.help('<functionName>'");
 REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
 
 REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
@@ -195,16 +195,17 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_) {
 }
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_BRIEF, "Adds an Instance to the cluster.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM, "@param instance An instance definition.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL, "This function adds an Instance to the cluster. ");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1, "The Instance is added to the Default ReplicaSet of the cluster.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "The connectionData parameter can be any of:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3, "@li URI string ");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4, "@li Connection data dictionary ");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "The password may be contained on the connectionData parameter or can be "\
-"specified on the password parameter. When both are specified the parameter "\
-"is used instead of the one in the connectionData");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3, "@li URI string.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4, "@li Connection data dictionary.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "@li An Instance object.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "The password may be contained on the instance parameter or can be "\
+"specified on the password parameter. When both are specified the password parameter "\
+"is used instead of the one in the instance data.");
 
 /**
 * $(CLUSTER_ADDINSTANCE_BRIEF)
@@ -213,16 +214,20 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "The password may be contained on the
 * $(CLUSTER_ADDINSTANCE_PARAM1)
 *
 * $(CLUSTER_ADDINSTANCE_DETAIL)
+* 
 * $(CLUSTER_ADDINSTANCE_DETAIL1)
+* 
 * $(CLUSTER_ADDINSTANCE_DETAIL2)
 * $(CLUSTER_ADDINSTANCE_DETAIL3)
 * $(CLUSTER_ADDINSTANCE_DETAIL4)
 * $(CLUSTER_ADDINSTANCE_DETAIL5)
+* 
+* $(CLUSTER_ADDINSTANCE_DETAIL6)
 */
 #if DOXYGEN_JS
-Undefined Cluster::addInstance(Variant connectionData, String password) {}
+Undefined Cluster::addInstance(InstanceDef instance, String password) {}
 #elif DOXYGEN_PY
-None Cluster::add_instance(variant connectionData, str password) {}
+None Cluster::add_instance(InstanceDef instance, str password) {}
 #endif
 shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
@@ -243,15 +248,15 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_BRIEF, "Rejoins an Instance to the cluster.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM, "@param instance An instance definition.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL, "This function rejoins an Instance to the cluster. ");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "The connectionData parameter can be any of:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3, "@li URI string ");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li Connection data dictionary ");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3, "@li URI string.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li Connection data dictionary.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on the connectionData parameter or can be "\
-"specified on the password parameter. When both are specified the parameter "\
-"is used instead of the one in the connectionData");
+"specified on the password parameter. When both are specified the password parameter "\
+"is used instead of the one in the instance data.");
 
 /**
 * $(CLUSTER_REJOININSTANCE_BRIEF)
@@ -260,16 +265,19 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on 
 * $(CLUSTER_REJOININSTANCE_PARAM2)
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL)
+* 
 * $(CLUSTER_REJOININSTANCE_DETAIL1)
+* 
 * $(CLUSTER_REJOININSTANCE_DETAIL2)
 * $(CLUSTER_REJOININSTANCE_DETAIL3)
 * $(CLUSTER_REJOININSTANCE_DETAIL4)
+* 
 * $(CLUSTER_REJOININSTANCE_DETAIL5)
 */
 #if DOXYGEN_JS
-Undefined Cluster::rejoinInstance(Variant connectionData) {}
+Undefined Cluster::rejoinInstance(InstanceDef instance) {}
 #elif DOXYGEN_PY
-None Cluster::rejoin_instance(variant connectionData) {}
+None Cluster::rejoin_instance(InstanceDef instance) {}
 #endif
 
 shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
@@ -289,12 +297,13 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_BRIEF, "Removes an Instance from the cluster.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM, "@param identData The instance identification data.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL, "This function removes an Instance from the cluster. ");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM, "@param instance An instance definition.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL, "This function removes an Instance from the cluster.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1, "The Instance is removed from the Default ReplicaSet of the cluster.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "The identData parameter can be any of:");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "The instance parameter can be any of:");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3, "@li The name of the Instance to be removed.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "@li Connection data Dictionary of the Instance to be removed.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5, "@li An Instance object.");
 
 /**
 * $(CLUSTER_REMOVEINSTANCE_BRIEF)
@@ -303,15 +312,18 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "@li Connection data Dictionary of
 * $(CLUSTER_REMOVEINSTANCE_PARAMALT)
 *
 * $(CLUSTER_REMOVEINSTANCE_DETAIL)
+* 
 * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
+* 
 * $(CLUSTER_REMOVEINSTANCE_DETAIL2)
 * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
 * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
+* $(CLUSTER_REMOVEINSTANCE_DETAIL5)
 */
 #if DOXYGEN_JS
-Undefined Cluster::removeInstance(Variant identData) {}
+Undefined Cluster::removeInstance(InstanceDef instance) {}
 #elif DOXYGEN_PY
-None Cluster::remove_instance(variant identData) {}
+None Cluster::remove_instance(InstanceDef instance) {}
 #endif
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
@@ -402,7 +414,7 @@ void Cluster::append_json(shcore::JSON_dumper& dumper) const {
 
 REGISTER_HELP(CLUSTER_DESCRIBE_BRIEF, "Describe the structure of the cluster.");
 REGISTER_HELP(CLUSTER_DESCRIBE_RETURN, "@return A formatted JSON describing the structure of the cluster.");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL, "This function describes the structure of the cluster including all its information, ReplicaSets and Instances. ");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL, "This function describes the structure of the cluster including all its information, ReplicaSets and Instances.");
 
 /**
 * $(CLUSTER_DESCRIBE_BRIEF)
@@ -429,7 +441,7 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
 
 REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
 REGISTER_HELP(CLUSTER_STATUS_RETURN, "@return A formatted JSON describing the status of the cluster.");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL, "This function describes the status of the cluster including its ReplicaSets and Instances. ");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL, "This function describes the status of the cluster including its ReplicaSets and Instances.");
 
 /**
 * $(CLUSTER_STATUS_BRIEF)
@@ -456,7 +468,7 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
 
 REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Dissolves the cluster.");
 REGISTER_HELP(CLUSTER_DISSOLVE_PARAM, "@param options Optional parameter to specify if it should deactivate replication and unregister the ReplicaSets from the cluster.");
-REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL, "This function disables replication on the ReplicaSets, unregisters them and the the cluster from the metadata. ");
+REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL, "This function disables replication on the ReplicaSets, unregisters them and the the cluster from the metadata.");
 REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL1, "It keeps all the user's data intact.");
 REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL2, "The following is the only option supported:");
 REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3, "@li force: boolean, confirms that the dissolve operation must be executed.");
@@ -470,9 +482,9 @@ REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3, "@li force: boolean, confirms that the d
 * $(CLUSTER_DISSOLVE_DETAIL1)
 */
 #if DOXYGEN_JS
-Undefined Cluster::dissolve(Document options) {}
+Undefined Cluster::dissolve(Dictionary options) {}
 #elif DOXYGEN_PY
-None Cluster::dissolve(Document options) {}
+None Cluster::dissolve(Dictionary options) {}
 #endif
 
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {

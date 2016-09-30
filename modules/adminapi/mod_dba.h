@@ -79,11 +79,11 @@ public:
 
 #if DOXYGEN_JS
   Boolean verbose; //!< $(DBA_VERBOSE_BRIEF)
-  Cluster createCluster(String name, String masterKey, Dictionary options);
+  Cluster createCluster(String name, Dictionary options);
   Undefined deleteSandboxInstance(Integer port, Dictionary options);
   Instance deploySandboxInstance(Integer port, Dictionary options);
   Undefined dropMetadataSchema(Dictionary options);
-  Cluster getCluster(String name, Dictionary options);
+  Cluster getCluster(String name);
   Undefined killSandboxInstance(Integer port, Dictionary options);
   Undefined resetSession(Session session);
   Undefined startSandboxInstance(Integer port, Dictionary options);
@@ -92,12 +92,12 @@ public:
   Instance prepareInstance(Variant connectionData);
 #elif DOXYGEN_PY
   bool verbose; //! $(DBA_VERBOSE)
-  Cluster create_cluster(str name, str masterKey, dict options);
+  Cluster create_cluster(str name, dict options);
   None delete_sandbox_instance(int port, dict options);
   Instance deploy_sandbox_instance(int port, dict options);
   None drop_cluster(str name);
   None drop_metadata_schema(dict options);
-  Cluster get_cluster(str name, dict options);
+  Cluster get_cluster(str name);
   None kill_sandbox_instance(int port, dict options);
   None reset_session(Session session);
   None start_sandbox_instance(int port, dict options);

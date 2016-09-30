@@ -495,7 +495,7 @@ REGISTER_HELP(COLLECTIONFIND_BIND_RETURNS, "@return This CollectionFind object."
 REGISTER_HELP(COLLECTIONFIND_BIND_SYNTAX, "bind(placeHolder, value)[.bind(...)]");
 REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL, "Binds a value to a specific placeholder used on this CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL1, "An error will be raised if the placeholder indicated by name does not exist.");
-REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL2, "This function must be called once for each used placeohlder or an error will be"\
+REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL2, "This function must be called once for each used placeohlder or an error will be "\
 "raised when the execute method is called.");
 
 /**

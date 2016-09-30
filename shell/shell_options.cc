@@ -24,9 +24,9 @@ Shell_options::Shell_options() {
   initial_mode = shcore::IShell_core::Mode_JScript;
 #else
 #ifdef HAVE_PYTHON
-  initial_mode = IShell_core::Mode_Python;
+  initial_mode = shcore::IShell_core::Mode_Python;
 #else
-  initial_mode = IShell_core::Mode_SQL;
+  initial_mode = shcore::IShell_core::Mode_SQL;
 #endif
 #endif
 

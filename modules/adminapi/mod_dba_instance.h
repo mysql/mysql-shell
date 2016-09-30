@@ -50,12 +50,12 @@ class Instance : public shcore::Cpp_object_bridge{
 
 
 #if DOXYGEN_JS
-  String name;
-  String uri;
-  String options;
-  String getName();
-  String getUri();
-  Dictionary getOptions();
+  String name; //!< $(INSTANCE_NAME_BRIEF)
+  String uri; //!< $(INSTANCE_URI_BRIEF)
+  Dictionary options; //!< $(INSTANCE_OPTIONS_BRIEF)
+  String getName(); //!< $(INSTANCE_GETNAME_BRIEF)
+  String getUri(); //!< $(INSTANCE_GETURI_BRIEF)
+  Dictionary getOptions(); //!< $(INSTANCE_GETOPTIONS_BRIEF)
 /*
   Undefined start();
   Undefined stop();
@@ -64,11 +64,12 @@ class Instance : public shcore::Cpp_object_bridge{
   Undefined delete();
 */
 #elif DOXYGEN_PY
-  str name;
-  str uri;
-  str get_name();
-  str get_uri();
-  dict get_options();
+  str name; //!< $(INSTANCE_NAME_BRIEF)
+  str uri; //!< $(INSTANCE_URI_BRIEF)
+  dict options; //!< $(INSTANCE_OPTIONS_BRIEF)
+  str get_name(); //!< $(INSTANCE_GETNAME_BRIEF)
+  str get_uri(); //!< $(INSTANCE_GETURI_BRIEF)
+  dict get_options(); //!< $(INSTANCE_GETOPTIONS_BRIEF)
 /*
   None start();
   None stop();

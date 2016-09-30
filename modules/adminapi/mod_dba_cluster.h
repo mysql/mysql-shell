@@ -89,23 +89,23 @@ public:
   String adminType; //!< $(CLUSTER_ADMINTYPE_BRIEF)
   String getName();
   String getAdminType();
-  Undefined addInstance(Variant connectionData, String password);
-  Undefined rejoinInstance(Variant connectionData);
-  Undefined removeInstance(Variant identData);
+  Undefined addInstance(InstanceDef instance, String password);
+  Undefined rejoinInstance(IndtanceDef instance);
+  Undefined removeInstance(InstanceDef instance);
   String describe();
   String status();
-  Undefined dissolve(Document options);
+  Undefined dissolve(Dictionary options);
 #elif DOXYGEN_PY
   str name; //!< $(CLUSTER_NAME_BRIEF)
   std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)
   str get_name();
   str get_admin_type();
-  None add_instance(variant connectionData, str password);
-  None rejoin_instance(variant connectionData);
-  None remove_instance(variant identData);
+  None add_instance(InstanceDef instance, str password);
+  None rejoin_instance(InstanceDef instance);
+  None remove_instance(InstanceDef instance);
   str describe();
   str status();
-  None dissolve(Document options);
+  None dissolve(Dictionary options);
 #endif
 
 protected:
