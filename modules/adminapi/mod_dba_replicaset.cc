@@ -953,6 +953,9 @@ void ReplicaSet::create_repl_account(const std::string &dest_uri,
   mysh::mysql::ClassicSession *classic;
 retry:
   try {
+    log_info("Creating account '%s' at instance %s:%i", username.c_str(),
+              (*options)["host"].as_string().c_str(),
+              (int)(*options)["port"].as_int());
     session = mysh::connect_session(args, mysh::Classic);
     classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
   } catch (shcore::Exception &e) {

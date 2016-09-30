@@ -177,11 +177,9 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
 
       cluster = _metadata_storage->get_cluster(cluster_name);
     }
-
     if (cluster) {
       // Set the provision interface pointer
       cluster->set_provisioning_interface(_provisioning_interface);
-
       ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
     } else {
       std::string message;
