@@ -35,19 +35,37 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-
-#include <boost/lexical_cast.hpp>
+#include <random>
+#ifdef _WIN32
+#else
+#include <unistd.h>
+#endif
 
 using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::dba;
 using namespace shcore;
 
+#define PASSWORD_LENGTH 16
+
 std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
 std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
+
+static std::string get_my_hostname() {
+  char hostname[1024];
+  if (gethostname(hostname, sizeof(hostname)) < 0) {
+    char msg[1024];
+    strerror_r(errno, msg, sizeof(msg));
+    log_error("Could not get hostname: %s", msg);
+    throw std::runtime_error("Could not get local hostname");
+  }
+  return hostname;
+}
+
+static std::string generate_password(int password_lenght);
 
 ReplicaSet::ReplicaSet(const std::string &name, const std::string &topology_type,
                        std::shared_ptr<MetadataStorage> metadata_storage) :
@@ -319,7 +337,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   std::string user;
   std::string super_user_password;
-  std::string host;
+  std::string joiner_host;
   int port = 0;
 
   // NOTE: This function is called from either the add_instance_ on this class
@@ -375,13 +393,13 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   if (options->has_key("user"))
     user = options->get_string("user");
   else if (options->has_key("dbUser"))
-      user = options->get_string("dbUser");
+    user = options->get_string("dbUser");
   else {
     user = "root";
     (*options)["dbUser"] = shcore::Value(user);
   }
 
-  host = options->get_string("host");
+  joiner_host = options->get_string("host");
 
   std::string password;
   if (options->has_key("password"))
@@ -395,103 +413,77 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
 
   // Check if the instance was already added
-  std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
+  std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
+  std::string instance_public_address;
+  if (joiner_host == "localhost")
+    instance_public_address = get_my_hostname();
+  else
+    instance_public_address = joiner_host;
+  instance_public_address.append(":" + std::to_string(options->get_int("port")));
 
-  if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
-    throw shcore::Exception::logic_error("The instance '" + instance_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+  if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_public_address))
+    throw shcore::Exception::logic_error("The instance '" + instance_public_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
-  std::string instance_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
-  std::string instance_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
-  std::string cluster_admin_user = _cluster->get_account_user(ACC_CLUSTER_ADMIN);
-  std::string cluster_admin_user_password = _cluster->get_account_password(ACC_CLUSTER_ADMIN);
-  std::string replication_user = _cluster->get_account_user(ACC_REPLICATION_USER);
-  std::string replication_user_password = _cluster->get_account_password(ACC_REPLICATION_USER);
-  std::string cluster_reader_user = _cluster->get_account_user(ACC_CLUSTER_READER);
-  std::string cluster_reader_user_password = _cluster->get_account_password(ACC_CLUSTER_READER);
+  // generate a replication user account + password for this instance
+  // This account will be replicated to all instances in the replicaset, so that
+  // the newly joining instance can connect to any of them for recovery.
+  std::string replication_user;
+  std::string replication_user_password = generate_password(PASSWORD_LENGTH);
 
-  // Drop and create users
-  shcore::Argument_list temp_args;
-
-  shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(options));
-  auto session = mysh::connect_session(new_args, mysh::Classic);
-  mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
-
-  MetadataStorage::Transaction tx(_metadata_storage);
-
-  temp_args.clear();
-  temp_args.push_back(shcore::Value("SET sql_log_bin = 0"));
-  classic->run_sql(temp_args);
-
-  run_queries(classic, {
-    "DROP USER IF EXISTS '" + instance_admin_user + "'@'" + host + "'",
-    "CREATE USER '" + instance_admin_user + "'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'",
-    "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, CREATE USER, SUPER ON *.* TO '" + instance_admin_user + "'@'" + host + "'",
-    "GRANT ALL ON mysql_innodb_cluster_metadata.* TO '" + instance_admin_user + "'@'" + host + "'",
-    "GRANT SELECT ON performance_schema.* TO '" + instance_admin_user + "'@'" + host + "'"
-  });
-
-  run_queries(classic, {
-    "DROP USER IF EXISTS '" + cluster_reader_user + "'@'%'",
-    "CREATE USER IF NOT EXISTS '" + cluster_reader_user + "'@'%' IDENTIFIED BY '" + cluster_reader_user_password + "'",
-    "GRANT SELECT ON mysql_innodb_cluster_metadata.* to '" + cluster_reader_user + "'@'%'",
-    "GRANT SELECT ON performance_schema.replication_group_members to '" + cluster_reader_user + "'@'%'"
-  });
-
-  run_queries(classic, {
-    "DROP USER IF EXISTS '" + cluster_admin_user + "'@'" + host + "'",
-    "CREATE USER '" + cluster_admin_user + "'@'" + host + "' IDENTIFIED BY '" + cluster_admin_user_password + "'",
-    "GRANT ALL ON mysql_innodb_cluster_metadata.* TO '" + cluster_admin_user + "'@'" + host + "'",
-    "GRANT SELECT ON performance_schema.replication_group_members to '" + cluster_admin_user + "'@'" + host + "'"
-  });
-
-  run_queries(classic, {
-    "DROP USER IF EXISTS '" + replication_user + "'@'%'",
-    "CREATE USER IF NOT EXISTS '" + replication_user + "'@'%' IDENTIFIED BY '" + replication_user_password + "'",
-    "GRANT REPLICATION SLAVE ON *.* to '" + replication_user + "'@'%'"
-  });
-
-  temp_args.clear();
-  temp_args.push_back(shcore::Value("SET sql_log_bin = 1"));
-  classic->run_sql(temp_args);
-
-  temp_args.clear();
-  temp_args.push_back(shcore::Value("SELECT @@server_uuid"));
-  auto uuid_raw_result = classic->run_sql(temp_args);
-  auto uuid_result = uuid_raw_result.as_object<mysh::mysql::ClassicResult>();
-
-  auto uuid_row = uuid_result->fetch_one(shcore::Argument_list());
+  replication_user = "mysql_innodb_cluster_rplusr" + std::to_string(options->get_int("port"));
+  // Replication accounts must be created for the real hostname, because the GR
+  // plugin will connect to the real host interface of the peer,
+  // even if it's localhost
+  if (joiner_host == "localhost")
+    replication_user.append("@'").append(get_my_hostname()).append("'");
+  else
+    replication_user.append("@'").append(joiner_host).append("'");
 
   std::string mysql_server_uuid;
-  if (uuid_row)
-    mysql_server_uuid = uuid_row.as_object<mysh::Row>()->get_member(0).as_string();
+  // get the server_uuid from the joining instance
+  {
+    shcore::Argument_list temp_args, new_args;
+    new_args.push_back(shcore::Value(options));
+    auto session = mysh::connect_session(new_args, mysh::Classic);
+    mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+    temp_args.clear();
+    temp_args.push_back(shcore::Value("SELECT @@server_uuid"));
+    auto uuid_raw_result = classic->run_sql(temp_args);
+    auto uuid_result = uuid_raw_result.as_object<mysh::mysql::ClassicResult>();
 
+    auto uuid_row = uuid_result->fetch_one(shcore::Argument_list());
+    if (uuid_row)
+      mysql_server_uuid = uuid_row.as_object<mysh::Row>()->get_member(0).as_string();
+  }
   // Call the gadget to bootstrap the group with this instance
   if (seed_instance) {
+    create_repl_account(instance_address, replication_user, replication_user_password);
+
     // Call mysqlprovision to bootstrap the group using "start"
-    do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
+    do_join_replicaset(user + "@" + instance_address,
         "",
         super_user_password,
         replication_user, replication_user_password);
   } else {
     // We need to retrieve a peer instance, so let's use the Seed one
-    auto instances = _metadata_storage->get_replicaset_instances(get_id());
+    std::string peer_instance = get_peer_instances().front();
+    create_repl_account(peer_instance, replication_user, replication_user_password);
 
-    if (!instances || instances->empty())
-      throw Exception::logic_error("Cannot add Instance: ReplicaSet empty.");
-
-    // The seed is always the first
-    auto value = instances->at(0);
-    auto row = value.as_object<mysh::Row>();
-    std::string peer_instance = row->get_member("instance_name").as_string();
-    // TODO: if it fails re-try with the other instances of the ReplicaSet
+    // substitute the public hostname for localhost if we're running locally
+    // that is because root@localhost exists by default, while root@hostname doesn't
+    // so trying the 2nd will probably not work
+    auto sep = peer_instance.find(':');
+    if (peer_instance.substr(0, sep) == get_my_hostname())
+      peer_instance = "localhost:"+peer_instance.substr(sep+1);
 
     // Call mysqlprovision to do the work
-    do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
+    do_join_replicaset(user + "@" + instance_address,
         user + "@" + peer_instance,
         super_user_password,
         replication_user, replication_user_password);
   }
+
+  MetadataStorage::Transaction tx(_metadata_storage);
 
   // OK, if we reached here without errors we can update the metadata with the host
   auto result = _metadata_storage->insert_host(args);
@@ -505,8 +497,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   (*options_instance)["role"] = shcore::Value("HA");
 
-  std::string address = host + ":" + std::to_string(port);
-  shcore::Value val_address = shcore::Value(address);
+  shcore::Value val_address = shcore::Value(instance_public_address);
   (*options_instance)["addresses"] = val_address;
 
   (*options_instance)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
@@ -636,15 +627,11 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       (*options)["dbPassword"] = shcore::Value(super_user_password);
     } else
       throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
-    std::string cluster_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
-    std::string cluster_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
-    std::string replication_user = _cluster->get_account_user(ACC_REPLICATION_USER);
-    std::string replication_user_password = _cluster->get_account_password(ACC_REPLICATION_USER);
 
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
         user + "@" + peer_instance,
         super_user_password,
-        replication_user, replication_user_password);
+        "", "");
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
   return ret_val;
@@ -711,13 +698,11 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     uri = args.string_at(0);
     options = get_connection_data(uri, false);
   }
-
   // TODO: what if args[0] is a String containing the name of the instance?
 
   // Connection data comes in a dictionary
   else if (args[0].type == Map)
     options = args.map_at(0);
-
   else
     throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
 
@@ -734,9 +719,12 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   else
     port = get_default_port();
 
-  std::string instance_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
-  std::string instance_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
-  std::string cluster_reader_user = _cluster->get_account_user(ACC_CLUSTER_READER);
+  // get instance admin and user information from the current active session of the shell
+  // Note: when separate metadata session vs active session is supported, this should
+  // be changed to use the active shell session
+  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  std::string instance_admin_user = instance_session->get_user();
+  std::string instance_admin_user_password = instance_session->get_password();
 
   host = options->get_string("host");
 
@@ -771,7 +759,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   if (exit_code != 0)
     throw shcore::Exception::logic_error(errors);
 
-  // Drop users
+  // Drop replication user
   shcore::Argument_list temp_args, new_args;
 
   (*options)["dbUser"] = shcore::Value(instance_admin_user);
@@ -786,8 +774,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   classic->run_sql(temp_args);
 
   run_queries(classic, {
-    "DROP USER IF EXISTS '" + instance_admin_user + "'@'" + host + "'",
-    "DROP USER IF EXISTS '" + cluster_reader_user + "'@'" + host + "'",
+    "DROP USER IF EXISTS '" + instance_admin_user + "'@'" + host + "'"
   });
 
   temp_args.clear();
@@ -860,9 +847,9 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
 
   try {
     MetadataStorage::Transaction tx(_metadata_storage);
-
-    std::string instance_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
-    std::string instance_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
+    auto instance_session(_metadata_storage->get_dba()->get_active_session());
+    std::string instance_admin_user = instance_session->get_user();
+    std::string instance_admin_user_password = instance_session->get_password();
 
     // Get all instances of the replicaset
     auto instances = _metadata_storage->get_replicaset_instances(get_id());
@@ -878,7 +865,6 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
       // Leave the replicaset
       exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
                                             instance_admin_user_password, errors);
-
       if (exit_code != 0)
         throw shcore::Exception::logic_error(errors);
     }
@@ -891,3 +877,88 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+
+std::vector<std::string> ReplicaSet::get_peer_instances() {
+  std::vector<std::string> result;
+
+  // We need to retrieve a peer instance, so let's use the Seed one
+  auto instances = _metadata_storage->get_replicaset_instances(get_id());
+  if (instances) {
+    for (auto value : *instances) {
+      auto row = value.as_object<mysh::Row>();
+      std::string peer_instance = row->get_member("instance_name").as_string();
+      result.push_back(peer_instance);
+    }
+  }
+  return result;
+}
+
+
+/**
+ * Create an account in the replicaset.
+ */
+void ReplicaSet::create_repl_account(const std::string &dest_uri,
+                                     const std::string &username,
+                                     const std::string &password) {
+  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+
+  shcore::Argument_list args;
+  auto options = get_connection_data(dest_uri, false);
+  // currently assuming metadata connection account is also valid in the cluster
+  (*options)["dbUser"] = shcore::Value(instance_session->get_user());
+  (*options)["dbPassword"] = shcore::Value(instance_session->get_password());
+  args.push_back(shcore::Value(options));
+
+  std::shared_ptr<mysh::ShellDevelopmentSession> session;
+  mysh::mysql::ClassicSession *classic;
+  retry:
+  try {
+    session = mysh::connect_session(args, mysh::Classic);
+    classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+  } catch (shcore::Exception &e) {
+    // Check if we're getting access denied to the local host
+    // If that's the case, retry the connection via localhost instead of the
+    // public hostname
+    if (e.is_mysql() && e.code() == 1045 &&
+        (*options)["host"].as_string() == get_my_hostname()) {
+      log_info("Access denied connecting to '%s', retrying via localhost",
+               (*options)["host"].as_string().c_str());
+      (*options)["host"] = shcore::Value("localhost");
+      args.clear();
+      args.push_back(shcore::Value(options));
+      goto retry;
+    }
+    throw;
+  } catch (std::exception &e) {
+    log_error("Could not open connection to %s: %s", dest_uri.c_str(),
+              e.what());
+    throw;
+  }
+  try {
+    run_queries(classic, {
+      "START TRANSACTION",
+      "DROP USER IF EXISTS " + username,
+      "CREATE USER IF NOT EXISTS " + username + " IDENTIFIED BY '" + password + "'",
+      "GRANT REPLICATION SLAVE ON *.* to " + username,
+      "COMMIT"
+    });
+  } catch (...) {
+    shcore::Argument_list args;
+    args.push_back(shcore::Value("ROLLBACK"));
+    classic->run_sql(args);
+    throw;
+  }
+}
+
+
+static std::string generate_password(int password_lenght) {
+  std::random_device rd;
+  std::string pwd;
+  static const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~@#%$^&*()-_=+]}[{|;:.>,</?";
+  std::uniform_int_distribution<int> dist(0, strlen(alphabet) - 1);
+
+  for (int i = 0; i < password_lenght; i++)
+    pwd += alphabet[dist(rd)];
+
+  return pwd;
+}

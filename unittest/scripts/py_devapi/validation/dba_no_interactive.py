@@ -26,10 +26,9 @@
 ||Dba.create_cluster: Cluster is already initialized. Use getCluster() to access it.
 
 #@# Dba: get_cluster errors
-||Dba.get_cluster: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
-||Dba.get_cluster: Argument #2 is expected to be a map
+||Dba.get_cluster: Invalid cluster name: Argument #1 is expected to be a string
+||Invalid number of arguments in Dba.getCluster, expected 0 to 1 but got 2
 ||Dba.get_cluster: The Cluster name cannot be empty
-||Dba.get_cluster: Authentication failure: wrong MASTER key.
 
 #@ Dba: get_cluster
 |<Cluster:devCluster>|

@@ -115,8 +115,6 @@ private:
   uint64_t _connection_id;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
-  std::string generate_password(int password_lenght);
-
   shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
 };
 }

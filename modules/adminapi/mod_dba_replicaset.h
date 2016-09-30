@@ -120,6 +120,12 @@ private:
       const std::string &super_user_password,
       const std::string &repl_user, const std::string &repl_user_password);
 
+  std::vector<std::string> get_peer_instances();
+
+  void create_repl_account(const std::string &dest_uri,
+                           const std::string &username,
+                           const std::string &password);
+
   std::shared_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;

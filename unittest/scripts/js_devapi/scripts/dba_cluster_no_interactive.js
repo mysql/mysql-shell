@@ -1,10 +1,9 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
-var ClusterPassword = 'testing';
 
 //@ Cluster: validating members
-var Cluster = dba.getCluster('devCluster', {masterKey:ClusterPassword});
+var Cluster = dba.getCluster('devCluster');
 
 var members = dir(Cluster);
 

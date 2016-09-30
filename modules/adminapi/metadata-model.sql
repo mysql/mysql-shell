@@ -72,7 +72,7 @@ CREATE TABLE clusters (
    */
   `attributes` JSON
 
-) CHARSET = utf8;
+) CHARSET = utf8mb4;
 
 /*
   The high-availability Replica Sets are the containers of the application data.
@@ -116,7 +116,7 @@ CREATE TABLE replicasets (
   /* An optional brief description of the replicaset. */
   `description` TEXT,
   FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id) ON DELETE RESTRICT
-) CHARSET = utf8;
+) CHARSET = utf8mb4;
 
 ALTER TABLE clusters ADD FOREIGN KEY (default_replicaset) REFERENCES replicasets(replicaset_id) ON DELETE RESTRICT;
 
@@ -130,7 +130,7 @@ CREATE TABLE hosts (
   */
   `host_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   /* network host name address of the host */
-  `host_name` VARCHAR(128),
+  `host_name` VARCHAR(256),
   /* network ip address of the host */
   `ip_address` VARCHAR(45),
   /* A string representing the location (e.g. datacenter name). */
@@ -150,7 +150,7 @@ CREATE TABLE hosts (
     }
   */
   `admin_user_account` JSON
-) CHARSET = utf8;
+) CHARSET = utf8mb4;
 
 /*
   This table contain a list of all server instances that are tracked by the cluster.
@@ -171,7 +171,7 @@ CREATE TABLE instances (
   /* MySQL generated server_uuid for the instance */
   `mysql_server_uuid` VARCHAR(40) UNIQUE NOT NULL,
   /* unique, user specified name for the server */
-  `instance_name` VARCHAR(40) UNIQUE NOT NULL,
+  `instance_name` VARCHAR(256) UNIQUE NOT NULL,
   /* The role of the server instance in the setup e.g. scale-out, master etc. */
   `role` ENUM('HA', 'readScaleOut') NOT NULL,
   /*
@@ -215,4 +215,29 @@ CREATE TABLE instances (
   `description` TEXT,
   FOREIGN KEY (host_id) REFERENCES hosts(host_id) ON DELETE RESTRICT,
   FOREIGN KEY (replicaset_id) REFERENCES replicasets(replicaset_id) ON DELETE SET NULL
-) CHARSET = utf8;
+) CHARSET = utf8mb4;
+
+
+/*
+  This table contain a list of all router instances that are tracked by the cluster.
+*/
+CREATE TABLE routers (
+  /*
+    The ID of the router instance and is a unique identifier of the server
+    instance.
+  */
+  `router_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  /*
+    A user specified name for an instance of the router.
+    Must be unique within the host.
+   */
+  `router_name` VARCHAR(40) NOT NULL DEFAULT 'default',
+  /* The ID of the host in which the server is running. */
+  `host_id` INT UNSIGNED NOT NULL,
+  /*
+    Router specific custom attributes.
+   */
+  `attributes` JSON,
+  FOREIGN KEY (host_id) REFERENCES hosts(host_id) ON DELETE RESTRICT,
+  UNIQUE (router_name, host_id)
+) CHARSET = utf8mb4;

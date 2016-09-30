@@ -2,10 +2,8 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
 
-clusterPassword = 'testing';
-
 #@ Cluster: validating members
-cluster = dba.get_cluster('devCluster', {"masterKey":clusterPassword})
+cluster = dba.get_cluster('devCluster')
 
 all_members = dir(cluster)
 

@@ -8,7 +8,7 @@ ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
 schema = mySession.create_schema('js_shell_test')
 mySession.set_current_schema('js_shell_test')
-result = mySession.sql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20))').execute()
+result = mySession.sql('create table js_shell_test.buffer_table (name varchar(50) primary key, age integer, gender varchar(20))').execute()
 
 #@ SqlResult member validation
 sqlMembers = dir(result)

@@ -10,7 +10,7 @@ var schema = mySession.createSchema('js_shell_test');
 mySession.setCurrentSchema('js_shell_test');
 
 // Creates a test table
-var result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
+var result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20), primary key (name, age, gender));').execute();
 var result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute();
 
 table = schema.getTable('table1');
@@ -23,27 +23,27 @@ var crud = table.insert();
 validate_crud_functions(crud, ['values']);
 
 //@ TableInsert: valid operations after empty insert and values
-crud.values('john', 25, 'male');
+var crud = crud.values('john', 25, 'male');
 validate_crud_functions(crud, ['values', 'execute']);
 
 //@ TableInsert: valid operations after empty insert and values 2
-crud.values('alma', 23, 'female');
+var crud = crud.values('alma', 23, 'female');
 validate_crud_functions(crud, ['values', 'execute']);
 
 //@ TableInsert: valid operations after insert with field list
-crud = table.insert(['name', 'age', 'gender']);
+var crud = table.insert(['name', 'age', 'gender']);
 validate_crud_functions(crud, ['values']);
 
 //@ TableInsert: valid operations after insert with field list and values
-crud.values('john', 25, 'male');
+var crud = crud.values('john', 25, 'male');
 validate_crud_functions(crud, ['values', 'execute']);
 
 //@ TableInsert: valid operations after insert with field list and values 2
-crud.values('alma', 23, 'female');
+var crud = crud.values('alma', 23, 'female');
 validate_crud_functions(crud, ['values', 'execute']);
 
 //@ TableInsert: valid operations after insert with fields and values
-crud = table.insert({ name: 'john', age: 25, gender: 'male' });
+var crud = table.insert({ name: 'john', age: 25, gender: 'male' });
 validate_crud_functions(crud, ['execute']);
 
 //@ TableInsert: valid operations after execute
@@ -76,8 +76,8 @@ result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').exec
 print("Affected Rows Columns:", result.affectedItemCount, "\n");
 
 var insert = table.insert('name', 'age', 'gender')
-insert.values('clark', 22, 'male')
-insert.values('mary', 13, 'female')
+var insert = insert.values('clark', 22, 'male')
+var insert = insert.values('mary', 13, 'female')
 result = insert.execute()
 print("Affected Rows Multiple Values:", result.affectedItemCount, "\n");
 

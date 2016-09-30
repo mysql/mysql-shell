@@ -10,7 +10,7 @@ var schema = mySession.createSchema('js_shell_test');
 mySession.setCurrentSchema('js_shell_test');
 
 //@ Result member validation
-var result = mySession.runSql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20))');
+var result = mySession.runSql('create table js_shell_test.buffer_table (name varchar(50) primary key, age integer, gender varchar(20))');
 var members = dir(result);
 print ("SqlResult Members:" + members);
 validateMember(members, 'executionTime');

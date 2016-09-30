@@ -14,10 +14,10 @@
 |verbose: OK|
 
 //@# Dba: createCluster errors
-||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 0
-||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 1
+||ArgumentError: Invalid number of arguments in Dba.createCluster, expected 1 to 2 but got 0
+||Argument #1 is expected to be a string
 ||Dba.createCluster: The Cluster name cannot be empty
-||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 1
+||Argument #2 is expected to be a map
 
 //@# Dba: createCluster succeed
 |<Cluster:devCluster>|
@@ -26,10 +26,9 @@
 ||Dba.createCluster: Cluster is already initialized. Use getCluster() to access it.
 
 //@# Dba: getCluster errors
-||Dba.getCluster: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
-||Dba.getCluster: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
+||Invalid cluster name: Argument #1 is expected to be a string
+||Invalid number of arguments in Dba.getCluster, expected 0 to 1 but got 2
 ||Dba.getCluster: The Cluster name cannot be empty
-||Dba.getCluster: Authentication failure: wrong MASTER key.
 
 //@ Dba: getCluster
 |<Cluster:devCluster>|

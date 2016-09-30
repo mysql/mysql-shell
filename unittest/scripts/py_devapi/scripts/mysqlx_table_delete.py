@@ -10,7 +10,7 @@ schema = mySession.create_schema('js_shell_test')
 mySession.set_current_schema('js_shell_test')
 
 # Creates a test table with initial data
-result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20))').execute()
+result = mySession.sql('create table table1 (name varchar(50) primary key, age integer, gender varchar(20))').execute()
 result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute()
 table = schema.get_table('table1')
 

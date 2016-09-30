@@ -68,7 +68,7 @@ validateNotMember(sessionMembers, 'quoted schema');
 //@ ClassicSession: Transaction handling: rollback
 classicSession.setCurrentSchema('node_session_schema');
 
-var result = classicSession.runSql('create table sample (name varchar(50))');
+var result = classicSession.runSql('create table sample (name varchar(50) primary key)');
 classicSession.startTransaction();
 var res1 = classicSession.runSql('insert into sample values ("john")');
 var res2 = classicSession.runSql('insert into sample values ("carol")');

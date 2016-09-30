@@ -20,6 +20,20 @@
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
 
+
+
+static std::string get_my_hostname() {
+  char hostname[1024];
+  if (gethostname(hostname, sizeof(hostname)) < 0) {
+    char msg[1024];
+    strerror_r(errno, msg, sizeof(msg));
+    log_error("Could not get hostname: %s", msg);
+    throw std::runtime_error("Could not get local hostname");
+  }
+  return hostname;
+}
+
+
 namespace shcore {
 class Shell_js_dba_tests : public Shell_js_script_tester {
 protected:
@@ -79,6 +93,8 @@ protected:
     code = "var __displayuri = '" + user + "@" + host + ":" + _port + "';";
     exec_and_out_equals(code);
     code = "var __displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
+    exec_and_out_equals(code);
+    code = "var __hostname = '" + get_my_hostname() + "'";
     exec_and_out_equals(code);
   }
 };

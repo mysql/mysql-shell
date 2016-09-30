@@ -21,7 +21,7 @@
 ||Cluster.addInstance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
 ||Cluster.addInstance: Unexpected instance options: authMethod, schema
 ||Cluster.addInstance: Missing instance options: host, password
-||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'
+||Cluster.addInstance: The instance '<<<__hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'
 
 //@ Cluster: addInstance
 ||
@@ -34,13 +34,13 @@
         "name": "default",
         "instances": [
             {
-                "name": "localhost:<<<__mysql_sandbox_port1>>>",
-                "host": "localhost:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<__hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "host": "<<<__hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "name": "localhost:<<<__mysql_sandbox_port2>>>",
-                "host": "localhost:<<<__mysql_sandbox_port2>>>",
+                "name": "<<<__hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "host": "<<<__hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
         ]
@@ -53,14 +53,14 @@
     "defaultReplicaSet": {
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<__hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<__hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "status": "ONLINE",
                 "role": "HA",
                 "mode": "R/W",
                 "leaves": {
-                    "localhost:<<<__mysql_sandbox_port2>>>": {
-                        "address": "localhost:<<<__mysql_sandbox_port2>>>",
+                    "<<<__hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                        "address": "<<<__hostname>>>:<<<__mysql_sandbox_port2>>>",
                         "status": "RECOVERING",
                         "role": "HA",
                         "mode": "R/O",
@@ -92,8 +92,8 @@
         "name": "default",
         "instances": [
             {
-                "name": "localhost:<<<__mysql_sandbox_port1>>>",
-                "host": "localhost:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<__hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "host": "<<<__hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             }
         ]
@@ -106,8 +106,8 @@
     "defaultReplicaSet": {
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<__hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<__hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "status": "ONLINE",
                 "role": "HA",
                 "mode": "R/W",

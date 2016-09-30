@@ -24,7 +24,6 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core_options.h"
 #include "../mysqlxtest_utils.h"
-#include <random>
 #include "utils/utils_help.h"
 
 #include "logger/logger.h"
@@ -106,18 +105,6 @@ Value Dba::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-std::string Dba::generate_password(int password_lenght) {
-  std::random_device rd;
-  std::string pwd;
-  const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~@#%$^&*()-_=+]}[{|;:.>,</?";
-  std::uniform_int_distribution<int> dist(0, strlen(alphabet) - 1);
-
-  for (int i = 0; i < password_lenght; i++)
-    pwd += alphabet[dist(rd)];
-
-  return pwd;
-}
-
 std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session() const {
   std::shared_ptr<ShellDevelopmentSession> ret_val;
   if (_custom_session)
@@ -134,90 +121,58 @@ std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session() const {
 // Documentation of the getCluster function
 REGISTER_HELP(DBA_GETCLUSTER_BRIEF, "Retrieves a cluster from the Metadata Store.");
 REGISTER_HELP(DBA_GETCLUSTER_PARAM, "@param name Optional parameter to specify the name of the cluster to be returned.");
-REGISTER_HELP(DBA_GETCLUSTER_PARAM1, "@param options Optional parameter to specify the masterKey of the cluster being retrieved.");
 REGISTER_HELP(DBA_GETCLUSTER_RETURN, "@return The cluster identified with the given name or the default cluster.");
 REGISTER_HELP(DBA_GETCLUSTER_DETAIL, "If name is not specified, the default cluster will be returned.");
 REGISTER_HELP(DBA_GETCLUSTER_DETAIL1, "If name is specified, and no cluster with the indicated name is found, an error will be raised.");
-REGISTER_HELP(DBA_GETCLUSTER_DETAIL2, "The options dictionary must contain the key 'masterKey' with the value of the Cluster's MASTER key.");
 
 /**
 * $(DBA_GETCLUSTER_BRIEF)
 *
 * $(DBA_GETCLUSTER_PARAM)
-* $(DBA_GETCLUSTER_PARAM1)
 *
 * $(DBA_GETCLUSTER_RETURN)
 *
 * $(DBA_GETCLUSTER_DETAIL)
 *
 * $(DBA_GETCLUSTER_DETAIL1)
-* $(DBA_GETCLUSTER_DETAIL2)
 */
 #if DOXYGEN_JS
-Cluster Dba::getCluster(String name, Dictionary options) {}
+Cluster Dba::getCluster(String name) {}
 #elif DOXYGEN_PY
-Cluster Dba::get_cluster(str name, dict options) {}
+Cluster Dba::get_cluster(str name) {}
 #endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   Value ret_val;
 
   validate_session(get_function_name("getCluster"));
 
-  args.ensure_count(0, 2, get_function_name("getCluster").c_str());
+  args.ensure_count(0, 1, get_function_name("getCluster").c_str());
 
   std::shared_ptr<mysh::dba::Cluster> cluster;
   bool get_default_cluster = false;
   std::string cluster_name;
-  std::string master_key;
-  shcore::Value::Map_type_ref options;
 
   try {
     // gets the cluster_name and/or options
     if (args.size()) {
-      if (args.size() == 1) {
-        if (args[0].type == shcore::String)
-          cluster_name = args.string_at(0);
-        else if (args[0].type == shcore::Map) {
-          options = args.map_at(0);
-          get_default_cluster = true;
-        } else
-          throw shcore::Exception::argument_error("Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options");
-      } else {
+      try {
         cluster_name = args.string_at(0);
-        options = args.map_at(1);
+      } catch (std::exception &e) {
+        throw shcore::Exception::argument_error(std::string("Invalid cluster name: ")+e.what());
       }
     } else
       get_default_cluster = true;
 
-    // Validates the options for invalid and missing required attributes
-    if (options) {
-      // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, {"masterKey"});
-      if (invalids.size()) {
-        std::string error = "The instance options contain the following invalid attributes: ";
-        error += shcore::join_strings(invalids, ", ");
-        throw shcore::Exception::argument_error(error);
-      }
-
-      // Verification of required attributes on the instance deployment data
-      auto missing = shcore::get_missing_keys(options, {"masterKey"});
-
-      if (missing.size())
-        throw shcore::Exception::argument_error("Missing the administrative MASTER key for the cluster");
-      else
-        master_key = options->get_string("masterKey");
-    }
-
     if (get_default_cluster) {
       // Reloads the cluster (to avoid losing _default_cluster in case of error)
-      cluster = _metadata_storage->get_default_cluster(master_key);
+      cluster = _metadata_storage->get_default_cluster();
       // Set the provision interface pointer
       cluster->set_provisioning_interface(_provisioning_interface);
     } else {
       if (cluster_name.empty())
         throw Exception::argument_error("The Cluster name cannot be empty.");
 
-      cluster = _metadata_storage->get_cluster(cluster_name, master_key);
+      cluster = _metadata_storage->get_cluster(cluster_name);
       cluster->set_provisioning_interface(_provisioning_interface);
     }
 
@@ -240,8 +195,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
 
 REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
 REGISTER_HELP(DBA_CREATECLUSTER_PARAM, "@param name The name of the cluster object to be created.");
-REGISTER_HELP(DBA_CREATECLUSTER_PARAM1, "@param masterKey The cluster master key.");
-REGISTER_HELP(DBA_CREATECLUSTER_PARAM2, "@param options Optional dictionary with options that modify the behavior of this function.");
+REGISTER_HELP(DBA_CREATECLUSTER_PARAM1, "@param options Optional dictionary with options that modify the behavior of this function.");
 REGISTER_HELP(DBA_CREATECLUSTER_RETURN, "@return The created cluster object.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL, "The options dictionary can contain the next values:");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1, "@li clusterAdminType: determines the type of management to be done on the cluster instances. "\
@@ -254,7 +208,6 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that in
  *
  * $(DBA_CREATECLUSTER_PARAM)
  * $(DBA_CREATECLUSTER_PARAM1)
- * $(DBA_CREATECLUSTER_PARAM2)
  * $(DBA_CREATECLUSTER_RETURN)
  *
  * $(DBA_CREATECLUSTER_DETAIL)
@@ -263,25 +216,20 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that in
  * $(DBA_CREATECLUSTER_DETAIL2)
  */
 #if DOXYGEN_JS
-Cluster Dba::createCluster(String name, String masterKey, Dictionary options) {}
+Cluster Dba::createCluster(String name, Dictionary options) {}
 #elif DOXYGEN_PY
-Cluster Dba::create_cluster(str name, str masterKey, dict options) {}
+Cluster Dba::create_cluster(str name, dict options) {}
 #endif
 shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   Value ret_val;
 
   validate_session(get_function_name("createCluster"));
 
-  args.ensure_count(2, 3, get_function_name("createCluster").c_str());
+  args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
   // Available options
   std::string cluster_admin_type = "local"; // Default is local
-  std::string instance_admin_user = "mysql_innodb_instance_admin"; // Default is mysql_innodb_cluster_admin
-  std::string cluster_reader_user = "mysql_innodb_cluster_reader"; // Default is mysql_innodb_cluster_reader
-  std::string replication_user = "mysql_innodb_cluster_rpl_user"; // Default is mysql_innodb_cluster_rpl_user
-  std::string cluster_admin_user = "mysql_innodb_cluster_admin";
 
-  std::string mysql_innodb_cluster_admin_pwd;
   bool multi_master = false; // Default single/primary master
 
   try {
@@ -293,15 +241,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     if (!shcore::is_valid_identifier(cluster_name))
       throw Exception::argument_error("The Cluster name must be a valid identifier.");
 
-    std::string cluster_password = args.string_at(1);
-
-    // Check if we have a valid password
-    if (cluster_password.empty())
-      throw Exception::argument_error("The Cluster password cannot be empty.");
-
-    if (args.size() > 2) {
+    if (args.size() > 1) {
       // Map with the options
-      shcore::Value::Map_type_ref options = args.map_at(2);
+      shcore::Value::Map_type_ref options = args.map_at(1);
 
       // Verification of invalid attributes on the instance creation options
       auto invalids = shcore::get_additional_keys(options, {"clusterAdminType", "multiMaster"});
@@ -339,25 +281,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     MetadataStorage::Transaction tx(_metadata_storage);
 
-    // Check if we have the instanceAdminUser password or we need to generate it
-    if (mysql_innodb_cluster_admin_pwd.empty())
-      mysql_innodb_cluster_admin_pwd = cluster_password;
 
     std::shared_ptr<Cluster> cluster(new Cluster(cluster_name, _metadata_storage));
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
-    cluster->set_master_key(cluster_password);
     cluster->set_description("Default Cluster");
-
-    cluster->set_account_user(ACC_INSTANCE_ADMIN, instance_admin_user);
-    cluster->set_account_password(ACC_INSTANCE_ADMIN, generate_password(PASSWORD_LENGHT));
-    cluster->set_account_user(ACC_CLUSTER_READER, cluster_reader_user);
-    cluster->set_account_password(ACC_CLUSTER_READER, generate_password(PASSWORD_LENGHT));
-    cluster->set_account_user(ACC_REPLICATION_USER, replication_user);
-    cluster->set_account_password(ACC_REPLICATION_USER, generate_password(PASSWORD_LENGHT));
-    cluster->set_account_user(ACC_CLUSTER_ADMIN, cluster_admin_user);
-    cluster->set_account_password(ACC_CLUSTER_ADMIN, mysql_innodb_cluster_admin_pwd);
 
     cluster->set_option(OPT_ADMIN_TYPE, shcore::Value(cluster_admin_type));
 

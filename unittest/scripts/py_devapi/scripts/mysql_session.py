@@ -74,7 +74,7 @@ validateNotMember(sessionMembers, 'quoted schema');
 #@ ClassicSession: Transaction handling: rollback
 classicSession.set_current_schema('node_session_schema')
 
-result = classicSession.run_sql('create table sample (name varchar(50))')
+result = classicSession.run_sql('create table sample (name varchar(50) primary key)')
 classicSession.start_transaction()
 res1 = classicSession.run_sql('insert into sample values ("john")')
 res2 = classicSession.run_sql('insert into sample values ("carol")')
@@ -111,7 +111,7 @@ cschema = classicSession.get_current_schema()
 print dschema
 print cschema
 
-#@ ClassicSession: current schema validations: default 
+#@ ClassicSession: current schema validations: default
 classicSession.close()
 classicSession = mysql.get_classic_session(__uripwd + '/mysql')
 dschema = classicSession.get_default_schema()

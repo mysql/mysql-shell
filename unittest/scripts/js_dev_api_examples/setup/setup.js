@@ -14,11 +14,10 @@ function ensure_session(){
     print("Creating testSession...\n");
     var  uri = os.getenv('MYSQL_URI');
     var  port = os.getenv('MYSQLX_PORT');
-    
+
     if (port)
       uri = uri + ":" + port;
-    
-    testSession = mysqlx.getNodeSession(uri);
+    testSession = mysqlx.getNodeSession(uri, os.getenv("MYSQL_PWD"));
 
     // Ensures the user on dev-api exists
     try {
@@ -28,7 +27,7 @@ function ensure_session(){
     catch(err)
     {
       // This means the user existed already
-    }  
+    }
   }
   else
     print("Session exists...\n");
@@ -60,7 +59,7 @@ function ensure_test_schema() {
     print("Creating test schema...\n");
     testSession.createSchema('test');
   }
-	
+
 	testSession.setCurrentSchema('test');
 }
 
@@ -80,9 +79,9 @@ function ensure_employee_table() {
   }
   catch(err){
     print("Creating employee table...\n");
-    testSession.sql('create table test.employee (name varchar(50), age integer, gender varchar(20))').execute();
+    testSession.sql('create table test.employee (name varchar(50) primary key, age integer, gender varchar(20))').execute();
     var table = db.getTable('employee');
-    
+
     var result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute();
     var result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute();
     var result = table.insert({'name': 'brian', 'age': 14, 'gender': 'male'}).execute();
@@ -109,7 +108,7 @@ function ensure_relatives_collection() {
   catch(err){
     print("Creating relatives collection...\n");
     var test_coll = db.createCollection('relatives');
-    
+
     var result = test_coll.add({name: 'jack', age: 17, alias: 'jack'}).execute();
     var result = test_coll.add({name: 'adam', age: 15, alias: 'jr'}).execute();
     var result = test_coll.add({name: 'brian', age: 14, alias: 'brian'}).execute();
@@ -121,23 +120,23 @@ function ensure_relatives_collection() {
 
 function ensure_employee_table_on_mytable() {
   ensure_employee_table();
-  
+
   print("Assigning employee table to myTable...\n");
-  
+
   myTable = testSession.getSchema('test').getTable('employee');
 }
 
 function ensure_empty_my_table_table() {
   ensure_test_schema();
-  
+
   print("Creating my_table table...\n");
   testSession.sql('drop table if exists test.my_table').execute();
-  testSession.sql('create table test.my_table (id integer, name varchar(50))').execute();
+  testSession.sql('create table test.my_table (id integer primary key, name varchar(50))').execute();
 }
 
 function ensure_my_table_table() {
   ensure_test_schema();
-  
+
   print("Creating my_table table...\n");
   testSession.sql('drop table if exists test.my_table').execute();
   testSession.sql('create table test.my_table (_id integer NOT NULL AUTO_INCREMENT PRIMARY KEY, name varchar(50), birthday DATE, age INTEGER)').execute();
@@ -217,7 +216,7 @@ function ensure_not_collection(name) {
 function ensure_custom_id_unique(){
 	ensure_my_collection_collection();
 	myColl = db.getCollection('my_collection');
-	
+
 	myColl.remove('_id = "custom_id"').execute();
 }
 
@@ -231,9 +230,9 @@ function ensure_table_users_exists(){
 	}
 	catch(err){
 		print('Creating users table...');
-		testSession.sql('create table users (name varchar(50), age int)').execute();
+		testSession.sql('create table users (name varchar(50) primary key, age int)').execute();
   }
-  
+
   testSession.sql('delete from test.users').execute();
   testSession.sql('insert into test.users values ("Jack", 17)').execute();
   testSession.sql('insert into test.users values ("John", 40)').execute();
@@ -247,17 +246,17 @@ function ensure_table_users_exists(){
 
 function ensure_my_proc_procedure_exists(){
 	ensure_table_users_exists();
-	
-	var procedure = "create procedure my_proc() " + 
-                  "begin " + 
-                  "select * from test.users where age > 40; " + 
-                  "select * from test.users where age < 40; " + 
-                  "delete from test.users where age = 40; " + 
+
+	var procedure = "create procedure my_proc() " +
+                  "begin " +
+                  "select * from test.users where age > 40; " +
+                  "select * from test.users where age < 40; " +
+                  "delete from test.users where age = 40; " +
                   "end";
-                  
+
 	testSession.sql("drop procedure if exists my_proc").execute();
 	testSession.sql(procedure).execute();
-	
+
 	nodeSession = testSession;
 }
 
@@ -265,7 +264,7 @@ function ensure_my_proc_procedure_exists(){
 for(index in __assumptions__)
 {
 	print ('Assumption:', __assumptions__[index], '\n');
-	
+
   switch(__assumptions__[index]){
     case "connected session":
       ensure_session();

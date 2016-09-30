@@ -4,9 +4,8 @@
 
 dba.drop_metadata_schema({'enforce':True})
 
-clusterPassword = 'testing'
 #@ Cluster: validating members
-cluster = dba.create_cluster('devCluster', clusterPassword)
+cluster = dba.create_cluster('devCluster')
 rset = cluster.get_replica_set()
 
 all_members = dir(rset)
@@ -36,4 +35,4 @@ rset.add_instance({'port': __mysql_sandbox_port1});
 rset.add_instance({'host': '127.0.0.1', 'port': __mysql_sandbox_port1}, 'root');
 
 # Cleanup
-dba.drop_cluster('devCluster', {'dropDefaultReplicaSet': True, 'masterKey': clusterPassword})
+dba.drop_cluster('devCluster', {'dropDefaultReplicaSet': True})

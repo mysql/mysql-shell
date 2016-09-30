@@ -334,7 +334,8 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
-  args.push_back(repl_user_args.c_str());
+  if (!repl_user.empty())
+    args.push_back(repl_user_args.c_str());
   if (multi_master)
     args.push_back("--single-primary=OFF");
   args.push_back("--stdin");
@@ -358,9 +359,11 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
   super_user_pwd += "\n";
   // password for instance being joined
   passwords.push_back(super_user_pwd);
-  // password for the replication user
-  repl_user_pwd += "\n";
-  passwords.push_back(repl_user_pwd);
+  if (!repl_user.empty()) {
+    // password for the replication user
+    repl_user_pwd += "\n";
+    passwords.push_back(repl_user_pwd);
+  }
   // we need to enter the super-user password again for the peer instance
   passwords.push_back(super_user_pwd);
 
@@ -368,7 +371,8 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
-  args.push_back(repl_user_args.c_str());
+  if (!repl_user.empty())
+    args.push_back(repl_user_args.c_str());
   args.push_back(peer_instance_args.c_str());
 
   args.push_back("--stdin");

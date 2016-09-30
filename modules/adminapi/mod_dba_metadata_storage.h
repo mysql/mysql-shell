@@ -55,8 +55,8 @@ public:
   void disable_replicaset(uint64_t rs_id);
   bool is_replicaset_active(uint64_t rs_id);
 
-  std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name, const std::string &master_key);
-  std::shared_ptr<Cluster> get_default_cluster(const std::string &master_key);
+  std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name);
+  std::shared_ptr<Cluster> get_default_cluster();
   bool has_default_cluster();
 
   std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
@@ -96,7 +96,7 @@ private:
   void commit();
   void rollback();
 
-  std::shared_ptr<Cluster> get_cluster_matching(const std::string& condition, const std::string &master_key);
+  std::shared_ptr<Cluster> get_cluster_matching(const std::string& condition);
 };
 }
 }

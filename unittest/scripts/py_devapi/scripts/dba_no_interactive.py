@@ -2,7 +2,6 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMember and validateNotMember are defined on the setup script
 dba.drop_metadata_schema({"enforce":True})
-clusterPassword = 'testing';
 
 #@ Session: validating members
 all_members = dir(dba)
@@ -34,11 +33,11 @@ c1 = dba.create_cluster('', 5)
 c1 = dba.create_cluster('devCluster')
 
 #@# Dba: create_cluster succeed
-c1 = dba.create_cluster('devCluster', clusterPassword);
+c1 = dba.create_cluster('devCluster');
 print c1
 
 #@# Dba: create_cluster already exist
-c1 = dba.create_cluster('devCluster', clusterPassword);
+c1 = dba.create_cluster('devCluster');
 
 #@# Dba: get_cluster errors
 c2 = dba.get_cluster()
@@ -46,7 +45,7 @@ c2 = dba.get_cluster(5)
 c2 = dba.get_cluster('', 5)
 c2 = dba.get_cluster('')
 c2 = dba.get_cluster('devCluster')
-c2 = dba.get_cluster('devCluster', {'masterKey':clusterPassword});
+c2 = dba.get_cluster('devCluster');
 
 #@ Dba: get_cluster
 print c2

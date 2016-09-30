@@ -123,12 +123,12 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
     if (prompt_password) {
       if (deploying) {
         message = "A new MySQL sandbox instance will be created on this host in \n"\
-                  "" + sandbox_dir + "/" + std::to_string(port) + "\n\n"
-                  "Please enter a MySQL root password for the new instance: ";
+          "" + sandbox_dir + "/" + std::to_string(port) + "\n\n"
+          "Please enter a MySQL root password for the new instance: ";
       } else {
         message = "The MySQL sandbox instance on this host in \n"\
-                  "" + sandbox_dir + "/" + std::to_string(port) + " will be started\n\n"
-                  "Please enter the MySQL root password of the instance: ";
+          "" + sandbox_dir + "/" + std::to_string(port) + " will be started\n\n"
+          "Please enter the MySQL root password of the instance: ";
       }
 
       std::string answer;
@@ -179,7 +179,7 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
   std::string sandboxDir = valid_args.map_at(1)->get_string("sandboxDir");
 
   std::string message = "The MySQL sandbox instance on this host in \n"\
-                        "" + sandboxDir + "/" + std::to_string(port) + " will be " + past;
+    "" + sandboxDir + "/" + std::to_string(port) + " will be " + past;
 
   println(message);
   println();
@@ -216,11 +216,11 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   validate_session(get_function_name("createCluster"));
 
-  args.ensure_count(1, 3, get_function_name("createCluster").c_str());
+  args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
   try {
     std::string cluster_name = args.string_at(0);
-    std::string answer, cluster_password;
+    std::string answer;
     shcore::Value::Map_type_ref options;
     bool multi_master = false;
 
@@ -231,20 +231,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       throw Exception::argument_error("The Cluster name must be a valid identifier.");
 
     if (args.size() > 1) {
-      int opts_index = 1;
-      if (args[1].type == shcore::String) {
-        cluster_password = args.string_at(1);
-        opts_index++;
-      }
-
-      if (args.size() > opts_index) {
-        options = args.map_at(opts_index);
-        // Check if some option is missing
-        // TODO: Validate adminType parameter value
-
-        if (options->has_key("multiMaster")) {
-          multi_master = true;
-        }
+      options = args.map_at(1);
+      if (options->has_key("multiMaster")) {
+        multi_master = true;
       }
     }
 
@@ -267,26 +256,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
         return shcore::Value();
       }
     }
-    if (cluster_password.empty()) {
-      println("When setting up a new InnoDB cluster it is required to define an administrative\n"
-              "MASTER key for the cluster. This MASTER key needs to be re-entered when making\n"
-              "changes to the cluster later on, e.g.adding new MySQL instances or configuring\n"
-              "MySQL Routers. Losing this MASTER key will require the configuration of all\n"
-              "InnoDB cluster entities to be changed.\n");
-
-      if (!password("Please specify an administrative MASTER key for the cluster '"
-                    + cluster_name + "': ", cluster_password) || cluster_password.empty()) {
-        println("Cancelled");
-        return shcore::Value();
-      }
-    }
     {
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(cluster_name));
-      new_args.push_back(shcore::Value(cluster_password));
-
-      // Update the cache as well
-      set_cluster_admin_password(cluster_password);
 
       if (options != NULL)
         new_args.push_back(shcore::Value(options));
@@ -313,8 +285,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       println(message);
       println();
     }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
 
   return ret_val;
 }
@@ -351,78 +322,12 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
 shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
   validate_session(get_function_name("getCluster"));
 
-  args.ensure_count(0, 2, get_function_name("getCluster").c_str());
+  ScopedStyle ss(_target.get(), naming_style);
+  Value raw_cluster = _target->call("getCluster", args);
 
-  std::string master_key;
-  shcore::Value::Map_type_ref options;
-
-  shcore::Argument_list new_args(args);
-  std::string cluster_name;
-  bool get_default_cluster = false;
-  bool cancelled = false;
-
-  try {
-    if (args.size()) {
-      if (args.size() == 1) {
-        if (args[0].type == shcore::String)
-          cluster_name = args[0].as_string();
-        else if (args[0].type == shcore::Map) {
-          options = args[0].as_map();
-          get_default_cluster = true;
-        } else
-          throw shcore::Exception::argument_error("Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options");
-      } else {
-        cluster_name = args.string_at(0);
-        options = args.map_at(1);
-      }
-    } else
-      get_default_cluster = true;
-
-    if (!options) {
-      options.reset(new shcore::Value::Map_type());
-      new_args.push_back(shcore::Value(options));
-    }
-
-    if (!get_default_cluster && cluster_name.empty())
-      throw Exception::argument_error("The Cluster name cannot be empty.");
-
-    if (options->has_key("masterKey"))
-      master_key = options->get_string("masterKey");
-
-    std::string message = "When the InnoDB cluster was setup, a MASTER key was defined in order to enable\n"\
-                          "performing administrative tasks on the cluster.\n";
-
-    println(message);
-
-    if (master_key.empty()) {
-      if (get_default_cluster)
-        message = "Please specify the administrative MASTER key for the default cluster: ";
-      else
-        message = "Please specify the administrative MASTER key for the cluster '" + cluster_name + "': ";
-
-      std::string answer;
-      if (password(message, answer)) {
-        if (answer.empty())
-          throw shcore::Exception::runtime_error("Missing the administrative MASTER key for the cluster.");
-        else
-          (*options)["masterKey"] = shcore::Value(answer);
-      } else
-        cancelled = true;
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
-
-  Value ret_val;
-  if (!cancelled) {
-    ScopedStyle ss(_target.get(), naming_style);
-    Value raw_cluster = _target->call("getCluster", new_args);
-
-    Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
-    cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
-    ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
-  }
-
-  return ret_val;
+  Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
+  cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
+  return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 }
 
 shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {

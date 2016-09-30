@@ -27,10 +27,6 @@
 
 #define ACC_USER "username"
 #define ACC_PASSWORD "password"
-#define ACC_INSTANCE_ADMIN "instanceAdmin"
-#define ACC_CLUSTER_READER "clusterReader"
-#define ACC_REPLICATION_USER "replicationUser"
-#define ACC_CLUSTER_ADMIN "clusterAdmin"
 
 #define OPT_ADMIN_TYPE "adminType"
 
@@ -60,17 +56,8 @@ public:
   std::shared_ptr<ReplicaSet> get_default_replicaset() { return _default_replica_set; }
   void set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs);
   std::string get_name() { return _name; }
-  void set_master_key(const std::string &cluster_password) { _master_key = cluster_password; }
-  std::string get_master_key() { return _master_key; }
   std::string get_description() { return _description; }
   void set_description(std::string description) { _description = description; };
-
-  void set_account_user(const std::string& account, const std::string& value) { set_account_data(account, ACC_USER, value); }
-  std::string get_account_user(const std::string& account) { return get_account_data(account, ACC_USER); }
-  void set_account_password(const std::string& account, const std::string& value) { set_account_data(account, ACC_PASSWORD, value); }
-  std::string get_account_password(const std::string& account) { return get_account_data(account, ACC_PASSWORD); }
-  std::string get_accounts_data();
-  void set_accounts_data(const std::string& json);
 
   void set_option(const std::string& option, const shcore::Value &value);
   void set_options(const std::string& json) { _options = shcore::Value::parse(json).as_map(); }
@@ -125,7 +112,6 @@ protected:
   uint64_t _id;
   std::string _name;
   std::shared_ptr<ReplicaSet> _default_replica_set;
-  std::string _master_key;
   std::string _description;
   shcore::Value::Map_type_ref _accounts;
   shcore::Value::Map_type_ref _options;

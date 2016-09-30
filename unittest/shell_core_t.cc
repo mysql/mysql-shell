@@ -48,6 +48,11 @@ protected:
 
   void connect() {
     _interactive_shell->process_line("\\connect -c " + _mysql_uri);
+    if (!output_handler.std_err.empty()) {
+      std::cerr << "ERROR connecting to "<<_mysql_uri<<":"<<output_handler.std_err<<"\n";
+      std::cerr << "Test environment is probably wrong. Please check values of MYSQL_URI, MYSQL_PORT, MYSQL_PWD environment variables.\n";
+      FAIL();
+    }
   }
 
   void process(const std::string& path) {
@@ -61,7 +66,6 @@ protected:
       FAIL();
 
     _ret_val = _interactive_shell->process_stream(stream, _file_name);
-
     stream.close();
   }
 };

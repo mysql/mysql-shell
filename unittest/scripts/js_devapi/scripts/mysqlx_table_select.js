@@ -10,7 +10,7 @@ var schema = mySession.createSchema('js_shell_test');
 mySession.setCurrentSchema('js_shell_test');
 
 // Creates a test table with initial data
-var result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
+var result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20), primary key (name, age, gender));').execute();
 var result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute();
 var table = schema.getTable('table1');
 

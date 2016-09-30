@@ -3,9 +3,8 @@
 // validateMemer and validateNotMember are defined on the setup script
 dba.dropMetadataSchema({enforce:true});
 
-var ClusterPassword = 'testing';
 //@ ReplicaSet: validating members
-var Cluster = dba.createCluster('devCluster', ClusterPassword);
+var Cluster = dba.createCluster('devCluster');
 var rset = Cluster.getReplicaSet();
 
 var members = dir(rset);
@@ -29,4 +28,4 @@ rset.addInstance({port: __mysql_sandbox_port1});
 rset.addInstance({host: "127.0.0.1", port:__mysql_sandbox_port1}, "root");
 
 // Cleanup
-dba.dropCluster('devCluster', {dropDefaultReplicaSet: true, masterKey: ClusterPassword});
+dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

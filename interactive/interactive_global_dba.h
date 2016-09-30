@@ -44,12 +44,7 @@ public:
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
   shcore::Value validate_instance(const shcore::Argument_list &args);
 
-  void set_cluster_admin_password(std::string passwd) { _cluster_admin_password = passwd; };
-  std::string get_cluster_admin_password() { return _cluster_admin_password; };
-
 private:
-  std::string _cluster_admin_password;
-
   shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args);
   shcore::Value perform_instance_operation(const shcore::Argument_list &args, const std::string &fname, const std::string& progressive, const std::string& past);
   void validate_session(const std::string &source) const;

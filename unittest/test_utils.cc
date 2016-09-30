@@ -145,7 +145,7 @@ void Shell_core_test_wrapper::SetUp() {
     if (sandbox_port1) {
       _mysql_sandbox_port1.assign(sandbox_port1);
     } else {
-      std::string sandbox_port1 = std::to_string(atoi(port) + 10);
+      std::string sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
       _mysql_sandbox_port1.assign(sandbox_port1);
     }
 
@@ -153,7 +153,7 @@ void Shell_core_test_wrapper::SetUp() {
     if (sandbox_port2) {
       _mysql_sandbox_port2.assign(sandbox_port2);
     } else {
-      std::string sandbox_port2 = std::to_string(atoi(port) + 20);
+      std::string sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
       _mysql_sandbox_port2.assign(sandbox_port2);
     }
 
@@ -161,7 +161,7 @@ void Shell_core_test_wrapper::SetUp() {
     if (sandbox_port3) {
       _mysql_sandbox_port3.assign(sandbox_port3);
     } else {
-      std::string sandbox_port3 = std::to_string(atoi(port) + 30);
+      std::string sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
       _mysql_sandbox_port3.assign(sandbox_port3);
     }
 
