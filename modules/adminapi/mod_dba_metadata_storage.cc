@@ -20,6 +20,7 @@
 #include "utils/utils_sqlstring.h"
 #include "mod_dba_metadata_storage.h"
 #include "modules/adminapi/metadata-model_definitions.h"
+#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/base_session.h"
 #include "mysqlx_connection.h"
 #include "xerrmsg.h"
@@ -33,7 +34,7 @@ using namespace mysh::dba;
 using namespace shcore;
 
 MetadataStorage::MetadataStorage(Dba* dba) :
-_dba(dba) {}
+  _dba(dba) {}
 
 MetadataStorage::~MetadataStorage() {}
 
@@ -209,10 +210,10 @@ void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster) {
 }
 
 void MetadataStorage::insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
-      bool is_default) {
+    bool is_default) {
   shcore::sqlstring query("INSERT INTO mysql_innodb_cluster_metadata.replicasets "
-      "(cluster_id, replicaset_type, topology_type, replicaset_name, active) "
-      "VALUES (?, ?, ?, ?, ?)", 0);
+                          "(cluster_id, replicaset_type, topology_type, replicaset_name, active) "
+                          "VALUES (?, ?, ?, ?, ?)", 0);
   uint64_t cluster_id;
 
   cluster_id = replicaset->get_cluster()->get_id();
@@ -239,6 +240,9 @@ void MetadataStorage::insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
   execute_sql(query);
 }
 
+// TODO: This function is only used once, called from ReplicaSet::add_instance
+//       There, the connection data was already put on a map, there's no need to do
+//       it again here, it should receive that map instead!!
 std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argument_list &args) {
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
@@ -248,6 +252,10 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argu
   std::string location;
 
   shcore::sqlstring query;
+
+  auto instance = args.object_at<Instance>(0);
+  if (instance)
+    options = get_connection_data(instance->get_uri(), false);
 
   // Identify the type of args data (String or Document)
   if (args[0].type == String) {
@@ -284,24 +292,24 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argu
   // Arbitrary retry count
   int retryCount = 50;
   while (true)
-  try {
-    result = execute_sql(query);
+    try {
+      result = execute_sql(query);
 
-    // Getting here it means it succeeded
-    break;
-  } catch (shcore::Exception &e) {
-    if (e.code() == CR_SQLSTATE) {
-      if (retryCount) {
+      // Getting here it means it succeeded
+      break;
+    } catch (shcore::Exception &e) {
+      if (e.code() == CR_SQLSTATE) {
+        if (retryCount) {
 #ifdef HAVE_SLEEP
-        sleep(1);
+          sleep(1);
 #elif defined(WIN32)
-        Sleep(100);
+          Sleep(100);
 #endif
-        retryCount--;
-      } else
-        throw;
+          retryCount--;
+        } else
+          throw;
+      }
     }
-  }
 
   return result;
 }
@@ -577,8 +585,8 @@ std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id) {
 std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string& condition, const std::string &master_key) {
   std::shared_ptr<Cluster> cluster;
   std::string query = "SELECT cluster_id, cluster_name, default_replicaset, description, mysql_user_accounts, options, attributes " \
-    "from mysql_innodb_cluster_metadata.clusters " \
-    "WHERE ";
+                      "from mysql_innodb_cluster_metadata.clusters " \
+                      "WHERE ";
 
   query += condition;
 
@@ -625,7 +633,7 @@ std::shared_ptr<Cluster> MetadataStorage::get_default_cluster(const std::string 
 }
 
 std::shared_ptr<Cluster> MetadataStorage::get_cluster(const std::string &cluster_name,
-                                                      const std::string &master_key) {
+    const std::string &master_key) {
   std::shared_ptr<Cluster> cluster = get_cluster_matching("cluster_name = '" + cluster_name + "'", master_key);
 
   if (!cluster)
@@ -708,9 +716,9 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
 
   //query = "SELECT JSON_UNQUOTE(addresses->\"$.mysqlClassic\")  as address FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = '" + std::to_string(rs_id) + "' AND role = 'HA'";
   query = "SELECT JSON_UNQUOTE(i.addresses->\"$.mysqlClassic\") as address "
-      " FROM performance_schema.replication_group_members g"
-      " JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid"
-      " WHERE g.member_state = 'ONLINE'";
+          " FROM performance_schema.replication_group_members g"
+          " JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid"
+          " WHERE g.member_state = 'ONLINE'";
 
   auto result = execute_sql(query);
 
@@ -731,9 +739,9 @@ std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_insta
   shcore::sqlstring query;
 
   query = shcore::sqlstring("select mysql_server_uuid, instance_name, role,"
-                      " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
-                      " from mysql_innodb_cluster_metadata.instances"
-                      " where replicaset_id = ?", 0);
+                            " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
+                            " from mysql_innodb_cluster_metadata.instances"
+                            " where replicaset_id = ?", 0);
   query << rs_id;
   query.done();
 

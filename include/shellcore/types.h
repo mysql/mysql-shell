@@ -239,6 +239,20 @@ public:
   int64_t int_at(unsigned int i) const;
   uint64_t uint_at(unsigned int i) const;
   double double_at(unsigned int i) const;
+  
+  template<class C>
+  std::shared_ptr<C> object_at(unsigned int i) const{
+    std::shared_ptr<C> ret_val;
+    try{
+      auto object = object_at(i);
+      ret_val = std::dynamic_pointer_cast<C>(object);
+    }catch(...){
+      // We don't care, return value will be empty
+    }
+    
+    return ret_val;
+  }
+  
   std::shared_ptr<Object_bridge> object_at(unsigned int i) const;
   std::shared_ptr<Value::Map_type> map_at(unsigned int i) const;
   std::shared_ptr<Value::Array_type> array_at(unsigned int i) const;

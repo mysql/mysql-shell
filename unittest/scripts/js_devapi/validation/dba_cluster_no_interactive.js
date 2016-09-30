@@ -16,9 +16,9 @@
 //@# Cluster: addInstance errors
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 4
-||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
+||Cluster.addInstance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
 ||Cluster.addInstance: Missing instance options: host
-||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
+||Cluster.addInstance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
 ||Cluster.addInstance: Unexpected instance options: authMethod, schema
 ||Cluster.addInstance: Missing instance options: host, password
 ||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'
@@ -77,7 +77,7 @@
 //@ Cluster: removeInstance errors
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 0
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 2
-||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
+||Cluster.removeInstance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
 ||Cluster.removeInstance: Unexpected instance options: authMethod, schema, user
 ||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 

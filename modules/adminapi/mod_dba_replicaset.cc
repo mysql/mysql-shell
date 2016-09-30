@@ -17,18 +17,19 @@
  * 02110-1301  USA
  */
 
-#include "mod_dba_replicaset.h"
-#include "mod_dba_metadata_storage.h"
+#include "modules/adminapi/mod_dba_replicaset.h"
+#include "modules/adminapi/mod_dba_metadata_storage.h"
+#include "modules/adminapi/mod_dba_instance.h"
 
 #include "common/uuid/include/uuid_gen.h"
 #include "utils/utils_general.h"
-#include "../mysqlxtest_utils.h"
+#include "modules/mysqlxtest_utils.h"
 #include "xerrmsg.h"
 #include "mysqlx_connection.h"
 #include "shellcore/shell_core_options.h"
 #include "common/process_launcher/process_launcher.h"
-#include "../mod_mysql_session.h"
-#include "../mod_mysql_resultset.h"
+#include "modules/mod_mysql_session.h"
+#include "modules/mod_mysql_resultset.h"
 
 #include <sstream>
 #include <iostream>
@@ -328,8 +329,13 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   // Check if we're on a addSeedInstance or not
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
+  auto instance = args.object_at<Instance>(0);
+  if (instance){
+    options = shcore::get_connection_data(instance->get_uri());
+    (*options)["password"] = shcore::Value(instance->get_password());
+  }
   // Identify the type of connection data (String or Document)
-  if (args[0].type == String) {
+  else if (args[0].type == String) {
     uri = args.string_at(0);
     options = get_connection_data(uri, false);
   }
@@ -339,7 +345,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     options = args.map_at(0);
 
   else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
 
   // Verification of invalid attributes on the connection data
   auto invalids = shcore::get_additional_keys(options, _add_instance_opts);
@@ -696,8 +702,12 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   std::string name;
   int port = 0;
 
+  auto instance = args.object_at<Instance>(0);
+  if (instance)
+    options = shcore::get_connection_data(instance->get_uri());
+  
   // Identify the type of connection data (String or Document)
-  if (args[0].type == String) {
+  else if (args[0].type == String) {
     uri = args.string_at(0);
     options = get_connection_data(uri, false);
   }
@@ -709,7 +719,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     options = args.map_at(0);
 
   else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
 
   // Verification of invalid attributes on the connection data
   auto invalids = shcore::get_additional_keys(options, _remove_instance_opts);
@@ -880,3 +890,4 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
 
   return ret_val;
 }
+

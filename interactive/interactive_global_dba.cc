@@ -20,6 +20,7 @@
 #include "interactive_global_dba.h"
 #include "shellcore/shell_registry.h"
 #include "interactive/interactive_dba_cluster.h"
+#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba.h"
 #include "utils/utils_general.h"
@@ -122,12 +123,12 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
     if (prompt_password) {
       if (deploying) {
         message = "A new MySQL sandbox instance will be created on this host in \n"\
-          "" + sandbox_dir + "/" + std::to_string(port) + "\n\n"
-          "Please enter a MySQL root password for the new instance: ";
+                  "" + sandbox_dir + "/" + std::to_string(port) + "\n\n"
+                  "Please enter a MySQL root password for the new instance: ";
       } else {
         message = "The MySQL sandbox instance on this host in \n"\
-          "" + sandbox_dir + "/" + std::to_string(port) + " will be started\n\n"
-          "Please enter the MySQL root password of the instance: ";
+                  "" + sandbox_dir + "/" + std::to_string(port) + " will be started\n\n"
+                  "Please enter the MySQL root password of the instance: ";
       }
 
       std::string answer;
@@ -178,7 +179,7 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
   std::string sandboxDir = valid_args.map_at(1)->get_string("sandboxDir");
 
   std::string message = "The MySQL sandbox instance on this host in \n"\
-    "" + sandboxDir + "/" + std::to_string(port) + " will be " + past;
+                        "" + sandboxDir + "/" + std::to_string(port) + " will be " + past;
 
   println(message);
   println();
@@ -274,7 +275,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
               "InnoDB cluster entities to be changed.\n");
 
       if (!password("Please specify an administrative MASTER key for the cluster '"
-          + cluster_name + "': ", cluster_password) || cluster_password.empty()) {
+                    + cluster_name + "': ", cluster_password) || cluster_password.empty()) {
         println("Cancelled");
         return shcore::Value();
       }
@@ -312,7 +313,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       println(message);
       println();
     }
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
 
   return ret_val;
 }
@@ -388,7 +390,7 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
       master_key = options->get_string("masterKey");
 
     std::string message = "When the InnoDB cluster was setup, a MASTER key was defined in order to enable\n"\
-      "performing administrative tasks on the cluster.\n";
+                          "performing administrative tasks on the cluster.\n";
 
     println(message);
 
@@ -432,8 +434,13 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   std::string uri, answer, user;
   shcore::Value::Map_type_ref options; // Map with the connection data
 
+  auto instance = args.object_at<mysh::dba::Instance>(0);
+  if (instance) {
+    options = shcore::get_connection_data(instance->get_uri());
+    (*options)["password"] = shcore::Value(instance->get_password());
+  }
   // Identify the type of connection data (String or Document)
-  if (args[0].type == shcore::String) {
+  else if (args[0].type == shcore::String) {
     uri = args.string_at(0);
     options = shcore::get_connection_data(uri, false);
   }
@@ -441,7 +448,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   else if (args[0].type == shcore::Map)
     options = args.map_at(0);
   else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
 
   // Verification of required attributes on the connection data
   auto missing = shcore::get_missing_keys(options, {"host", "port"});

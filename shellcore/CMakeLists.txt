@@ -229,7 +229,8 @@ IF( WITH_ADMINAPI )
              "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.h"
              "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.cc"
              "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h")
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.h")
 ENDIF()
 
 

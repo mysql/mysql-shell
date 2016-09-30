@@ -251,9 +251,13 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
 
     if (options->has_key("dbUser"))
       _user = (*options)["dbUser"].as_string();
+    else if (options->has_key("user"))
+      _user = (*options)["user"].as_string();
 
     if (options->has_key("dbPassword"))
       _password = (*options)["dbPassword"].as_string();
+    else if (options->has_key("password"))
+      _password = (*options)["password"].as_string();
 
     if (options->has_key("ssl_ca"))
       _ssl_ca = (*options)["ssl_ca"].as_string();

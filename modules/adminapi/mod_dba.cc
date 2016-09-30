@@ -19,6 +19,7 @@
 
 #include "utils/utils_sqlstring.h"
 #include "mod_dba.h"
+#include "modules/adminapi/mod_dba_instance.h"
 #include "utils/utils_general.h"
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core_options.h"
@@ -54,7 +55,7 @@ REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deploySandboxInstance')");
 REGISTER_HELP(DBA_VERBOSE_BRIEF, "Enables verbose mode on the Dba operations.");
 
 Dba::Dba(IShell_core* owner) :
-_shell_core(owner) {
+  _shell_core(owner) {
   init();
 }
 
@@ -377,14 +378,15 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     //args.push_back(shcore::Value(session->uri()));
     args.push_back(shcore::Value(session->get_password()));
     args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
-                                              : ReplicaSet::kTopologyPrimaryMaster));
+                                 : ReplicaSet::kTopologyPrimaryMaster));
     cluster->add_seed_instance(args);
 
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
 
     tx.commit();
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
   return ret_val;
 }
 
@@ -660,6 +662,9 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     // And now we start it
     if (_provisioning_interface->start_sandbox(port, sandbox_dir, errors) != 0)
       throw shcore::Exception::logic_error(errors);
+
+    std::string uri = "localhost:" + std::to_string(port);
+    ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
   } else if (function == "delete") {
     if (_provisioning_interface->delete_sandbox(port, sandbox_dir, errors) != 0)
       throw shcore::Exception::logic_error(errors);
@@ -676,11 +681,10 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   return ret_val;
 }
 
-//                                    0         1         2         3         4         5         6         7         8
-//                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the new deployed instance.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURNS, "@returns The deployed Instance.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL, "This function will deploy a new MySQL Server instance, the result may be "\
 "affected by the provided options: ");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1, "@li portx: port where the new instance will listen for X Protocol connections.");
