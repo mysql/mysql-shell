@@ -54,7 +54,7 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
   std::string uri;
 
   // If needed we construct the URi from the individual parameters
-  {
+  if (data) {
     if (data->has_key("dbUser"))
       uri.append((*data)["dbUser"].as_string());
     else if (data->has_key("user"))
