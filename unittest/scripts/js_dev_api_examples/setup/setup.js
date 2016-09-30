@@ -14,10 +14,15 @@ function ensure_session(){
     print("Creating testSession...\n");
     var  uri = os.getenv('MYSQL_URI');
     var  port = os.getenv('MYSQLX_PORT');
+    var  pwd = os.getenv('MYSQLX_PWD');
 
     if (port)
       uri = uri + ":" + port;
-    testSession = mysqlx.getNodeSession(uri, os.getenv("MYSQL_PWD"));
+    
+    if (pwd)
+      testSession = mysqlx.getNodeSession(uri, pwd);
+    else
+      testSession = mysqlx.getNodeSession(uri);
 
     // Ensures the user on dev-api exists
     try {

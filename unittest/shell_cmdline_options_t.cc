@@ -363,7 +363,7 @@ TEST(Shell_cmdline_options, default_values) {
 #endif
 
   EXPECT_FALSE(options.interactive);
-  EXPECT_EQ(options.log_level, ngcommon::Logger::LOG_ERROR);
+  EXPECT_EQ(options.log_level, ngcommon::Logger::LOG_INFO);
   EXPECT_TRUE(options.output_format.empty());
   EXPECT_EQ(NULL, options.password);
   EXPECT_FALSE(options.passwords_from_stdin);

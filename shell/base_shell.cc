@@ -889,6 +889,7 @@ bool Base_shell::do_shell_command(const std::string &line) {
 
 void Base_shell::process_line(const std::string &line) {
   bool handled_as_command = false;
+  std::string to_history;
 
   // check if the line is an escape/shell command
   if (_input_buffer.empty() && !line.empty() && _input_mode == shcore::Input_ok) {
@@ -901,7 +902,9 @@ void Base_shell::process_line(const std::string &line) {
     }
   }
 
-  if (!handled_as_command) {
+  if (handled_as_command)
+    to_history = line;
+  else{
     if (_input_mode == shcore::Input_continued_block && line.empty())
       _input_mode = shcore::Input_ok;
 
@@ -918,20 +921,16 @@ void Base_shell::process_line(const std::string &line) {
 
         // Here we analyze the input mode as it was let after executing the code
         if (_input_mode == shcore::Input_ok) {
-          std::string executed = _shell->get_handled_input();
-
-          if (!executed.empty()) {
-            shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
-            (*data)["statement"] = shcore::Value(executed);
-            shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr, data);
-          }
+          to_history = _shell->get_handled_input();
         }
       } catch (shcore::Exception &exc) {
         _shell->print_value(shcore::Value(exc.error()), "error");
+        to_history = _input_buffer;
       } catch (std::exception &exc) {
         std::string error(exc.what());
         error += "\n";
         print_error(error);
+        to_history = _input_buffer;
       }
 
       // TODO: Do we need this cleanup? i.e. in case of exceptions above??
@@ -940,6 +939,12 @@ void Base_shell::process_line(const std::string &line) {
       if (_input_mode == shcore::Input_ok)
         _input_buffer.clear();
     }
+  }
+  
+  if (!to_history.empty()) {
+    shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
+    (*data)["statement"] = shcore::Value(to_history);
+    shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr, data);
   }
 
   _shell->reconnect_if_needed();
