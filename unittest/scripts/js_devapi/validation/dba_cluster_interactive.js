@@ -97,7 +97,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 //@# Cluster: removeInstance errors
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 0
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 2
-||Cluster.removeInstance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
+||Invalid connection options, expected either a URI, a Dictionary or an Instance object
 ||Cluster.removeInstance: The instance 'localhost:0' does not belong to the ReplicaSet: 'default'
 ||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 

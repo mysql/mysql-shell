@@ -259,9 +259,6 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
 
   auto instance = args.object_at<mysh::dba::Instance> (0);
 
-  if (instance)
-    name = instance->get_name();
-  else {
     // Identify the type of connection data (String or Document)
     if (args[0].type == String) {
       uri = args.string_at(0);
@@ -274,8 +271,13 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
     else if (args[0].type == Map)
       options = args.map_at(0);
 
-    name = build_connection_string(options, false);
-  }
+    else
+      throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
+
+    if (instance)
+      name = instance->get_name();
+    else
+      name = build_connection_string(options, false);
 
   ret_val = _target->call("removeInstance", args);
 

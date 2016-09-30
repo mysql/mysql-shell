@@ -24,6 +24,7 @@ validateMember(members, 'reset_session');
 validateMember(members, 'start_sandbox_instance');
 validateMember(members, 'validate_instance');
 validateMember(members, 'stop_sandbox_instance');
+validateMember(members, 'prepare_instance');
 validateMember(members, 'verbose');
 
 #@# Dba: create_cluster errors

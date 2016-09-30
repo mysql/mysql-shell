@@ -41,6 +41,7 @@ void Global_dba::init() {
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("getCluster", std::bind(&Global_dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("validateInstance", std::bind(&Global_dba::validate_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("prepareInstance", std::bind(&Global_dba::prepare_instance, this, _1), "data", shcore::Map, NULL);
 }
 
 shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argument_list &args) {
@@ -396,6 +397,73 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   ret_val = _target->call("validateInstance", new_args);
 
   return ret_val;
+}
+
+shcore::Value Global_dba::prepare_instance(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  shcore::Argument_list new_args;
+
+  args.ensure_count(1, get_function_name("prepareInstance").c_str());
+
+  std::string uri, answer, user;
+  shcore::Value::Map_type_ref options; // Map with the connection data
+
+  // Identify the type of connection data (String or Document)
+  if (args[0].type == shcore::String) {
+    uri = args.string_at(0);
+    options = shcore::get_connection_data(uri, false);
+  }
+  // Connection data comes in a dictionary
+  else if (args[0].type == shcore::Map)
+    options = args.map_at(0);
+  else
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary.");
+
+  // Verification of required attributes on the connection data
+  auto missing = shcore::get_missing_keys(options, {"host", "port"});
+
+  if (missing.size()) {
+    std::string error = "Missing instance options: ";
+    error += shcore::join_strings(missing, ", ");
+    throw shcore::Exception::argument_error(error);
+  }
+
+  // Sets root user by default if no specified
+  if (!options->has_key("user") && !options->has_key("dbUser"))
+    (*options)["user"] = shcore::Value("root");
+
+  // Verification of the password
+  std::string user_password;
+  bool has_password = true;
+
+  if (options->has_key("password"))
+    user_password = options->get_string("password");
+  else if (options->has_key("dbPassword"))
+    user_password = options->get_string("dbPassword");
+  else if (args.size() == 2 && args[1].type == shcore::String) {
+    user_password = args.string_at(1);
+    (*options)["dbPassword"] = shcore::Value(user_password);
+  } else
+    has_password = false;
+
+  if (!has_password) {
+    if (password("Please provide a password for '" + build_connection_string(options, false) + "': ", answer))
+      (*options)["dbPassword"] = shcore::Value(answer);
+  }
+
+  new_args.push_back(shcore::Value(options));
+
+  // Let's get the user to know we're starting to prepare the instance
+  println("Preparing instance...");
+  println();
+
+  ret_val = _target->call("prepareInstance", new_args);
+
+  println("Instance successfully prepared. You can now add it to the InnoDB cluster with the cluster.addInstance() function.");
+  println();
+
+  // Do not print the object in interactive mode
+  return shcore::Value();
 }
 
 void Global_dba::validate_session(const std::string &source) const {

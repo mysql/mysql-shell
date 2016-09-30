@@ -17,6 +17,7 @@ validateMember(members, 'resetSession');
 validateMember(members, 'startSandboxInstance');
 validateMember(members, 'validateInstance');
 validateMember(members, 'stopSandboxInstance');
+validateMember(members, 'prepareInstance');
 validateMember(members, 'verbose');
 
 //@# Dba: createCluster errors

@@ -17,8 +17,11 @@
  * 02110-1301  USA
  */
 
+#include <string>
+#include <random>
+
 #include "utils/utils_sqlstring.h"
-#include "mod_dba.h"
+#include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_instance.h"
 #include "utils/utils_general.h"
 #include "shellcore/object_factory.h"
@@ -28,8 +31,8 @@
 
 #include "logger/logger.h"
 
-#include "mod_dba_cluster.h"
-#include "mod_dba_metadata_storage.h"
+#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_metadata_storage.h"
 #include <boost/lexical_cast.hpp>
 
 #include "common/process_launcher/process_launcher.h"
@@ -43,6 +46,7 @@ using namespace shcore;
 
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword"};
 std::set<std::string> Dba::_validate_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+std::set<std::string> Dba::_prepare_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL Admin API.");
@@ -76,6 +80,7 @@ void Dba::init() {
   add_method("stopSandboxInstance", std::bind(&Dba::stop_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteSandboxInstance", std::bind(&Dba::delete_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killSandboxInstance", std::bind(&Dba::kill_sandbox_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("prepareInstance", std::bind(&Dba::prepare_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
@@ -453,8 +458,14 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
   int port = 0;
 
   try {
+    auto instance = args.object_at<mysh::dba::Instance>(0);
+    if (instance) {
+      options = shcore::get_connection_data(instance->get_uri());
+      (*options)["password"] = shcore::Value(instance->get_password());
+    }
+
     // Identify the type of connection data (String or Document)
-    if (args[0].type == shcore::String) {
+    else if (args[0].type == shcore::String) {
       uri = args.string_at(0);
       options = shcore::get_connection_data(uri, false);
     }
@@ -515,7 +526,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
     std::string errors;
 
     // Verbose is mandatory for validateInstance
-    if (_provisioning_interface->check(user, host, port, password, errors) == 0) {
+    if (_provisioning_interface->check(user, host, port, password, errors, true) == 0) {
       std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage\n";
       ret_val = shcore::Value(s_out);
     } else
@@ -613,7 +624,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the new deployed instance.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURNS, "@returns The deployed Instance.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURN, "@returns The deployed Instance.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL, "This function will deploy a new MySQL Server instance, the result may be "\
 "affected by the provided options: ");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1, "@li portx: port where the new instance will listen for X Protocol connections.");
@@ -633,6 +644,8 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
 * $(DBA_DEPLOYSANDBOXINSTANCE_PARAM)
 * $(DBA_DEPLOYSANDBOXINSTANCE_PARAM1)
 *
+* $(DBA_DEPLOYSANDBOXINSTANCE_RETURN)
+*
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL)
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1)
@@ -648,9 +661,9 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
-Undefined Dba::deploySandboxInstance(Integer port, Dictionary options) {}
+Instance Dba::deploySandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::deploy_sandbox_instance(int port, dict options) {}
+Instance Dba::deploy_sandbox_instance(int port, dict options) {}
 #endif
 shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, const std::string& fname) {
   shcore::Value ret_val;
@@ -882,4 +895,118 @@ void Dba::validate_session(const std::string &source) const {
 
   if (!session || session->class_name() != "ClassicSession")
     throw shcore::Exception::runtime_error(source + ": a Classic Session is required to perform this operation");
+}
+
+REGISTER_HELP(DBA_PREPAREINSTANCE_BRIEF, "Validates and prepares an instance for cluster usage.");
+REGISTER_HELP(DBA_PREPAREINSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(DBA_PREPAREINSTANCE_RETURN, "@returns The prepared Instance.");
+REGISTER_HELP(DBA_PREPAREINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
+"for usage in group replication and cluster and returns an Instance object if so.");
+REGISTER_HELP(DBA_PREPAREINSTANCE_DETAIL1, "The connectionData parameter can be any of:");
+REGISTER_HELP(DBA_PREPAREINSTANCE_DETAIL2, "@li URI string ");
+REGISTER_HELP(DBA_PREPAREINSTANCE_DETAIL3, "@li Connection data dictionary ");
+
+/**
+* $(DBA_PREPAREINSTANCE_BRIEF)
+*
+* $(DBA_PREPAREINSTANCE_PARAM)
+*
+* $(DBA_PREPAREINSTANCE_RETURN)
+*
+* $(DBA_PREPAREINSTANCE_DETAIL)
+* $(DBA_PREPAREINSTANCE_DETAIL1)
+* $(DBA_PREPAREINSTANCE_DETAIL2)
+* $(DBA_PREPAREINSTANCE_DETAIL3)
+*/
+#if DOXYGEN_JS
+Instance Dba::prepareInstance(Variant connectionData) {}
+#elif DOXYGEN_PY
+Instance Dba::prepare_instance(variant connectionData) {}
+#endif
+shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
+  args.ensure_count(1, "prepareInstance");
+
+  // For FB3, we will allow an options dictionary as argument
+
+  shcore::Value ret_val;
+
+  std::string uri;
+  shcore::Value::Map_type_ref options;  // Map with the connection data
+
+  std::string user;
+  std::string password;
+  std::string host;
+  int port = 0;
+
+  try {
+    // Identify the type of connection data (String or Document)
+    if (args[0].type == shcore::String) {
+      uri = args.string_at(0);
+      options = shcore::get_connection_data(uri, false);
+    } else if (args[0].type == shcore::Map) {
+        // Connection data comes in a dictionary
+        options = args.map_at(0);
+    } else {
+        throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    }
+
+    if (options->size() == 0)
+      throw shcore::Exception::argument_error("Connection data empty.");
+
+    // Verification of invalid attributes on the instance data
+    auto invalids = shcore::get_additional_keys(options, _prepare_instance_opts);
+    if (invalids.size()) {
+      std::string error = "The instance data contains the following invalid options: ";
+      error += shcore::join_strings(invalids, ", ");
+      throw shcore::Exception::argument_error(error);
+    }
+
+    // Verification of required attributes on the connection data
+    auto missing = shcore::get_missing_keys(options, {"host", "password|dbPassword", "port", "user|dbUser"});
+    if (missing.find("password") != missing.end() && args.size() == 2)
+      missing.erase("password");
+
+    if (missing.size()) {
+      std::string error = "Missing instance options: ";
+      error += shcore::join_strings(missing, ", ");
+      throw shcore::Exception::argument_error(error);
+    }
+
+    port = options->get_int("port");
+
+    // Sets a default user if not specified
+    if (options->has_key("user")) {
+      user = options->get_string("user");
+    } else if (options->has_key("dbUser")) {
+        user = options->get_string("dbUser");
+    } else {
+        user = "root";
+        (*options)["dbUser"] = shcore::Value(user);
+    }
+
+    host = options->get_string("host");
+
+    if (options->has_key("password")) {
+      password = options->get_string("password");
+    } else if (options->has_key("dbPassword")) {
+        password = options->get_string("dbPassword");
+    } else if (args.size() == 2 && args[1].type == shcore::String) {
+        password = args.string_at(1);
+        (*options)["dbPassword"] = shcore::Value(password);
+    } else {
+        throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+    }
+
+    std::string errors;
+
+    if (_provisioning_interface->check(user, host, port, password, errors, false) == 0) {
+      std::string uri = host + ":" + std::to_string(port);
+      ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
+    } else {
+        throw shcore::Exception::logic_error(errors);
+    }
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("prepareInstance");
+
+  return ret_val;
 }

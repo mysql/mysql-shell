@@ -209,7 +209,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 }
 
 int ProvisioningInterface::check(const std::string &user, const std::string &host, int port,
-                                 const std::string &password, std::string &errors) {
+                                 const std::string &password, std::string &errors, bool verbose) {
   std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
   std::vector<std::string> passwords;
   std::string pwd = password;
@@ -221,7 +221,7 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
   args.push_back(instance_param.c_str());
   args.push_back("--stdin");
 
-  return execute_mysqlprovision("check", args, passwords, errors, true);
+  return execute_mysqlprovision("check", args, passwords, errors, verbose);
 }
 
 int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int portx, const std::string &sandbox_dir,

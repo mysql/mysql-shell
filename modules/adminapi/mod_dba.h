@@ -45,6 +45,7 @@ public:
 
   static std::set<std::string> _deploy_instance_opts;
   static std::set<std::string> _validate_instance_opts;
+  static std::set<std::string> _prepare_instance_opts;
 
   virtual std::string class_name() const { return "Dba"; };
 
@@ -63,6 +64,7 @@ public:
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
+  shcore::Value prepare_instance(const shcore::Argument_list &args);
 
   shcore::Value clone_instance(const shcore::Argument_list &args);
   shcore::Value configure_instance(const shcore::Argument_list &args);
@@ -79,7 +81,7 @@ public:
   Boolean verbose; //!< $(DBA_VERBOSE_BRIEF)
   Cluster createCluster(String name, String masterKey, Dictionary options);
   Undefined deleteSandboxInstance(Integer port, Dictionary options);
-  Undefined deploySandboxInstance(Integer port, Dictionary options);
+  Instance deploySandboxInstance(Integer port, Dictionary options);
   Undefined dropMetadataSchema(Dictionary options);
   Cluster getCluster(String name, Dictionary options);
   Undefined killSandboxInstance(Integer port, Dictionary options);
@@ -87,11 +89,12 @@ public:
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
   Undefined validateInstance(Variant connectionData, String password);
+  Instance prepareInstance(Variant connectionData);
 #elif DOXYGEN_PY
   bool verbose; //! $(DBA_VERBOSE)
   Cluster create_cluster(str name, str masterKey, dict options);
   None delete_sandbox_instance(int port, dict options);
-  None deploy_sandbox_instance(int port, dict options);
+  Instance deploy_sandbox_instance(int port, dict options);
   None drop_cluster(str name);
   None drop_metadata_schema(dict options);
   Cluster get_cluster(str name, dict options);
@@ -100,6 +103,7 @@ public:
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
   None validate_instance(variant connectionData, str password);
+  Instance prepare_instance(variant connectionData);
 #endif
 
   void validate_session(const std::string &source) const;

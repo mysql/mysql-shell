@@ -1,5 +1,5 @@
 //@ Session: validating members
-|Session Members: 12|
+|Session Members: 13|
 |createCluster: OK|
 |deleteSandboxInstance: OK|
 |deploySandboxInstance: OK|
@@ -11,6 +11,7 @@
 |validateInstance: OK|
 |stopSandboxInstance: OK|
 |dropMetadataSchema: OK|
+|prepareInstance: OK|
 |verbose: OK|
 
 //@# Dba: createCluster errors

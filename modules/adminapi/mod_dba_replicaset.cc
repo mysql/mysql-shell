@@ -692,7 +692,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   auto instance = args.object_at<Instance>(0);
   if (instance)
     options = shcore::get_connection_data(instance->get_uri());
-  
+
   // Identify the type of connection data (String or Document)
   else if (args[0].type == String) {
     uri = args.string_at(0);

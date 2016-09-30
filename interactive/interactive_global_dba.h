@@ -43,6 +43,7 @@ public:
   shcore::Value get_cluster(const shcore::Argument_list &args);
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
   shcore::Value validate_instance(const shcore::Argument_list &args);
+  shcore::Value prepare_instance(const shcore::Argument_list &args);
 
 private:
   shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args);
