@@ -462,8 +462,7 @@ shcore::Value Global_dba::prepare_instance(const shcore::Argument_list &args) {
   println("Instance successfully prepared. You can now add it to the InnoDB cluster with the cluster.addInstance() function.");
   println();
 
-  // Do not print the object in interactive mode
-  return shcore::Value();
+  return ret_val;
 }
 
 void Global_dba::validate_session(const std::string &source) const {
