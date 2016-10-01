@@ -459,11 +459,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   // Check if the instance was already added
   std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
-  std::string instance_public_address;
-  if (joiner_host == "localhost")
-    instance_public_address = get_my_hostname();
-  else
-    instance_public_address = joiner_host;
+  std::string instance_public_address = joiner_host;
   instance_public_address.append(":" + std::to_string(options->get_int("port")));
 
   if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_public_address))
@@ -818,8 +814,9 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   temp_args.push_back(shcore::Value("SET sql_log_bin = 0"));
   classic->run_sql(temp_args);
 
+  std::string replication_user = "mysql_innodb_cluster_rplusr" + std::to_string(options->get_int("port"));
   run_queries(classic, {
-    "DROP USER IF EXISTS '" + instance_admin_user + "'@'" + host + "'"
+    "DROP USER IF EXISTS '" + replication_user + "'@'" + host + "'"
   });
 
   temp_args.clear();
