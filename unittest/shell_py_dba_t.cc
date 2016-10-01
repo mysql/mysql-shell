@@ -267,8 +267,8 @@ TEST_F(Shell_py_dba_tests, no_interactive_delete_instances) {
     execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ");");
   } else {
     execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
     execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
   }
 }
