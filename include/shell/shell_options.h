@@ -34,6 +34,7 @@ public:
 
   // Individual connection parameters
   std::string user;
+  std::string pwd;
   const char *password;
   std::string host;
   int port;

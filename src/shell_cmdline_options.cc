@@ -33,10 +33,26 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     char *value;
     if (check_arg_with_value(argv, i, "--file", "-f", value))
       _options.run_file = value;
-    else if (check_arg_with_value(argv, i, "--uri", NULL, value)) {
-      if (shcore::validate_uri(value))
+    else if ((arg_format = check_arg_with_value(argv, i, "--uri", NULL, value))) {
+      if (shcore::validate_uri(value)) {
         _options.uri = value;
-      else {
+
+        shcore::Value::Map_type_ref data = shcore::get_connection_data(value, false);
+
+        if (data->has_key("dbPassword")) {
+          std::string pwd(data->get_string("dbPassword").length(), '*');
+          (*data)["dbPassword"] = shcore::Value(pwd);
+
+          // Required replacement when --uri <value>
+          auto nopwd_uri = shcore::build_connection_string(data, true);
+
+          // Required replacement when --uri=<value>
+          if (arg_format == 3)
+            nopwd_uri = "--uri=" + nopwd_uri;
+
+          strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()));
+        }
+      } else {
         std::cerr << "Invalid value specified in --uri parameter.\n";
         exit_code = 1;
         break;
@@ -63,8 +79,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       _options.execute_statement = value;
     else if (check_arg_with_value(argv, i, "--dba", NULL, value))
       _options.execute_dba_statement = value;
-    else if ((arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) ||
-             (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true))) {
+    else if (arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) {
       // Note that in any connection attempt, password prompt will be done if the password is missing.
       // The behavior of the password cmd line argument is as follows:
 
@@ -78,15 +93,60 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       if (!value) {
         // --password=
         if (arg_format == 3)
-          _options.password = const_cast<char *>("");
+          _options.password = _options.pwd.c_str();
 
         // --password
         else
           _options.prompt_password = true;
       }
       // --password=value || --pvalue
-      else if (arg_format != 1)
-        _options.password = value;
+      else if (arg_format != 1) {
+        _options.pwd.assign(value);
+        _options.password = _options.pwd.c_str();
+
+        std::string stars(_options.pwd.length(), '*');
+        std::string pwd = arg_format == 2 ? "-p" : "--dbpassword=";
+        pwd.append(stars);
+
+        strcpy(argv[i], pwd.c_str());
+      }
+
+      // --password value (value is ignored)
+      else {
+        _options.prompt_password = true;
+        i--;
+      }
+    } else if (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true)) {
+      // Note that in any connection attempt, password prompt will be done if the password is missing.
+      // The behavior of the password cmd line argument is as follows:
+
+      // ARGUMENT           EFFECT
+      // --password         forces password prompt no matter it was already provided
+      // --password value   forces password prompt no matter it was already provided (value is not taken as password)
+      // --password=        sets password to empty (password is available but empty so it will not be prompted)
+      // -p<value> sets the password to <value>
+      // --password=<value> sets the password to <value>
+
+      if (!value) {
+        // --password=
+        if (arg_format == 3)
+          _options.password = _options.pwd.c_str();
+
+        // --password
+        else
+          _options.prompt_password = true;
+      }
+      // --password=value || --pvalue
+      else if (arg_format != 1) {
+        _options.pwd.assign(value);
+        _options.password = _options.pwd.c_str();
+
+        std::string stars(_options.pwd.length(), '*');
+        std::string pwd = arg_format == 2 ? "-p" : "--password=";
+        pwd.append(stars);
+
+        strcpy(argv[i], pwd.c_str());
+      }
 
       // --password value (value is ignored)
       else {
@@ -168,43 +228,43 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     } else if (check_arg(argv, i, "--version", "-V")) {
       _options.print_version = true;
       exit_code = 0;
-      } else if (check_arg(argv, i, "--force", "--force"))
-        _options.force = true;
-      else if (check_arg(argv, i, "--no-wizard", "--nw"))
-        _options.wizards = false;
-      else if (check_arg_with_value(argv, i, "--interactive", "-i", value, true)) {
-        if (!value) {
-          _options.interactive = true;
-          _options.full_interactive = false;
-    } else if (strcmp(value, "full") == 0) {
-      _options.interactive = true;
-      _options.full_interactive = true;
-    } else {
-      std::cerr << "Value for --interactive if any, must be full\n";
-      exit_code = 1;
-      break;
-    }
-  } else if (check_arg(argv, i, NULL, "--passwords-from-stdin"))
-    _options.passwords_from_stdin = true;
-  else if (check_arg_with_value(argv, i, "--log-level", NULL, value)) {
-    ngcommon::Logger::LOG_LEVEL nlog_level;
-    nlog_level = ngcommon::Logger::get_log_level(value);
-    if (nlog_level == ngcommon::Logger::LOG_NONE && !ngcommon::Logger::is_level_none(value)) {
-      std::cerr << ngcommon::Logger::get_level_range_info() << std::endl;
-      exit_code = 1;
-      break;
-    } else
-      _options.log_level = nlog_level;
-  } else if (exit_code == 0) {
-    if (argv[i][0] != '-')
-      _options.schema = argv[i];
-    else {
-      std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
-      exit_code = 1;
-      break;
+    } else if (check_arg(argv, i, "--force", "--force"))
+      _options.force = true;
+    else if (check_arg(argv, i, "--no-wizard", "--nw"))
+      _options.wizards = false;
+    else if (check_arg_with_value(argv, i, "--interactive", "-i", value, true)) {
+      if (!value) {
+        _options.interactive = true;
+        _options.full_interactive = false;
+      } else if (strcmp(value, "full") == 0) {
+        _options.interactive = true;
+        _options.full_interactive = true;
+      } else {
+        std::cerr << "Value for --interactive if any, must be full\n";
+        exit_code = 1;
+        break;
+      }
+    } else if (check_arg(argv, i, NULL, "--passwords-from-stdin"))
+      _options.passwords_from_stdin = true;
+    else if (check_arg_with_value(argv, i, "--log-level", NULL, value)) {
+      ngcommon::Logger::LOG_LEVEL nlog_level;
+      nlog_level = ngcommon::Logger::get_log_level(value);
+      if (nlog_level == ngcommon::Logger::LOG_NONE && !ngcommon::Logger::is_level_none(value)) {
+        std::cerr << ngcommon::Logger::get_level_range_info() << std::endl;
+        exit_code = 1;
+        break;
+      } else
+        _options.log_level = nlog_level;
+    } else if (exit_code == 0) {
+      if (argv[i][0] != '-')
+        _options.schema = argv[i];
+      else {
+        std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
+        exit_code = 1;
+        break;
+      }
     }
   }
-}
 
   _options.exit_code = exit_code;
 }
