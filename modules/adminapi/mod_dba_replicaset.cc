@@ -37,6 +37,8 @@
 #include <string>
 #include <random>
 #ifdef _WIN32
+#include <WinSock2.h>
+#define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
 #else
 #include <unistd.h>
 #include <sys/types.h>
@@ -56,17 +58,12 @@ std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
 
-#ifdef WIN32
-#define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
-#endif
-
 static std::string get_my_hostname() {
 #if defined(_WIN32) || defined(__APPLE__)
   char hostname[1024];
   if (gethostname(hostname, sizeof(hostname)) < 0) {
     char msg[1024];
-    auto dummy = strerror_r(errno, msg, sizeof(msg));
-    (void)dummy;
+    void(strerror_r(errno, msg, sizeof(msg)));
     log_error("Could not get hostname: %s", msg);
     throw std::runtime_error("Could not get local hostname");
   }
@@ -395,7 +392,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
   auto instance = args.object_at<Instance>(0);
-  if (instance){
+  if (instance) {
     options = shcore::get_connection_data(instance->get_uri());
     (*options)["password"] = shcore::Value(instance->get_password());
   }
@@ -521,7 +518,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     // so trying the 2nd will probably not work
     auto sep = peer_instance.find(':');
     if (peer_instance.substr(0, sep) == get_my_hostname())
-      peer_instance = "localhost:"+peer_instance.substr(sep+1);
+      peer_instance = "localhost:" + peer_instance.substr(sep + 1);
 
     // Call mysqlprovision to do the work
     do_join_replicaset(user + "@" + instance_address,
@@ -924,7 +921,6 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-
 std::vector<std::string> ReplicaSet::get_peer_instances() {
   std::vector<std::string> result;
 
@@ -939,7 +935,6 @@ std::vector<std::string> ReplicaSet::get_peer_instances() {
   }
   return result;
 }
-
 
 /**
  * Create an account in the replicaset.
@@ -958,7 +953,7 @@ void ReplicaSet::create_repl_account(const std::string &dest_uri,
 
   std::shared_ptr<mysh::ShellDevelopmentSession> session;
   mysh::mysql::ClassicSession *classic;
-  retry:
+retry:
   try {
     session = mysh::connect_session(args, mysh::Classic);
     classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
@@ -996,7 +991,6 @@ void ReplicaSet::create_repl_account(const std::string &dest_uri,
     throw;
   }
 }
-
 
 static std::string generate_password(int password_lenght) {
   std::random_device rd;
