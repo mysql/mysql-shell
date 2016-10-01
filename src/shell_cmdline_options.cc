@@ -50,7 +50,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
           if (arg_format == 3)
             nopwd_uri = "--uri=" + nopwd_uri;
 
-          strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()));
+           strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()).c_str());
         }
       } else {
         std::cerr << "Invalid value specified in --uri parameter.\n";
