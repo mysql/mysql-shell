@@ -79,7 +79,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       _options.execute_statement = value;
     else if (check_arg_with_value(argv, i, "--dba", NULL, value))
       _options.execute_dba_statement = value;
-    else if (arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) {
+    else if ((arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true))) {
       // Note that in any connection attempt, password prompt will be done if the password is missing.
       // The behavior of the password cmd line argument is as follows:
 
@@ -116,7 +116,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         _options.prompt_password = true;
         i--;
       }
-    } else if (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true)) {
+    } else if ((arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true))) {
       // Note that in any connection attempt, password prompt will be done if the password is missing.
       // The behavior of the password cmd line argument is as follows:
 
