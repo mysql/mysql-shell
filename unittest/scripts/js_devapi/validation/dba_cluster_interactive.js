@@ -1,8 +1,4 @@
 //@<OUT> Cluster: getCluster with interaction
-When the InnoDB cluster was setup, a MASTER key was defined in order to enable
-performing administrative tasks on the cluster.
-
-Please specify the administrative MASTER key for the cluster 'devCluster':
 
 //@ Cluster: validating members
 |Cluster Members: 11|

@@ -31,7 +31,7 @@ validateMember(members, 'verbose');
 c1 = dba.create_cluster()
 c1 = dba.create_cluster(5)
 c1 = dba.create_cluster('', 5)
-c1 = dba.create_cluster('devCluster')
+c1 = dba.create_cluster('devCluster', 'bla')
 
 #@# Dba: create_cluster succeed
 c1 = dba.create_cluster('devCluster');

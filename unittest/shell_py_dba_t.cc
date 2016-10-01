@@ -159,15 +159,6 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_cluster) {
 TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
-  //@<OUT> Dba: create_cluster with interaction
-  output_handler.passwords.push_back("testing");
-
-  //@<OUT> Dba: get_cluster with interaction
-  output_handler.passwords.push_back("testing");
-
-  //@<OUT> Dba: get_cluster with interaction (default)
-  output_handler.passwords.push_back("testing");
-
   //@<OUT> Dba: drop_cluster interaction no options, cancel
   output_handler.prompts.push_back("n");
 
@@ -183,9 +174,6 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
 
 TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
-
-  //@<OUT> Cluster: get_cluster with interaction
-  output_handler.passwords.push_back("testing");
 
   //@# Cluster: add_instance errors: missing host interactive, cancel
   output_handler.prompts.push_back("3");
@@ -221,15 +209,6 @@ TEST_F(Shell_py_dba_tests, interactive_custom_global_dba) {
   execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
   execute("dba.reset_session(mySession)");
 
-  //@<OUT> Dba: create_cluster with interaction
-  output_handler.passwords.push_back("testing");
-
-  //@<OUT> Dba: get_cluster with interaction
-  output_handler.passwords.push_back("testing");
-
-  //@<OUT> Dba: get_cluster with interaction (default)
-  output_handler.passwords.push_back("testing");
-
   //@<OUT> Dba: drop_cluster interaction no options, cancel
   output_handler.prompts.push_back("n");
 
@@ -247,9 +226,6 @@ TEST_F(Shell_py_dba_tests, interactive_custom_global_cluster) {
   execute("import mysql");
   execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
   execute("dba.reset_session(mySession)");
-
-  //@<OUT> Cluster: get_cluster with interaction
-  output_handler.passwords.push_back("testing");
 
   //@# Cluster: add_instance errors: missing host interactive, cancel
   output_handler.prompts.push_back("3");
@@ -291,9 +267,9 @@ TEST_F(Shell_py_dba_tests, no_interactive_delete_instances) {
     execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ");");
   } else {
     execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
     execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
   }
 }
 }

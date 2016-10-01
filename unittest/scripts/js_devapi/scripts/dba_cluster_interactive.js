@@ -2,7 +2,6 @@
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
 
-//@<OUT> Cluster: getCluster with interaction
 var Cluster = dba.getCluster('devCluster');
 
 var members = dir(Cluster);
