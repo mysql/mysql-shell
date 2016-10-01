@@ -58,7 +58,7 @@ REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deploySandboxInstance')");
 REGISTER_HELP(DBA_VERBOSE_BRIEF, "Enables verbose mode on the Dba operations.");
 
 Dba::Dba(IShell_core* owner) :
-  _shell_core(owner) {
+_shell_core(owner) {
   init();
 }
 
@@ -163,7 +163,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
       try {
         cluster_name = args.string_at(0);
       } catch (std::exception &e) {
-        throw shcore::Exception::argument_error(std::string("Invalid cluster name: ")+e.what());
+        throw shcore::Exception::argument_error(std::string("Invalid cluster name: ") + e.what());
       }
     } else
       get_default_cluster = true;
@@ -171,19 +171,19 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
     if (get_default_cluster) {
       // Reloads the cluster (to avoid losing _default_cluster in case of error)
       cluster = _metadata_storage->get_default_cluster();
-      // Set the provision interface pointer
-      cluster->set_provisioning_interface(_provisioning_interface);
     } else {
       if (cluster_name.empty())
         throw Exception::argument_error("The Cluster name cannot be empty.");
 
       cluster = _metadata_storage->get_cluster(cluster_name);
-      cluster->set_provisioning_interface(_provisioning_interface);
     }
 
-    if (cluster)
+    if (cluster) {
+      // Set the provision interface pointer
+      cluster->set_provisioning_interface(_provisioning_interface);
+
       ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
-    else {
+    } else {
       std::string message;
       if (get_default_cluster)
         message = "No default cluster is configured.";
@@ -285,7 +285,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     _metadata_storage->create_metadata_schema();
 
     MetadataStorage::Transaction tx(_metadata_storage);
-
 
     std::shared_ptr<Cluster> cluster(new Cluster(cluster_name, _metadata_storage));
     cluster->set_provisioning_interface(_provisioning_interface);
@@ -932,10 +931,10 @@ shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
       uri = args.string_at(0);
       options = shcore::get_connection_data(uri, false);
     } else if (args[0].type == shcore::Map) {
-        // Connection data comes in a dictionary
-        options = args.map_at(0);
+      // Connection data comes in a dictionary
+      options = args.map_at(0);
     } else {
-        throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
     }
 
     if (options->size() == 0)
@@ -966,10 +965,10 @@ shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
     if (options->has_key("user")) {
       user = options->get_string("user");
     } else if (options->has_key("dbUser")) {
-        user = options->get_string("dbUser");
+      user = options->get_string("dbUser");
     } else {
-        user = "root";
-        (*options)["dbUser"] = shcore::Value(user);
+      user = "root";
+      (*options)["dbUser"] = shcore::Value(user);
     }
 
     host = options->get_string("host");
@@ -977,12 +976,12 @@ shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
     if (options->has_key("password")) {
       password = options->get_string("password");
     } else if (options->has_key("dbPassword")) {
-        password = options->get_string("dbPassword");
+      password = options->get_string("dbPassword");
     } else if (args.size() == 2 && args[1].type == shcore::String) {
-        password = args.string_at(1);
-        (*options)["dbPassword"] = shcore::Value(password);
+      password = args.string_at(1);
+      (*options)["dbPassword"] = shcore::Value(password);
     } else {
-        throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+      throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
     }
 
     std::string errors;
@@ -991,7 +990,7 @@ shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
       std::string uri = host + ":" + std::to_string(port);
       ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
     } else {
-        throw shcore::Exception::logic_error(errors);
+      throw shcore::Exception::logic_error(errors);
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("prepareInstance");
