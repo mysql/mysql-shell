@@ -63,8 +63,7 @@ static std::string get_my_hostname() {
   char hostname[1024];
   if (gethostname(hostname, sizeof(hostname)) < 0) {
     char msg[1024];
-    auto dummy = strerror_r(errno, msg, sizeof(msg));
-    (void)dummy;
+    (void)strerror_r(errno, msg, sizeof(msg));
     log_error("Could not get hostname: %s", msg);
     throw std::runtime_error("Could not get local hostname");
   }
@@ -459,7 +458,12 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   // Check if the instance was already added
   std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
-  std::string instance_public_address = joiner_host;
+  std::string instance_public_address;
+  if (joiner_host == "localhost")
+    instance_public_address = get_my_hostname();
+  else
+    instance_public_address = joiner_host;
+  std::string instance_public_xaddress = instance_public_address;
   instance_public_address.append(":" + std::to_string(options->get_int("port")));
 
   if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_public_address))
@@ -480,6 +484,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   else
     replication_user.append("@'").append(joiner_host).append("'");
 
+  int xport = options->get_int("port") * 10;
   std::string mysql_server_uuid;
   // get the server_uuid from the joining instance
   {
@@ -487,14 +492,26 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     new_args.push_back(shcore::Value(options));
     auto session = mysh::connect_session(new_args, mysh::Classic);
     mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
-    temp_args.clear();
-    temp_args.push_back(shcore::Value("SELECT @@server_uuid"));
-    auto uuid_raw_result = classic->run_sql(temp_args);
-    auto uuid_result = uuid_raw_result.as_object<mysh::mysql::ClassicResult>();
-
-    auto uuid_row = uuid_result->fetch_one(shcore::Argument_list());
-    if (uuid_row)
-      mysql_server_uuid = uuid_row.as_object<mysh::Row>()->get_member(0).as_string();
+    {
+      temp_args.clear();
+      temp_args.push_back(shcore::Value("SELECT @@server_uuid"));
+      auto uuid_raw_result = classic->run_sql(temp_args);
+      auto uuid_result = uuid_raw_result.as_object<mysh::mysql::ClassicResult>();
+      auto uuid_row = uuid_result->fetch_one(shcore::Argument_list());
+      if (uuid_row)
+        mysql_server_uuid = uuid_row.as_object<mysh::Row>()->get_member(0).as_string();
+    }
+    try {
+      temp_args.clear();
+      temp_args.push_back(shcore::Value("SELECT @@mysqlx_port"));
+      auto raw_result = classic->run_sql(temp_args);
+      auto result = raw_result.as_object<mysh::mysql::ClassicResult>();
+      auto xport_row = result->fetch_one(shcore::Argument_list());
+      if (xport_row)
+        xport = (int)xport_row.as_object<mysh::Row>()->get_member(0).as_int();
+    } catch (std::exception &e) {
+      log_info("Could not query xplugin port, using default value: %s", e.what());
+    }
   }
   // Call the gadget to bootstrap the group with this instance
   if (seed_instance) {
@@ -538,15 +555,17 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   (*options_instance)["role"] = shcore::Value("HA");
 
-  shcore::Value val_address = shcore::Value(instance_public_address);
-  (*options_instance)["addresses"] = val_address;
+  (*options_instance)["endpoint"] = shcore::Value(instance_public_address);
+
+  instance_public_xaddress.append(":" + std::to_string(xport));
+  (*options_instance)["xendpoint"] = shcore::Value(instance_public_xaddress);
 
   (*options_instance)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
 
   if (options->has_key("name"))
     (*options_instance)["instance_name"] = (*options)["name"];
   else
-    (*options_instance)["instance_name"] = val_address;
+    (*options_instance)["instance_name"] = shcore::Value(instance_public_address);
 
   _metadata_storage->insert_instance(args_instance, host_id, get_id());
 

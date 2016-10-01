@@ -229,15 +229,13 @@ CREATE TABLE routers (
   `router_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   /*
     A user specified name for an instance of the router.
-    Must be unique within the host.
    */
-  `router_name` VARCHAR(40) NOT NULL DEFAULT 'default',
+  `router_name` VARCHAR(40) NOT NULL,
   /* The ID of the host in which the server is running. */
   `host_id` INT UNSIGNED NOT NULL,
   /*
     Router specific custom attributes.
    */
   `attributes` JSON,
-  FOREIGN KEY (host_id) REFERENCES hosts(host_id) ON DELETE RESTRICT,
-  UNIQUE (router_name, host_id)
+  FOREIGN KEY (host_id) REFERENCES hosts(host_id) ON DELETE RESTRICT
 ) CHARSET = utf8mb4;
