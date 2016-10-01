@@ -56,12 +56,17 @@ std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
 
+#ifdef WIN32
+#define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
+#endif
+
 static std::string get_my_hostname() {
 #if defined(_WIN32) || defined(__APPLE__)
   char hostname[1024];
   if (gethostname(hostname, sizeof(hostname)) < 0) {
     char msg[1024];
     auto dummy = strerror_r(errno, msg, sizeof(msg));
+    (void)dummy;
     log_error("Could not get hostname: %s", msg);
     throw std::runtime_error("Could not get local hostname");
   }
