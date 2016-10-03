@@ -454,7 +454,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
   try {
     auto instance = args.object_at<mysh::dba::Instance>(0);
     if (instance) {
-      options = shcore::get_connection_data(instance->get_uri());
+      options = shcore::get_connection_data(instance->get_uri(), false);
       (*options)["password"] = shcore::Value(instance->get_password());
     }
 

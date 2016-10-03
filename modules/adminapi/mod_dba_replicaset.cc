@@ -393,7 +393,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   auto instance = args.object_at<Instance>(0);
   if (instance) {
-    options = shcore::get_connection_data(instance->get_uri());
+    options = shcore::get_connection_data(instance->get_uri(), false);
     (*options)["password"] = shcore::Value(instance->get_password());
   }
   // Identify the type of connection data (String or Document)
@@ -751,7 +751,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   auto instance = args.object_at<Instance>(0);
   if (instance)
-    options = shcore::get_connection_data(instance->get_uri());
+    options = shcore::get_connection_data(instance->get_uri(), false);
 
   // Identify the type of connection data (String or Document)
   else if (args[0].type == String) {

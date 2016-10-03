@@ -342,7 +342,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
 
   auto instance = args.object_at<mysh::dba::Instance>(0);
   if (instance) {
-    options = shcore::get_connection_data(instance->get_uri());
+    options = shcore::get_connection_data(instance->get_uri(), false);
     (*options)["password"] = shcore::Value(instance->get_password());
   }
   // Identify the type of connection data (String or Document)
