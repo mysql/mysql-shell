@@ -30,6 +30,7 @@
 #include "common/process_launcher/process_launcher.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_resultset.h"
+#include "utils/utils_time.h"
 
 #include <sstream>
 #include <iostream>
@@ -60,7 +61,7 @@ char const *ReplicaSet::kTopologyMultiMaster = "mm";
 
 static std::string get_my_hostname() {
 #if defined(_WIN32) || defined(__APPLE__)
-  char hostname[1024];
+  char hostname[1024]  {'\0'};
   if (gethostname(hostname, sizeof(hostname)) < 0) {
     char msg[1024];
     (void)strerror_r(errno, msg, sizeof(msg));
@@ -71,7 +72,7 @@ static std::string get_my_hostname() {
 }
 #else
   struct ifaddrs *ifa, *ifap;
-  char buf[INET6_ADDRSTRLEN];
+  char buf[1024] {'\0'};
   int ret, family, addrlen;
 
   if (getifaddrs(&ifa) != 0)
@@ -98,6 +99,9 @@ static std::string get_my_hostname() {
     }
 
     ret = getnameinfo(ifap->ifa_addr, addrlen, buf, sizeof(buf), NULL, 0, NI_NAMEREQD);
+    
+    if (ret==0)
+      break;
   }
 
   if (ret != 0) {
@@ -475,14 +479,20 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   std::string replication_user;
   std::string replication_user_password = generate_password(PASSWORD_LENGTH);
 
-  replication_user = "mysql_innodb_cluster_rplusr" + std::to_string(options->get_int("port"));
+  MySQL_timer timer;
+  std::string tstamp = std::to_string(timer.get_time());
+  std::string base_user = "mysql_innodb_cluster_rplusr";
+  replication_user = base_user.substr(0, 32 - tstamp.size()) + tstamp;
   // Replication accounts must be created for the real hostname, because the GR
   // plugin will connect to the real host interface of the peer,
   // even if it's localhost
-  if (joiner_host == "localhost")
-    replication_user.append("@'").append(get_my_hostname()).append("'");
-  else
-    replication_user.append("@'").append(joiner_host).append("'");
+  
+  // TODO: Uncomment this when the logic to retrieve the correct hostname is fixed
+  //if (joiner_host == "localhost")
+  //  replication_user.append("@'").append(get_my_hostname()).append("'");
+  //else
+  //  replication_user.append("@'").append(joiner_host).append("'");
+  replication_user.append("@'%'");
 
   int xport = options->get_int("port") * 10;
   std::string mysql_server_uuid;
