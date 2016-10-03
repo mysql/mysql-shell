@@ -19,8 +19,9 @@
 
 #include <string>
 #include <random>
+#ifndef WIN32
 #include <sys/un.h>
-
+#endif
 #include "utils/utils_sqlstring.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_instance.h"
@@ -574,6 +575,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
         throw shcore::Exception::argument_error("Invalid value for 'portx': Please use a valid TCP port number >= 1024 and <= 65535");
     }
 
+#ifndef WIN32
     if (options->has_key("sandboxDir")) {
       sandbox_dir = options->get_string("sandboxDir");
 
@@ -581,9 +583,10 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
       // sizeof(sockaddr_un::sun_path) - strlen("mysqlx.sock") - strlen("64000") - 2 - 1
       size_t max_socket_path_length = sizeof(sockaddr_un::sun_path) - 19;
       if (sandbox_dir.length() > max_socket_path_length)
-        throw shcore::Exception::argument_error("Invalid value for 'sandboxDir': sandboxDir path too long.\
-                                                 Please keep it shorter than " + std::to_string(max_socket_path_length) + " chars.");
+        throw shcore::Exception::argument_error("Invalid value for 'sandboxDir': sandboxDir path too long. "\
+        "Please keep it shorter than " + std::to_string(max_socket_path_length) + " chars.");
     }
+#endif
 
     if (options->has_key("options"))
       mycnf_options = (*options)["options"];
