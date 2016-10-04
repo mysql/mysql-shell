@@ -46,7 +46,7 @@ _options(options) {
   ngcommon::Logger::create_instance(log_path.c_str(), false, _options.log_level);
   _logger = ngcommon::Logger::singleton();
 
-  _input_mode = shcore::Input_ok;
+  _input_mode = shcore::Input_state::Ok;
 
   // Sets the global options
   shcore::Value::Map_type_ref shcore_options = shcore::Shell_core_options::get();
@@ -98,9 +98,9 @@ _options(options) {
     "The global db variable will be updated to hold the requested schema.\n";
 
   SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Base_shell::cmd_print_shell_help);
-  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode_SQL, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode_JScript, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode_Python, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::SQL, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::JScript, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::Python, _1));
   SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Base_shell::cmd_process_file);
   SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "", Base_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "", Base_shell::cmd_quit);
@@ -159,16 +159,16 @@ void Base_shell::print_connection_message(mysh::SessionType type, const std::str
   std::string stype;
 
   switch (type) {
-    case mysh::Application:
+    case mysh::SessionType::X:
       stype = "an X";
       break;
-    case mysh::Node:
+    case mysh::SessionType::Node:
       stype = "a Node";
       break;
-    case mysh::Classic:
+    case mysh::SessionType::Classic:
       stype = "a Classic";
       break;
-    case mysh::Auto:
+    case mysh::SessionType::Auto:
       stype = "a";
       break;
   }
@@ -224,19 +224,19 @@ bool Base_shell::connect(bool primary_session) {
       std::string scheme = connection_data->get_string("scheme");
       std::string error;
 
-      if (_options.session_type == mysh::Auto) {
+      if (_options.session_type == mysh::SessionType::Auto) {
         if (scheme == "mysqlx")
-          _options.session_type = mysh::Application;
+          _options.session_type = mysh::SessionType::Node;
         else if (scheme == "mysql")
-          _options.session_type = mysh::Classic;
+          _options.session_type = mysh::SessionType::Classic;
       } else {
         if (scheme == "mysqlx") {
-          if (_options.session_type == mysh::Classic)
+          if (_options.session_type == mysh::SessionType::Classic)
             error = "Invalid URI for Classic session";
         } else if (scheme == "mysql") {
-          if (_options.session_type == mysh::Application)
+          if (_options.session_type == mysh::SessionType::X)
             error = "Invalid URI for X session";
-          else if (_options.session_type == mysh::Node)
+          else if (_options.session_type == mysh::SessionType::Node)
             error = "Invalid URI for Node session";
         }
       }
@@ -324,11 +324,11 @@ shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mys
     std::string session_type = new_session->class_name();
     std::string message;
 
-    if (_options.session_type == mysh::Auto) {
+    if (_options.session_type == mysh::SessionType::Auto) {
       if (session_type == "ClassicSession")
         message = "Classic ";
-      else if (session_type == "XSession")
-        message = "X ";
+      else if (session_type == "NodeSession")
+        message = "Node ";
     }
 
     message += "Session successfully established. ";
@@ -358,9 +358,9 @@ shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mys
 void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
   std::string extension;
 
-  if (mode == shcore::Shell_core::Mode_JScript)
+  if (mode == shcore::Shell_core::Mode::JScript)
     extension.append(".js");
-  else if (mode == shcore::Shell_core::Mode_Python)
+  else if (mode == shcore::Shell_core::Mode::Python)
     extension.append(".py");
   else
     return;
@@ -408,7 +408,7 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
 }
 
 std::string Base_shell::prompt() {
-  if (_input_mode != shcore::Input_ok) {
+  if (_input_mode != shcore::Input_state::Ok) {
     return std::string(_shell->prompt().length() - 4, ' ').append("... ");
   } else
     return _shell->prompt();
@@ -419,14 +419,14 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
   bool lang_initialized = false;
 
   if (old_mode != mode) {
-    _input_mode = shcore::Input_ok;
+    _input_mode = shcore::Input_state::Ok;
     _input_buffer.clear();
 
     //XXX reset the history... history should be specific to each shell mode
     switch (mode) {
-      case shcore::Shell_core::Mode_None:
+      case shcore::Shell_core::Mode::None:
         break;
-      case shcore::Shell_core::Mode_SQL:
+      case shcore::Shell_core::Mode::SQL:
       {
         auto session = _shell->get_dev_session();
         if (session && (session->class_name() == "XSession")) {
@@ -441,7 +441,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
         }
         break;
       }
-      case shcore::Shell_core::Mode_JScript:
+      case shcore::Shell_core::Mode::JScript:
 #ifdef HAVE_V8
         if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to JavaScript mode...");
@@ -449,7 +449,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
         println("JavaScript mode is not supported, command ignored.");
 #endif
         break;
-      case shcore::Shell_core::Mode_Python:
+      case shcore::Shell_core::Mode::Python:
 #ifdef HAVE_PYTHON
         if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to Python mode...");
@@ -526,8 +526,8 @@ bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
 
 bool Base_shell::cmd_start_multiline(const std::vector<std::string>& args) {
   // This command is only available for SQL Mode
-  if (args.size() == 1 && _shell->interactive_mode() == shcore::Shell_core::Mode_SQL) {
-    _input_mode = shcore::Input_continued_block;
+  if (args.size() == 1 && _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
+    _input_mode = shcore::Input_state::ContinuedBlock;
 
     return true;
   }
@@ -538,7 +538,7 @@ bool Base_shell::cmd_start_multiline(const std::vector<std::string>& args) {
 bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
   bool error = false;
   bool uri = false;
-  _options.session_type = mysh::Auto;
+  _options.session_type = mysh::SessionType::Auto;
 
   // Holds the argument index for the target to which the session will be established
   size_t target_index = 1;
@@ -560,11 +560,11 @@ bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
     if (arg.empty())
       error = true;
     else if (!arg.compare("-x") || !arg.compare("-X"))
-      _options.session_type = mysh::Application;
+      _options.session_type = mysh::SessionType::X;
     else if (!arg.compare("-n") || !arg.compare("-N"))
-      _options.session_type = mysh::Node;
+      _options.session_type = mysh::SessionType::Node;
     else if (!arg.compare("-c") || !arg.compare("-C"))
-      _options.session_type = mysh::Classic;
+      _options.session_type = mysh::SessionType::Classic;
     else {
       if (args.size() == 3)
         error = true;
@@ -583,7 +583,7 @@ bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
       }
       connect();
 
-      if (_shell->interactive_mode() == shcore::IShell_core::Mode_SQL && _options.session_type == mysh::Application)
+      if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL && _options.session_type == mysh::SessionType::X)
         println("WARNING: An X Session has been established and SQL execution is not allowed.");
     }
   } else
@@ -892,7 +892,7 @@ void Base_shell::process_line(const std::string &line) {
   std::string to_history;
 
   // check if the line is an escape/shell command
-  if (_input_buffer.empty() && !line.empty() && _input_mode == shcore::Input_ok) {
+  if (_input_buffer.empty() && !line.empty() && _input_mode == shcore::Input_state::Ok) {
     try {
       handled_as_command = do_shell_command(line);
     } catch (std::exception &exc) {
@@ -905,8 +905,8 @@ void Base_shell::process_line(const std::string &line) {
   if (handled_as_command)
     to_history = line;
   else{
-    if (_input_mode == shcore::Input_continued_block && line.empty())
-      _input_mode = shcore::Input_ok;
+    if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty())
+      _input_mode = shcore::Input_state::Ok;
 
     // Appends the line, no matter it is an empty line
     _input_buffer.append(_shell->preprocess_input_line(line));
@@ -915,12 +915,12 @@ void Base_shell::process_line(const std::string &line) {
     if (!_input_buffer.empty())
       _input_buffer.append("\n");
 
-    if (_input_mode != shcore::Input_continued_block && !_input_buffer.empty()) {
+    if (_input_mode != shcore::Input_state::ContinuedBlock && !_input_buffer.empty()) {
       try {
         _shell->handle_input(_input_buffer, _input_mode, _result_processor);
 
         // Here we analyze the input mode as it was let after executing the code
-        if (_input_mode == shcore::Input_ok) {
+        if (_input_mode == shcore::Input_state::Ok) {
           to_history = _shell->get_handled_input();
         }
       } catch (shcore::Exception &exc) {
@@ -936,7 +936,7 @@ void Base_shell::process_line(const std::string &line) {
       // TODO: Do we need this cleanup? i.e. in case of exceptions above??
       // Clears the buffer if OK, if continued, buffer will contain
       // the non executed code
-      if (_input_mode == shcore::Input_ok)
+      if (_input_mode == shcore::Input_state::Ok)
         _input_buffer.clear();
     }
   }
@@ -964,7 +964,7 @@ void Base_shell::abort() {
 
 void Base_shell::process_result(shcore::Value result) {
   if ((*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()
-      || _shell->interactive_mode() == shcore::Shell_core::Mode_SQL) {
+      || _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
     if (result) {
       shcore::Value shell_hook;
       std::shared_ptr<shcore::Object_bridge> object;
@@ -989,7 +989,7 @@ void Base_shell::process_result(shcore::Value result) {
           std::shared_ptr<mysh::ShellBaseResult> resultset = std::static_pointer_cast<mysh::ShellBaseResult> (object);
 
           // Result buffering will be done ONLY if on any of the scripting interfaces
-          ResultsetDumper dumper(resultset, _shell->get_delegate(), _shell->interactive_mode() != shcore::IShell_core::Mode_SQL);
+          ResultsetDumper dumper(resultset, _shell->get_delegate(), _shell->interactive_mode() != shcore::IShell_core::Mode::SQL);
           dumper.dump();
         } else {
           // In JSON mode: the json representation is used for Object, Array and Map
@@ -1046,7 +1046,7 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source)
     if (_options.full_interactive)
       _shell->print(prompt());
 
-    bool comment_first_js_line = _shell->interactive_mode() == shcore::IShell_core::Mode_JScript;
+    bool comment_first_js_line = _shell->interactive_mode() == shcore::IShell_core::Mode::JScript;
     while (!stream.eof()) {
       std::string line;
 

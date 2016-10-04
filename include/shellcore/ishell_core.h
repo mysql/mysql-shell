@@ -29,9 +29,9 @@
 
 namespace mysh {
 // The session types that can be produced by connect_session
-enum SessionType {
+enum class SessionType {
   Auto,
-  Application,
+  X,
   Node,
   Classic
 };
@@ -39,19 +39,19 @@ class ShellDevelopmentSession;
 };
 
 namespace shcore {
-enum Interactive_input_state {
-  Input_ok,
-  Input_continued_single,
-  Input_continued_block,
+enum class Input_state {
+  Ok,
+  ContinuedSingle,
+  ContinuedBlock,
 };
 
 class SHCORE_PUBLIC IShell_core {
 public:
-  enum Mode {
-    Mode_None,
-    Mode_SQL,
-    Mode_JScript,
-    Mode_Python
+  enum class Mode {
+    None,
+    SQL,
+    JScript,
+    Python
   };
 
   IShell_core(void);
@@ -65,7 +65,7 @@ public:
   virtual Value active_session() const = 0;
 
   virtual Object_registry *registry() = 0;
-  virtual void handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) = 0;
+  virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) = 0;
   virtual bool handle_shell_command(const std::string &code) = 0;
   virtual std::string get_handled_input() = 0;
   virtual int process_stream(std::istream& stream, const std::string& source, std::function<void(shcore::Value)> result_processor) = 0;

@@ -37,7 +37,7 @@ public:
   ~JScript_context();
 
   Value execute(const std::string &code, const std::string& source = "") throw (Exception);
-  Value execute_interactive(const std::string &code, Interactive_input_state& r_state) BOOST_NOEXCEPT_OR_NOTHROW;
+  Value execute_interactive(const std::string &code, Input_state& r_state) BOOST_NOEXCEPT_OR_NOTHROW;
 
   v8::Isolate *isolate() const;
   v8::Handle<v8::Context> context() const;

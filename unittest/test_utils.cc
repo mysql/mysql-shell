@@ -192,10 +192,10 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& co
   std::string expected_output(out);
   std::string expected_error(err);
 
-  if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode_Python && out.length())
+  if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode::Python && out.length())
     expected_output += "\n";
 
-  if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode_Python && err.length())
+  if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode::Python && err.length())
     expected_error += "\n";
 
   shcore::Value ret_val = execute(code);
@@ -241,7 +241,7 @@ void Crud_test_wrapper::set_functions(const std::string &functions) {
 // Validates only the specified functions are available
 // non listed functions are validated for unavailability
 void Crud_test_wrapper::ensure_available_functions(const std::string& functions) {
-  bool is_js = _interactive_shell->interactive_mode() == shcore::Shell_core::Mode_JScript;
+  bool is_js = _interactive_shell->interactive_mode() == shcore::Shell_core::Mode::JScript;
   std::set<std::string> valid_functions;
   boost::algorithm::split(valid_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
 

@@ -28,6 +28,6 @@ REGISTER_MODULE(Mysql, mysql) {
 }
 
 DEFINE_FUNCTION(Mysql, get_classic_session) {
-  auto session = connect_session(args, mysh::Classic);
+  auto session = connect_session(args, mysh::SessionType::Classic);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }

@@ -22,7 +22,7 @@ public:
   virtual void set_options() {
     _options->interactive = true;
     _options->wizards = true;
-    _options->initial_mode = IShell_core::Mode_Python;
+    _options->initial_mode = IShell_core::Mode::Python;
   };
 };
 

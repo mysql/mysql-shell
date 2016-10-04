@@ -22,7 +22,7 @@ public:
   virtual void set_options() {
     _options->interactive = true;
     _options->wizards = true;
-    _options->initial_mode = IShell_core::Mode_JScript;
+    _options->initial_mode = IShell_core::Mode::JScript;
   };
 };
 
@@ -51,7 +51,7 @@ TEST_F(Interactive_global_session_js_test, defined_session_usage) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.uri");

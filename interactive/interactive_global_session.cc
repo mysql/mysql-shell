@@ -41,13 +41,13 @@ void Global_session::resolve() const {
         std::string options = "123";
         switch (options.find(answer)) {
           case 0:
-            type = mysh::Application;
+            type = mysh::SessionType::X;
             break;
           case 1:
-            type = mysh::Node;
+            type = mysh::SessionType::Node;
             break;
           case 2:
-            type = mysh::Classic;
+            type = mysh::SessionType::Classic;
             break;
           default:
             error = true;

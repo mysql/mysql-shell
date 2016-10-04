@@ -31,7 +31,7 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value);
 
-  virtual void handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor);
+  virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);
 
   virtual std::string prompt();
   virtual void abort();

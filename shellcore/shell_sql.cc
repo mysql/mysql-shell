@@ -34,9 +34,9 @@ Shell_sql::Shell_sql(IShell_core *owner)
   _delimiter = ";";
 }
 
-void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) {
+void Shell_sql::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
   Value ret_val;
-  state = Input_ok;
+  state = Input_state::Ok;
   auto session = _owner->get_dev_session();
 
   _last_handled.clear();
@@ -145,9 +145,9 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
       ret_val = Value::Null();
 
     if (_parsing_context_stack.empty())
-      state = Input_ok;
+      state = Input_state::Ok;
     else
-      state = Input_continued_single;
+      state = Input_state::ContinuedSingle;
   } else
     // handle_input implementations are not throwing exceptions
     // They handle the printing internally

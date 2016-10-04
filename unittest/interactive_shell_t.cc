@@ -172,11 +172,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   {
     _interactive_shell->process_line("\\connect " + _uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("X Session successfully established. No default schema selected.");
+    MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
     output_handler.wipe_all();
 
     _interactive_shell->process_line("session");
-    MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     _interactive_shell->process_line("session.close()");
@@ -213,12 +213,12 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   // Session type determined by the URI scheme
   {
     _interactive_shell->process_line("\\connect mysqlx://" + _uri);
-    MY_EXPECT_STDOUT_CONTAINS("Creating an X Session to '" + _uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
     output_handler.wipe_all();
 
     _interactive_shell->process_line("session");
-    MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     _interactive_shell->process_line("session.close()");
@@ -247,7 +247,7 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("\\use unexisting");
-  MY_EXPECT_STDERR_CONTAINS("RuntimeError: Unknown database 'unexisting'");
+  MY_EXPECT_STDERR_CONTAINS("Unknown database 'unexisting'");
   output_handler.wipe_all();
 
   _interactive_shell->process_line("db");
@@ -515,7 +515,7 @@ TEST_F(Interactive_shell_test, js_session_usage_with_no_wizards) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.getUri()");
@@ -562,7 +562,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
   }
 
   _options->full_interactive = true;
-  _options->initial_mode = shcore::IShell_core::Mode_Python;
+  _options->initial_mode = shcore::IShell_core::Mode::Python;
   reset_shell();
   output_handler.wipe_all();
 

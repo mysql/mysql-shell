@@ -21,18 +21,18 @@
 namespace mysh {
 Shell_options::Shell_options() {
 #ifdef HAVE_V8
-  initial_mode = shcore::IShell_core::Mode_JScript;
+  initial_mode = shcore::IShell_core::Mode::JScript;
 #else
 #ifdef HAVE_PYTHON
-  initial_mode = shcore::IShell_core::Mode_Python;
+  initial_mode = shcore::IShell_core::Mode::Python;
 #else
-  initial_mode = shcore::IShell_core::Mode_SQL;
+  initial_mode = shcore::IShell_core::Mode::SQL;
 #endif
 #endif
 
   log_level = ngcommon::Logger::LOG_INFO;
   password = nullptr;
-  session_type = mysh::Auto;
+  session_type = mysh::SessionType::Auto;
 
   default_session_type = true;
   print_cmd_line_helper = false;

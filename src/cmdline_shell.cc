@@ -122,17 +122,17 @@ void Command_line_shell::command_loop() {
       message = " Use \\sql to switch to SQL mode and execute queries.";
 
     switch (_shell->interactive_mode()) {
-      case shcore::Shell_core::Mode_SQL:
+      case shcore::Shell_core::Mode::SQL:
 #ifdef HAVE_V8
         message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
 #else
         message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
 #endif
         break;
-      case shcore::Shell_core::Mode_JScript:
+      case shcore::Shell_core::Mode::JScript:
         message = "Currently in JavaScript mode." + message;
         break;
-      case shcore::Shell_core::Mode_Python:
+      case shcore::Shell_core::Mode::Python:
         message = "Currently in Python mode." + message;
         break;
       default:

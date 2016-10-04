@@ -19,6 +19,7 @@
 #include <string>
 #include <boost/lexical_cast.hpp>
 #include <stdarg.h>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "src/shell_cmdline_options.h"
@@ -26,7 +27,51 @@
 namespace shcore {
 #define IS_CONNECTION_DATA true
 #define IS_NULLABLE true
-#define AS__STRING(x) boost::lexical_cast<std::string>(x)
+#define AS__STRING(x) std::to_string(x)
+
+std::string session_type_name(mysh::SessionType type){
+  std::string ret_val;
+  
+  switch(type){
+    case mysh::SessionType::Auto:
+      ret_val = "Auto";
+      break;
+    case mysh::SessionType::Classic:
+      ret_val = "Classic";
+      break;
+    case mysh::SessionType::Node:
+      ret_val = "Node";
+      break;
+    case mysh::SessionType::X:
+      ret_val = "X";
+      break;
+  }
+  
+  return ret_val;
+}
+
+std::string shell_mode_name(IShell_core::Mode mode){
+  std::string ret_val;
+  
+  switch(mode){
+    case IShell_core::Mode::JScript:
+      ret_val = "JavaScript";
+      break;
+    case IShell_core::Mode::Python:
+      ret_val = "Python";
+      break;
+    case IShell_core::Mode::SQL:
+      ret_val = "SQL";
+      break;
+    case IShell_core::Mode::None:
+      ret_val = "None";
+      break;
+  }
+  
+  return ret_val;
+}
+
+  
 class Shell_cmdline_options_t : public ::testing::Test {
 public:
   Shell_cmdline_options_t() {}
@@ -59,7 +104,7 @@ public:
     else if (option == "output_format")
       return options->output_format;
     else if (option == "session_type")
-      return AS__STRING(options->session_type);
+      return session_type_name(options->session_type);
     else if (option == "force")
       return AS__STRING(options->force);
     else if (option == "interactive")
@@ -77,13 +122,14 @@ public:
     else if (option == "log_level")
       return AS__STRING(options->log_level);
     else if (option == "initial-mode")
-      return AS__STRING(options->initial_mode);
+      return shell_mode_name(options->initial_mode);
     else if (option == "session-type")
-      return AS__STRING(options->session_type);
+      return session_type_name(options->session_type);
     else if (option == "wizards")
       return AS__STRING(options->wizards);
     else if (option == "execute_statement")
       return options->execute_statement;
+    
 
     return "";
   }
@@ -353,12 +399,12 @@ TEST(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.host.empty());
 
 #ifdef HAVE_V8
-  EXPECT_EQ(options.initial_mode, IShell_core::Mode_JScript);
+  EXPECT_EQ(options.initial_mode, IShell_core::Mode::JScript);
 #else
 #ifdef HAVE_PYTHON
-  EXPECT_EQ(options.initial_mode, IShell_core::Mode_Python);
+  EXPECT_EQ(options.initial_mode, IShell_core::Mode::Python);
 #else
-  EXPECT_EQ(options.initial_mode, IShell_core::Mode_SQL);
+  EXPECT_EQ(options.initial_mode, IShell_core::Mode::SQL);
 #endif
 #endif
 
@@ -373,7 +419,7 @@ TEST(Shell_cmdline_options, default_values) {
   EXPECT_FALSE(options.recreate_database);
   EXPECT_TRUE(options.run_file.empty());
   EXPECT_TRUE(options.schema.empty());
-  EXPECT_EQ(options.session_type, mysh::Auto);
+  EXPECT_EQ(options.session_type, mysh::SessionType::Auto);
   EXPECT_TRUE(options.sock.empty());
   EXPECT_EQ(options.ssl, 0);
   EXPECT_TRUE(options.ssl_ca.empty());
@@ -417,24 +463,24 @@ TEST_F(Shell_cmdline_options_t, app) {
 
   test_option_with_value("execute", "e", "show databases;", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "execute_statement");
 
-  test_option_with_no_value("--x", "session-type", AS__STRING(mysh::Application));
-  test_option_with_no_value("--classic", "session-type", AS__STRING(mysh::Classic));
-  test_option_with_no_value("--node", "session-type", AS__STRING(mysh::Node));
+  test_option_with_no_value("--x", "session-type", session_type_name(mysh::SessionType::X));
+  test_option_with_no_value("--classic", "session-type", session_type_name(mysh::SessionType::Classic));
+  test_option_with_no_value("--node", "session-type", session_type_name(mysh::SessionType::Node));
 
-  test_option_with_no_value("--sql", "session-type", AS__STRING(mysh::Auto));
-  test_option_with_no_value("--sql", "initial-mode", AS__STRING(IShell_core::Mode_SQL));
+  test_option_with_no_value("--sql", "session-type", session_type_name(mysh::SessionType::Auto));
+  test_option_with_no_value("--sql", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--sqlc", "session-type", AS__STRING(mysh::Classic));
-  test_option_with_no_value("--sqlc", "initial-mode", AS__STRING(IShell_core::Mode_SQL));
+  test_option_with_no_value("--sqlc", "session-type", session_type_name(mysh::SessionType::Classic));
+  test_option_with_no_value("--sqlc", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--sqln", "session-type", AS__STRING(mysh::Node));
-  test_option_with_no_value("--sqln", "initial-mode", AS__STRING(IShell_core::Mode_SQL));
+  test_option_with_no_value("--sqln", "session-type", session_type_name(mysh::SessionType::Node));
+  test_option_with_no_value("--sqln", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--javascript", "initial-mode", AS__STRING(IShell_core::Mode_JScript));
-  test_option_with_no_value("--js", "initial-mode", AS__STRING(IShell_core::Mode_JScript));
+  test_option_with_no_value("--javascript", "initial-mode", shell_mode_name(IShell_core::Mode::JScript));
+  test_option_with_no_value("--js", "initial-mode", shell_mode_name(IShell_core::Mode::JScript));
 
-  test_option_with_no_value("--python", "initial-mode", AS__STRING(IShell_core::Mode_Python));
-  test_option_with_no_value("--py", "initial-mode", AS__STRING(IShell_core::Mode_Python));
+  test_option_with_no_value("--python", "initial-mode", shell_mode_name(IShell_core::Mode::Python));
+  test_option_with_no_value("--py", "initial-mode", shell_mode_name(IShell_core::Mode::Python));
 
   test_option_with_no_value("--recreate-schema", "recreate_database", "1");
 

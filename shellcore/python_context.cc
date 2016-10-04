@@ -170,11 +170,11 @@ Value Python_context::execute(const std::string &code, boost::system::error_code
   return tmp;
 }
 
-Value Python_context::execute_interactive(const std::string &code, Interactive_input_state &r_state) BOOST_NOEXCEPT_OR_NOTHROW
+Value Python_context::execute_interactive(const std::string &code, Input_state &r_state) BOOST_NOEXCEPT_OR_NOTHROW
 {
   Value retvalue;
 
-  r_state = shcore::Input_ok;
+  r_state = shcore::Input_state::Ok;
 
   /*
    PyRun_String() works as follows:
@@ -223,15 +223,15 @@ Value Python_context::execute_interactive(const std::string &code, Interactive_i
         if (strncmp(msg, "unexpected character after line continuation character", strlen("unexpected character after line continuation character")) == 0) {
           // NOTE: These two characters will come if explicit line continuation is specified
           if (code[code.length() - 2] == '\\' && code[code.length() - 1] == '\n')
-            r_state = Input_continued_single;
+            r_state = Input_state::ContinuedSingle;
         } else if (strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0)
-          r_state = Input_continued_single;
+          r_state = Input_state::ContinuedSingle;
         else if (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0)
-          r_state = Input_continued_block;
+          r_state = Input_state::ContinuedBlock;
       }
     }
     PyErr_Restore(exc, value, tb);
-    if (r_state != Input_ok)
+    if (r_state != Input_state::Ok)
       PyErr_Clear();
     else
       PyErr_Print();
@@ -242,7 +242,7 @@ Value Python_context::execute_interactive(const std::string &code, Interactive_i
   // If no error was found butthe line has the implicit line continuation
   // we need to indicate so
   else if (code[code.length() - 2] == '\\' && code[code.length() - 1] == '\n')
-    r_state = Input_continued_single;
+    r_state = Input_state::ContinuedSingle;
 
   if (!_captured_eval_result.empty()) {
     Value tmp(_types.pyobj_to_shcore_value(_captured_eval_result.back()));

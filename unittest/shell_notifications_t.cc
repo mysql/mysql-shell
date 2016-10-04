@@ -63,7 +63,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
   n = _notifications.front();
   _notifications.pop();
   ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
-  ASSERT_EQ("XSession", n.sender->class_name());
+  ASSERT_EQ("NodeSession", n.sender->class_name());
 
   _interactive_shell->process_line("session.close()");
 
@@ -77,13 +77,13 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
 
   _interactive_shell->process_line("session.close()");
 
-  _interactive_shell->process_line("\\connect -n " + _uri);
+  _interactive_shell->process_line("\\connect -x " + _uri);
 
   ASSERT_EQ(1, _notifications.size());
   n = _notifications.front();
   _notifications.pop();
   ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
-  ASSERT_EQ("NodeSession", n.sender->class_name());
+  ASSERT_EQ("XSession", n.sender->class_name());
 
   this->ignore_notification("SN_SESSION_CONNECTED");
 

@@ -169,7 +169,7 @@ TEST_F(Python, basic) {
 
   boost::system::error_code error;
   WillEnterPython lock;
-  Interactive_input_state cont = Input_ok;
+  Input_state cont = Input_state::Ok;
 
   Value result = py->execute_interactive("'hello world'", cont);
   ASSERT_EQ(result.repr(), "\"hello world\"");
@@ -203,7 +203,7 @@ TEST_F(Python, array_to_py) {
   arr->push_back(Value(arr2));
 
   Value v(arr);
-  Interactive_input_state cont = Input_ok;
+  Input_state cont = Input_state::Ok;
   WillEnterPython lock;
   // this will also test conversion of a wrapped array
   ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)).repr(), "[123, \"text\", [444]]");
@@ -245,7 +245,7 @@ TEST_F(Python, map_to_py) {
   py->set_global("mapval", v);
   ASSERT_EQ(py->get_global("mapval").repr(), "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
 
-  Interactive_input_state cont = Input_ok;
+  Input_state cont = Input_state::Ok;
 
   // test enumerator
   ASSERT_EQ("[\"k1\",\"k2\",\"k3\"]",

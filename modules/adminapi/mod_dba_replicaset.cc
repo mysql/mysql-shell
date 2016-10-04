@@ -500,7 +500,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   {
     shcore::Argument_list temp_args, new_args;
     new_args.push_back(shcore::Value(options));
-    auto session = mysh::connect_session(new_args, mysh::Classic);
+    auto session = mysh::connect_session(new_args, mysh::SessionType::Classic);
     mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
     {
       temp_args.clear();
@@ -836,7 +836,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   (*options)["dbPassword"] = shcore::Value(instance_admin_user_password);
   new_args.push_back(shcore::Value(options));
 
-  auto session = mysh::connect_session(new_args, mysh::Classic);
+  auto session = mysh::connect_session(new_args, mysh::SessionType::Classic);
   mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
 
   temp_args.clear();
@@ -985,7 +985,7 @@ retry:
     log_info("Creating account '%s' at instance %s:%i", username.c_str(),
               (*options)["host"].as_string().c_str(),
               (int)(*options)["port"].as_int());
-    session = mysh::connect_session(args, mysh::Classic);
+    session = mysh::connect_session(args, mysh::SessionType::Classic);
     classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
   } catch (shcore::Exception &e) {
     // Check if we're getting access denied to the local host

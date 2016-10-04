@@ -53,8 +53,8 @@ std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcor
 
   // Automatic protocol detection is ON
   // Attempts X Protocol first, then Classic
-  if (type == Auto) {
-    ret_val.reset(new mysh::mysqlx::XSession());
+  if (type == mysh::SessionType::Auto) {
+    ret_val.reset(new mysh::mysqlx::NodeSession());
     try {
       ret_val->connect(args);
 
@@ -70,21 +70,21 @@ std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcor
 
       if (code == 2027 || // Unknown message received from server 10
          code == 2002)    // No connection could be made because the target machine actively refused it connecting to host:port
-        type = Classic;
+        type = mysh::SessionType::Classic;
       else
         throw;
     }
   }
 
   switch (type) {
-    case Application:
+    case mysh::SessionType::X:
       ret_val.reset(new mysh::mysqlx::XSession());
       break;
-    case Node:
+    case mysh::SessionType::Node:
       ret_val.reset(new mysh::mysqlx::NodeSession());
       break;
 #ifdef HAVE_LIBMYSQLCLIENT
-    case Classic:
+    case mysh::SessionType::Classic:
       ret_val.reset(new mysql::ClassicSession());
       break;
 #endif

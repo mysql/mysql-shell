@@ -179,16 +179,16 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         }
       }
     } else if (check_arg(argv, i, "--x", "--x"))
-      override_session_type(mysh::Application, "--x");
+      override_session_type(mysh::SessionType::X, "--x");
     else if (check_arg(argv, i, "--node", "--node"))
-      override_session_type(mysh::Node, "--node");
+      override_session_type(mysh::SessionType::Node, "--node");
     else if (check_arg(argv, i, "--classic", "--classic"))
-      override_session_type(mysh::Classic, "--classic");
+      override_session_type(mysh::SessionType::Classic, "--classic");
     else if (check_arg(argv, i, "--sql", "--sql")) {
-      _options.initial_mode = shcore::IShell_core::Mode_SQL;
+      _options.initial_mode = shcore::IShell_core::Mode::SQL;
     } else if (check_arg(argv, i, "--js", "--javascript")) {
 #ifdef HAVE_V8
-      _options.initial_mode = shcore::IShell_core::Mode_JScript;
+      _options.initial_mode = shcore::IShell_core::Mode::JScript;
 #else
       std::cerr << "JavaScript is not supported.\n";
       exit_code = 1;
@@ -196,18 +196,18 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
 #endif
     } else if (check_arg(argv, i, "--py", "--python")) {
 #ifdef HAVE_PYTHON
-      _options.initial_mode = shcore::IShell_core::Mode_Python;
+      _options.initial_mode = shcore::IShell_core::Mode::Python;
 #else
       std::cerr << "Python is not supported.\n";
       exit_code = 1;
       break;
 #endif
     } else if (check_arg(argv, i, NULL, "--sqlc")) {
-      _options.initial_mode = shcore::IShell_core::Mode_SQL;
-      override_session_type(mysh::Classic, "--sqlc");
+      _options.initial_mode = shcore::IShell_core::Mode::SQL;
+      override_session_type(mysh::SessionType::Classic, "--sqlc");
     } else if (check_arg(argv, i, NULL, "--sqln")) {
-      _options.initial_mode = shcore::IShell_core::Mode_SQL;
-      override_session_type(mysh::Node, "--sqln");
+      _options.initial_mode = shcore::IShell_core::Mode::SQL;
+      override_session_type(mysh::SessionType::Node, "--sqln");
     } else if (check_arg_with_value(argv, i, "--json", NULL, value, true)) {
       if (!value || strcmp(value, "pretty") == 0)
         _options.output_format = "json";
@@ -273,16 +273,16 @@ void Shell_command_line_options::override_session_type(mysh::SessionType new_typ
   auto get_session_type = [](mysh::SessionType type) {
     std::string label;
     switch (type) {
-      case mysh::Application:
+      case mysh::SessionType::X:
         label = "X";
         break;
-      case mysh::Node:
+      case mysh::SessionType::Node:
         label = "Node";
         break;
-      case mysh::Classic:
+      case mysh::SessionType::Classic:
         label = "Classic";
         break;
-      case mysh::Auto:
+      case mysh::SessionType::Auto:
         break;
     }
 

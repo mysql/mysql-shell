@@ -52,12 +52,12 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 }
 
 DEFINE_FUNCTION(Mysqlx, get_session) {
-  auto session = connect_session(args, mysh::Application);
+  auto session = connect_session(args, mysh::SessionType::X);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 
 DEFINE_FUNCTION(Mysqlx, get_node_session) {
-  auto session = connect_session(args, mysh::Node);
+  auto session = connect_session(args, mysh::SessionType::Node);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 

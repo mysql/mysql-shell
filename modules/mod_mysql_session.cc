@@ -429,7 +429,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
 }
 
 std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysh::Classic);
+  return connect_session(args, mysh::SessionType::Classic);
 }
 
 /**

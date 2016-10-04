@@ -65,7 +65,7 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   gen.seed(now);
   init_uuid(vargen());
 
-  _mode = Mode_None;
+  _mode = Mode::None;
   _registry = new Object_registry();
 
   // When using wizards, the global variables are set to the Interactive Wrappers
@@ -97,14 +97,14 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 Shell_core::~Shell_core() {
   delete _registry;
 
-  if (_langs[Mode_JScript])
-    delete _langs[Mode_JScript];
+  if (_langs[Mode::JScript])
+    delete _langs[Mode::JScript];
 
-  if (_langs[Mode_Python])
-    delete _langs[Mode_Python];
+  if (_langs[Mode::Python])
+    delete _langs[Mode::Python];
 
-  if (_langs[Mode_SQL])
-    delete _langs[Mode_SQL];
+  if (_langs[Mode::SQL])
+    delete _langs[Mode::SQL];
 }
 
 bool Shell_core::print_help(const std::string& topic) {
@@ -206,7 +206,7 @@ std::string Shell_core::preprocess_input_line(const std::string &s) {
   return _langs[_mode]->preprocess_input_line(s);
 }
 
-void Shell_core::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) {
+void Shell_core::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
   try {
     _running_query = true;
     _langs[_mode]->handle_input(code, state, result_processor);
@@ -234,13 +234,13 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   // NOTE: global return code is unused at the moment
   //       return code should be determined at application level on process_result
   //       this global return code may be used again once the exit() function is in place
-  Interactive_input_state state;
+  Input_state state;
   _global_return_code = 0;
 
   _input_source = source;
 
   // In SQL Mode the stdin and file are processed line by line
-  if (_mode == Shell_core::Mode_SQL) {
+  if (_mode == Shell_core::Mode::SQL) {
     while (!stream.eof()) {
       std::string line;
 
@@ -252,7 +252,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
         break;
     }
 
-    if (state != Interactive_input_state::Input_ok) {
+    if (state != Input_state::Ok) {
       std::string delimiter = ";";
       handle_input(delimiter, state, result_processor);
     }
@@ -275,7 +275,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
 
     // When processing JavaScript files, validates the very first line to start with #!
     // If that's the case, it is replaced by a comment indicator //
-    if (_mode == IShell_core::Mode_JScript && data.size() > 1 && data[0] == '#' && data[1] == '!')
+    if (_mode == IShell_core::Mode::JScript && data.size() > 1 && data[0] == '#' && data[1] == '!')
       data.replace(0, 2, "//");
 
     handle_input(data, state, result_processor);
@@ -293,16 +293,16 @@ bool Shell_core::switch_mode(Mode mode, bool &lang_initialized) {
     _mode = mode;
     if (!_langs[_mode]) {
       switch (_mode) {
-        case Mode_None:
+        case Mode::None:
           break;
-        case Mode_SQL:
+        case Mode::SQL:
           init_sql();
           break;
-        case Mode_JScript:
+        case Mode::JScript:
           init_js();
           lang_initialized = true;
           break;
-        case Mode_Python:
+        case Mode::Python:
           init_py();
           lang_initialized = true;
           break;
@@ -314,13 +314,13 @@ bool Shell_core::switch_mode(Mode mode, bool &lang_initialized) {
 }
 
 void Shell_core::init_sql() {
-  _langs[Mode_SQL] = new Shell_sql(this);
+  _langs[Mode::SQL] = new Shell_sql(this);
 }
 
 void Shell_core::init_js() {
 #ifdef HAVE_V8
   Shell_javascript *js;
-  _langs[Mode_JScript] = js = new Shell_javascript(this);
+  _langs[Mode::JScript] = js = new Shell_javascript(this);
 
   for (std::map<std::string, Value>::const_iterator iter = _globals.begin();
        iter != _globals.end(); ++iter)
@@ -331,7 +331,7 @@ void Shell_core::init_js() {
 void Shell_core::init_py() {
 #ifdef HAVE_PYTHON
   Shell_python *py;
-  _langs[Mode_Python] = py = new Shell_python(this);
+  _langs[Mode::Python] = py = new Shell_python(this);
 
   for (std::map<std::string, Value>::const_iterator iter = _globals.begin();
        iter != _globals.end(); ++iter)

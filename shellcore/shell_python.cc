@@ -50,7 +50,7 @@ std::string Shell_python::preprocess_input_line(const std::string &s) {
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) {
+void Shell_python::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
   Value result;
 
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()) {
@@ -72,7 +72,7 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
   _last_handled = code;
 
   // Only processes the result when full statements are executed
-  if (state == Input_ok)
+  if (state == Input_state::Ok)
     result_processor(result);
 }
 
@@ -84,7 +84,7 @@ std::string Shell_python::prompt() {
 
   boost::system::error_code err;
   try {
-    Interactive_input_state state = Input_ok;
+    Input_state state = Input_state::Ok;
     WillEnterPython lock;
     shcore::Value value = _py->execute_interactive("shell.custom_prompt() if 'custom_prompt' in dir(shell) else None", state);
     if (value && value.type == String)

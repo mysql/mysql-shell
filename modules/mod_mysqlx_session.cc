@@ -687,7 +687,7 @@ std::shared_ptr<BaseSession> XSession::_get_shared_this() const {
 }
 
 std::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysh::Application);
+  return connect_session(args, mysh::SessionType::X);
 }
 
 NodeSession::NodeSession() : BaseSession() {
@@ -713,7 +713,7 @@ std::shared_ptr<BaseSession> NodeSession::_get_shared_this() const {
 }
 
 std::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysh::Node);
+  return connect_session(args, mysh::SessionType::Node);
 }
 
 //! Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.

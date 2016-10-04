@@ -83,7 +83,7 @@ private:
   shcore::Interpreter_delegate _delegate;
 
   std::string _input_buffer;
-  shcore::Interactive_input_state _input_mode;
+  shcore::Input_state _input_mode;
 
   shcore::Shell_command_handler _shell_command_handler;
 };

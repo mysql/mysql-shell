@@ -70,7 +70,7 @@ protected:
     _returned_value = result;
   }
 
-  shcore::Value handle_input(std::string& query, Interactive_input_state& state) {
+  shcore::Value handle_input(std::string& query, Input_state& state) {
     env.shell_sql->handle_input(query, state, std::bind(&Shell_sql_test::process_result, this, _1));
 
     return _returned_value;
@@ -93,7 +93,7 @@ protected:
     if (pwd)
       args.push_back(Value(pwd));
 
-    env.shell_core->connect_dev_session(args, mysh::Classic);
+    env.shell_core->connect_dev_session(args, mysh::SessionType::Classic);
   }
 };
 
@@ -102,27 +102,27 @@ TEST_F(Shell_sql_test, test_initial_state) {
 }
 
 TEST_F(Shell_sql_test, full_statement) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "show databases;";
   handle_input(query, state);
 
   // Query totally executed, input should be OK
   // Handled contains the executed statement
   // Prompt is for full statement
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show databases;", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
 TEST_F(Shell_sql_test, sql_multi_line_statement) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "show";
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline mode
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   //EXPECT_EQ("show", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("        -> ", env.shell_sql->prompt());
@@ -134,7 +134,7 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   //EXPECT_EQ("databases", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("        -> ", env.shell_sql->prompt());
@@ -144,27 +144,27 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
 TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "delimiter %%%";
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline mode
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
 
   query = "show";
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline mode
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   //EXPECT_EQ("show", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("        -> ", env.shell_sql->prompt());
@@ -176,7 +176,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   //EXPECT_EQ("databases", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("        -> ", env.shell_sql->prompt());
@@ -186,7 +186,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show\ndatabases%%%", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
@@ -196,11 +196,11 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline mode
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
 }
 
 TEST_F(Shell_sql_test, multiple_statements_continued) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "show databases; show";
   handle_input(query, state);
 
@@ -208,27 +208,27 @@ TEST_F(Shell_sql_test, multiple_statements_continued) {
   // until the delimiter is found.
   // Prompt changes to multiline
   // query will be updated to only keep what has not been executed
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   //EXPECT_EQ("show", query);
   EXPECT_EQ("show databases;", env.shell_sql->get_handled_input());
   EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
   query = "databases;";
   handle_input(query, state);
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
 TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "show";
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
   // Prompt changes to multiline mode
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
@@ -236,7 +236,7 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
   handle_input(query, state);
 
   // Being global multiline make sthe statement to be executed right away
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
   EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
@@ -244,85 +244,85 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
   handle_input(query, state);
 
   // Being global multiline make sthe statement to be executed right away
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
 TEST_F(Shell_sql_test, multiline_comment) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "/*";
   handle_input(query, state);
 
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("       /*> ", env.shell_sql->prompt());
 
   query = "this was a multiline comment";
   handle_input(query, state);
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("       /*> ", env.shell_sql->prompt());
 
   query = "*/";
   handle_input(query, state);
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
 TEST_F(Shell_sql_test, multiline_single_quote_continued_string) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "select 'hello ";
   handle_input(query, state);
 
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   //EXPECT_EQ("select 'hello ", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("        '> ", env.shell_sql->prompt());
 
   query = "world';";
   handle_input(query, state);
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("select 'hello \nworld';", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
 TEST_F(Shell_sql_test, multiline_double_quote_continued_string) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "select \"hello ";
   handle_input(query, state);
 
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   //EXPECT_EQ("select \"hello ", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("        \"> ", env.shell_sql->prompt());
 
   query = "world\";";
   handle_input(query, state);
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("select \"hello \nworld\";", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
 TEST_F(Shell_sql_test, DISABLED_multiline_backtick_string) {
-  Interactive_input_state state;
+  Input_state state;
   std::string query = "select * from `t";
   handle_input(query, state);
 
-  EXPECT_EQ(Input_continued_single, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("select * from `sakila`.`", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("        `> ", env.shell_sql->prompt());
 
   query = "film`;";
   handle_input(query, state);
-  EXPECT_EQ(Input_ok, state);
+  EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
