@@ -1,0 +1,21 @@
+{
+"general": {
+        "xshell_path" : "/home/guidev/Downloads/mysql-shell-1.0.5-labs-linux-ubuntu16.04-x86-64bit/bin/mysqlsh",
+        "aux_files_path" : "/home/guidev/Downloads/AdminAPI_Scripts/aux_files/",
+        "cluster_path" : "/tmp"
+    },
+"local":{
+        "user" : "root",
+        "password" : "guidev!",
+        "host" : "localhost",
+        "xprotocol_port" : 33060,
+        "port" : 3306
+    },
+"remote": {
+        "user" : "root",
+        "password" : "guidev!",
+        "host" : "localhost",
+        "xprotocol_port" : 33060,
+        "port" : 3306
+    }
+}
