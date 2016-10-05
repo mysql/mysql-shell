@@ -41,9 +41,9 @@ class DatabaseObject;
 namespace mysql {
 class ClassicSchema;
 /**
-* Enables interaction with a MySQL Server using the MySQL Protocol.
+* $(CLASSICSESSION_BRIEF)
 *
-* Provides facilities to execute queries and retrieve database objects.
+* $(CLASSICSESSION_DETAIL)
 *
 * \code{.js}
 * // Establishes the connection.

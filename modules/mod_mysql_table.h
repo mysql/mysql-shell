@@ -32,7 +32,7 @@ namespace mysql {
 class ClassicSchema;
 
 /**
-* Represents a ClassicTable on an ClassicSchema, retrieved with a session created using the MySQL Protocol.
+* $(CLASSICTABLE_BRIEF)
 */
 class ClassicTable : public DatabaseObject {
 public:

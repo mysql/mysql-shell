@@ -46,6 +46,7 @@
 #include "mod_mysql_resultset.h"
 #include "mod_mysql_schema.h"
 #include "utils/utils_general.h"
+#include "utils/utils_help.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -56,6 +57,10 @@ using namespace mysh::mysql;
 using namespace shcore;
 
 REGISTER_OBJECT(mysql, ClassicSession);
+
+// Documentation for ClassicSession class
+REGISTER_HELP(CLASSICSESSION_BRIEF, "Enables interaction with a MySQL Server using the MySQL Protocol.");
+REGISTER_HELP(CLASSICSESSION_DETAIL, "Provides facilities to execute queries and retrieve database objects.");
 
 ClassicSession::ClassicSession() {
   init();
@@ -112,8 +117,11 @@ Value ClassicSession::connect(const Argument_list &args) {
   return Value::Null();
 }
 
+// Documentation of close function
+REGISTER_HELP(CLASSICSESSION_CLOSE_BRIEF, "Closes the internal connection to the MySQL Server held on this session object.");
+
 /**
-* Closes the internal connection to the MySQL Server held on this session object.
+* $(CLASSICSESSION_CLOSE_BRIEF)
 */
 #if DOXYGEN_JS
 Undefined ClassicSession::close() {}
@@ -134,15 +142,22 @@ Value ClassicSession::close(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
-//! Executes a query against the database and returns a  ClassicResult object wrapping the result.
+//Documentation of runSql function
+REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query against the database and returns a  ClassicResult object wrapping the result.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM, "@param query the SQL query to execute against the database.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURN, "@return A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is thrown if an error occurs on the SQL execution.");
+
+//! $(CLASSICSESSION_RUNSQL_BRIEF)
 #if DOXYGEN_CPP
 //! \param args should contain the SQL query to execute against the database.
 #else
-//! \param query the SQL query to execute against the database.
+//! $(CLASSICSESSION_RUNSQL_PARAM)
 #endif
 /**
-* \return A ClassicResult object.
-* \exception An exception is thrown if an error occurs on the SQL execution.
+* $(CLASSICSESSION_RUNSQL_RETURN)
+*
+* $(CLASSICSESSION_RUNSQL_EXCEPTION)
 */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::runSql(String query) {}
@@ -189,15 +204,20 @@ shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore
   return ret_val;
 }
 
-//! Creates a schema on the database and returns the corresponding object.
-#if DOXYGEN_CPP
-//! \param args should contain a string value indicating the schema name.
-#else
-//! \param name A string value indicating the schema name..
-#endif
+//Documentation of createSchema function
+REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_BRIEF, "Creates a schema on the database and returns the corresponding object.");
+REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_PARAM, "@param name A string value indicating the schema name.");
+REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_RETURN, "@return The created schema object.");
+REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_EXCEPTION, "@exception An exception is thrown if an error occurs creating the Session.");
+
 /**
-* \return The created schema object.
-* \exception An exception is thrown if an error occurs creating the Session.
+* $(CLASSICSESSION_CREATESCHEMA_BRIEF)
+*
+* $(CLASSICSESSION_CREATESCHEMA_PARAM)
+*
+* $(CLASSICSESSION_CREATESCHEMA_RETURN)
+*
+* $(CLASSICSESSION_CREATESCHEMA_EXCEPTION)
 */
 #if DOXYGEN_JS
 ClassicSchema ClassicSession::createSchema(String name) {}
@@ -232,21 +252,17 @@ Value ClassicSession::create_schema(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-#if DOXYGEN_CPP
+// Documentation of getDefaultSchema function
+REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the ClassicSchema configured as default for the session.");
+REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_RETURN, "@return A ClassicSchema object or Null");
+REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_DETAIL, "If the configured schema is not valid anymore Null wil be returned.");
+
 /**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
- *
- * \li currentSchema: returns ClassicSchema object representing the active schema on the session. If none is active, returns Null.
- */
-#else
-/**
-* Retrieves the ClassicSchema configured as default for the session.
-* \return A ClassicSchema object or Null
+* $(CLASSICSESSION_GETDEFAULTSCHEMA_BRIEF)
 *
-* If the configured schema is not valid anymore Null wil be returned.
+* $(CLASSICSESSION_GETDEFAULTSCHEMA_RETURN)
+*
+* $(CLASSICSESSION_GETDEFAULTSCHEMA_DETAIL)
 */
 #if DOXYGEN_JS
 ClassicSchema ClassicSession::getDefaultSchema() {}
@@ -254,11 +270,17 @@ ClassicSchema ClassicSession::getDefaultSchema() {}
 ClassicSchema ClassicSession::get_default_schema() {}
 #endif
 
+// Documentation of getCurrentSchema function
+REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the ClassicSchema that is active as current on the session.");
+REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_RETURN, "@return A ClassicSchema object or Null");
+REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_DETAIL, "The current schema is configured either throu setCurrentSchema(String name) or by using the USE statement.");
+
 /**
-* Retrieves the ClassicSchema that is active as current on the session.
-* \return A ClassicSchema object or Null
+* $(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF)
 *
-* The current schema is configured either throu setCurrentSchema(String name) or by using the USE statement.
+* $(CLASSICSESSION_GETCURRENTSCHEMA_RETURN)
+*
+* $(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF)
 */
 #if DOXYGEN_JS
 ClassicSchema ClassicSession::getCurrentSchema() {}
@@ -266,16 +288,21 @@ ClassicSchema ClassicSession::getCurrentSchema() {}
 ClassicSchema ClassicSession::get_current_schema() {}
 #endif
 
+// Documentation of getCurrentSchema function
+REGISTER_HELP(CLASSICSESSION_GETURI_BRIEF, "Returns the connection string passed to connect() method.");
+REGISTER_HELP(CLASSICSESSION_GETURI_RETURN, "@return A string representation of the connection data in URI format (excluding the password or the database).");
+
 /**
-* Returns the connection string passed to connect() method.
-* \return A string representation of the connection data in URI format (excluding the password or the database).
+* $(CLASSICSESSION_GETURI_BRIEF)
+*
+* $(CLASSICSESSION_GETURI_RETURN)
 */
 #if DOXYGEN_JS
 String ClassicSession::getUri() {}
 #elif DOXYGEN_PY
 str ClassicSession::get_uri() {}
 #endif
-#endif
+
 Value ClassicSession::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
   Value ret_val;
@@ -325,15 +352,23 @@ void ClassicSession::_remove_schema(const std::string& name) {
     _schemas->erase(name);
 }
 
-//! Retrieves a ClassicSchema object from the current session through it's name.
+// Documentation of getSchema function
+REGISTER_HELP(CLASSICSESSION_GETSCHEMA_BRIEF, "Retrieves a ClassicSchema object from the current session through it's name.");
+REGISTER_HELP(CLASSICSESSION_GETSCHEMA_PARAM, "@param name The name of the ClassicSchema object to be retrieved.");
+REGISTER_HELP(CLASSICSESSION_GETSCHEMA_RETURN, "@return The ClassicSchema object with the given name.");
+REGISTER_HELP(CLASSICSESSION_GETSCHEMA_EXCEPTION, "@exception An exception is thrown if the given name is not a valid schema on the Session.");
+
+//! $(CLASSICSESSION_GETSCHEMA_BRIEF)
 #if DOXYGEN_CPP
 //! \param args should contain the name of the ClassicSchema object to be retrieved.
 #else
-//! \param name The name of the ClassicSchema object to be retrieved.
+//! $(CLASSICSESSION_GETSCHEMA_PARAM)
 #endif
 /**
-* \return The ClassicSchema object with the given name.
-* \exception An exception is thrown if the given name is not a valid schema on the Session.
+* $(CLASSICSESSION_GETSCHEMA_RETURN)
+*
+* $(CLASSICSESSION_GETSCHEMA_EXCEPTION)
+*
 * \sa ClassicSchema
 */
 #if DOXYGEN_JS
@@ -364,9 +399,14 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
   return ret_val;
 }
 
+// Documentation of getSchemas function
+REGISTER_HELP(CLASSICSESSION_GETSCHEMAS_BRIEF, "Retrieves the Schemas available on the session.");
+REGISTER_HELP(CLASSICSESSION_GETSCHEMAS_RETURN, "@return A List containing the ClassicSchema objects available on the session.");
+
 /**
-* Retrieves the Schemas available on the session.
-* \return A List containing the ClassicSchema objects available o the session.
+* $(CLASSICSESSION_GETSCHEMAS_BRIEF)
+*
+* $(CLASSICSESSION_GETSCHEMAS_RETURN)
 */
 #if DOXYGEN_JS
 List ClassicSession::getSchemas() {}
@@ -403,9 +443,14 @@ shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) con
   return shcore::Value(schemas);
 }
 
+// Documentation of setCurrentSchema function
+REGISTER_HELP(CLASSICSESSION_SETCURRENTSCHEMA_BRIEF, "Sets the selected schema for this session's connection.");
+REGISTER_HELP(CLASSICSESSION_SETCURRENTSCHEMA_RETURN, "@return The new schema.");
+
 /**
-* Sets the selected schema for this session's connection.
-* \return The new schema.
+* $(CLASSICSESSION_SETCURRENTSCHEMA_BRIEF)
+*
+* $(CLASSICSESSION_SETCURRENTSCHEMA_RETURN)
 */
 #if DOXYGEN_JS
 ClassicSchema ClassicSession::setCurrentSchema(String schema) {}
@@ -432,10 +477,17 @@ std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argu
   return connect_session(args, mysh::SessionType::Classic);
 }
 
+// Documentation of dropSchema function
+REGISTER_HELP(CLASSICSESSION_DROPSCHEMA_BRIEF, "Drops the schema with the specified name.");
+REGISTER_HELP(CLASSICSESSION_DROPSCHEMA_RETURN, "@return A ClassicResult object if succeeded.");
+REGISTER_HELP(CLASSICSESSION_DROPSCHEMA_EXCEPTION, "@exception An error is raised if the schema did not exist.");
+
 /**
-* Drops the schema with the specified name.
-* \return A ClassicResult object if succeeded.
-* \exception An error is raised if the schema did not exist.
+* $(CLASSICSESSION_DROPSCHEMA_BRIEF)
+*
+* $(CLASSICSESSION_DROPSCHEMA_RETURN)
+*
+* $(CLASSICSESSION_DROPSCHEMA_EXCEPTION)
 */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::dropSchema(String name) {}
@@ -459,6 +511,11 @@ shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+// Documentation of dropTable function
+REGISTER_HELP(CLASSICSESSION_DROPTABLE_BRIEF, "Drops a table from the specified schema.");
+REGISTER_HELP(CLASSICSESSION_DROPTABLE_RETURN, "@return A ClassicResult object if succeeded.");
+REGISTER_HELP(CLASSICSESSION_DROPTABLE_EXCEPTION, "@exception An error is raised if the table did not exist.");
+
 #if DOXYGEN_CPP
 /**
  * Drops a table or a view from a specific ClassicSchema.
@@ -471,9 +528,11 @@ shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args) {
  */
 #else
 /**
-* Drops a table from the specified schema.
-* \return A ClassicResult object if succeeded.
-* \exception An error is raised if the table did not exist.
+* $(CLASSICSESSION_DROPTABLE_BRIEF)
+*
+* $(CLASSICSESSION_DROPTABLE_RETURN)
+*
+* $(CLASSICSESSION_DROPTABLE_EXCEPTION)
 */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::dropTable(String schema, String name) {}
@@ -481,10 +540,17 @@ ClassicResult ClassicSession::dropTable(String schema, String name) {}
 ClassicResult ClassicSession::drop_table(str schema, str name) {}
 #endif
 
+// Documentation of dropView function
+REGISTER_HELP(CLASSICSESSION_DROPVIEW_BRIEF, "Drops a view from the specified schema.");
+REGISTER_HELP(CLASSICSESSION_DROPVIEW_RETURN, "@return A ClassicResult object if succeeded.");
+REGISTER_HELP(CLASSICSESSION_DROPVIEW_EXCEPTION, "@exception An error is raised if the view did not exist.");
+
 /**
-* Drops a view from the specified schema.
-* \return A ClassicResult object if succeeded.
-* \exception An error is raised if the view did not exist.
+* $(CLASSICSESSION_DROPVIEW_BRIEF)
+*
+* $(CLASSICSESSION_DROPVIEW_RETURN)
+*
+* $(CLASSICSESSION_DROPVIEW_EXCEPTION)
 */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::dropView(String schema, String name) {}
@@ -573,16 +639,26 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
   return ret_val;
 }
 
+// Documentation of startTransaction function
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_BRIEF, "Starts a transaction context on the server.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_RETURN, "@return A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL, "Calling this function will turn off the autocommit mode on the server.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL1, "All the operations executed after calling this function will take place only when commit() is called.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL2, "All the operations executed after calling this function, will be discarded is rollback() is called.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL3, "When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().");
+
 /**
-* Starts a transaction context on the server.
-* \return A ClassicResult object.
-* Calling this function will turn off the autocommit mode on the server.
+* $(CLASSICSESSION_STARTTRANSACTION_BRIEF)
 *
-* All the operations executed after calling this function will take place only when commit() is called.
+* $(CLASSICSESSION_STARTTRANSACTION_RETURN)
 *
-* All the operations executed after calling this function, will be discarded is rollback() is called.
+* $(CLASSICSESSION_STARTTRANSACTION_DETAIL)
 *
-* When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
+* $(CLASSICSESSION_STARTTRANSACTION_DETAIL1)
+*
+* $(CLASSICSESSION_STARTTRANSACTION_DETAIL2)
+*
+* $(CLASSICSESSION_STARTTRANSACTION_DETAIL3)
 */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::startTransaction() {}
@@ -595,13 +671,20 @@ shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args
   return execute_sql("start transaction", shcore::Argument_list());
 }
 
+// Documentation of commit function
+REGISTER_HELP(CLASSICSESSION_COMMIT_BRIEF, "Commits all the operations executed after a call to startTransaction().");
+REGISTER_HELP(CLASSICSESSION_COMMIT_RETURN, "@return A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_COMMIT_DETAIL, "All the operations executed after calling startTransaction() will take place when this function is called.");
+REGISTER_HELP(CLASSICSESSION_COMMIT_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
+
 /**
-* Commits all the operations executed after a call to startTransaction().
-* \return A ClassicResult object.
+* $(CLASSICSESSION_COMMIT_BRIEF)
 *
-* All the operations executed after calling startTransaction() will take place when this function is called.
+* $(CLASSICSESSION_COMMIT_RETURN)
 *
-* The server autocommit mode will return back to it's state before calling startTransaction().
+* $(CLASSICSESSION_COMMIT_DETAIL)
+*
+* $(CLASSICSESSION_COMMIT_DETAIL1)
 */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::commit() {}
@@ -614,13 +697,20 @@ shcore::Value ClassicSession::commit(const shcore::Argument_list &args) {
   return execute_sql("commit", shcore::Argument_list());
 }
 
+// Documentation of rollback function
+REGISTER_HELP(CLASSICSESSION_ROLLBACK_BRIEF, "Discards all the operations executed after a call to startTransaction().");
+REGISTER_HELP(CLASSICSESSION_ROLLBACK_RETURN, "@return A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_ROLLBACK_DETAIL, "All the operations executed after calling startTransaction() will be discarded when this function is called.");
+REGISTER_HELP(CLASSICSESSION_ROLLBACK_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
+
 /**
-* Discards all the operations executed after a call to startTransaction().
-* \return A ClassicResult object.
+* $(CLASSICSESSION_ROLLBACK_BRIEF)
 *
-* All the operations executed after calling startTransaction() will be discarded when this function is called.
+* $(CLASSICSESSION_ROLLBACK_RETURN)
 *
-* The server autocommit mode will return back to it's state before calling startTransaction().
+* $(CLASSICSESSION_ROLLBACK_DETAIL)
+*
+* $(CLASSICSESSION_ROLLBACK_DETAIL1)
 */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::rollback() {}

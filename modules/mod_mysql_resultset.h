@@ -33,8 +33,9 @@ namespace mysql {
 class Result;
 
 /**
-* Allows browsing through the result information after performing an operation on the database through the MySQL Protocol.
-* This class allows access to the result set from the classic MySQL data model to be retrieved from Dev API queries.
+* $(CLASSICRESULT_BRIEF)
+*
+* $(CLASSICRESULT_DETAIL)
 */
 class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 public:

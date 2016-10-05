@@ -20,10 +20,15 @@
 #include "mod_mysql_schema.h"
 #include "mod_mysql_table.h"
 
+#include "utils/utils_help.h"
+
 using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysql;
 using namespace shcore;
+
+// Documentation of ClassicTable class
+REGISTER_HELP(CLASSICTABLE_BRIEF, "Represents a ClassicTable on an ClassicSchema, retrieved with a session created using the MySQL Protocol.");
 
 ClassicTable::ClassicTable(std::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view)
   : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view) {
@@ -41,9 +46,14 @@ void ClassicTable::init() {
   add_method("isView", std::bind(&ClassicTable::is_view_, this, _1), NULL);
 }
 
+// Documentation of isView function
+REGISTER_HELP(CLASSICTABLE_ISVIEW_BRIEF, "Indicates whether this ClassicTable object represents a View on the database.");
+REGISTER_HELP(CLASSICTABLE_ISVIEW_RETURN, "@return True if the Table represents a View on the database, False if represents a Table.");
+
 /**
-* Indicates whether this ClassicTable object represents a View on the database.
-* \return True if the Table represents a View on the database, False if represents a Table.
+* $(CLASSICTABLE_ISVIEW_BRIEF)
+*
+* $(CLASSICTABLE_ISVIEW_RETURN)
 */
 #if DOXYGEN_JS
 Bool ClassicTable::isView() {}

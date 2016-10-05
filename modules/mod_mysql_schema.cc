@@ -33,9 +33,30 @@
 #include <boost/format.hpp>
 #include "utils/utils_general.h"
 #include "logger/logger.h"
+#include "utils/utils_help.h"
 
 using namespace mysh::mysql;
 using namespace shcore;
+
+// Documentation of the ClassicSchema class
+REGISTER_HELP(CLASSICSCHEMA_BRIEF,"Represents a Schema retrieved with a session created using the MySQL Protocol.");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL,"<b>Dynamic Properties</b>");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL1, "In addition to the properties documented above, when a schema object is retrieved from the session, "\
+"its Tables are loaded from the database and a cache is filled with the corresponding objects");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL2, "This cache is used to allow the user accessing the Tables as Schema properties. "\
+"These Dynamic Properties are named as the object name, so, if a Schema has a table named *customers* this table "\
+"can be accessed in two forms:");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL3, "Note that dynamic properties for Tables are available only if the next conditions are met:");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL4, "@li The object name is a valid identifier.");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL5, "@li The object name is different from any member of the ClassicSchema class.");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL6, "@li The object is in the cache.");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL7, "The object cache is updated every time getTables() is called.");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL8, "To retrieve an object that is not available through a Dynamic Property use getTable(name).");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL9, "<b>View Support</b>");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL10, "MySQL Views are stored queries that when executed produce a result set.");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL11, "MySQL supports the concept of Updatable Views: in specific conditions are met, "\
+"Views can be used not only to retrieve data from them but also to update, add and delete records.");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL12, "For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.");
 
 ClassicSchema::ClassicSchema(std::shared_ptr<ClassicSession> session, const std::string &schema)
   : DatabaseObject(std::dynamic_pointer_cast<ShellBaseSession>(session), std::shared_ptr<DatabaseObject>(), schema) {
@@ -150,18 +171,26 @@ Value ClassicSchema::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-//! Returns the table of the given name for this schema.
+// Documentation of the getTable function
+REGISTER_HELP(CLASSICSCHEMA_GETTABLE_BRIEF, "Returns the table of the given name for this schema.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLE_PARAM, "@param name the name of the table to look for.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLE_RETURN, "@return the ClassicTable object matching the name.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLE_DETAIL, "Verifies if the requested Table exist on the database, "\
+"if exists, returns the corresponding ClassicTable object.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLE_DETAIL1, "Updates the Tables cache.");
+
+//! $(CLASSICSCHEMA_GETTABLE_BRIEF)
 #if DOXYGEN_CPP
 //! \param args should contain the name of the table to look for.
 #else
-//! \param name the name of the table to look for.
+//! $(CLASSICSCHEMA_GETTABLE_PARAM)
 #endif
 /**
-* \return the ClassicTable object matching the name.
+* $(CLASSICSCHEMA_GETTABLE_RETURN)
 *
-* Verifies if the requested Table exist on the database, if exists, returns the corresponding ClassicTable object.
+* $(CLASSICSCHEMA_GETTABLE_DETAIL)
 *
-* Updates the Tables cache.
+* $(CLASSICSCHEMA_GETTABLE_DETAIL1)
 * \sa ClassicTable
 */
 #if DOXYGEN_JS
@@ -210,16 +239,23 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+// Documentation of the getTables function
+REGISTER_HELP(CLASSICSCHEMA_GETTABLES_BRIEF, "Returns a list of Tables for this Schema.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLES_RETURN, "@return A List containing the Table objects available for the Schema.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLES_DETAIL, "Pulls from the database the available Tables and Views.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLES_DETAIL1, "Does a full refresh of the Tables and Views cache.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLES_DETAIL2, "Returns a List of available Table objects.");
+
 /**
-* Returns a list of Tables for this Schema.
+* $(CLASSICSCHEMA_GETTABLES_BRIEF)
 * \sa ClassicTable
-* \return A List containing the Table objects available for the Schema.
+* $(CLASSICSCHEMA_GETTABLES_RETURN)
 *
-* Pulls from the database the available Tables and Views.
+* $(CLASSICSCHEMA_GETTABLES_DETAIL)
 *
-* Does a full refresh of the Tables and Views cache.
+* $(CLASSICSCHEMA_GETTABLES_DETAIL1)
 *
-* Returns a List of available Table objects.
+* $(CLASSICSCHEMA_GETTABLES_DETAIL2)
 */
 #if DOXYGEN_JS
 List ClassicSchema::getTables() {}

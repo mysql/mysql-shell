@@ -38,15 +38,13 @@ class ClassicSession;
 class ClassicTable;
 
 /**
-* Represents a Schema retrieved with a session created using the MySQL Protocol.
+* $(CLASSICSCHEMA_BRIEF)
 *
-* \b Dynamic \b Properties
+* $(CLASSICSCHEMA_DETAIL)
 *
-* In addition to the properties documented above, when a schema object is retrieved from the session,
-* its Tables are loaded from the database and a cache is filled with the corresponding objects.
+* $(CLASSICSCHEMA_DETAIL1)
 *
-* This cache is used to allow the user accessing the Tables as Schema properties. These Dynamic Properties are named
-* as the object name, so, if a Schema has a table named *customers* this table can be accessed in two forms:
+* $(CLASSICSCHEMA_DETAIL2)
 *
 * \code{.js}
 * // Using the standard getTable() function.
@@ -56,23 +54,23 @@ class ClassicTable;
 * var table = mySchema.customers;
 * \endcode
 *
-* Note that dynamic properties for Tables are available only if the next conditions are met:
+* $(CLASSICSCHEMA_DETAIL3)
 *
-* - The object name is a valid identifier.
-* - The object name is different from any member of the ClassicSchema class.
-* - The object is in the cache.
+* $(CLASSICSCHEMA_DETAIL4)
+* $(CLASSICSCHEMA_DETAIL5)
+* $(CLASSICSCHEMA_DETAIL6)
 *
-* The object cache is updated every time getTables() is called.
+* $(CLASSICSCHEMA_DETAIL7)
 *
-* To retrieve an object that is not available through a Dynamic Property use getTable(name).
+* $(CLASSICSCHEMA_DETAIL8)
 *
-* \b View \b Support
+* $(CLASSICSCHEMA_DETAIL9)
 *
-* MySQL Views are stored queries that when executed produce a result set.
+* $(CLASSICSCHEMA_DETAIL10)
 *
-* MySQL supports the concept of Updatable Views: in specific conditions are met, Views can be used not only to retrieve data from them but also to update, add and delete records.
+* $(CLASSICSCHEMA_DETAIL11)
 *
-* For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.
+* $(CLASSICSCHEMA_DETAIL12)
 */
 class SHCORE_PUBLIC ClassicSchema : public DatabaseObject, public std::enable_shared_from_this<ClassicSchema> {
 public:
