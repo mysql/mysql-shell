@@ -32,7 +32,7 @@
 ||
 
 #@# Cluster: add_instance with interaction, error
-||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'.
+||Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'.
 
 #@<OUT> Cluster: add_instance with interaction, ok
 A new instance will be added to the InnoDB cluster. Depending on the amount of
@@ -50,13 +50,13 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
         "name": "default",
         "instances": [
             {
-                "name": "localhost:<<<__mysql_sandbox_port1>>>",
-                "host": "localhost:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "name": "localhost:<<<__mysql_sandbox_port2>>>",
-                "host": "localhost:<<<__mysql_sandbox_port2>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
         ]
@@ -69,14 +69,14 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
     "defaultReplicaSet": {
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "status": "ONLINE",
                 "role": "HA",
                 "mode": "R/W",
                 "leaves": {
-                    "localhost:<<<__mysql_sandbox_port2>>>": {
-                        "address": "localhost:<<<__mysql_sandbox_port2>>>",
+                    "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                         "status": "RECOVERING",
                         "role": "HA",
                         "mode": "R/O",
@@ -93,7 +93,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 0
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 2
 ||Invalid connection options, expected either a URI, a Dictionary or an Instance object
-||Cluster.removeInstance: The instance 'localhost:0' does not belong to the ReplicaSet: 'default'
+||Cluster.removeInstance: The instance 'localhost:33060'(<<<localhost>>>:33060) does not belong to the ReplicaSet: 'default'
 ||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 #@ Cluster: remove_instance
@@ -107,8 +107,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
         "name": "default",
         "instances": [
             {
-                "name": "localhost:<<<__mysql_sandbox_port1>>>",
-                "host": "localhost:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             }
         ]
@@ -121,8 +121,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
     "defaultReplicaSet": {
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>",
+            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "status": "ONLINE",
                 "role": "HA",
                 "mode": "R/W",
@@ -145,8 +145,8 @@ The following replicasets are currently registered:
         "name": "default",
         "instances": [
             {
-                "name": "localhost:<<<__mysql_sandbox_port1>>>",
-                "host": "localhost:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             }
         ]

@@ -5,6 +5,15 @@
 //@ Cluster: validating members
 var Cluster = dba.getCluster('devCluster');
 
+// Sets the correct local host
+var my_re = new RegExp('"name": "(.*):' + __mysql_sandbox_port1);
+var match = my_re.exec(Cluster.describe());
+if (match)
+  var localhost = match[1];
+else
+  println ("Failed retrieving the correct local hostname");
+
+
 var members = dir(Cluster);
 
 print("Cluster Members:", members.length);
