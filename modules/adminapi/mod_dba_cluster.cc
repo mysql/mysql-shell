@@ -43,7 +43,7 @@ REGISTER_HELP(CLUSTER_DETAIL, "The cluster object is the entrance point to manag
 REGISTER_HELP(CLUSTER_DETAIL1, "A cluster is a set of MySQLd Instances which holds the user's data.");
 REGISTER_HELP(CLUSTER_DETAIL2, "It provides high-availability and scalability for the user's data.");
 
-REGISTER_HELP(CLUSTER_CLOSING, "For more help on a specific function use: cluster.help('<functionName>'");
+REGISTER_HELP(CLUSTER_CLOSING, "For more help on a specific function use: cluster.help('<functionName>')");
 REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
 
 REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
