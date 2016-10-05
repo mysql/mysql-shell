@@ -87,15 +87,12 @@ file(GLOB libmysqlshcore_SRC
 #if(NOT WINDOWS_RUNTIME_MD)
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
-
-IF ( WITH_ADMINAPI )
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/process_launcher/process_launcher.cc")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/common/exception.cc")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_dba.h")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_dba.cc")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.h")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.cc")
-ENDIF()
 
 #else()
 #  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
@@ -138,49 +135,47 @@ else()
   endforeach()
 endif()
 
-IF( WITH_ADMINAPI )
-  # Loads the metadata-model.sql file
-  FILE(READ "${CMAKE_SOURCE_DIR}/modules/adminapi/metadata-model.sql" MD_MODEL_SQL)
+# Loads the metadata-model.sql file
+FILE(READ "${CMAKE_SOURCE_DIR}/modules/adminapi/metadata-model.sql" MD_MODEL_SQL)
 
-  # Strips the copyright + comments from it
-  string(FIND "${MD_MODEL_SQL}" "CREATE DATABASE" COPYRIGHT_END)
-  string(SUBSTRING "${MD_MODEL_SQL}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
-  string(REPLACE "${COPYRIGHT_TEXT}" "" MD_MODEL_SQL_STRIPPED "${MD_MODEL_SQL}")
+# Strips the copyright + comments from it
+string(FIND "${MD_MODEL_SQL}" "CREATE DATABASE" COPYRIGHT_END)
+string(SUBSTRING "${MD_MODEL_SQL}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
+string(REPLACE "${COPYRIGHT_TEXT}" "" MD_MODEL_SQL_STRIPPED "${MD_MODEL_SQL}")
 
-  # Updates format to be a C++ multiline definition
-  string(REPLACE "\\" "\\\\" MD_MODEL_SQL_PREPARED "${MD_MODEL_SQL_STRIPPED}")
-  string(REPLACE "\n" "\\n\"\n\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_PREPARED}")
+# Updates format to be a C++ multiline definition
+string(REPLACE "\\" "\\\\" MD_MODEL_SQL_PREPARED "${MD_MODEL_SQL_STRIPPED}")
+string(REPLACE "\n" "\\n\"\n\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_PREPARED}")
 
-  # Escape the " characters in "manual"
-  string(REPLACE "\"manual\"" "\\\"manual\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+# Escape the " characters in "manual"
+string(REPLACE "\"manual\"" "\\\"manual\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
 
-  # Escape the " characters in "ssh"
-  string(REPLACE "\"ssh\"" "\\\"ssh\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+# Escape the " characters in "ssh"
+string(REPLACE "\"ssh\"" "\\\"ssh\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
 
-  # Escape the " characters in "254616cc-fb47-11e5-aac5"
-  string(REPLACE "\"254616cc-fb47-11e5-aac5\"" "\\\"254616cc-fb47-11e5-aac5\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+# Escape the " characters in "254616cc-fb47-11e5-aac5"
+string(REPLACE "\"254616cc-fb47-11e5-aac5\"" "\\\"254616cc-fb47-11e5-aac5\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
 
-  # Escape the " characters in "mysql://host.foo.com:3306"
-  string(REPLACE "\"mysql://host.foo.com:3306\"" "\\\"mysql://host.foo.com:3306\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+# Escape the " characters in "mysql://host.foo.com:3306"
+string(REPLACE "\"mysql://host.foo.com:3306\"" "\\\"mysql://host.foo.com:3306\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
 
-  # Escape the " characters in "mysqlx://host.foo.com:33060"
-  string(REPLACE "\"mysqlx://host.foo.com:33060\"" "\\\"mysqlx://host.foo.com:33060\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+# Escape the " characters in "mysqlx://host.foo.com:33060"
+string(REPLACE "\"mysqlx://host.foo.com:33060\"" "\\\"mysqlx://host.foo.com:33060\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
 
-  # Escape the " characters in "mysql://localhost:/tmp/mysql.sock"
-  string(REPLACE "\"mysql://localhost:/tmp/mysql.sock\"" "\\\"mysql://localhost:/tmp/mysql.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+# Escape the " characters in "mysql://localhost:/tmp/mysql.sock"
+string(REPLACE "\"mysql://localhost:/tmp/mysql.sock\"" "\\\"mysql://localhost:/tmp/mysql.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
 
-  # Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
-  string(REPLACE "\"mysqlx://localhost:/tmp/mysqlx.sock\"" "\\\"mysqlx://localhost:/tmp/mysqlx.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+# Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
+string(REPLACE "\"mysqlx://localhost:/tmp/mysqlx.sock\"" "\\\"mysqlx://localhost:/tmp/mysqlx.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
 
-  # Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
-  string(REPLACE "\"mysqlXcom://host.foo.com:49213?channelName=<..>\"" "\\\"mysqlXcom://host.foo.com:49213?channelName=<..>\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
-
+# Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
+string(REPLACE "\"mysqlXcom://host.foo.com:49213?channelName=<..>\"" "\\\"mysqlXcom://host.foo.com:49213?channelName=<..>\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
 
 
-  # Creates the target file containing the code ready for processing
-  configure_file("${CMAKE_SOURCE_DIR}/include/adminapi/metadata-model_definitions.h.in"
-                   "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h")
-ENDIF()
+
+# Creates the target file containing the code ready for processing
+configure_file("${CMAKE_SOURCE_DIR}/include/adminapi/metadata-model_definitions.h.in"
+                  "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h")
 
 file(GLOB libmysqlshmods_SRC
       "../modules/base_*.cc"
@@ -207,31 +202,30 @@ file(GLOB libmysqlshmods_SRC
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 
-IF( WITH_ADMINAPI )
-  add_definitions(-DWITH_ADMINAPI)
-  include_directories("${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/include/"
-                      "${CMAKE_SOURCE_DIR}/common/yassl/include/")
-  if(WITH_SSL STREQUAL "bundled")
-    set(MY_AES_SOURCE my_aes_yassl.cc)
-  else()
-    set(MY_AES_SOURCE my_aes_openssl.cc)
-  endif()
-  list(APPEND libmysqlshmods_SRC "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/my_aes.cc"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/${MY_AES_SOURCE}"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.cc"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.h"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.cc"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.h"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.cc"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.h"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.cc"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.h"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.cc"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.cc"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.h")
-ENDIF()
+add_definitions(-DWITH_ADMINAPI)
+include_directories("${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/include/"
+                    "${CMAKE_SOURCE_DIR}/common/yassl/include/")
+if(WITH_SSL STREQUAL "bundled")
+  set(MY_AES_SOURCE my_aes_yassl.cc)
+else()
+  set(MY_AES_SOURCE my_aes_openssl.cc)
+endif()
+
+list(APPEND libmysqlshmods_SRC "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/my_aes.cc"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/${MY_AES_SOURCE}"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.cc"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.h"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.cc"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.h"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.cc"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.h"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.cc"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.h"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.cc"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.cc"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.h")
 
 
 #Protobuf related includes

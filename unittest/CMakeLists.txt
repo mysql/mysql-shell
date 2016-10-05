@@ -22,10 +22,6 @@ if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
 
-    IF (WITH_ADMINAPI)
-      add_definitions(-DWITH_ADMINAPI=1)
-    ENDIF()
-
     include_directories(${CMAKE_SOURCE_DIR}/unittest/include 
                 ${CMAKE_SOURCE_DIR}/mysqlxtest
                 ${CMAKE_SOURCE_DIR}/mysqlxtest/common

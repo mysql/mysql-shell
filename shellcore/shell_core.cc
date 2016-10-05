@@ -31,10 +31,8 @@
 #include "modules/mod_mysql.h"
 #include "utils/utils_general.h"
 
-#ifdef WITH_ADMINAPI
 #include "interactive/interactive_global_dba.h"
 #include "modules/adminapi/mod_dba.h"
-#endif
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -74,9 +72,7 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
     set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
-#ifdef WITH_ADMINAPI
     set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)));
-#endif
   }
 
   set_dba_global();
@@ -476,7 +472,6 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session() {
  * If there's unique farm on the received session, it will be made available to the scripting interfaces on the global *farm* variable
  */
 void Shell_core::set_dba_global() {
-#ifdef WITH_ADMINAPI
   std::shared_ptr<mysh::dba::Dba>dba(new mysh::dba::Dba(this));
 
   // When using the interactive wrappers instead of setting the global variables
@@ -489,7 +484,6 @@ void Shell_core::set_dba_global() {
     set_global("dba", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(dba)));
     //set_global("farm", _global_admin_session->get_member("defaultFarm"));
   }
-#endif
 }
 
 /**

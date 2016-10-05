@@ -144,10 +144,6 @@ endif()
 string(REPLACE ";" " "  EXTRA_CMAKE_OPTS "${EXTRA_CMAKE_OPTS}")
 string(REPLACE ";" ", " DEB_BUILD_DEPS   "${DEB_BUILD_DEPS}")
 
-if(WITH_ADMINAPI)
-  list(APPEND EXTRA_CMAKE_OPTS "-DWITH_ADMINAPI=1")
-endif()
-
 # The option WITH_EXTRA_EXE takes a path to a executable to add
 # to the package, and put it into /usr/bin when installing
 if(WITH_EXTRA_EXE)
