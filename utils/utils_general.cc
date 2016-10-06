@@ -25,8 +25,12 @@
 #ifdef WIN32
 #include <windows.h>
 #include <Lmcons.h>
+#include <WinSock2.h>
 #else
 #include <unistd.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <netdb.h>
 #endif
 
 #include <boost/format.hpp>
@@ -714,4 +718,66 @@ std::string replace_text(const std::string& source, const std::string& from, con
 
   return ret_val;
 }
+
+
+std::string get_my_hostname() {
+  char hostname[1024]  {'\0'};
+  
+#if defined(_WIN32) || defined(__APPLE__)
+  if (gethostname(hostname, sizeof(hostname)) < 0) {
+    char msg[1024];
+    (void)strerror_r(errno, msg, sizeof(msg));
+    log_error("Could not get hostname: %s", msg);
+    throw std::runtime_error("Could not get local hostname");
+  }
+#else
+  struct ifaddrs *ifa, *ifap;
+  int ret, family, addrlen;
+
+  if (getifaddrs(&ifa) != 0)
+    throw std::runtime_error("Could not get local host address: " + std::string(strerror(errno)));
+  for (ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
+    /* Skip interfaces that are not UP, do not have configured addresses, and loopback interface */
+    if ((ifap->ifa_addr == NULL) || (ifap->ifa_flags & IFF_LOOPBACK) || (!(ifap->ifa_flags & IFF_UP)))
+      continue;
+    
+    /* Only handle IPv4 and IPv6 addresses */
+    family = ifap->ifa_addr->sa_family;
+    if (family != AF_INET && family != AF_INET6)
+      continue;
+    
+    addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+    
+    /* Skip IPv6 link-local addresses */
+    if (family == AF_INET6) {
+      struct sockaddr_in6 *sin6;
+      
+      sin6 = (struct sockaddr_in6 *)ifap->ifa_addr;
+      if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) || IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
+        continue;
+    }
+    
+    ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname), NULL, 0, NI_NAMEREQD);
+    
+    if (ret == 0)
+      break;
+  }
+
+  if (ret != 0) {
+    if (ret != EAI_NONAME)
+      throw std::runtime_error("Could not get local host address: " + std::string(gai_strerror(ret)));
+  }
+#endif
+
+  return hostname;
 }
+
+bool is_local_host(const std::string &host) {
+  // TODO: Simple implementation for now, we may inprove this to analyze
+  // a given IP address or hostname against the local interfaces
+  return (host == "127.0.0.1" ||
+          host == "localhost" ||
+          host == get_my_hostname());
+}
+
+} // namespace

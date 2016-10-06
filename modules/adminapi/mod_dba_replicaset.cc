@@ -38,12 +38,10 @@
 #include <string>
 #include <random>
 #ifdef _WIN32
-#include <WinSock2.h>
 #define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
 #else
 #include <unistd.h>
 #include <sys/types.h>
-#include <ifaddrs.h>
 #endif
 
 using namespace std::placeholders;
@@ -58,60 +56,6 @@ std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
-
-static std::string get_my_hostname() {
-#if defined(_WIN32) || defined(__APPLE__)
-  char hostname[1024]  {'\0'};
-  if (gethostname(hostname, sizeof(hostname)) < 0) {
-    char msg[1024];
-    (void)strerror_r(errno, msg, sizeof(msg));
-    log_error("Could not get hostname: %s", msg);
-    throw std::runtime_error("Could not get local hostname");
-  }
-  return hostname;
-}
-#else
-  struct ifaddrs *ifa, *ifap;
-  char buf[1024] {'\0'};
-  int ret, family, addrlen;
-
-  if (getifaddrs(&ifa) != 0)
-    throw std::runtime_error("Could not get local host address: " + std::string(strerror(errno)));
-  for (ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
-    /* Skip interfaces that are not UP, do not have configured addresses, and loopback interface */
-    if ((ifap->ifa_addr == NULL) || (ifap->ifa_flags & IFF_LOOPBACK) || (!(ifap->ifa_flags & IFF_UP)))
-      continue;
-
-    /* Only handle IPv4 and IPv6 addresses */
-    family = ifap->ifa_addr->sa_family;
-    if (family != AF_INET && family != AF_INET6)
-      continue;
-
-    addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
-
-    /* Skip IPv6 link-local addresses */
-    if (family == AF_INET6) {
-      struct sockaddr_in6 *sin6;
-
-      sin6 = (struct sockaddr_in6 *)ifap->ifa_addr;
-      if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) || IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
-        continue;
-    }
-
-    ret = getnameinfo(ifap->ifa_addr, addrlen, buf, sizeof(buf), NULL, 0, NI_NAMEREQD);
-
-    if (ret == 0)
-      break;
-  }
-
-  if (ret != 0) {
-    if (ret != EAI_NONAME)
-      throw std::runtime_error("Could not get local host address: " + std::string(gai_strerror(ret)));
-  }
-
-  return buf;
-}
-#endif
 
 static std::string generate_password(int password_lenght);
 
