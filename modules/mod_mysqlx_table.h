@@ -38,7 +38,7 @@ namespace mysqlx {
 class Schema;
 
 /**
-* Represents a Table on an Schema, retrieved with a session created using mysqlx module.
+* $(TABLE_BRIEF)
 */
 class Table : public DatabaseObject, public std::enable_shared_from_this<Table> {
 public:

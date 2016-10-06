@@ -29,9 +29,9 @@ namespace mysh {
 namespace mysqlx {
 class NodeSession;
 /**
-* Handler for execution SQL statements, supports parameter binding.
+* $(SQLEXECUTE_BRIEF)
 *
-* This object should only be created by calling the sql function a NodeSession instance.
+* $(SQLEXECUTE_DETAIL)
 * \sa NodeSession
 */
 class SqlExecute : public Dynamic_object, public std::enable_shared_from_this<SqlExecute> {

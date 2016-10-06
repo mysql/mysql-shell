@@ -25,10 +25,15 @@
 #include "mod_mysqlx_table_update.h"
 #include "mod_mysqlx_table_select.h"
 
+#include "utils/utils_help.h"
+
 using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
+
+// Documentation of Table class
+REGISTER_HELP(TABLE_BRIEF, "Represents a Table on an Schema, retrieved with a session created using mysqlx module.");
 
 Table::Table(std::shared_ptr<Schema> owner, const std::string &name, bool is_view)
   : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view) {
@@ -52,32 +57,27 @@ void Table::init() {
 
 Table::~Table() {}
 
-#if DOXYGEN_CPP
+// Documentation of insert function
+REGISTER_HELP(TABLE_INSERT_BRIEF, "Creates a record insertion handler.");
+REGISTER_HELP(TABLE_INSERT_BRIEF1, "Creates a record insertion handler using a column list to insert records.");
+REGISTER_HELP(TABLE_INSERT_PARAM, "@param columns The column list that will determine the order of the values to be inserted on the table.");
+REGISTER_HELP(TABLE_INSERT_PARAM1, "@param col1 The first column name.");
+REGISTER_HELP(TABLE_INSERT_PARAM2, "@param col2 The second column name.");
+REGISTER_HELP(TABLE_INSERT_RETURN, "@return A TableInsert object.");
+REGISTER_HELP(TABLE_INSERT_DETAIL, "This function creates a TableInsert object which is a record insertion handler.");
+REGISTER_HELP(TABLE_INSERT_DETAIL1, "The TableInsert class has other functions that allow specifying the way the insertion occurs.");
+REGISTER_HELP(TABLE_INSERT_DETAIL2, "The insertion is done when the execute method is called on the handler.");
+
 /**
-* Creates a record insertion handler.
-* \param args contains initialization information about how the insertion will be done, possible values include:
-* \li If empty, will attempt doing the insert with the information used on the values function.
-* \li A list of columns can be defined, on this case the number of values used on the values function must match the number of columns defined.
-* \return A TableInsert object.
-*
-* This function creates a TableInsert object which is a record insertion handler.
-*
-* The TableInsert class has other functions that allow specifying the way the insertion occurs.
-*
-* The insertion is done when the execute method is called on the handler.
-*
-* \sa TableInsert
-*/
-#else
-/**
- * Creates a record insertion handler.
- * \return A TableInsert object.
+ * $(TABLE_INSERT_BRIEF)
  *
- * This function creates a TableInsert object which is a record insertion handler.
+ * $(TABLE_INSERT_RETURN)
  *
- * The TableInsert class has other functions that allow specifying the way the insertion occurs.
+ * $(TABLE_INSERT_DETAIL)
  *
- * The insertion is done when the execute method is called on the handler.
+ * $(TABLE_INSERT_DETAIL1)
+ *
+ * $(TABLE_INSERT_DETAIL2)
  *
  * \sa TableInsert
  */
@@ -87,19 +87,23 @@ TableInsert Table::insert() {}
 TableInsert Table::insert() {}
 #endif
 
+// Documentation of function
+REGISTER_HELP(TABLE__BRIEF, "");
+
 /**
-* Creates a record insertion handler using a column list to insert records.
-* \param columns The column list that will determine the order of the values to be inserted on the table.
-* \return A TableInsert object.
-*
-* This function creates a TableInsert object which is a record insertion handler.
-*
-* The TableInsert class has other functions that allow specifying the way the insertion occurs.
-*
-* The insertion is done when the execute method is called on the handler.
-*
-* \sa TableInsert
-*/
+ * $(TABLE_INSERT_BRIEF1)
+ *
+ * $(TABLE_INSERT_PARAM)
+ * $(TABLE_INSERT_RETURN)
+ *
+ * $(TABLE_INSERT_DETAIL)
+ *
+ * $(TABLE_INSERT_DETAIL1)
+ *
+ * $(TABLE_INSERT_DETAIL2)
+ *
+ * \sa TableInsert
+ */
 #if DOXYGEN_JS
 TableInsert Table::insert(List columns) {}
 #elif DOXYGEN_PY
@@ -107,40 +111,50 @@ TableInsert Table::insert(list columns) {}
 #endif
 
 /**
-* Creates a record insertion handler using a column list to insert records.
-* \param col1 The first column name.
-* \param col2 The second column name.
-* \return A TableInsert object.
-*
-* This function creates a TableInsert object which is a record insertion handler.
-*
-* The TableInsert class has other functions that allow specifying the way the insertion occurs.
-*
-* The insertion is done when the execute method is called on the handler.
-*
-* \sa TableInsert
-*/
+ * $(TABLE_INSERT_BRIEF1)
+ *
+ * $(TABLE_INSERT_PARAM1)
+ * $(TABLE_INSERT_PARAM2)
+ * $(TABLE_INSERT_RETURN)
+ *
+ * $(TABLE_INSERT_DETAIL)
+ *
+ * $(TABLE_INSERT_DETAIL1)
+ *
+ * $(TABLE_INSERT_DETAIL2)
+ *
+ * \sa TableInsert
+ */
 #if DOXYGEN_JS
 TableInsert Table::insert(String col1, String col2, ...) {}
 #elif DOXYGEN_PY
 TableInsert Table::insert(str col1, str col2, ...) {}
 #endif
-#endif
+
 shcore::Value Table::insert_(const shcore::Argument_list &args) {
   std::shared_ptr<TableInsert> tableInsert(new TableInsert(shared_from_this()));
 
   return tableInsert->insert(args);
 }
 
+// Documentation of update function
+REGISTER_HELP(TABLE_UPDATE_BRIEF, "Creates a record update handler.");
+REGISTER_HELP(TABLE_UPDATE_RETURN, "@return A TableUpdate object.");
+REGISTER_HELP(TABLE_UPDATE_DETAIL, "This function creates a TableUpdate object which is a record update handler.");
+REGISTER_HELP(TABLE_UPDATE_DETAIL1, "The TableUpdate class has several functions that allow specifying the way the update occurs, "\
+"if a searchCondition was specified, it will be set on the handler.");
+REGISTER_HELP(TABLE_UPDATE_DETAIL2, "The update is done when the execute function is called on the handler.");
+
 /**
-* Creates a record update handler.
-* \return A TableUpdate object.
+* $(TABLE_UPDATE_BRIEF)
 *
-* This function creates a TableUpdate object which is a record update handler.
+* $(TABLE_UPDATE_RETURN)
 *
-* The TableUpdate class has several functions that allow specifying the way the update occurs, if a searchCondition was specified, it will be set on the handler.
+* $(TABLE_UPDATE_DETAIL)
 *
-* The update is done when the execute function is called on the handler.
+* $(TABLE_UPDATE_DETAIL1)
+*
+* $(TABLE_UPDATE_DETAIL2)
 *
 * \sa TableUpdate
 */
@@ -155,15 +169,24 @@ shcore::Value Table::update_(const shcore::Argument_list &args) {
   return tableUpdate->update(args);
 }
 
+// Documentation of delete function
+REGISTER_HELP(TABLE_DELETE_BRIEF, "Creates a record deletion handler.");
+REGISTER_HELP(TABLE_DELETE_RETURN, "@return A TableDelete object.");
+REGISTER_HELP(TABLE_DELETE_DETAIL, "This function creates a TableDelete object which is a record deletion handler.");
+REGISTER_HELP(TABLE_DELETE_DETAIL1, "The TableDelete class has several functions that allow specifying what should be deleted and how, "\
+"if a searchCondition was specified, it will be set on the handler.");
+REGISTER_HELP(TABLE_DELETE_DETAIL2, "The deletion is done when the execute function is called on the handler.");
+
 /**
-* Creates a record deletion handler.
-* \return A TableDelete object.
+* $(TABLE_DELETE_BRIEF)
 *
-* This function creates a TableDelete object which is a record deletion handler.
+* $(TABLE_DELETE_RETURN)
 *
-* The TableDelete class has several functions that allow specifying what should be deleted and how, if a searchCondition was specified, it will be set on the handler.
+* $(TABLE_DELETE_DETAIL)
 *
-* The deletion is done when the execute function is called on the handler.
+* $(TABLE_DELETE_DETAIL1)
+*
+* $(TABLE_DELETE_DETAIL2)
 *
 * \sa TableDelete
 */
@@ -178,34 +201,31 @@ shcore::Value Table::delete_(const shcore::Argument_list &args) {
   return tableDelete->remove(args);
 }
 
-#if DOXYGEN_CPP
+// Documentation of select function
+REGISTER_HELP(TABLE_SELECT_BRIEF, "Creates a full record retrieval handler.");
+REGISTER_HELP(TABLE_SELECT_BRIEF1, "Creates a partial record retrieval handler.");
+REGISTER_HELP(TABLE_SELECT_PARAM, "@param columns A list of strings defining the columns to be retrieved.");
+REGISTER_HELP(TABLE_SELECT_RETURN, "@return A TableSelect object.");
+REGISTER_HELP(TABLE_SELECT_DETAIL, "This function creates a TableSelect object which is a record selection handler.");
+REGISTER_HELP(TABLE_SELECT_DETAIL1, "This handler will retrieve all the columns for each included record.");
+REGISTER_HELP(TABLE_SELECT_DETAIL2, "The TableSelect class has several functions that allow specifying what records should be retrieved "\
+"from the table, if a searchCondition was specified, it will be set on the handler.");
+REGISTER_HELP(TABLE_SELECT_DETAIL3, "The selection will be returned when the execute function is called on the handler.");
+REGISTER_HELP(TABLE_SELECT_DETAIL4, "This handler will retrieve only the columns specified on the columns list for each included record.");
+REGISTER_HELP(TABLE_SELECT_DETAIL5, "Each column on the list should be a string identifying the column name, alias is supported.");
+
 /**
-* Creates a full record retrieval handler.
-* \param args may contain an optional list of columns to be retrieved, if not specified all the columns on the table will be retrieved.
-* \return A TableSelect object.
+* $(TABLE_SELECT_BRIEF)
 *
-* This function creates a TableSelect object which is a record selection handler.
+* $(TABLE_SELECT_RETURN)
 *
-* This handler will retrieve all the columns for each included record.
+* $(TABLE_SELECT_DETAIL)
 *
-* The TableSelect class has several functions that allow specifying what records should be retrieved from the table, if a searchCondition was specified, it will be set on the handler.
+* $(TABLE_SELECT_DETAIL1)
 *
-* The selection will be returned when the execute function is called on the handler.
+* $(TABLE_SELECT_DETAIL2)
 *
-* \sa TableSelect
-*/
-#else
-/**
-* Creates a full record retrieval handler.
-* \return A TableSelect object.
-*
-* This function creates a TableSelect object which is a record selection handler.
-*
-* This handler will retrieve all the columns for each included record.
-*
-* The TableSelect class has several functions that allow specifying what records should be retrieved from the table, if a searchCondition was specified, it will be set on the handler.
-*
-* The selection will be returned when the execute function is called on the handler.
+* $(TABLE_SELECT_DETAIL3)
 *
 * \sa TableSelect
 */
@@ -216,19 +236,20 @@ TableSelect Table::select() {}
 #endif
 
 /**
-* Creates a partial record retrieval handler.
-* \param columns A list of strings defining the columns to be retrieved.
-* \return A TableSelect object.
+* $(TABLE_SELECT_BRIEF1)
 *
-* This function creates a TableSelect object which is a record selection handler.
+* $(TABLE_SELECT_PARAM)
+* $(TABLE_SELECT_RETURN)
 *
-* This handler will retrieve only the columns specified on the columns list for each included record.
+* $(TABLE_SELECT_DETAIL)
 *
-* Each column on the list should be a string identifying the column name, alias is supported.
+* $(TABLE_SELECT_DETAIL4)
 *
-* The TableSelect class has several functions that allow specifying what records should be retrieved from the table, if a searchCondition was specified, it will be set on the handler.
+* $(TABLE_SELECT_DETAIL5)
 *
-* The selection will be returned when the execute function is called on the handler.
+* $(TABLE_SELECT_DETAIL2)
+*
+* $(TABLE_SELECT_DETAIL3)
 *
 * \sa TableSelect
 */
@@ -237,16 +258,21 @@ TableSelect Table::select(List columns) {}
 #elif DOXYGEN_PY
 TableSelect Table::select(list columns) {}
 #endif
-#endif
+
 shcore::Value Table::select_(const shcore::Argument_list &args) {
   std::shared_ptr<TableSelect> tableSelect(new TableSelect(shared_from_this()));
 
   return tableSelect->select(args);
 }
 
+// Documentation of isView function
+REGISTER_HELP(TABLE_ISVIEW_BRIEF, "Indicates whether this Table object represents a View on the database.");
+REGISTER_HELP(TABLE_ISVIEW_RETURN, "@return True if the Table represents a View on the database, False if represents a Table.");
+
 /**
-* Indicates whether this Table object represents a View on the database.
-* \return True if the Table represents a View on the database, False if represents a Table.
+* $(TABLE_ISVIEW_BRIEF)
+*
+* $(TABLE_ISVIEW_RETURN)
 */
 #if DOXYGEN_JS
 Bool Table::isView() {}

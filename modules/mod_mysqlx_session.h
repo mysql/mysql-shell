@@ -40,14 +40,14 @@ class DatabaseObject;
 namespace mysqlx {
 class Schema;
 /**
-* Base functionality for Session classes through the X Protocol.
+* $(BASESESSION_BRIEF)
 *
-* This class encloses the core functionality to be made available on both the XSession and NodeSession classes, such functionality includes
+* $(BASESESSION_DETAIL)
 *
-* - Accessing available schemas.
-* - Schema management operations.
-* - Enabling/disabling warning generation.
-* - Retrieval of connection information.
+* $(BASESESSION_DETAIL1)
+* $(BASESESSION_DETAIL2)
+* $(BASESESSION_DETAIL3)
+* $(BASESESSION_DETAIL4)
 *
 * #### JavaScript Examples
 *
@@ -161,11 +161,11 @@ private:
 };
 
 /**
-* Enables interaction with an X Protocol enabled MySQL Product.
+* $(XSESSION_BRIEF)
 *
-* Note that this class inherits the behavior described on the BaseSession class.
+* $(XSESSION_DETAIL)
 *
-* In the future this class will be improved to support interacting not only with MySQL Server but with other products.
+* $(XSESSION_DETAIL1)
 *
 * \sa BaseSession
 */
@@ -181,9 +181,9 @@ public:
 };
 
 /**
-* Enables interaction with an X Protocol enabled MySQL Server, this includes SQL Execution.
+* $(NODESESSION_BRIEF)
 *
-* Note that this class inherits the behavior described on the BaseSession class.
+* $(NODESESSION_DETAIL)
 *
 * \sa BaseSession
 */

@@ -44,6 +44,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "utils/utils_help.h"
+
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
@@ -70,13 +72,34 @@ REGISTER_OBJECT(mysqlx, IndexType);
 #define strcasecmp _stricmp
 #endif
 
+// Documentation of BaseSession class
+REGISTER_HELP(BASESESSION_BRIEF, "Base functionality for Session classes through the X Protocol.");
+REGISTER_HELP(BASESESSION_DETAIL, "This class encloses the core functionality to be made available on both the XSession and "\
+"NodeSession classes, such functionality includes");
+REGISTER_HELP(BASESESSION_DETAIL1, "@li Accessing available schemas.");
+REGISTER_HELP(BASESESSION_DETAIL2, "@li Schema management operations.");
+REGISTER_HELP(BASESESSION_DETAIL3, "@li Enabling/disabling warning generation.");
+REGISTER_HELP(BASESESSION_DETAIL4, "@li Retrieval of connection information.");
+
+// Documentation of XSession class
+REGISTER_HELP(XSESSION_BRIEF, "Enables interaction with an X Protocol enabled MySQL Product.");
+REGISTER_HELP(XSESSION_DETAIL, "Note that this class inherits the behavior described on the BaseSession class.");
+REGISTER_HELP(XSESSION_DETAIL1, "In the future this class will be improved to support interacting not only with MySQL Server "\
+"but with other products.");
+
+// Documentation of NodeSession class
+REGISTER_HELP(NODESESSION_BRIEF, "Enables interaction with an X Protocol enabled MySQL Server, this includes SQL Execution.");
+REGISTER_HELP(NODESESSION_DETAIL, "Note that this class inherits the behavior described on the BaseSession class.");
+
 BaseSession::BaseSession()
   : _case_sensitive_table_names(false) {
   init();
 }
 
+// Documentation of isOpen function
+REGISTER_HELP(BASESESSION_ISOPEN_BRIEF, "Verifies if the session is still open.");
 /**
-* \brief Verifies if the session is still open.
+* $(BASESESSION_ISOPEN_BRIEF)
 */
 #if DOXYGEN_JS
 Bool BaseSession::isOpen() {}
@@ -170,9 +193,15 @@ bool BaseSession::table_name_compare(const std::string &n1, const std::string &n
     return strcasecmp(n1.c_str(), n2.c_str()) == 0;
 }
 
+// Documentation of close function
+REGISTER_HELP(BASESESSION_CLOSE_BRIEF, "Closes the session.");
+REGISTER_HELP(BASESESSION_CLOSE_DETAIL, "After closing the session it is still possible to make read only operation "\
+"to gather metadata info, like getTable(name) or getSchemas().");
+
 /**
-* \brief Closes the session.
-* After closing the session it is still possible to make read only operation to gather metadata info, like getTable(name) or getSchemas().
+* $(BASESESSION_CLOSE_BRIEF)
+*
+* $(BASESESSION_CLOSE_DETAIL)
 */
 #if DOXYGEN_JS
 Undefined BaseSession::close() {}
@@ -215,15 +244,19 @@ Value BaseSession::sql(const Argument_list &args) {
   return ret_val;
 }
 
-//! Creates a schema on the database and returns the corresponding object.
-#if DOXYGEN_CPP
-//! \param args should contain a string value indicating the schema name.
-#else
-//! \param name A string value indicating the schema name.
-#endif
+// Documentation of createSchema function
+REGISTER_HELP(BASESESSION_CREATESCHEMA_BRIEF, "Creates a schema on the database and returns the corresponding object.");
+REGISTER_HELP(BASESESSION_CREATESCHEMA_PARAM, "@param name A string value indicating the schema name.");
+REGISTER_HELP(BASESESSION_CREATESCHEMA_RETURN, "@return The created schema object.");
+REGISTER_HELP(BASESESSION_CREATESCHEMA_EXCEPTION, "@exception An exception is thrown if an error occurs creating the XSession.");
+
 /**
-* \return The created schema object.
-* \exception An exception is thrown if an error occurs creating the XSession.
+* $(BASESESSION_CREATESCHEMA_BRIEF)
+*
+* $(BASESESSION_CREATESCHEMA_PARAM)
+* $(BASESESSION_CREATESCHEMA_RETURN)
+*
+* $(BASESESSION_CREATESCHEMA_EXCEPTION)
 */
 #if DOXYGEN_JS
 Schema BaseSession::createSchema(String name) {}
@@ -249,16 +282,25 @@ Value BaseSession::create_schema(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+// Documentation of startTransaction function
+REGISTER_HELP(BASESESSION_STARTTRANSACTION_BRIEF, "Starts a transaction context on the server.");
+REGISTER_HELP(BASESESSION_STARTTRANSACTION_RETURN, "@return A SqlResult object.");
+REGISTER_HELP(BASESESSION_STARTTRANSACTION_DETAIL, "Calling this function will turn off the autocommit mode on the server.");
+REGISTER_HELP(BASESESSION_STARTTRANSACTION_DETAIL1, "All the operations executed after calling this function will take place only when commit() is called.");
+REGISTER_HELP(BASESESSION_STARTTRANSACTION_DETAIL2, "All the operations executed after calling this function, will be discarded is rollback() is called.");
+REGISTER_HELP(BASESESSION_STARTTRANSACTION_DETAIL3, "When commit() or rollback() are called, the server autocommit mode "\
+"will return back to it's state before calling startTransaction().");
+
 /**
-* Starts a transaction context on the server.
-* \return A SqlResult object.
-* Calling this function will turn off the autocommit mode on the server.
+* $(BASESESSION_STARTTRANSACTION_BRIEF)
 *
-* All the operations executed after calling this function will take place only when commit() is called.
+* $(BASESESSION_STARTTRANSACTION_RETURN)
 *
-* All the operations executed after calling this function, will be discarded is rollback() is called.
+* $(BASESESSION_STARTTRANSACTION_DETAIL)
 *
-* When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
+* $(BASESESSION_STARTTRANSACTION_DETAIL1)
+* $(BASESESSION_STARTTRANSACTION_DETAIL2)
+* $(BASESESSION_STARTTRANSACTION_DETAIL3)
 */
 #if DOXYGEN_JS
 Result BaseSession::startTransaction() {}
@@ -271,13 +313,20 @@ shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args) {
   return executeStmt("sql", "start transaction", false, shcore::Argument_list());
 }
 
+// Documentation of commit function
+REGISTER_HELP(BASESESSION_COMMIT_BRIEF, "Commits all the operations executed after a call to startTransaction().");
+REGISTER_HELP(BASESESSION_COMMIT_RETURN, "@return A SqlResult object.");
+REGISTER_HELP(BASESESSION_COMMIT_DETAIL, "All the operations executed after calling startTransaction() will take place when this function is called.");
+REGISTER_HELP(BASESESSION_COMMIT_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
+
 /**
-* Commits all the operations executed after a call to startTransaction().
-* \return A SqlResult object.
+* $(BASESESSION_COMMIT_BRIEF)
 *
-* All the operations executed after calling startTransaction() will take place when this function is called.
+* $(BASESESSION_COMMIT_RETURN)
 *
-* The server autocommit mode will return back to it's state before calling startTransaction().
+* $(BASESESSION_COMMIT_DETAIL)
+*
+* $(BASESESSION_COMMIT_DETAIL1)
 */
 #if DOXYGEN_JS
 Result BaseSession::commit() {}
@@ -290,13 +339,20 @@ shcore::Value BaseSession::commit(const shcore::Argument_list &args) {
   return executeStmt("sql", "commit", false, shcore::Argument_list());
 }
 
+// Documentation of rollback function
+REGISTER_HELP(BASESESSION_ROLLBACK_BRIEF, "Discards all the operations executed after a call to startTransaction().");
+REGISTER_HELP(BASESESSION_ROLLBACK_RETURN, "@return A SqlResult object.");
+REGISTER_HELP(BASESESSION_ROLLBACK_DETAIL, "All the operations executed after calling startTransaction() will be discarded when this function is called.");
+REGISTER_HELP(BASESESSION_ROLLBACK_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
+
 /**
-* Discards all the operations executed after a call to startTransaction().
-* \return A SqlResult object.
+* $(BASESESSION_ROLLBACK_BRIEF)
 *
-* All the operations executed after calling startTransaction() will be discarded when this function is called.
+* $(BASESESSION_ROLLBACK_RETURN)
 *
-* The server autocommit mode will return back to it's state before calling startTransaction().
+* $(BASESESSION_ROLLBACK_DETAIL)
+*
+* $(BASESESSION_ROLLBACK_DETAIL1)
 */
 #if DOXYGEN_JS
 Result BaseSession::rollback() {}
@@ -343,10 +399,15 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
   return ret_val;
 }
 
+// Documentation of getDefaultSchema function
+REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the Schema configured as default for the session.");
+REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_RETURN, "@return A Schema object or Null");
+
 #if DOXYGEN_JS || DOXYGEN_PY
 /**
-* Retrieves the Schema configured as default for the session.
-* \return A Schema object or Null
+* $(BASESESSION_GETDEFAULTSCHEMA_BRIEF)
+*
+* $(BASESESSION_GETDEFAULTSCHEMA_RETURN)
 */
 #if DOXYGEN_JS
 Schema BaseSession::getDefaultSchema() {}
@@ -354,9 +415,14 @@ Schema BaseSession::getDefaultSchema() {}
 Schema BaseSession::get_default_schema() {}
 #endif
 
+// Documentation of getUri function
+REGISTER_HELP(BASESESSION_GETURI_BRIEF, "Retrieves the connection data for this session in string format.");
+REGISTER_HELP(BASESESSION_GETURI_RETURN, "@return A string representing the connection data.");
+
 /**
-* Retrieves the connection data for this session in string format.
-* \return A string representing the connection data.
+* $(BASESESSION_GETURI_BRIEF)
+*
+* $(BASESESSION_GETURI_RETURN)
 */
 #if DOXYGEN_JS
 String BaseSession::getUri() {}
@@ -402,15 +468,18 @@ void BaseSession::_retrieve_session_info(std::string &current_schema,
   CATCH_AND_TRANSLATE();
 }
 
-//! Retrieves a Schema object from the current session through it's name.
-#if DOXYGEN_CPP
-//! \param args should contain the name of the Schema object to be retrieved.
-#else
-//! \param name The name of the Schema object to be retrieved.
-#endif
+// Documentation of getSchema function
+REGISTER_HELP(BASESESSION_GETSCHEMA_BRIEF, "Retrieves a Schema object from the current session through it's name.");
+REGISTER_HELP(BASESESSION_GETSCHEMA_PARAM, "@param name The name of the Schema object to be retrieved.");
+REGISTER_HELP(BASESESSION_GETSCHEMA_RETURN, "@return The Schema object with the given name.");
+REGISTER_HELP(BASESESSION_GETSCHEMA_EXCEPTION, "@exception An exception is thrown if the given name is not a valid schema on the XSession.");
+
 /**
-* \return The Schema object with the given name.
-* \exception An exception is thrown if the given name is not a valid schema on the XSession.
+* $(BASESESSION_GETSCHEMA_BRIEF)
+*
+* $(BASESESSION_GETSCHEMA_PARAM)
+* $(BASESESSION_GETSCHEMA_RETURN)
+* $(BASESESSION_GETSCHEMA_EXCEPTION)
 * \sa Schema
 */
 #if DOXYGEN_JS
@@ -441,9 +510,13 @@ shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const {
   return ret_val;
 }
 
+// Documentation of  function
+REGISTER_HELP(BASESESSION_GETSCHEMAS_BRIEF, "Retrieves the Schemas available on the session.");
+REGISTER_HELP(BASESESSION_GETSCHEMAS_RETURN, "@return A List containing the Schema objects available on the session.");
 /**
-* Retrieves the Schemas available on the session.
-* \return A List containing the Schema objects available o the session.
+* $(BASESESSION_GETSCHEMAS_BRIEF)
+*
+* $(BASESESSION_GETSCHEMAS_RETURN)
 */
 #if DOXYGEN_JS
 List BaseSession::getSchemas() {}
@@ -494,10 +567,17 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
   return executeAdminCommand(command, false, command_args);
 }
 
+// Documentation of dropSchema function
+REGISTER_HELP(BASESESSION_DROPSCHEMA_BRIEF, "Drops the schema with the specified name.");
+REGISTER_HELP(BASESESSION_DROPSCHEMA_RETURN, "@return A SqlResult object if succeeded.");
+REGISTER_HELP(BASESESSION_DROPSCHEMA_EXCEPTION, "@exception An error is raised if the schema did not exist.");
+
 /**
-* Drops the schema with the specified name.
-* \return A SqlResult object if succeeded.
-* \exception An error is raised if the schema did not exist.
+* $(BASESESSION_DROPSCHEMA_BRIEF)
+*
+* $(BASESESSION_DROPSCHEMA_RETURN)
+*
+* $(BASESESSION_DROPSCHEMA_EXCEPTION)
 */
 #if DOXYGEN_JS
 Result BaseSession::dropSchema(String name) {}
@@ -522,21 +602,18 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-#if DOXYGEN_CPP
+// Documentation of dropTable function
+REGISTER_HELP(BASESESSION_DROPTABLE_BRIEF, "Drops a table from the specified schema.");
+REGISTER_HELP(BASESESSION_DROPTABLE_RETURN, "@return A SqlResult object if succeeded.");
+REGISTER_HELP(BASESESSION_DROPTABLE_EXCEPTION, "@exception An error is raised if the table did not exist.");
+
+
 /**
-* Drops a table, view or collection from a specific Schema.
-* \param args contains the identification data for the object to be deleted.
-* \param type indicates the object type to be deleted
+* $(BASESESSION_DROPTABLE_BRIEF)
 *
-* args must contain two string entries: schema and table/view/collection name.
+* $(BASESESSION_DROPTABLE_RETURN)
 *
-* type must be either "Table", "View", or "Collection"
-*/
-#else
-/**
-* Drops a table from the specified schema.
-* \return A SqlResult object if succeeded.
-* \exception An error is raised if the table did not exist.
+* $(BASESESSION_DROPTABLE_EXCEPTION)
 */
 #if DOXYGEN_JS
 Result BaseSession::dropTable(String schema, String name) {}
@@ -544,10 +621,17 @@ Result BaseSession::dropTable(String schema, String name) {}
 Result BaseSession::drop_table(str schema, str name) {}
 #endif
 
+// Documentation of dropCollection function
+REGISTER_HELP(BASESESSION_DROPCOLLECTION_BRIEF, "Drops a collection from the specified schema.");
+REGISTER_HELP(BASESESSION_DROPCOLLECTION_RETURN, "@return A SqlResult object if succeeded.");
+REGISTER_HELP(BASESESSION_DROPCOLLECTION_EXCEPTION, "@exception An error is raised if the collection did not exist.");
+
 /**
-* Drops a collection from the specified schema.
-* \return A SqlResult object if succeeded.
-* \exception An error is raised if the collection did not exist.
+* $(BASESESSION_DROPCOLLECTION_BRIEF)
+*
+* $(BASESESSION_DROPCOLLECTION_RETURN)
+*
+* $(BASESESSION_DROPCOLLECTION_EXCEPTION)
 */
 #if DOXYGEN_JS
 Result BaseSession::dropCollection(String schema, String name) {}
@@ -555,17 +639,24 @@ Result BaseSession::dropCollection(String schema, String name) {}
 Result BaseSession::drop_collection(str schema, str name) {}
 #endif
 
+// Documentation of dropView function
+REGISTER_HELP(BASESESSION_DROPVIEW_BRIEF, "Drops a view from the specified schema.");
+REGISTER_HELP(BASESESSION_DROPVIEW_RETURN, "@return A SqlResult object if succeeded.");
+REGISTER_HELP(BASESESSION_DROPVIEW_EXCEPTION, "@exception An error is raised if the view did not exist.");
+
 /**
-* Drops a view from the specified schema.
-* \return A SqlResult object if succeeded.
-* \exception An error is raised if the view did not exist.
+* $(BASESESSION_DROPVIEW_BRIEF)
+*
+* $(BASESESSION_DROPVIEW_RETURN)
+*
+* $(BASESESSION_DROPVIEW_EXCEPTION)
 */
 #if DOXYGEN_JS
 Result BaseSession::dropView(String schema, String name) {}
 #elif DOXYGEN_PY
 Result BaseSession::drop_view(str schema, str name) {}
 #endif
-#endif
+
 shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args, const std::string& type) {
   std::string function = get_function_name("drop" + type);
 
@@ -716,20 +807,27 @@ std::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argumen
   return connect_session(args, mysh::SessionType::Node);
 }
 
-//! Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.
-#if DOXYGEN_CPP
-//! \param args should contain a string with the SQL statement to be executed.
-#else
-//! \param sql A string containing the SQL statement to be executed.
-#endif
+// Documentation of sql function
+REGISTER_HELP(BASESESSION_SQL_BRIEF, "Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.");
+REGISTER_HELP(BASESESSION_SQL_PARAM, "@param sql A string containing the SQL statement to be executed.");
+REGISTER_HELP(BASESESSION_SQL_RETURN, "@return A SqlExecute object.");
+REGISTER_HELP(BASESESSION_SQL_DETAIL, "This method creates an SqlExecute object which is a SQL execution handler.");
+REGISTER_HELP(BASESESSION_SQL_DETAIL1, "The SqlExecute class has functions that allow defining the way the statement will be executed "\
+"and allows doing parameter binding.");
+REGISTER_HELP(BASESESSION_SQL_DETAIL2, "The received SQL is set on the execution handler.");
+
 /**
-* \return A SqlExecute object.
+* $(BASESESSION_SQL_BRIEF)
 *
-* This method creates an SqlExecute object which is a SQL execution handler.
+* $(BASESESSION_SQL_PARAM)
 *
-* The SqlExecute class has functions that allow defining the way the statement will be executed and allows doing parameter binding.
+* $(BASESESSION_SQL_RETURN)
 *
-* The received SQL is set on the execution handler.
+* $(BASESESSION_SQL_DETAIL)
+*
+* $(BASESESSION_SQL_DETAIL1)
+*
+* $(BASESESSION_SQL_DETAIL2)
 *
 * JavaScript Example
 * \code{.js}
@@ -749,26 +847,21 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args) {
   return sql_execute->sql(args);
 }
 
-#if DOXYGEN_CPP
+// Documentation of getCurrentSchema function
+REGISTER_HELP(BASESESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the Schema set as active on the session.");
+REGISTER_HELP(BASESESSION_GETCURRENTSCHEMA_RETURN, "@return A Schema object or Null");
+
 /**
-* Use this function to retrieve an valid member of this class exposed to the scripting languages.
-* \param prop : A string containing the name of the member to be returned
+* $(BASESESSION_GETCURRENTSCHEMA_BRIEF)
 *
-* This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
-*
-* \li currentSchema: returns Schema object representing the active schema on the session. If none is active, returns Null.
-*/
-#else
-/**
-* Retrieves the Schema set as active on the session.
-* \return A Schema object or Null
+* $(BASESESSION_GETCURRENTSCHEMA_RETURN)
 */
 #if DOXYGEN_JS
 Schema NodeSession::getCurrentSchema() {}
 #elif DOXYGEN_PY
 Schema NodeSession::get_current_schema() {}
 #endif
-#endif
+
 Value NodeSession::get_member(const std::string &prop) const {
   Value ret_val;
 
@@ -788,9 +881,14 @@ Value NodeSession::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+// Documentation of quoteName function
+REGISTER_HELP(BASESESSION_QUOTENAME_BRIEF, "Escapes the passed identifier.");
+REGISTER_HELP(BASESESSION_QUOTENAME_RETURN, "@return A String containing the escaped identifier.");
+
 /**
-* Escapes the passed identifier.
-* \return A String containing the escaped identifier.
+* $(BASESESSION_QUOTENAME_BRIEF)
+*
+* $(BASESESSION_QUOTENAME_RETURN)
 */
 #if DOXYGEN_JS
 String NodeSession::quoteName(String id) {}
@@ -808,17 +906,21 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args) {
   return shcore::Value(get_quoted_name(id));
 }
 
-//! Sets the current schema for this session, and returns the schema object for it.
-#if DOXYGEN_CPP
-//! \param args should contain the name of the new schema to switch to.
-#else
-//! \param name the name of the new schema to switch to.
-#endif
+// Documentation of setCurrentSchema function
+REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_BRIEF, "Sets the current schema for this session, and returns the schema object for it.");
+REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_PARAM, "@param name the name of the new schema to switch to.");
+REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_RETURN, "@return the Schema object for the new schema.");
+REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_DETAIL, "At the database level, this is equivalent at issuing the following SQL query:");
+REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_DETAIL1, "  use <new-default-schema>;");
+
 /**
-* \return the Schema object for the new schema.
+* $(BASESESSION_SETCURRENTSCHEMA_BRIEF)
 *
-* At the database level, this is equivalent at issuing the following SQL query:
-*   use <new-default-schema>;
+* $(BASESESSION_SETCURRENTSCHEMA_PARAM)
+* $(BASESESSION_SETCURRENTSCHEMA_RETURN)
+*
+* $(BASESESSION_SETCURRENTSCHEMA_DETAIL)
+* $(BASESESSION_SETCURRENTSCHEMA_DETAIL1)
 */
 #if DOXYGEN_JS
 Schema NodeSession::setCurrentSchema(String name) {}
