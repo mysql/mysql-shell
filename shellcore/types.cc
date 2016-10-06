@@ -18,6 +18,7 @@
  */
 
 #include "shellcore/types.h"
+#include "utils/utils_general.h"
 #include <stdexcept>
 #include <cstdarg>
 #include <boost/format.hpp>
@@ -1226,58 +1227,71 @@ double Value::as_double() const {
 const std::string &Argument_list::string_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type != String)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be a string") % (i + 1)).str());
-  return *at(i).value.s;
+  switch (at(i).type) {
+    case String:
+      return *at(i).value.s;
+    default:
+      throw Exception::type_error((boost::format("Argument #%1% is expected to be a string") % (i + 1)).str());
+  };
 }
 
 bool Argument_list::bool_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type != Bool)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be a bool") % (i + 1)).str());
-  return at(i).value.b;
+  switch (at(i).type) {
+    case Bool:
+      return at(i).value.b;
+    case Integer:
+      return at(i).value.i != 0;
+    case UInteger:
+      return at(i).value.ui != 0;
+    case Float:
+      return at(i).value.d != 0.0;
+    default:
+      throw Exception::type_error((boost::format("Argument #%1% is expected to be a bool") % (i + 1)).str());
+  }
 }
 
 int64_t Argument_list::int_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type != Integer)
+  if (at(i).type == Integer)
+    return at(i).value.i;
+  else if (at(i).type == UInteger && at(i).value.ui <= std::numeric_limits<int64_t>::max())
+    return static_cast<int64_t>(at(i).value.ui);
+  else if (at(i).type == Bool)
+    return at(i).value.b ? 1 : 0;
+  else
     throw Exception::type_error((boost::format("Argument #%1% is expected to be an int") % (i + 1)).str());
-  return at(i).value.i;
 }
 
 uint64_t Argument_list::uint_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-
-  uint64_t ret_val;
-
   if (at(i).type == UInteger)
-    ret_val = at(i).value.ui;
+    return at(i).value.ui;
   else if (at(i).type == Integer && at(i).value.i >= 0)
-    ret_val = (uint64_t)at(i).value.i;
+    return static_cast<uint64_t>(at(i).value.i);
+  else if (at(i).type == Bool)
+    return at(i).value.b ? 1 : 0;
   else
     throw Exception::type_error((boost::format("Argument #%1% is expected to be an unsigned int") % (i + 1)).str());
-
-  return ret_val;
 }
 
 double Argument_list::double_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
 
-  double ret_val;
   if (at(i).type == Float)
-    ret_val = at(i).value.d;
+    return at(i).value.d;
   else if (at(i).type == Integer)
-    ret_val = (double)at(i).value.i;
+    return static_cast<double>(at(i).value.i);
   else if (at(i).type == UInteger)
-    ret_val = (double)at(i).value.ui;
+    return static_cast<double>(at(i).value.ui);
+  else if (at(i).type == Bool)
+    return at(i).value.b ? 1.0 : 0.0;
   else
     throw Exception::type_error((boost::format("Argument #%1% is expected to be a double") % (i + 1)).str());
-
-  return ret_val;
 }
 
 std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const {
@@ -1319,7 +1333,140 @@ void Argument_list::ensure_at_least(unsigned int minc, const char *context) cons
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %3%") % context % minc % size()).str());
 }
 
-void Object_bridge::append_json(JSON_dumper& dumper) const {
+//--
+
+Argument_map::Argument_map() {
+
+}
+
+Argument_map::Argument_map(const Value::Map_type &map)
+  : _map(map) {
+}
+
+const std::string &Argument_map::string_at(const std::string &key) const {
+  Value v(at(key));
+  switch (v.type) {
+    case String:
+      return *v.value.s;
+    default:
+      throw Exception::type_error(std::string("Argument ").append(key).append(" is expected to be a string"));
+  }
+}
+
+bool Argument_map::bool_at(const std::string &key) const {
+  Value value(at(key));
+  switch (value.type) {
+    case Bool:
+      return value.value.b;
+    case Integer:
+      return value.value.i != 0;
+    case UInteger:
+      return value.value.ui != 0;
+    case Float:
+      return value.value.d != 0.0;
+    default:
+      throw Exception::type_error(std::string("Argument '"+key+"' is expected to be a bool"));
+  }
+}
+
+int64_t Argument_map::int_at(const std::string &key) const {
+  Value value(at(key));
+  if (value.type == Integer)
+    return value.value.i;
+  else if (value.type == UInteger && value.value.ui <= std::numeric_limits<int64_t>::max())
+    return static_cast<int64_t>(value.value.ui);
+  else if (value.type == Float)
+    return static_cast<int64_t>(value.value.d);
+  else if (value.type == Bool)
+    return value.value.b ? 1 : 0;
+  else
+    throw Exception::type_error("Argument '"+key+"' is expected to be an int");
+}
+
+uint64_t Argument_map::uint_at(const std::string &key) const {
+  Value value(at(key));
+  if (value.type == UInteger)
+    return value.value.ui;
+  else if (value.type == Integer && value.value.i >= 0)
+    return static_cast<uint64_t>(value.value.i);
+  else if (value.type == Float)
+    return static_cast<int64_t>(value.value.d);
+  else if (value.type == Bool)
+    return value.value.b ? 1 : 0;
+  else
+    throw Exception::type_error("Argument '"+key+"' is expected to be an unsigned int");
+}
+
+double Argument_map::double_at(const std::string &key) const {
+  Value value(at(key));
+  if (value.type == Float)
+    return value.value.d;
+  else if (value.type == Integer)
+    return static_cast<double>(value.value.i);
+  else if (value.type == UInteger)
+    return static_cast<double>(value.value.ui);
+  else if (value.type == Bool)
+    return value.value.b ? 1.0 : 0.0;
+  else
+    throw Exception::type_error("Argument '"+key+"' is expected to be a double");
+}
+
+std::shared_ptr<Object_bridge> Argument_map::object_at(const std::string &key) const {
+  Value value(at(key));
+  if (value.type != Object)
+    throw Exception::type_error("Argument '"+key+"' is expected to be an object");
+  return *value.value.o;
+}
+
+std::shared_ptr<Value::Map_type> Argument_map::map_at(const std::string &key) const {
+  Value value(at(key));
+  if (value.type != Map)
+    throw Exception::type_error("Argument '"+key+"' is expected to be a map");
+  return *value.value.map;
+}
+
+std::shared_ptr<Value::Array_type> Argument_map::array_at(const std::string &key) const {
+  Value value(at(key));
+  if (value.type != Array)
+    throw Exception::type_error("Argument '"+key+"' is expected to be an array");
+  return *value.value.array;
+}
+
+void Argument_map::ensure_keys(const std::set<std::string> &mandatory_keys,
+                               const std::set<std::string> &optional_keys,
+                               const char *context) const {
+  std::vector<std::string> invalid_keys;
+  std::set<std::string> missing_keys(mandatory_keys);
+  for (auto k : _map) {
+    if (mandatory_keys.find(k.first) != mandatory_keys.end()) {
+      missing_keys.erase(k.first);
+    } else if (optional_keys.find(k.first) != optional_keys.end()) {
+      // nop
+    } else
+      invalid_keys.push_back(k.first);
+  }
+  std::string msg;
+  if (!invalid_keys.empty() && !missing_keys.empty()) {
+    msg.append("Invalid and missing values in ").append(context).append(" ");
+    msg.append("(invalid: ").append(join_strings(invalid_keys, ", "));
+    msg.append("), (missing: ").append(join_strings(missing_keys, ", "));
+    msg.append(")");
+  } else if (!invalid_keys.empty()) {
+    msg.append("Missing values in ").append(context).append(" ");
+    msg.append(join_strings(invalid_keys, ", "));
+  } else if (!missing_keys.empty()) {
+    msg.append("Invalid values in ").append(context).append(" ");
+    msg.append(join_strings(invalid_keys, ", "));
+  }
+  if (!msg.empty())
+    throw Exception::argument_error(msg);
+}
+
+
+//--
+
+void Object_bridge::append_json(JSON_dumper& dumper) const
+{
   dumper.start_object();
   dumper.append_string("class", class_name());
   dumper.end_object();

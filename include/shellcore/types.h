@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include <string>
 #include <stdexcept>
 
@@ -119,6 +120,7 @@ struct SHCORE_PUBLIC Value {
     iterator find(const std::string &k) { return _map.find(k); }
 
     void erase(const std::string &k) { _map.erase(k); }
+    void clear() { _map.clear(); }
 
     const_iterator begin() const { return _map.begin(); }
     iterator begin() { return _map.begin(); }
@@ -126,6 +128,7 @@ struct SHCORE_PUBLIC Value {
     const_iterator end() const { return _map.end(); }
     iterator end() { return _map.end(); }
 
+    const container_type::mapped_type& at(const std::string &k) const { return _map.at(k); }
     container_type::mapped_type& operator [](const std::string &k) { return _map[k]; }
     bool operator == (const Map_type &other) const { return _map == other._map; }
 
@@ -239,20 +242,19 @@ public:
   int64_t int_at(unsigned int i) const;
   uint64_t uint_at(unsigned int i) const;
   double double_at(unsigned int i) const;
-  
+
   template<class C>
-  std::shared_ptr<C> object_at(unsigned int i) const{
+  std::shared_ptr<C> object_at(unsigned int i) const {
     std::shared_ptr<C> ret_val;
-    try{
+    try {
       auto object = object_at(i);
       ret_val = std::dynamic_pointer_cast<C>(object);
-    }catch(...){
+    } catch(...) {
       // We don't care, return value will be empty
     }
-    
     return ret_val;
   }
-  
+
   std::shared_ptr<Object_bridge> object_at(unsigned int i) const;
   std::shared_ptr<Value::Map_type> map_at(unsigned int i) const;
   std::shared_ptr<Value::Array_type> array_at(unsigned int i) const;
@@ -273,6 +275,44 @@ public:
   std::vector<Value>::const_iterator end() const { return _args.end(); }
 private:
   std::vector<Value> _args;
+};
+
+class SHCORE_PUBLIC Argument_map
+{
+public:
+  Argument_map();
+  Argument_map(const Value::Map_type &map);
+
+  const std::string &string_at(const std::string &key) const;
+  bool bool_at(const std::string &key) const;
+  int64_t int_at(const std::string &key) const;
+  uint64_t uint_at(const std::string &key) const;
+  double double_at(const std::string &key) const;
+  std::shared_ptr<Object_bridge> object_at(const std::string &key) const;
+  std::shared_ptr<Value::Map_type> map_at(const std::string &key) const;
+  std::shared_ptr<Value::Array_type> array_at(const std::string &key) const;
+  template<class C>
+  std::shared_ptr<C> object_at(const std::string &key) const {
+    std::shared_ptr<C> ret_val;
+    try {
+      auto object = object_at(key);
+      ret_val = std::dynamic_pointer_cast<C>(object);
+    } catch(...) {
+      // We don't care, return value will be empty
+    }
+    return ret_val;
+  }
+
+  void ensure_keys(const std::set<std::string> &mandatory_keys,
+                   const std::set<std::string> &optional_keys,
+                   const char *context) const;
+
+  size_t size() const { return _map.size(); }
+  const Value &at(const std::string &key) const { return _map.at(key); }
+  Value &operator [](const std::string &key) { return _map[key]; }
+  void clear() { _map.clear(); }
+private:
+  Value::Map_type _map;
 };
 
 template<class T> struct value_type_for_native {};

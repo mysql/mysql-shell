@@ -23,6 +23,8 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
+using namespace ::testing;
+
 namespace shcore {
 namespace tests {
 TEST(ValueTests, SimpleInt) {
@@ -345,5 +347,74 @@ TEST(Parsing, Array) {
   Value::Array_type_ref array2 = v2.as_array();
   EXPECT_EQ(array2->size(), 0);
 }
+
+TEST(Argument_map, all) {
+  {
+    Argument_map args;
+
+    args["int"] = Value(-1234);
+    args["bool"] = Value(true);
+    args["uint"] = Value(4321);
+    args["str"] = Value("string");
+    args["flt"] = Value(1.234);
+    args["vec"] = Value::new_array();
+    args["map"] = Value::new_map();
+
+    ASSERT_NO_THROW(
+      args.ensure_keys({"int", "bool", "uint", "str", "flt", "vec"}, {"map"}, "test1"));
+
+    ASSERT_THROW(
+      args.ensure_keys({"int", "bool", "uint", "str", "flt"}, {"map"}, "test2"),
+      Exception);
+
+    ASSERT_THROW(
+      args.ensure_keys({"int", "bool", "uint", "str", "flt", "bla"}, {"map"}, "test3"),
+      Exception);
+
+    ASSERT_NO_THROW(
+      args.ensure_keys({"int", "bool", "uint", "str", "flt", "vec"}, {"map", "bla"}, "test2"));
+
+    EXPECT_EQ(args.bool_at("bool"), true);
+    EXPECT_EQ(args.bool_at("int"), true);
+    EXPECT_EQ(args.bool_at("uint"), true);
+    EXPECT_THROW(args.bool_at("str"), Exception);
+    EXPECT_EQ(args.bool_at("flt"), true);
+    EXPECT_THROW(args.bool_at("vec"), Exception);
+    EXPECT_THROW(args.bool_at("map"), Exception);
+
+    EXPECT_EQ(args.int_at("bool"), 1);
+    EXPECT_EQ(args.int_at("int"), -1234);
+    EXPECT_EQ(args.int_at("uint"), 4321);
+    EXPECT_THROW(args.int_at("str"), Exception);
+    EXPECT_EQ(args.int_at("flt"), 1);
+    EXPECT_THROW(args.int_at("vec"), Exception);
+    EXPECT_THROW(args.int_at("map"), Exception);
+
+    EXPECT_EQ(args.uint_at("bool"), 1);
+    EXPECT_THROW(args.uint_at("int"), Exception);
+    EXPECT_EQ(args.uint_at("uint"), 4321);
+    EXPECT_THROW(args.uint_at("str"), Exception);
+    EXPECT_EQ(args.uint_at("flt"), 1);
+    EXPECT_THROW(args.uint_at("vec"), Exception);
+    EXPECT_THROW(args.uint_at("map"), Exception);
+
+    EXPECT_EQ(args.double_at("bool"), 1.0);
+    EXPECT_EQ(args.double_at("int"), -1234.0);
+    EXPECT_EQ(args.double_at("uint"), 4321.0);
+    EXPECT_THROW(args.double_at("str"), Exception);
+    EXPECT_EQ(args.double_at("flt"), 1.234);
+    EXPECT_THROW(args.double_at("vec"), Exception);
+    EXPECT_THROW(args.double_at("map"), Exception);
+
+    EXPECT_THROW(args.string_at("bool"), Exception);
+    EXPECT_THROW(args.string_at("int"), Exception);
+    EXPECT_THROW(args.string_at("uint"), Exception);
+    EXPECT_EQ(args.string_at("str"), "string");
+    EXPECT_THROW(args.string_at("flt"), Exception);
+    EXPECT_THROW(args.uint_at("vec"), Exception);
+    EXPECT_THROW(args.uint_at("map"), Exception);
+  }
+}
+
 }
 }
