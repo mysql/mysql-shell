@@ -25,6 +25,7 @@ var c1 = dba.createCluster();
 var c1 = dba.createCluster(5);
 var c1 = dba.createCluster('', 5);
 var c1 = dba.createCluster('devCluster', 'bla');
+var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
 
 //@# Dba: createCluster succeed
 var c1 = dba.createCluster('devCluster');

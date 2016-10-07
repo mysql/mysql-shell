@@ -33,6 +33,7 @@ c1 = dba.create_cluster()
 c1 = dba.create_cluster(1,2,3,4)
 c1 = dba.create_cluster(5)
 c1 = dba.create_cluster('')
+c1 = dba.create_cluster('devCluster', {"invalid":1, "another":2})
 
 #@<OUT> Dba: create_cluster with interaction
 cluster = dba.create_cluster('devCluster')

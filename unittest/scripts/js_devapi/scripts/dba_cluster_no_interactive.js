@@ -35,7 +35,8 @@ Cluster.addInstance()
 Cluster.addInstance(5,6,7,1)
 Cluster.addInstance(5, 5)
 Cluster.addInstance('', 5)
-Cluster.addInstance( 5)
+Cluster.addInstance({user:"sample", weird:1},5)
+Cluster.addInstance({user:"sample"})
 Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
 Cluster.addInstance({port: __mysql_sandbox_port1});
 Cluster.addInstance({host: "localhost", port:__mysql_sandbox_port1}, "root");
@@ -82,7 +83,7 @@ Cluster.dissolve(1)
 Cluster.dissolve(1,2)
 Cluster.dissolve("")
 Cluster.dissolve({foobar: true})
-Cluster.dissolve({force: 1})
+Cluster.dissolve({force: "whatever"})
 
 //@ Cluster: dissolve
 Cluster.dissolve({force: true})

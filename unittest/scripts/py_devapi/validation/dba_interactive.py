@@ -19,6 +19,7 @@
 ||Invalid number of arguments in Dba.create_cluster, expected 1 to 2 but got 4
 ||Dba.create_cluster: Argument #1 is expected to be a string
 ||Dba.create_cluster: The Cluster name cannot be empty
+||Dba.create_cluster: Invalid values in the options: another, invalid
 
 #@<OUT> Dba: create_cluster with interaction
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.

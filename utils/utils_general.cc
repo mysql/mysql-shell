@@ -449,37 +449,6 @@ void normalize_sslca_args(std::string &ssl_ca, std::string &ssl_ca_path) {
   }
 }
 
-std::set<std::string> get_additional_keys(Value::Map_type_ref input, const std::set<std::string> base) {
-  std::set<std::string> all_keys, additional_keys;
-
-  // Gets the list of incoming keys
-  for (auto option : *input)
-    all_keys.insert(option.first);
-
-  std::set_difference(all_keys.begin(), all_keys.end(), base.begin(), base.end(), std::inserter(additional_keys, additional_keys.begin()));
-
-  return additional_keys;
-}
-
-std::set<std::string> get_missing_keys(Value::Map_type_ref input, const std::set<std::string> base) {
-  std::set<std::string> missing_keys;
-
-  // Gets the list of incoming keys
-  for (auto option : base) {
-    auto tokens = split_string(option, "|");
-    int found = 0;
-    for (auto token : tokens) {
-      if (input->has_key(token))
-        found++;
-    }
-
-    if (!found)
-      missing_keys.insert(tokens[0]);
-  }
-
-  return missing_keys;
-}
-
 std::vector<std::string> split_string(const std::string& input, const std::string& separator) {
   std::vector<std::string> ret_val;
 

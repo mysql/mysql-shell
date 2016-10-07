@@ -21,6 +21,7 @@
 #include "shellcore/shell_registry.h"
 #include "interactive/interactive_dba_cluster.h"
 #include "modules/adminapi/mod_dba_instance.h"
+#include "modules/adminapi/mod_dba_common.h"
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba.h"
 #include "utils/utils_general.h"
@@ -60,30 +61,30 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
   if (args.size() == 2) {
     new_args.push_back(args[1]);
     options = args.map_at(1);
-    // Verification of invalid attributes on the instance deployment data
-    auto invalids = shcore::get_additional_keys(options, mysh::dba::Dba::_deploy_instance_opts);
-    if (invalids.size()) {
-      std::string error = "The following options are invalid: ";
-      error += shcore::join_strings(invalids, ", ");
-      throw shcore::Exception::argument_error(error);
-    }
+    
+    shcore::Argument_map opt_map (*options);
+    
+    opt_map.ensure_keys({}, mysh::dba::Dba::_deploy_instance_opts, "the instance definition");
+    
+    if (opt_map.has_key("sandboxDir"))
+      sandboxDir = opt_map.string_at("sandboxDir");
+    
   } else {
     options.reset(new shcore::Value::Map_type());
     new_args.push_back(shcore::Value(options));
   }
 
-  if (!options->has_key("sandboxDir")) {
+  // Gets the global sandboxDir if not set by the user
+  if (sandboxDir.empty()) {
     if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
       sandboxDir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
       (*options)["sandboxDir"] = shcore::Value(sandboxDir);
     }
-  } else {
-    sandboxDir = (*options)["sandboxDir"].as_string();
-
-    // When the user specifies the sandbox dir we validate it
-    if (!sandboxDir.empty() && !shcore::is_folder(sandboxDir))
-      throw shcore::Exception::argument_error("The sandboxDir path '" + sandboxDir + "' is not valid");
   }
+
+  // When the user specifies the sandbox dir we validate it
+  if (!sandboxDir.empty() && !shcore::is_folder(sandboxDir))
+    throw shcore::Exception::argument_error("The sandboxDir path '" + sandboxDir + "' is not valid");
 
   return new_args;
 }
@@ -102,7 +103,6 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
     valid_args = check_instance_op_params(args);
     port = valid_args.int_at(0);
 
-    bool prompt_password = false;
     std::string sandbox_dir;
 
     auto options = valid_args.map_at(1);
@@ -114,11 +114,7 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
       sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
     }
 
-    // Verification of required attributes on the instance deployment data
-
-    auto missing = shcore::get_missing_keys(options, {"password|dbPassword"});
-
-    prompt_password = !missing.empty();
+    bool prompt_password = !options->has_key("password") && !options->has_key("dbPassword");
 
     std::string message;
     if (prompt_password) {
@@ -152,6 +148,7 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
     else
       println("Starting MySQL instance...");
 
+    ScopedStyle ss(_target.get(), naming_style);
     ret_val = _target->call(fname, valid_args);
 
     println();
@@ -187,6 +184,7 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
 
   println(progressive + " MySQL instance...");
 
+  ScopedStyle ss(_target.get(), naming_style);
   shcore::Value ret_val = _target->call(fname, valid_args);
 
   println();
@@ -219,10 +217,14 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
+  shcore::Value::Map_type_ref options;
+  
+  std::string cluster_name;
+  std::shared_ptr<mysh::ShellDevelopmentSession> session;
+  
   try {
-    std::string cluster_name = args.string_at(0);
+    cluster_name = args.string_at(0);
     std::string answer;
-    shcore::Value::Map_type_ref options;
     bool multi_master = false;
 
     if (cluster_name.empty())
@@ -239,7 +241,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     }
 
     auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
-    auto session = dba->get_active_session();
+    session = dba->get_active_session();
     println("A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n");
 
     if (multi_master) {
@@ -257,36 +259,36 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
         return shcore::Value();
       }
     }
-    {
-      shcore::Argument_list new_args;
-      new_args.push_back(shcore::Value(cluster_name));
-
-      if (options != NULL)
-        new_args.push_back(shcore::Value(options));
-
-      println("Creating InnoDB cluster '" + cluster_name + "' on '" + session->uri() + "'...");
-
-      // This is an instance of the API cluster
-      auto raw_cluster = _target->call("createCluster", new_args);
-
-      print("Adding Seed Instance...");
-      println();
-
-      // Returns an interactive wrapper of this instance
-      Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
-      cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
-      ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
-
-      println();
-
-      std::string message = "Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.\n"\
-                            "At least 3 instances are needed for the cluster to be able to withstand up to\n"\
-                            "one server failure.";
-
-      println(message);
-      println();
-    }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+  
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(cluster_name));
+
+  if (options != NULL)
+    new_args.push_back(shcore::Value(options));
+
+  println("Creating InnoDB cluster '" + cluster_name + "' on '" + session->uri() + "'...");
+
+  // This is an instance of the API cluster
+  ScopedStyle ss(_target.get(), naming_style);
+  auto raw_cluster = _target->call("createCluster", new_args);
+
+  print("Adding Seed Instance...");
+  println();
+
+  // Returns an interactive wrapper of this instance
+  Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
+  cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
+  ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
+
+  println();
+
+  std::string message = "Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.\n"\
+                        "At least 3 instances are needed for the cluster to be able to withstand up to\n"\
+                        "one server failure.";
+
+  println(message);
+  println();
 
   return ret_val;
 }
@@ -294,28 +296,28 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
-  try {
-    if (args.size() < 1) {
-      std::string answer;
+  if (args.size() < 1) {
+    std::string answer;
 
-      if (prompt((boost::format("Are you sure you want to remove the Metadata? [y/N]: ")).str().c_str(), answer)) {
-        if (!answer.compare("y") || !answer.compare("Y")) {
-          shcore::Argument_list new_args;
-          Value::Map_type_ref options(new shcore::Value::Map_type);
+    if (prompt((boost::format("Are you sure you want to remove the Metadata? [y/N]: ")).str().c_str(), answer)) {
+      if (!answer.compare("y") || !answer.compare("Y")) {
+        shcore::Argument_list new_args;
+        Value::Map_type_ref options(new shcore::Value::Map_type);
 
-          (*options)["enforce"] = shcore::Value(true);
-          new_args.push_back(shcore::Value(options));
+        (*options)["enforce"] = shcore::Value(true);
+        new_args.push_back(shcore::Value(options));
 
-          ret_val = _target->call("dropMetadataSchema", new_args);
-        }
+        ScopedStyle ss(_target.get(), naming_style);
+        ret_val = _target->call("dropMetadataSchema", new_args);
       }
-    } else
-      ret_val = _target->call("dropMetadataSchema", args);
-
-    println("Metadata Schema successfully removed.");
-    println();
+    }
+  } else {
+    ScopedStyle ss(_target.get(), naming_style);
+    ret_val = _target->call("dropMetadataSchema", args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
+
+  println("Metadata Schema successfully removed.");
+  println();
 
   return ret_val;
 }
@@ -335,36 +337,15 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
-  args.ensure_count(1, get_function_name("validateInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("validateInstance").c_str());
 
   std::string uri, answer, user;
-  shcore::Value::Map_type_ref options; // Map with the connection data
 
-  auto instance = args.object_at<mysh::dba::Instance>(0);
-  if (instance) {
-    options = shcore::get_connection_data(instance->get_uri(), false);
-    (*options)["password"] = shcore::Value(instance->get_password());
-  }
-  // Identify the type of connection data (String or Document)
-  else if (args[0].type == shcore::String) {
-    uri = args.string_at(0);
-    options = shcore::get_connection_data(uri, false);
-  }
-  // Connection data comes in a dictionary
-  else if (args[0].type == shcore::Map)
-    options = args.map_at(0);
-  else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
-
-  // Verification of required attributes on the connection data
-  auto missing = shcore::get_missing_keys(options, {"host", "port"});
-
-  if (missing.size()) {
-    std::string error = "Missing instance options: ";
-    error += shcore::join_strings(missing, ", ");
-    throw shcore::Exception::argument_error(error);
-  }
-
+  auto options = mysh::dba::get_instance_options_map(args);
+  
+  shcore::Argument_map opt_map(*options);
+  opt_map.ensure_keys({"host", "port"}, {}, "instance definition");
+  
   // Sets root user by default if no specified
   if (!options->has_key("user") && !options->has_key("dbUser"))
     (*options)["user"] = shcore::Value("root");
@@ -377,10 +358,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
     user_password = options->get_string("password");
   else if (options->has_key("dbPassword"))
     user_password = options->get_string("dbPassword");
-  else if (args.size() == 2 && args[1].type == shcore::String) {
-    user_password = args.string_at(1);
-    (*options)["dbPassword"] = shcore::Value(user_password);
-  } else
+  else
     has_password = false;
 
   if (!has_password) {
@@ -394,6 +372,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   println("Validating instance...");
   println();
 
+  ScopedStyle ss(_target.get(), naming_style);
   ret_val = _target->call("validateInstance", new_args);
 
   return ret_val;
@@ -403,31 +382,15 @@ shcore::Value Global_dba::prepare_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
-  args.ensure_count(1, get_function_name("prepareInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("prepareInstance").c_str());
 
   std::string uri, answer, user;
-  shcore::Value::Map_type_ref options; // Map with the connection data
-
-  // Identify the type of connection data (String or Document)
-  if (args[0].type == shcore::String) {
-    uri = args.string_at(0);
-    options = shcore::get_connection_data(uri, false);
-  }
-  // Connection data comes in a dictionary
-  else if (args[0].type == shcore::Map)
-    options = args.map_at(0);
-  else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary.");
-
-  // Verification of required attributes on the connection data
-  auto missing = shcore::get_missing_keys(options, {"host", "port"});
-
-  if (missing.size()) {
-    std::string error = "Missing instance options: ";
-    error += shcore::join_strings(missing, ", ");
-    throw shcore::Exception::argument_error(error);
-  }
-
+  
+  auto options = mysh::dba::get_instance_options_map(args);
+  
+  shcore::Argument_map opt_map(*options);
+  opt_map.ensure_keys({"host", "port"}, {}, "instance definition");
+  
   // Sets root user by default if no specified
   if (!options->has_key("user") && !options->has_key("dbUser"))
     (*options)["user"] = shcore::Value("root");
@@ -440,10 +403,7 @@ shcore::Value Global_dba::prepare_instance(const shcore::Argument_list &args) {
     user_password = options->get_string("password");
   else if (options->has_key("dbPassword"))
     user_password = options->get_string("dbPassword");
-  else if (args.size() == 2 && args[1].type == shcore::String) {
-    user_password = args.string_at(1);
-    (*options)["dbPassword"] = shcore::Value(user_password);
-  } else
+  else
     has_password = false;
 
   if (!has_password) {
@@ -457,6 +417,7 @@ shcore::Value Global_dba::prepare_instance(const shcore::Argument_list &args) {
   println("Preparing instance...");
   println();
 
+  ScopedStyle ss(_target.get(), naming_style);
   ret_val = _target->call("prepareInstance", new_args);
 
   println("Instance successfully prepared. You can now add it to the InnoDB cluster with the cluster.addInstance() function.");

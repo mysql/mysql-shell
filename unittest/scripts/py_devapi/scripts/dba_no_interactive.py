@@ -32,6 +32,7 @@ c1 = dba.create_cluster()
 c1 = dba.create_cluster(5)
 c1 = dba.create_cluster('', 5)
 c1 = dba.create_cluster('devCluster', 'bla')
+c1 = dba.create_cluster('devCluster', {"invalid":1, "another":2})
 
 #@# Dba: create_cluster succeed
 c1 = dba.create_cluster('devCluster');

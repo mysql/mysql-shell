@@ -25,6 +25,7 @@
 #include "utils/utils_sqlstring.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_instance.h"
+#include "modules/adminapi/mod_dba_common.h"
 #include "utils/utils_general.h"
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core_options.h"
@@ -251,18 +252,15 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       shcore::Value::Map_type_ref options = args.map_at(1);
 
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, {"clusterAdminType", "multiMaster"});
-      if (invalids.size()) {
-        std::string error = "The instance options contain the following invalid attributes: ";
-        error += shcore::join_strings(invalids, ", ");
-        throw shcore::Exception::argument_error(error);
-      }
+      shcore::Argument_map opt_map(*options);
+      
+      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster"}, "the options");
+      
+      if (opt_map.has_key("clusterAdminType"))
+        cluster_admin_type = opt_map.string_at("clusterAdminType");
 
-      if (options->has_key("clusterAdminType"))
-        cluster_admin_type = options->get_string("clusterAdminType");
-
-      if (options->has_key("multiMaster"))
-        multi_master = options->get_bool("multiMaster");
+      if (opt_map.has_key("multiMaster"))
+        multi_master = opt_map.bool_at("multiMaster");
 
       if (cluster_admin_type != "local" &&
           cluster_admin_type != "guided" &&
@@ -279,7 +277,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     bool has_default_cluster = _metadata_storage->has_default_cluster();
 
     if (has_default_cluster)
-      throw Exception::argument_error("Cluster is already initialized. Use getCluster() to access it.");
+      throw Exception::argument_error("Cluster is already initialized. Use " + get_function_name("getCluster") + "() to access it.");
 
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();
@@ -453,47 +451,12 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
   int port = 0;
 
   try {
-    auto instance = args.object_at<mysh::dba::Instance>(0);
-    if (instance) {
-      options = shcore::get_connection_data(instance->get_uri(), false);
-      (*options)["password"] = shcore::Value(instance->get_password());
-    }
-
-    // Identify the type of connection data (String or Document)
-    else if (args[0].type == shcore::String) {
-      uri = args.string_at(0);
-      options = shcore::get_connection_data(uri, false);
-    }
-
-    // Connection data comes in a dictionary
-    else if (args[0].type == shcore::Map)
-      options = args.map_at(0);
-
-    else
-      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
-
-    if (options->size() == 0)
-      throw shcore::Exception::argument_error("Connection data empty.");
-
-    // Verification of invalid attributes on the instance data
-    auto invalids = shcore::get_additional_keys(options, _validate_instance_opts);
-    if (invalids.size()) {
-      std::string error = "The instance data contains the following invalid options: ";
-      error += shcore::join_strings(invalids, ", ");
-      throw shcore::Exception::argument_error(error);
-    }
-
-    // Verification of required attributes on the connection data
-    auto missing = shcore::get_missing_keys(options, {"host", "password|dbPassword", "port", "user|dbUser"});
-    if (missing.find("password") != missing.end() && args.size() == 2)
-      missing.erase("password");
-
-    if (missing.size()) {
-      std::string error = "Missing instance options: ";
-      error += shcore::join_strings(missing, ", ");
-      throw shcore::Exception::argument_error(error);
-    }
-
+    
+    auto options = get_instance_options_map(args);
+    
+    shcore::Argument_map opt_map(*options);
+    opt_map.ensure_keys({"host", "port", "user|dbUser"}, _validate_instance_opts, "instance definition");
+    
     port = options->get_int("port");
 
     // Sets a default user if not specified
@@ -512,10 +475,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
       password = options->get_string("password");
     else if (options->has_key("dbPassword"))
       password = options->get_string("dbPassword");
-    else if (args.size() == 2 && args[1].type == shcore::String) {
-      password = args.string_at(1);
-      (*options)["dbPassword"] = shcore::Value(password);
-    } else
+    else
       throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
 
     std::string errors;
@@ -545,39 +505,31 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
   if (args.size() == 2) {
     options = args.map_at(1);
-
+    
     // Verification of invalid attributes on the instance deployment data
-    auto invalids = shcore::get_additional_keys(options, _deploy_instance_opts);
-    if (invalids.size()) {
-      std::string error = "The instance data contains the following invalid attributes: ";
-      error += shcore::join_strings(invalids, ", ");
-      throw shcore::Exception::argument_error(error);
-    }
+    shcore::Argument_map opt_map (*options);
+    
+    opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
 
     if (function == "deploy") {
-      // Verification of required attributes on the instance deployment data
-      auto missing = shcore::get_missing_keys(options, {"password|dbPassword"});
-
-      if (missing.size())
+      if (opt_map.has_key("password"))
+        password = opt_map.string_at("password");
+      else if (opt_map.has_key("dbPassword"))
+        password = opt_map.string_at("dbPassword");
+      else
         throw shcore::Exception::argument_error("Missing root password for the deployed instance");
-      else {
-        if (options->has_key("password"))
-          password = options->get_string("password");
-        else if (options->has_key("dbPassword"))
-          password = options->get_string("dbPassword");
-      }
     }
 
-    if (options->has_key("portx")) {
-      portx = options->get_int("portx");
+    if (opt_map.has_key("portx")) {
+      portx = opt_map.int_at("portx");
 
       if (portx < 1024 || portx > 65535)
         throw shcore::Exception::argument_error("Invalid value for 'portx': Please use a valid TCP port number >= 1024 and <= 65535");
     }
 
 #ifndef WIN32
-    if (options->has_key("sandboxDir")) {
-      sandbox_dir = options->get_string("sandboxDir");
+    if (opt_map.has_key("sandboxDir")) {
+      sandbox_dir = opt_map.string_at("sandboxDir");
 
       // The UNIX domain socket address path has a length limitation so we must check the sandboxDir length
       // sizeof(sockaddr_un::sun_path) - strlen("mysqlx.sock") - strlen("64000") - 2 - 1
@@ -936,39 +888,12 @@ shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
   int port = 0;
 
   try {
-    // Identify the type of connection data (String or Document)
-    if (args[0].type == shcore::String) {
-      uri = args.string_at(0);
-      options = shcore::get_connection_data(uri, false);
-    } else if (args[0].type == shcore::Map) {
-      // Connection data comes in a dictionary
-      options = args.map_at(0);
-    } else {
-      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
-    }
-
-    if (options->size() == 0)
-      throw shcore::Exception::argument_error("Connection data empty.");
-
-    // Verification of invalid attributes on the instance data
-    auto invalids = shcore::get_additional_keys(options, _prepare_instance_opts);
-    if (invalids.size()) {
-      std::string error = "The instance data contains the following invalid options: ";
-      error += shcore::join_strings(invalids, ", ");
-      throw shcore::Exception::argument_error(error);
-    }
-
-    // Verification of required attributes on the connection data
-    auto missing = shcore::get_missing_keys(options, {"host", "password|dbPassword", "port", "user|dbUser"});
-    if (missing.find("password") != missing.end() && args.size() == 2)
-      missing.erase("password");
-
-    if (missing.size()) {
-      std::string error = "Missing instance options: ";
-      error += shcore::join_strings(missing, ", ");
-      throw shcore::Exception::argument_error(error);
-    }
-
+    
+    auto options = get_instance_options_map(args);
+    
+    shcore::Argument_map opt_map(*options);
+    opt_map.ensure_keys({"host", "port", "user|dbUser"}, _prepare_instance_opts, "instance definition");
+    
     port = options->get_int("port");
 
     // Sets a default user if not specified
@@ -983,16 +908,12 @@ shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
 
     host = options->get_string("host");
 
-    if (options->has_key("password")) {
+    if (options->has_key("password"))
       password = options->get_string("password");
-    } else if (options->has_key("dbPassword")) {
+    else if (options->has_key("dbPassword"))
       password = options->get_string("dbPassword");
-    } else if (args.size() == 2 && args[1].type == shcore::String) {
-      password = args.string_at(1);
-      (*options)["dbPassword"] = shcore::Value(password);
-    } else {
+    else
       throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
-    }
 
     std::string errors;
 

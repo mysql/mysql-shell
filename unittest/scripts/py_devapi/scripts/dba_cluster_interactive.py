@@ -3,6 +3,7 @@
 # validateMemer and validateNotMember are defined on the setup script
 
 #@<OUT> Cluster: get_cluster with interaction
+import re
 cluster = dba.get_cluster('devCluster');
 
 my_re = re.compile('"name": "(.*):' + str(__mysql_sandbox_port1))
@@ -89,7 +90,7 @@ cluster.dissolve(1)
 cluster.dissolve(1,2)
 cluster.dissolve("")
 cluster.dissolve({'enforce': True})
-cluster.dissolve({'force': 1})
+cluster.dissolve({'force': 'sample'})
 
 #@ Cluster: remove_instance last
 cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port1})

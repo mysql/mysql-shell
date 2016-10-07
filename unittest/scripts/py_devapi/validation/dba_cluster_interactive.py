@@ -32,7 +32,7 @@
 ||
 
 #@# Cluster: add_instance with interaction, error
-||Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'.
+||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'.
 
 #@<OUT> Cluster: add_instance with interaction, ok
 A new instance will be added to the InnoDB cluster. Depending on the amount of
@@ -93,8 +93,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 0
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 2
 ||Invalid connection options, expected either a URI, a Dictionary or an Instance object
-||Cluster.removeInstance: The instance 'localhost:33060'(<<<localhost>>>:33060) does not belong to the ReplicaSet: 'default'
-||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
+||Cluster.remove_instance: The instance 'localhost:33060'(<<<localhost>>>:33060) does not belong to the ReplicaSet: 'default'
+||Cluster.remove_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 #@ Cluster: remove_instance
 ||
@@ -157,8 +157,8 @@ The following replicasets are currently registered:
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
-||Cluster.dissolve: The options contain the following invalid attributes: enforce
-||Cluster.dissolve: Invalid data type for 'force' field, should be a boolean
+||Cluster.dissolve: Invalid values in dissolve options: enforce
+||Cluster.dissolve: Argument 'force' is expected to be a bool
 
 #@ Cluster: remove_instance last
 ||

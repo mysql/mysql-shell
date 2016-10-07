@@ -84,7 +84,7 @@ Cluster.dissolve(1)
 Cluster.dissolve(1,2)
 Cluster.dissolve("")
 Cluster.dissolve({foobar: true})
-Cluster.dissolve({force: 1})
+Cluster.dissolve({force: 'sample'})
 
 //@ Cluster: remove_instance last
 Cluster.removeInstance({host:'localhost', port:__mysql_sandbox_port1})

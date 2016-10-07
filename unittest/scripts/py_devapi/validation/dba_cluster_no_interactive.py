@@ -16,10 +16,11 @@
 ||Invalid number of arguments in Cluster.add_instance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.add_instance, expected 1 to 2 but got 4
 ||Cluster.add_instance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
-||Cluster.add_instance: Missing instance options: host
+||Cluster.add_instance: Instance definition is empty
+||Cluster.add_instance: Invalid and missing values in instance definition (invalid: weird), (missing: host)
 ||Cluster.add_instance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
-||Cluster.add_instance: Unexpected instance options: authMethod, schema
-||Cluster.add_instance: Missing instance options: host, password
+||Cluster.add_instance: Invalid values in instance definition: authMethod, schema
+||Cluster.add_instance: Missing values in instance definition: host
 ||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'
 
 #@ Cluster: add_instance
@@ -77,7 +78,7 @@
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 0
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 2
 ||Cluster.remove_instance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
-||Cluster.remove_instance: Unexpected instance options: authMethod, schema, user
+||Cluster.remove_instance: Invalid values in instance definition: authMethod, schema, user
 ||Cluster.remove_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 #@ Cluster: remove_instance
@@ -143,8 +144,8 @@
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
-||Cluster.dissolve: The options contain the following invalid attributes: enforce
-||Cluster.dissolve: Invalid data type for 'force' field, should be a boolean
+||Cluster.dissolve: Invalid values in dissolve options: enforce
+||Cluster.dissolve: Argument 'force' is expected to be a bool
 
 #@ Cluster: dissolve
 ||

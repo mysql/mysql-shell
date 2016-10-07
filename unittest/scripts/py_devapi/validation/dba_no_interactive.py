@@ -19,6 +19,7 @@
 ||Argument #1 is expected to be a string
 ||Dba.create_cluster: The Cluster name cannot be empty
 ||Argument #2 is expected to be a map
+||Invalid values in the options: another, invalid
 
 #@# Dba: create_cluster succeed
 |<Cluster:devCluster>|

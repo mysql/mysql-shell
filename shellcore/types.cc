@@ -1447,11 +1447,11 @@ void Argument_map::ensure_keys(const std::set<std::string> &mandatory_keys,
       msg.append("), (missing: ").append(join_strings(missing_keys, ", "));
       msg.append(")");
     } else if (!invalid_keys.empty()) {
-      msg.append("Missing values in ").append(context).append(" ");
+      msg.append("Invalid values in ").append(context).append(": ");
       msg.append(join_strings(invalid_keys, ", "));
     } else if (!missing_keys.empty()) {
-      msg.append("Invalid values in ").append(context).append(" ");
-      msg.append(join_strings(invalid_keys, ", "));
+      msg.append("Missing values in ").append(context).append(": ");
+      msg.append(join_strings(missing_keys, ", "));
     }
     if (!msg.empty())
       throw Exception::argument_error(msg);

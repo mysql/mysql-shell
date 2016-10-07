@@ -20,6 +20,7 @@
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_instance.h"
+#include "modules/adminapi/mod_dba_common.h"
 
 #include "common/uuid/include/uuid_gen.h"
 #include "utils/utils_general.h"
@@ -328,7 +329,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   bool seed_instance = false;
   std::string uri;
-  shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string user;
   std::string super_user_password;
@@ -342,47 +342,16 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   // Check if we're on a addSeedInstance or not
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
-  auto instance = args.object_at<Instance>(0);
-  if (instance) {
-    options = shcore::get_connection_data(instance->get_uri(), false);
-    (*options)["password"] = shcore::Value(instance->get_password());
-  }
-  // Identify the type of connection data (String or Document)
-  else if (args[0].type == String) {
-    uri = args.string_at(0);
-    options = get_connection_data(uri, false);
-  }
-
-  // Connection data comes in a dictionary
-  else if (args[0].type == Map)
-    options = args.map_at(0);
-
-  else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
-
-  // Verification of invalid attributes on the connection data
-  auto invalids = shcore::get_additional_keys(options, _add_instance_opts);
-  if (invalids.size()) {
-    std::string error = "Unexpected instance options: ";
-    error += shcore::join_strings(invalids, ", ");
-    throw shcore::Exception::argument_error(error);
-  }
-
-  // Verification of required attributes on the connection data
-  auto missing = shcore::get_missing_keys(options, {"host", "password|dbPassword"});
-  if (missing.find("password") != missing.end() && args.size() == 2)
-    missing.erase("password");
-
-  if (missing.size()) {
-    std::string error = "Missing instance options: ";
-    error += shcore::join_strings(missing, ", ");
-    throw shcore::Exception::argument_error(error);
-  }
-
-  if (options->has_key("port"))
-    port = options->get_int("port");
-  else
-    port = get_default_port();
+  auto options = get_instance_options_map(args);
+  
+  shcore::Argument_map opt_map(*options);
+  opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+  
+  
+  if (!options->has_key("port"))
+    (*options)["port"] = shcore::Value(get_default_port());
+  
+  port = options->get_int("port");
 
   // Sets a default user if not specified
   if (options->has_key("user"))
@@ -401,10 +370,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     super_user_password = options->get_string("password");
   else if (options->has_key("dbPassword"))
     super_user_password = options->get_string("dbPassword");
-  else if (args.size() == 2 && args[1].type == shcore::String) {
-    super_user_password = args.string_at(1);
-    (*options)["dbPassword"] = shcore::Value(super_user_password);
-  } else
+  else
     throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
 
   // Check if the instance was already added
@@ -595,29 +561,19 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
   // Add the Instance to the Default ReplicaSet
   try {
-    shcore::Value::Map_type_ref options; // Map with the connection data
     std::string super_user_password;
     std::string host;
     int port = 0;
 
-    // Identify the type of connection data (String or Document)
-    if (args[0].type == String) {
-      std::string uri = args.string_at(0);
-      options = get_connection_data(uri, false);
-    } else
-      throw shcore::Exception::argument_error(
-        "Invalid connection options, expected either a URI.");
-    // Verification of required attributes on the connection data
-    auto missing = shcore::get_missing_keys(options, {"host"});
-    if (missing.size()) {
-      std::string error = "Missing instance options: ";
-      error += shcore::join_strings(missing, ", ");
-      throw shcore::Exception::argument_error(error);
-    }
-    if (options->has_key("port"))
-      port = options->get_int("port");
-    else
-      port = get_default_port();
+    auto options = get_instance_options_map(args);
+    shcore::Argument_map opt_map(*options);
+    opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+    
+    if (!options->has_key("port"))
+      (*options)["port"] = shcore::Value(get_default_port());
+    
+    port = options->get_int("port");
+    
     std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
     if (peer_instance.empty()) {
       throw shcore::Exception::runtime_error("Cannot rejoin instance. There are no remaining available instances in the replicaset.");
@@ -639,10 +595,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       super_user_password = options->get_string("password");
     else if (options->has_key("dbPassword"))
       super_user_password = options->get_string("dbPassword");
-    else if (args.size() == 2 && args[1].type == shcore::String) {
-      super_user_password = args.string_at(1);
-      (*options)["dbPassword"] = shcore::Value(super_user_password);
-    } else
+    else
       throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
 
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
@@ -701,40 +654,21 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("removeInstance").c_str());
 
   std::string uri;
-  shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string name;
   std::string port;
 
-  auto instance = args.object_at<Instance>(0);
-  if (instance)
-    options = shcore::get_connection_data(instance->get_uri(), false);
 
-  // Identify the type of connection data (String or Document)
-  else if (args[0].type == String) {
-    uri = args.string_at(0);
-    options = get_connection_data(uri, false);
-  }
-  // TODO: what if args[0] is a String containing the name of the instance?
+  auto options = get_instance_options_map(args);
 
-  // Connection data comes in a dictionary
-  else if (args[0].type == Map)
-    options = args.map_at(0);
-  else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
+  // No required options set before refactoring
+  shcore::Argument_map opt_map(*options);
+  opt_map.ensure_keys({}, _remove_instance_opts, "instance definition");
 
-  // Verification of invalid attributes on the connection data
-  auto invalids = shcore::get_additional_keys(options, _remove_instance_opts);
-  if (invalids.size()) {
-    std::string error = "Unexpected instance options: ";
-    error += shcore::join_strings(invalids, ", ");
-    throw shcore::Exception::argument_error(error);
-  }
+  if (!options->has_key("port"))
+    (*options)["port"] = shcore::Value(get_default_port());
 
-  if (options->has_key("port"))
-    port = std::to_string(options->get_int("port"));
-  else
-    port = std::to_string(get_default_port());
+  port = std::to_string(options->get_int("port"));
 
   // get instance admin and user information from the current active session of the shell
   // Note: when separate metadata session vs active session is supported, this should
@@ -753,7 +687,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     instance_public_address = public_localhost_name;
   else
     instance_public_address = host;
-
 
   instance_public_address.append(":" + port);
 
@@ -847,24 +780,18 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
       options = args.map_at(0);
 
     if (options) {
-      // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, {"force"});
-      if (invalids.size()) {
-        std::string error = "The options contain the following invalid attributes: ";
-        error += shcore::join_strings(invalids, ", ");
-        throw shcore::Exception::argument_error(error);
-      }
+      
+      shcore::Argument_map opt_map(*options);
+      
+      opt_map.ensure_keys({}, {"force"}, "dissolve options");
 
-      if (options->has_key("force")) {
-        if ((*options)["force"].type != shcore::Bool)
-          throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
-        force = options->get_bool("force");
-      }
+      if (options->has_key("force"))
+        force = opt_map.bool_at("force");
     }
 
-    if (force) {
+    if (force)
       disable(shcore::Argument_list());
-    } else if (_metadata_storage->is_replicaset_active(get_id()))
+    else if (_metadata_storage->is_replicaset_active(get_id()))
       throw shcore::Exception::runtime_error("Cannot dissolve the ReplicaSet: the ReplicaSet is active.");
 
     MetadataStorage::Transaction tx(_metadata_storage);

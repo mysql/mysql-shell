@@ -25,6 +25,7 @@ var c1 = dba.createCluster();
 var c1 = dba.createCluster(1,2,3,4);
 var c1 = dba.createCluster(5);
 var c1 = dba.createCluster('');
+var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
 
 //@<OUT> Dba: createCluster with interaction
 var c1 = dba.createCluster('devCluster');

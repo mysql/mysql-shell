@@ -499,17 +499,12 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 
     if (options) {
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, {"force", });
-      if (invalids.size()) {
-        std::string error = "The options contain the following invalid attributes: ";
-        error += shcore::join_strings(invalids, ", ");
-        throw shcore::Exception::argument_error(error);
-      }
+      shcore::Argument_map opt_map(*options);
+      
+      opt_map.ensure_keys({}, {"force"}, "dissolve options");
 
-      if (options->has_key("force") && (*options)["force"].type != shcore::Bool)
-        throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
-      else
-        force = options->get_bool("force");
+      if (opt_map.has_key("force"))
+        force = opt_map.bool_at("force");
     }
 
     MetadataStorage::Transaction tx(_metadata_storage);

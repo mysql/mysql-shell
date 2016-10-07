@@ -158,8 +158,8 @@ The following replicasets are currently registered:
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
-||Cluster.dissolve: The options contain the following invalid attributes: foobar
-||Cluster.dissolve: Invalid data type for 'force' field, should be a boolean
+||Cluster.dissolve: Invalid values in dissolve options: foobar
+||Cluster.dissolve: Argument 'force' is expected to be a bool
 
 //@ Cluster: remove_instance last
 ||

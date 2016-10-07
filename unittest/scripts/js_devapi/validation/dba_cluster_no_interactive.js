@@ -17,10 +17,11 @@
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 4
 ||Cluster.addInstance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
-||Cluster.addInstance: Missing instance options: host
+||Cluster.addInstance: Instance definition is empty
+||Cluster.addInstance: Invalid and missing values in instance definition (invalid: weird), (missing: host)
 ||Cluster.addInstance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
-||Cluster.addInstance: Unexpected instance options: authMethod, schema
-||Cluster.addInstance: Missing instance options: host, password
+||Cluster.addInstance: Invalid values in instance definition: authMethod, schema
+||Cluster.addInstance: Missing values in instance definition: host
 ||Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'
 
 //@ Cluster: addInstance
@@ -78,7 +79,7 @@
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 0
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 2
 ||Cluster.removeInstance: Invalid connection options, expected either a URI, a Dictionary or an Instance object
-||Cluster.removeInstance: Unexpected instance options: authMethod, schema, user
+||Cluster.removeInstance: Invalid values in instance definition: authMethod, schema, user
 ||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 //@ Cluster: removeInstance
@@ -145,8 +146,8 @@
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
-||Cluster.dissolve: The options contain the following invalid attributes: foobar
-||Cluster.dissolve: Invalid data type for 'force' field, should be a boolean
+||Cluster.dissolve: Invalid values in dissolve options: foobar
+||Cluster.dissolve: Argument 'force' is expected to be a bool
 
 //@ Cluster: dissolve
 ||

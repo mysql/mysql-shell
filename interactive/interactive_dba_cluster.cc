@@ -63,6 +63,7 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_
     if (resolve_instance_options(function, args, options)) {
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(options));
+      ScopedStyle ss(_target.get(), naming_style);
       ret_val = _target->call(function, new_args);
     }
   }
@@ -103,6 +104,7 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
     if (instance) {
       println("Adding instance " + instance->get_name() + " to the cluster ...");
       println();
+      ScopedStyle ss(_target.get(), naming_style);
       ret_val = _target->call(function, args);
 
       println("The instance '" + instance->get_name() + "' was successfully added to the cluster.");
@@ -113,6 +115,7 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
 
       println("Adding instance to the cluster ...");
       println();
+      ScopedStyle ss(_target.get(), naming_style);
       ret_val = _target->call(function, new_args);
 
 
@@ -144,6 +147,7 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
     new_args.push_back(args[0]);
     new_args.push_back(shcore::Value(answer));
     print(message);
+    ScopedStyle ss(_target.get(), naming_style);
     ret_val = _target->call("rejoinInstance", new_args);
 
     println("The instance '" + build_connection_string(options, false) + "' was successfully rejoined on the cluster.");
@@ -168,7 +172,9 @@ bool Interactive_dba_cluster::resolve_instance_options(const std::string& functi
   else
     throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
 
-  auto invalids = shcore::get_additional_keys(options, mysh::dba::ReplicaSet::_add_instance_opts);
+  shcore::Argument_map opt_map(*options);
+  std::vector<std::string> invalids, missing;
+  opt_map.validate_keys({"host"}, mysh::dba::ReplicaSet::_add_instance_opts, missing, invalids);
 
   // Verification of invalid attributes on the connection data
   if (invalids.size()) {
@@ -188,7 +194,7 @@ bool Interactive_dba_cluster::resolve_instance_options(const std::string& functi
   }
 
   // Verification of the host attribute
-  if (proceed && !options->has_key("host")) {
+  if (proceed && missing.size()) {
     if (prompt("The connection data is missing the host, would you like to: \n  1) Use localhost  \n  2) Specify a host  \n  3) Cancel  \n\nPlease select an option [1]: ", answer)) {
       if (answer == "1")
         (*options) ["host"] = shcore::Value("localhost");
@@ -259,26 +265,27 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
 
   auto instance = args.object_at<mysh::dba::Instance> (0);
 
-    // Identify the type of connection data (String or Document)
-    if (args[0].type == String) {
-      uri = args.string_at(0);
-      options = get_connection_data(uri, false);
-    }
+  // Identify the type of connection data (String or Document)
+  if (args[0].type == String) {
+    uri = args.string_at(0);
+    options = get_connection_data(uri, false);
+  }
 
-    // TODO: what if args[0] is a String containing the name of the instance?
+  // TODO: what if args[0] is a String containing the name of the instance?
 
-    // Connection data comes in a dictionary
-    else if (args[0].type == Map)
-      options = args.map_at(0);
+  // Connection data comes in a dictionary
+  else if (args[0].type == Map)
+    options = args.map_at(0);
 
-    else
-      throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
+  else
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
 
-    if (instance)
-      name = instance->get_name();
-    else
-      name = build_connection_string(options, false);
+  if (instance)
+    name = instance->get_name();
+  else
+    name = build_connection_string(options, false);
 
+  ScopedStyle ss(_target.get(), naming_style);
   ret_val = _target->call("removeInstance", args);
 
   println("The instance '" + name + "' was successfully removed from the cluster.");
@@ -299,19 +306,12 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
       options = args.map_at(0);
 
     if (options) {
-      // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, {"force", });
-
-      if (invalids.size()) {
-        std::string error = "The options contain the following invalid attributes: ";
-        error += shcore::join_strings(invalids, ", ");
-        throw shcore::Exception::argument_error(error);
-      }
-
-      if (options->has_key("force") && (*options) ["force"].type != shcore::Bool)
-        throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
-      else
-        force = options->get_bool("force");
+      shcore::Argument_map opt_map(*options);
+      
+      opt_map.ensure_keys({}, {"force"}, "dissolve options");
+      
+      if (opt_map.has_key("force"))
+        force = opt_map.bool_at("force");
     }
   }
 
@@ -332,9 +332,11 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
 
       println("The following replicasets are currently registered:");
 
+      ScopedStyle ss(_target.get(), naming_style);
       ret_val = _target->call("describe", shcore::Argument_list());
     }
   } else {
+    ScopedStyle ss(_target.get(), naming_style);
     ret_val = _target->call("dissolve", args);
 
     println("The cluster was successfully dissolved.");
