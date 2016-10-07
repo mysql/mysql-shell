@@ -414,6 +414,54 @@ TEST(Argument_map, all) {
     EXPECT_THROW(args.uint_at("vec"), Exception);
     EXPECT_THROW(args.uint_at("map"), Exception);
   }
+  
+  // option alias, success alias 1
+  {
+    shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
+    (*options)["user"] = shcore::Value("sample");
+    (*options)["password"] = shcore::Value("sample");
+    
+    Argument_map args(*options);
+    ASSERT_NO_THROW(
+      args.ensure_keys({"password|dbPassword"}, {"user"}, "test1"));
+  }
+  
+  // option alias, success alias 2
+  {
+    shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
+    (*options)["user"] = shcore::Value("sample");
+    (*options)["dbPassword"] = shcore::Value("sample");
+    
+    Argument_map args(*options);
+    ASSERT_NO_THROW(
+      args.ensure_keys({"password|dbPassword"}, {"user"}, "test1"));
+  }
+  
+  // option alias, failure two aliases
+  {
+    shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
+    (*options)["user"] = shcore::Value("sample");
+    (*options)["password"] = shcore::Value("sample");
+    (*options)["dbPassword"] = shcore::Value("sample");
+    
+    Argument_map args(*options);
+    
+    ASSERT_THROW(
+      args.ensure_keys({"password|dbPassword"}, {"user"}, "multiple aliases"),
+                 Exception);
+  }
+  
+  // option alias, failure no aliases
+  {
+    shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
+    (*options)["user"] = shcore::Value("sample");
+    
+    Argument_map args(*options);
+    
+    ASSERT_THROW(
+      args.ensure_keys({"password|dbPassword"}, {"user"}, "no aliases"),
+                 Exception);
+  }
 }
 
 }

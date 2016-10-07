@@ -1344,7 +1344,7 @@ Argument_map::Argument_map(const Value::Map_type &map)
 }
 
 const std::string &Argument_map::string_at(const std::string &key) const {
-  Value v(at(key));
+  const Value &v(at(key));
   switch (v.type) {
     case String:
       return *v.value.s;
@@ -1354,7 +1354,7 @@ const std::string &Argument_map::string_at(const std::string &key) const {
 }
 
 bool Argument_map::bool_at(const std::string &key) const {
-  Value value(at(key));
+  const Value &value(at(key));
   switch (value.type) {
     case Bool:
       return value.value.b;
@@ -1370,7 +1370,7 @@ bool Argument_map::bool_at(const std::string &key) const {
 }
 
 int64_t Argument_map::int_at(const std::string &key) const {
-  Value value(at(key));
+  const Value &value(at(key));
   if (value.type == Integer)
     return value.value.i;
   else if (value.type == UInteger && value.value.ui <= std::numeric_limits<int64_t>::max())
@@ -1384,7 +1384,7 @@ int64_t Argument_map::int_at(const std::string &key) const {
 }
 
 uint64_t Argument_map::uint_at(const std::string &key) const {
-  Value value(at(key));
+  const Value &value(at(key));
   if (value.type == UInteger)
     return value.value.ui;
   else if (value.type == Integer && value.value.i >= 0)
@@ -1398,7 +1398,7 @@ uint64_t Argument_map::uint_at(const std::string &key) const {
 }
 
 double Argument_map::double_at(const std::string &key) const {
-  Value value(at(key));
+  const Value &value(at(key));
   if (value.type == Float)
     return value.value.d;
   else if (value.type == Integer)
@@ -1412,21 +1412,21 @@ double Argument_map::double_at(const std::string &key) const {
 }
 
 std::shared_ptr<Object_bridge> Argument_map::object_at(const std::string &key) const {
-  Value value(at(key));
+  const Value &value(at(key));
   if (value.type != Object)
     throw Exception::type_error("Argument '"+key+"' is expected to be an object");
   return *value.value.o;
 }
 
 std::shared_ptr<Value::Map_type> Argument_map::map_at(const std::string &key) const {
-  Value value(at(key));
+  const Value &value(at(key));
   if (value.type != Map)
     throw Exception::type_error("Argument '"+key+"' is expected to be a map");
   return *value.value.map;
 }
 
 std::shared_ptr<Value::Array_type> Argument_map::array_at(const std::string &key) const {
-  Value value(at(key));
+  const Value &value(at(key));
   if (value.type != Array)
     throw Exception::type_error("Argument '"+key+"' is expected to be an array");
   return *value.value.array;
@@ -1435,31 +1435,63 @@ std::shared_ptr<Value::Array_type> Argument_map::array_at(const std::string &key
 void Argument_map::ensure_keys(const std::set<std::string> &mandatory_keys,
                                const std::set<std::string> &optional_keys,
                                const char *context) const {
+
+  std::vector<std::string> missing_keys;
   std::vector<std::string> invalid_keys;
-  std::set<std::string> missing_keys(mandatory_keys);
+  
+  if (!validate_keys(mandatory_keys, optional_keys, missing_keys, invalid_keys)) {
+    std::string msg;
+    if (!invalid_keys.empty() && !missing_keys.empty()) {
+      msg.append("Invalid and missing values in ").append(context).append(" ");
+      msg.append("(invalid: ").append(join_strings(invalid_keys, ", "));
+      msg.append("), (missing: ").append(join_strings(missing_keys, ", "));
+      msg.append(")");
+    } else if (!invalid_keys.empty()) {
+      msg.append("Missing values in ").append(context).append(" ");
+      msg.append(join_strings(invalid_keys, ", "));
+    } else if (!missing_keys.empty()) {
+      msg.append("Invalid values in ").append(context).append(" ");
+      msg.append(join_strings(invalid_keys, ", "));
+    }
+    if (!msg.empty())
+      throw Exception::argument_error(msg);
+  }
+}
+
+bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
+                                 const std::set<std::string> &optional_keys,
+                                 std::vector<std::string> &missing_keys,
+                                 std::vector<std::string> &invalid_keys) const {
+                   
+  std::map<std::string, std::string> mandatory_aliases;
+  
+  missing_keys.clear();
+  invalid_keys.clear();
+  
+  for(auto key: mandatory_keys) {
+    auto aliases = split_string(key, "|");
+    missing_keys.push_back(aliases[0]);
+    
+    for(auto alias: aliases)
+      mandatory_aliases[alias] = aliases[0];
+  }
+  
   for (auto k : _map) {
-    if (mandatory_keys.find(k.first) != mandatory_keys.end()) {
-      missing_keys.erase(k.first);
+    if (mandatory_aliases.find(k.first) != mandatory_aliases.end()) {
+      auto position = std::find(missing_keys.begin(), missing_keys.end(), mandatory_aliases[k.first]);
+      if (position != missing_keys.end())
+        missing_keys.erase(position);
+      else
+        // The same option was specified with two different aliases
+        // Only the first is considered valid
+        invalid_keys.push_back(k.first);
     } else if (optional_keys.find(k.first) != optional_keys.end()) {
       // nop
     } else
       invalid_keys.push_back(k.first);
   }
-  std::string msg;
-  if (!invalid_keys.empty() && !missing_keys.empty()) {
-    msg.append("Invalid and missing values in ").append(context).append(" ");
-    msg.append("(invalid: ").append(join_strings(invalid_keys, ", "));
-    msg.append("), (missing: ").append(join_strings(missing_keys, ", "));
-    msg.append(")");
-  } else if (!invalid_keys.empty()) {
-    msg.append("Missing values in ").append(context).append(" ");
-    msg.append(join_strings(invalid_keys, ", "));
-  } else if (!missing_keys.empty()) {
-    msg.append("Invalid values in ").append(context).append(" ");
-    msg.append(join_strings(invalid_keys, ", "));
-  }
-  if (!msg.empty())
-    throw Exception::argument_error(msg);
+  
+  return missing_keys.empty() && invalid_keys.empty();
 }
 
 
