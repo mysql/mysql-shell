@@ -138,7 +138,7 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
         cancelled = true;
     }
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deploySandboxInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
 
   shcore::Value ret_val;
 
@@ -148,8 +148,7 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
     else
       println("Starting MySQL instance...");
 
-    ScopedStyle ss(_target.get(), naming_style);
-    ret_val = _target->call(fname, valid_args);
+    ret_val = call_target(fname, valid_args);
 
     println();
     if (deploying)
@@ -184,8 +183,7 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
 
   println(progressive + " MySQL instance...");
 
-  ScopedStyle ss(_target.get(), naming_style);
-  shcore::Value ret_val = _target->call(fname, valid_args);
+  shcore::Value ret_val = call_target(fname, valid_args);
 
   println();
   println("Instance localhost:" + std::to_string(port) + " successfully " + past + ".");
@@ -270,8 +268,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   println("Creating InnoDB cluster '" + cluster_name + "' on '" + session->uri() + "'...");
 
   // This is an instance of the API cluster
-  ScopedStyle ss(_target.get(), naming_style);
-  auto raw_cluster = _target->call("createCluster", new_args);
+  auto raw_cluster = call_target("createCluster", new_args);
 
   print("Adding Seed Instance...");
   println();
@@ -283,7 +280,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   println();
 
-  std::string message = "Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.\n"\
+  std::string message = "Cluster successfully created. Use Cluster." + get_member_name("addInstance", naming_style) + "() to add MySQL instances.\n"\
                         "At least 3 instances are needed for the cluster to be able to withstand up to\n"\
                         "one server failure.";
 
@@ -307,13 +304,11 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
         (*options)["enforce"] = shcore::Value(true);
         new_args.push_back(shcore::Value(options));
 
-        ScopedStyle ss(_target.get(), naming_style);
-        ret_val = _target->call("dropMetadataSchema", new_args);
+        ret_val = call_target("dropMetadataSchema", new_args);
       }
     }
   } else {
-    ScopedStyle ss(_target.get(), naming_style);
-    ret_val = _target->call("dropMetadataSchema", args);
+    ret_val = call_target("dropMetadataSchema", args);
   }
 
   println("Metadata Schema successfully removed.");
@@ -325,8 +320,7 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
 shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
   validate_session(get_function_name("getCluster"));
 
-  ScopedStyle ss(_target.get(), naming_style);
-  Value raw_cluster = _target->call("getCluster", args);
+  Value raw_cluster = call_target("getCluster", args);
 
   Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
   cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
@@ -372,8 +366,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   println("Validating instance...");
   println();
 
-  ScopedStyle ss(_target.get(), naming_style);
-  ret_val = _target->call("validateInstance", new_args);
+  ret_val = call_target("validateInstance", new_args);
 
   return ret_val;
 }
@@ -417,10 +410,9 @@ shcore::Value Global_dba::prepare_instance(const shcore::Argument_list &args) {
   println("Preparing instance...");
   println();
 
-  ScopedStyle ss(_target.get(), naming_style);
-  ret_val = _target->call("prepareInstance", new_args);
+  ret_val = call_target("prepareInstance", new_args);
 
-  println("Instance successfully prepared. You can now add it to the InnoDB cluster with the cluster.addInstance() function.");
+  println("Instance successfully prepared. You can now add it to the InnoDB cluster with the cluster."+ get_member_name("addInstance", naming_style) +"() function.");
   println();
 
   return ret_val;

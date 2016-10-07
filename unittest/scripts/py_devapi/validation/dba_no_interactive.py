@@ -25,7 +25,7 @@
 |<Cluster:devCluster>|
 
 #@# Dba: create_cluster already exist
-||Dba.create_cluster: Cluster is already initialized. Use getCluster() to access it.
+||Dba.create_cluster: Cluster is already initialized. Use Dba.get_cluster() to access it.
 
 #@# Dba: get_cluster errors
 ||Invalid cluster name: Argument #1 is expected to be a string

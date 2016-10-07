@@ -39,7 +39,7 @@ create_index = collection.createIndex('_sample', mysqlx.IndexType.UNIQUE)
 create_index.field();
 create_index.field(6, 6, 6);
 create_index.field('other', 6, 6);
-create_index.field('other', "INTEGER", 6);
+create_index.field('other', "INTEGER", "sample");
 create_index.field('other', "INTEGER", true);
 mySession.dropCollection('js_shell_test', 'collection1');
 

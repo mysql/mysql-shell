@@ -86,14 +86,14 @@ void Global_session::resolve() const {
 shcore::Value Global_session::get_schema(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   try {
-    ret_val = _target->call("getSchema", args);
+    ret_val = call_target("getSchema", args);
   } catch (shcore::Exception &e) {
     std::string error(e.what());
     if (error.find("Unknown database") != std::string::npos) {
       std::string answer;
       if (prompt((boost::format("The schema %1% does not exist, do you want to create it? [y/N]: ") % args.string_at(0)).str().c_str(), answer)) {
         if (!answer.compare("y") || !answer.compare("Y")) {
-          ret_val = _target->call("createSchema", args);
+          ret_val = call_target("createSchema", args);
         }
       }
     } else
@@ -104,5 +104,5 @@ shcore::Value Global_session::get_schema(const shcore::Argument_list &args) {
 }
 
 shcore::Value Global_session::is_open(const shcore::Argument_list &args) {
-  return _target ? _target->call("isOpen", args) : shcore::Value::False();
+  return _target ? call_target("isOpen", args) : shcore::Value::False();
 }

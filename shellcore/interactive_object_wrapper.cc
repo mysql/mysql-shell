@@ -200,3 +200,12 @@ shcore::Value Interactive_object_wrapper::help(const shcore::Argument_list &args
 
   return ret_val;
 }
+
+/**
+ * Helper function to properly call the target
+ * setting the current naming_style
+ */
+shcore::Value Interactive_object_wrapper::call_target(const std::string &name, const Argument_list &args) {
+  ScopedStyle ss(_target.get(), naming_style);
+  return _target->call(name, args);
+}

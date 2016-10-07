@@ -63,8 +63,7 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_
     if (resolve_instance_options(function, args, options)) {
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(options));
-      ScopedStyle ss(_target.get(), naming_style);
-      ret_val = _target->call(function, new_args);
+      ret_val = call_target(function, new_args);
     }
   }
 
@@ -104,8 +103,7 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
     if (instance) {
       println("Adding instance " + instance->get_name() + " to the cluster ...");
       println();
-      ScopedStyle ss(_target.get(), naming_style);
-      ret_val = _target->call(function, args);
+      ret_val = call_target(function, args);
 
       println("The instance '" + instance->get_name() + "' was successfully added to the cluster.");
       println();
@@ -115,8 +113,7 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
 
       println("Adding instance to the cluster ...");
       println();
-      ScopedStyle ss(_target.get(), naming_style);
-      ret_val = _target->call(function, new_args);
+      ret_val = call_target(function, new_args);
 
 
       println("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster.");
@@ -147,8 +144,7 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
     new_args.push_back(args[0]);
     new_args.push_back(shcore::Value(answer));
     print(message);
-    ScopedStyle ss(_target.get(), naming_style);
-    ret_val = _target->call("rejoinInstance", new_args);
+    ret_val = call_target("rejoinInstance", new_args);
 
     println("The instance '" + build_connection_string(options, false) + "' was successfully rejoined on the cluster.");
     println();
@@ -285,8 +281,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
   else
     name = build_connection_string(options, false);
 
-  ScopedStyle ss(_target.get(), naming_style);
-  ret_val = _target->call("removeInstance", args);
+  ret_val = call_target("removeInstance", args);
 
   println("The instance '" + name + "' was successfully removed from the cluster.");
   println();
@@ -332,12 +327,10 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
 
       println("The following replicasets are currently registered:");
 
-      ScopedStyle ss(_target.get(), naming_style);
-      ret_val = _target->call("describe", shcore::Argument_list());
+      ret_val = call_target("describe", shcore::Argument_list());
     }
   } else {
-    ScopedStyle ss(_target.get(), naming_style);
-    ret_val = _target->call("dissolve", args);
+    ret_val = call_target("dissolve", args);
 
     println("The cluster was successfully dissolved.");
     println("Replication was disabled but user data was left intact.");

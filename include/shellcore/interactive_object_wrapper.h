@@ -125,6 +125,8 @@ protected:
   void print_value(const shcore::Value& value, const std::string& tag) const;
   bool prompt(const std::string& prompt, std::string &ret_val) const;
   bool password(const std::string& prompt, std::string &ret_val) const;
+  
+  shcore::Value call_target(const std::string &name, const Argument_list &args);
 };
 }
 
