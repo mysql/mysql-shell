@@ -260,12 +260,20 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
 #endif
   } else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
     std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
-    sandbox_args.push_back("--sandboxdir");
-#ifdef _WIN32
-    sandbox_args.push_back("\"" + dir + "\"");
-#else
-    sandbox_args.push_back(dir);
-#endif
+
+    try {
+      shcore::ensure_dir_exists(dir);
+
+      sandbox_args.push_back("--sandboxdir");
+      #ifdef _WIN32
+      sandbox_args.push_back("\"" + dir + "\"");
+      #else
+      sandbox_args.push_back(dir);
+      #endif
+    }
+    catch(std::runtime_error &error) {
+      log_warning("DBA: Unable to create default sandbox directory at %s.", dir.c_str());
+    }
   }
 
   if (!pwd.empty()) {

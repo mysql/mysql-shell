@@ -66,25 +66,18 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
 
     opt_map.ensure_keys({}, mysh::dba::Dba::_deploy_instance_opts, "the instance definition");
 
-    if (opt_map.has_key("sandboxDir"))
+    if (opt_map.has_key("sandboxDir")) {
       sandboxDir = opt_map.string_at("sandboxDir");
+
+      // When the user specifies the sandbox dir we validate it
+      if (!shcore::is_folder(sandboxDir))
+        throw shcore::Exception::argument_error("The sandboxDir path '" + sandboxDir + "' is not valid");
+    }
 
   } else {
     options.reset(new shcore::Value::Map_type());
     new_args.push_back(shcore::Value(options));
   }
-
-  // Gets the global sandboxDir if not set by the user
-  if (sandboxDir.empty()) {
-    if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
-      sandboxDir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
-      (*options)["sandboxDir"] = shcore::Value(sandboxDir);
-    }
-  }
-
-  // When the user specifies the sandbox dir we validate it
-  if (!sandboxDir.empty() && !shcore::is_folder(sandboxDir))
-    throw shcore::Exception::argument_error("The sandboxDir path '" + sandboxDir + "' is not valid");
 
   return new_args;
 }

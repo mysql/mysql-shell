@@ -144,7 +144,7 @@ std::string get_binary_folder() {
 #ifdef WIN32
   HMODULE hModule = GetModuleHandleA(NULL);
   if (hModule) {
-    char path[MAX_PATH];
+    char path[MAX_PATH] {'\0'};
     if (GetModuleFileNameA(hModule, path, MAX_PATH)) {
       exe_path.assign(path);
       path_separator = "\\";
@@ -155,8 +155,8 @@ std::string get_binary_folder() {
 #else
   path_separator = "/";
 #ifdef __APPLE__
-  char path[PATH_MAX];
-  char real_path[PATH_MAX];
+  char path[PATH_MAX] {'\0'};
+  char real_path[PATH_MAX] {'\0'};
   uint32_t buffsize = sizeof(path);
   if (!_NSGetExecutablePath(path, &buffsize)) {
     // _NSGetExecutablePath may return tricky constructs on paths
@@ -171,7 +171,7 @@ std::string get_binary_folder() {
 
 #else
 #ifdef __linux__
-  char path[PATH_MAX];
+  char path[PATH_MAX] {'\0'};
   if (-1 != readlink("/proc/self/exe", path, PATH_MAX))
     exe_path.assign(path);
   else
