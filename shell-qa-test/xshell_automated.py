@@ -6228,6 +6228,29 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_319(self):
+      '''[MYS-319] https://jira.oraclecorp.com/jira/browse/MYS-319
+      .existInDatabase() method raises error when using a non-existing View'''
+      results = "PASS"
+      init_command = [MYSQL_SHELL, '--interactive=full', '--node', '--uri={0}:{1}@{2}:{3}'.format(LOCALHOST.user,
+                                                                                                  LOCALHOST.password,
+                                                                                                  LOCALHOST.host,
+                                                                                                  LOCALHOST.xprotocol_port)]
+      x_cmds = [(bytearray('session.getSchema(\'sakila\').getTable(\'IDontExist\');\n', 'ascii'),
+                 "The table sakila.IDontExist does not exist"),
+                (bytearray("session.getSchema('sakila').getCollection('IDontExist');\n", 'ascii'),
+                 "The collection sakila.IDontExist does not exist")]
+      for command, expectedResult in x_cmds:
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          p.stdin.write(command)
+          p.stdin.flush()
+          stdoutdata, stderrdata = p.communicate()
+          found = stderrdata.find(expectedResult, 0, len(stderrdata))
+          if found == -1:
+              results = "FAIL"
+              break
+      self.assertEqual(results, 'PASS')
+
   #FAILING........
   @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_MYS_320(self):
@@ -6900,6 +6923,24 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_420(self):
+      '''[MYS-420]: https://jira.oraclecorp.com/jira/browse/MYS-420
+      Help in command prompt with space blank behaves different (add  trim() function)'''
+      results = 'PASS'
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect\n", "\\connect [-<type>] <uri or $name>"),
+                ("\\connect      \n", "\\connect [-<type>] <uri or $name>")]
+      for command, expectedResult in x_cmds:
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          p.stdin.write(command)
+          p.stdin.flush()
+          stdoutdata, stderrdata = p.communicate()
+          found = stderrdata.find(expectedResult, 0, len(stderrdata))
+          if found == -1:
+              results = "FAIL"
+              break
+      self.assertEqual(results, 'PASS')
+
   def test_MYS_427(self):
       '''[MYS_427] Warning is not longer displayed when password is not provided in URI connection '''
       results = ''
@@ -6911,6 +6952,205 @@ class XShell_TestCases(unittest.TestCase):
         results = 'FAIL'
       else:
         results = 'PASS'
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_1(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=none','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_2(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=internal','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_3(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=error','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_4(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=warning','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_5(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=info','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_6(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_7(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug2','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_8(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug3','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_435(self):
+      ''' [MYS-435]: https://jira.oraclecorp.com/jira/browse/MYS-435
+      XSESSION HELP SAYS \SQL AVAILABLE WHEN IT IS NOT '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--x', '--uri={0}:{1}@{2}:{3}'.
+          format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port)]
+      x_cmds = [("\n", "Creating an X Session to '{0}@{1}:{2}'".
+                 format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
+                ("\\sql", "* Using --node when calling the MySQL Shell on the command line.")]
+      errortext = ""
+      for command, expectedResult in x_cmds:
+          count = 1
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          p.stdin.write(command)
+          p.stdin.flush()
+          stdoutdata, stderrdata = p.communicate()
+          stdoutsplitted = stdoutdata.splitlines()
+          for line in stdoutsplitted:
+              count += 1
+              found = line.find(expectedResult, 0, len(line))
+              if found == -1 and count > len(stdoutsplitted):
+                  results = "FAIL"
+                  break
+              elif found != -1:
+                  results = "PASS"
+                  break
+          if results == "FAIL":
+              break
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_437_1(self):
+      ''' NOT AND LIKE OPERATORS ARE NOT ACCEPTED IN UPPERCASE'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
+
+      x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
+                ("CREATE TABLE `character` (\n", "..."),
+                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
+                ("  `name` varchar(30) NOT NULL,\n", "..."),
+                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
+                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
+                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
+                ("  `universe` varchar(30) NOT NULL,\n", "..."),
+                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
+                ("  PRIMARY KEY (`character_id`),\n", "..."),
+                ("  KEY `idx_name` (`name`),\n", "..."),
+                ("  KEY `idx_base` (`base`)\n", "..."),
+                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
+                ("\\js\n", "mysql-js>"),
+                ("var table = db.getTable('character');\n", "mysql-js>"),
+                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 0).execute();\n", "Query OK, 2 items affected"),
+                ("table.select();\n", "2 rows in set"),
+                ("table.delete().where('NOT base').execute();\n", "2 items affected"),
+                ("table.select();\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_437_2(self):
+      ''' NOT AND LIKE OPERATORS ARE NOT ACCEPTED IN UPPERCASE'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
+
+      x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
+                ("CREATE TABLE `character` (\n", "..."),
+                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
+                ("  `name` varchar(30) NOT NULL,\n", "..."),
+                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
+                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
+                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
+                ("  `universe` varchar(30) NOT NULL,\n", "..."),
+                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
+                ("  PRIMARY KEY (`character_id`),\n", "..."),
+                ("  KEY `idx_name` (`name`),\n", "..."),
+                ("  KEY `idx_base` (`base`)\n", "..."),
+                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
+                ("\\js\n", "mysql-js>"),
+                ("var table = db.getTable('character');\n", "mysql-js>"),
+                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 0).execute();\n", "Query OK, 2 items affected"),
+                ("table.select();\n", "2 rows in set"),
+                ("table.update().set('universe', 'Mass Effect 3').where('name LIKE :param1').bind('param1', '%Vaka%').execute();\n", "1 item affected"),
+                ("table.select().where('name LIKE :param1').bind('param1', '%Vaka%').execute();\n", "Mass Effect 3"),
+                ("table.update().set('universe', 'Mass Effect 3').where('name like :param1').bind('param1', 'Liara%').execute();\n", "1 item affected"),
+                ("table.select().where('name LIKE :param1').bind('param1', 'Liara%').execute();\n", "Mass Effect 3"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_438(self):
+      ''' TRUE OR FALSE NOT RECOGNIZED AS AVAILABLE BOOL CONSTANTS'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
+
+      x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
+                ("CREATE TABLE `character` (\n", "..."),
+                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
+                ("  `name` varchar(30) NOT NULL,\n", "..."),
+                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
+                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
+                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
+                ("  `universe` varchar(30) NOT NULL,\n", "..."),
+                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
+                ("  PRIMARY KEY (`character_id`),\n", "..."),
+                ("  KEY `idx_name` (`name`),\n", "..."),
+                ("  KEY `idx_base` (`base`)\n", "..."),
+                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
+                ("\\js\n", "mysql-js>"),
+                ("var table = db.getTable('character');\n", "mysql-js>"),
+                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 1).execute();\n", "Query OK, 2 items affected"),
+                ("table.insert().values(30, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', false).values(31, 'Liara TSoni', 109, 'female', '', 'Mass Effect', true).execute();\n", "Query OK, 2 items affected"),
+                ("table.select();\n", "4 rows in set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
   def test_MYS_441(self):
@@ -7044,177 +7284,6 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-  @unittest.skip("issues MYS432 , Add support for log level names")
-  def test_MYS_432_1(self):
-      '''Add support for log level names'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=none','--js']
-      x_cmds = [(";\n", "mysql-js>"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-  @unittest.skip("issues MYS432 , Add support for log level names")
-  def test_MYS_432_2(self):
-      '''Add support for log level names'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=internal','--js']
-      x_cmds = [(";\n", "mysql-js>"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-  @unittest.skip("issues MYS432 , Add support for log level names")
-  def test_MYS_432_3(self):
-      '''Add support for log level names'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=error','--js']
-      x_cmds = [(";\n", "mysql-js>"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-  @unittest.skip("issues MYS432 , Add support for log level names")
-  def test_MYS_432_4(self):
-      '''Add support for log level names'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=warning','--js']
-      x_cmds = [(";\n", "mysql-js>"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-  @unittest.skip("issues MYS432 , Add support for log level names")
-  def test_MYS_432_5(self):
-      '''Add support for log level names'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=info','--js']
-      x_cmds = [(";\n", "mysql-js>"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-  @unittest.skip("issues MYS432 , Add support for log level names")
-  def test_MYS_432_6(self):
-      '''Add support for log level names'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug','--js']
-      x_cmds = [(";\n", "mysql-js>"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-  @unittest.skip("issues MYS432 , Add support for log level names")
-  def test_MYS_432_7(self):
-      '''Add support for log level names'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug2','--js']
-      x_cmds = [(";\n", "mysql-js>"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-  @unittest.skip("issues MYS432 , Add support for log level names")
-  def test_MYS_432_8(self):
-      '''Add support for log level names'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug3','--js']
-      x_cmds = [(";\n", "mysql-js>"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-
-  def test_MYS_437_1(self):
-      ''' NOT AND LIKE OPERATORS ARE NOT ACCEPTED IN UPPERCASE'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
-
-      x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
-                ("CREATE TABLE `character` (\n", "..."),
-                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
-                ("  `name` varchar(30) NOT NULL,\n", "..."),
-                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
-                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
-                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
-                ("  `universe` varchar(30) NOT NULL,\n", "..."),
-                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
-                ("  PRIMARY KEY (`character_id`),\n", "..."),
-                ("  KEY `idx_name` (`name`),\n", "..."),
-                ("  KEY `idx_base` (`base`)\n", "..."),
-                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
-                ("\\js\n", "mysql-js>"),
-                ("var table = db.getTable('character');\n", "mysql-js>"),
-                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 0).execute();\n", "Query OK, 2 items affected"),
-                ("table.select();\n", "2 rows in set"),
-                ("table.delete().where('NOT base').execute();\n", "2 items affected"),
-                ("table.select();\n", "Empty set"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-  def test_MYS_437_2(self):
-      ''' NOT AND LIKE OPERATORS ARE NOT ACCEPTED IN UPPERCASE'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
-
-      x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
-                ("CREATE TABLE `character` (\n", "..."),
-                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
-                ("  `name` varchar(30) NOT NULL,\n", "..."),
-                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
-                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
-                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
-                ("  `universe` varchar(30) NOT NULL,\n", "..."),
-                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
-                ("  PRIMARY KEY (`character_id`),\n", "..."),
-                ("  KEY `idx_name` (`name`),\n", "..."),
-                ("  KEY `idx_base` (`base`)\n", "..."),
-                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
-                ("\\js\n", "mysql-js>"),
-                ("var table = db.getTable('character');\n", "mysql-js>"),
-                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 0).execute();\n", "Query OK, 2 items affected"),
-                ("table.select();\n", "2 rows in set"),
-                ("table.update().set('universe', 'Mass Effect 3').where('name LIKE :param1').bind('param1', '%Vaka%').execute();\n", "1 item affected"),
-                ("table.select().where('name LIKE :param1').bind('param1', '%Vaka%').execute();\n", "Mass Effect 3"),
-                ("table.update().set('universe', 'Mass Effect 3').where('name like :param1').bind('param1', 'Liara%').execute();\n", "1 item affected"),
-                ("table.select().where('name LIKE :param1').bind('param1', 'Liara%').execute();\n", "Mass Effect 3"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
-
-  def test_MYS_438(self):
-      ''' TRUE OR FALSE NOT RECOGNIZED AS AVAILABLE BOOL CONSTANTS'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
-
-      x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
-                ("CREATE TABLE `character` (\n", "..."),
-                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
-                ("  `name` varchar(30) NOT NULL,\n", "..."),
-                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
-                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
-                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
-                ("  `universe` varchar(30) NOT NULL,\n", "..."),
-                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
-                ("  PRIMARY KEY (`character_id`),\n", "..."),
-                ("  KEY `idx_name` (`name`),\n", "..."),
-                ("  KEY `idx_base` (`base`)\n", "..."),
-                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
-                ("\\js\n", "mysql-js>"),
-                ("var table = db.getTable('character');\n", "mysql-js>"),
-                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 1).execute();\n", "Query OK, 2 items affected"),
-                ("table.insert().values(30, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', false).values(31, 'Liara TSoni', 109, 'female', '', 'Mass Effect', true).execute();\n", "Query OK, 2 items affected"),
-                ("table.select();\n", "4 rows in set"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
 
   def test_MYS_388(self):
       """ AFTER CREATING SCHEMA IN PY SESSION, get_schemaS DOESN'T REFRESH\SHOW SUCH SCHEMA"""
@@ -7648,6 +7717,107 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_583(self):
+      '''[MYS-583]: https://jira.oraclecorp.com/jira/browse/MYS-583
+      URI parsing does not decode PCT before passing to other systems'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--classic', '--sqlc', '--uri={0}:{1}@{2}:{3}'.
+          format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port), '-e',
+                      'CREATE USER \'omar!#$&()*+,/:;=?@[]\'@\'localhost\' IDENTIFIED BY \'guidev!\';']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdoutdata, stderrdata = p.communicate()
+      if stderrdata.find(bytearray("\"ERROR\",", "ascii"), 0, len(stderrdata)) == -1:
+          results = "PASS"
+      else:
+          results = "FAIL"
+      self.assertEqual(results, 'PASS')
+      init_command = [MYSQL_SHELL, '--interactive=full', '--classic', '--sqlc', '--uri={0}:{1}@{2}:{3}'.
+          format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port), '-e',
+                      'GRANT ALL PRIVILEGES ON *.* TO \'omar!#$&()*+,/:;=?@[]\'@\'localhost\' WITH GRANT OPTION;']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdoutdata, stderrdata = p.communicate()
+      if stderrdata.find(bytearray("\"ERROR\",", "ascii"), 0, len(stderrdata)) == -1:
+          results = "PASS"
+      else:
+          results = "FAIL"
+      self.assertEqual(results, 'PASS')
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri={0}:{1}@{2}:{3}'.
+          format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port)]
+      x_cmds = [("\\c -c omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
+                 .format(LOCALHOST.password, LOCALHOST.host, LOCALHOST.port) + "\n", "omar!#$&()*+,/:;=?@[]"),
+                ("\\c -n omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
+                 .format(LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port) + "\n",
+                 "omar!#$&()*+,/:;=?@[]")]
+      for command, expectedResult in x_cmds:
+          count = 1
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          p.stdin.write(command)
+          p.stdin.flush()
+          stdoutdata, stderrdata = p.communicate()
+          stdoutsplitted = stdoutdata.splitlines()
+          for line in stdoutsplitted:
+              count += 1
+              found = line.find(expectedResult, 0, len(line))
+              if found == -1 and count > len(stdoutsplitted):
+                  results = "FAIL"
+                  break
+              elif found != -1:
+                  results = "PASS"
+                  break
+          if results == "FAIL":
+              break
+      self.assertEqual(results, 'PASS')
+      init_command = [MYSQL_SHELL, '--interactive=full', '--classic', '--sqlc', '--uri={0}:{1}@{2}:{3}'.
+          format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port), '-e',
+                      'DROP USER \'omar!#$&()*+,/:;=?@[]\'@\'localhost\';']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdoutdata, stderrdata = p.communicate()
+      if stderrdata.find(bytearray("\"ERROR\",", "ascii"), 0, len(stderrdata)) == -1:
+          results = "PASS"
+      else:
+          results = "FAIL"
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_697(self):
+      '''[MYS-697]: https://jira.oraclecorp.com/jira/browse/MYS-697
+      Unexpected behavior while executing SQL statements containing comments'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '--uri={0}:{1}@{2}:{3}'.
+          format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port)]
+      x_cmds = [("SELECT * from /* this is an in-line comment */ world_x.city limit 1;\n", "1 row in set"),
+                ("\\js\n", "mysql-js>"),
+                ("session.runSql(\"SELECT * from /* this is an in-line comment */ world_x.city limit 1;\")\n",
+                 "1 row in set"),
+                ("\\py\n", "mysql-py>"),
+                ("session.run_sql(\"SELECT * from /* this is an in-line comment */ world_x.city limit 1;\")\n",
+                 "1 row in set")]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_816(self):
+      '''[MYS-816]: https://jira.oraclecorp.com/jira/browse/MYS-816
+      Default Session Type Should be Node instead of X'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port]
+      count = 1
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdoutdata, stderrdata = p.communicate()
+      stdoutsplitted = stdoutdata.splitlines()
+      for line in stdoutsplitted:
+          count += 1
+          found = line.find("Node Session successfully established", 0, len(line))
+          if found == -1 and count > len(stdoutsplitted):
+              results = "FAIL"
+              break
+          elif found != -1:
+              results = "PASS"
+              break
+      self.assertEqual(results, 'PASS')
 
   # ----------------------------------------------------------------------
 
