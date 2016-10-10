@@ -88,7 +88,7 @@ def read_til_getShell(proc, fd, text):
     return "".join(data)
 
 
-@timeout(20)
+#@timeout(20)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -534,7 +534,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_MYS_735_createCluster(self):
-      '''MYS-820 [MYAA] dba.createCluster(name[, options])'''
+      '''MYS-735 [MYAA] CreateCluster() Empty'''
       instance = "3312"
       default_sandbox_path = "/mysql-sandboxes"
       os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
@@ -563,11 +563,102 @@ class XShell_TestCases(unittest.TestCase):
                     onerror=None)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_628_getCluster(self):
+      '''MYS-628 [MYAA] dba.getCluster()'''
+      instance = "3312"
+      default_sandbox_path = "/mysql-sandboxes"
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'Please enter a MySQL root password for the new instance:'),
+                (LOCALHOST.password + '\n',
+                 "Instance localhost:" + instance + " successfully deployed and started."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+          self.assertEqual(results, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+      x_cmds = [("dba.createCluster(\"devCluster\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:devCluster>"),
+                ("dba.getCluster();\n", "<Cluster:devCluster>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_763_getCluster(self):
+      '''MYS-763 [MYAA] dba.getCluster([name][, options])'''
+      instance = "3312"
+      default_sandbox_path = "/mysql-sandboxes"
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'Please enter a MySQL root password for the new instance:'),
+                (LOCALHOST.password + '\n',
+                 "Instance localhost:" + instance + " successfully deployed and started."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+          self.assertEqual(results, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+      x_cmds = [("dba.createCluster(\"devCluster\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:devCluster>"),
+                ("dba.getCluster('devCluster');\n", "<Cluster:devCluster>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_764_getCluster(self):
+      '''MYS-764 [MYAA] dba.getCluster([name][, options]) FAILOVER-Invalid Cluster'''
+      instance = "3312"
+      default_sandbox_path = "/mysql-sandboxes"
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'Please enter a MySQL root password for the new instance:'),
+                (LOCALHOST.password + '\n',
+                 "Instance localhost:" + instance + " successfully deployed and started."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+          self.assertEqual(results, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+      x_cmds = [("dba.createCluster(\"devCluster\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:devCluster>"),
+                ("dba.getCluster('devClusterz');\n", "The cluster with the name 'devClusterz' does not exist."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      self.assertEqual(results, 'PASS')
 
 
-          #
-  #
-  # def test_2_0_00_01(self):
+
+          # def test_2_0_00_01(self):
   #     '''[2.0.01]:1 addInstance'''
   #     # ("farm = dba.createFarm('devFarm');\n",'Please enter an administration password to be used for the Farm'),
   #     instance="3312"
@@ -631,23 +722,104 @@ class XShell_TestCases(unittest.TestCase):
   #     results = exec_xshell_commands(init_command, x_cmds)
   #     self.assertEqual(results, 'PASS')
 
-#
-#   def test_2_0_01_01(self):
-#       '''[2.0.01]:1 Create a Farm'''
-#       # ("farm = dba.createFarm('devFarm');\n",'Please enter an administration password to be used for the Farm'),
-#
-#       results = ''
-#       init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin','-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-#                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port]
-#       x_cmds = [("dba.dropFarm('devFarm');\n", 'Do you want to remove the default replica set? [y/n]:'),
-#                 ("y\n", ''),
-#                 ("dba.createFarm('devFarm');\n", 'Please enter an administrative MASTER password to be used for the Farm'),
-#                 (LOCALHOST.password + '\n', '<Farm:devFarm>')
-#                 ]
-#       results = exec_xshell_commands(init_command, x_cmds)
-#       self.assertEqual(results, 'PASS')
-#
-#
+  def test_MYS_737_cluster_getName(self):
+      '''MYS-737 [MYAA] cluster.name()'''
+      instance = "3312"
+      default_sandbox_path = "/mysql-sandboxes"
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'Please enter a MySQL root password for the new instance:'),
+                (LOCALHOST.password + '\n',
+                 "Instance localhost:" + instance + " successfully deployed and started."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+          self.assertEqual(results, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+      x_cmds = [("dba.createCluster(\"devCluster\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:devCluster>"),
+                ("cluster = dba.getCluster();\n", "<Cluster:devCluster>"),
+                ("cluster.getName();\n", "devCluster"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_831_cluster_name(self):
+      '''MYS-831 [MYAA] cluster.name()'''
+      instance = "3312"
+      default_sandbox_path = "/mysql-sandboxes"
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'Please enter a MySQL root password for the new instance:'),
+                (LOCALHOST.password + '\n',
+                 "Instance localhost:" + instance + " successfully deployed and started."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+          self.assertEqual(results, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+      x_cmds = [("dba.createCluster(\"devCluster\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:devCluster>"),
+                ("cluster = dba.getCluster();\n", "<Cluster:devCluster>"),
+                ("cluster.name;\n", "devCluster"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_738_cluster_adminType(self):
+      '''MYS-738 [MYAA] cluster.adminType'''
+      instance = "3312"
+      default_sandbox_path = "/mysql-sandboxes"
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'Please enter a MySQL root password for the new instance:'),
+                (LOCALHOST.password + '\n',
+                 "Instance localhost:" + instance + " successfully deployed and started."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+          self.assertEqual(results, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+      x_cmds = [("dba.createCluster(\"devCluster\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:devCluster>"),
+                ("cluster = dba.getCluster();\n", "<Cluster:devCluster>"),
+                ("cluster.adminType;\n", "local"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+      self.assertEqual(results, 'PASS')
+
+
 #   def test_2_0_01_05(self):
 #       '''[2.0.01]:5 Connect local Server w/Command Line Args'''
 #       results = ''
@@ -659,16 +831,16 @@ class XShell_TestCases(unittest.TestCase):
 #       results = exec_xshell_commands(init_command, x_cmds)
 #       self.assertEqual(results, 'PASS')
 #
-#   def test_2_0_01_06(self):
-#       '''[2.0.01]:6 Connect local Server w/Command Line Args'''
-#       results = ''
-#       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-#            '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql']
-#       x_cmds = [(";\n", 'mysql-sql>')
-#                 ]
-#       results = exec_xshell_commands(init_command, x_cmds)
-#       self.assertEqual(results, 'PASS')
-#
+  # def test_2_0_01_06(self):
+  #     '''[2.0.01]:6 Connect local Server w/Command Line Args'''
+  #     results = ''
+  #     init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+  #          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql']
+  #     x_cmds = [(";\n", 'mysql-sql>')
+  #               ]
+  #     results = exec_xshell_commands(init_command, x_cmds)
+  #     self.assertEqual(results, 'PASS')
+
 #   def test_2_0_01_07(self):
 #       '''[2.0.01]:7 Connect local Server w/Command Line Args'''
 #       results = ''
@@ -3892,21 +4064,21 @@ class XShell_TestCases(unittest.TestCase):
 #       self.assertEqual(results, 'PASS')
 #
 #
-#   def test_4_4_15_1(self):
-#       '''[4.4.015]:1 JS Delete view using session object: CLASSIC SESSION'''
-#       results = ''
-#       init_command = [MYSQL_SHELL, '--interactive=full']
-#       x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
-#                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
-#                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-#                 ("session.runSql('use sakila;');\n","Query OK"),
-#                 ("session.runSql('drop view if exists js_view;');\n","Query OK"),
-#                 ("session.runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\");\n","Query OK"),
-#                 ("session.getSchema('sakila').getViews();\n","js_view"),
-#                 ("session.dropView('sakila','js_view');\n","Query OK"),
-#                 ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n", 'Empty set')                ]
-#       results = exec_xshell_commands(init_command, x_cmds)
-#       self.assertEqual(results, 'PASS')
+  # def test_4_4_15_1(self):
+  #     '''[4.4.015]:1 JS Delete view using session object: CLASSIC SESSION'''
+  #     results = ''
+  #     init_command = [MYSQL_SHELL, '--interactive=full']
+  #     x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
+  #               ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+  #                                                                                     LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+  #               ("session.runSql('use sakila;');\n","Query OK"),
+  #               ("session.runSql('drop view if exists js_view;');\n","Query OK"),
+  #               ("session.runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\");\n","Query OK"),
+  #               ("session.getSchema('sakila').getViews();\n","js_view"),
+  #               ("session.dropView('sakila','js_view');\n","Query OK"),
+  #               ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n", 'Empty set')                ]
+  #     results = exec_xshell_commands(init_command, x_cmds)
+  #     self.assertEqual(results, 'PASS')
 #
 #
 #   def test_4_4_15_2(self):
