@@ -253,9 +253,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
-      
+
       opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster"}, "the options");
-      
+
       if (opt_map.has_key("clusterAdminType"))
         cluster_admin_type = opt_map.string_at("clusterAdminType");
 
@@ -442,52 +442,53 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
 
   shcore::Value ret_val;
 
-  std::string uri;
-  shcore::Value::Map_type_ref options; // Map with the connection data
+  try {
+    ret_val = shcore::Value(_validate_instance(args));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("validateInstance");
+
+  return ret_val;
+}
+
+shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list &args) {
+
+  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
+
+  auto options = get_instance_options_map(args);
+
+  shcore::Argument_map opt_map(*options);
+  opt_map.ensure_keys({"host", "port", "user|dbUser"}, _validate_instance_opts, "instance definition");
 
   std::string user;
   std::string password;
-  std::string host;
-  int port = 0;
+  std::string host = options->get_string("host");
+  int port = options->get_int("port");
 
-  try {
-    
-    auto options = get_instance_options_map(args);
-    
-    shcore::Argument_map opt_map(*options);
-    opt_map.ensure_keys({"host", "port", "user|dbUser"}, _validate_instance_opts, "instance definition");
-    
-    port = options->get_int("port");
-
-    // Sets a default user if not specified
-    if (options->has_key("user"))
-      user = options->get_string("user");
-    else if (options->has_key("dbUser"))
-      user = options->get_string("dbUser");
-    else {
-      user = "root";
-      (*options)["dbUser"] = shcore::Value(user);
-    }
-
-    host = options->get_string("host");
-
-    if (options->has_key("password"))
-      password = options->get_string("password");
-    else if (options->has_key("dbPassword"))
-      password = options->get_string("dbPassword");
-    else
-      throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
-
-    std::string errors;
-
-    // Verbose is mandatory for validateInstance
-    if (_provisioning_interface->check(user, host, port, password, errors, true) == 0) {
-      std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage\n";
-      ret_val = shcore::Value(s_out);
-    } else
-      throw shcore::Exception::logic_error(errors);
+  // Sets a default user if not specified
+  if (options->has_key("user"))
+    user = options->get_string("user");
+  else if (options->has_key("dbUser"))
+    user = options->get_string("dbUser");
+  else {
+    user = "root";
+    (*options)["dbUser"] = shcore::Value(user);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("validateInstance");
+
+  if (options->has_key("password"))
+    password = options->get_string("password");
+  else if (options->has_key("dbPassword"))
+    password = options->get_string("dbPassword");
+  else
+    throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+
+  // Verbose is mandatory for validateInstance
+  shcore::Value::Array_type_ref errors;
+  if (_provisioning_interface->check(user, host, port, password, errors) == 0)
+    (*ret_val)["status"] = shcore::Value("ok");
+  else {
+    (*ret_val)["status"] = shcore::Value("error");
+    (*ret_val)["errors"] = shcore::Value(errors);
+  }
 
   return ret_val;
 }
@@ -505,10 +506,10 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
   if (args.size() == 2) {
     options = args.map_at(1);
-    
+
     // Verification of invalid attributes on the instance deployment data
     shcore::Argument_map opt_map (*options);
-    
+
     opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
 
     if (function == "deploy") {
@@ -547,34 +548,42 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
       throw shcore::Exception::argument_error("Missing root password for the deployed instance");
   }
 
-  std::string errors;
+  shcore::Value::Array_type_ref errors;
 
   if (port < 1024 || port > 65535)
     throw shcore::Exception::argument_error("Invalid value for 'port': Please use a valid TCP port number >= 1024 and <= 65535");
 
+  int rc = 0;
   if (function == "deploy") {
     // First we need to create the instance
-    if (_provisioning_interface->create_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors) != 0)
-      throw shcore::Exception::logic_error(errors);
-    // And now we start it
-    if (_provisioning_interface->start_sandbox(port, sandbox_dir, errors) != 0)
-      throw shcore::Exception::logic_error(errors);
+    rc = _provisioning_interface->create_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors);
+    if (rc == 0) {
+      rc = _provisioning_interface->start_sandbox(port, sandbox_dir, errors);
 
-    std::string uri = "localhost:" + std::to_string(port);
-    ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
-  } else if (function == "delete") {
-    if (_provisioning_interface->delete_sandbox(port, sandbox_dir, errors) != 0)
-      throw shcore::Exception::logic_error(errors);
-  } else if (function == "kill") {
-    if (_provisioning_interface->kill_sandbox(port, sandbox_dir, errors) != 0)
-      throw shcore::Exception::logic_error(errors);
-  } else if (function == "stop") {
-    if (_provisioning_interface->stop_sandbox(port, sandbox_dir, errors) != 0)
-      throw shcore::Exception::logic_error(errors);
-  } else if (function == "start") {
-    if (_provisioning_interface->start_sandbox(port, sandbox_dir, errors) != 0)
-      throw shcore::Exception::logic_error(errors);
+      std::string uri = "localhost:" + std::to_string(port);
+      ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
+    }
+  } else if (function == "delete")
+      rc = _provisioning_interface->delete_sandbox(port, sandbox_dir, errors);
+  else if (function == "kill")
+    rc = _provisioning_interface->kill_sandbox(port, sandbox_dir, errors);
+  else if (function == "stop")
+    rc = _provisioning_interface->stop_sandbox(port, sandbox_dir, errors);
+  else if (function == "start")
+    rc = _provisioning_interface->start_sandbox(port, sandbox_dir, errors);
+
+  if (rc != 0) {
+    std::vector<std::string> str_errors;
+    for (auto error: *errors) {
+      auto data = error.as_map();
+      auto error_type = data->get_string("type");
+      auto error_text = data->get_string("msg");
+      str_errors.push_back(error_type + ": " + error_text);
+    }
+
+    throw shcore::Exception::runtime_error(shcore::join_strings(str_errors, "\n"));
   }
+
   return ret_val;
 }
 
@@ -873,56 +882,12 @@ Instance Dba::prepareInstance(Variant connectionData) {}
 Instance Dba::prepare_instance(variant connectionData) {}
 #endif
 shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, "prepareInstance");
-
-  // For FB3, we will allow an options dictionary as argument
+  args.ensure_count(1, 2, "prepareInstance");
 
   shcore::Value ret_val;
 
-  std::string uri;
-  shcore::Value::Map_type_ref options;  // Map with the connection data
-
-  std::string user;
-  std::string password;
-  std::string host;
-  int port = 0;
-
   try {
-    
-    auto options = get_instance_options_map(args);
-    
-    shcore::Argument_map opt_map(*options);
-    opt_map.ensure_keys({"host", "port", "user|dbUser"}, _prepare_instance_opts, "instance definition");
-    
-    port = options->get_int("port");
-
-    // Sets a default user if not specified
-    if (options->has_key("user")) {
-      user = options->get_string("user");
-    } else if (options->has_key("dbUser")) {
-      user = options->get_string("dbUser");
-    } else {
-      user = "root";
-      (*options)["dbUser"] = shcore::Value(user);
-    }
-
-    host = options->get_string("host");
-
-    if (options->has_key("password"))
-      password = options->get_string("password");
-    else if (options->has_key("dbPassword"))
-      password = options->get_string("dbPassword");
-    else
-      throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
-
-    std::string errors;
-
-    if (_provisioning_interface->check(user, host, port, password, errors, false) == 0) {
-      std::string uri = host + ":" + std::to_string(port);
-      ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
-    } else {
-      throw shcore::Exception::logic_error(errors);
-    }
+    ret_val = shcore::Value(_validate_instance(args));
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("prepareInstance");
 

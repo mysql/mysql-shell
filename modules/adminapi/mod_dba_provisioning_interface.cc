@@ -23,7 +23,7 @@
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/base_session.h"
-
+#include "utils/utils_general.h"
 #include "common/process_launcher/process_launcher.h"
 #include "utils/utils_file.h"
 
@@ -42,13 +42,12 @@ ProvisioningInterface::~ProvisioningInterface() {}
 
 int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
                                      const std::vector<std::string> &passwords,
-                                     std::string &errors, bool verbose) {
+                                     shcore::Value::Array_type_ref &errors, bool verbose) {
   std::vector<const char *> args_script;
   std::string buf;
   char c;
   int exit_code;
   std::string full_output;
-  std::string error_output;
 
   // set _local_mysqlprovision_path if empty
   if (_local_mysqlprovision_path.empty()) {
@@ -82,6 +81,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
   args_script.insert(args_script.end(), args.begin(), args.end());
   // API version check for mysqlprovision
+  args_script.push_back("--log-format=json");
   args_script.push_back("-xV");
   args_script.push_back(kRequiredMySQLProvisionInterfaceVersion);
   args_script.push_back(NULL);
@@ -109,22 +109,69 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   }
 
   try {
+    bool last_closed = false;
+    bool json_started = false;
     while (p.read(&c, 1) > 0) {
-      buf += c;
+
+      // Ignores the initial output (most likely prompts)
+      // Until the first { is found, indicating the start of JSON data
+      if (!json_started) {
+        if (c == '{')
+          json_started = true;
+        else
+          continue;
+      }
+
       if (c == '\n') {
-        if (verbose) {
-          // TODO: We may need to also filter other messages about
-          //       password retrieval
-          if (buf.find("Enter the password for") == std::string::npos)
-            _delegate->print(_delegate->user_data, buf.c_str());
+        // TODO: We may need to also filter other messages about
+        //       password retrieval
+
+        if (last_closed) {
+          shcore::Value raw_data;
+          try {
+            raw_data = shcore::Value::parse(buf);
+          } catch (shcore::Exception &e) {
+            std::string error = e.what();
+            error += ": ";
+            error += buf;
+            throw shcore::Exception::parser_error(error);
+
+            log_debug("DBA: mysqlprovision: %s", error.c_str());
+          }
+
+          if(raw_data && raw_data.type == shcore::Map) {
+            auto data = raw_data.as_map();
+
+            std::string type = data->get_string("type");
+            std::string info;
+
+            if (type == "WARNING" || type == "ERROR") {
+
+              if (!errors)
+                errors.reset(new shcore::Value::Array_type());
+
+              errors->push_back(raw_data);
+              info = type + ": ";
+            }
+
+            info += data->get_string("msg") + "\n";
+
+            if (verbose && info.find("Enter the password for") == std::string::npos)
+              _delegate->print(_delegate->user_data, info.c_str());
+          }
+
+          log_debug("DBA: mysqlprovision: %s", buf.c_str());
+
+          full_output.append(buf);
+          buf = "";
         }
-        log_debug("DBA: mysqlprovision: %s", buf.c_str());
+        else
+          buf += c;
+      }
+      else {
+        buf += c;
 
-        if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
-            error_output.append(buf);
-
-        full_output.append(buf);
-        buf = "";
+        last_closed = c == '}';
       }
     }
   } catch (std::system_error &e) {
@@ -136,9 +183,6 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
     log_debug("DBA: mysqlprovision: %s", buf.c_str());
 
-    if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
-      error_output.append(buf);
-
     full_output.append(buf);
   }
   exit_code = p.wait();
@@ -146,13 +190,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   /*
    * process launcher returns 128 if an ENOENT happened.
    */
-  if (exit_code == 128) {
-    // Print full output if it wasn't already printed before because of verbose
-    if (!verbose) {
-      _delegate->print(_delegate->user_data, full_output.c_str());
-    }
+  if (exit_code == 128)
     throw shcore::Exception::runtime_error("Please install mysqlprovision. If already installed, set its path using the environment variable: MYSQLPROVISION");
-  }
 
   /*
    * mysqlprovision returns 1 as exit-code for internal behaviour errors.
@@ -160,56 +199,26 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
    */
   else if (exit_code == 1) {
     // Print full output if it wasn't already printed before because of verbose
-    if (!verbose) {
-      _delegate->print(_delegate->user_data, full_output.c_str());
-    }
-    log_error("DBA: mysqlprovision exited with error code: %s ", std::to_string(exit_code).c_str());
-
-    std::string remove_me = "ERROR: Error executing the '" + cmd + "' command:";
-
-    std::string::size_type i = error_output.find(remove_me);
-
-    if (i != std::string::npos)
-      error_output.erase(i, remove_me.length());
-
-    if (verbose)
-      errors = full_output;
-    else
-      errors = error_output;
+    log_error("DBA: mysqlprovision exited with error code (%s) : %s ", std::to_string(exit_code).c_str(), full_output.c_str());
 
     /*
      * mysqlprovision returns 2 as exit-code for parameters parsing errors
      * The logged message starts with "mysqlprovision: error: "
      */
   } else if (exit_code == 2) {
-    // Print full output if it wasn't already printed before because of verbose
-    if (!verbose) {
-      _delegate->print(_delegate->user_data, full_output.c_str());
-    }
-    log_error("DBA: mysqlprovision exited with error code: %s ", std::to_string(exit_code).c_str());
+    log_error("DBA: mysqlprovision exited with error code (%s) : %s ", std::to_string(exit_code).c_str(), full_output.c_str());
 
-    std::string remove_me = "mysqlprovision: error:";
-
-    std::string::size_type i = error_output.find(remove_me);
-
-    if (i != std::string::npos)
-      error_output.erase(i, remove_me.length());
-
-    if (verbose)
-      errors = full_output;
-    else
-      errors = error_output;
+    // This error implies a wrong integratio nbetween the chell and MP
+    throw shcore::Exception::runtime_error("Error calling mysqlprovision. Look at the log for more details.");
   }
-  if (errors.empty() && exit_code != 0) {
-    errors = "Error while executing mysqlprovision (return " + std::to_string(exit_code) + ")";
-  }
-  log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
+  else
+    log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
 
   return exit_code;
 }
 
 int ProvisioningInterface::check(const std::string &user, const std::string &host, int port,
-                                 const std::string &password, std::string &errors, bool verbose) {
+                                 const std::string &password, shcore::Value::Array_type_ref &errors) {
   std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
   std::vector<std::string> passwords;
   std::string pwd = password;
@@ -221,13 +230,13 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
   args.push_back(instance_param.c_str());
   args.push_back("--stdin");
 
-  return execute_mysqlprovision("check", args, passwords, errors, verbose);
+  return execute_mysqlprovision("check", args, passwords, errors, _verbose);
 }
 
 int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int portx, const std::string &sandbox_dir,
                                            const std::string &password,
                                            const std::vector<std::string> &extra_args,
-                                           std::string &errors) {
+                                           shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> sandbox_args, passwords;
   std::string arg, pwd = password;
 
@@ -279,7 +288,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
 int ProvisioningInterface::create_sandbox(int port, int portx, const std::string &sandbox_dir,
                                           const std::string &password,
                                           const shcore::Value &mycnf_options,
-                                          std::string &errors) {
+                                          shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> extra_args;
   if (mycnf_options) {
     for (auto s : *mycnf_options.as_array()) {
@@ -291,25 +300,25 @@ int ProvisioningInterface::create_sandbox(int port, int portx, const std::string
 }
 
 int ProvisioningInterface::delete_sandbox(int port, const std::string &sandbox_dir,
-                                          std::string &errors) {
+                                          shcore::Value::Array_type_ref &errors) {
   return exec_sandbox_op("delete", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 
 int ProvisioningInterface::kill_sandbox(int port, const std::string &sandbox_dir,
-                                        std::string &errors) {
+                                        shcore::Value::Array_type_ref &errors) {
   return exec_sandbox_op("kill", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 
 int ProvisioningInterface::stop_sandbox(int port, const std::string &sandbox_dir,
-                                        std::string &errors) {
+                                        shcore::Value::Array_type_ref &errors) {
   return exec_sandbox_op("stop", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 
 int ProvisioningInterface::start_sandbox(int port, const std::string &sandbox_dir,
-                                        std::string &errors) {
+                                         shcore::Value::Array_type_ref &errors) {
   return exec_sandbox_op("start", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
@@ -317,7 +326,7 @@ int ProvisioningInterface::start_sandbox(int port, const std::string &sandbox_di
 int ProvisioningInterface::start_replicaset(const std::string &instance_url, const std::string &repl_user,
                                       const std::string &super_user_password, const std::string &repl_user_password,
                                       bool multi_master,
-                                      std::string &errors) {
+                                      shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -347,7 +356,7 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
                                       const std::string &peer_instance_url, const std::string &super_user_password,
                                       const std::string &repl_user_password,
                                       bool multi_master,
-                                      std::string &errors) {
+                                      shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -381,7 +390,7 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
 }
 
 int ProvisioningInterface::leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
-                                            std::string &errors) {
+                                            shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;

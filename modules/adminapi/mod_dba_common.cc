@@ -44,7 +44,7 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
 
   if (options->size() == 0)
     throw shcore::Exception::argument_error("Instance definition is empty.");
-  
+
   // Overrides the options password if given appart
   if (args.size() == 2 && args[1].type == shcore::String ) {
     if (options->has_key("dbPassword"))
@@ -52,9 +52,24 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
     else
       (*options)["password"] = args[1];
   }
-  
+
   return options;
 }
+
+std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors) {
+  std::vector<std::string> str_errors;
+
+  for (auto error: *errors) {
+    auto data = error.as_map();
+    auto error_type = data->get_string("type");
+    auto error_text = data->get_string("msg");
+
+    str_errors.push_back(error_type + ": " + error_text);
+  }
+
+  return shcore::join_strings(str_errors, "\n");
+}
+
 
 } // dba
 } // mysh

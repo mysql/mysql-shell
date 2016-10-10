@@ -41,32 +41,32 @@ public:
   ~ProvisioningInterface();
 
   int check(const std::string &user, const std::string &host, int port, const std::string &password,
-            std::string &errors, bool verbose);
+            shcore::Value::Array_type_ref &errors);
 
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
                      const shcore::Value &mycnf_options,
-                     std::string &errors);
+                     shcore::Value::Array_type_ref &errors);
   int delete_sandbox(int port, const std::string &sandbox_dir,
-                     std::string &errors);
+                     shcore::Value::Array_type_ref &errors);
   int kill_sandbox(int port, const std::string &sandbox_dir,
-                   std::string &errors);
+                   shcore::Value::Array_type_ref &errors);
   int stop_sandbox(int port, const std::string &sandbox_dir,
-                   std::string &errors);
+                   shcore::Value::Array_type_ref &errors);
   int start_sandbox(int port, const std::string &sandbox_dir,
-                   std::string &errors);
+                   shcore::Value::Array_type_ref &errors);
   int start_replicaset(const std::string &instance_url, const std::string &repl_user,
                  const std::string &super_user_password, const std::string &repl_user_password,
                  bool multi_master,
-                 std::string &errors);
+                 shcore::Value::Array_type_ref &errors);
   int join_replicaset(const std::string &instance_url, const std::string &repl_user,
                  const std::string &peer_instance_url, const std::string &super_user_password,
                  const std::string &repl_user_password,
                  bool multi_master,
-                 std::string &errors);
+                 shcore::Value::Array_type_ref &errors);
 
   int leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
-                       std::string &errors);
+                       shcore::Value::Array_type_ref &errors);
 
   void set_verbose(bool verbose) { _verbose = verbose; }
   bool get_verbose() { return _verbose; }
@@ -78,11 +78,11 @@ private:
 
   int execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
                 const std::vector<std::string> &passwords,
-                std::string &errors, bool verbose);
+                shcore::Value::Array_type_ref &errors, bool verbose);
   int exec_sandbox_op(const std::string &op, int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
                      const std::vector<std::string> &extra_args,
-                     std::string &errors);
+                      shcore::Value::Array_type_ref &errors);
 };
 }  // namespace mysqlx
 }  // namespace mysh

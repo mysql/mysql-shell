@@ -39,8 +39,30 @@ int main(int argc, char **argv) {
 
   ::testing::InitGoogleTest(&argc, argv);
 
+  // Helper code for DBA specific groups of tests;
   std::string flags = ::testing::GTEST_FLAG(filter);
-  ::testing::GTEST_FLAG(filter) = flags.c_str();
+  
+  if (!flags.empty()) {
+    std::string new_flags;
+    
+    if (flags == "DBA")
+      new_flags = "Shell_py_dba_tests.*:Shell_js_dba_tests.*";
+    else if (flags == "DBAJS")
+      new_flags = "Shell_js_dba_tests.*";
+    else if (flags == "DBAPY")
+      new_flags = "Shell_py_dba_tests.*";
+    else if (flags == "DBAJSNIG")
+      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_global*";
+    else if (flags == "DBAPYNIG")
+      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_global*";
+    else if (flags == "DBAJSIG")
+      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_global*";
+    else if (flags == "DBAPYIG")
+      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_global*";
+    
+    if (!new_flags.empty())
+      ::testing::GTEST_FLAG(filter) = new_flags.c_str();
+  }
 
   const char *generate_option = "--generate_test_groups=";
   if (argc > 1 && strncmp(argv[1], generate_option, strlen(generate_option)) == 0) {

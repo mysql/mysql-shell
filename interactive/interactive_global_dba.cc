@@ -61,14 +61,14 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
   if (args.size() == 2) {
     new_args.push_back(args[1]);
     options = args.map_at(1);
-    
+
     shcore::Argument_map opt_map (*options);
-    
+
     opt_map.ensure_keys({}, mysh::dba::Dba::_deploy_instance_opts, "the instance definition");
-    
+
     if (opt_map.has_key("sandboxDir"))
       sandboxDir = opt_map.string_at("sandboxDir");
-    
+
   } else {
     options.reset(new shcore::Value::Map_type());
     new_args.push_back(shcore::Value(options));
@@ -216,10 +216,10 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
   shcore::Value::Map_type_ref options;
-  
+
   std::string cluster_name;
   std::shared_ptr<mysh::ShellDevelopmentSession> session;
-  
+
   try {
     cluster_name = args.string_at(0);
     std::string answer;
@@ -258,7 +258,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       }
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
-  
+
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(cluster_name));
 
@@ -336,10 +336,10 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   std::string uri, answer, user;
 
   auto options = mysh::dba::get_instance_options_map(args);
-  
+
   shcore::Argument_map opt_map(*options);
   opt_map.ensure_keys({"host", "port"}, {}, "instance definition");
-  
+
   // Sets root user by default if no specified
   if (!options->has_key("user") && !options->has_key("dbUser"))
     (*options)["user"] = shcore::Value("root");
@@ -368,6 +368,13 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
 
   ret_val = call_target("validateInstance", new_args);
 
+  auto result = ret_val.as_map();
+
+  if (result->get_string("status") == "ok")
+    println("The instance: " + opt_map.string_at("host") + ":" + std::to_string(opt_map.int_at("port")) + " is valid for Cluster usage");
+  else
+    println("The instance: " + opt_map.string_at("host") + ":" + std::to_string(opt_map.int_at("port")) + " is not valid for Cluster usage");
+
   return ret_val;
 }
 
@@ -378,12 +385,12 @@ shcore::Value Global_dba::prepare_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("prepareInstance").c_str());
 
   std::string uri, answer, user;
-  
+
   auto options = mysh::dba::get_instance_options_map(args);
-  
+
   shcore::Argument_map opt_map(*options);
   opt_map.ensure_keys({"host", "port"}, {}, "instance definition");
-  
+
   // Sets root user by default if no specified
   if (!options->has_key("user") && !options->has_key("dbUser"))
     (*options)["user"] = shcore::Value("root");

@@ -17,10 +17,13 @@
  * 02110-1301  USA
  */
 
+#include "shellcore/types.h"
+
 namespace mysh {
 namespace dba {
-    
+
 shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args);
+std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);
 
 }
 }

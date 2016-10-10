@@ -343,14 +343,14 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
   auto options = get_instance_options_map(args);
-  
+
   shcore::Argument_map opt_map(*options);
   opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
-  
-  
+
+
   if (!options->has_key("port"))
     (*options)["port"] = shcore::Value(get_default_port());
-  
+
   port = options->get_int("port");
 
   // Sets a default user if not specified
@@ -506,7 +506,8 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
 
   bool is_seed_instance = peer_instance_url.empty() ? true : false;
 
-  std::string command, errors;
+  std::string command;
+  shcore::Value::Array_type_ref errors;
 
   if (is_seed_instance) {
     exit_code = _cluster->get_provisioning_interface()->start_replicaset(instance_url,
@@ -528,7 +529,7 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
     else
       ret_val = shcore::Value("The instance '" + instance_url + "' was successfully added to the MySQL Cluster.");
   } else
-    throw shcore::Exception::runtime_error(errors);
+    throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
 
   return exit_code == 0;
 }
@@ -568,12 +569,12 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     auto options = get_instance_options_map(args);
     shcore::Argument_map opt_map(*options);
     opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
-    
+
     if (!options->has_key("port"))
       (*options)["port"] = shcore::Value(get_default_port());
-    
+
     port = options->get_int("port");
-    
+
     std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
     if (peer_instance.empty()) {
       throw shcore::Exception::runtime_error("Cannot rejoin instance. There are no remaining available instances in the replicaset.");
@@ -717,7 +718,8 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   // call provisioning to remove the instance from the replicaset
   int exit_code = -1;
-  std::string errors, instance_url;
+  std::string instance_url;
+  shcore::Value::Array_type_ref errors;
 
   instance_url = instance_admin_user + "@";
 
@@ -736,7 +738,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url, instance_admin_user_password, errors);
 
   if (exit_code != 0)
-    throw shcore::Exception::runtime_error(errors);
+    throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
   else
     tx.commit();
 
@@ -780,9 +782,9 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
       options = args.map_at(0);
 
     if (options) {
-      
+
       shcore::Argument_map opt_map(*options);
-      
+
       opt_map.ensure_keys({}, {"force"}, "dissolve options");
 
       if (options->has_key("force"))
@@ -850,13 +852,13 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
       }
 
       std::string instance_url = instance_admin_user + "@" + instance_name;
-      std::string errors;
+      shcore::Value::Array_type_ref errors;
 
       // Leave the replicaset
       exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
                   instance_admin_user_password, errors);
       if (exit_code != 0)
-        throw shcore::Exception::runtime_error(errors);
+        throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
     }
 
     // Update the metadata to turn 'active' off

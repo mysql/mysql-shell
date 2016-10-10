@@ -120,6 +120,7 @@ private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
   shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
+  shcore::Value::Map_type_ref _validate_instance(const shcore::Argument_list &args);
 };
 }
 }
