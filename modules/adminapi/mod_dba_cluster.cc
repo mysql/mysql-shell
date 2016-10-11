@@ -214,14 +214,14 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "The password may be contained on the
 * $(CLUSTER_ADDINSTANCE_PARAM1)
 *
 * $(CLUSTER_ADDINSTANCE_DETAIL)
-* 
+*
 * $(CLUSTER_ADDINSTANCE_DETAIL1)
-* 
+*
 * $(CLUSTER_ADDINSTANCE_DETAIL2)
 * $(CLUSTER_ADDINSTANCE_DETAIL3)
 * $(CLUSTER_ADDINSTANCE_DETAIL4)
 * $(CLUSTER_ADDINSTANCE_DETAIL5)
-* 
+*
 * $(CLUSTER_ADDINSTANCE_DETAIL6)
 */
 #if DOXYGEN_JS
@@ -265,13 +265,13 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on 
 * $(CLUSTER_REJOININSTANCE_PARAM2)
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL)
-* 
+*
 * $(CLUSTER_REJOININSTANCE_DETAIL1)
-* 
+*
 * $(CLUSTER_REJOININSTANCE_DETAIL2)
 * $(CLUSTER_REJOININSTANCE_DETAIL3)
 * $(CLUSTER_REJOININSTANCE_DETAIL4)
-* 
+*
 * $(CLUSTER_REJOININSTANCE_DETAIL5)
 */
 #if DOXYGEN_JS
@@ -312,9 +312,9 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5, "@li An Instance object.");
 * $(CLUSTER_REMOVEINSTANCE_PARAMALT)
 *
 * $(CLUSTER_REMOVEINSTANCE_DETAIL)
-* 
+*
 * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
-* 
+*
 * $(CLUSTER_REMOVEINSTANCE_DETAIL2)
 * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
 * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
@@ -433,7 +433,8 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   _json_mode = JSON_TOPOLOGY_OUTPUT;
   shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
-  ret_val = shcore::Value(myself.json(true));
+  shcore::Value json = shcore::Value(myself.json(true));
+  ret_val = shcore::Value::parse(json.as_string());
   _json_mode = JSON_STANDARD_OUTPUT;
 
   return ret_val;
@@ -460,7 +461,8 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   _json_mode = JSON_STATUS_OUTPUT;
   shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
-  ret_val = shcore::Value(myself.json(true));
+  shcore::Value json = shcore::Value(myself.json(true));
+  ret_val = shcore::Value::parse(json.as_string());
   _json_mode = JSON_STANDARD_OUTPUT;
 
   return ret_val;
@@ -500,7 +502,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     if (options) {
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
-      
+
       opt_map.ensure_keys({}, {"force"}, "dissolve options");
 
       if (opt_map.has_key("force"))

@@ -6,13 +6,8 @@
 var Cluster = dba.getCluster('devCluster');
 
 // Sets the correct local host
-var my_re = new RegExp('"name": "(.*):' + __mysql_sandbox_port1);
-var match = my_re.exec(Cluster.describe());
-if (match)
-  var localhost = match[1];
-else
-  println ("Failed retrieving the correct local hostname");
-
+var desc = Cluster.describe();
+var localhost = desc.defaultReplicaSet.instances[0].name.split(':')[0];
 
 var members = dir(Cluster);
 

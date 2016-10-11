@@ -79,6 +79,39 @@ std::string Shell_script_tester::resolve_string(const std::string& source) {
   return updated;
 }
 
+void Shell_script_tester::validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual) {
+  auto expected_lines = shcore::split_string(expected, "\n");
+  auto actual_lines = shcore::split_string(actual, "\n");
+
+  // Identifies the index of the actual line containing the first expected line
+  size_t actual_index=0;
+  while (actual_index < actual_lines.size()) {
+    if (actual_lines[actual_index].find(expected_lines[0]) != std::string::npos)
+      break;
+    else
+      actual_index++;
+  }
+
+  if (actual_index < actual_lines.size()) {
+    size_t expected_index;
+    for(expected_index = 0; expected_index < expected_lines.size(); expected_index++) {
+      auto act_str = boost::trim_right_copy(actual_lines[actual_index + expected_index]);
+      auto exp_str = boost::trim_right_copy(expected_lines[expected_index]);
+      if (act_str != exp_str) {
+        SCOPED_TRACE("File: " + context);
+        SCOPED_TRACE("Executing: " + chunk_id);
+        SCOPED_TRACE(stream + " actual: " + actual);
+
+        expected_lines[expected_index] += "<------ INCONSISTENCY";
+
+        SCOPED_TRACE(stream + " inconsistent: " + shcore::join_strings(expected_lines, "\n"));
+        ADD_FAILURE();
+        break;
+      }
+    }
+  }
+}
+
 void Shell_script_tester::validate(const std::string& context, const std::string &chunk_id) {
   if (_chunk_validations.count(chunk_id)) {
     Validation_t* validations = _chunk_validations[chunk_id];
@@ -121,11 +154,16 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         out = resolve_string(out);
 
         if (out != "*") {
-          SCOPED_TRACE("File: " + context);
-          SCOPED_TRACE("Executing: " + chunk_id);
-          SCOPED_TRACE("STDOUT missing: " + out);
-          SCOPED_TRACE("STDOUT actual: " + original_std_out);
-          EXPECT_NE(-1, int(original_std_out.find(out)));
+          if ((*validations)[valindex].type == ValidationType::Simple) {
+            SCOPED_TRACE("File: " + context);
+            SCOPED_TRACE("Executing: " + chunk_id);
+            SCOPED_TRACE("STDOUT missing: " + out);
+            SCOPED_TRACE("STDOUT actual: " + original_std_out);
+            if (original_std_out.find(out) == std::string::npos)
+              ADD_FAILURE();
+          } else {
+            validate_line_by_line(context, chunk_id, "STDOUT", out, original_std_out);
+          }
         }
       }
 
@@ -139,7 +177,8 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         SCOPED_TRACE("Executing: " + chunk_id);
         SCOPED_TRACE("STDOUT unexpected: " + out);
         SCOPED_TRACE("STDOUT actual: " + original_std_out);
-        EXPECT_EQ(-1, int(original_std_out.find(out)));
+        if (original_std_out.find(out) != std::string::npos)
+          ADD_FAILURE();
       }
 
       // Validates expected error if any
@@ -149,11 +188,16 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         error = resolve_string(error);
 
         if (error != "*") {
-          SCOPED_TRACE("File: " + context);
-          SCOPED_TRACE("Executing: " + chunk_id);
-          SCOPED_TRACE("STDOUT missing: " + error);
-          SCOPED_TRACE("STDOUT actual: " + original_std_err);
-          EXPECT_NE(-1, int(original_std_err.find(error)));
+          if ((*validations)[valindex].type == ValidationType::Simple) {
+            SCOPED_TRACE("File: " + context);
+            SCOPED_TRACE("Executing: " + chunk_id);
+            SCOPED_TRACE("STDERR missing: " + error);
+            SCOPED_TRACE("STDERR actual: " + original_std_err);
+            if (original_std_err.find(error)  == std::string::npos)
+              ADD_FAILURE();
+          } else {
+            validate_line_by_line(context, chunk_id, "STDERR", error, original_std_out);
+          }
         }
       }
     }
@@ -215,12 +259,12 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
   }
 }
 
-void Shell_script_tester::add_validation(const std::string &chunk_id, const std::vector<std::string>& source) {
+void Shell_script_tester::add_validation(const std::string &chunk_id, const std::vector<std::string>& source, ValidationType type) {
   if (source.size() == 3) {
     if (!_chunk_validations.count(chunk_id))
       _chunk_validations[chunk_id] = new Validation_t();
 
-    _chunk_validations[chunk_id]->push_back(Validation(source));
+    _chunk_validations[chunk_id]->push_back(Validation(source, type));
   }
 }
 
@@ -243,11 +287,10 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
 
           boost::trim(value);
 
-          add_validation(chunk_id, {"", value, ""});
           if (format == "OUT")
-            add_validation(chunk_id, {"", value, ""});
+            add_validation(chunk_id, {"", value, ""}, ValidationType::LineByLine);
           else if (format == "ERR")
-            add_validation(chunk_id, {"", "", value});
+            add_validation(chunk_id, {"", "", value}, ValidationType::LineByLine);
 
           format_lines.clear();
         }
@@ -282,11 +325,10 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
 
       boost::trim(value);
 
-      add_validation(chunk_id, {"", value, ""});
       if (format == "OUT")
-        add_validation(chunk_id, {"", value, ""});
+        add_validation(chunk_id, {"", value, ""}, ValidationType::LineByLine);
       else if (format == "ERR")
-        add_validation(chunk_id, {"", "", value});
+        add_validation(chunk_id, {"", "", value}, ValidationType::LineByLine);
     }
 
     file.close();

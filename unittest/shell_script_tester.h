@@ -15,8 +15,13 @@
 
 #include "test_utils.h"
 
+enum class ValidationType {
+  Simple = 0,
+  LineByLine = 1
+};
+
 struct Validation {
-  Validation(const std::vector<std::string>& source) {
+  Validation(const std::vector<std::string>& source, ValidationType vtype = ValidationType::Simple) {
     if (source.size() < 3) {
       std::string a;
       a = "asads";
@@ -26,12 +31,16 @@ struct Validation {
     expected_output = source.size() >= 2 ? source[1] : "";
     expected_error = source.size() >= 3 ? source[2] : "";
 
+
     if (expected_output.find("~") == 0) {
       unexpected_output = expected_output.substr(1);
       expected_output = "";
     }
+
+    type = vtype;
   }
 
+  ValidationType type;
   std::string code;
   std::string expected_output;
   std::string unexpected_output;
@@ -87,11 +96,12 @@ private:
   void execute_script(const std::string& path = "", bool in_chunks = false, bool is_pre_script = false);
   void process_setup(std::istream & stream);
   void validate(const std::string& context, const std::string &chunk_id = "__global__");
+  void validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual);
   std::string resolve_string(const std::string& source);
   virtual void pre_process_line(const std::string &path, std::string & line) {};
 
   void load_source_chunks(std::istream & stream);
-  void add_validation(const std::string &chunk, const std::vector<std::string>& source);
+  void add_validation(const std::string &chunk, const std::vector<std::string>& source, ValidationType type = ValidationType::Simple);
   void load_validations(const std::string& path, bool in_chunks = false);
 };
 

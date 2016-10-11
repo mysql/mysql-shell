@@ -12,7 +12,6 @@
 |help: OK|
 |dissolve: OK|
 
-
 //@# Cluster: addInstance errors
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 4
@@ -29,22 +28,22 @@
 
 //@<OUT> Cluster: describe1
 {
-    "clusterName": "devCluster",
     "adminType": "local",
+    "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "name": "default",
         "instances": [
             {
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "name": "default"
     }
 }
 
@@ -56,18 +55,20 @@
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "status": "ONLINE",
-                "role": "HA",
-                "mode": "R/W",
                 "leaves": {
                     "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                         "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                        "status": "RECOVERING",
-                        "role": "HA",
+                        "leaves": {
+
+                        }, 
                         "mode": "R/O",
-                        "leaves": {}
+                        "role": "HA",
+                        "status": "RECOVERING"
                     }
-                }
+                },
+                "mode": "R/W",
+                "role": "HA",
+                "status": "ONLINE"
             }
         }
     }
@@ -87,17 +88,17 @@
 
 //@<OUT> Cluster: describe2
 {
-    "clusterName": "devCluster",
     "adminType": "local",
+    "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "name": "default",
         "instances": [
             {
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "name": "default"
     }
 }
 
@@ -109,10 +110,12 @@
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "status": "ONLINE",
-                "role": "HA",
+                "leaves": {
+
+                }, 
                 "mode": "R/W",
-                "leaves": {}
+                "role": "HA",
+                "status": "ONLINE"
             }
         }
     }
@@ -124,11 +127,12 @@
 
 //@<OUT> Cluster: describe3
 {
-    "clusterName": "devCluster",
     "adminType": "local",
+    "clusterName": "devCluster",
     "defaultReplicaSet": {
+        "instances": [
+        ], 
         "name": "default",
-        "instances": []
     }
 }
 
@@ -137,7 +141,9 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "status": "Cluster is NOT tolerant to any failures.",
-        "topology": {}
+        "topology": {
+
+        }
     }
 }
 

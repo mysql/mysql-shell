@@ -44,45 +44,47 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 
 #@<OUT> Cluster: describe1
 {
-    "clusterName": "devCluster",
-    "adminType": "local",
+    "adminType": "local", 
+    "clusterName": "devCluster", 
     "defaultReplicaSet": {
-        "name": "default",
         "instances": [
             {
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>", 
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>", 
                 "role": "HA"
             },
             {
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>", 
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>", 
                 "role": "HA"
             }
-        ]
+        ], 
+        "name": "default"
     }
 }
 
 #@<OUT> Cluster: status1
 {
-    "clusterName": "devCluster",
+    "clusterName": "devCluster", 
     "defaultReplicaSet": {
-        "status": "Cluster is NOT tolerant to any failures.",
+        "status": "Cluster is NOT tolerant to any failures.", 
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "status": "ONLINE",
-                "role": "HA",
-                "mode": "R/W",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>", 
                 "leaves": {
                     "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                        "status": "RECOVERING",
-                        "role": "HA",
-                        "mode": "R/O",
-                        "leaves": {}
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>", 
+                        "leaves": {
+
+                        }, 
+                        "mode": "R/O", 
+                        "role": "HA", 
+                        "status": "RECOVERING"
                     }
-                }
+                }, 
+                "mode": "R/W", 
+                "role": "HA", 
+                "status": "ONLINE"
             }
         }
     }
@@ -101,32 +103,34 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 
 #@<OUT> Cluster: describe2
 {
-    "clusterName": "devCluster",
-    "adminType": "local",
+    "adminType": "local", 
+    "clusterName": "devCluster", 
     "defaultReplicaSet": {
-        "name": "default",
         "instances": [
             {
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>", 
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>", 
                 "role": "HA"
             }
-        ]
+        ], 
+        "name": "default"
     }
 }
 
 #@<OUT> Cluster: status2
 {
-    "clusterName": "devCluster",
+    "clusterName": "devCluster", 
     "defaultReplicaSet": {
-        "status": "Cluster is NOT tolerant to any failures.",
+        "status": "Cluster is NOT tolerant to any failures.", 
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "status": "ONLINE",
-                "role": "HA",
-                "mode": "R/W",
-                "leaves": {}
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>", 
+                "leaves": {
+
+                }, 
+                "mode": "R/W", 
+                "role": "HA", 
+                "status": "ONLINE"
             }
         }
     }
@@ -139,17 +143,17 @@ and unregister the ReplicaSets from the cluster.
 
 The following replicasets are currently registered:
 {
-    "clusterName": "devCluster",
-    "adminType": "local",
+    "adminType": "local", 
+    "clusterName": "devCluster", 
     "defaultReplicaSet": {
-        "name": "default",
         "instances": [
             {
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>", 
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>", 
                 "role": "HA"
             }
-        ]
+        ], 
+        "name": "default"
     }
 }
 
@@ -165,20 +169,23 @@ The following replicasets are currently registered:
 
 #@<OUT> Cluster: describe3
 {
-    "clusterName": "devCluster",
-    "adminType": "local",
+    "adminType": "local", 
+    "clusterName": "devCluster", 
     "defaultReplicaSet": {
-        "name": "default",
-        "instances": []
+        "instances": [
+        ], 
+        "name": "default"
     }
 }
 
 #@<OUT> Cluster: status3
 {
-    "clusterName": "devCluster",
+    "clusterName": "devCluster", 
     "defaultReplicaSet": {
-        "status": "Cluster is NOT tolerant to any failures.",
-        "topology": {}
+        "status": "Cluster is NOT tolerant to any failures.", 
+        "topology": {
+
+        }
     }
 }
 

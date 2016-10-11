@@ -3,15 +3,11 @@
 # validateMemer and validateNotMember are defined on the setup script
 
 #@ Cluster: validating members
-import re
 cluster = dba.get_cluster('devCluster')
 
-my_re = re.compile('"name": "(.*):' + str(__mysql_sandbox_port1))
-match = my_re.search(cluster.describe())
-if match:
-  localhost = match.group(1)
-else:
-  print "Failed retrieving the correct local hostname"
+desc = cluster.describe();
+localhost = desc.defaultReplicaSet.instances[0].name.split(':')[0];
+
 
 all_members = dir(cluster)
 

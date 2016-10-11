@@ -41,10 +41,10 @@ int main(int argc, char **argv) {
 
   // Helper code for DBA specific groups of tests;
   std::string flags = ::testing::GTEST_FLAG(filter);
-  
+
   if (!flags.empty()) {
     std::string new_flags;
-    
+
     if (flags == "DBA")
       new_flags = "Shell_py_dba_tests.*:Shell_js_dba_tests.*";
     else if (flags == "DBAJS")
@@ -59,7 +59,9 @@ int main(int argc, char **argv) {
       new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_global*";
     else if (flags == "DBAPYIG")
       new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_global*";
-    
+    else if (flags == "ALLBUTDBA")
+      new_flags = "*:-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
+
     if (!new_flags.empty())
       ::testing::GTEST_FLAG(filter) = new_flags.c_str();
   }
