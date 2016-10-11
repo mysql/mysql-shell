@@ -323,6 +323,7 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
 shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
   args.ensure_count(1, 2, get_function_name("validateInstance").c_str());
 
@@ -361,12 +362,41 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
 
   ret_val = call_target("validateInstance", new_args);
 
-  auto result = ret_val.as_map();
+  if (format.find("json") != std::string::npos)
+    print_value(ret_val, "");
+  else {
+    auto result = ret_val.as_map();
 
-  if (result->get_string("status") == "ok")
-    println("The instance: " + opt_map.string_at("host") + ":" + std::to_string(opt_map.int_at("port")) + " is valid for Cluster usage");
-  else
-    println("The instance: " + opt_map.string_at("host") + ":" + std::to_string(opt_map.int_at("port")) + " is not valid for Cluster usage");
+    if (result->get_string("status") == "ok")
+      println("The instance: " + opt_map.string_at("host") + ":" + std::to_string(opt_map.int_at("port")) + " is valid for Cluster usage");
+    else {
+      println("The instance: " + opt_map.string_at("host") + ":" + std::to_string(opt_map.int_at("port")) + " is not valid for Cluster usage.");
+      println();
+      println("The following errors were encountered:");
+
+      auto errors = result->get_array("errors");
+      for(auto error: *errors)
+        println(" - " + error.as_string());
+
+      if (result->has_key("server_variables_errors")) {
+        println();
+        println("The next server variables require to be updated.");
+        dump_table({"option", "current", "required"}, {"Variable", "Current Value", "Required Value"}, result->get_array("server_variables_errors"));
+      }
+
+      if (result->has_key("config_errors")) {
+        println();
+        println("The next server variables require to be updated.");
+        dump_table({"option", "current", "required"}, {"Variable", "Current Value", "Required Value"}, result->get_array("config_errors"));
+      }
+
+      if (result->has_key("restart_required") && result->get_bool("restart_required")) {
+        println();
+        println("Please fix the errors listed above, restart the server and validate again.");
+        println();
+      }
+    }
+  }
 
   return ret_val;
 }
@@ -421,4 +451,79 @@ shcore::Value Global_dba::prepare_instance(const shcore::Argument_list &args) {
 void Global_dba::validate_session(const std::string &source) const {
   auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
   dba->validate_session(source);
+}
+
+void Global_dba::dump_table(const std::vector<std::string>& column_names, const std::vector<std::string>& column_labels, shcore::Value::Array_type_ref documents) {
+  std::vector<uint64_t> max_lengths;
+  std::vector<bool> numerics;
+
+  size_t field_count = column_names.size();
+
+  // Updates the max_length array with the maximum length between column name, min column length and column max length
+  for (size_t field_index = 0; field_index < field_count; field_index++) {
+    max_lengths.push_back(0);
+    max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], column_labels[field_index].size());
+  }
+
+  // Now updates the length with the real column data lengths
+  size_t row_index;
+  for (auto map: *documents) {
+    auto document = map.as_map();
+    for (size_t field_index = 0; field_index < field_count; field_index++)
+      max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], document->get_string(column_names[field_index]).size());
+  }
+
+  //-----------
+
+  size_t index = 0;
+  std::vector<std::string> formats(field_count, "%-");
+
+  // Calculates the max column widths and constructs the separator line.
+  std::string separator("+");
+  for (index = 0; index < field_count; index++) {
+    // Creates the format string to print each field
+    formats[index].append(std::to_string(max_lengths[index]));
+    if (index == field_count - 1)
+      formats[index].append("s |");
+      else
+        formats[index].append("s | ");
+
+        std::string field_separator(max_lengths[index] + 2, '-');
+      field_separator.append("+");
+    separator.append(field_separator);
+  }
+  separator.append("\n");
+
+  // Prints the initial separator line and the column headers
+  print(separator);
+  print("| ");
+
+  for (index = 0; index < field_count; index++) {
+    std::string data = (boost::format(formats[index]) % column_labels[index]).str();
+    print(data.c_str());
+
+    // Once the header is printed, updates the numeric fields formats
+    // so they are right aligned
+    //if (numerics[index])
+    //  formats[index] = formats[index].replace(1, 1, "");
+  }
+  println();
+  print(separator);
+
+  // Now prints the records
+  for (auto map: *documents) {
+    auto document = map.as_map();
+
+    print("| ");
+
+    for (size_t field_index = 0; field_index < field_count; field_index++) {
+      std::string raw_value = document->get_string(column_names[field_index]);
+      std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
+
+      print(data.c_str());
+    }
+    println();
+  }
+
+  println(separator);
 }

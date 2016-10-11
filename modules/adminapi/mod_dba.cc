@@ -482,12 +482,76 @@ shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list 
     throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
 
   // Verbose is mandatory for validateInstance
-  shcore::Value::Array_type_ref errors;
-  if (_provisioning_interface->check(user, host, port, password, errors) == 0)
+  shcore::Value::Array_type_ref mp_errors;
+  if (_provisioning_interface->check(user, host, port, password, mp_errors) == 0)
     (*ret_val)["status"] = shcore::Value("ok");
   else {
+    shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
+    shcore::Value::Array_type_ref server_options;
+    shcore::Value::Array_type_ref config_options;
+    shcore::Value::Array_type_ref *current_options;
+    bool restart_required = false;
+
     (*ret_val)["status"] = shcore::Value("error");
+
+    for(auto error_object: *mp_errors) {
+      auto map = error_object.as_map();
+
+      std::string error_str;
+      if (map->get_string("type") == "ERROR") {
+        error_str = map->get_string("msg");
+
+        if (error_str.find("The operation could not continue due to the following requirements not being met") != std::string::npos) {
+          auto lines = shcore::split_string(error_str, "\n");
+
+          bool loading_options = false;
+
+          for (size_t index = 1; index < lines.size(); index++) {
+            if (loading_options) {
+              auto option_tokens = shcore::split_string(lines[index], " ", true);
+              shcore::Value::Map_type_ref option(new shcore::Value::Map_type());
+              (*option)["option"] = shcore::Value(option_tokens[0]);
+              (*option)["required"] = shcore::Value(option_tokens[1]);
+              (*option)["current"] = shcore::Value(option_tokens[2]);
+              (*option)["result"] = shcore::Value(option_tokens[3]);
+              (*current_options)->push_back(shcore::Value(option));
+            }
+            else {
+              if (lines[index].find("Some active options on server") != std::string::npos) {
+                restart_required = true;
+                server_options.reset(new shcore::Value::Array_type());
+                current_options = &server_options;
+                loading_options = true;
+                errors->push_back(shcore::Value(lines[index]));
+                index += 3; // Skips to the actual option table
+              }
+              else if (lines[index].find("Some of the configuration values on your options file") != std::string::npos) {
+                restart_required = true;
+                config_options.reset(new shcore::Value::Array_type());
+                current_options = &config_options;
+                loading_options = true;
+                errors->push_back(shcore::Value(lines[index]));
+                index += 3; // Skips to the actual option table
+              }
+              else
+                errors->push_back(shcore::Value(lines[index]));
+            }
+          }
+        }
+        else
+          errors->push_back(shcore::Value(error_str));
+      }
+    }
+
     (*ret_val)["errors"] = shcore::Value(errors);
+
+    if (server_options)
+      (*ret_val)["server_variables_errors"] = shcore::Value(server_options);
+
+    if (config_options)
+      (*ret_val)["config_errors"] = shcore::Value(server_options);
+
+    (*ret_val)["restart_required"] = shcore::Value(restart_required);
   }
 
   return ret_val;

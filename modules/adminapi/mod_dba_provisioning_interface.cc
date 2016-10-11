@@ -95,6 +95,14 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     log_info("DBA: mysqlprovision: Executing %s", cmdline.c_str());
   }
 
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  if (verbose) {
+    std::string title = " MySQL Provision Output ";
+    std::string half_header((78 - title.size()) / 2, '=');
+    std::string header = half_header + title + half_header;
+    _delegate->print(_delegate->user_data, header.c_str());
+  }
+
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
   p.start();
 
@@ -156,8 +164,13 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
             info += data->get_string("msg") + "\n";
 
-            if (verbose && info.find("Enter the password for") == std::string::npos)
-              _delegate->print(_delegate->user_data, info.c_str());
+            if (verbose && info.find("Enter the password for") == std::string::npos) {
+
+              if (format.find("json") == std::string::npos)
+                _delegate->print(_delegate->user_data, info.c_str());
+              else
+                _delegate->print_value(_delegate->user_data, raw_data, "mysqlprovision");
+            }
           }
 
           log_debug("DBA: mysqlprovision: %s", buf.c_str());
@@ -186,6 +199,13 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     full_output.append(buf);
   }
   exit_code = p.wait();
+
+  if (verbose) {
+    std::string footer (78, '=');
+    footer.append("\n");
+    _delegate->print(_delegate->user_data, footer.c_str());
+  }
+
 
   /*
    * process launcher returns 128 if an ENOENT happened.

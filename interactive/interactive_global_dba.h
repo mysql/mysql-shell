@@ -49,6 +49,7 @@ private:
   shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args);
   shcore::Value perform_instance_operation(const shcore::Argument_list &args, const std::string &fname, const std::string& progressive, const std::string& past);
   void validate_session(const std::string &source) const;
+  void dump_table(const std::vector<std::string>& column_names, const std::vector<std::string>& column_labels, shcore::Value::Array_type_ref documents);
 };
 }
 

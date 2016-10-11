@@ -449,7 +449,7 @@ void normalize_sslca_args(std::string &ssl_ca, std::string &ssl_ca_path) {
   }
 }
 
-std::vector<std::string> split_string(const std::string& input, const std::string& separator) {
+std::vector<std::string> split_string(const std::string& input, const std::string& separator, bool compress) {
   std::vector<std::string> ret_val;
 
   size_t index = 0, new_find = 0;
@@ -458,7 +458,11 @@ std::vector<std::string> split_string(const std::string& input, const std::strin
     new_find = input.find(separator, index);
 
     if (new_find != std::string::npos) {
-      ret_val.push_back(input.substr(index, new_find - index));
+      // When compress is enabled, consecutive separators
+      // do not generate new elements
+      if (new_find > index || !compress)
+        ret_val.push_back(input.substr(index, new_find - index));
+
       index = new_find + separator.length();
     } else
       ret_val.push_back(input.substr(index));
@@ -691,7 +695,7 @@ std::string replace_text(const std::string& source, const std::string& from, con
 
 std::string get_my_hostname() {
   char hostname[1024]  {'\0'};
-  
+
 #if defined(_WIN32) || defined(__APPLE__)
   if (gethostname(hostname, sizeof(hostname)) < 0) {
     char msg[1024];
@@ -709,25 +713,25 @@ std::string get_my_hostname() {
     /* Skip interfaces that are not UP, do not have configured addresses, and loopback interface */
     if ((ifap->ifa_addr == NULL) || (ifap->ifa_flags & IFF_LOOPBACK) || (!(ifap->ifa_flags & IFF_UP)))
       continue;
-    
+
     /* Only handle IPv4 and IPv6 addresses */
     family = ifap->ifa_addr->sa_family;
     if (family != AF_INET && family != AF_INET6)
       continue;
-    
+
     addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
-    
+
     /* Skip IPv6 link-local addresses */
     if (family == AF_INET6) {
       struct sockaddr_in6 *sin6;
-      
+
       sin6 = (struct sockaddr_in6 *)ifap->ifa_addr;
       if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) || IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
         continue;
     }
-    
+
     ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname), NULL, 0, NI_NAMEREQD);
-    
+
     if (ret == 0)
       break;
   }
