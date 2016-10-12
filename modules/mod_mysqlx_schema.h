@@ -41,46 +41,15 @@ class Table;
 class Collection;
 
 /**
-* Represents a Schema as retrived from a session created using the X Protocol.
-*/
-#if !DOXYGEN_CPP
-/**
-* \b Dynamic \b Properties
+* $(SCHEMA_BRIEF)
 *
-* In addition to the properties documented above, when a schema object is retrieved from the session,
-* its Tables and Collections are loaded from the database and a cache is filled with the corresponding objects.
+* $(SCHEMA_DETAIL)
 *
-* This cache is used to allow the user accessing the Tables and Collections as Schema properties. These Dynamic Properties are named
-* as the object name, so, if a Schema has a table named *customers* this table can be accessed in two forms:
+* $(SCHEMA_DETAIL1)
 *
-* \code{.js}
-* // Using the standard getTable() function.
-* var table = mySchema.getTable('customers');
+* $(SCHEMA_DETAIL2)
 *
-* // Using the corresponding dynamic property
-* var table = mySchema.customers;
-* \endcode
-*
-* Note that dynamic properties for Schema objects (Tables and Collections) are available only if the next conditions are met:
-*
-* - The object name is a valid identifier.
-* - The object name is different from any member of the Schema class.
-* - The object is in the cache.
-*
-* The object cache is updated every time getTables() or getCollections() are called.
-*
-* To retrieve an object that is not available through a Dynamic Property use getTable(name) or getCollection(name)
-* \n \n
-*/
-#endif
-/**
-* \b View \b Support
-*
-* MySQL Views are stored queries that when executed produce a result set.
-*
-* MySQL supports the concept of Updatable Views: in specific conditions are met, Views can be used not only to retrieve data from them but also to update, add and delete records.
-*
-* For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.
+* $(SCHEMA_DETAIL3)
 */
 class SHCORE_PUBLIC Schema : public DatabaseObject, public std::enable_shared_from_this<Schema> {
 public:

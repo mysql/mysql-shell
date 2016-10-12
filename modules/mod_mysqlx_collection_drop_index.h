@@ -30,11 +30,11 @@ namespace mysqlx {
 class Collection;
 
 /**
-* Handler for index dropping handler on a Collection.
+* $(COLLECTIONDROPINDEX_BRIEF)
 *
-* This object allows dropping an index from a collection.
+* $(COLLECTIONDROPINDEX_DETAIL)
 *
-* This object should only be created by calling the dropIndex function on the collection object where the index will be removed.
+* $(COLLECTIONDROPINDEX_DETAIL1)
 *
 * \sa Collection
 */

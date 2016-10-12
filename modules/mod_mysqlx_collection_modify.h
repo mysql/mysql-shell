@@ -30,11 +30,11 @@ namespace mysqlx {
 class Collection;
 
 /**
-* Handler for document update operations on a Collection.
+* $(COLLECTIONMODIFY_BRIEF)
 *
-* This object provides the necessary functions to allow updating documents on a collection.
+* $(COLLECTIONMODIFY_DETAIL)
 *
-* This object should only be created by calling the modify function on the collection object on which the documents will be updated.
+* $(COLLECTIONMODIFY_DETAIL1)
 *
 * \sa Collection
 */

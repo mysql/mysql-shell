@@ -20,6 +20,7 @@
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 #include "utils/utils_time.h"
+#include "utils/utils_help.h"
 
 #include "shellcore/common.h"
 #include <sstream>
@@ -28,6 +29,11 @@
 using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
+
+// Documentation of CollectionModify class
+REGISTER_HELP(COLLECTIONMODIFY_BRIEF, "Handler for document update operations on a Collection.");
+REGISTER_HELP(COLLECTIONMODIFY_DETAIL, "This object provides the necessary functions to allow updating documents on a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_DETAIL1, "This object should only be created by calling the modify function on the collection object on which the documents will be updated.");
 
 CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
@@ -61,21 +67,29 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-//! Sets the search condition to identify the Documents to be updated on the owner Collection.
-#if DOXYGEN_CPP
-//! \param args may contain an optional string with the filter expression of the documents to be updated.
-#else
-//! \param searchCondition: An optional expression to identify the documents to be updated.
-#endif
+// Documentation of modify function
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_BRIEF, "Sets the search condition to identify the Documents to be updated on the owner Collection.");
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_PARAM, "@param searchCondition: An optional expression to identify the documents to be updated.");
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL, "if not specified all the documents will be updated on the collection unless a limit is set.");
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL1, "<b> Using Expressions for Values </b>");
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL2, "Tipically, the received values are set into the document in a literal way.");
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL3, "An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.");
+
 /**
-* if not specified all the documents will be updated on the collection unless a limit is set.
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_MODIFY_BRIEF)
 *
-* #### Using Expressions for Values
+* $(COLLECTIONMODIFY_MODIFY_PARAM)
 *
-* Tipically, the received values are set into the document in a literal way.
+* $(COLLECTIONMODIFY_MODIFY_DETAIL)
 *
-* An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.
+* $(COLLECTIONMODIFY_MODIFY_RETURN)
+*
+* $(COLLECTIONMODIFY_MODIFY_DETAIL1)
+*
+* $(COLLECTIONMODIFY_MODIFY_DETAIL2)
+*
+* $(COLLECTIONMODIFY_MODIFY_DETAIL3)
 *
 * To define an expression use:
 * \code{.py}
@@ -128,27 +142,36 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets or updates attributes on documents in a collection.
-#if DOXYGEN_CPP
-//! \param args should contain the next entries:
-//! \li A string with the document path of the item to be set.
-//! \li The value to be set on the specified attribute.
-#else
-//! \param attribute A string with the document path of the item to be set.
-//! \param value The value to be set on the specified attribute.
-#endif
+// Documentation of set function
+REGISTER_HELP(COLLECTIONMODIFY_SET_BRIEF, "Sets or updates attributes on documents in a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_PARAM, "@param attribute A string with the document path of the item to be set.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_PARAM1, "@param value The value to be set on the specified attribute.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL, "Adds an opertion into the modify handler to set an attribute on the documents that were included on the selection filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL1, "@li If the attribute is not present on the document, it will be added with the given value.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL2, "@li If the attribute already exists on the document, it will be updated with the given value.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL3, "<b> Using Expressions for Values </b>");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL4, "Tipically, the received values are set into the document in a literal way.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL5, "An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.");
+
 /**
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_SET_BRIEF)
 *
-* Adds an opertion into the modify handler to set an attribute on the documents that were included on the selection filter and limit.
-* - If the attribute is not present on the document, it will be added with the given value.
-* - If the attribute already exists on the document, it will be updated with the given value.
+* $(COLLECTIONMODIFY_SET_PARAM)
 *
-* #### Using Expressions for Values
+* $(COLLECTIONMODIFY_SET_PARAM1)
 *
-* Tipically, the received values are set into the document in a literal way.
+* $(COLLECTIONMODIFY_SET_RETURN)
 *
-* An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.
+* $(COLLECTIONMODIFY_SET_DETAIL)
+* $(COLLECTIONMODIFY_SET_DETAIL1)
+* $(COLLECTIONMODIFY_SET_DETAIL2)
+*
+* $(COLLECTIONMODIFY_SET_DETAIL3)
+*
+* $(COLLECTIONMODIFY_SET_DETAIL4)
+*
+* $(COLLECTIONMODIFY_SET_DETAIL5)
 *
 * To define an expression use:
 * \code{.py}
@@ -208,56 +231,23 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#if DOXYGEN_CPP
+// Documentation of unset function
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_BRIEF, "Removes attributes from documents in a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM, "@param attribute A string with the document path of the attribute to be removed.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM1, "@param attributes A list with the document paths of the attributes to be removed.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL, "The attribute removal will be done on the collection's documents once the execute method is called.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL1, "For each attribute on the attributes list, adds an opertion into the modify handler");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2, "to remove the attribute on the documents that were included on the selection filter and limit.");
+
 /**
- * Removes attributes from documents in a collection.
- * \param args should identify the element to be unset on the collection, possible values include:
- *
- * \li A string with the document path of the attribute to be removed.
- * \li A list with the document paths of the attributes to be removed
- * \return This CollectionModify object.
- *
- * This function can receive either one or more attributes, for each received attribute adds an opertion into the modify handler
- * to remove an attribute or attributes on the documents that were included on the selection filter and limit.
- *
- * The attribute removal will be done on the collection's documents once the execute method is called.
- *
- * #### Method Chaining
- *
- * This function can be invoked multiple times after:
- *
- * - modify(String searchCondition)
- * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
- *
- * After this function invocation, the following functions can be invoked:
- *
- * - set(String attribute, Value value)
- * - unset(String attribute)
- * - unset(List attributes)
- * - merge(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
- * - sort(List sortExprStr)
- * - limit(Integer numberOfRows)
- * - bind(String name, Value value)
- * - execute(ExecuteOptions opt)
- *
- * \sa Usage examples at execute().
- */
-#else
-/**
-* Removes attributes from documents in a collection.
-* \param attribute A string with the document path of the attribute to be removed.
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_UNSET_BRIEF)
 *
-* The attribute removal will be done on the collection's documents once the execute method is called.
+* $(COLLECTIONMODIFY_UNSET_PARAM)
+*
+* $(COLLECTIONMODIFY_UNSET_RETURN)
+*
+* $(COLLECTIONMODIFY_UNSET_DETAIL)
 *
 * #### Method Chaining
 *
@@ -295,14 +285,16 @@ CollectionModify CollectionModify::unset(str attribute) {}
 #endif
 
 /**
-* Removes attributes from documents in a collection.
-* \param attributes A list with the document paths of the attributes to be removed.
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_UNSET_BRIEF)
 *
-* For each attribute on the attributes list, adds an opertion into the modify handler
-* to remove the attribute on the documents that were included on the selection filter and limit.
+* $(COLLECTIONMODIFY_UNSET_PARAM1)
 *
-* The attribute removal will be done on the collection's documents once the execute method is called.
+* $(COLLECTIONMODIFY_UNSET_RETURN)
+*
+* $(COLLECTIONMODIFY_UNSET_DETAIL1)
+* $(COLLECTIONMODIFY_UNSET_DETAIL2)
+*
+* $(COLLECTIONMODIFY_UNSET_DETAIL)
 *
 * #### Method Chaining
 *
@@ -338,7 +330,7 @@ CollectionModify CollectionModify::unset(List attributes) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::unset(list attributes) {}
 #endif
-#endif
+
 shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_at_least(1, get_function_name("unset").c_str());
@@ -389,19 +381,26 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Adds attributes taken from a document into the documents in a collection.
-#if DOXYGEN_CPP
-//! \param args should contain the document from which the attributes will be merged.
-#else
-//! \param document The document from which the attributes will be merged.
-#endif
+// Documentation of merge function
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_BRIEF, "Adds attributes taken from a document into the documents in a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_PARAM, "@param document The document from which the attributes will be merged.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL, "This function adds an operation to add into the documents of a collection, all the attribues defined in document that do not exist on the collection's documents.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1, "@todo Define what happens when document contains attributes that arelady exist on the collection's documents.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL2, "The attribute addition will be done on the collection's documents once the execute method is called.");
+
 /**
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_MERGE_BRIEF)
 *
-* This function adds an operation to add into the documents of a collection, all the attribues defined in document that do not exist on the collection's documents.
-* \todo Define what happens when document contains attributes that arelady exist on the collection's documents.
+* $(COLLECTIONMODIFY_MERGE_PARAM)
 *
-* The attribute addition will be done on the collection's documents once the execute method is called.
+* $(COLLECTIONMODIFY_MERGE_RETURN)
+*
+* $(COLLECTIONMODIFY_MERGE_DETAIL)
+*
+* $(COLLECTIONMODIFY_MERGE_DETAIL1)
+*
+* $(COLLECTIONMODIFY_MERGE_DETAIL2)
 *
 * #### Method Chaining
 *
@@ -455,21 +454,25 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Inserts a value into a specific position in an array attribute in documents of a collection.
-#if DOXYGEN_CPP
-//! \param args should contain the next elements:
-//! \li A document path that identifies the array attribute and position where the value will be inserted.
-//! \li The value to be inserted.
-#else
-//! \param path A document path that identifies the array attribute and position where the value will be inserted.
-//! \param value The value to be inserted.
-#endif
+// Documentation of arrayInsert function
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_BRIEF, "Inserts a value into a specific position in an array attribute in documents of a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM, "@param path A document path that identifies the array attribute and position where the value will be inserted.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM1, "@param value The value to be inserted.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL, "Adds an opertion into the modify handler to insert a value into an array attribute on the documents that were included on the selection filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1, "The insertion of the value will be done on the collection's documents once the execute method is called.");
+
 /**
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_ARRAYINSERT_BRIEF)
 *
-* Adds an opertion into the modify handler to insert a value into an array attribute on the documents that were included on the selection filter and limit.
+* $(COLLECTIONMODIFY_ARRAYINSERT_PARAM)
+* $(COLLECTIONMODIFY_ARRAYINSERT_PARAM1)
 *
-* The insertion of the value will be done on the collection's documents once the execute method is called.
+* $(COLLECTIONMODIFY_ARRAYINSERT_RETURN)
+*
+* $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL)
+*
+* $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1)
 *
 * #### Method Chaining
 *
@@ -520,19 +523,22 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args) 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Appends a value into an array attribute in documents of a collection.
-#if DOXYGEN_CPP
-//! \param args should contain the next elements:
-//! \li A document path that identifies the array attribute where the value will be appended.
-//! \li The value to be appended.
-#else
-//! \param path A document path that identifies the array attribute where the value will be appended.
-//! \param value The value to be appended.
-#endif
+// Documentation of arrayAppend function
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_BRIEF, "Appends a value into an array attribute in documents of a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM, "@param path A document path that identifies the array attribute where the value will be appended.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1, "@param value The value to be appended.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL, "Adds an opertion into the modify handler to append a value into an array attribute on the documents that were included on the selection filter and limit.");
+
 /**
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_ARRAYAPPEND_BRIEF)
 *
-* Adds an opertion into the modify handler to append a value into an array attribute on the documents that were included on the selection filter and limit.
+* $(COLLECTIONMODIFY_ARRAYAPPEND_PARAM)
+* $(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1)
+*
+* $(COLLECTIONMODIFY_ARRAYAPPEND_RETURN)
+*
+* $(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL)
 *
 * #### Method Chaining
 *
@@ -586,18 +592,23 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args) 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Deletes the value at a specific position in an array attribute in documents of a collection.
-#if DOXYGEN_CPP
-//! \param args should contain a document path that identifies the array attribute and position of the value to be deleted.
-#else
-//! \param path A document path that identifies the array attribute and position of the value to be deleted.
-#endif
+// Documentation of arrayDelete function
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_BRIEF, "Deletes the value at a specific position in an array attribute in documents of a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_PARAM, "@param path A document path that identifies the array attribute and position of the value to be deleted.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL, "Adds an opertion into the modify handler to delete a value from an array attribute on the documents that were included on the selection filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1, "The attribute deletion will be done on the collection's documents once the execute method is called.");
+
 /**
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_ARRAYDELETE_BRIEF)
 *
-* Adds an opertion into the modify handler to delete a value from an array attribute on the documents that were included on the selection filter and limit.
+* $(COLLECTIONMODIFY_ARRAYDELETE_PARAM)
 *
-* The attribute deletion will be done on the collection's documents once the execute method is called.
+* $(COLLECTIONMODIFY_ARRAYDELETE_RETURN)
+*
+* $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
+*
+* $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1)
 *
 * #### Method Chaining
 *
@@ -648,19 +659,25 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args) 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the document order in which the update operations added to the handler should be done.
-#if DOXYGEN_CPP
-//! \param args should contain a list of expression strings defining a collection sort criteria.
-#else
-//! \param sortExprStr: A list of expression strings defining a collection sort criteria.
-#endif
+// Documentation of sort function
+REGISTER_HELP(COLLECTIONMODIFY_SORT_BRIEF, "Sets the document order in which the update operations added to the handler should be done.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_PARAM, "@param sortExprStr: A list of expression strings defining a collection sort criteria.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL, "The elements of sortExprStr list are usually strings defining the attribute name on which the collection sorting will be based. Each criterion could be followed by asc or desc to indicate ascending");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL1, "or descending order respectivelly. If no order is specified, ascending will be used by default.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL2, "This method is usually used in combination with limit to fix the amount of documents to be updated.");
+
 /**
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_SORT_BRIEF)
 *
-* The elements of sortExprStr list are usually strings defining the attribute name on which the collection sorting will be based. Each criterion could be followed by asc or desc to indicate ascending
-* or descending order respectivelly. If no order is specified, ascending will be used by default.
+* $(COLLECTIONMODIFY_SORT_PARAM)
 *
-* This method is usually used in combination with limit to fix the amount of documents to be updated.
+* $(COLLECTIONMODIFY_SORT_RETURN)
+*
+* $(COLLECTIONMODIFY_SORT_DETAIL)
+* $(COLLECTIONMODIFY_SORT_DETAIL1)
+*
+* $(COLLECTIONMODIFY_SORT_DETAIL2)
 *
 * #### Method Chaining
 *
@@ -707,16 +724,20 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets a limit for the documents to be updated by the operations added to the handler.
-#if DOXYGEN_CPP
-//! \param args should contain the number of documents to affect on the update operations.
-#else
-//! \param numberOfDocs the number of documents to affect on the update operations.
-#endif
+// Documentation of limit function
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_BRIEF, "Sets a limit for the documents to be updated by the operations added to the handler.");
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_PARAM, "@param numberOfDocs the number of documents to affect on the update operations.");
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL, "This method is usually used in combination with sort to fix the amount of documents to be updated.");
+
 /**
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_LIMIT_BRIEF)
 *
-* This method is usually used in combination with sort to fix the amount of documents to be updated.
+* $(COLLECTIONMODIFY_LIMIT_PARAM)
+*
+* $(COLLECTIONMODIFY_LIMIT_RETURN)
+*
+* $(COLLECTIONMODIFY_LIMIT_DETAIL)
 *
 * #### Method Chaining
 *
@@ -756,17 +777,20 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Binds a value to a specific placeholder used on this CollectionModify object.
-#if DOXYGEN_CPP
-//! \param args should contain the next entries:
-//! \li The name of the placeholder to which the value will be bound.
-//! \li The value to be bound on the placeholder.
-#else
-//! \param name: The name of the placeholder to which the value will be bound.
-//! \param value: The value to be bound on the placeholder.
-#endif
+// Documentation of bind function
+REGISTER_HELP(COLLECTIONMODIFY_BIND_BRIEF, "Binds a value to a specific placeholder used on this CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_BIND_PARAM, "@param name: The name of the placeholder to which the value will be bound.");
+REGISTER_HELP(COLLECTIONMODIFY_BIND_PARAM1, "@param value: The value to be bound on the placeholder.");
+REGISTER_HELP(COLLECTIONMODIFY_BIND_RETURN, "@return This CollectionModify object.");
+
 /**
-* \return This CollectionModify object.
+* $(COLLECTIONMODIFY_BIND_BRIEF)
+*
+* $(COLLECTIONMODIFY_BIND_PARAM)
+*
+* $(COLLECTIONMODIFY_BIND_PARAM1)
+*
+* $(COLLECTIONMODIFY_BIND_RETURN)
 *
 * #### Method Chaining
 *
@@ -802,9 +826,14 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+// Documentation of execute function
+REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_BRIEF, "Executes the update operations added to the handler with the configured filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_RETURN, "@return CollectionResultset A Result object that can be used to retrieve the results of the update operation.");
+
 /**
-* Executes the update operations added to the handler with the configured filter and limit.
-* \return CollectionResultset A Result object that can be used to retrieve the results of the update operation.
+* $(COLLECTIONMODIFY_EXECUTE_BRIEF)
+*
+* $(COLLECTIONMODIFY_EXECUTE_RETURN)
 *
 * #### Method Chaining
 *

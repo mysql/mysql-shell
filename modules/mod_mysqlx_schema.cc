@@ -35,10 +35,19 @@
 #include <boost/format.hpp>
 #include "utils/utils_general.h"
 #include "logger/logger.h"
+#include "utils/utils_help.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
+
+// Documentation of Schema class
+REGISTER_HELP(SCHEMA_BRIEF, "Represents a Schema as retrived from a session created using the X Protocol.");
+REGISTER_HELP(SCHEMA_DETAIL, "<b> View Support </b>");
+REGISTER_HELP(SCHEMA_DETAIL1, "MySQL Views are stored queries that when executed produce a result set.");
+REGISTER_HELP(SCHEMA_DETAIL2, "MySQL supports the concept of Updatable Views: in specific conditions are met, "\
+"Views can be used not only to retrieve data from them but also to update, add and delete records.");
+REGISTER_HELP(SCHEMA_DETAIL3, "For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.");
 
 Schema::Schema(std::shared_ptr<BaseSession> session, const std::string &schema)
   : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema)) {
@@ -143,21 +152,6 @@ void Schema::_remove_object(const std::string& name, const std::string& type) {
   }
 }
 
-#if DOXYGEN_CPP
-/**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function. The the content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
- *
- * The Schema collections, tables and views are exposed as members of the Schema object so:
- *
- * \li If prop is the name of a valid Collection on the Schema, the corresponding Collection object will be returned.
- * \li If prop is the name of a valid Table or View on the Schema, the corresponding Table object will be returned.
- *
- * See the implementation of DatabaseObject for additional valid members.
- */
-#endif
 Value Schema::get_member(const std::string &prop) const {
   // Searches prop as  a table
   Value ret_val = find_in_cache(prop, _tables);
@@ -176,16 +170,25 @@ Value Schema::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+// Documentation of getTables function
+REGISTER_HELP(SCHEMA_GETTABLES_BRIEF, "Returns a list of Tables for this Schema.");
+REGISTER_HELP(SCHEMA_GETTABLES_RETURN, "@return A List containing the Table objects available for the Schema.");
+REGISTER_HELP(SCHEMA_GETTABLES_DETAIL, "Pulls from the database the available Tables, Views and Collections.");
+REGISTER_HELP(SCHEMA_GETTABLES_DETAIL1, "Does a full refresh of the Tables, Views and Collections cache.");
+REGISTER_HELP(SCHEMA_GETTABLES_DETAIL2, "Returns a List of available Table objects.");
+
 /**
-* Returns a list of Tables for this Schema.
+* $(SCHEMA_GETTABLES_BRIEF)
+*
 * \sa Table
-* \return A List containing the Table objects available for the Schema.
 *
-* Pulls from the database the available Tables, Views and Collections.
+* $(SCHEMA_GETTABLES_RETURN)
 *
-* Does a full refresh of the Tables, Views and Collections cache.
+* $(SCHEMA_GETTABLES_DETAIL)
 *
-* Returns a List of available Table objects.
+* $(SCHEMA_GETTABLES_DETAIL1)
+*
+* $(SCHEMA_GETTABLES_DETAIL2)
 */
 #if DOXYGEN_JS
 List Schema::getTables() {}
@@ -205,16 +208,25 @@ shcore::Value Schema::get_tables(const shcore::Argument_list &args) {
   return shcore::Value(list);
 }
 
+// Documentation of getCollections function
+REGISTER_HELP(SCHEMA_GETCOLLECTIONS_BRIEF, "Returns a list of Collections for this Schema.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONS_RETURN, "@return A List containing the Collection objects available for the Schema.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONS_DETAIL, "Pulls from the database the available Tables, Views and Collections.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONS_DETAIL1, "Does a full refresh of the Tables, Views and Collections cache.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONS_DETAIL2, "Returns a List of available Collection objects.");
+
 /**
-* Returns a list of Collections for this Schema.
+* $(SCHEMA_GETCOLLECTIONS_BRIEF)
+*
 * \sa Collection
-* \return A List containing the Collection objects available for the Schema.
 *
-* Pulls from the database the available Tables, Views and Collections.
+* $(SCHEMA_GETCOLLECTIONS_RETURN)
 *
-* Does a full refresh of the Tables, Views and Collections cache.
+* $(SCHEMA_GETCOLLECTIONS_DETAIL)
 *
-* Returns a List of available Collection objects.
+* $(SCHEMA_GETCOLLECTIONS_DETAIL1)
+*
+* $(SCHEMA_GETCOLLECTIONS_DETAIL2)
 */
 #if DOXYGEN_JS
 List Schema::getCollections() {}
@@ -233,18 +245,24 @@ shcore::Value Schema::get_collections(const shcore::Argument_list &args) {
   return shcore::Value(list);
 }
 
-//! Returns the Table of the given name for this schema.
-#if DOXYGEN_CPP
-//! \param args should contain the name of the Table to look for.
-#else
-//! \param name the name of the Table to look for.
-#endif
+// Documentation of getTable function
+REGISTER_HELP(SCHEMA_GETTABLE_BRIEF, "Returns the Table of the given name for this schema.");
+REGISTER_HELP(SCHEMA_GETTABLE_PARAM, "@param name the name of the Table to look for.");
+REGISTER_HELP(SCHEMA_GETTABLE_RETURN, "@return the Table object matching the name.");
+REGISTER_HELP(SCHEMA_GETTABLE_DETAIL, "Verifies if the requested Table exist on the database, if exists, returns the corresponding Table object.");
+REGISTER_HELP(SCHEMA_GETTABLE_DETAIL1, "Updates the Tables cache.");
+
 /**
-* \return the Table object matching the name.
+* $(SCHEMA_GETTABLE_BRIEF)
 *
-* Verifies if the requested Table exist on the database, if exists, returns the corresponding Table object.
+* $(SCHEMA_GETTABLE_PARAM)
 *
-* Updates the Tables cache.
+* $(SCHEMA_GETTABLE_RETURN)
+*
+* $(SCHEMA_GETTABLE_DETAIL)
+*
+* $(SCHEMA_GETTABLE_DETAIL1)
+*
 * \sa Table
 */
 #if DOXYGEN_JS
@@ -296,18 +314,25 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-//! Returns the Collection of the given name for this schema.
-#if DOXYGEN_CPP
-//! \param args should contain the name of the Collection to look for.
-#else
-//! \param name the name of the Collection to look for.
-#endif
+// Documentation of getCollection function
+REGISTER_HELP(SCHEMA_GETCOLLECTION_BRIEF, "Returns the Collection of the given name for this schema.");
+REGISTER_HELP(SCHEMA_GETCOLLECTION_PARAM, "@param name the name of the Collection to look for.");
+REGISTER_HELP(SCHEMA_GETCOLLECTION_RETURN, "@return the Collection object matching the name.");
+REGISTER_HELP(SCHEMA_GETCOLLECTION_DETAIL, "Verifies if the requested Collection exist on the database, if exists, "\
+"returns the corresponding Collection object.");
+REGISTER_HELP(SCHEMA_GETCOLLECTION_DETAIL1, "Updates the Collections cache.");
+
 /**
-* \return the Collection object matching the name.
+* $(SCHEMA_GETCOLLECTION_BRIEF)
 *
-* Verifies if the requested Collection exist on the database, if exists, returns the corresponding Collection object.
+* $(SCHEMA_GETCOLLECTION_PARAM)
 *
-* Updates the Collections cache.
+* $(SCHEMA_GETCOLLECTION_RETURN)
+*
+* $(SCHEMA_GETCOLLECTION_DETAIL)
+*
+* $(SCHEMA_GETCOLLECTION_DETAIL1)
+*
 * \sa Collection
 */
 #if DOXYGEN_JS
@@ -348,14 +373,17 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-//! Returns a Table object representing a Collection on the database.
-#if DOXYGEN_CPP
-//! \param args should contain the name of the collection to be retrieved as a table.
-#else
-//! \param name the name of the collection to be retrieved as a table.
-#endif
+// Documentation of getCollectionAsTable function
+REGISTER_HELP(SCHEMA_GETCOLLECTIONASTABLE_BRIEF, "Returns a Table object representing a Collection on the database.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONASTABLE_PARAM, "@param name the name of the collection to be retrieved as a table.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONASTABLE_RETURN, "@return the Table object representing the collection or undefined.");
+
 /**
-* \return the Table object representing the collection or undefined.
+* $(SCHEMA_GETCOLLECTIONASTABLE_BRIEF)
+*
+* $(SCHEMA_GETCOLLECTIONASTABLE_PARAM)
+*
+* $(SCHEMA_GETCOLLECTIONASTABLE_RETURN)
 */
 #if DOXYGEN_JS
 Collection Schema::getCollectionAsTable(String name) {}
@@ -375,16 +403,21 @@ shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
   return ret_val;
 }
 
-//! Creates in the current schema a new collection with the specified name and retrieves an object representing the new collection created.
-#if DOXYGEN_CPP
-//! \param args should contain the name of the collection.
-#else
-//! \param name the name of the collection.
-#endif
+// Documentation of createCollection function
+REGISTER_HELP(SCHEMA_CREATECOLLECTION_BRIEF, "Creates in the current schema a new collection with the specified name and "\
+"retrieves an object representing the new collection created.");
+REGISTER_HELP(SCHEMA_CREATECOLLECTION_PARAM, "@param name the name of the collection.");
+REGISTER_HELP(SCHEMA_CREATECOLLECTION_RETURN, "@return the new created collection.");
+REGISTER_HELP(SCHEMA_CREATECOLLECTION_DETAIL, "To specify a name for a collection, follow the naming conventions in MySQL.");
+
 /**
-* \return the new created collection.
+* $(SCHEMA_CREATECOLLECTION_BRIEF)
 *
-* To specify a name for a collection, follow the naming conventions in MySQL.
+* $(SCHEMA_CREATECOLLECTION_PARAM)
+*
+* $(SCHEMA_CREATECOLLECTION_RETURN)
+*
+* $(SCHEMA_CREATECOLLECTION_DETAIL)
 */
 #if DOXYGEN_JS
 Collection Schema::createCollection(String name) {}

@@ -21,6 +21,7 @@
 #include "mod_mysqlx_session.h"
 #include "mod_mysqlx_resultset.h"
 #include "uuid_gen.h"
+#include "utils/utils_help.h"
 
 #include <iomanip>
 #include <sstream>
@@ -29,6 +30,11 @@
 using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
+
+// Documentation of CollectionDropIndex class
+REGISTER_HELP(COLLECTIONDROPINDEX_BRIEF, "Handler for index dropping handler on a Collection.");
+REGISTER_HELP(COLLECTIONDROPINDEX_DETAIL, "This object allows dropping an index from a collection.");
+REGISTER_HELP(COLLECTIONDROPINDEX_DETAIL1, "This object should only be created by calling the dropIndex function on the collection object where the index will be removed.");
 
 CollectionDropIndex::CollectionDropIndex(std::shared_ptr<Collection> owner)
   :_owner(owner) {
@@ -45,14 +51,17 @@ CollectionDropIndex::CollectionDropIndex(std::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-//! Drops an index from a collection.
-#if DOXYGEN_CPP
-//! \param args should contain the name of the index to be dropped.
-#else
-//! \param indexName The name of the index to be dropped.
-#endif
+// Documentation of dropIndex function
+REGISTER_HELP(COLLECTIONDROPINDEX_DROPINDEX_BRIEF, "Drops an index from a collection.");
+REGISTER_HELP(COLLECTIONDROPINDEX_DROPINDEX_PARAM, "@param indexName The name of the index to be dropped.");
+REGISTER_HELP(COLLECTIONDROPINDEX_DROPINDEX_RETURN, "@return This CollectionDropIndex object.");
+
 /**
-* \return This CollectionDropIndex object.
+* $(COLLECTIONDROPINDEX_DROPINDEX_BRIEF)
+*
+* $(COLLECTIONDROPINDEX_DROPINDEX_PARAM)
+*
+* $(COLLECTIONDROPINDEX_DROPINDEX_RETURN)
 *
 * #### Method Chaining
 *
@@ -88,9 +97,14 @@ shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args)
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+// Documentation of execute function
+REGISTER_HELP(COLLECTIONDROPINDEX_EXECUTE_BRIEF, "Executes the drop index operation for the index indicated in dropIndex.");
+REGISTER_HELP(COLLECTIONDROPINDEX_EXECUTE_RETURN, "@return A Result object.");
+
 /**
-* Executes the drop index operation for the index indicated in dropIndex.
-* \return A Result object.
+* $(COLLECTIONDROPINDEX_EXECUTE_BRIEF)
+*
+* $(COLLECTIONDROPINDEX_EXECUTE_RETURN)
 *
 * This function can be invoked once after:
 */
