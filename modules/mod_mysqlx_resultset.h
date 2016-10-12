@@ -32,7 +32,7 @@ class Result;
 namespace mysh {
 namespace mysqlx {
 /**
-* Base class for the different types of results returned by the server.
+* $(BASERESULT_BRIEF)
 */
 class SHCORE_PUBLIC BaseResult : public mysh::ShellBaseResult {
 public:
@@ -77,17 +77,17 @@ protected:
 };
 
 /**
-* Allows retrieving information about non query operations performed on the database.
+* $(RESULT_BRIEF)
 *
-* An instance of this class will be returned on the CRUD operations that change the content of the database:
+* $(RESULT_DETAIL)
 *
-* - On Table: insert, update and delete
-* - On Collection: add, modify and remove
+* $(RESULT_DETAIL1)
+* $(RESULT_DETAIL2)
 *
-* Other functions on the BaseSession class also return an instance of this class:
+* $(RESULT_DETAIL3)
 *
-* - Transaction handling functions
-* - Drop functions
+* $(RESULT_DETAIL4)
+* $(RESULT_DETAIL5)
 */
 class SHCORE_PUBLIC Result : public BaseResult {
 public:
@@ -125,7 +125,7 @@ public:
 };
 
 /**
-* Allows traversing the DbDoc objects returned by a Collection.find operation.
+* $(DOCRESULT_BRIEF)
 */
 class SHCORE_PUBLIC DocResult : public BaseResult {
 public:
@@ -154,7 +154,7 @@ private:
 };
 
 /**
-* Allows traversing the Row objects returned by a Table.select operation.
+* $(ROWRESULT_BRIEF)
 */
 class SHCORE_PUBLIC RowResult : public BaseResult {
 public:
@@ -204,8 +204,7 @@ private:
 };
 
 /**
-* Allows browsing through the result information after performing an operation on the database
-* done through NodeSession.sql
+* $(SQLRESULT_BRIEF)
 */
 class SHCORE_PUBLIC SqlResult : public RowResult {
 public:
