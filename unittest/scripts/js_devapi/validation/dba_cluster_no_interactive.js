@@ -132,7 +132,7 @@
     "defaultReplicaSet": {
         "instances": [
         ], 
-        "name": "default",
+        "name": "default"
     }
 }
 

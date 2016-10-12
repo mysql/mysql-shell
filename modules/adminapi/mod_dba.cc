@@ -451,7 +451,6 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
 }
 
 shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list &args) {
-
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
 
   auto options = get_instance_options_map(args);
@@ -494,7 +493,7 @@ shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list 
 
     (*ret_val)["status"] = shcore::Value("error");
 
-    for(auto error_object: *mp_errors) {
+    for (auto error_object : *mp_errors) {
       auto map = error_object.as_map();
 
       std::string error_str;
@@ -515,8 +514,7 @@ shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list 
               (*option)["current"] = shcore::Value(option_tokens[2]);
               (*option)["result"] = shcore::Value(option_tokens[3]);
               (*current_options)->push_back(shcore::Value(option));
-            }
-            else {
+            } else {
               if (lines[index].find("Some active options on server") != std::string::npos) {
                 restart_required = true;
                 server_options.reset(new shcore::Value::Array_type());
@@ -524,21 +522,18 @@ shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list 
                 loading_options = true;
                 errors->push_back(shcore::Value(lines[index]));
                 index += 3; // Skips to the actual option table
-              }
-              else if (lines[index].find("Some of the configuration values on your options file") != std::string::npos) {
+              } else if (lines[index].find("Some of the configuration values on your options file") != std::string::npos) {
                 restart_required = true;
                 config_options.reset(new shcore::Value::Array_type());
                 current_options = &config_options;
                 loading_options = true;
                 errors->push_back(shcore::Value(lines[index]));
                 index += 3; // Skips to the actual option table
-              }
-              else
+              } else
                 errors->push_back(shcore::Value(lines[index]));
             }
           }
-        }
-        else
+        } else
           errors->push_back(shcore::Value(error_str));
       }
     }
@@ -572,7 +567,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     options = args.map_at(1);
 
     // Verification of invalid attributes on the instance deployment data
-    shcore::Argument_map opt_map (*options);
+    shcore::Argument_map opt_map(*options);
 
     opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
 
@@ -610,7 +605,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   } else {
     if (function == "deploy")
       throw shcore::Exception::argument_error("Missing root password for the deployed instance");
-  }
+    }
 
   shcore::Value::Array_type_ref errors;
 
@@ -638,18 +633,20 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
   if (rc != 0) {
     std::vector<std::string> str_errors;
-    for (auto error: *errors) {
-      auto data = error.as_map();
-      auto error_type = data->get_string("type");
-      auto error_text = data->get_string("msg");
-      str_errors.push_back(error_type + ": " + error_text);
+    if (errors) {
+      for (auto error : *errors) {
+        auto data = error.as_map();
+        auto error_type = data->get_string("type");
+        auto error_text = data->get_string("msg");
+        str_errors.push_back(error_type + ": " + error_text);
+      }
     }
 
     throw shcore::Exception::runtime_error(shcore::join_strings(str_errors, "\n"));
   }
 
   return ret_val;
-}
+  }
 
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");

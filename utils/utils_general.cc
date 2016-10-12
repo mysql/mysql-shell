@@ -26,6 +26,7 @@
 #include <windows.h>
 #include <Lmcons.h>
 #include <WinSock2.h>
+#define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
 #else
 #include <unistd.h>
 #include <ifaddrs.h>
@@ -692,7 +693,6 @@ std::string replace_text(const std::string& source, const std::string& from, con
   return ret_val;
 }
 
-
 std::string get_my_hostname() {
   char hostname[1024]  {'\0'};
 
@@ -752,5 +752,4 @@ bool is_local_host(const std::string &host) {
           host == "localhost" ||
           host == get_my_hostname());
 }
-
 } // namespace
