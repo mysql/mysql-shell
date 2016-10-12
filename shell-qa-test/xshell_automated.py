@@ -400,7 +400,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.01]:13 Connect local Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                      'mysql://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                         LOCALHOST.port),'--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
@@ -543,7 +543,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.02]:12 Connect remote Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                      'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                      'mysql://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                         REMOTEHOST.port), '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
@@ -554,7 +554,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.02]:13 Connect remote Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                            'mysql://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                               REMOTEHOST.port), '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
@@ -565,9 +565,9 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.03]:2 Connect local Server on SQL mode: APPLICATION SESSION W/O PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--sql']
-      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),"Creating an X Session"),
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),"Creating a Session"),
                 ("\\js\n", "mysql-js>"),
-                ("print(session);\n", "XSession:")
+                ("print(session);\n", "NodeSession:")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -622,9 +622,9 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.04]:2 Connect remote Server on SQL mode: APPLICATION SESSION W/O PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--sql']
-      x_cmds = [("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),"Creating an X Session"),
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),"Creating a Session"),
                 ("\\js\n", "mysql-js>"),
-                ("print(session);\n", "XSession:"),
+                ("print(session);\n", "NodeSession:"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -870,7 +870,7 @@ class XShell_TestCases(unittest.TestCase):
       '''4 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                            'mysql://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                               LOCALHOST.port), '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
@@ -881,7 +881,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:5 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                            'mysql://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                               LOCALHOST.port), '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
@@ -892,7 +892,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:6 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --py'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                            'mysql://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                               LOCALHOST.port), '--classic', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
@@ -1060,7 +1060,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:4 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                            'mysql://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                               REMOTEHOST.port), '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
@@ -1071,7 +1071,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:5 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                            'mysql://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                               REMOTEHOST.port), '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
@@ -1082,7 +1082,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:6 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --py'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                            'mysql://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                               REMOTEHOST.port), '--classic', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
@@ -1546,7 +1546,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.009]:2 Check that STATUS command [ \status, \s ] works: classic session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.port), '--classic', '--js']
+                      'mysql://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.port), '--classic', '--js']
       x_cmds = [("\\status\n", "Current user:                 " + LOCALHOST.user + "@localhost")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
