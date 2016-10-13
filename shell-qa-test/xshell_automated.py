@@ -5888,6 +5888,18 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_192(self):
+      '''[CONNECTION] CONNECTION IS CLOSED, WHEN A NEW WRONG CONNECTION IS REQUESTED'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect root:guidev!@localhost:3357\n", "Classic Session successfully established"),
+                ("\\connect root:guidev!@localhost:3300\n", "mysql-js>"),
+                ("\\sql\n", "mysql-js>"),
+                ("show databases;\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
   def test_MYS_193_00(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-193 with classic session"""
       results = ''
@@ -6347,6 +6359,28 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_334(self):
+      '''Shell --json output cannot be easily processed from a script calling the shell'''
+      results = 'PASS'
+      responces = ["{info:\"Welcome to MySQL Shell 1.0.5 Development Preview\"}",
+                   "{info:\"Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.\"}",
+                   "{info:\"Oracle is a registered trademark of Oracle Corporation and/or its\"}",
+                   "{info:\"affiliates. Other names may be trademarks of their respective\"}",
+                   "{info:\"owners.\"}",
+                   "{info:\"Type '\help', '\h' or '\?' for help, type '\quit' or '\q' to exit.\"}",
+                   "{info:\"Currently in JavaScript mode. Use \sql to switch to SQL mode and execute queries.\"}"]
+      p = subprocess.Popen(
+          [MYSQL_SHELL, '--interactive=full', '--sql', '--database=mysql', '--json', '--node', '-uroot',
+           '-h' + LOCALHOST.host, '--password=' + LOCALHOST.password], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+          stdin=subprocess.PIPE)
+      stdout, stderr = p.communicate()
+      for responce in responces:
+          found = stdout.find(bytearray(responce, "ascii"), 0, len(stdout))
+          if found == -1:
+              results = "FAIL \n\r" + stdout.decode("ascii")
+              break
+      self.assertEqual(results, 'PASS')
+
   def test_MYS_335(self):
       '''[CHLOG 1.0.2.5_2] Different password command line args'''
       results = ''
@@ -6509,6 +6543,18 @@ class XShell_TestCases(unittest.TestCase):
                 #( "row.col_a;\n","mysql-js>"),
                 #( "row.col_a.getYear();\n","1000"),
                 ( "row.col_a.getFullYear();\n","1000"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_349(self):
+      '''Valid DevAPI JavaScript code breaks in Shell when using copy & paste'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-uroot', '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host]
+      x_cmds = [("var db = session.getSchema(\"sakila\");\n", "mysql-js>"),
+                ("res = db.actor.select().where('actor_id=1').execute();\n", "1 row in set"),
+                ("res.fetchOne();\n", "1,")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -7795,6 +7841,21 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.run_sql(\"SELECT * from /* this is an in-line comment */ world_x.city limit 1;\")\n",
                  "1 row in set")]
       results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_730(self):
+      '''Accept named log level on startup as command line argument'''
+      results = 'PASS'
+      responces = ["mysql-js>"]
+      p = subprocess.Popen(
+          [MYSQL_SHELL, '--interactive=full', '--log-level=debug3'], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+          stdin=subprocess.PIPE)
+      stdout, stderr = p.communicate()
+      for responce in responces:
+          found = stdout.find(bytearray(responce, "ascii"), 0, len(stdout))
+          if found == -1:
+              results = "FAIL \n\r" + stdout.decode("ascii")
+              break
       self.assertEqual(results, 'PASS')
 
   def test_MYS_816(self):
