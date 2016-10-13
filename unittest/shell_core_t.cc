@@ -65,7 +65,7 @@ protected:
     if (stream.fail())
       FAIL();
 
-    _ret_val = _interactive_shell->process_stream(stream, _file_name);
+    _ret_val = _interactive_shell->process_stream(stream, _file_name, {});
     stream.close();
   }
 };
@@ -121,7 +121,7 @@ TEST_F(Shell_core_test, process_sql_no_delim_from_stream) {
   connect();
 
   std::stringstream stream("show databases");
-  _ret_val = _interactive_shell->process_stream(stream, "STDIN");
+  _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
   EXPECT_EQ(0, _ret_val);
   MY_EXPECT_STDOUT_CONTAINS("| Database");
 }

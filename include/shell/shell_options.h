@@ -71,6 +71,9 @@ public:
   bool wizards;
   bool admin_mode;
 
+  // cmdline params to be passed to script
+  std::vector<std::string> script_argv;
+
   int exit_code;
 
   bool has_connection_data();

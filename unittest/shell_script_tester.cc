@@ -392,7 +392,7 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
 
       // Processes the script
-      _interactive_shell->process_stream(stream, script);
+      _interactive_shell->process_stream(stream, script, {});
 
       // When path is empty it is processing a setup script
       // If an error is found it will be printed here

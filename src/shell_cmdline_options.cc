@@ -31,9 +31,16 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   int arg_format = 0;
   for (int i = 1; i < argc && exit_code == 0; i++) {
     char *value;
-    if (check_arg_with_value(argv, i, "--file", "-f", value))
+    if (check_arg_with_value(argv, i, "--file", "-f", value)) {
       _options.run_file = value;
-    else if ((arg_format = check_arg_with_value(argv, i, "--uri", NULL, value))) {
+      // the rest of the cmdline options, starting from here are all passed
+      // through to the script
+      _options.script_argv.push_back(value);
+      for (++i; i < argc; i++) {
+        _options.script_argv.push_back(argv[i]);
+      }
+      break;
+    } else if ((arg_format = check_arg_with_value(argv, i, "--uri", NULL, value))) {
       if (shcore::validate_uri(value)) {
         _options.uri = value;
 

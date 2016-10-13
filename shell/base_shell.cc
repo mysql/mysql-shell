@@ -150,7 +150,9 @@ bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {
 
   boost::trim(file);
 
-  Base_shell::process_file(file);
+  std::vector<std::string> args(params);
+  args[0] = file;
+  Base_shell::process_file(file, args);
 
   return true;
 }
@@ -398,7 +400,7 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
       scripts_paths.push_back(path);
 
     for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i) {
-      process_file(*i);
+      process_file(*i, {*i});
     }
   } catch (std::exception &e) {
     std::string error(e.what());
@@ -940,7 +942,7 @@ void Base_shell::process_line(const std::string &line) {
         _input_buffer.clear();
     }
   }
-  
+
   if (!to_history.empty()) {
     shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
     (*data)["statement"] = shcore::Value(to_history);
@@ -1009,7 +1011,7 @@ void Base_shell::process_result(shcore::Value result) {
   _shell->set_error_processing();
 }
 
-int Base_shell::process_file(const std::string& file) {
+int Base_shell::process_file(const std::string& file, const std::vector<std::string> &argv) {
   // Default return value will be 1 indicating there were errors
   int ret_val = 1;
 
@@ -1022,7 +1024,7 @@ int Base_shell::process_file(const std::string& file) {
 
     if (!s.fail()) {
       // The return value now depends on the stream processing
-      ret_val = process_stream(s, file);
+      ret_val = process_stream(s, file, argv);
 
       // When force is used, we do not care of the processing
       // errors
@@ -1039,7 +1041,8 @@ int Base_shell::process_file(const std::string& file) {
   return ret_val;
 }
 
-int Base_shell::process_stream(std::istream & stream, const std::string& source) {
+int Base_shell::process_stream(std::istream & stream, const std::string& source,
+    const std::vector<std::string> &argv) {
   // If interactive is set, it means that the shell was started with the option to
   // Emulate interactive mode while processing the stream
   if (_options.interactive) {
@@ -1071,7 +1074,7 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source)
     // Being interactive, we do not care about the return value
     return 0;
   } else {
-    return _shell->process_stream(stream, source, _result_processor);
+    return _shell->process_stream(stream, source, _result_processor, argv);
   }
 }
 }

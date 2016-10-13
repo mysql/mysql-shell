@@ -30,7 +30,8 @@ Shell_javascript::Shell_javascript(Shell_core *shcore)
   _js = std::shared_ptr<JScript_context>(new JScript_context(shcore->registry(), shcore->get_delegate()));
 }
 
-void Shell_javascript::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
+void Shell_javascript::handle_input(std::string &code, Input_state &state,
+    std::function<void(shcore::Value)> result_processor) {
   // Undefined to be returned in case of errors
   Value result;
 
@@ -38,7 +39,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state, std::
     result = _js->execute_interactive(code, state);
   else {
     try {
-      result = _js->execute(code, _owner->get_input_source());
+      result = _js->execute(code, _owner->get_input_source(), _owner->get_input_args());
     } catch (std::exception &exc) {
       _owner->print_error(exc.what());
     }

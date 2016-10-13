@@ -139,7 +139,9 @@ public:
   virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);
   virtual bool handle_shell_command(const std::string &code);
   virtual std::string get_handled_input();
-  virtual int process_stream(std::istream& stream, const std::string& source, std::function<void(shcore::Value)> result_processor);
+  virtual int process_stream(std::istream& stream, const std::string& source,
+      std::function<void(shcore::Value)> result_processor,
+      const std::vector<std::string> &argv);
 
   virtual std::string prompt();
 
@@ -158,6 +160,7 @@ public:
   virtual bool password(const std::string &s, std::string &ret_pass);
   bool prompt(const std::string &s, std::string &ret_val);
   virtual const std::string& get_input_source() { return _input_source; }
+  virtual const std::vector<std::string>& get_input_args() { return _input_args; }
   virtual bool print_help(const std::string& topic);
   bool reconnect_if_needed();
 
@@ -192,6 +195,7 @@ private:
   Interpreter_delegate *_client_delegate;
   Interpreter_delegate _delegate;
   std::string _input_source;
+  std::vector<std::string> _input_args;
   Mode _mode;
   int _global_return_code;
   bool _running_query;

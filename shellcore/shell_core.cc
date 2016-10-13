@@ -226,7 +226,9 @@ std::string Shell_core::get_handled_input() {
 * - 1 in case of any processing error is found.
 * - 0 if no processing errors were found.
 */
-int Shell_core::process_stream(std::istream& stream, const std::string& source, std::function<void(shcore::Value)> result_processor) {
+int Shell_core::process_stream(std::istream& stream, const std::string& source,
+                            std::function<void(shcore::Value)> result_processor,
+                            const std::vector<std::string> &argv) {
   // NOTE: global return code is unused at the moment
   //       return code should be determined at application level on process_result
   //       this global return code may be used again once the exit() function is in place
@@ -234,6 +236,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   _global_return_code = 0;
 
   _input_source = source;
+  _input_args = argv;
 
   // In SQL Mode the stdin and file are processed line by line
   if (_mode == Shell_core::Mode::SQL) {
@@ -278,6 +281,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   }
 
   _input_source.clear();
+  _input_args.clear();
 
   return _global_return_code;
 }

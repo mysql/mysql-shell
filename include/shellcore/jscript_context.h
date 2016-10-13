@@ -36,7 +36,8 @@ public:
   JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
   ~JScript_context();
 
-  Value execute(const std::string &code, const std::string& source = "") throw (Exception);
+  Value execute(const std::string &code, const std::string& source = "",
+                const std::vector<std::string> &argv = {}) throw (Exception);
   Value execute_interactive(const std::string &code, Input_state& r_state) BOOST_NOEXCEPT_OR_NOTHROW;
 
   v8::Isolate *isolate() const;

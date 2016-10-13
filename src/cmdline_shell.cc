@@ -50,7 +50,7 @@ Command_line_shell::Command_line_shell(const Shell_options &options) : mysh::Bas
   _delegate.password = &Command_line_shell::deleg_password;
   _delegate.source = &Command_line_shell::deleg_source;
   _delegate.print_value = nullptr;
-  
+
   observe_notification("SN_STATEMENT_EXECUTED");
 }
 
@@ -109,7 +109,7 @@ bool Command_line_shell::deleg_password(void *cdata, const char *prompt, std::st
 
 void Command_line_shell::deleg_source(void *cdata, const char *module) {
   Command_line_shell *self = (Command_line_shell*)cdata;
-  self->process_file(module);
+  self->process_file(module, {});
 }
 
 void Command_line_shell::command_loop() {

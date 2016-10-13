@@ -50,7 +50,8 @@ std::string Shell_python::preprocess_input_line(const std::string &s) {
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
+void Shell_python::handle_input(std::string &code, Input_state &state,
+    std::function<void(shcore::Value)> result_processor) {
   Value result;
 
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()) {
@@ -60,7 +61,8 @@ void Shell_python::handle_input(std::string &code, Input_state &state, std::func
     try {
       boost::system::error_code err;
       WillEnterPython lock;
-      result = _py->execute(code, err, _owner->get_input_source());
+      result = _py->execute(code, err, _owner->get_input_source(),
+                            _owner->get_input_args());
       if (err) {
         _owner->print_error(err.message());
       }

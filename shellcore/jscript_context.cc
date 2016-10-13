@@ -754,7 +754,8 @@ Argument_list JScript_context::convert_args(const v8::FunctionCallbackInfo<v8::V
   return _impl->convert_args(args);
 }
 
-Value JScript_context::execute(const std::string &code_str, const std::string& source) throw (Exception) {
+Value JScript_context::execute(const std::string &code_str, const std::string& source,
+    const std::vector<std::string> &argv) throw (Exception) {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
   // creates a pool for all the handles that are created in this scope
@@ -772,6 +773,13 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
   // Will use a boolean flag
   Value ret_val;
   bool executed_ok = false;
+
+  Value args(Value::new_array());
+  auto array = args.as_array();
+  for (auto &arg : argv) {
+    array->push_back(Value(arg));
+  }
+  set_global_item("os", "argv", args);
 
   if (!script.IsEmpty()) {
     v8::Handle<v8::Value> result = script->Run();

@@ -52,7 +52,7 @@ void Python_init_singleton::init_python() {
 }
 
 Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
-  : _types(this), _error_buffer_ready(false) {
+    : _types(this), _error_buffer_ready(false) {
   _delegate = deleg;
 
   Python_init_singleton::init_python();
@@ -154,9 +154,18 @@ PyObject *Python_context::get_shell_stderr_module() {
   return _shell_stderr_module;
 }
 
-Value Python_context::execute(const std::string &code, boost::system::error_code &UNUSED(ret_error), const std::string& UNUSED(source)) throw (Exception) {
+Value Python_context::execute(const std::string &code, boost::system::error_code &UNUSED(ret_error),
+    const std::string& UNUSED(source),
+    const std::vector<std::string> &argv) throw (Exception) {
   PyObject *py_result;
   Value retvalue;
+
+  const char *argvv[argv.size()+1];
+  int argc = 0;
+  for (const std::string &s : argv)
+    argvv[argc++] = s.c_str();
+  argvv[argc] = nullptr;
+  PySys_SetArgv(argc, const_cast<char**>(argvv));
 
   py_result = PyRun_String(code.c_str(), Py_file_input, _globals, _locals);
 

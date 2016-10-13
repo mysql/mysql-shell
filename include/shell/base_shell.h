@@ -27,8 +27,9 @@ namespace mysh {
 class SHCORE_PUBLIC Base_shell {
 public:
   Base_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate);
-  int process_stream(std::istream & stream, const std::string& source);
-  int process_file(const std::string& file);
+  int process_stream(std::istream & stream, const std::string& source,
+                     const std::vector<std::string> &argv);
+  int process_file(const std::string& file, const std::vector<std::string> &argv);
 
   void init_environment();
   void init_scripts(shcore::Shell_core::Mode mode);

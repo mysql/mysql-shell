@@ -110,7 +110,7 @@ static int enable_x_protocol(mysh::Command_line_shell &shell) {
 "}\n"\
 "enableXProtocol(); print('');\n";
   std::stringstream stream(script);
-  return shell.process_stream(stream, "(command line)");
+  return shell.process_stream(stream, "(command line)", {});
 }
 
 // Execute a Administrative DB command passed from the command line via the --dba option
@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
 
       if (!options.execute_statement.empty()) {
         std::stringstream stream(options.execute_statement);
-        ret_val = shell.process_stream(stream, "(command line)");
+        ret_val = shell.process_stream(stream, "(command line)", {});
       } else if (!options.execute_dba_statement.empty()) {
         if (options.initial_mode != shcore::IShell_core::Mode::JScript) {
           shell.print_error("The --dba option cannot be used with --python or --sql options\n");
@@ -247,9 +247,9 @@ int main(int argc, char **argv) {
         } else
           ret_val = execute_dba_command(shell, options.execute_dba_statement);
       } else if (!options.run_file.empty())
-        ret_val = shell.process_file(options.run_file);
+        ret_val = shell.process_file(options.run_file, options.script_argv);
       else if (from_stdin) {
-        ret_val = shell.process_stream(std::cin, "STDIN");
+        ret_val = shell.process_stream(std::cin, "STDIN", {});
       } else if (options.interactive) {
         shell.print_banner();
         shell.command_loop();
