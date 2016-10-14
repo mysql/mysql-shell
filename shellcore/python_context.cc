@@ -160,7 +160,8 @@ Value Python_context::execute(const std::string &code, boost::system::error_code
   PyObject *py_result;
   Value retvalue;
 
-  const char *argvv[argv.size()+1];
+  const size_t argv_size = argv.size();
+  const char *argvv[argv_size+1];
   int argc = 0;
   for (const std::string &s : argv)
     argvv[argc++] = s.c_str();
