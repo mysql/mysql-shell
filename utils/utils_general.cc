@@ -734,6 +734,15 @@ std::string get_my_hostname() {
 
     if (ret == 0)
       break;
+
+#ifdef __linux__
+    if (ret == EAI_NONAME) {
+      if ((ret = gethostname(hostname, sizeof(hostname))) < 0)
+        continue;
+      else
+        break;
+#endif
+    }
   }
 
   if (ret != 0) {

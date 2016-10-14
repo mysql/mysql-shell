@@ -1,0 +1,2692 @@
+{
+   <shell>
+   Memcheck:Cond
+   fun:strlen
+   ...
+}
+{
+   <python>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:PyEval_EvalCodeEx
+   ...
+}
+{
+   <Python>
+   Memcheck:Addr4
+   fun:PyObject_Realloc
+   ...
+   fun:PyAST_Compile
+   ...
+   fun:PyEval_EvalFrameEx
+}
+{
+   <shell>
+   Memcheck:Addr8
+   fun:mysql_free_result
+   ...
+}
+{
+   <Shellpy>
+   Memcheck:Cond
+   fun:PyObject_Realloc
+   fun:PyNode_AddChild
+   fun:PyParser_AddToken
+   ...
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+}
+{
+   <shellpy>
+   Memcheck:Value8
+   fun:PyObject_Realloc
+   fun:PyNode_AddChild
+   fun:PyParser_AddToken
+   ...
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+}
+{
+   <shellpy>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:PyNode_Free
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+}
+{
+   <shell>
+   Memcheck:Cond
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester13process_setupERSi
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore39Shell_py_mysql_tests_mysql_session_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   fun:PyFile_WriteObject
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalCode
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:__run_exit_handlers
+   ...
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   fun:PyDict_SetItem
+   fun:_PyModule_Clear
+   fun:PyImport_Cleanup
+   fun:Py_Finalize
+   fun:_ZN6shcore21Python_init_singletonD1Ev
+   fun:_ZNKSt14default_deleteIN6shcore21Python_init_singletonEEclEPS1_
+}
+{
+   <Python>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:PyInterpreterState_Clear
+   fun:Py_Finalize
+}
+{
+   <Shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:strdup
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_init
+   fun:rl_initialize
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   ...
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:Py_InitializeEx
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:tgetent
+   fun:terminal_set
+   fun:terminal_init
+   fun:el_init
+   fun:rl_initialize
+   ...
+}
+{
+   <Shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:CRYPTO_malloc
+   ...
+}
+{
+   <Shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:el_init
+   fun:rl_initialize
+   ...
+}
+{
+   <Shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:node__get
+   ...
+}
+{
+   <python>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:realloc
+   fun:PyList_Append
+   ...
+   fun:PyObject_Call
+   ...
+}
+{
+   <python>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyThread_allocate_lock
+   fun:Py_MakePendingCalls
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalCode
+   fun:PyImport_ExecCodeModuleEx
+   ...
+   fun:PyImport_ImportModuleLevel
+   ...
+   fun:PyObject_Call
+}
+{
+   <shellpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyThread_allocate_lock
+   fun:PyEval_InitThreads
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shell17switch_shell_modeEN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEE
+   fun:_ZNK5boost4_mfi3mf2Ib17Interactive_shellN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEEEclEPS2_S5_SA_
+   fun:_ZN5boost3_bi5list3INS0_5valueIP17Interactive_shellEENS2_IN6shcore11IShell_core4ModeEEENS_3argILi1EEEEclIbNS_4_mfi3mf2IbS3_S8_RKSt6vectorISsSaISsEEEENS0_7rrlist1ISK_EEEET_NS0_4typeISO_EERT0_RT1_l
+   fun:_ZN5boost3_bi6bind_tIbNS_4_mfi3mf2Ib17Interactive_shellN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEEEENS0_5list3INS0_5valueIPS4_EENSF_IS7_EENS_3argILi1EEEEEEclISC_EEbOT_
+   fun:_ZN5boost6detail8function21function_obj_invoker1INS_3_bi6bind_tIbNS_4_mfi3mf2Ib17Interactive_shellN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEEEENS3_5list3INS3_5valueIPS7_EENSI_ISA_EENS_3argILi1EEEEEEEbSF_E6invokeERNS1_15function_bufferESF_
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znwm
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:_Znwm
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:history_def_insert
+   fun:history_def_enter
+   fun:history
+   fun:add_history
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:my_raw_malloc
+   fun:my_malloc
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:my_raw_malloc
+   fun:my_malloc
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znam
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:_Znam
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:history_init
+   fun:rl_initialize
+   ...
+}
+{
+   <shellpy>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znwm
+   ...
+   fun:PyEval_EvalFrameEx
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:calloc
+   fun:my_raw_malloc
+   fun:my_malloc
+   fun:cli_use_result
+   ...
+}
+{
+   <shellpy>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:_Znwm
+   ...
+   fun:PyEval_EvalFrameEx
+   ...
+}
+{
+   <shell>
+
+
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:terminal_alloc_display
+   fun:terminal_rebuffer_display
+   fun:terminal_change_size
+   fun:terminal_set
+   fun:el_wset
+   fun:el_set
+   fun:rl_initialize
+}
+{
+   <python>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyEval_EvalFrameEx
+   ...
+}
+{
+   <python>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:PyEval_EvalFrameEx
+   ...
+}
+{
+   <python-with-malloc>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyType_Ready
+   fun:initzipimport
+   ...
+   fun:PyImport_ImportModuleLevel
+   ...
+   fun:PyObject_Call
+   fun:PyObject_CallFunction
+   fun:PyImport_Import
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyType_Ready
+   fun:_ZN6shcore14Python_context20init_shell_list_typeEv
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shell17switch_shell_modeEN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEE
+   fun:_ZNK5boost4_mfi3mf2Ib17Interactive_shellN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEEEclEPS2_S5_SA_
+   fun:_ZN5boost3_bi5list3INS0_5valueIP17Interactive_shellEENS2_IN6shcore11IShell_core4ModeEEENS_3argILi1EEEEclIbNS_4_mfi3mf2IbS3_S8_RKSt6vectorISsSaISsEEEENS0_7rrlist1ISK_EEEET_NS0_4typeISO_EERT0_RT1_l
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyType_Ready
+   fun:_ZN6shcore14Python_context20init_shell_dict_typeEv
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shell17switch_shell_modeEN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEE
+   fun:_ZNK5boost4_mfi3mf2Ib17Interactive_shellN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEEEclEPS2_S5_SA_
+   fun:_ZN5boost3_bi5list3INS0_5valueIP17Interactive_shellEENS2_IN6shcore11IShell_core4ModeEEENS_3argILi1EEEEclIbNS_4_mfi3mf2IbS3_S8_RKSt6vectorISsSaISsEEEENS0_7rrlist1ISK_EEEET_NS0_4typeISO_EERT0_RT1_l
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyType_Ready
+   fun:_ZN6shcore14Python_context22init_shell_object_typeEv
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shell17switch_shell_modeEN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEE
+   fun:_ZNK5boost4_mfi3mf2Ib17Interactive_shellN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEEEclEPS2_S5_SA_
+   fun:_ZN5boost3_bi5list3INS0_5valueIP17Interactive_shellEENS2_IN6shcore11IShell_core4ModeEEENS_3argILi1EEEEclIbNS_4_mfi3mf2IbS3_S8_RKSt6vectorISsSaISsEEEENS0_7rrlist1ISK_EEEET_NS0_4typeISO_EERT0_RT1_l
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyType_Ready
+   fun:_ZN6shcore14Python_context24init_shell_function_typeEv
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shell17switch_shell_modeEN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEE
+   fun:_ZNK5boost4_mfi3mf2Ib17Interactive_shellN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEEEclEPS2_S5_SA_
+}
+{
+   <python-malloc>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:_PyObject_GC_Malloc
+   fun:PyType_GenericAlloc
+   ...
+   fun:PyObject_Call
+   fun:PyObject_CallFunction
+   fun:PyErr_NewException
+   fun:initzipimport
+   ...
+   fun:PyImport_ImportModuleLevel
+}
+{
+   <python-malloc>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyInt_FromLong
+   ...
+   fun:PyMarshal_ReadObjectFromString
+   fun:PyMarshal_ReadLastObjectFromFile
+   ...
+   fun:PyImport_ImportModuleLevel
+   ...
+   fun:PyObject_Call
+   fun:PyEval_CallObjectWithKeywords
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:realloc
+   ...
+   fun:rl_initialize
+   ...
+}
+{
+   <python>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyString_FromStringAndSize
+   ...
+   fun:PyMarshal_ReadObjectFromString
+   fun:PyMarshal_ReadLastObjectFromFile
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:CRYPTO_realloc
+   ...
+   fun:mysql_init
+   ...
+}
+{
+   <python-mallox>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyType_Ready
+   fun:PyStructSequence_InitType
+   fun:initposix
+   ...
+   fun:PyImport_ImportModuleLevel
+   ...
+   fun:PyObject_Call
+   fun:PyEval_CallObjectWithKeywords
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyModule_AddObject
+   fun:_ZN6shcore14Python_context15set_global_itemERKSsS2_RKNS_5ValueE
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shell17switch_shell_modeEN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEE
+   fun:_ZNK5boost4_mfi3mf2Ib17Interactive_shellN6shcore11IShell_core4ModeERKSt6vectorISsSaISsEEEclEPS2_S5_SA_
+   fun:_ZN5boost3_bi5list3INS0_5valueIP17Interactive_shellEENS2_IN6shcore11IShell_core4ModeEEENS_3argILi1EEEEclIbNS_4_mfi3mf2IbS3_S8_RKSt6vectorISsSaISsEEEENS0_7rrlist1ISK_EEEET_NS0_4typeISO_EERT0_RT1_l
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:__fopen_internal
+   fun:_ZNSt12__basic_fileIcE4openEPKcSt13_Ios_Openmodei
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+}
+{
+   <python-malloc>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyString_InternInPlace
+   ...
+   fun:PyMarshal_ReadObjectFromString
+   fun:PyMarshal_ReadLastObjectFromFile
+   ...
+}
+{
+   <Python>
+   Memcheck:Cond
+   fun:PyObject_Free
+   fun:PyGrammar_AddAccelerators
+   fun:PyParser_New
+   ...
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalFrameEx
+}
+{
+   <Python>
+   Memcheck:Value8
+   fun:PyObject_Free
+   fun:PyGrammar_AddAccelerators
+   fun:PyParser_New
+   ...
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalFrameEx
+}
+{
+   <shell>
+   Memcheck:Cond
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester13process_setupERSi
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore41Shell_py_mysqlx_tests_mysqlx_session_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   ...
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Realloc
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   ...
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore48Shell_py_mysqlx_tests_mysqlx_collection_add_Test8TestBodyEv
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore48Shell_py_mysqlx_tests_mysqlx_collection_add_Test8TestBodyEv
+}
+{
+   <shpy-had-py-obj-in-between>
+   Memcheck:Cond
+   fun:PyObject_Realloc
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+}
+{
+   <shpy-had-py-obj-in-between>
+   Memcheck:Addr4
+   fun:PyObject_Realloc
+   fun:PyNode_AddChild
+   fun:PyParser_AddToken
+   ...
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyNode_Free
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:PyDict_SetItem
+   fun:_PyModule_Clear
+   fun:PyImport_Cleanup
+   fun:Py_Finalize
+   fun:_ZN6shcore21Python_init_singletonD1Ev
+   fun:_ZNKSt14default_deleteIN6shcore21Python_init_singletonEEclEPS1_
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:strdup
+   fun:_nc_trim_sgr0
+   fun:tgetent
+   fun:terminal_set
+   ...
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore21Shell_py_mysqlx_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <python>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:PyList_Append
+   ...
+   fun:PyType_Ready
+   ...
+   fun:PyObject_Call
+   ...
+   fun:PyEval_EvalFrameEx
+   ...
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:PyList_Append
+   ...
+   fun:PyType_Ready
+   fun:_PyExc_Init
+   fun:Py_InitializeEx
+   fun:_ZN6shcore21Python_init_singletonC1Ev
+   fun:_ZN6shcore21Python_init_singleton11init_pythonEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+}
+{
+   <python>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_PyObject_GC_Malloc
+   fun:_PyObject_GC_NewVar
+   fun:PyFrame_New
+   fun:PyEval_EvalCodeEx
+   ...
+   fun:PyObject_Call
+   ...
+   fun:PyObject_Call
+   ...
+   fun:PyEval_EvalFrameEx
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore21Shell_py_mysqlx_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore21Shell_py_mysqlx_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+   fun:_nc_find_type_entry
+   fun:tgetflag
+   fun:terminal_set
+   fun:terminal_init
+   fun:el_init
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore21Shell_py_mysqlx_tests5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore14Shell_py_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore14Shell_py_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <python-obj>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyImport_ImportModuleLevel
+   ...
+   fun:PyObject_Call
+   fun:PyEval_CallObjectWithKeywords
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalCode
+   fun:PyImport_ExecCodeModuleEx
+}
+{
+   <python-obj>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyImport_ImportModuleLevel
+   ...
+   fun:PyObject_Call
+   fun:PyEval_CallObjectWithKeywords
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalCode
+   fun:PyImport_ExecCodeModuleEx
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyThread_allocate_lock
+   fun:PyEval_InitThreads
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore5tests6PythonC1Ev
+   fun:_ZN6shcore5tests33Python_simple_to_py_and_back_TestC1Ev
+   fun:_ZN7testing8internal15TestFactoryImplIN6shcore5tests33Python_simple_to_py_and_back_TestEE10CreateTestEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:PyList_Append
+   ...
+   fun:PyType_Ready
+   fun:_PyExc_Init
+   fun:Py_InitializeEx
+   fun:_ZN6shcore21Python_init_singletonC1Ev
+   fun:_ZN6shcore21Python_init_singleton11init_pythonEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore5tests6PythonC1Ev
+   fun:_ZN6shcore5tests33Python_simple_to_py_and_back_TestC1Ev
+   fun:_ZN7testing8internal15TestFactoryImplIN6shcore5tests33Python_simple_to_py_and_back_TestEE10CreateTestEv
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyType_Ready
+   ...
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore5tests6PythonC1Ev
+   fun:_ZN6shcore5tests33Python_simple_to_py_and_back_TestC1Ev
+   fun:_ZN7testing8internal15TestFactoryImplIN6shcore5tests33Python_simple_to_py_and_back_TestEE10CreateTestEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyType_Ready
+   fun:_ZN6shcore14Python_context24init_shell_function_typeEv
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore5tests6PythonC1Ev
+   fun:_ZN6shcore5tests33Python_simple_to_py_and_back_TestC1Ev
+   fun:_ZN7testing8internal15TestFactoryImplIN6shcore5tests33Python_simple_to_py_and_back_TestEE10CreateTestEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyModule_AddObject
+   fun:_ZN6shcore14Python_context15set_global_itemERKSsS2_RKNS_5ValueE
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore5tests6PythonC1Ev
+   fun:_ZN6shcore5tests33Python_simple_to_py_and_back_TestC1Ev
+   fun:_ZN7testing8internal15TestFactoryImplIN6shcore5tests33Python_simple_to_py_and_back_TestEE10CreateTestEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_15TestFactoryBaseEPNS_4TestEEET0_PT_MS6_FS5_vEPKc
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Addr4
+   fun:mysql_free_result
+   fun:_Z11free_resultI12st_mysql_resEvPT_
+   fun:_ZN5boost6detail18sp_counted_impl_pdIP12st_mysql_resPFvS3_EE7disposeEv
+   fun:_ZN5boost6detail15sp_counted_base7releaseEv
+   fun:_ZN5boost6detail12shared_countD1Ev
+   fun:_ZN5boost10shared_ptrI12st_mysql_resED1Ev
+   fun:_ZN4mysh5mysql10ConnectionD1Ev
+   fun:_ZN5boost14checked_deleteIN4mysh5mysql10ConnectionEEEvPT_
+   fun:_ZN5boost6detail17sp_counted_impl_pIN4mysh5mysql10ConnectionEE7disposeEv
+   fun:_ZN5boost6detail15sp_counted_base7releaseEv
+   fun:_ZN5boost6detail12shared_countD1Ev
+   fun:_ZN5boost10shared_ptrIN4mysh5mysql10ConnectionEED1Ev
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:strdup
+   fun:_nc_trim_sgr0
+   fun:tgetent
+   fun:terminal_set
+   ...
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyThread_allocate_lock
+   fun:PyEval_InitThreads
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyType_Ready
+   ...
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyType_Ready
+   fun:_ZN6shcore14Python_context24init_shell_function_typeEv
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyModule_AddObject
+   fun:_ZN6shcore14Python_context15set_global_itemERKSsS2_RKNS_5ValueE
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:__fopen_internal
+   fun:_ZNSt12__basic_fileIcE4openEPKcSt13_Ios_Openmodei
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+   fun:_nc_find_type_entry
+   fun:tgetflag
+   fun:terminal_set
+   fun:terminal_init
+   fun:el_init
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyType_Ready
+   ...
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Realloc
+   fun:PyNode_AddChild
+   fun:PyParser_AddToken
+   ...
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Realloc
+   fun:PyNode_AddChild
+   fun:PyParser_AddToken
+   ...
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Realloc
+   fun:PyNode_AddChild
+   fun:PyParser_AddToken
+   ...
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester13process_setupERSi
+   ...
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester13process_setupERSi
+   ...
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Realloc
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   ...
+}
+{
+   <shell>
+   Memcheck:Cond
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester13process_setupERSi
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore54Shell_py_dev_api_sample_tester_Expression_Strings_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester13process_setupERSi
+   ...
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Realloc
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   ...
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Realloc
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   ...
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyNode_Free
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester13process_setupERSi
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester13process_setupERSi
+}
+{
+   <shpy>
+   Memcheck:Addr4
+   fun:PyObject_Realloc
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyDict_SetItem
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalCode
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyDict_SetItem
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalCode
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyInterpreterState_Clear
+   fun:Py_Finalize
+   fun:_ZN6shcore21Python_init_singletonD1Ev
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyInterpreterState_Clear
+   fun:Py_Finalize
+   fun:_ZN6shcore21Python_init_singletonD1Ev
+}
+{
+   <python-obj>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   ...
+   fun:PyInterpreterState_Clear
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore30Shell_py_dev_api_sample_tester5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore30Shell_py_dev_api_sample_tester5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore30Shell_py_dev_api_sample_tester5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore30Shell_py_dev_api_sample_tester5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znam
+   fun:_ZN6shcore14load_text_fileERKSsRSs
+   fun:_ZN6shcore15JScript_context20JScript_context_impl17os_load_text_fileERKN2v820FunctionCallbackInfoINS2_5ValueEEE
+   fun:_ZN2v88internal25FunctionCallbackArguments4CallEPFvRKNS_20FunctionCallbackInfoINS_5ValueEEEE
+   fun:_ZN2v88internalL21Builtin_HandleApiCallEiPPNS0_6ObjectEPNS0_7IsolateE
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore14Shell_js_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:__fopen_internal
+   fun:_ZNSt12__basic_fileIcE4openEPKcSt13_Ios_Openmodei
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore14Shell_js_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore20Shell_js_mysql_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore20Shell_js_mysql_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore20Shell_js_mysql_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore20Shell_js_mysql_tests5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore21Shell_js_mysqlx_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZN6google8protobuf8internal20RepeatedPtrFieldBase7ReserveEi
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore21Shell_js_mysqlx_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore21Shell_js_mysqlx_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore21Shell_js_mysqlx_tests5SetUpEv
+}
+{
+   <python>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyImport_ImportModuleLevel
+   ...
+   fun:PyObject_Call
+   fun:PyEval_CallObjectWithKeywords
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalCode
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:strdup
+   fun:_nc_trim_sgr0
+   fun:tgetent
+   fun:terminal_set
+   fun:el_wset
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   ...
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyThread_allocate_lock
+   fun:PyEval_InitThreads
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN6shcore16shell_core_tests50Interactive_shell_test_python_startup_scripts_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN6shcore16shell_core_tests46Interactive_shell_test_js_startup_scripts_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   ...
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:__fopen_internal
+   fun:_ZNSt12__basic_fileIcE4openEPKcSt13_Ios_Openmodei
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   ...
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyType_Ready
+   ...
+   fun:_ZN6shcore14Python_context21register_shell_moduleEv
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN6shcore16shell_core_tests50Interactive_shell_test_python_startup_scripts_Test8TestBodyEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN6shcore16shell_core_tests46Interactive_shell_test_js_startup_scripts_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:PyDict_SetItemString
+   fun:PyModule_AddObject
+   fun:_ZN6shcore14Python_context15set_global_itemERKSsS2_RKNS_5ValueE
+   fun:_ZN6shcore14Python_contextC1EPNS_20Interpreter_delegateE
+   fun:_ZN6shcore12Shell_pythonC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_pyEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN6shcore16shell_core_tests50Interactive_shell_test_python_startup_scripts_Test8TestBodyEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   ...
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore27Shell_application_log_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:__fopen_internal
+   fun:_ZNSt12__basic_fileIcE4openEPKcSt13_Ios_Openmodei
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN6shcore27Shell_application_log_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore27Shell_application_log_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+   fun:_nc_find_type_entry
+   fun:tgetflag
+   fun:terminal_set
+   fun:terminal_init
+   fun:el_init
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore27Shell_application_log_tests5SetUpEv
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyDict_SetItem
+   fun:_PyModule_Clear
+   fun:PyImport_Cleanup
+   fun:Py_Finalize
+   fun:_ZN6shcore21Python_init_singletonD1Ev
+   fun:_ZNKSt14default_deleteIN6shcore21Python_init_singletonEEclEPS1_
+   fun:_ZNSt10unique_ptrIN6shcore21Python_init_singletonESt14default_deleteIS1_EED1Ev
+   fun:__run_exit_handlers
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyDict_SetItem
+   fun:_PyModule_Clear
+   fun:PyImport_Cleanup
+   fun:Py_Finalize
+   fun:_ZN6shcore21Python_init_singletonD1Ev
+   fun:_ZNKSt14default_deleteIN6shcore21Python_init_singletonEEclEPS1_
+   fun:_ZNSt10unique_ptrIN6shcore21Python_init_singletonESt14default_deleteIS1_EED1Ev
+   fun:__run_exit_handlers
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests24Shell_notifications_test5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests24Shell_notifications_test5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests24Shell_notifications_test5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests24Shell_notifications_test5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+   fun:_nc_find_type_entry
+   fun:tgetflag
+   fun:terminal_set
+   fun:terminal_init
+   fun:el_init
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests24Shell_notifications_test5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore30Shell_js_dev_api_sample_tester5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore30Shell_js_dev_api_sample_tester5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore30Shell_js_dev_api_sample_tester5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_js_script_tester5SetUpEv
+   fun:_ZN6shcore30Shell_js_dev_api_sample_tester5SetUpEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests15Shell_core_test5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests15Shell_core_test5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:calloc
+   fun:my_raw_malloc
+   fun:my_malloc
+   fun:mysql_init
+   fun:_ZN4mysh5mysql10ConnectionC1ERKSsiS3_S3_S3_S3_S3_S3_S3_
+   fun:_ZN4mysh5mysql14ClassicSession7connectERKN6shcore13Argument_listE
+   fun:_ZN4mysh15connect_sessionERKN6shcore13Argument_listENS_11SessionTypeE
+   fun:_ZN6shcore10Shell_core19connect_dev_sessionERKNS_13Argument_listEN4mysh11SessionTypeE
+   fun:_ZN17Interactive_shell15connect_sessionERKN6shcore13Argument_listEN4mysh11SessionTypeEb
+   fun:_ZN17Interactive_shell7connectEb
+   fun:_ZN17Interactive_shell11cmd_connectERKSt6vectorISsSaISsEE
+   fun:_ZNK5boost4_mfi3mf1Ib17Interactive_shellRKSt6vectorISsSaISsEEEclEPS2_S7_
+   fun:_ZN5boost3_bi5list2INS0_5valueIP17Interactive_shellEENS_3argILi1EEEEclIbNS_4_mfi3mf1IbS3_RKSt6vectorISsSaISsEEEENS0_7rrlist1ISG_EEEET_NS0_4typeISK_EERT0_RT1_l
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   fun:map_addfunc
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests15Shell_core_test5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+   fun:_nc_find_type_entry
+   fun:tgetflag
+   fun:terminal_set
+   fun:terminal_init
+   fun:el_init
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore16shell_core_tests15Shell_core_test5SetUpEv
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyNode_Free
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   ...
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyNode_Free
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   ...
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:my_raw_malloc
+   fun:my_malloc
+   ...
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:wcsdup
+   fun:el_set
+   fun:rl_initialize
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   ...
+}
+{
+   <shpy>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:PyInt_FromLong
+   ...
+   fun:PySymtable_Build
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context7executeERKSsRN5boost6system10error_codeES2_
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core14process_streamERSiRKSsN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell14process_streamERSiRKSs
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZN6shcore14load_text_fileERKSsRSs
+   fun:_ZN6shcore15JScript_context20JScript_context_impl17os_load_text_fileERKN2v820FunctionCallbackInfoINS2_5ValueEEE
+   fun:_ZN2v88internal25FunctionCallbackArguments4CallEPFvRKNS_20FunctionCallbackInfoINS_5ValueEEEE
+   fun:_ZN2v88internalL21Builtin_HandleApiCallEiPPNS0_6ObjectEPNS0_7IsolateE
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN6shcore27Shell_application_log_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore46Shell_py_mysqlx_tests_mysqlx_table_select_Test8TestBodyEv
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore46Shell_py_mysqlx_tests_mysqlx_table_update_Test8TestBodyEv
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   fun:PyGrammar_RemoveAccelerators
+   fun:Py_Finalize
+   fun:_ZN6shcore21Python_init_singletonD1Ev
+   fun:_ZNKSt14default_deleteIN6shcore21Python_init_singletonEEclEPS1_
+   fun:_ZNSt10unique_ptrIN6shcore21Python_init_singletonESt14default_deleteIS1_EED1Ev
+   fun:__run_exit_handlers
+   fun:exit
+   fun:(below main)
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN6shcore27Shell_application_log_tests5SetUpEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore46Shell_py_mysqlx_tests_mysqlx_table_update_Test8TestBodyEv
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+   fun:_ZN6shcore55Shell_py_dev_api_sample_tester_Processing_Warnings_Test8TestBodyEv
+}
+{
+   <shell>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znam
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE27_M_allocate_internal_bufferEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZNSt14basic_ofstreamIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode
+   fun:_ZN8ngcommon6LoggerC1EPKcbNS0_9LOG_LEVELE
+   fun:_ZN8ngcommon6Logger15create_instanceEPKcbNS0_9LOG_LEVELE
+   fun:_ZN17Interactive_shellC1ERK26Shell_command_line_optionsPN6shcore20Interpreter_delegateE
+   fun:_ZN23Shell_core_test_wrapper11reset_shellEv
+   fun:_ZN23Shell_core_test_wrapper5SetUpEv
+   fun:_ZN19Shell_script_tester5SetUpEv
+   fun:_ZN22Shell_py_script_tester5SetUpEv
+   fun:_ZN6shcore14Shell_py_tests5SetUpEv
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyAST_Compile
+   fun:PyRun_StringFlags
+   fun:_ZN6shcore14Python_context19execute_interactiveERKSsRNS_23Interactive_input_stateE
+   fun:_ZN6shcore12Shell_python12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN6shcore10Shell_core12handle_inputERSsRNS_23Interactive_input_stateEN5boost8functionIFvNS_5ValueEEEE
+   fun:_ZN17Interactive_shell12process_lineERKSs
+   fun:_ZN23Shell_core_test_wrapper7executeERKSs
+   fun:_ZN19Shell_script_tester14execute_scriptERKSsbb
+   fun:_ZN19Shell_script_tester20validate_interactiveERKSs
+}
+{
+   <shpy>
+   Memcheck:Cond
+   fun:PyObject_Free
+   ...
+   fun:PyRun_StringFlags
+   ...
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   ...
+   fun:PyRun_StringFlags
+   ...
+}
+{
+   <shpy>
+   Memcheck:Value8
+   fun:PyObject_Free
+   fun:PyGrammar_RemoveAccelerators
+   fun:Py_Finalize
+   ...
+   fun:__run_exit_handlers
+   fun:exit
+   fun:(below main)
+}
+{
+   <readline>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:rl_initialize
+   ...
+}
+{
+   <SetWeak_leak>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwj
+   fun:_ZN6shcore22JScript_object_wrapper4wrapESt10shared_ptrINS_13Object_bridgeEE
+   fun:_ZN6shcore20JScript_type_bridger19native_object_to_jsESt10shared_ptrINS_13Object_bridgeEE
+   fun:_ZN6shcore20JScript_type_bridger24shcore_value_to_v8_valueERKNS_5ValueE
+   fun:_ZN6shcore15JScript_context15set_global_itemERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_RKNS_5ValueE
+   fun:_ZN6shcore15JScript_contextC1EPNS_15Object_registryEPNS_20Interpreter_delegateE
+   fun:_ZN6shcore16Shell_javascriptC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_jsEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN4mysh10Base_shellC1ERKNS_13Shell_optionsEPN6shcore20Interpreter_delegateE
+   fun:_ZN4mysh18Command_line_shellC1ERKNS_13Shell_optionsE
+   fun:main
+}
+{
+   <SetWeak_leak>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwj
+   fun:_ZN6shcore22JScript_object_wrapper4wrapESt10shared_ptrINS_13Object_bridgeEE
+   fun:_ZN6shcore20JScript_type_bridger19native_object_to_jsESt10shared_ptrINS_13Object_bridgeEE
+   fun:_ZN6shcore20JScript_type_bridger24shcore_value_to_v8_valueERKNS_5ValueE
+   fun:_ZN6shcore15JScript_context15set_global_itemERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_RKNS_5ValueE
+   fun:_ZN6shcore15JScript_contextC1EPNS_15Object_registryEPNS_20Interpreter_delegateE
+   fun:_ZN6shcore16Shell_javascriptC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_jsEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN4mysh10Base_shellC1ERKNS_13Shell_optionsEPN6shcore20Interpreter_delegateE
+   fun:_ZN4mysh18Command_line_shellC1ERKNS_13Shell_optionsE
+   fun:main
+}
+{
+   <SetWeak_leak>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwj
+   fun:_ZN6shcore21JScript_array_wrapper4wrapESt10shared_ptrISt6vectorINS_5ValueESaIS3_EEE
+   fun:_ZN6shcore20JScript_type_bridger24shcore_value_to_v8_valueERKNS_5ValueE
+   fun:_ZN6shcore15JScript_context15set_global_itemERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_RKNS_5ValueE
+   fun:_ZN6shcore15JScript_context7executeERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_RKSt6vectorIS6_SaIS6_EE
+   fun:_ZN6shcore16Shell_javascript6promptB5cxx11Ev
+   fun:_ZN6shcore10Shell_core6promptB5cxx11Ev
+   fun:_ZN4mysh10Base_shell6promptB5cxx11Ev
+   fun:_ZN4mysh18Command_line_shell12command_loopEv
+   fun:main
+}
+{
+   <SetWeak_leak>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwj
+   fun:_ZN6shcore19JScript_map_wrapper4wrapESt10shared_ptrINS_5Value8Map_typeEE
+   fun:_ZN6shcore20JScript_type_bridger24shcore_value_to_v8_valueERKNS_5ValueE
+   fun:_ZN6shcore15JScript_context10set_globalERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERKNS_5ValueE
+   fun:_ZN6shcore15JScript_contextC1EPNS_15Object_registryEPNS_20Interpreter_delegateE
+   fun:_ZN6shcore16Shell_javascriptC1EPNS_10Shell_coreE
+   fun:_ZN6shcore10Shell_core7init_jsEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN4mysh10Base_shellC1ERKNS_13Shell_optionsEPN6shcore20Interpreter_delegateE
+   fun:_ZN4mysh18Command_line_shellC1ERKNS_13Shell_optionsE
+   fun:main
+}
+{
+   <SetWeak_leak>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwj
+   fun:_ZN6shcore22JScript_object_wrapper4wrapESt10shared_ptrINS_13Object_bridgeEE
+   fun:_ZN6shcore20JScript_type_bridger19native_object_to_jsESt10shared_ptrINS_13Object_bridgeEE
+   fun:_ZN6shcore20JScript_type_bridger24shcore_value_to_v8_valueERKNS_5ValueE
+   fun:_ZN6shcore15JScript_context10set_globalERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERKNS_5ValueE
+   fun:_ZN6shcore16Shell_javascript10set_globalERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERKNS_5ValueE
+   fun:_ZN6shcore10Shell_core7init_jsEv
+   fun:_ZN6shcore10Shell_core11switch_modeENS_11IShell_core4ModeERb
+   fun:_ZN4mysh10Base_shellC1ERKNS_13Shell_optionsEPN6shcore20Interpreter_delegateE
+   fun:_ZN4mysh18Command_line_shellC1ERKNS_13Shell_optionsE
+   fun:main
+}
+{
+   <libpython>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   fun:PyImport_ImportModuleLevel
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   fun:PyCFunction_Call
+   fun:PyObject_Call
+   fun:PyEval_CallObjectWithKeywords
+}
+{
+   <libpython>
+   Memcheck:Addr4
+   fun:PyObject_Free
+   fun:PyObject_GC_Del
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   fun:PyImport_ImportModuleLevel
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   fun:PyCFunction_Call
+   fun:PyObject_Call
+   fun:PyEval_CallObjectWithKeywords
+   fun:PyEval_EvalFrameEx
+}
+{
+   <libpython>
+   Memcheck:Value4
+   fun:PyObject_Free
+   fun:PyGrammar_AddAccelerators
+   fun:PyParser_New
+   obj:/usr/lib/i386-linux-gnu/libpython2.7.so.1.0
+   fun:PyParser_ASTFromString
+   fun:PyRun_StringFlags
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalCodeEx
+   fun:PyEval_EvalFrameEx
+   fun:PyEval_EvalFrameEx
+}
