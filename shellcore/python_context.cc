@@ -160,13 +160,12 @@ Value Python_context::execute(const std::string &code, boost::system::error_code
   PyObject *py_result;
   Value retvalue;
 
-  const size_t argv_size = argv.size();
-  const char *argvv[argv_size+1];
-  int argc = 0;
+  std::vector<const char*> argvv;
+
   for (const std::string &s : argv)
-    argvv[argc++] = s.c_str();
-  argvv[argc] = nullptr;
-  PySys_SetArgv(argc, const_cast<char**>(argvv));
+    argvv.push_back(s.c_str());
+  argvv.push_back(nullptr);
+  PySys_SetArgv(argv.size(), const_cast<char**>(argvv.data()));
 
   py_result = PyRun_String(code.c_str(), Py_file_input, _globals, _locals);
 
