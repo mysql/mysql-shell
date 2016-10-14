@@ -1972,20 +1972,22 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.008]:2 SQL Update Alter stored procedure using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--node']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'AlterStoreProcedure_SQL.sql'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila', '--node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'AlterStoreProcedure_SQL.sql'))
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("call  sql_sptest(@a);\n","Query OK"),
-                ("select @a;\n","1 row in set")
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          ("call  sql_sptest(@a);\n", "Query OK"),
+          ("select @a;\n", "1 row in set")
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -2220,24 +2222,27 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
   def test_4_3_14_2(self):
       '''[4.3.014]:2 JS Update database using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--node']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_NodeMode.js'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila', '--node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'UpdateSchema_NodeMode.js'))
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;\n","1 row in set"),
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          (
+              "SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;\n",
+              "1 row in set"),
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -2442,19 +2447,21 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.020]:1 JS Update alter stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--classic']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateProcedure_ClassicMode.js'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila', '--classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'UpdateProcedure_ClassicMode.js'))
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("call Test;\n","1 row in set"),
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          ("call Test;\n", "1 row in set"),
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -2831,7 +2838,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
   def test_4_3_29_1(self):
       '''[4.3.029]:1 PY Update alter view using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2840,16 +2846,17 @@ class XShell_TestCases(unittest.TestCase):
                       '--schema=sakila', '--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            stdin=open(Exec_files_location + 'UpdateView_ClassicMode.py'))
-      stdin, stdout = p.communicate()
-      if stdout.find(bytearray("ERROR", "ascii"), 0, len(stdin)) > -1:
-          self.assertEqual(stdin, 'PASS')
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n", "mysql-sql>"),
-                ("use sakila;\n", "mysql-sql>"),
-                ("SELECT * FROM py_view ;\n", "1 row in set"),
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          ("SELECT * FROM py_view ;\n", "1 row in set"),
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -3405,19 +3412,21 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.011]:1 JS Delete table using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--classic']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_ClassicMode.js'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila', '--classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'DeleteTable_ClassicMode.js'))
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("select * from sakila.friends where name = 'ruben';\n","Empty set"),
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          ("select * from sakila.friends where name = 'ruben';\n", "Empty set"),
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -3635,25 +3644,28 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
   def test_4_4_17_1(self):
       '''[4.4.017]:1 JS Delete view using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--classic']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteView_ClassicMode.js'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila', '--classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'DeleteView_ClassicMode.js'))
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\n","Empty set"),
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          (
+              "SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\n",
+              "Empty set"),
 
-                ]
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -3776,19 +3788,22 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.020]:1 JS Delete stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--classic']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteProcedure_ClassicMode.js'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila', '--classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'DeleteProcedure_ClassicMode.js'))
+      stdoutdata, stderrordata = p.communicate()
+      # Empty set means the executed file didn't create the store procedure
+      if stdoutdata.find(bytearray("Empty set", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("select name from mysql.proc where name like 'my_procedure';\n","Empty set")
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          ("select name from mysql.proc where name like 'my_procedure';\n", "Empty set")
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -3937,19 +3952,21 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.023]:1 PY Delete table using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
-                        '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--classic']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_ClassicMode.py'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila', '--classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'DeleteTable_ClassicMode.py'))
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("select * from sakila.friends where name = 'ruben';\n","Empty set"),
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          ("select * from sakila.friends where name = 'ruben';\n", "Empty set"),
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -4047,19 +4064,21 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.026]:1 PY Delete database using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--classic']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteSchema_ClassicMode.py'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila', '--classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'DeleteSchema_ClassicMode.py'))
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("show schemas like 'schema_test';\n","1 row"),
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          ("show schemas like 'schema_test';\n", "1 row"),
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -4189,19 +4208,20 @@ class XShell_TestCases(unittest.TestCase):
                       '--schema=sakila', '--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            stdin=open(Exec_files_location + 'DeleteView_ClassicMode.py'))
-      stdin, stdout = p.communicate()
-      if stdout.find(bytearray("ERROR", "ascii"), 0, len(stdin)) > -1:
-          self.assertEqual(stdin, 'PASS')
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("ERROR", "ascii"), 0, len(stdoutdata)) > -1:
+          self.assertEqual(stdoutdata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n", "mysql-sql>"),
-                ("use sakila;\n", "mysql-sql>"),
-                (
-                "SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\n",
-                "Empty set"),
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          (
+              "SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\n",
+              "Empty set"),
 
-                ]
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
