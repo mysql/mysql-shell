@@ -4881,30 +4881,37 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_01_3(self):
-      '''[4.9.002] Create a Stored Session: schema store'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full']
+        '''[4.9.002] Create a Stored Session: schema store'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full']
 
-      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila');\n","mysql-js>"),
-                ("shell.storedSessions;\n","    \"classic_session\": {" + os.linesep + "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \""+LOCALHOST.user+"\", " + os.linesep + "        \"host\": \""+LOCALHOST.host+"\", " + os.linesep + "        \"port\": "+LOCALHOST.port+", " + os.linesep + "        \"schema\": \"sakila\"" + os.linesep + "    }"),
-                ("\\connect -c $classic_session\n","Creating a Classic Session to "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
-
+        x_cmds = [("\\rmconn classic_session\n", "mysql-js>"),
+                  ("shell.storedSessions.add('classic_session', '" + LOCALHOST.user + ":" + LOCALHOST.password + "@" +
+                   LOCALHOST.host + ":" + LOCALHOST.port + "/sakila');\n", "mysql-js>"),
+                  ("shell.storedSessions;\n", "    \"classic_session\": {" + os.linesep +
+                   "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \"" +
+                   LOCALHOST.user + "\", " + os.linesep + "        \"host\": \"" + LOCALHOST.host + "\", " +
+                   os.linesep + "        \"port\": " + LOCALHOST.port + ", " + os.linesep +
+                   "        \"schema\": \"sakila\"" + os.linesep + "    }"),
+                  ("\\connect -c $classic_session\n", "Creating a Classic Session to '" + LOCALHOST.user + "@" +
+                   LOCALHOST.host + ":" + LOCALHOST.port + "/sakila'"),
+                  ]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
 
   def test_4_9_01_4(self):
-      '''[4.9.002] Create a Stored Session: schema store'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full']
+        '''[4.9.002] Create a Stored Session: schema store'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full']
 
-      x_cmds = [("\\rmconn app_session\n","mysql-js>"),
-                ("shell.storedSessions.add('app_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+"/sakila');\n","mysql-js>"),
-                ("\\connect $app_session\n","Creating an X Session to "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+"/sakila"),
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')
+        x_cmds = [("\\rmconn app_session\n", "mysql-js>"),
+                  ("shell.storedSessions.add('app_session', '" + LOCALHOST.user + ":" + LOCALHOST.password + "@" +
+                   LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + "/sakila');\n","mysql-js>"),
+                  ("\\connect $app_session\n", "Creating a Session to '" + LOCALHOST.user + "@" + LOCALHOST.host +
+                   ":" + LOCALHOST.xprotocol_port + "/sakila'"),
+                  ]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
 
 
   def test_4_9_01_5(self):
@@ -5912,8 +5919,9 @@ class XShell_TestCases(unittest.TestCase):
       '''[CONNECTION] CONNECTION IS CLOSED, WHEN A NEW WRONG CONNECTION IS REQUESTED'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect root:guidev!@localhost:3357\n", "Classic Session successfully established"),
-                ("\\connect root:guidev!@localhost:3300\n", "mysql-js>"),
+      x_cmds = [("\\connect {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                      LOCALHOST.port), "Classic Session successfully established"),
+                ("\\connect wrongconn:wrongconn@localhost:3300\n", "mysql-js>"),
                 ("\\sql\n", "mysql-js>"),
                 ("show databases;\n", "sakila"),
                 ]
@@ -6000,15 +6008,19 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       error = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=raw']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=raw']
       x_cmds = [("\n", 'mysql-py>'),
-                ("session\n", '{\"result\":{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"}}'),
+                ("session\n",
+                 '{"class":"NodeSession","connected":true,"uri":"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '"}'),
                 ("\\sql\n", "mysql-sql>"),
-                ("use world_x;\n", "warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
-                ("create table test_classic (variable varchar(10));\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
-                ("select * from test_classic;\n","\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
-                ("drop table world_x.test_classic;\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}")
-                ]
+                ("use world_x;\n",
+                 "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("create table test_classic (variable varchar(10));\n",
+                 "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("select * from test_classic;\n",
+                 "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("drop table world_x.test_classic;\n",
+                 "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}")]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
