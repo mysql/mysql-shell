@@ -59,8 +59,8 @@ dba.validateInstance(uri2, {mycnfPath:'mybad.cnf'});
 dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
 dba.configureLocalInstance('sample@localhost:' + __mysql_sandbox_port1);
-dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'toor'});
-dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'toor', mycnfPath:'mybad.cnf'});
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root'});
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root', mycnfPath:'mybad.cnf'});
 
 //@<OUT> Dba: configureLocalInstance updating config file
 dba.configureLocalInstance(uri2, {mycnfPath:'mybad.cnf'});

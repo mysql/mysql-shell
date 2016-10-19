@@ -26,24 +26,16 @@ validateMember(members, 'status');
 validateMember(members, 'help');
 validateMember(members, 'dissolve');
 
-//@# Cluster: addInstance errors
+//@ Cluster: addInstance errors
 Cluster.addInstance()
 Cluster.addInstance(5,6,7,1)
 Cluster.addInstance(5, 5)
-
-//@# Cluster: addInstance errors: missing host interactive, cancel
 Cluster.addInstance('', 5)
-
-//@# Cluster: addInstance errors 2
 Cluster.addInstance( 5)
-
-//@# Cluster: addInstance errors: invalid attributes, cancel
 Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
-
-//@# Cluster: addInstance errors: missing host interactive, cancel 2
 Cluster.addInstance({port: __mysql_sandbox_port1});
 
-//@# Cluster: addInstance with interaction, error
+//@ Cluster: addInstance with interaction, error
 Cluster.addInstance({host: "localhost", port:__mysql_sandbox_port1});
 
 //@<OUT> Cluster: addInstance with interaction, ok
@@ -55,7 +47,7 @@ Cluster.describe()
 //@<OUT> Cluster: status1
 Cluster.status()
 
-//@# Cluster: removeInstance errors
+//@ Cluster: removeInstance errors
 Cluster.removeInstance();
 Cluster.removeInstance(1,2);
 Cluster.removeInstance(1);

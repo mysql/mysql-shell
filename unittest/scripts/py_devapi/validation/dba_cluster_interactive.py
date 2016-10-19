@@ -14,31 +14,22 @@
 |help: OK|
 |dissolve: OK|
 
-#@# Cluster: add_instance errors
+#@ Cluster: add_instance errors
 ||Invalid number of arguments in Cluster.add_instance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.add_instance, expected 1 to 2 but got 4
 ||Invalid connection options, expected either a URI, a Dictionary or an Instance object
+||Cluster.add_instance: Instance definition is empty.
+||Cluster.add_instance: Invalid values in instance definition: authMethod, schema
+||Cluster.add_instance: Missing values in instance definition: host
 
-#@# Cluster: add_instance errors: missing host interactive, cancel
-||
-
-#@# Cluster: add_instance errors 2
-||Invalid connection options, expected either a URI, a Dictionary or an Instance object
-
-#@# Cluster: add_instance errors: invalid attributes, cancel
-||
-
-#@# Cluster: add_instance errors: missing host interactive, cancel 2
-||
-
-#@# Cluster: add_instance with interaction, error
+#@ Cluster: add_instance with interaction, error
 ||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'.
 
 #@<OUT> Cluster: add_instance with interaction, ok
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Adding instance to the cluster ...
+Please provide a password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Adding instance to the cluster ...
 
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
@@ -91,7 +82,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 }
 
 
-#@# Cluster: remove_instance errors
+#@ Cluster: remove_instance errors
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 0
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 2
 ||Invalid connection options, expected either a URI, a Dictionary or an Instance object
@@ -193,7 +184,7 @@ The following replicasets are currently registered:
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Adding instance to the cluster ...
+Please provide a password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Adding instance to the cluster ...
 
 The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' was successfully added to the cluster.
 
@@ -201,7 +192,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' was successfully added
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Adding instance to the cluster ...
+Please provide a password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Adding instance to the cluster ...
 
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 

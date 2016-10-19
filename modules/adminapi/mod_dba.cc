@@ -870,6 +870,8 @@ Dba::~Dba() {
 
 std::shared_ptr<mysh::mysql::ClassicSession> Dba::get_session(const shcore::Argument_list& args) {
 
+  std::shared_ptr<mysh::mysql::ClassicSession> ret_val;
+
   auto options = args.map_at(0);
 
   std::string session_id = shcore::build_connection_string(options, false);
@@ -877,10 +879,13 @@ std::shared_ptr<mysh::mysql::ClassicSession> Dba::get_session(const shcore::Argu
   if (_session_cache.find(session_id) == _session_cache.end()) {
     auto session = mysh::connect_session(args, mysh::SessionType::Classic);
 
-    _session_cache[session_id] = std::dynamic_pointer_cast<mysh::mysql::ClassicSession>(session);
+    ret_val = std::dynamic_pointer_cast<mysh::mysql::ClassicSession>(session);
+
+    // Disabling the session caching for now
+    //_session_cache[session_id] = ret_val;
   }
 
-  return _session_cache.at(session_id);
+  return ret_val;
 }
 
 shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list &args, bool allow_update) {

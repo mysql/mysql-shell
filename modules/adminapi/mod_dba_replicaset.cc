@@ -330,9 +330,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   bool seed_instance = false;
   std::string uri;
 
-  std::string user;
-  std::string super_user_password;
-  std::string joiner_host;
   int port = 0;
 
   // NOTE: This function is called from either the add_instance_ on this class
@@ -354,24 +351,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   port = options->get_int("port");
 
   // Sets a default user if not specified
-  if (options->has_key("user"))
-    user = options->get_string("user");
-  else if (options->has_key("dbUser"))
-    user = options->get_string("dbUser");
-  else {
-    user = "root";
-    (*options)["dbUser"] = shcore::Value(user);
-  }
+  resolve_instance_credentials(options, nullptr);
+  std::string user = options->get_string(options->has_key("user") ? "user" : "dbUser");
+  std::string super_user_password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
 
-  joiner_host = options->get_string("host");
-
-  std::string password;
-  if (options->has_key("password"))
-    super_user_password = options->get_string("password");
-  else if (options->has_key("dbPassword"))
-    super_user_password = options->get_string("dbPassword");
-  else
-    throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+  std::string joiner_host = options->get_string("host");
 
   // Check if the instance was already added
   std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
@@ -579,25 +563,12 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     if (peer_instance.empty()) {
       throw shcore::Exception::runtime_error("Cannot rejoin instance. There are no remaining available instances in the replicaset.");
     }
-    std::string user;
-    // Sets a default user if not specified
-    if (options->has_key("user"))
-      user = options->get_string("user");
-    else if (options->has_key("dbUser"))
-      user = options->get_string("dbUser");
-    else {
-      user = "root";
-      (*options)["dbUser"] = shcore::Value(user);
-    }
-    host = options->get_string("host");
 
-    std::string password;
-    if (options->has_key("password"))
-      super_user_password = options->get_string("password");
-    else if (options->has_key("dbPassword"))
-      super_user_password = options->get_string("dbPassword");
-    else
-      throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+    resolve_instance_credentials(options, nullptr);
+    std::string user = options->get_string(options->has_key("user") ? "user" : "dbUser");
+    std::string password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+
+    host = options->get_string("host");
 
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
                        user + "@" + peer_instance,

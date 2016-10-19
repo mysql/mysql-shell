@@ -46,6 +46,10 @@ namespace dba {
   shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, bool get_password_from_options) {
   shcore::Value::Map_type_ref options;
 
+  // This validation will be added here but should not be needed if the function is used properly
+  // callers are resposible for validating the number of arguments is correct
+  args.ensure_at_least(1, "get_instance_options_map");
+
   // Attempts getting an instance object
   auto instance = args.object_at<mysh::dba::Instance>(0);
   if (instance) {
