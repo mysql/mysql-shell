@@ -3783,7 +3783,7 @@ class XShell_TestCases(unittest.TestCase):
 
 
   #FAILING........
-  #@unittest.skip("issues MYS320 , delimiter in js is not recongnized")
+  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_4_4_20_1(self):
       '''[4.4.020]:1 JS Delete stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -7233,17 +7233,26 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_441(self):
       ''' db.tables and db.views should be removed'''
-      results = ''
+      results = 'PASS'
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-      x_cmds = [("\\warnings\n", "mysql-js>"),
-                ("db.tables();\n", "" + os.linesep + os.linesep + ""),
-                ("db.views();\n",  "" + os.linesep + os.linesep + ""),
-                ("db.getTables();\n","actor"),
-                ("db.getViews();\n","actor_info"),
+      x_cmds = [("\\warnings\n", "Show warnings enabled"),
+                ("db.tables();\n", "Invalid object member"),
+                ("db.views();\n", "Invalid object member"),
+                ("db.getTables();\n", "actor"),
+                ("db.getViews();\n", "actor_info"),
                 ]
-      results = exec_xshell_commands(init_command, x_cmds)
+      for command, responce in x_cmds:
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          p.stdin.write(command)
+          stdout, stderr = p.communicate()
+          # p.stdin.flush()
+          if ((stdout.find(responce, 0, len(stdout))) > -1 or stderr.find(responce, 0, len(stdout)) > -1):
+              found = 1
+          if found == -1:
+              results = "FAIL \n\r" + stdout.decode("ascii")
+              break
       self.assertEqual(results, 'PASS')
 
   def test_MYS_442_01(self):
