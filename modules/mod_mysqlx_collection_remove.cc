@@ -21,10 +21,17 @@
 #include "mod_mysqlx_resultset.h"
 #include "shellcore/common.h"
 #include "utils/utils_time.h"
+#include "utils/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
+
+// Documentation of CollectionRemove class
+REGISTER_HELP(COLLECTIONREMOVE_BRIEF, "Handler for document removal from a Collection.");
+REGISTER_HELP(COLLECTIONREMOVE_DETAIL, "This object provides the necessary functions to allow removing documents from a collection.");
+REGISTER_HELP(COLLECTIONREMOVE_DETAIL1, "This object should only be created by calling the remove function on the collection object "\
+"from which the documents will be removed.");
 
 CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
   :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
@@ -46,21 +53,29 @@ CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-//! Sets the search condition to filter the Documents to be deleted from the owner Collection.
-#if DOXYGEN_CPP
-//! \param args may contain an optional expression to filter the documents to be deleted.
-#else
-//! \param searchCondition: An optional expression to filter the documents to be deleted.
-#endif
+// Documentation of remove function
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_BRIEF, "Sets the search condition to filter the Documents to be deleted from the owner Collection.");
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_PARAM, "@param searchCondition: An optional expression to filter the documents to be deleted.");
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_RETURN, "@return This CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL, "if not specified all the documents will be deleted from the collection unless a limit is set.");
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL1, "The searchCondition supports parameter binding.");
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL2, "This function is called automatically when Collection.remove(searchCondition) is called.");
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL3, "The actual deletion of the documents will occur only when the execute method is called.");
+
 /**
-* if not specified all the documents will be deleted from the collection unless a limit is set.
-* \return This CollectionRemove object.
+* $(COLLECTIONREMOVE_REMOVE_BRIEF)
 *
-* The searchCondition supports \a [Parameter Binding](param_binding.html).
+* $(COLLECTIONREMOVE_REMOVE_PARAM)
 *
-* This function is called automatically when Collection.remove(searchCondition) is called.
+* $(COLLECTIONREMOVE_REMOVE_RETURN)
 *
-* The actual deletion of the documents will occur only when the execute method is called.
+* $(COLLECTIONREMOVE_REMOVE_DETAIL)
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL1)
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL2)
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL3)
 *
 * #### Method Chaining
 *
@@ -101,19 +116,28 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the order in which the deletion should be done.
-#if DOXYGEN_CPP
-//! \param args should contain a list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
-#else
-//! \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
-#endif
+// Documentation of sort function
+REGISTER_HELP(COLLECTIONREMOVE_SORT_BRIEF, "Sets the order in which the deletion should be done.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_PARAM, "@param sortExprStr: A list of expression strings defining a sort criteria, "\
+"the deletion will be done following the order defined by this criteria.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_RETURN, "@return This CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL, "The elements of sortExprStr list are strings defining the column name on which "\
+"the sorting will be based in the form of 'columnIdentifier [ ASC | DESC ]'.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL1, "If no order criteria is specified, ascending will be used by default.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL2, "This method is usually used in combination with limit to fix the amount of documents to be deleted.");
+
 /**
-* \return This CollectionRemove object.
+* $(COLLECTIONREMOVE_SORT_BRIEF)
 *
-* The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
-* If no order criteria is specified, ascending will be used by default.
+* $(COLLECTIONREMOVE_SORT_PARAM)
 *
-* This method is usually used in combination with limit to fix the amount of documents to be deleted.
+* $(COLLECTIONREMOVE_SORT_RETURN)
+*
+* $(COLLECTIONREMOVE_SORT_DETAIL)
+*
+* $(COLLECTIONREMOVE_SORT_DETAIL1)
+*
+* $(COLLECTIONREMOVE_SORT_DETAIL2)
 *
 * #### Method Chaining
 *
@@ -152,16 +176,20 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets a limit for the documents to be deleted.
-#if DOXYGEN_CPP
-//! \param args should contain the number of documents to affect in the remove execution.
-#else
-//! \param numberOfDocs the number of documents to affect in the remove execution.
-#endif
+// Documentation of limit function
+REGISTER_HELP(COLLECTIONREMOVE_LIMIT_BRIEF, "Sets a limit for the documents to be deleted.");
+REGISTER_HELP(COLLECTIONREMOVE_LIMIT_PARAM, "@param numberOfDocs the number of documents to affect in the remove execution.");
+REGISTER_HELP(COLLECTIONREMOVE_LIMIT_RETURN, "@return This CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_LIMIT_DETAIL, "This method is usually used in combination with sort to fix the amount of documents to be deleted.");
+
 /**
-* \return This CollectionRemove object.
+* $(COLLECTIONREMOVE_LIMIT_BRIEF)
 *
-* This method is usually used in combination with sort to fix the amount of documents to be deleted.
+* $(COLLECTIONREMOVE_LIMIT_PARAM)
+*
+* $(COLLECTIONREMOVE_LIMIT_RETURN)
+*
+* $(COLLECTIONREMOVE_LIMIT_DETAIL)
 *
 * #### Method Chaining
 *
@@ -195,22 +223,25 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Binds a value to a specific placeholder used on this CollectionRemove object.
-#if DOXYGEN_CPP
-//! \param args should contain the next elements:
-//! \li The name of the placeholder to which the value will be bound.
-//! \li The value to be bound on the placeholder.
-#else
-//! \param name: The name of the placeholder to which the value will be bound.
-//! \param value: The value to be bound on the placeholder.
-#endif
+// Documentation of function
+REGISTER_HELP(COLLECTIONREMOVE_BIND_BRIEF, "Binds a value to a specific placeholder used on this CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM1, "@param name: The name of the placeholder to which the value will be bound.");
+REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM2, "@param value: The value to be bound on the placeholder.");
+REGISTER_HELP(COLLECTIONREMOVE_BIND_RETURN, "@return This CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL, "An error will be raised if the placeholder indicated by name does not exist.");
+REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL1, "This function must be called once for each used placeohlder or an error will be raised when the execute method is called.");
+
 /**
-* \return This CollectionRemove object.
+* $(COLLECTIONREMOVE_BIND_BRIEF)
 *
-* An error will be raised if the placeholder indicated by name does not exist.
+* $(COLLECTIONREMOVE_BIND_PARAM1)
+* $(COLLECTIONREMOVE_BIND_PARAM2)
 *
-* This function must be called once for each used placeohlder or an error will be
-* raised when the execute method is called.
+* $(COLLECTIONREMOVE_BIND_RETURN)
+*
+* $(COLLECTIONREMOVE_BIND_DETAIL)
+*
+* $(COLLECTIONREMOVE_BIND_DETAIL1)
 *
 * #### Method Chaining
 *
@@ -241,9 +272,14 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+// Documentation of function
+REGISTER_HELP(COLLECTIONREMOVE_EXECUTE_BRIEF, "Executes the document deletion with the configured filter and limit.");
+REGISTER_HELP(COLLECTIONREMOVE_EXECUTE_RETURN, "@return Result A Result object that can be used to retrieve the results of the deletion operation.");
+
 /**
-* Executes the document deletion with the configured filter and limit.
-* \return Result A Result object that can be used to retrieve the results of the deletion operation.
+* $(COLLECTIONREMOVE_EXECUTE_BRIEF)
+*
+* $(COLLECTIONREMOVE_EXECUTE_RETURN)
 *
 * #### Method Chaining
 *

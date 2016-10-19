@@ -30,11 +30,11 @@ namespace mysqlx {
 class Collection;
 
 /**
-* Handler for document removal from a Collection.
+* $(COLLECTIONREMOVE_BRIEF)
 *
-* This object provides the necessary functions to allow removing documents from a collection.
+* $(COLLECTIONREMOVE_DETAIL)
 *
-* This object should only be created by calling the remove function on the collection object from which the documents will be removed.
+* $(COLLECTIONREMOVE_DETAIL1)
 *
 * \sa Collection
 */

@@ -23,6 +23,7 @@
 #include "base_constants.h"
 #include "uuid_gen.h"
 #include "mysqlx_parser.h"
+#include "utils/utils_help.h"
 
 #include <iomanip>
 #include <sstream>
@@ -31,6 +32,11 @@
 using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
+
+// Documentation of CollectionCreateIndex class
+REGISTER_HELP(COLLECTIONCREATEINDEX_BRIEF, "Handler for index creation on a Collection.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_DETAIL, "This object provides the necessary functions to allow adding an index into a collection.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_DETAIL1, "This object should only be created by calling any of the createIndex functions on the collection object where the index will be created.");
 
 CollectionCreateIndex::CollectionCreateIndex(std::shared_ptr<Collection> owner)
   :_owner(owner) {
@@ -48,27 +54,17 @@ CollectionCreateIndex::CollectionCreateIndex(std::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-#if DOXYGEN_CPP
+// Documentation of createIndex function
+REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF, "Sets the name for the creation of a non unique index on the collection.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM, "@param indexName The name of the index to be created.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_RETURN, "@return This CollectionCreateIndex object.");
+
 /**
- * Creates an index on a collection.
- * \param args should contain the name and optionally the type of index to be created.
- * \return A CollectionCreateIndex object.
- *
- * This function creates a CollectionCreateIndex object which is an index creation handler.
- *
- * The CollectionCreateIndex class has a function to define the fields to be included on the index.
- *
- * The index will be created when the execute function is called on the index creation handler.
- *
- * The function will create a non unique index unless mysqlx.IndexType.IndexUnique is passed as the second element on args.
- *
- * \sa CollectionCreateIndex
- */
-#else
-/**
-* Sets the name for the creation of a non unique index on the collection.
-* \param indexName The name of the index to be created.
-* \return This CollectionCreateIndex object.
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF)
+*
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM)
+*
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_RETURN)
 */
 #if DOXYGEN_JS
 CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName) {}
@@ -76,11 +72,16 @@ CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName) {}
 CollectionCreateIndex CollectionCreateIndex::create_index(str indexName) {}
 #endif
 
+REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF1, "Sets the name for the creation of a unique index on the collection.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM1, "@param type The type of the index to be created, only supported type for the moment is mysqlx.IndexUnique.");
+
 /**
-* Sets the name for the creation of a unique index on the collection.
-* \param indexName The name of the index to be created.
-* \param type The type of the index to be created, only supported type for the moment is mysqlx.IndexUnique.
-* \return This CollectionCreateIndex object.
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF1)
+*
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM)
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM1)
+*
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_RETURN)
 *
 * #### Method Chaining
 *
@@ -90,7 +91,7 @@ CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName, Index
 #elif DOXYGEN_PY
 CollectionCreateIndex CollectionCreateIndex::create_index(str indexName, IndexType type) {}
 #endif
-#endif
+
 shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, 2, get_function_name("createIndex").c_str());
@@ -130,20 +131,21 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Adds column to be part of the collection index being created.
-#if DOXYGEN_CPP
-//! \param args : Should contain three elements described below.
-//!
-//! \li A string with the document path to the field to be added into the index.
-//! \li A string defining a valid MySQL data type.
-//! \li A boolean a flag that indicates whether the field is required or not.
-#else
-//! \param documentPath The document path to the field to be added into the index.
-//! \param type A string defining a valid MySQL data type.
-//! \param isRequired a flag that indicates whether the field is required or not.
-#endif
+// Documentation of field function
+REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_BRIEF, "Adds column to be part of the collection index being created.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_PARAM, "@param documentPath The document path to the field to be added into the index.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_PARAM1, "@param type A string defining a valid MySQL data type.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_PARAM2, "@param isRequired a flag that indicates whether the field is required or not.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_RETURN, "@return A Result object.");
+
 /**
-* \return A Result object.
+* $(COLLECTIONCREATEINDEX_FIELD_BRIEF)
+*
+* $(COLLECTIONCREATEINDEX_FIELD_PARAM)
+* $(COLLECTIONCREATEINDEX_FIELD_PARAM1)
+* $(COLLECTIONCREATEINDEX_FIELD_PARAM2)
+*
+* $(COLLECTIONCREATEINDEX_FIELD_RETURN)
 *
 * #### Method Chaining
 *
@@ -180,9 +182,14 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+// Documentation of execute function
+REGISTER_HELP(COLLECTIONCREATEINDEX_EXECUTE_BRIEF, "Executes the document addition for the documents cached on this object.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_EXECUTE_RETURN, "@return A Result object.");
+
 /**
-* Executes the document addition for the documents cached on this object.
-* \return A Result object.
+* $(COLLECTIONCREATEINDEX_EXECUTE_BRIEF)
+*
+* $(COLLECTIONCREATEINDEX_EXECUTE_RETURN)
 *
 * #### Method Chaining
 *

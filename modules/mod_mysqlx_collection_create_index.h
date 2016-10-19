@@ -30,11 +30,11 @@ namespace mysqlx {
 class Collection;
 
 /**
-* Handler for index creation on a Collection.
+* $(COLLECTIONCREATEINDEX_BRIEF)
 *
-* This object provides the necessary functions to allow adding an index into a collection.
+* $(COLLECTIONCREATEINDEX_DETAIL)
 *
-* This object should only be created by calling any of the createIndex functions on the collection object where the index will be created.
+* $(COLLECTIONCREATEINDEX_DETAIL1)
 *
 * \sa Collection
 */
