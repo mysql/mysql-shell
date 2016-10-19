@@ -2206,19 +2206,23 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.014]:1 JS Update database using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--classic']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_ClassicMode.js'))
-      stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
+                      '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila', '--classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           stdin=open(Exec_files_location + 'UpdateSchema_ClassicMode.js'))
+      stdoutdata, stderrordata = p.communicate()
+      if stderrordata.find(bytearray("ERROR", "ascii"), 0, len(stderrordata)) > -1:
+          self.assertEqual(stderrordata, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
-                ("\\sql\n","mysql-sql>"),
-                ("use sakila;\n","mysql-sql>"),
-                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;;\n","1 row in set"),
-                ]
+      x_cmds = [
+          ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+          ("\\sql\n", "mysql-sql>"),
+          ("use sakila;\n", "mysql-sql>"),
+          (
+              "SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;\n",
+              "1 row in set"),
+      ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -6394,22 +6398,34 @@ class XShell_TestCases(unittest.TestCase):
   def test_MYS_334(self):
       '''Shell --json output cannot be easily processed from a script calling the shell'''
       results = 'PASS'
-      responces = ["{info:\"Welcome to MySQL Shell 1.0.5 Development Preview\"}",
-                   "{info:\"Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.\"}",
-                   "{info:\"Oracle is a registered trademark of Oracle Corporation and/or its\"}",
-                   "{info:\"affiliates. Other names may be trademarks of their respective\"}",
-                   "{info:\"owners.\"}",
-                   "{info:\"Type '\help', '\h' or '\?' for help, type '\quit' or '\q' to exit.\"}",
-                   "{info:\"Currently in JavaScript mode. Use \sql to switch to SQL mode and execute queries.\"}"]
-      p = subprocess.Popen(
-          [MYSQL_SHELL, '--interactive=full', '--sql', '--database=mysql', '--json', '--node', '-uroot',
-           '-h' + LOCALHOST.host, '--password=' + LOCALHOST.password], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-          stdin=subprocess.PIPE)
-      stdout, stderr = p.communicate()
-      for responce in responces:
-          found = stdout.find(bytearray(responce, "ascii"), 0, len(stdout))
-          if found == -1:
-              results = "FAIL \n\r" + stdout.decode("ascii")
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '--database=mysql', '--json', '--node', '-u' +
+                      LOCALHOST.user, '-h' + LOCALHOST.host, '--password=' + LOCALHOST.password]
+      expectedResult = ["{",
+                        "\"info\": \"mysqlx: [Warning] Using a password on the command line interface can be insecure.\"",
+                        "}",
+                        "{",
+                        "\"info\": \"Creating a Node Session to '{0}@{1}/{2}'\"".format(LOCALHOST.user, LOCALHOST.host,
+                                                                                        "mysql"),
+                        "}",
+                        "{",
+                        "\"info\": \"Session successfully established. Default schema `mysql` accessible through db.\"",
+                        "}"]
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdoutdata, stderrdata = p.communicate()
+      stdoutsplitted = stdoutdata.splitlines()
+      for expResult in expectedResult:
+          count = 1
+          for line in stdoutsplitted:
+              found = line.find(expResult, 0, len(line))
+              if found == -1 and count > len(stdoutsplitted):
+                  results = "FAIL"
+                  break
+              elif found != -1:
+                  results = "PASS"
+                  stdoutsplitted.remove(line)
+                  break
+          if results == "FAIL":
               break
       self.assertEqual(results, 'PASS')
 
@@ -6732,6 +6748,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_MYS_366_00(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-366 with node session """
       results = ''
@@ -6750,6 +6767,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_MYS_373_1(self):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
@@ -6760,6 +6778,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_MYS_373_2(self):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
@@ -6769,6 +6788,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   def test_MYS_373_3(self):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
@@ -6785,35 +6805,35 @@ class XShell_TestCases(unittest.TestCase):
       '''show the default user if its not provided as argument : Creating a Node Session to XXXXXX@localhost:33060'''
       results = ''
       user = os.path.split(os.path.expanduser('~'))[-1]
-      init_command = [MYSQL_SHELL, '--interactive=full', '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,'--schema=sakila','--sql',
+      init_command = [MYSQL_SHELL, '--interactive=full', '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila', '--sql',
                       '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(LOCALHOST.password + "\n", 'ascii'))
       p.stdin.flush()
-      stdin,stdout = p.communicate()
-      if stdin.find(bytearray("Creating a Node Session to " + user + "@", "ascii"), 0, len(stdin)) >= 0:
-          results="PASS"
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("Creating a Session to '" + user + "@", "ascii"), 0, len(stdoutdata)) >= 0:
+          results = "PASS"
       else:
-          results="FAIL"
+          results = "FAIL"
       self.assertEqual(results, 'PASS')
-
 
 
   def test_MYS_379(self):
       '''show the default user if its not provided as argument : Creating a Node Session to XXXXXX@localhost:33060'''
       results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,'--schema=sakila','--sql',
-                      '--dbuser='+LOCALHOST.user,'--passwords-from-stdin']
+      init_command = [MYSQL_SHELL, '--interactive=full', '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila', '--sql',
+                      '--dbuser=' + LOCALHOST.user, '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(LOCALHOST.password + "\n", 'ascii'))
       p.stdin.flush()
-      stdin,stdout = p.communicate()
-      if stdin.find(bytearray("Creating a Node Session to ","ascii"), 0, len(stdin)) >= 0:
-          results="PASS"
+      stdoutdata, stderrordata = p.communicate()
+      if stdoutdata.find(bytearray("Creating a Session to ", "ascii"), 0, len(stdoutdata)) >= 0:
+          results = "PASS"
       else:
-          results="FAIL"
+          results = "FAIL"
       self.assertEqual(results, 'PASS')
-
 
 
   def test_MYS_385(self):
@@ -6838,16 +6858,43 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       error = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=raw']
-      x_cmds = [("\n", 'mysql-py>'),
-                ("session\n", '{\"result\":{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"}}'),
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=raw']
+      x_cmds = [("session\n",
+                 '{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host +
+                 ':' + LOCALHOST.xprotocol_port + '\"}'),
                 ("\\sql\n", "mysql-sql>"),
-                ("use world_x;\n", "warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
-                ("create table test_classic (variable varchar(10));\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
-                ("select * from test_classic;\n","\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
-                ("drop table world_x.test_classic;\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}")
+                ("use world_x;\n",
+                 "warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("create table test_classic (variable varchar(10));\n",
+                 "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("select * from test_classic;\n",
+                 "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("drop table world_x.test_classic;\n",
+                 "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}")
                 ]
-      results = exec_xshell_commands(init_command, x_cmds)
+      # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
+      command_stdin = ""
+      for command, result in x_cmds:
+          command_stdin = command_stdin + command
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(command_stdin)
+      stdoutdata, stderrdata = p.communicate()
+      stdoutsplitted = stdoutdata.splitlines()
+      # Verify the information from expectedResult of x_cmds againt the stdout response from subprocess
+      for command, expectedResult in x_cmds:
+          count = 1
+          for line in stdoutsplitted:
+              count += 1
+              found = line.find(expectedResult, 0, len(line))
+              if found == -1 and count > len(stdoutsplitted):
+                  results = "FAIL"
+                  break
+              elif found != -1:
+                  results = "PASS"
+                  stdoutsplitted.remove(line)
+                  break
+          if results == "FAIL":
+              break
       self.assertEqual(results, 'PASS')
 
   def test_MYS_400_01(self):
@@ -6989,17 +7036,23 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_MYS_403(self):
       '''[4.9.002] Create a Stored Session: schema store'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
-      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila');\n","mysql-js>"),
-                ("\\connect $classic_session\n","Creating an X Session to "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port),
+      x_cmds = [("\\rmconn classic_session\n", "mysql-js>"),
+                (
+                    "shell.storedSessions.add('classic_session', '" + LOCALHOST.user + ":" + LOCALHOST.password + "@" +
+                    LOCALHOST.host + ":" + LOCALHOST.port + "/sakila');\n",
+                    "mysql-js>"),
+                ("\\connect $classic_session\n",
+                 "Creating a Session to '" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + "/sakila'")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   def test_MYS_420(self):
       '''[MYS-420]: https://jira.oraclecorp.com/jira/browse/MYS-420
@@ -7532,19 +7585,21 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-
   def test_MYS_500_01(self):
       '''Add println function for JavaScript'''
       results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
-      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),"Creating an X Session"),
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
+                 "Creating a Session"),
                 ("\\js\n", "mysql-js>"),
-                ("println(session);\n", "<XSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+">" + os.linesep + ""),
+                ("println(session);\n",
+                 "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">" + os.linesep + ""),
                 ("\\use sakila\n", "mysql-js>"),
                 ("db;\n", "<Schema:sakila>"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   def test_MYS_500_02(self):
       '''Add println function for JavaScript'''
@@ -7559,6 +7614,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   def test_MYS_500_03(self):
       '''Add println function for JavaScript'''
@@ -7576,17 +7632,19 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-
   def test_MYS_502(self):
       '''Add println function for JavaScript'''
       results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
-      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),"Creating an X Session"),
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
+                 "Creating a Session"),
                 ("\\js\n", "mysql-js>"),
-                ("println(session);\n", "<XSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+">" + os.linesep + "")
+                ("println(session);\n",
+                 "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">" + os.linesep + "")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   def test_MYS_518_01(self):
       ''' Session object Bool isOpen() function in js mode for node session'''
@@ -7600,6 +7658,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_MYS_518_02(self):
       ''' Session object Bool is_open() function in py mode for node session'''
       results = ''
@@ -7611,6 +7670,7 @@ class XShell_TestCases(unittest.TestCase):
                ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   def test_MYS_518_03(self):
       ''' Session object Bool isOpen() function in js mode for classic session'''
@@ -7624,6 +7684,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_MYS_518_04(self):
       ''' Session object Bool is_open() function in py mode for classic session'''
       results = ''
@@ -7635,6 +7696,7 @@ class XShell_TestCases(unittest.TestCase):
                ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   def test_MYS_518_05(self):
       ''' pasreUri function in js mode for node session'''
@@ -7655,6 +7717,7 @@ class XShell_TestCases(unittest.TestCase):
                ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   def test_MYS_518_06(self):
       ''' pasreUri function in py mode for node session'''
