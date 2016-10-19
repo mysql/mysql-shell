@@ -41,7 +41,9 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation) {
   try {
     throw;
   } catch (shcore::Exception &e) {
-    throw shcore::Exception::argument_error(operation + ": " + e.what());
+    auto error = e.error();
+    (*error)["message"] = shcore::Value(operation + ": " + e.what());
+    throw shcore::Exception(error);
   } catch (::mysqlx::Error &e) {
     throw shcore::Exception::mysql_error_with_code(e.what(), e.error());
   } catch (std::runtime_error &e) {

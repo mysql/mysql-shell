@@ -31,6 +31,7 @@
 #include "shellcore/shell_core_options.h"
 #include "../mysqlxtest_utils.h"
 #include "utils/utils_help.h"
+#include "modules/adminapi/mod_dba_sql.h"
 
 #include "logger/logger.h"
 
@@ -48,8 +49,7 @@ using namespace shcore;
 #define PASSWORD_LENGHT 16
 
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword"};
-std::set<std::string> Dba::_validate_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
-std::set<std::string> Dba::_prepare_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket"};
+std::set<std::string> Dba::_configure_local_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL Admin API.");
@@ -59,6 +59,8 @@ REGISTER_HELP(DBA_CLOSING, "For more help on a specific function use: dba.help('
 REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deploySandboxInstance')");
 
 REGISTER_HELP(DBA_VERBOSE_BRIEF, "Enables verbose mode on the Dba operations.");
+
+std::map <std::string, std::shared_ptr<mysh::mysql::ClassicSession> > Dba::_session_cache;
 
 Dba::Dba(IShell_core* owner) :
 _shell_core(owner) {
@@ -83,7 +85,7 @@ void Dba::init() {
   add_method("stopSandboxInstance", std::bind(&Dba::stop_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteSandboxInstance", std::bind(&Dba::delete_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killSandboxInstance", std::bind(&Dba::kill_sandbox_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("prepareInstance", std::bind(&Dba::prepare_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("configureLocalInstance", std::bind(&Dba::configure_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
@@ -438,116 +440,14 @@ Undefined Dba::validateInstance(Variant connectionData, String password) {}
 None Dba::validate_instance(variant connectionData, str password) {}
 #endif
 shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, "validateInstance");
+  args.ensure_count(1, 2, get_function_name("validateInstance").c_str());
 
   shcore::Value ret_val;
 
   try {
-    ret_val = shcore::Value(_validate_instance(args));
+    ret_val = shcore::Value(_validate_instance(args, false));
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("validateInstance");
-
-  return ret_val;
-}
-
-shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list &args) {
-  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
-
-  auto options = get_instance_options_map(args);
-
-  shcore::Argument_map opt_map(*options);
-  opt_map.ensure_keys({"host", "port", "user|dbUser"}, _validate_instance_opts, "instance definition");
-
-  std::string user;
-  std::string password;
-  std::string host = options->get_string("host");
-  int port = options->get_int("port");
-
-  // Sets a default user if not specified
-  if (options->has_key("user"))
-    user = options->get_string("user");
-  else if (options->has_key("dbUser"))
-    user = options->get_string("dbUser");
-  else {
-    user = "root";
-    (*options)["dbUser"] = shcore::Value(user);
-  }
-
-  if (options->has_key("password"))
-    password = options->get_string("password");
-  else if (options->has_key("dbPassword"))
-    password = options->get_string("dbPassword");
-  else
-    throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
-
-  // Verbose is mandatory for validateInstance
-  shcore::Value::Array_type_ref mp_errors;
-  if (_provisioning_interface->check(user, host, port, password, mp_errors) == 0)
-    (*ret_val)["status"] = shcore::Value("ok");
-  else {
-    shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
-    shcore::Value::Array_type_ref server_options;
-    shcore::Value::Array_type_ref config_options;
-    shcore::Value::Array_type_ref *current_options;
-    bool restart_required = false;
-
-    (*ret_val)["status"] = shcore::Value("error");
-
-    for (auto error_object : *mp_errors) {
-      auto map = error_object.as_map();
-
-      std::string error_str;
-      if (map->get_string("type") == "ERROR") {
-        error_str = map->get_string("msg");
-
-        if (error_str.find("The operation could not continue due to the following requirements not being met") != std::string::npos) {
-          auto lines = shcore::split_string(error_str, "\n");
-
-          bool loading_options = false;
-
-          for (size_t index = 1; index < lines.size(); index++) {
-            if (loading_options) {
-              auto option_tokens = shcore::split_string(lines[index], " ", true);
-              shcore::Value::Map_type_ref option(new shcore::Value::Map_type());
-              (*option)["option"] = shcore::Value(option_tokens[0]);
-              (*option)["required"] = shcore::Value(option_tokens[1]);
-              (*option)["current"] = shcore::Value(option_tokens[2]);
-              (*option)["result"] = shcore::Value(option_tokens[3]);
-              (*current_options)->push_back(shcore::Value(option));
-            } else {
-              if (lines[index].find("Some active options on server") != std::string::npos) {
-                restart_required = true;
-                server_options.reset(new shcore::Value::Array_type());
-                current_options = &server_options;
-                loading_options = true;
-                errors->push_back(shcore::Value(lines[index]));
-                index += 3; // Skips to the actual option table
-              } else if (lines[index].find("Some of the configuration values on your options file") != std::string::npos) {
-                restart_required = true;
-                config_options.reset(new shcore::Value::Array_type());
-                current_options = &config_options;
-                loading_options = true;
-                errors->push_back(shcore::Value(lines[index]));
-                index += 3; // Skips to the actual option table
-              } else
-                errors->push_back(shcore::Value(lines[index]));
-            }
-          }
-        } else
-          errors->push_back(shcore::Value(error_str));
-      }
-    }
-
-    (*ret_val)["errors"] = shcore::Value(errors);
-
-    if (server_options)
-      (*ret_val)["server_variables_errors"] = shcore::Value(server_options);
-
-    if (config_options)
-      (*ret_val)["config_errors"] = shcore::Value(server_options);
-
-    (*ret_val)["restart_required"] = shcore::Value(restart_required);
-  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("validateInstance"));
 
   return ret_val;
 }
@@ -916,41 +816,261 @@ void Dba::validate_session(const std::string &source) const {
     throw shcore::Exception::runtime_error(source + ": a Classic Session is required to perform this operation");
 }
 
-REGISTER_HELP(DBA_PREPAREINSTANCE_BRIEF, "Validates and prepares an instance for cluster usage.");
-REGISTER_HELP(DBA_PREPAREINSTANCE_PARAM, "@param connectionData The instance connection data.");
-REGISTER_HELP(DBA_PREPAREINSTANCE_RETURN, "@returns The prepared Instance.");
-REGISTER_HELP(DBA_PREPAREINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_BRIEF, "Validates and configures an instance for cluster usage.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_RETURN, "@returns The configured Instance.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
 "for usage in group replication and cluster and returns an Instance object if so.");
-REGISTER_HELP(DBA_PREPAREINSTANCE_DETAIL1, "The connectionData parameter can be any of:");
-REGISTER_HELP(DBA_PREPAREINSTANCE_DETAIL2, "@li URI string.");
-REGISTER_HELP(DBA_PREPAREINSTANCE_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL1, "The connectionData parameter can be any of:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL2, "@li URI string.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL3, "@li Connection data dictionary.");
 
 /**
-* $(DBA_PREPAREINSTANCE_BRIEF)
+* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_BRIEF)
 *
-* $(DBA_PREPAREINSTANCE_PARAM)
+* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_PARAM)
 *
-* $(DBA_PREPAREINSTANCE_RETURN)
+* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_RETURN)
 *
-* $(DBA_PREPAREINSTANCE_DETAIL)
-* $(DBA_PREPAREINSTANCE_DETAIL1)
-* $(DBA_PREPAREINSTANCE_DETAIL2)
-* $(DBA_PREPAREINSTANCE_DETAIL3)
+* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL)
+* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL1)
+* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL2)
+* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL3)
 */
 #if DOXYGEN_JS
-Instance Dba::prepareInstance(Variant connectionData) {}
+Instance Dba::configureLocalInstance(Variant connectionData) {}
 #elif DOXYGEN_PY
-Instance Dba::prepare_instance(variant connectionData) {}
+Instance Dba::configure_local_instance(variant connectionData) {}
 #endif
-shcore::Value Dba::prepare_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, "prepareInstance");
-
+shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
+  args.ensure_count(1, 2, get_function_name("configureLocalInstance").c_str());
 
   try {
-    ret_val = shcore::Value(_validate_instance(args));
+    auto options = get_instance_options_map(args, true);
+
+    shcore::Argument_map opt_map(*options);
+
+    if (shcore::is_local_host(opt_map.string_at("host"))) {
+      ret_val = shcore::Value(_validate_instance(args, true));
+    }
+    else
+      throw shcore::Exception::runtime_error("This function only works with local instances");
+
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("prepareInstance");
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("configureLocalInstance"));
+
+  return ret_val;
+}
+
+Dba::~Dba() {
+  Dba::_session_cache.clear();
+}
+
+
+std::shared_ptr<mysh::mysql::ClassicSession> Dba::get_session(const shcore::Argument_list& args) {
+
+  auto options = args.map_at(0);
+
+  std::string session_id = shcore::build_connection_string(options, false);
+
+  if (_session_cache.find(session_id) == _session_cache.end()) {
+    auto session = mysh::connect_session(args, mysh::SessionType::Classic);
+
+    _session_cache[session_id] = std::dynamic_pointer_cast<mysh::mysql::ClassicSession>(session);
+  }
+
+  return _session_cache.at(session_id);
+}
+
+shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list &args, bool allow_update) {
+
+  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
+
+  // Validates the connection options
+  shcore::Value::Map_type_ref options = get_instance_options_map(args, true);
+
+  // Resolves user and validates password
+  resolve_instance_credentials(options);
+
+  shcore::Argument_map opt_map(*options);
+  shcore::Argument_map validate_opt_map;
+
+  std::set<std::string> validate_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+
+  opt_map.ensure_keys({"host", "port"}, validate_instance_opts, "instance definition");
+
+  shcore::Value::Map_type_ref validate_options;
+
+  std::string cnfpath;
+  if (args.size() == 2) {
+    validate_options = args.map_at(1);
+    shcore::Argument_map tmp_map(*validate_options);
+
+    std::set<std::string> check_options = {"password", "dbPassword", "mycnfPath"};
+
+    tmp_map.ensure_keys({}, check_options, "validation options");
+    validate_opt_map = tmp_map;
+
+    // Retrieves the .cnf path if exists
+    if (validate_opt_map.has_key("mycnfPath"))
+      cnfpath = validate_opt_map.string_at("mycnfPath");
+  }
+
+  if (cnfpath.empty() && allow_update)
+    throw shcore::Exception::runtime_error("The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings");
+
+  // Now validates the instance GR status itself
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(options));
+  auto session = Dba::get_session(new_args);
+
+  GRInstanceType type = get_gr_instance_type(session->connection());
+
+  if (type == GRInstanceType::GroupReplication)
+    throw shcore::Exception::runtime_error("The instance '"+ session->uri()+ "' is already part of a Replication Group");
+  else if (type == GRInstanceType::InnoDBCluster)
+    throw shcore::Exception::runtime_error("The instance '"+ session->uri()+ "' is already part of an InnoDB Cluster");
+  else if (type == GRInstanceType::Standalone) {
+    std::string user;
+    std::string password;
+    std::string host = options->get_string("host");
+    int port = options->get_int("port");
+
+    user = options->get_string(options->has_key("user") ? "user" : "dbUser");
+    password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+
+    // Verbose is mandatory for validateInstance
+    shcore::Value::Array_type_ref mp_errors;
+    if (_provisioning_interface->check(user, host, port, password, cnfpath, allow_update, mp_errors) == 0)
+      (*ret_val)["status"] = shcore::Value("ok");
+    else {
+      shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
+      bool restart_required = false;
+
+      (*ret_val)["status"] = shcore::Value("error");
+
+      for (auto error_object : *mp_errors) {
+        auto map = error_object.as_map();
+
+        std::string error_str;
+        if (map->get_string("type") == "ERROR") {
+          error_str = map->get_string("msg");
+
+          if (error_str.find("The operation could not continue due to the following requirements not being met") != std::string::npos) {
+            auto lines = shcore::split_string(error_str, "\n");
+
+            bool loading_options = false;
+
+            shcore::Value::Map_type_ref server_options(new shcore::Value::Map_type());
+            std::string option_type;
+
+            for (size_t index = 1; index < lines.size(); index++) {
+              if (loading_options) {
+                auto option_tokens = shcore::split_string(lines[index], " ", true);
+
+                if (option_tokens[2] == "<no") {
+                  option_tokens[2] = "<no value>";
+                  option_tokens.erase(option_tokens.begin() + 3);
+                }
+
+                // The tokens describing each option have length of 5
+                if (option_tokens.size() > 5) {
+                  index--;
+                  loading_options = false;
+                } else {
+                  shcore::Value::Map_type_ref option;
+                  if (!server_options->has_key(option_tokens[0])) {
+                    option.reset(new shcore::Value::Map_type());
+                    (*server_options)[option_tokens[0]] = shcore::Value(option);
+                  } else
+                    option = (*server_options)[option_tokens[0]].as_map();
+
+
+                  (*option)["required"] = shcore::Value(option_tokens[1]); // The required value
+                  (*option)[option_type] = shcore::Value(option_tokens[2]);// The current value
+                }
+              } else {
+                if (lines[index].find("Some active options on server") != std::string::npos) {
+                  option_type = "server";
+                  loading_options = true;
+                  index += 3; // Skips to the actual option table
+                } else if (lines[index].find("Some of the configuration values on your options file") != std::string::npos) {
+                  option_type = "config";
+                  loading_options = true;
+                  index += 3; // Skips to the actual option table
+                }
+              }
+            }
+
+            if (server_options->size()) {
+              shcore::Value::Array_type_ref config_errors(new shcore::Value::Array_type());
+              for(auto option: *server_options) {
+                auto state = option.second.as_map();
+
+                std::string required_value = state->get_string("required");
+                std::string server_value = state->get_string("server", "");
+                std::string config_value = state->get_string("config", "");
+
+                // Taken from MP, reading docs made me think all variables should require restart
+                // Even several of them are dynamic, it seems changing values may lead to problems
+                // An extransaction_write_set_extraction which apparently is reserved for future use
+                // So I just took what I saw on the MP code
+                // Source: http://dev.mysql.com/doc/refman/5.7/en/dynamic-system-variables.html
+                std::vector<std::string> dynamic_variables = {"binlog_format", "binlog_checksum"};
+
+
+                bool dynamic = std::find(dynamic_variables.begin(), dynamic_variables.end(), option.first) != dynamic_variables.end();
+
+                std::string action;
+                std::string current;
+                if (!server_value.empty() && !config_value.empty()) { // Both server and configuration are wrong
+                  if (dynamic)
+                    action = "server_update+config_update";
+                  else {
+                    action = "config_update+restart";
+                    restart_required = true;
+                  }
+
+                  current = server_value;
+
+                }
+                else if (!config_value.empty()) { // Configuration is wrong, server is OK
+                  action = "config_update";
+                  current = config_value;
+                }
+                else if (!server_value.empty()) { // Server is wronf, configuration is OK
+                  if (dynamic)
+                    action = "server_update";
+                  else {
+                    action = "restart";
+                    restart_required = true;
+                  }
+                  current = server_value;
+                }
+
+                shcore::Value::Map_type_ref error(new shcore::Value::Map_type());
+
+                (*error)["option"] = shcore::Value(option.first);
+                (*error)["current"] = shcore::Value(current);
+                (*error)["required"] = shcore::Value(required_value);
+                (*error)["action"] = shcore::Value(action);
+
+                config_errors->push_back(shcore::Value(error));
+              }
+
+              (*ret_val)["config_errors"] = shcore::Value(config_errors);
+            }
+
+          } else
+            errors->push_back(shcore::Value(error_str));
+        }
+      }
+
+      (*ret_val)["errors"] = shcore::Value(errors);
+      (*ret_val)["restart_required"] = shcore::Value(restart_required);
+    }
+  }
 
   return ret_val;
 }

@@ -11,7 +11,7 @@
 |validate_instance: OK|
 |stop_sandbox_instance: OK|
 |drop_metadata_schema: OK|
-|prepare_instance: OK|
+|configure_local_instance: OK|
 |verbose: OK|
 
 #@# Dba: create_cluster errors
@@ -26,6 +26,117 @@
 
 #@# Dba: create_cluster already exist
 ||Dba.create_cluster: Cluster is already initialized. Use Dba.get_cluster() to access it.
+
+#@# Dba: validate_instance errors
+||Dba.validate_instance: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.validate_instance: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.validate_instance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+
+#@ Dba: validate_instance ok1
+|ok|
+
+#@ Dba: validate_instance ok2
+|ok|
+
+#@ Dba: validate_instance ok3
+|ok|
+
+#@<OUT> Dba: validate_instance report with errors
+{
+    "config_errors": [
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "binlog_checksum", 
+            "required": "NONE"
+        },
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "binlog_format", 
+            "required": "ROW"
+        },
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "disabled_storage_engines", 
+            "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"
+        },
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "enforce_gtid_consistency", 
+            "required": "ON"
+        },
+        {
+            "action": "config_update", 
+            "current": "OFF", 
+            "option": "gtid_mode", 
+            "required": "ON"
+        },
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "log_slave_updates", 
+            "required": "ON"
+        },
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "master_info_repository", 
+            "required": "TABLE"
+        },
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "relay_log_info_repository", 
+            "required": "TABLE"
+        },
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "report_port", 
+            "required": "<<<__mysql_sandbox_port2>>>"
+        },
+        {
+            "action": "config_update", 
+            "current": "<no value>", 
+            "option": "transaction_write_set_extraction", 
+            "required": "XXHASH64"
+        }
+    ], 
+    "errors": [
+    ], 
+    "restart_required": false, 
+    "status": "error"
+}
+
+#@# Dba: configure_local_instance errors
+||Dba.configure_local_instance: This function only works with local instances
+||Dba.configure_local_instance: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.configure_local_instance: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.configure_local_instance: The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
+||Dba.configure_local_instance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+
+#@<OUT> Dba: configure_local_instance updating config file
+{
+    "status": "ok"
+}
+
+#@<OUT> Dba: configure_local_instance report fixed 1
+{
+    "status": "ok"
+}
+
+#@<OUT> Dba: configure_local_instance report fixed 2
+{
+    "status": "ok"
+}
+
+#@<OUT> Dba: configure_local_instance report fixed 3
+{
+    "status": "ok"
+}
 
 #@# Dba: get_cluster errors
 ||Invalid cluster name: Argument #1 is expected to be a string

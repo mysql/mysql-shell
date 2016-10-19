@@ -17,20 +17,24 @@
  * 02110-1301  USA
  */
 
-#ifndef _MODULES_ADMINAPI_MOD_DBA_COMMON_
-#define _MODULES_ADMINAPI_MOD_DBA_COMMON_
+#ifndef _MODULES_ADMINAPI_MOD_DBA_SQL_
+#define _MODULES_ADMINAPI_MOD_DBA_SQL_
 
-#include "shellcore/types.h"
-#include "shellcore/lang_base.h"
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "modules/mysql_connection.h"
 
 namespace mysh {
 namespace dba {
 
-shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, bool get_password_from_options = false);
-void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate = nullptr);
-std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);
+  enum class GRInstanceType {
+    Standalone,
+    GroupReplication,
+    InnoDBCluster
+  };
+
+  GRInstanceType get_gr_instance_type(mysh::mysql::Connection* connection);
+  void get_port_and_datadir(mysh::mysql::Connection* connection, int &port, std::string& datadir);
 
 }
 }
+
 #endif

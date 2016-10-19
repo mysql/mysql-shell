@@ -17,7 +17,7 @@ validateMember(members, 'resetSession');
 validateMember(members, 'startSandboxInstance');
 validateMember(members, 'validateInstance');
 validateMember(members, 'stopSandboxInstance');
-validateMember(members, 'prepareInstance');
+validateMember(members, 'configureLocalInstance');
 validateMember(members, 'verbose');
 
 //@# Dba: createCluster errors
@@ -29,6 +29,31 @@ var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
 
 //@<OUT> Dba: createCluster with interaction
 var c1 = dba.createCluster('devCluster');
+
+//@ Dba: validateInstance error
+dba.validateInstance('localhost:' + __mysql_sandbox_port1);
+
+//@<OUT> Dba: validateInstance ok 1
+dba.validateInstance('localhost:' + __mysql_sandbox_port2);
+
+//@<OUT> Dba: validateInstance ok 2
+dba.validateInstance('localhost:' + __mysql_sandbox_port2, {password:'root'});
+
+//@<OUT> Dba: validateInstance report with errors
+var uri2 = 'localhost:' + __mysql_sandbox_port2;
+var res = dba.validateInstance(uri2, {mycnfPath:'mybad.cnf'});
+
+//@ Dba: configureLocalInstance error 1
+dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
+
+//@<OUT> Dba: configureLocalInstance error 2
+dba.configureLocalInstance('localhost:' + __mysql_port);
+
+//@<OUT> Dba: configureLocalInstance error 3
+dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
+
+//@<OUT> Dba: configureLocalInstance updating config file
+dba.configureLocalInstance('localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf'});
 
 //@# Dba: getCluster errors
 var c2 = dba.getCluster(5);

@@ -41,7 +41,7 @@ public:
   ~ProvisioningInterface();
 
   int check(const std::string &user, const std::string &host, int port, const std::string &password,
-            shcore::Value::Array_type_ref &errors);
+            const std::string &cnfpath, bool update, shcore::Value::Array_type_ref &errors);
 
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,

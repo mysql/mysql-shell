@@ -124,8 +124,11 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
       // Ignores the initial output (most likely prompts)
       // Until the first { is found, indicating the start of JSON data
       if (!json_started) {
-        if (c == '{')
+        buf += c;
+        if (c == '{') {
           json_started = true;
+          buf.clear();
+        }
         else
           continue;
       }
@@ -238,7 +241,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 }
 
 int ProvisioningInterface::check(const std::string &user, const std::string &host, int port,
-                                 const std::string &password, shcore::Value::Array_type_ref &errors) {
+                                 const std::string &password, const std::string &cnfpath, bool update,
+                                 shcore::Value::Array_type_ref &errors) {
   std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
   std::vector<std::string> passwords;
   std::string pwd = password;
@@ -248,6 +252,15 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
 
   std::vector<const char *> args;
   args.push_back(instance_param.c_str());
+
+  if (!cnfpath.empty()) {
+    args.push_back("--defaults-file");
+    args.push_back(cnfpath.c_str());
+  }
+
+  if (update)
+    args.push_back("--update");
+
   args.push_back("--stdin");
 
   return execute_mysqlprovision("check", args, passwords, errors, _verbose);

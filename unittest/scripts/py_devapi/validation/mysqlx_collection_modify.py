@@ -51,8 +51,8 @@
 |Updated Carol: 1|
 
 #@# CollectionModify: Error conditions on modify
-||ArgumentError: CollectionModify.modify: Argument #1 is expected to be a string
-||RuntimeError: CollectionModify.modify: Unterminated quoted string starting at position 8
+||CollectionModify.modify: Argument #1 is expected to be a string
+||CollectionModify.modify: Unterminated quoted string starting at position 8
 
 #@# CollectionModify: Error conditions on set
 ||Invalid number of arguments in CollectionModify.set, expected 2 but got 0

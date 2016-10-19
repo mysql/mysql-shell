@@ -239,8 +239,16 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
         _chunk_order.push_back(chunk_id);
       }
 
-      chunk_id = line;
+      chunk_id = line.substr(get_chunk_token().size());
+      if (chunk_id[0] == '#')
+        chunk_id = chunk_id.substr(1);
       boost::trim(chunk_id);
+
+      if (chunk_id.find("<OUT>") == 0 || chunk_id.find("<ERR>") == 0 ) {
+        chunk_id = chunk_id.substr(5);
+        boost::trim(chunk_id);
+      }
+
       current_chunk = NULL;
     } else {
       if (!current_chunk)
@@ -264,7 +272,25 @@ void Shell_script_tester::add_validation(const std::string &chunk_id, const std:
     if (!_chunk_validations.count(chunk_id))
       _chunk_validations[chunk_id] = new Validation_t();
 
-    _chunk_validations[chunk_id]->push_back(Validation(source, type));
+    // Line by line validation may be complement of an existing validation
+    if (type == ValidationType::LineByLine) {
+      if (_chunk_validations[chunk_id]->size() == 0)
+        _chunk_validations[chunk_id]->push_back(Validation(source, type));
+      else if (_chunk_validations[chunk_id]->size() == 1) {
+        if (_chunk_validations[chunk_id]->at(0).type == ValidationType::LineByLine) {
+          if (source[1].size() > 0)
+            _chunk_validations[chunk_id]->at(0).expected_output = source[1];
+          if (source[2].size() > 0)
+            _chunk_validations[chunk_id]->at(0).expected_error = source[2];
+        }
+        else
+          throw std::runtime_error("Unable to mix Single and Line by Line validations");
+      }
+      else
+        throw std::runtime_error("Unable to mix Sinngle and Line by Line validations");
+    }
+    else
+      _chunk_validations[chunk_id]->push_back(Validation(source, type));
   }
 }
 
@@ -295,13 +321,22 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
           format_lines.clear();
         }
         if (in_chunks) {
-          chunk_id = line;
+          chunk_id = line.substr(get_chunk_token().size());
+          if (chunk_id[0] == '#')
+            chunk_id = chunk_id.substr(1);
+
           boost::trim(chunk_id);
 
-          if (line.find("<OUT>") != std::string::npos)
+          if (chunk_id.find("<OUT>") == 0) {
             format = "OUT";
-          else if (line.find("<ERR>") != std::string::npos)
+            chunk_id = chunk_id.substr(5);
+            boost::trim(chunk_id);
+          }
+          else if (chunk_id.find("<ERR>") == 0) {
             format = "ERR";
+            chunk_id = chunk_id.substr(5);
+            boost::trim(chunk_id);
+          }
           else
             format = "";
         }

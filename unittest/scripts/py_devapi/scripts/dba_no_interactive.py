@@ -24,7 +24,7 @@ validateMember(members, 'reset_session');
 validateMember(members, 'start_sandbox_instance');
 validateMember(members, 'validate_instance');
 validateMember(members, 'stop_sandbox_instance');
-validateMember(members, 'prepare_instance');
+validateMember(members, 'configure_local_instance');
 validateMember(members, 'verbose');
 
 #@# Dba: create_cluster errors
@@ -40,6 +40,49 @@ print c1
 
 #@# Dba: create_cluster already exist
 c1 = dba.create_cluster('devCluster');
+
+#@# Dba: validate_instance errors
+dba.validate_instance('localhost:' + str(__mysql_sandbox_port1));
+dba.validate_instance('sample@localhost:' + str(__mysql_sandbox_port1));
+result = dba.validate_instance('root:root@localhost:' + str(__mysql_sandbox_port1));
+
+#@ Dba: validate_instance ok1
+uri2 = 'root:root@localhost:' + str(__mysql_sandbox_port2);
+result = dba.validate_instance(uri2);
+print (result.status)
+
+#@ Dba: validate_instance ok2
+result = dba.validate_instance('root@localhost:' + str(__mysql_sandbox_port2), {'password':'root'});
+print (result.status)
+
+#@ Dba: validate_instance ok3
+result = dba.validate_instance('root@localhost:' + str(__mysql_sandbox_port2), {'dbPassword':'root'});
+print (result.status)
+
+#@<OUT> Dba: validate_instance report with errors
+dba.validate_instance(uri2, {'mycnfPath':'mybad.cnf'});
+
+#@# Dba: configure_local_instance errors
+dba.configure_local_instance('someotherhost:' + str(__mysql_sandbox_port1));
+dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port1));
+dba.configure_local_instance('sample@localhost:' + str(__mysql_sandbox_port1));
+dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port1), {'password':'toor'});
+dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port1), {'password':'toor', 'mycnfPath':'mybad.cnf'});
+
+#@<OUT> Dba: configure_local_instance updating config file
+dba.configure_local_instance(uri2, {'mycnfPath':'mybad.cnf'});
+
+#@<OUT> Dba: configure_local_instance report fixed 1
+result = dba.configure_local_instance(uri2, {'mycnfPath':'mybad.cnf'});
+print (result.status)
+
+#@<OUT> Dba: configure_local_instance report fixed 1
+result = dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port2), {'mycnfPath':'mybad.cnf', 'password':'root'});
+print (result.status)
+
+#@<OUT> Dba: configure_local_instance report fixed 1
+result = dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port2), {'mycnfPath':'mybad.cnf', 'dbPassword':'root'});
+print (result.status)
 
 #@# Dba: get_cluster errors
 c2 = dba.get_cluster()

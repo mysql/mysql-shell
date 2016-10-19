@@ -24,11 +24,13 @@
 #define _MOD_DBA_H_
 
 #include "modules/mod_common.h"
+#include "modules/mod_mysql_session.h"
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "modules/base_session.h"
 #include "mod_dba_cluster.h"
 #include <set>
+#include <map>
 #include "mod_dba_provisioning_interface.h"
 
 namespace mysh {
@@ -41,11 +43,11 @@ class MetadataStorage;
 class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Dba> {
 public:
   Dba(shcore::IShell_core* owner);
-  virtual ~Dba() { /*reset_session();*/ }
+  virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;
   static std::set<std::string> _validate_instance_opts;
-  static std::set<std::string> _prepare_instance_opts;
+  static std::set<std::string> _configure_local_instance_opts;
 
   virtual std::string class_name() const { return "Dba"; };
 
@@ -64,10 +66,9 @@ public:
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
-  shcore::Value prepare_instance(const shcore::Argument_list &args);
+  shcore::Value configure_local_instance(const shcore::Argument_list &args);
 
   shcore::Value clone_instance(const shcore::Argument_list &args);
-  shcore::Value configure_instance(const shcore::Argument_list &args);
   shcore::Value reset_instance(const shcore::Argument_list &args);
 
   shcore::Value reset_session(const shcore::Argument_list &args);
@@ -89,7 +90,7 @@ public:
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
   Undefined validateInstance(Variant connectionData, String password);
-  Instance prepareInstance(Variant connectionData);
+  Instance configureLocalInstance(Variant connectionData);
 #elif DOXYGEN_PY
   bool verbose; //! $(DBA_VERBOSE)
   Cluster create_cluster(str name, dict options);
@@ -103,10 +104,12 @@ public:
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
   None validate_instance(variant connectionData, str password);
-  Instance prepare_instance(variant connectionData);
+  Instance configure_local_instance(variant connectionData);
 #endif
 
   void validate_session(const std::string &source) const;
+
+  static std::shared_ptr<mysh::mysql::ClassicSession> get_session(const shcore::Argument_list& args);
 
 protected:
   std::shared_ptr<mysh::ShellDevelopmentSession> _custom_session;
@@ -120,7 +123,10 @@ private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
   shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
-  shcore::Value::Map_type_ref _validate_instance(const shcore::Argument_list &args);
+  shcore::Value::Map_type_ref _validate_instance(const shcore::Argument_list &args, bool allow_update);
+
+
+  static std::map <std::string, std::shared_ptr<mysh::mysql::ClassicSession> > _session_cache;
 };
 }
 }

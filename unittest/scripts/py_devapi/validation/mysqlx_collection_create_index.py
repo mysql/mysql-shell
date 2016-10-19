@@ -16,14 +16,14 @@
 # -----------------------------------
 #@# Error conditions on create_index
 ||ArgumentError: Invalid number of arguments in CollectionCreateIndex.create_index, expected 1 to 2 but got 0
-||ArgumentError: CollectionCreateIndex.create_index: Argument #1 is expected to be a string
+||TypeError: CollectionCreateIndex.create_index: Argument #1 is expected to be a string
 ||ArgumentError: CollectionCreateIndex.create_index: Argument #2 is expected to be mysqlx.IndexType.UNIQUE
 
 #@# Error conditions on field
 ||ArgumentError: Invalid number of arguments in CollectionCreateIndex.field, expected 3 but got 0
-||ArgumentError: CollectionCreateIndex.field: Argument #1 is expected to be a string
-||ArgumentError: CollectionCreateIndex.field: Argument #2 is expected to be a string
-||ArgumentError: CollectionCreateIndex.field: Argument #3 is expected to be a bool
+||TypeError: CollectionCreateIndex.field: Argument #1 is expected to be a string
+||TypeError: CollectionCreateIndex.field: Argument #2 is expected to be a string
+||TypeError: CollectionCreateIndex.field: Argument #3 is expected to be a bool
 
 
 # -----------------------------------

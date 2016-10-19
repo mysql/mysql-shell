@@ -18,6 +18,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
 #include <set>
+#include <fstream>
 #include "shell/base_shell.h"
 
 class Shell_test_output_handler {
@@ -72,6 +73,19 @@ protected:
   }
 
   virtual void set_options() {};
+
+  void create_file(const std::string& name, const std::string& content) {
+
+    std::ofstream file(name, std::ofstream::out|std::ofstream::trunc);
+
+    if (file.is_open()) {
+      file << content;
+      file.close();
+    } else {
+      SCOPED_TRACE("Error Creating File: " + name);
+      ADD_FAILURE();
+    }
+  }
 
   void reset_shell() {
     _interactive_shell.reset(new mysh::Base_shell(*_options.get(), &output_handler.deleg));

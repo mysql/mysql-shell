@@ -43,13 +43,15 @@ public:
   shcore::Value get_cluster(const shcore::Argument_list &args);
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
   shcore::Value validate_instance(const shcore::Argument_list &args);
-  shcore::Value prepare_instance(const shcore::Argument_list &args);
+  shcore::Value configure_local_instance(const shcore::Argument_list &args);
 
 private:
   shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args);
   shcore::Value perform_instance_operation(const shcore::Argument_list &args, const std::string &fname, const std::string& progressive, const std::string& past);
   void validate_session(const std::string &source) const;
   void dump_table(const std::vector<std::string>& column_names, const std::vector<std::string>& column_labels, shcore::Value::Array_type_ref documents);
+  void print_validation_results(const shcore::Value::Map_type_ref& result);
+  bool resolve_cnf_path(const shcore::Argument_list& connection_args, const shcore::Value::Map_type_ref& extra_options);
 };
 }
 

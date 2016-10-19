@@ -76,6 +76,8 @@ protected:
     }
     code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
     exec_and_out_equals(code);
+    code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" + _mysql_port + "';";
+    exec_and_out_equals(code);
     code = "var __displayuri = '" + user + "@" + host + ":" + _port + "';";
     exec_and_out_equals(code);
     code = "var __displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
@@ -99,6 +101,9 @@ TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_classic_global_dba) {
+  std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
+  create_file("mybad.cnf", bad_config);
+
   _options->wizards = false;
   reset_shell();
 
@@ -125,6 +130,9 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_global_cluster) {
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_classic_custom_dba) {
+  std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
+  create_file("mybad.cnf", bad_config);
+
   _options->wizards = false;
   reset_shell();
 
@@ -155,13 +163,30 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_custom_cluster) {
 }
 
 TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
+  std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
+  create_file("mybad.cnf", bad_config);
+
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
-  //@<OUT> Dba: dropCluster interaction no options, cancel
-  output_handler.prompts.push_back("n");
+  //@# Dba: validateInstance error
+  output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: dropCluster interaction missing option, ok error
-  output_handler.prompts.push_back("y");
+  //@<OUT> Dba: validateInstance ok 1
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Dba: validateInstance report with errors
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Dba: configureLocalInstance error 2
+  output_handler.passwords.push_back(_pwd);
+  output_handler.prompts.push_back("");
+
+  //@<OUT> Dba: configureLocalInstance error 3
+  output_handler.passwords.push_back("root");
+  output_handler.prompts.push_back("mybad.cnf");
+
+  //@<OUT> Dba: configureLocalInstance updating config file
+  output_handler.passwords.push_back("root");
 
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
@@ -203,16 +228,33 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
 }
 
 TEST_F(Shell_js_dba_tests, interactive_custom_global_dba) {
+  std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
+  create_file("mybad.cnf", bad_config);
+
   execute("var mysql = require('mysql');");
   execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_sandbox_port1 + "');");
   execute("dba.resetSession(mySession);");
 
-  //@<OUT> Dba: dropCluster interaction no options, cancel
-  output_handler.prompts.push_back("n");
+  //@# Dba: validateInstance error
+  output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: dropCluster interaction missing option, ok error
-  output_handler.prompts.push_back("y");
+  //@<OUT> Dba: validateInstance ok 1
+  output_handler.passwords.push_back("root");
 
+  //@<OUT> Dba: validateInstance report with errors
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Dba: configureLocalInstance error 2
+  output_handler.passwords.push_back(_pwd);
+  output_handler.prompts.push_back("");
+
+  //@<OUT> Dba: configureLocalInstance error 3
+  output_handler.passwords.push_back("root");
+  output_handler.prompts.push_back("mybad.cnf");
+
+  //@<OUT> Dba: configureLocalInstance updating config file
+  output_handler.passwords.push_back("root");
+  
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_interactive.js");

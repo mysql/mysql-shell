@@ -227,7 +227,9 @@ list(APPEND libmysqlshmods_SRC "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-mo
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.cc"
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.h"
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_common.cc"
-            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_common.h")
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_common.h"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_sql.cc"
+            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_sql.h")
 
 
 #Protobuf related includes
