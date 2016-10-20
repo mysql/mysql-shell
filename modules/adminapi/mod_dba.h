@@ -104,7 +104,7 @@ public:
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
   None check_instance_config(variant connectionData, str password);
-  Instance config_local_instance(variant connectionData);
+  JSON config_local_instance(variant connectionData);
 #endif
 
   void validate_session(const std::string &source) const;

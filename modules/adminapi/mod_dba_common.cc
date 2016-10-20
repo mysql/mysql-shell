@@ -20,7 +20,7 @@
 #include "utils/utils_general.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
-#include "mod_dba_instance.h"
+//#include "mod_dba_instance.h"
 
 namespace mysh {
 namespace dba {
@@ -51,21 +51,22 @@ namespace dba {
   args.ensure_at_least(1, "get_instance_options_map");
 
   // Attempts getting an instance object
-  auto instance = args.object_at<mysh::dba::Instance>(0);
-  if (instance) {
-    options = shcore::get_connection_data(instance->get_uri(), false);
-    (*options)["password"] = shcore::Value(instance->get_password());
-  }
+  //auto instance = args.object_at<mysh::dba::Instance>(0);
+  //if (instance) {
+  //  options = shcore::get_connection_data(instance->get_uri(), false);
+  //  (*options)["password"] = shcore::Value(instance->get_password());
+  //}
 
   // Not an instance, tries as URI string
-  else if (args[0].type == shcore::String)
+  //else 
+  if (args[0].type == shcore::String)
     options = shcore::get_connection_data(args.string_at(0), false);
 
   // Finally as a dictionary
   else if (args[0].type == shcore::Map)
     options = args.map_at(0);
   else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary");
 
   if (options->size() == 0)
     throw shcore::Exception::argument_error("Instance definition is empty.");

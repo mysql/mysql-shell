@@ -224,8 +224,6 @@ list(APPEND libmysqlshmods_SRC "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-mo
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.h"
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.cc"
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h"
-            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.cc"
-            "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_instance.h"
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_common.cc"
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_common.h"
             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_sql.cc"

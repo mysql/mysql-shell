@@ -17,7 +17,7 @@
 //@ Cluster: addInstance errors
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 4
-||Invalid connection options, expected either a URI, a Dictionary or an Instance object
+||Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.addInstance: Instance definition is empty.
 ||Cluster.addInstance: Invalid values in instance definition: authMethod, schema
 ||Cluster.addInstance: Missing values in instance definition: host
@@ -85,7 +85,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 //@ Cluster: removeInstance errors
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 0
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 2
-||Invalid connection options, expected either a URI, a Dictionary or an Instance object
+||Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.removeInstance: The instance 'localhost:33060'(<<<localhost>>>:33060) does not belong to the ReplicaSet: 'default'
 ||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 

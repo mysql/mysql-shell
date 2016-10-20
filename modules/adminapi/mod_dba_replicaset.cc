@@ -19,7 +19,7 @@
 
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
-#include "modules/adminapi/mod_dba_instance.h"
+//#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
 
 #include "common/uuid/include/uuid_gen.h"

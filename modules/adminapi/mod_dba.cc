@@ -24,7 +24,7 @@
 #endif
 #include "utils/utils_sqlstring.h"
 #include "modules/adminapi/mod_dba.h"
-#include "modules/adminapi/mod_dba_instance.h"
+//#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "utils/utils_general.h"
 #include "shellcore/object_factory.h"
@@ -523,8 +523,8 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     if (rc == 0) {
       rc = _provisioning_interface->start_sandbox(port, sandbox_dir, errors);
 
-      std::string uri = "localhost:" + std::to_string(port);
-      ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
+      //std::string uri = "localhost:" + std::to_string(port);
+      //ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
     }
   } else if (function == "delete")
       rc = _provisioning_interface->delete_sandbox(port, sandbox_dir, errors);
@@ -555,7 +555,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the new deployed instance.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURN, "@returns The deployed Instance.");
+//REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURN, "@returns The deployed Instance.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL, "This function will deploy a new MySQL Server instance, the result may be "\
 "affected by the provided options: ");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1, "@li portx: port where the new instance will listen for X Protocol connections.");
@@ -574,8 +574,6 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_PARAM)
 * $(DBA_DEPLOYSANDBOXINSTANCE_PARAM1)
-*
-* $(DBA_DEPLOYSANDBOXINSTANCE_RETURN)
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL)
 *

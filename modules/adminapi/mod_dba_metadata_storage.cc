@@ -20,7 +20,7 @@
 #include "utils/utils_sqlstring.h"
 #include "mod_dba_metadata_storage.h"
 #include "modules/adminapi/metadata-model_definitions.h"
-#include "modules/adminapi/mod_dba_instance.h"
+//#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/base_session.h"
 #include "mysqlx_connection.h"
 #include "xerrmsg.h"
@@ -252,9 +252,9 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argu
 
   shcore::sqlstring query;
 
-  auto instance = args.object_at<Instance>(0);
-  if (instance)
-    options = get_connection_data(instance->get_uri(), false);
+  //auto instance = args.object_at<Instance>(0);
+  //if (instance)
+  //  options = get_connection_data(instance->get_uri(), false);
 
   // Identify the type of args data (String or Document)
   if (args[0].type == String) {

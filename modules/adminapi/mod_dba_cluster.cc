@@ -202,7 +202,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1, "The Instance is added to the Default
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "The instance definition can be any of:");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3, "@li URI string.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4, "@li Connection data dictionary.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "@li An Instance object.");
+//REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "@li An Instance object.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "The password may be contained on the instance parameter or can be "\
 "specified on the password parameter. When both are specified the password parameter "\
 "is used instead of the one in the instance data.");
@@ -220,7 +220,6 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "The password may be contained on the
 * $(CLUSTER_ADDINSTANCE_DETAIL2)
 * $(CLUSTER_ADDINSTANCE_DETAIL3)
 * $(CLUSTER_ADDINSTANCE_DETAIL4)
-* $(CLUSTER_ADDINSTANCE_DETAIL5)
 *
 * $(CLUSTER_ADDINSTANCE_DETAIL6)
 */
@@ -251,9 +250,10 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_BRIEF, "Rejoins an Instance to the cluster.
 REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM, "@param instance An instance definition.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL, "This function rejoins an Instance to the cluster. ");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "The connectionData parameter can be any of:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "The instance definition can be any of:");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3, "@li URI string.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li Connection data dictionary.");
+//REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li An Instance object.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on the connectionData parameter or can be "\
 "specified on the password parameter. When both are specified the password parameter "\
 "is used instead of the one in the instance data.");
@@ -303,7 +303,7 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1, "The Instance is removed from the 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "The instance parameter can be any of:");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3, "@li The name of the Instance to be removed.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "@li Connection data Dictionary of the Instance to be removed.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5, "@li An Instance object.");
+//REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5, "@li An Instance object.");
 
 /**
 * $(CLUSTER_REMOVEINSTANCE_BRIEF)
@@ -318,7 +318,6 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5, "@li An Instance object.");
 * $(CLUSTER_REMOVEINSTANCE_DETAIL2)
 * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
 * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL5)
 */
 #if DOXYGEN_JS
 Undefined Cluster::removeInstance(InstanceDef instance) {}

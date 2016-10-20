@@ -20,7 +20,7 @@
 #include "interactive_dba_cluster.h"
 #include "interactive_global_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/mod_dba_instance.h"
+//#include "modules/adminapi/mod_dba_instance.h"
 #include "shellcore/shell_registry.h"
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
@@ -171,7 +171,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
 
   std::string name;
 
-  auto instance = args.object_at<mysh::dba::Instance> (0);
+  //auto instance = args.object_at<mysh::dba::Instance> (0);
 
   // Identify the type of connection data (String or Document)
   if (args[0].type == String) {
@@ -186,12 +186,12 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
     options = args.map_at(0);
 
   else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI, a Dictionary or an Instance object.");
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary");
 
-  if (instance)
-    name = instance->get_name();
-  else
-    name = build_connection_string(options, false);
+  //if (instance)
+  //  name = instance->get_name();
+  //else
+  name = build_connection_string(options, false);
 
   ret_val = call_target("removeInstance", args);
 
