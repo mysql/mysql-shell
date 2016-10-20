@@ -46,8 +46,8 @@ public:
   virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;
-  static std::set<std::string> _validate_instance_opts;
-  static std::set<std::string> _configure_local_instance_opts;
+  static std::set<std::string> _check_instance_config_opts;
+  static std::set<std::string> _config_local_instance_opts;
 
   virtual std::string class_name() const { return "Dba"; };
 
@@ -60,13 +60,13 @@ public:
   virtual int get_default_port() { return 33060; };
   int get_default_instance_port() { return 3306; }
 
-  shcore::Value validate_instance(const shcore::Argument_list &args);
+  shcore::Value check_instance_config(const shcore::Argument_list &args);
   shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args, const std::string &fname); // create and start
   shcore::Value stop_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
-  shcore::Value configure_local_instance(const shcore::Argument_list &args);
+  shcore::Value config_local_instance(const shcore::Argument_list &args);
 
   shcore::Value clone_instance(const shcore::Argument_list &args);
   shcore::Value reset_instance(const shcore::Argument_list &args);
@@ -89,8 +89,8 @@ public:
   Undefined resetSession(Session session);
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
-  Undefined validateInstance(Variant connectionData, String password);
-  Instance configureLocalInstance(Variant connectionData);
+  Undefined checkInstanceConfig(Variant connectionData, String password);
+  Instance configLocalInstance(Variant connectionData);
 #elif DOXYGEN_PY
   bool verbose; //! $(DBA_VERBOSE)
   Cluster create_cluster(str name, dict options);
@@ -103,8 +103,8 @@ public:
   None reset_session(Session session);
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
-  None validate_instance(variant connectionData, str password);
-  Instance configure_local_instance(variant connectionData);
+  None check_instance_config(variant connectionData, str password);
+  Instance config_local_instance(variant connectionData);
 #endif
 
   void validate_session(const std::string &source) const;
@@ -123,7 +123,7 @@ private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
   shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
-  shcore::Value::Map_type_ref _validate_instance(const shcore::Argument_list &args, bool allow_update);
+  shcore::Value::Map_type_ref _check_instance_config(const shcore::Argument_list &args, bool allow_update);
 
 
   static std::map <std::string, std::shared_ptr<mysh::mysql::ClassicSession> > _session_cache;

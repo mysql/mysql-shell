@@ -15,9 +15,9 @@ validateMember(members, 'help');
 validateMember(members, 'killSandboxInstance');
 validateMember(members, 'resetSession');
 validateMember(members, 'startSandboxInstance');
-validateMember(members, 'validateInstance');
+validateMember(members, 'checkInstanceConfig');
 validateMember(members, 'stopSandboxInstance');
-validateMember(members, 'configureLocalInstance');
+validateMember(members, 'configLocalInstance');
 validateMember(members, 'verbose');
 
 //@# Dba: createCluster errors
@@ -34,47 +34,47 @@ print(c1)
 //@# Dba: createCluster already exist
 var c1 = dba.createCluster('devCluster');
 
-//@# Dba: validateInstance errors
-dba.validateInstance('localhost:' + __mysql_sandbox_port1);
-dba.validateInstance('sample@localhost:' + __mysql_sandbox_port1);
-var result = dba.validateInstance('root:root@localhost:' + __mysql_sandbox_port1);
+//@# Dba: checkInstanceConfig errors
+dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port1);
+dba.checkInstanceConfig('sample@localhost:' + __mysql_sandbox_port1);
+var result = dba.checkInstanceConfig('root:root@localhost:' + __mysql_sandbox_port1);
 
-//@ Dba: validateInstance ok1
+//@ Dba: checkInstanceConfig ok1
 var uri2 = 'root:root@localhost:' + __mysql_sandbox_port2;
-var result = dba.validateInstance(uri2);
+var result = dba.checkInstanceConfig(uri2);
 print (result.status)
 
-//@ Dba: validateInstance ok2
-var result = dba.validateInstance('root@localhost:' + __mysql_sandbox_port2, {password:'root'});
+//@ Dba: checkInstanceConfig ok2
+var result = dba.checkInstanceConfig('root@localhost:' + __mysql_sandbox_port2, {password:'root'});
 print (result.status)
 
-//@ Dba: validateInstance ok3
-var result = dba.validateInstance('root@localhost:' + __mysql_sandbox_port2, {dbPassword:'root'});
+//@ Dba: checkInstanceConfig ok3
+var result = dba.checkInstanceConfig('root@localhost:' + __mysql_sandbox_port2, {dbPassword:'root'});
 print (result.status)
 
-//@<OUT> Dba: validateInstance report with errors
-dba.validateInstance(uri2, {mycnfPath:'mybad.cnf'});
+//@<OUT> Dba: checkInstanceConfig report with errors
+dba.checkInstanceConfig(uri2, {mycnfPath:'mybad.cnf'});
 
-//@# Dba: configureLocalInstance errors
-dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
-dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
-dba.configureLocalInstance('sample@localhost:' + __mysql_sandbox_port1);
-dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root'});
-dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root', mycnfPath:'mybad.cnf'});
+//@# Dba: configLocalInstance errors
+dba.configLocalInstance('someotherhost:' + __mysql_sandbox_port1);
+dba.configLocalInstance('localhost:' + __mysql_sandbox_port1);
+dba.configLocalInstance('sample@localhost:' + __mysql_sandbox_port1);
+dba.configLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root'});
+dba.configLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root', mycnfPath:'mybad.cnf'});
 
-//@<OUT> Dba: configureLocalInstance updating config file
-dba.configureLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
+//@<OUT> Dba: configLocalInstance updating config file
+dba.configLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
 
-//@<OUT> Dba: configureLocalInstance report fixed 1
-var result = dba.configureLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
+//@<OUT> Dba: configLocalInstance report fixed 1
+var result = dba.configLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
 print (result.status)
 
-//@<OUT> Dba: configureLocalInstance report fixed 2
-var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', password:'root'});
+//@<OUT> Dba: configLocalInstance report fixed 2
+var result = dba.configLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', password:'root'});
 print (result.status)
 
-//@<OUT> Dba: configureLocalInstance report fixed 3
-var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', dbPassword:'root'});
+//@<OUT> Dba: configLocalInstance report fixed 3
+var result = dba.configLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', dbPassword:'root'});
 print (result.status)
 
 //@# Dba: getCluster errors

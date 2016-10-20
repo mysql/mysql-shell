@@ -15,9 +15,9 @@ validateMember(members, 'help');
 validateMember(members, 'killSandboxInstance');
 validateMember(members, 'resetSession');
 validateMember(members, 'startSandboxInstance');
-validateMember(members, 'validateInstance');
+validateMember(members, 'checkInstanceConfig');
 validateMember(members, 'stopSandboxInstance');
-validateMember(members, 'configureLocalInstance');
+validateMember(members, 'configLocalInstance');
 validateMember(members, 'verbose');
 
 //@# Dba: createCluster errors
@@ -30,30 +30,30 @@ var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
 //@<OUT> Dba: createCluster with interaction
 var c1 = dba.createCluster('devCluster');
 
-//@ Dba: validateInstance error
-dba.validateInstance('localhost:' + __mysql_sandbox_port1);
+//@ Dba: checkInstanceConfig error
+dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port1);
 
-//@<OUT> Dba: validateInstance ok 1
-dba.validateInstance('localhost:' + __mysql_sandbox_port2);
+//@<OUT> Dba: checkInstanceConfig ok 1
+dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port2);
 
-//@<OUT> Dba: validateInstance ok 2
-dba.validateInstance('localhost:' + __mysql_sandbox_port2, {password:'root'});
+//@<OUT> Dba: checkInstanceConfig ok 2
+dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port2, {password:'root'});
 
-//@<OUT> Dba: validateInstance report with errors
+//@<OUT> Dba: checkInstanceConfig report with errors
 var uri2 = 'localhost:' + __mysql_sandbox_port2;
-var res = dba.validateInstance(uri2, {mycnfPath:'mybad.cnf'});
+var res = dba.checkInstanceConfig(uri2, {mycnfPath:'mybad.cnf'});
 
-//@ Dba: configureLocalInstance error 1
-dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
+//@ Dba: configLocalInstance error 1
+dba.configLocalInstance('someotherhost:' + __mysql_sandbox_port1);
 
-//@<OUT> Dba: configureLocalInstance error 2
-dba.configureLocalInstance('localhost:' + __mysql_port);
+//@<OUT> Dba: configLocalInstance error 2
+dba.configLocalInstance('localhost:' + __mysql_port);
 
-//@<OUT> Dba: configureLocalInstance error 3
-dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
+//@<OUT> Dba: configLocalInstance error 3
+dba.configLocalInstance('localhost:' + __mysql_sandbox_port1);
 
-//@<OUT> Dba: configureLocalInstance updating config file
-dba.configureLocalInstance('localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf'});
+//@<OUT> Dba: configLocalInstance updating config file
+dba.configLocalInstance('localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf'});
 
 //@# Dba: getCluster errors
 var c2 = dba.getCluster(5);

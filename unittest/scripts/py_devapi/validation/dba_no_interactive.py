@@ -8,10 +8,10 @@
 |kill_sandbox_instance: OK|
 |reset_session: OK|
 |start_sandbox_instance: OK|
-|validate_instance: OK|
+|check_instance_config: OK|
 |stop_sandbox_instance: OK|
 |drop_metadata_schema: OK|
-|configure_local_instance: OK|
+|config_local_instance: OK|
 |verbose: OK|
 
 #@# Dba: create_cluster errors
@@ -27,21 +27,21 @@
 #@# Dba: create_cluster already exist
 ||Dba.create_cluster: Cluster is already initialized. Use Dba.get_cluster() to access it.
 
-#@# Dba: validate_instance errors
-||Dba.validate_instance: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
-||Dba.validate_instance: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
-||Dba.validate_instance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+#@# Dba: check_instance_config errors
+||Dba.check_instance_config: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.check_instance_config: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.check_instance_config: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
-#@ Dba: validate_instance ok1
+#@ Dba: check_instance_config ok1
 |ok|
 
-#@ Dba: validate_instance ok2
+#@ Dba: check_instance_config ok2
 |ok|
 
-#@ Dba: validate_instance ok3
+#@ Dba: check_instance_config ok3
 |ok|
 
-#@<OUT> Dba: validate_instance report with errors
+#@<OUT> Dba: check_instance_config report with errors
 {
     "config_errors": [
         {
@@ -111,29 +111,29 @@
     "status": "error"
 }
 
-#@# Dba: configure_local_instance errors
-||Dba.configure_local_instance: This function only works with local instances
-||Dba.configure_local_instance: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
-||Dba.configure_local_instance: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
-||Dba.configure_local_instance: The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
-||Dba.configure_local_instance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+#@# Dba: config_local_instance errors
+||Dba.config_local_instance: This function only works with local instances
+||Dba.config_local_instance: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.config_local_instance: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.config_local_instance: The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
+||Dba.config_local_instance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
-#@<OUT> Dba: configure_local_instance updating config file
+#@<OUT> Dba: config_local_instance updating config file
 {
     "status": "ok"
 }
 
-#@<OUT> Dba: configure_local_instance report fixed 1
+#@<OUT> Dba: config_local_instance report fixed 1
 {
     "status": "ok"
 }
 
-#@<OUT> Dba: configure_local_instance report fixed 2
+#@<OUT> Dba: config_local_instance report fixed 2
 {
     "status": "ok"
 }
 
-#@<OUT> Dba: configure_local_instance report fixed 3
+#@<OUT> Dba: config_local_instance report fixed 3
 {
     "status": "ok"
 }

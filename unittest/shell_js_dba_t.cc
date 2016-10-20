@@ -168,24 +168,24 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
 
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
-  //@# Dba: validateInstance error
+  //@# Dba: checkInstanceConfig error
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: validateInstance ok 1
+  //@<OUT> Dba: checkInstanceConfig ok 1
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: validateInstance report with errors
+  //@<OUT> Dba: checkInstanceConfig report with errors
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: configureLocalInstance error 2
+  //@<OUT> Dba: configLocalInstance error 2
   output_handler.passwords.push_back(_pwd);
   output_handler.prompts.push_back("");
 
-  //@<OUT> Dba: configureLocalInstance error 3
+  //@<OUT> Dba: configLocalInstance error 3
   output_handler.passwords.push_back("root");
   output_handler.prompts.push_back("mybad.cnf");
 
-  //@<OUT> Dba: configureLocalInstance updating config file
+  //@<OUT> Dba: configLocalInstance updating config file
   output_handler.passwords.push_back("root");
 
   // Validates error conditions on create, get and drop cluster
@@ -235,26 +235,26 @@ TEST_F(Shell_js_dba_tests, interactive_custom_global_dba) {
   execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_sandbox_port1 + "');");
   execute("dba.resetSession(mySession);");
 
-  //@# Dba: validateInstance error
+  //@# Dba: checkInstanceConfig error
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: validateInstance ok 1
+  //@<OUT> Dba: checkInstanceConfig ok 1
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: validateInstance report with errors
+  //@<OUT> Dba: checkInstanceConfig report with errors
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: configureLocalInstance error 2
+  //@<OUT> Dba: configLocalInstance error 2
   output_handler.passwords.push_back(_pwd);
   output_handler.prompts.push_back("");
 
-  //@<OUT> Dba: configureLocalInstance error 3
+  //@<OUT> Dba: configLocalInstance error 3
   output_handler.passwords.push_back("root");
   output_handler.prompts.push_back("mybad.cnf");
 
-  //@<OUT> Dba: configureLocalInstance updating config file
+  //@<OUT> Dba: configLocalInstance updating config file
   output_handler.passwords.push_back("root");
-  
+
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_interactive.js");

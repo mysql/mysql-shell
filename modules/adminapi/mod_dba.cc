@@ -49,7 +49,7 @@ using namespace shcore;
 #define PASSWORD_LENGHT 16
 
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword"};
-std::set<std::string> Dba::_configure_local_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket"};
+std::set<std::string> Dba::_config_local_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL Admin API.");
@@ -79,13 +79,13 @@ void Dba::init() {
   add_method("createCluster", std::bind(&Dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("getCluster", std::bind(&Dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
-  add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("checkInstanceConfig", std::bind(&Dba::check_instance_config, this, _1), "data", shcore::Map, NULL);
   add_method("deploySandboxInstance", std::bind(&Dba::deploy_sandbox_instance, this, _1, "deploySandboxInstance"), "data", shcore::Map, NULL);
   add_method("startSandboxInstance", std::bind(&Dba::start_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("stopSandboxInstance", std::bind(&Dba::stop_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteSandboxInstance", std::bind(&Dba::delete_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killSandboxInstance", std::bind(&Dba::kill_sandbox_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("configureLocalInstance", std::bind(&Dba::configure_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("configLocalInstance", std::bind(&Dba::config_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
@@ -405,49 +405,53 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
   return Value();
 }
 
-REGISTER_HELP(DBA_VALIDATEINSTANCE_BRIEF, "Validates an instance for usage in Group Replication.");
-REGISTER_HELP(DBA_VALIDATEINSTANCE_PARAM, "@param connectionData The instance connection data.");
-REGISTER_HELP(DBA_VALIDATEINSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
-REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_BRIEF, "Validates an instance for usage in Group Replication.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_PARAM1, "@param options Optional data for the operation.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
 "for usage in group replication.");
-REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL3, "The connectionData parameter can be any of:");
-REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL4, "@li URI string.");
-REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL5, "@li Connection data dictionary.");
-REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL7, "The password may be contained on the connectionData parameter or can be "\
-"specified on the password parameter. When both are specified the parameter "\
-"is used instead of the one in the connectionData");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL1, "The connectionData parameter can be any of:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL2, "@li URI string.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL4, "The options parameter can be any of:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL5, "@li mycnfPath: The path of the MySQL configuration file for the instance.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL6, "@li password: The password to get connected to the instance.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL7, "The password may be contained on the connectionData parameter or can be "\
+"specified on options parameter. When both are specified the one in the options parameter "\
+"overrides the one provided in connectionData");
 
 /**
-* $(DBA_VALIDATEINSTANCE_BRIEF)
+* $(DBA_CHECKINSTANCECONFIG_BRIEF)
 *
-* $(DBA_VALIDATEINSTANCE_PARAM)
-* $(DBA_VALIDATEINSTANCE_PARAM1)
+* $(DBA_CHECKINSTANCECONFIG_PARAM)
+* $(DBA_CHECKINSTANCECONFIG_PARAM1)
 *
-* $(DBA_VALIDATEINSTANCE_DETAIL)
-* $(DBA_VALIDATEINSTANCE_DETAIL1)
+* $(DBA_CHECKINSTANCECONFIG_DETAIL)
 *
-* $(DBA_VALIDATEINSTANCE_DETAIL3)
-* $(DBA_VALIDATEINSTANCE_DETAIL4)
-* $(DBA_VALIDATEINSTANCE_DETAIL5)
+* $(DBA_CHECKINSTANCECONFIG_DETAIL1)
+* $(DBA_CHECKINSTANCECONFIG_DETAIL2)
+* $(DBA_CHECKINSTANCECONFIG_DETAIL3)
 *
-* $(DBA_VALIDATEINSTANCE_DETAIL7)
-* $(DBA_VALIDATEINSTANCE_DETAIL8)
-* $(DBA_VALIDATEINSTANCE_DETAIL9)
+* $(DBA_CHECKINSTANCECONFIG_DETAIL4)
+* $(DBA_CHECKINSTANCECONFIG_DETAIL5)
+* $(DBA_CHECKINSTANCECONFIG_DETAIL6)
+* 
+* $(DBA_CHECKINSTANCECONFIG_DETAIL7)
 */
 #if DOXYGEN_JS
-Undefined Dba::validateInstance(Variant connectionData, String password) {}
+Undefined Dba::checkInstanceConfig(Variant connectionData, String password) {}
 #elif DOXYGEN_PY
-None Dba::validate_instance(variant connectionData, str password) {}
+None Dba::check_instance_config(variant connectionData, str password) {}
 #endif
-shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("validateInstance").c_str());
+shcore::Value Dba::check_instance_config(const shcore::Argument_list &args) {
+  args.ensure_count(1, 2, get_function_name("checkInstanceConfig").c_str());
 
   shcore::Value ret_val;
 
   try {
-    ret_val = shcore::Value(_validate_instance(args, false));
+    ret_val = shcore::Value(_check_instance_config(args, false));
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("validateInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("checkInstanceConfig"));
 
   return ret_val;
 }
@@ -816,35 +820,46 @@ void Dba::validate_session(const std::string &source) const {
     throw shcore::Exception::runtime_error(source + ": a Classic Session is required to perform this operation");
 }
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_BRIEF, "Validates and configures an instance for cluster usage.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_PARAM, "@param connectionData The instance connection data.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_RETURN, "@returns The configured Instance.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
-"for usage in group replication and cluster and returns an Instance object if so.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL1, "The connectionData parameter can be any of:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL2, "@li URI string.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_BRIEF, "Validates and configures an instance for cluster usage.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_PARAM1, "@param options Additional options for the operation.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_RETURN, "@returns A JSON object with the status.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
+"for usage in group replication and cluster. A JSON object is returned containing the result of the operation.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL1, "The connectionData parameter can be any of:");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL2, "@li URI string.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL4, "The options parameter may include:");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL5, "@li mycnfPath: The path to the MySQL configuration file of the instance.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL6, "@li password: The password to be used on the connection.");
 
 /**
-* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_BRIEF)
+* $(DBA_CONFIGLOCALINSTANCE_BRIEF)
 *
-* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_PARAM)
+* $(DBA_CONFIGLOCALINSTANCE_PARAM)
+* $(DBA_CONFIGLOCALINSTANCE_PARAM1)
 *
-* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_RETURN)
+* $(DBA_CONFIGLOCALINSTANCE_RETURN)
 *
-* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL)
-* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL1)
-* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL2)
-* $(DBA_CONFIGURELOCALINSTANCEINSTANCE_DETAIL3)
+* $(DBA_CONFIGLOCALINSTANCE_DETAIL)
+* 
+* $(DBA_CONFIGLOCALINSTANCE_DETAIL1)
+* $(DBA_CONFIGLOCALINSTANCE_DETAIL2)
+* $(DBA_CONFIGLOCALINSTANCE_DETAIL3)
+*
+* $(DBA_CONFIGLOCALINSTANCE_DETAIL4)
+* $(DBA_CONFIGLOCALINSTANCE_DETAIL5)
+* $(DBA_CONFIGLOCALINSTANCE_DETAIL6)
+* 
 */
 #if DOXYGEN_JS
-Instance Dba::configureLocalInstance(Variant connectionData) {}
+Instance Dba::configLocalInstance(Variant connectionData) {}
 #elif DOXYGEN_PY
-Instance Dba::configure_local_instance(variant connectionData) {}
+Instance Dba::config_local_instance(variant connectionData) {}
 #endif
-shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
+shcore::Value Dba::config_local_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
-  args.ensure_count(1, 2, get_function_name("configureLocalInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("configLocalInstance").c_str());
 
   try {
     auto options = get_instance_options_map(args, true);
@@ -852,13 +867,13 @@ shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
     shcore::Argument_map opt_map(*options);
 
     if (shcore::is_local_host(opt_map.string_at("host"))) {
-      ret_val = shcore::Value(_validate_instance(args, true));
+      ret_val = shcore::Value(_check_instance_config(args, true));
     }
     else
       throw shcore::Exception::runtime_error("This function only works with local instances");
 
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("configureLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("configLocalInstance"));
 
   return ret_val;
 }
@@ -888,7 +903,7 @@ std::shared_ptr<mysh::mysql::ClassicSession> Dba::get_session(const shcore::Argu
   return ret_val;
 }
 
-shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list &args, bool allow_update) {
+shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_list &args, bool allow_update) {
 
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
 
@@ -901,9 +916,9 @@ shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list 
   shcore::Argument_map opt_map(*options);
   shcore::Argument_map validate_opt_map;
 
-  std::set<std::string> validate_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+  std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
 
-  opt_map.ensure_keys({"host", "port"}, validate_instance_opts, "instance definition");
+  opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
 
   shcore::Value::Map_type_ref validate_options;
 
@@ -945,7 +960,7 @@ shcore::Value::Map_type_ref Dba::_validate_instance(const shcore::Argument_list 
     user = options->get_string(options->has_key("user") ? "user" : "dbUser");
     password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
 
-    // Verbose is mandatory for validateInstance
+    // Verbose is mandatory for checkInstanceConfig
     shcore::Value::Array_type_ref mp_errors;
     if (_provisioning_interface->check(user, host, port, password, cnfpath, allow_update, mp_errors) == 0)
       (*ret_val)["status"] = shcore::Value("ok");
