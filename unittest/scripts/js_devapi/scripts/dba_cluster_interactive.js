@@ -21,6 +21,7 @@ validateMember(members, 'getAdminType');
 validateMember(members, 'addInstance');
 validateMember(members, 'removeInstance');
 validateMember(members, 'rejoinInstance');
+validateMember(members, 'checkInstanceState');
 validateMember(members, 'describe');
 validateMember(members, 'status');
 validateMember(members, 'help');
