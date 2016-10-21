@@ -19,29 +19,29 @@
 function ModuleHandler()
 {
   this._module_cache = {}
-  
+
   this._find_module = function(name)
   {
     var index = 0;
     var module_path = '';
-    while(index < shell.js.module_paths.length && module_path == '')
+    while(index < sys.path.length && module_path == '')
     {
-      var tmp_path = shell.js.module_paths[index];
+      var tmp_path = sys.path[index];
       var last_char = tmp_path.slice(-1);
       if (last_char != '/' && last_char != '\\')
         tmp_path += '/';
-      
+
       tmp_path += name + '.js';
-      
+
       if (os.file_exists(tmp_path))
         module_path = tmp_path;
       else
         index++;
     }
-    
+
     return module_path;
   }
-  
+
   this._load_module = function(name)
   {
     var module = __require(name);
@@ -50,7 +50,7 @@ function ModuleHandler()
     else
     {
       var path = this._find_module(name);
-      
+
       if (path)
       {
         var source = os.load_text_file(path);
@@ -58,10 +58,10 @@ function ModuleHandler()
         {
           var wrapped_source = '(function (exports){' + source + '});';
           var module_definition = __build_module(path, wrapped_source);
-          
+
           var module = {}
           module_definition(module)
-          
+
           this._module_cache[name] = module;
         }
         else
@@ -69,12 +69,12 @@ function ModuleHandler()
       }
     }
   }
-  
+
   this.get_module = function(name, reload)
   {
     if (typeof reload !== 'undefined' && reload)
       delete this._module_cache[name];
-    
+
     // Loads the module if not done already.
     if (typeof this._module_cache[name] === 'undefined')
     {
@@ -90,23 +90,34 @@ function ModuleHandler()
   }
 }
 
-this.shell.js = {}
+this.sys = {}
 
-this.shell.js.module_paths = [];
+Object.defineProperties(this.sys, {
+  'path': {
+    value: [],
+    writable: true,
+    enumerable: true
+  },
+  '_module_handler': {
+    value: new ModuleHandler(),
+    writable: false,
+    enumerable: false
+  }
+});
 
 // Searches for MYSQLX_HOME
 var path = os.get_mysqlx_home_path();
 if (path)
-  this.shell.js.module_paths[this.shell.js.module_paths.length] = path + '/share/mysqlsh/modules/js';
+  this.sys.path[this.sys.path.length] = path + '/share/mysqlsh/modules/js';
 
 // If MYSQLX_HOME not found, sets the current directory as a valid module path
 else
 {
   path = os.get_binary_folder();
   if (path)
-    this.shell.js.module_paths[this.shell.js.module_paths.length] = path + '/modules/js';
+    this.sys.path[this.sys.path.length] = path + '/modules/js';
   else
-    this.shell.js.module_paths[this.shell.js.module_paths.length] = './modules/js';
+    this.sys.path[this.sys.path.length] = './modules/js';
 }
 
 // Finally sees if there are additional configured paths
@@ -114,19 +125,15 @@ path = os.getenv('MYSQLSH_JS_MODULE_PATH');
 if (path)
 {
   var paths = path.split(';');
-  this.shell.js.module_paths = this.shell.js.module_paths.concat(paths);
+  this.sys.path = this.sys.path.concat(paths);
 }
-
-// An instance of the module handler and the require function will
-// be appended to the received object, i.e. to the context globals.
-this.shell.js.module_handler = new ModuleHandler();
 
 this.require = function(module_name, reload)
 {
-  return this.shell.js.module_handler.get_module(module_name, reload);
+  return this.sys._module_handler.get_module(module_name, reload);
 }
 
-// Object.keys(object) returns the enumerable properties found directly 
+// Object.keys(object) returns the enumerable properties found directly
 // on the object while iterating them also includes the ones defined on
 // the prototype chain.
 this.dir = function(object)
@@ -134,7 +141,7 @@ this.dir = function(object)
   var keys = []
   for(k in object)
     keys[keys.length] = k;
-  
+
   return keys;
 }
 
