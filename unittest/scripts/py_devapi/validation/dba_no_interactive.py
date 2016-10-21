@@ -46,25 +46,25 @@
     "config_errors": [
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
             "option": "binlog_checksum", 
             "required": "NONE"
         },
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
             "option": "binlog_format", 
             "required": "ROW"
         },
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
             "option": "disabled_storage_engines", 
             "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"
         },
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
             "option": "enforce_gtid_consistency", 
             "required": "ON"
         },
@@ -76,31 +76,37 @@
         },
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
+            "option": "log_bin", 
+            "required": "<no value>"
+        },
+        {
+            "action": "config_update", 
+            "current": "<not set>", 
             "option": "log_slave_updates", 
             "required": "ON"
         },
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
             "option": "master_info_repository", 
             "required": "TABLE"
         },
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
             "option": "relay_log_info_repository", 
             "required": "TABLE"
         },
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
             "option": "report_port", 
             "required": "<<<__mysql_sandbox_port2>>>"
         },
         {
             "action": "config_update", 
-            "current": "<no value>", 
+            "current": "<not set>", 
             "option": "transaction_write_set_extraction", 
             "required": "XXHASH64"
         }
@@ -110,6 +116,7 @@
     "restart_required": false, 
     "status": "error"
 }
+
 
 #@# Dba: config_local_instance errors
 ||Dba.config_local_instance: This function only works with local instances

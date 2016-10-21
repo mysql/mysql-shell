@@ -986,9 +986,15 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
             for (size_t index = 1; index < lines.size(); index++) {
               if (loading_options) {
                 auto option_tokens = shcore::split_string(lines[index], " ", true);
+                
 
-                if (option_tokens[2] == "<no") {
-                  option_tokens[2] = "<no value>";
+                if (option_tokens[1] == "<no") {
+                  option_tokens[1] = "<no value>";
+                  option_tokens.erase(option_tokens.begin() + 2);
+                }
+                
+                if (option_tokens[2] == "<not") {
+                  option_tokens[2] = "<not set>";
                   option_tokens.erase(option_tokens.begin() + 3);
                 }
 

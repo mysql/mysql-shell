@@ -63,16 +63,16 @@ The following issues were encountered:
 +----------------------------------+---------------+----------------------------------------+------------------------+
 | Variable                         | Current Value | Required Value                         | Note                   |
 +----------------------------------+---------------+----------------------------------------+------------------------+
-| binlog_checksum                  | <no value>    | NONE                                   | Update the config file |
-| binlog_format                    | <no value>    | ROW                                    | Update the config file |
-| disabled_storage_engines         | <no value>    | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update the config file |
-| enforce_gtid_consistency         | <no value>    | ON                                     | Update the config file |
+| binlog_checksum                  | <not set>     | NONE                                   | Update the config file |
+| binlog_format                    | <not set>     | ROW                                    | Update the config file |
+| disabled_storage_engines         | <not set>     | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update the config file |
+| enforce_gtid_consistency         | <not set>     | ON                                     | Update the config file |
 | gtid_mode                        | OFF           | ON                                     | Update the config file |
-| log_slave_updates                | <no value>    | ON                                     | Update the config file |
-| master_info_repository           | <no value>    | TABLE                                  | Update the config file |
-| relay_log_info_repository        | <no value>    | TABLE                                  | Update the config file |
-| report_port                      | <no value>    | <<<__mysql_sandbox_port1>>>                                   | Update the config file |
-| transaction_write_set_extraction | <no value>    | XXHASH64                               | Update the config file |
+| log_slave_updates                | <not set>     | ON                                     | Update the config file |
+| master_info_repository           | <not set>     | TABLE                                  | Update the config file |
+| relay_log_info_repository        | <not set>     | TABLE                                  | Update the config file |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>                                   | Update the config file |
+| transaction_write_set_extraction | <not set>     | XXHASH64                               | Update the config file |
 +----------------------------------+---------------+----------------------------------------+------------------------+
 
 
