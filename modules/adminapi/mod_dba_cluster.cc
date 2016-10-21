@@ -75,6 +75,7 @@ void Cluster::init() {
   add_method("describe", std::bind(&Cluster::describe, this, _1), NULL);
   add_method("status", std::bind(&Cluster::status, this, _1), NULL);
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
+  add_varargs_method("checkInstanceState", std::bind(&Cluster::check_instance_state, this, _1));
 }
 
 // Documentation of the getName function
@@ -543,4 +544,50 @@ void Cluster::set_attribute(const std::string& attribute, const shcore::Value& v
     _attributes.reset(new shcore::Value::Map_type());
 
   (*_attributes)[attribute] = value;
+}
+
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_BRIEF, "Verifies the instance gtid state in relation with the cluster.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM, "@param instance An instance definition.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM1, "@param password Optional string with the password for the connection.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL, "Analyzes the instance executed GTIDs with the executed/purged GTIDs on the cluster "
+                                                 "to determine if the instance is valid for the cluster.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2, "@li URI string.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3, "@li Connection data dictionary.");
+//REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5, "@li An Instance object.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4, "The password may be contained on the instance parameter or can be "\
+"specified on the password parameter. When both are specified the password parameter "\
+"is used instead of the one in the instance data.");
+
+/**
+ * $(CLUSTER_CHECKINSTANCESTATE_BRIEF)
+ *
+ * $(CLUSTER_CHECKINSTANCESTATE_PARAM)
+ * $(CLUSTER_CHECKINSTANCESTATE_PARAM1)
+ *
+ * $(CLUSTER_CHECKINSTANCESTATE_DETAIL)
+ *
+ * $(CLUSTER_CHECKINSTANCESTATE_DETAIL1)
+ *
+ * $(CLUSTER_CHECKINSTANCESTATE_DETAIL2)
+ * $(CLUSTER_CHECKINSTANCESTATE_DETAIL3)
+ *
+ * $(CLUSTER_CHECKINSTANCESTATE_DETAIL4)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::addInstance(InstanceDef instance, String password) {}
+#elif DOXYGEN_PY
+None Cluster::add_instance(InstanceDef instance, str password) {}
+#endif
+shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
+
+  // Verifies the transaction state of the instance ins relation to the cluster
+  try {
+    ret_val = get_default_replicaset()->retrieve_instance_state(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getInstanceState"));
+
+  return ret_val;
 }

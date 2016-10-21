@@ -37,6 +37,7 @@ public:
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
+  shcore::Value check_instace_state(const shcore::Argument_list &args);
 };
 }
 

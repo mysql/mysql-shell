@@ -21,6 +21,10 @@
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 //#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/mod_dba_sql.h"
+
+#include "modules/mod_mysql_session.h"
+#include "modules/base_session.h"
 
 #include "common/uuid/include/uuid_gen.h"
 #include "utils/utils_general.h"
@@ -269,6 +273,7 @@ void ReplicaSet::init() {
   add_method("removeInstance", std::bind(&ReplicaSet::remove_instance_, this, _1), "data");
   add_varargs_method("disable", std::bind(&ReplicaSet::disable, this, _1));
   add_varargs_method("dissolve", std::bind(&ReplicaSet::dissolve, this, _1));
+  add_varargs_method("checkInstanceState", std::bind(&ReplicaSet::check_instance_state, this, _1));
 }
 
 #if DOXYGEN_CPP
@@ -925,4 +930,82 @@ static std::string generate_password(int password_lenght) {
     pwd += alphabet[dist(rd)];
 
   return pwd;
+}
+
+shcore::Value ReplicaSet::check_instance_state(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
+
+  // Verifies the transaction state of the instance ins relation to the cluster
+  try {
+    ret_val = check_instance_state(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getInstanceState"));
+
+  return ret_val;
+}
+
+shcore::Value ReplicaSet::retrieve_instance_state(const shcore::Argument_list &args) {
+
+  auto options = get_instance_options_map(args);
+
+  shcore::Argument_map opt_map(*options);
+  opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+
+
+  if (!options->has_key("port"))
+    (*options)["port"] = shcore::Value(get_default_port());
+
+  // Sets a default user if not specified
+  resolve_instance_credentials(options, nullptr);
+
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(options));
+  auto instance_session = Dba::get_session(new_args);
+
+  // We will work with the current global session
+  // Assuming it is the R/W instance
+  auto master_dev_session = _metadata_storage->get_dba()->get_active_session();
+  auto master_session = std::dynamic_pointer_cast<mysh::mysql::ClassicSession>(master_dev_session);
+
+  // We have to retrieve these variables to do the actual state validation
+  std::string master_gtid_executed;
+  std::string master_gtid_purged;
+  std::string instance_gtid_executed;
+  std::string instance_gtid_purged;
+
+  get_gtid_state_variables(master_session->connection(), master_gtid_executed, master_gtid_purged);
+  get_gtid_state_variables(instance_session->connection(), instance_gtid_executed, instance_gtid_purged);
+
+
+  // Now we perform the validation
+  SlaveReplicationState state = get_slave_replication_state(master_session->connection(), instance_gtid_executed);
+
+  std::string reason;
+  std::string status;
+  switch(state) {
+    case SlaveReplicationState::Diverged:
+      status = "error";
+      reason = "diverged";
+      break;
+    case SlaveReplicationState::Irrecoverable:
+      status = "error";
+      reason = "lost_transactions";
+      break;
+    case SlaveReplicationState::Recoverable:
+      status = "ok";
+      reason = "recoverable";
+      break;
+    case SlaveReplicationState::New:
+      status = "ok";
+      reason = "new";
+      break;
+  }
+
+  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
+
+  (*ret_val)["state"] = shcore::Value(status);
+  (*ret_val)["reason"] = shcore::Value(reason);
+
+  return shcore::Value(ret_val);
 }

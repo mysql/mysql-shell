@@ -93,12 +93,13 @@ public:
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
   shcore::Value add_instance(const shcore::Argument_list &args);
+  shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value remove_instance_(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value disable(const shcore::Argument_list &args);
-
+  shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
 protected:
   uint64_t _id;
   std::string _name;

@@ -83,6 +83,7 @@ public:
   shcore::Value describe(const shcore::Argument_list &args);
   shcore::Value status(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
+  shcore::Value check_instance_state(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
   String name; //!< $(CLUSTER_NAME_BRIEF)
@@ -90,8 +91,9 @@ public:
   String getName();
   String getAdminType();
   Undefined addInstance(InstanceDef instance, String password);
-  Undefined rejoinInstance(IndtanceDef instance);
+  Undefined rejoinInstance(InstanceDef instance);
   Undefined removeInstance(InstanceDef instance);
+  Dictionary checkInstanceState(InstanceDef instance);
   String describe();
   String status();
   Undefined dissolve(Dictionary options);
@@ -103,6 +105,7 @@ public:
   None add_instance(InstanceDef instance, str password);
   None rejoin_instance(InstanceDef instance);
   None remove_instance(InstanceDef instance);
+  dict check_instance_state(InstanceDef instance);
   str describe();
   str status();
   None dissolve(Dictionary options);

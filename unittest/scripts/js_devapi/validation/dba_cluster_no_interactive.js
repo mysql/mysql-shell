@@ -1,5 +1,5 @@
 //@ Cluster: validating members
-|Cluster Members: 11|
+|Cluster Members: 12|
 |name: OK|
 |getName: OK|
 |adminType: OK|
@@ -7,6 +7,7 @@
 |addInstance: OK|
 |removeInstance: OK|
 |rejoinInstance: OK|
+|checkInstanceState: OK|
 |describe: OK|
 |status: OK|
 |help: OK|

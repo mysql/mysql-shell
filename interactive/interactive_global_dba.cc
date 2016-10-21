@@ -698,3 +698,4 @@ void Global_dba::dump_table(const std::vector<std::string>& column_names, const 
 
   println(separator);
 }
+

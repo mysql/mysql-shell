@@ -31,8 +31,18 @@ namespace dba {
     InnoDBCluster
   };
 
+  enum class SlaveReplicationState {
+    New,
+    Recoverable,
+    Diverged,
+    Irrecoverable
+  };
+
+
   GRInstanceType get_gr_instance_type(mysh::mysql::Connection* connection);
   void get_port_and_datadir(mysh::mysql::Connection* connection, int &port, std::string& datadir);
+  void get_gtid_state_variables(mysh::mysql::Connection* connection, std::string &executed, std::string &purged);
+  SlaveReplicationState get_slave_replication_state(mysh::mysql::Connection* connection, std::string &slave_executed);
 
 }
 }

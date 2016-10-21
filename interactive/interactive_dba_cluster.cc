@@ -36,6 +36,7 @@ void Interactive_dba_cluster::init() {
   add_method("rejoinInstance", std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&Interactive_dba_cluster::remove_instance, this, _1), "data");
   add_varargs_method("dissolve", std::bind(&Interactive_dba_cluster::dissolve, this, _1));
+  add_varargs_method("checkInstanceState", std::bind(&Interactive_dba_cluster::check_instace_state, this, _1));
 }
 
 shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_list &args) {
@@ -252,3 +253,52 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
   return ret_val;
 }
 
+shcore::Value Interactive_dba_cluster::check_instace_state(const shcore::Argument_list &args) {
+
+  args.ensure_count(0, 1, get_function_name("checkInstanceState").c_str());
+  shcore::Value::Map_type_ref options;
+  shcore::Argument_list target_args;
+
+  try {
+    options = mysh::dba::get_instance_options_map(args, false);
+
+    shcore::Argument_map opt_map(*options);
+    std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+    opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
+
+    // Gather username and password if missing
+    mysh::dba::resolve_instance_credentials(options, _delegate);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("checkInstanceState"));
+
+  println("Analyzing the instance replication state...");
+
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(options));
+  shcore::Value ret_val = call_target("checkInstanceState", new_args);
+
+  auto result = ret_val.as_map();
+
+  println();
+
+  if (result->get_string("state") == "ok") {
+    println("The instance '" + options->get_string("host") + ":" + std::to_string(options->get_int("port")) + "' is valid for the cluster.");
+
+    if (result->get_string("reason") == "new")
+      println("The instance is new to Group Replication.");
+    else
+      println("The instance is fully recoverable.");
+  }
+  else {
+    println("The instance '" + options->get_string("host") + ":" + std::to_string(options->get_int("port")) + "' is invalid for the cluster.");
+
+    if (result->get_string("reason") == "diverged")
+      println("The instance contains additional transactions in relation to the cluster.");
+    else
+      println("There are transactions in the cluster that can't be recovered on the instance.");
+  }
+  println();
+
+  return ret_val;
+
+}
