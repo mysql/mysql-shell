@@ -446,9 +446,9 @@ void Python_context::init_shell_dict_type() {
   }
 
   Py_INCREF(&PyShDictObjectType);
-  PyModule_AddObject(get_shell_module(), "Dict", reinterpret_cast<PyObject *>(&PyShDictObjectType));
+  PyModule_AddObject(get_shell_python_support_module(), "Dict", reinterpret_cast<PyObject *>(&PyShDictObjectType));
 
-  _shell_dict_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "Dict");
+  _shell_dict_class = PyDict_GetItemString(PyModule_GetDict(get_shell_python_support_module()), "Dict");
 }
 
 PyObject *shcore::wrap(std::shared_ptr<Value::Map_type> map) {

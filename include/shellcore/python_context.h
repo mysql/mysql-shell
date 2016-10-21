@@ -161,6 +161,8 @@ public:
   static Python_context *get_and_check();
   PyObject *get_shell_module();
   PyObject *get_shell_stderr_module();
+  PyObject *get_shell_stdout_module();
+  PyObject *get_shell_python_support_module();
 
   Value execute(const std::string &code, boost::system::error_code &ret_error,
       const std::string& source = "",
@@ -204,6 +206,8 @@ private:
 
   PyObject *_shell_module;
   PyObject *_shell_stderr_module;
+  PyObject *_shell_stdout_module;
+  PyObject *_shell_python_support_module;
 
   std::map<PyObject*, std::shared_ptr<shcore::Object_bridge> > _modules;
 
@@ -212,6 +216,8 @@ private:
 
   void register_shell_module();
   void register_shell_stderr_module();
+  void register_shell_stdout_module();
+  void register_shell_python_support_module();
 
   void init_shell_list_type();
   void init_shell_dict_type();

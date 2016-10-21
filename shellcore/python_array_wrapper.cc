@@ -352,9 +352,9 @@ void Python_context::init_shell_list_type() {
   }
 
   Py_INCREF(&PyShListObjectType);
-  PyModule_AddObject(get_shell_module(), "List", reinterpret_cast<PyObject *>(&PyShListObjectType));
+  PyModule_AddObject(get_shell_python_support_module(), "List", reinterpret_cast<PyObject *>(&PyShListObjectType));
 
-  _shell_list_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "List");
+  _shell_list_class = PyDict_GetItemString(PyModule_GetDict(get_shell_python_support_module()), "List");
 }
 
 PyObject *shcore::wrap(std::shared_ptr<Value::Array_type> array) {

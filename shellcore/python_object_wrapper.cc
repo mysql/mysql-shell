@@ -642,9 +642,9 @@ void Python_context::init_shell_object_type() {
   }
 
   Py_INCREF(&PyShObjObjectType);
-  PyModule_AddObject(get_shell_module(), "Object", reinterpret_cast<PyObject *>(&PyShObjObjectType));
+  PyModule_AddObject(get_shell_python_support_module(), "Object", reinterpret_cast<PyObject *>(&PyShObjObjectType));
 
-  _shell_object_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "Object");
+  _shell_object_class = PyDict_GetItemString(PyModule_GetDict(get_shell_python_support_module()), "Object");
 
   // Initializes the indexed object
   PyShObjIndexedObjectType.tp_new = PyType_GenericNew;
@@ -653,9 +653,9 @@ void Python_context::init_shell_object_type() {
   }
 
   Py_INCREF(&PyShObjIndexedObjectType);
-  PyModule_AddObject(get_shell_module(), "IndexedObject", reinterpret_cast<PyObject *>(&PyShObjIndexedObjectType));
+  PyModule_AddObject(get_shell_python_support_module(), "IndexedObject", reinterpret_cast<PyObject *>(&PyShObjIndexedObjectType));
 
-  _shell_indexed_object_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "IndexedObject");
+  _shell_indexed_object_class = PyDict_GetItemString(PyModule_GetDict(get_shell_python_support_module()), "IndexedObject");
 }
 
 PyObject *shcore::wrap(std::shared_ptr<Object_bridge> object) {

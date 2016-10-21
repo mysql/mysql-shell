@@ -183,9 +183,9 @@ void Python_context::init_shell_function_type() {
   }
 
   Py_INCREF(&PyShFuncObjectType);
-  PyModule_AddObject(get_shell_module(), "Function", reinterpret_cast<PyObject *>(&PyShFuncObjectType));
+  PyModule_AddObject(get_shell_python_support_module(), "Function", reinterpret_cast<PyObject *>(&PyShFuncObjectType));
 
-  _shell_function_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "Function");
+  _shell_function_class = PyDict_GetItemString(PyModule_GetDict(get_shell_python_support_module()), "Function");
 }
 
 PyObject *shcore::wrap(std::shared_ptr<Function_base> func) {

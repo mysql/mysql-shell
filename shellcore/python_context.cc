@@ -61,6 +61,8 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
   register_shell_modules();
   register_shell_module();
   register_shell_stderr_module();
+  register_shell_stdout_module();
+  register_shell_python_support_module();
 
   PyObject *main = PyImport_AddModule("__main__");
   _globals = PyModule_GetDict(main);
@@ -91,7 +93,7 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
   PySys_SetObject((char*)"real_stdin", PySys_GetObject((char*)"stdin"));
 
   // make sys.stdout and sys.stderr send stuff to SHELL
-  PySys_SetObject((char*)"stdout", get_shell_module());
+  PySys_SetObject((char*)"stdout", get_shell_stdout_module());
   PySys_SetObject((char*)"stderr", get_shell_stderr_module());
 
   // set stdin to the Sh shell console
@@ -154,6 +156,14 @@ PyObject *Python_context::get_shell_stderr_module() {
   return _shell_stderr_module;
 }
 
+PyObject *Python_context::get_shell_stdout_module() {
+  return _shell_stdout_module;
+}
+
+PyObject *Python_context::get_shell_python_support_module() {
+  return _shell_python_support_module;
+}
+
 Value Python_context::execute(const std::string &code, boost::system::error_code &UNUSED(ret_error),
     const std::string& UNUSED(source),
     const std::vector<std::string> &argv) throw (Exception) {
@@ -213,7 +223,7 @@ Value Python_context::execute_interactive(const std::string &code, Input_state &
   PyObject *orig_hook = PySys_GetObject((char*)"displayhook");
   Py_INCREF(orig_hook);
 
-  PySys_SetObject((char*)"displayhook", PyDict_GetItemString(PyModule_GetDict(_shell_module), (char*)"interactivehook"));
+  PySys_SetObject((char*)"displayhook", PyDict_GetItemString(PyModule_GetDict(_shell_python_support_module), (char*)"interactivehook"));
 
   PyObject *py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _locals);
 
@@ -568,14 +578,10 @@ PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self), Py
 
 /* Register shell related functionality as a module */
 static PyMethodDef ShellModuleMethods[] = {
-  {"write", &Python_context::shell_stdout, METH_VARARGS,
-  "Write a string in the SHELL shell."},
   {"prompt", &Python_context::shell_prompt, METH_VARARGS,
   "Prompts input to the user."},
   {"parseUri", &Python_context::shell_parse_uri, METH_VARARGS,
     "Creates a dictionary with the URI components."},
-    {"interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
-    "Custom displayhook to capture interactive expr evaluation results."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -584,6 +590,19 @@ static PyMethodDef ShellStdErrMethods[] = {
   "Write an error string in the SHELL shell."},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };
+
+static PyMethodDef ShellStdOutMethods[] = {
+  {"write", &Python_context::shell_stdout, METH_VARARGS,
+    "Write a string in the SHELL shell."},
+    {NULL, NULL, 0, NULL}        /* Sentinel */
+};
+
+static PyMethodDef ShellPythonSupportMethods[] = {
+  {"interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
+    "Custom displayhook to capture interactive expr evaluation results."},
+    {NULL, NULL, 0, NULL}        /* Sentinel */
+};
+
 
 PyObject *Python_context::call_module_function(PyObject *self, PyObject *args, PyObject *keywords, const std::string& name) {
   Python_context *ctx;
@@ -658,6 +677,30 @@ void Python_context::register_shell_module() {
   PyObject* context_object = PyCObject_FromVoidPtrAndDesc(this, &SHELLTypeSignature, NULL);
   if (context_object != NULL)
     PyModule_AddObject(module, "__SHELL__", context_object);
+}
+
+void Python_context::register_shell_stderr_module() {
+  PyObject *module = Py_InitModule("shell_stderr", ShellStdErrMethods);
+  if (module == NULL)
+    throw std::runtime_error("Error initializing SHELL module in Python support");
+
+  _shell_stderr_module = module;
+}
+
+void Python_context::register_shell_stdout_module() {
+  PyObject *module = Py_InitModule("shell_stdout", ShellStdOutMethods);
+  if (module == NULL)
+    throw std::runtime_error("Error initializing SHELL module in Python support");
+
+  _shell_stdout_module = module;
+}
+
+void Python_context::register_shell_python_support_module() {
+  PyObject *module = Py_InitModule("shell_python_support", ShellPythonSupportMethods);
+  if (module == NULL)
+    throw std::runtime_error("Error initializing SHELL module in Python support");
+
+  _shell_python_support_module = module;
 
   PyModule_AddStringConstant(module, "INT", (char*)shcore::type_name(Integer).c_str());
   PyModule_AddStringConstant(module, "DOUBLE", (char*)shcore::type_name(Float).c_str());
@@ -671,13 +714,6 @@ void Python_context::register_shell_module() {
   init_shell_dict_type();
   init_shell_object_type();
   init_shell_function_type();
-}
 
-void Python_context::register_shell_stderr_module() {
-  PyObject *module = Py_InitModule("shell_stderr", ShellStdErrMethods);
-  if (module == NULL)
-    throw std::runtime_error("Error initializing SHELL module in Python support");
-
-  _shell_stderr_module = module;
 }
 }
