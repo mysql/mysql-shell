@@ -29,6 +29,7 @@
 #include <boost/format.hpp>
 #include "modules/mod_mysqlx.h"
 #include "modules/mod_mysql.h"
+#include "modules/mod_shell.h"
 #include "utils/utils_general.h"
 
 #include "interactive/interactive_global_dba.h"
@@ -74,6 +75,8 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
     set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)));
   }
+
+  set_global("shell", shcore::Value::wrap<mysh::Shell>(new mysh::Shell(this)));
 
   set_dba_global();
 

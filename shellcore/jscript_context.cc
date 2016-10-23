@@ -101,8 +101,6 @@ struct JScript_context::JScript_context_impl {
 
     globals->Set(v8::String::NewFromUtf8(isolate, "os"), make_os_object());
 
-    globals->Set(v8::String::NewFromUtf8(isolate, "shell"), make_shell_object());
-
     // obj = _F.mysql.open('root@localhost')
     globals->Set(v8::String::NewFromUtf8(isolate, "_F"), make_factory());
 
@@ -196,20 +194,6 @@ struct JScript_context::JScript_context_impl {
     factory->SetNamedPropertyHandler(&JScript_context_impl::factory_getter, 0, 0, 0, 0, client_data);
 
     return factory;
-  }
-
-  v8::Handle<v8::ObjectTemplate> make_shell_object() {
-    v8::Handle<v8::ObjectTemplate> object = v8::ObjectTemplate::New(isolate);
-    v8::Local<v8::External> client_data(v8::External::New(isolate, this));
-
-    // s = input('Type something:')
-    object->Set(v8::String::NewFromUtf8(isolate, "prompt"),
-                 v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_prompt, client_data));
-
-    object->Set(v8::String::NewFromUtf8(isolate, "parseUri"),
-                v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_parse_uri, client_data));
-
-    return object;
   }
 
   // TODO: Creation of the OS module should be moved to a different place.
@@ -363,84 +347,6 @@ struct JScript_context::JScript_context_impl {
         break;
       }
     }
-  }
-
-  static void f_prompt(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    v8::HandleScope outer_handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
-
-    shcore::Value::Map_type_ref options_map;
-
-    if (args.Length() < 1 || args.Length() > 2) {
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Invalid number of parameters"));
-      return;
-    } else if (args.Length() == 2) {
-      shcore::Value options = self->types.v8_value_to_shcore_value(args[1]);
-      if (options.type != shcore::Map) {
-        args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Second parameter must be a dictionary"));
-        return;
-      } else
-        options_map = options.as_map();
-    }
-
-    v8::HandleScope handle_scope(args.GetIsolate());
-    v8::String::Utf8Value str(args[0]);
-
-    // If there are options, reads them to determine how to proceed
-    std::string default_value;
-    bool password = false;
-    bool succeeded = false;
-
-    // Identifies a default value in case en empty string is returned
-    // or hte prompt fails
-    if (options_map) {
-      if (options_map->has_key("defaultValue"))
-        default_value = options_map->get_string("defaultValue");
-
-      // Identifies if it is normal prompt or password prompt
-      if (options_map->has_key("type"))
-        password = (options_map->get_string("type") == "password");
-    }
-
-    // Performs the actual prompt
-    std::string r;
-    if (password)
-      succeeded = self->delegate->password(self->delegate->user_data, *str, r);
-    else
-      succeeded = self->delegate->prompt(self->delegate->user_data, *str, r);
-
-    // Uses the default value if needed
-    if (!default_value.empty() && (!succeeded || r.empty()))
-      r = default_value;
-
-    args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
-  }
-
-  static void f_parse_uri(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    v8::HandleScope outer_handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
-
-    shcore::Value::Map_type_ref options_map;
-
-    if (args.Length() != 1) {
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Invalid number of parameters"));
-      return;
-    }
-
-    shcore::Value uri = self->types.v8_value_to_shcore_value(args[0]);
-    if (uri.type != shcore::String) {
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "String parameter expected"));
-      return;
-    }
-
-    v8::HandleScope handle_scope(args.GetIsolate());
-    v8::String::Utf8Value str(args[0]);
-
-    // If there are options, reads them to determine how to proceed
-
-    v8::Handle<v8::Value> ret_val = self->types.shcore_value_to_v8_value(shcore::Value(shcore::get_connection_data(*str, false)));
-
-    args.GetReturnValue().Set(ret_val);
   }
 
   static void f_source(const v8::FunctionCallbackInfo<v8::Value>& args) {
@@ -684,8 +590,6 @@ JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate
     }
 
     set_global("globals", Value(registry->_registry));
-    set_global_item("shell", "options", Value(std::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
-    set_global_item("shell", "storedSessions", StoredSessions::get());
 }
 
 void JScript_context::set_global_item(const std::string& global_name, const std::string& item_name, const Value &value) {

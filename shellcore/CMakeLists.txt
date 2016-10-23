@@ -196,6 +196,8 @@ file(GLOB libmysqlshmods_SRC
       "../modules/mod_mysqlx_*.h"
       "../modules/mod_mysql_*.cc"
       "../modules/mod_mysql_*.h"
+      "../modules/mod_shell.cc"
+      "../modules/mod_shell.h"
       "../modules/mysql_connection.cc"
       "../modules/mysql_connection.h"
       "../modules/mysqlxtest_utils.h"

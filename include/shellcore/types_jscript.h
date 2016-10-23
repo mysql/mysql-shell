@@ -29,7 +29,7 @@
 namespace shcore {
 class SHCORE_PUBLIC JScript_function : public Function_base {
 public:
-  JScript_function(std::shared_ptr<JScript_context> context);
+  JScript_function(JScript_context* context, v8::Handle<v8::Function> function);
   virtual ~JScript_function() {}
 
   virtual std::string name();
@@ -44,9 +44,11 @@ public:
 
   virtual Value invoke(const Argument_list &args);
 
+  virtual bool has_var_args() {return false;}
+
 private:
-  std::shared_ptr<JScript_context> _js;
-  v8::Handle<v8::Function> _jsfunc;
+  JScript_context *_js;
+  v8::Persistent<v8::Function> _function;
 };
 };
 

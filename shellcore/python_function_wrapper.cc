@@ -32,6 +32,7 @@
 #include <sstream>
 #include "shellcore/python_utils.h"
 #include "shellcore/common.h"
+#include "shellcore/types_python.h"
 
 using namespace shcore;
 
@@ -81,9 +82,15 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
   try {
     Value result;
     {
-      WillLeavePython lock;
+      std::shared_ptr<shcore::Python_function> pfunc(std::static_pointer_cast<shcore::Python_function>(func));
 
-      result = func->invoke(r);
+      if (pfunc)
+        result = func->invoke(r);
+      else {
+        WillLeavePython lock;
+
+        result = func->invoke(r);
+      }
     }
     return ctx->shcore_value_to_pyobj(result);
   } catch (std::exception &exc) {

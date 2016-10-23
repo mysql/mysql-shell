@@ -54,6 +54,7 @@ struct Help_register {
 
 std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string& token);
 std::string SHCORE_PUBLIC get_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname);
+std::string SHCORE_PUBLIC get_property_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname);
 std::string SHCORE_PUBLIC get_chained_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname);
 };
 

@@ -100,9 +100,10 @@ private:
 
 // -------------------------------------------------------------------------------------------------------
 
-JScript_function::JScript_function(std::shared_ptr<JScript_context> context)
-  : _js(context) {
-  throw std::logic_error("not implemented");
+JScript_function::JScript_function(JScript_context* context, v8::Handle<v8::Function> function)
+: _js(context){
+
+  _function.Reset(_js->isolate(), function);
 }
 
 std::string JScript_function::name() {
@@ -130,7 +131,16 @@ bool JScript_function::operator != (const Function_base &UNUSED(other)) const {
   return false;
 }
 
-Value JScript_function::invoke(const Argument_list &UNUSED(args)) {
-  // TODO:
-  return Value();
+Value JScript_function::invoke(const Argument_list &args) {
+  const unsigned argc = args.size();
+  v8::Local<v8::Value> argv[argc];
+
+  for(size_t index = 0; index < args.size(); index++)
+    argv[index] = _js->shcore_value_to_v8_value(args[index]);
+
+  v8::Local<v8::Function> callback = v8::Local<v8::Function>::New(_js->isolate(), _function);
+
+  v8::Local<v8::Value> ret_val = callback->Call(_js->isolate()->GetCurrentContext()->Global(), argc, argv);
+
+  return _js->v8_value_to_shcore_value(ret_val);
 }

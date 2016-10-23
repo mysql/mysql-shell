@@ -410,10 +410,20 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
 }
 
 std::string Base_shell::prompt() {
+  std::string ret_val = _shell->prompt();
+
+  // The continuation prompt should be used if state != Ok
   if (_input_mode != shcore::Input_state::Ok) {
-    return std::string(_shell->prompt().length() - 4, ' ').append("... ");
-  } else
-    return _shell->prompt();
+
+    if (ret_val.length() > 4)
+      ret_val = std::string(ret_val.length() - 4, ' ');
+    else
+      ret_val.clear();
+
+    ret_val.append("... ");
+  }
+
+  return ret_val;
 }
 
 bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args)) {

@@ -159,7 +159,6 @@ public:
 
   static Python_context *get();
   static Python_context *get_and_check();
-  PyObject *get_shell_module();
   PyObject *get_shell_stderr_module();
   PyObject *get_shell_stdout_module();
   PyObject *get_shell_python_support_module();
@@ -204,7 +203,6 @@ private:
 
   Python_type_bridger _types;
 
-  PyObject *_shell_module;
   PyObject *_shell_stderr_module;
   PyObject *_shell_stdout_module;
   PyObject *_shell_python_support_module;
@@ -214,7 +212,6 @@ private:
   void register_shell_modules();
   PyObject *call_module_function(PyObject *self, PyObject *args, PyObject *keywords, const std::string& name);
 
-  void register_shell_module();
   void register_shell_stderr_module();
   void register_shell_stdout_module();
   void register_shell_python_support_module();

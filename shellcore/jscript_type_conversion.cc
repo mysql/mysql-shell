@@ -28,6 +28,7 @@
 #include "shellcore/jscript_function_wrapper.h"
 #include "shellcore/jscript_map_wrapper.h"
 #include "shellcore/jscript_array_wrapper.h"
+#include "shellcore/types_jscript.h"
 
 #include "shellcore/obj_date.h"
 
@@ -147,8 +148,11 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
     }
     return Value(array);
   } else if (value->IsFunction()) {
+    v8::Handle<v8::Function> v8_function = v8::Handle<v8::Function>::Cast(value);
+
+    std::shared_ptr<shcore::JScript_function> function(new shcore::JScript_function(owner, v8_function));
     //throw Exception::logic_error("JS function wrapping not implemented");
-    return Value::Null();
+    return Value(std::dynamic_pointer_cast<Function_base>(function));
   } else if (value->IsObject()) // JS object
   {
     v8::Handle<v8::Object> jsobject = value->ToObject();

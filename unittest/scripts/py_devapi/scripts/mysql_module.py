@@ -89,9 +89,9 @@ else:
 mySession.close()
 
 #@ Stored Sessions, session from data dictionary
-shell.storedSessions.add('mysql_data', data);
+shell.stored_sessions.add('mysql_data', data);
 
-mySession = mysql.get_classic_session(shell.storedSessions.mysql_data, __pwd);
+mySession = mysql.get_classic_session(shell.stored_sessions.mysql_data, __pwd);
 
 print "%s\n" % mySession
 
@@ -103,14 +103,14 @@ else:
 mySession.close()
 
 #@ Stored Sessions, session from data dictionary removed
-shell.storedSessions.remove('mysql_data')
-mySession = mysql.get_classic_session(shell.storedSessions.mysql_data, __pwd)
+shell.stored_sessions.remove('mysql_data')
+mySession = mysql.get_classic_session(shell.stored_sessions.mysql_data, __pwd)
 
 
 #@ Stored Sessions, session from uri
-shell.storedSessions.add('mysql_uri', __uripwd)
+shell.stored_sessions.add('mysql_uri', __uripwd)
 
-mySession = mysql.get_classic_session(shell.storedSessions.mysql_uri)
+mySession = mysql.get_classic_session(shell.stored_sessions.mysql_uri)
 
 print "%s\n" % mySession
 
@@ -122,5 +122,5 @@ else:
 mySession.close()
 
 #@ Stored Sessions, session from uri removed
-shell.storedSessions.remove('mysql_uri')
-mySession = mysql.get_classic_session(shell.storedSessions.mysql_uri)
+shell.stored_sessions.remove('mysql_uri')
+mySession = mysql.get_classic_session(shell.stored_sessions.mysql_uri)

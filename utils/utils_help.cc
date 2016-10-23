@@ -150,6 +150,23 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
   return ret_val;
 };
 
+std::string get_property_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bpname) {
+  std::string ret_val;
+
+  std::string fname = shcore::get_member_name(bpname, style);
+
+  auto details = get_help_text(class_name + "_" + bpname + "_DETAIL");
+
+  if (!details.empty()) {
+    ret_val.append("DESCRIPTION\n\n");
+    ret_val.append(shcore::format_markup_text(details, 80, 0));
+  }
+
+  ret_val += "\n";
+
+  return ret_val;
+};
+
 std::string get_chained_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname) {
   std::string ret_val;
 

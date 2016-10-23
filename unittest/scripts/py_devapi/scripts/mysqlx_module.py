@@ -156,9 +156,9 @@ mySession.close()
 
 
 #@ Stored Sessions, session from data dictionary
-shell.storedSessions.add('mysqlx_data', data);
+shell.stored_sessions.add('mysqlx_data', data);
 
-mySession = mysqlx.get_session(shell.storedSessions.mysqlx_data, __pwd);
+mySession = mysqlx.get_session(shell.stored_sessions.mysqlx_data, __pwd);
 
 print "%s\n" % mySession
 
@@ -170,14 +170,14 @@ else:
 mySession.close()
 
 #@ Stored Sessions, session from data dictionary removed
-shell.storedSessions.remove('mysqlx_data')
-mySession = mysqlx.get_session(shell.storedSessions.mysqlx_data)
+shell.stored_sessions.remove('mysqlx_data')
+mySession = mysqlx.get_session(shell.stored_sessions.mysqlx_data)
 
 
 #@ Stored Sessions, session from uri
-shell.storedSessions.add('mysqlx_uri', __uripwd)
+shell.stored_sessions.add('mysqlx_uri', __uripwd)
 
-mySession = mysqlx.get_session(shell.storedSessions.mysqlx_uri, __pwd)
+mySession = mysqlx.get_session(shell.stored_sessions.mysqlx_uri, __pwd)
 
 print "%s\n" % mySession
 
@@ -189,8 +189,8 @@ else:
 mySession.close()
 
 #@ Stored Sessions, session from uri removed
-shell.storedSessions.remove('mysqlx_uri')
-mySession = mysqlx.get_session(shell.storedSessions.mysqlx_uri)
+shell.stored_sessions.remove('mysqlx_uri')
+mySession = mysqlx.get_session(shell.stored_sessions.mysqlx_uri)
 
 
 # @# mysqlx module: expression errors

@@ -286,6 +286,8 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
     if (chain_definition.empty()) {
       if (has_method_advanced(item, naming_style))
         ret_val += shcore::get_function_help(naming_style, class_name(), base_name);
+      else if (has_member_advanced(item, naming_style))
+        ret_val += shcore::get_property_help(naming_style, class_name(), base_name);
     } else {
       ret_val += shcore::get_chained_function_help(naming_style, class_name(), base_name);
     }

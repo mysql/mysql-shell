@@ -59,7 +59,6 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
 
   // register shell module
   register_shell_modules();
-  register_shell_module();
   register_shell_stderr_module();
   register_shell_stdout_module();
   register_shell_python_support_module();
@@ -85,9 +84,6 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
     PyErr_Print();
   }
 
-  PyDict_SetItemString(PyModule_GetDict(main),
-    "shell", PyImport_ImportModule("shell"));
-
   PySys_SetObject((char*)"real_stdout", PySys_GetObject((char*)"stdout"));
   PySys_SetObject((char*)"real_stderr", PySys_GetObject((char*)"stderr"));
   PySys_SetObject((char*)"real_stdin", PySys_GetObject((char*)"stdin"));
@@ -97,7 +93,7 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
   PySys_SetObject((char*)"stderr", get_shell_stderr_module());
 
   // set stdin to the Sh shell console
-  PySys_SetObject((char*)"stdin", get_shell_module());
+  PySys_SetObject((char*)"stdin", get_shell_python_support_module());
 
   // Stores the main thread state
   _main_thread_state = PyThreadState_Get();
@@ -106,9 +102,6 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
   PyEval_SaveThread();
 
   _types.init();
-
-  set_global_item("shell", "options", Value(std::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
-  set_global_item("shell", "storedSessions", StoredSessions::get());
 }
 
 Python_context::~Python_context() {
@@ -124,7 +117,7 @@ Python_context *Python_context::get() {
   PyObject *module;
   PyObject *dict;
 
-  module = PyDict_GetItemString(PyImport_GetModuleDict(), "shell");
+  module = PyDict_GetItemString(PyImport_GetModuleDict(), "shell_python_support");
   if (!module)
     throw std::runtime_error("SHELL module not found in Python runtime");
 
@@ -146,10 +139,6 @@ Python_context *Python_context::get_and_check() {
     Python_context::set_python_error(PyExc_SystemError, "Could not get SHELL context: "); // TODO: add exc content
   }
   return NULL;
-}
-
-PyObject *Python_context::get_shell_module() {
-  return _shell_module;
 }
 
 PyObject *Python_context::get_shell_stderr_module() {
@@ -666,19 +655,6 @@ void Python_context::register_shell_modules() {
   }
 }
 
-void Python_context::register_shell_module() {
-  PyObject *module = Py_InitModule("shell", ShellModuleMethods);
-  if (module == NULL)
-    throw std::runtime_error("Error initializing SHELL module in Python support");
-
-  _shell_module = module;
-
-  // add the context ptr
-  PyObject* context_object = PyCObject_FromVoidPtrAndDesc(this, &SHELLTypeSignature, NULL);
-  if (context_object != NULL)
-    PyModule_AddObject(module, "__SHELL__", context_object);
-}
-
 void Python_context::register_shell_stderr_module() {
   PyObject *module = Py_InitModule("shell_stderr", ShellStdErrMethods);
   if (module == NULL)
@@ -701,6 +677,11 @@ void Python_context::register_shell_python_support_module() {
     throw std::runtime_error("Error initializing SHELL module in Python support");
 
   _shell_python_support_module = module;
+
+  // add the context ptr
+  PyObject* context_object = PyCObject_FromVoidPtrAndDesc(this, &SHELLTypeSignature, NULL);
+  if (context_object != NULL)
+    PyModule_AddObject(module, "__SHELL__", context_object);
 
   PyModule_AddStringConstant(module, "INT", (char*)shcore::type_name(Integer).c_str());
   PyModule_AddStringConstant(module, "DOUBLE", (char*)shcore::type_name(Float).c_str());

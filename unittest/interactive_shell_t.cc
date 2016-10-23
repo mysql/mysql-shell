@@ -609,7 +609,7 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
   std::ofstream out;
   out.open(user_path, std::ios_base::trunc);
   if (!out.fail()) {
-    out << "shell.custom_prompt = function() {" << std::endl;
+    out << "shell.customPrompt = function() {" << std::endl;
     out << "   return '---> ';" << std::endl;
     out << "}" << std::endl << std::endl;
     out << "var the_variable = 'Local Value';" << std::endl;

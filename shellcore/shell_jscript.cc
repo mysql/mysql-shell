@@ -52,7 +52,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state,
 
 std::string Shell_javascript::prompt() {
   try {
-    shcore::Value value = _js->execute("shell.custom_prompt ? shell.custom_prompt() : null", "shell.custom_prompt");
+    shcore::Value value = _js->execute("shell.customPrompt ? shell.customPrompt() : null", "shell.customPrompt");
     if (value && value.type == String)
       return value.as_string();
   } catch (std::exception &exc) {

@@ -306,12 +306,12 @@ public:
   void ensure_keys(const std::set<std::string> &mandatory_keys,
                    const std::set<std::string> &optional_keys,
                    const char *context) const;
-                   
+
   bool validate_keys(const std::set<std::string> &mandatory_keys,
                      const std::set<std::string> &optional_keys,
                      std::vector<std::string> &missing_keys,
                      std::vector<std::string> &invalid_keys) const;
-                                  
+
 
   size_t size() const { return _map.size(); }
   const Value &at(const std::string &key) const { return _map.at(key); }

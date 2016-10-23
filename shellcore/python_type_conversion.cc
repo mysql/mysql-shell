@@ -22,6 +22,7 @@
 #include "shellcore/python_object_wrapper.h"
 #include "shellcore/python_function_wrapper.h"
 #include "shellcore/python_type_conversion.h"
+#include "shellcore/types_python.h"
 
 using namespace shcore;
 
@@ -96,6 +97,9 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
     }
 
     return Value(map);
+  } else if (PyFunction_Check(py)) {
+    std::shared_ptr<shcore::Python_function> function(new shcore::Python_function(_owner, py));
+    return Value(std::dynamic_pointer_cast<Function_base>(function));
   } else {
     std::shared_ptr<Value::Array_type> array;
     std::shared_ptr<Value::Map_type> map;
