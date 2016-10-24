@@ -367,20 +367,17 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   std::string instance_public_xaddress = instance_public_address;
   instance_public_address.append(":" + std::to_string(options->get_int("port")));
 
-  instance_public_address = "tecra";
-
   bool is_instance_on_gr = false;
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_public_address);
 
-  auto session = _metadata_storage->get_dba()->get_active_session();
-  mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(options));
+  auto session = Dba::get_session(new_args);
 
-  GRInstanceType type = get_gr_instance_type(classic->connection());
+  GRInstanceType type = get_gr_instance_type(session->connection());
 
-  if (type == GRInstanceType::GroupReplication)
-    is_instance_on_md = true;
-
-  if (is_instance_on_gr && is_instance_on_md)
+  // If type is GRInstanceType::InnoDBCluster it means that is on GR and MD
+  if (type == GRInstanceType::InnoDBCluster)
     throw shcore::Exception::runtime_error("The instance '" + instance_public_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
   // If the instance is not on GR, we must add it
