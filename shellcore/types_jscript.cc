@@ -133,7 +133,7 @@ bool JScript_function::operator != (const Function_base &UNUSED(other)) const {
 
 Value JScript_function::invoke(const Argument_list &args) {
   const unsigned argc = args.size();
-  v8::Local<v8::Value> argv[argc];
+  v8::Local<v8::Value> *argv = new v8::Local<v8::Value>[argc];
 
   for(size_t index = 0; index < args.size(); index++)
     argv[index] = _js->shcore_value_to_v8_value(args[index]);
@@ -141,6 +141,8 @@ Value JScript_function::invoke(const Argument_list &args) {
   v8::Local<v8::Function> callback = v8::Local<v8::Function>::New(_js->isolate(), _function);
 
   v8::Local<v8::Value> ret_val = callback->Call(_js->isolate()->GetCurrentContext()->Global(), argc, argv);
+
+  delete[] argv;
 
   return _js->v8_value_to_shcore_value(ret_val);
 }
