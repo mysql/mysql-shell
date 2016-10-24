@@ -28,6 +28,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
+#include "utils/utils_help.h"
 #include <boost/format.hpp>
 
 using namespace std::placeholders;

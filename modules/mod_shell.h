@@ -41,9 +41,10 @@ namespace mysh {
 
     shcore::Value parse_uri(const shcore::Argument_list &args);
     shcore::Value prompt(const shcore::Argument_list &args);
+    shcore::Value connect(const shcore::Argument_list &args);
 
     #if DOXYGEN_JS
-    Dictionary options; 
+    Dictionary options;
     Dictionary storedSessions;
     Dictionary parseUri(String uri);
     String prompt(String message, Dictionary options);

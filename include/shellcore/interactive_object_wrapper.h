@@ -61,6 +61,7 @@ public:
   virtual std::vector<std::string> get_members() const { return _target ? _target->get_members() : Cpp_object_bridge::get_members(); }
   virtual std::vector<std::string> get_members_advanced(const NamingStyle &style) { return _target ? _target->get_members_advanced(style) : Cpp_object_bridge::get_members(); }
   virtual void set_member(const std::string &prop, Value value) { _target ? _target->set_member(prop, value) : Cpp_object_bridge::set_member(prop, value); }
+  virtual void set_member_advanced(const std::string &prop, Value value, const NamingStyle &style) { _target ? _target->set_member_advanced(prop, value, style) : Cpp_object_bridge::set_member_advanced(prop, value, style); }
   virtual bool is_indexed() const { return _target ? _target->is_indexed() : Cpp_object_bridge::is_indexed(); }
   virtual Value get_member(size_t index) const { return _target ? _target->get_member(index) : Cpp_object_bridge::get_member(index); }
   virtual void set_member(size_t index, Value value) { _target ? _target->set_member(index, value) : Cpp_object_bridge::set_member(index, value); }
@@ -125,7 +126,7 @@ protected:
   void print_value(const shcore::Value& value, const std::string& tag) const;
   bool prompt(const std::string& prompt, std::string &ret_val) const;
   bool password(const std::string& prompt, std::string &ret_val) const;
-  
+
   shcore::Value call_target(const std::string &name, const Argument_list &args);
 };
 }

@@ -39,6 +39,7 @@ using namespace mysh::mysql;
 using namespace shcore;
 
 // Documentation of the ClassicSchema class
+REGISTER_HELP(CLASSICSCHEMA_INTERACTIVE_BRIEF,"Used to work with database schema objects.");
 REGISTER_HELP(CLASSICSCHEMA_BRIEF,"Represents a Schema retrieved with a session created using the MySQL Protocol.");
 REGISTER_HELP(CLASSICSCHEMA_DETAIL,"<b>Dynamic Properties</b>");
 REGISTER_HELP(CLASSICSCHEMA_DETAIL1, "In addition to the properties documented above, when a schema object is retrieved from the session, "\

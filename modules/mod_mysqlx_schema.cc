@@ -42,6 +42,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 // Documentation of Schema class
+REGISTER_HELP(SCHEMA_INTERACTIVE_BRIEF,"Used to work with database schema objects.");
 REGISTER_HELP(SCHEMA_BRIEF, "Represents a Schema as retrived from a session created using the X Protocol.");
 REGISTER_HELP(SCHEMA_DETAIL, "<b> View Support </b>");
 REGISTER_HELP(SCHEMA_DETAIL1, "MySQL Views are stored queries that when executed produce a result set.");

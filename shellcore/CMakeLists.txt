@@ -93,6 +93,8 @@ file(GLOB libmysqlshcore_SRC
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_dba.cc")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.h")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.cc")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_shell.h")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_shell.cc")
 
 #else()
 #  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")

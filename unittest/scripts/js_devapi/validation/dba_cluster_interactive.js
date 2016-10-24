@@ -19,7 +19,7 @@
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 4
 ||Invalid connection options, expected either a URI or a Dictionary
-||Cluster.addInstance: Instance definition is empty.
+||Cluster.addInstance: Connection definition is empty
 ||Cluster.addInstance: Invalid values in instance definition: authMethod, schema
 ||Cluster.addInstance: Missing values in instance definition: host
 
@@ -68,7 +68,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
                         "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                         "leaves": {
 
-                        }, 
+                        },
                         "mode": "R/O",
                         "role": "HA",
                         "status": "RECOVERING"
@@ -119,7 +119,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "leaves": {
 
-                }, 
+                },
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
@@ -165,7 +165,7 @@ The following replicasets are currently registered:
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
-        ], 
+        ],
         "name": "default"
     }
 }

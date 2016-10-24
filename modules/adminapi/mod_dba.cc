@@ -52,7 +52,7 @@ std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "pass
 std::set<std::string> Dba::_config_local_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket"};
 
 // Documentation of the DBA Class
-REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL Admin API.");
+REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL X AdminAPI.");
 REGISTER_HELP(DBA_DETAIL, "The global variable 'dba' is used to access the MySQL AdminAPI functionality "\
 "and perform DBA operations. It is used for managing MySQL InnoDB clusters.");
 REGISTER_HELP(DBA_CLOSING, "For more help on a specific function use: dba.help('<functionName>')");
@@ -435,7 +435,7 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL7, "The password may be contained on
 * $(DBA_CHECKINSTANCECONFIG_DETAIL4)
 * $(DBA_CHECKINSTANCECONFIG_DETAIL5)
 * $(DBA_CHECKINSTANCECONFIG_DETAIL6)
-* 
+*
 * $(DBA_CHECKINSTANCECONFIG_DETAIL7)
 */
 #if DOXYGEN_JS
@@ -840,7 +840,7 @@ REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL6, "@li password: The password to be
 * $(DBA_CONFIGLOCALINSTANCE_RETURN)
 *
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL)
-* 
+*
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL1)
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL2)
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL3)
@@ -848,7 +848,7 @@ REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL6, "@li password: The password to be
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL4)
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL5)
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL6)
-* 
+*
 */
 #if DOXYGEN_JS
 Instance Dba::configLocalInstance(Variant connectionData) {}
@@ -986,13 +986,13 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
             for (size_t index = 1; index < lines.size(); index++) {
               if (loading_options) {
                 auto option_tokens = shcore::split_string(lines[index], " ", true);
-                
+
 
                 if (option_tokens[1] == "<no") {
                   option_tokens[1] = "<no value>";
                   option_tokens.erase(option_tokens.begin() + 2);
                 }
-                
+
                 if (option_tokens[2] == "<not") {
                   option_tokens[2] = "<not set>";
                   option_tokens.erase(option_tokens.begin() + 3);

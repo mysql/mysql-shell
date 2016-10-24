@@ -58,7 +58,7 @@ namespace dba {
   //}
 
   // Not an instance, tries as URI string
-  //else 
+  //else
   if (args[0].type == shcore::String)
     options = shcore::get_connection_data(args.string_at(0), false);
 
@@ -69,7 +69,7 @@ namespace dba {
     throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary");
 
   if (options->size() == 0)
-    throw shcore::Exception::argument_error("Instance definition is empty.");
+    throw shcore::Exception::argument_error("Connection definition is empty");
 
   // Overrides the options password if given appart
   if (args.size() == 2) {

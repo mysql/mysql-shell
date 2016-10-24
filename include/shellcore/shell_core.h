@@ -178,6 +178,7 @@ private:
 
   virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data);
   void set_dba_global();
+  void set_shell_global();
   void init_sql();
   void init_js();
   void init_py();

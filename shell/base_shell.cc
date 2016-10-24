@@ -517,16 +517,22 @@ bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
     auto globals = _shell->get_global_objects();
 
     if (globals.size()) {
-      println("===== Global Variables =====");
+      println("===== Global Objects =====");
 
       for (auto name : globals) {
         auto object_val = _shell->get_global(name);
         auto object = std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(object_val.as_object());
-        auto brief = shcore::get_help_text(object->class_name() + "_BRIEF");
+        auto brief = shcore::get_help_text(object->class_name() + "_INTERACTIVE_BRIEF");
+        if (brief.empty())
+          brief = shcore::get_help_text(object->class_name() + "_BRIEF");
 
         if (!brief.empty())
           println((boost::format("%-10s %s") % name % brief[0]).str());
       }
+
+      println();
+      println("Please note that MySQL Document Store APIs are subject to change in future") ;
+      println("releases.");
       println("");
       println("For more help on a global variable use <var>.help(), e.g. dba.help()");
       println("");

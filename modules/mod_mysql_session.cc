@@ -59,6 +59,7 @@ using namespace shcore;
 REGISTER_OBJECT(mysql, ClassicSession);
 
 // Documentation for ClassicSession class
+REGISTER_HELP(CLASSICSESSION_INTERACTIVE_BRIEF, "Represents the currently open MySQL session.");
 REGISTER_HELP(CLASSICSESSION_BRIEF, "Enables interaction with a MySQL Server using the MySQL Protocol.");
 REGISTER_HELP(CLASSICSESSION_DETAIL, "Provides facilities to execute queries and retrieve database objects.");
 

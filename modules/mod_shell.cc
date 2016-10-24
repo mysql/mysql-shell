@@ -22,13 +22,14 @@
 #include "shellcore/shell_core_options.h"
 #include "shellcore/shell_registry.h"
 #include "utils/utils_help.h"
+#include "modules/adminapi/mod_dba_common.h"
+#include "modules/base_session.h"
 
 using namespace std::placeholders;
 
-namespace mysh {
+REGISTER_HELP(SHELL_BRIEF, "Gives access to general purpose functions and objects.");
 
-  // Documentation of Schema class
-  REGISTER_HELP(SHELL_BRIEF, "Global object with general use functions and properties.");
+namespace mysh {
 
   Shell::Shell(shcore::IShell_core* owner):
   _shell_core(owner) {
@@ -45,6 +46,7 @@ namespace mysh {
 
     add_method("parseUri", std::bind(&Shell::parse_uri, this, _1), "uri", shcore::String, NULL);
     add_varargs_method("prompt", std::bind(&Shell::prompt, this, _1));
+    add_varargs_method("connect", std::bind(&Shell::connect, this, _1));
   }
 
   Shell::~Shell() {}
@@ -158,17 +160,17 @@ namespace mysh {
    * $(SHELL_PROMPT_BRIEF)
    *
    * $(SHELL_PROMPT_PARAM)
-   * * $(SHELL_PROMPT_PARAM1)
+   * $(SHELL_PROMPT_PARAM1)
    *
    * $(SHELL_PROMPT_RETURN)
    *
-   * $(SHELL_PARSEURI_DETAIL)
+   * $(SHELL_PROMPT_DETAIL)
    *
-   * $(SHELL_PARSEURI_DETAIL1)
+   * $(SHELL_PROMPT_DETAIL1)
    *
-   * $(SHELL_PARSEURI_DETAIL2)
-   * $(SHELL_PARSEURI_DETAIL3)
-   * $(SHELL_PARSEURI_DETAIL4)
+   * $(SHELL_PROMPT_DETAIL2)
+   * $(SHELL_PROMPT_DETAIL3)
+   * $(SHELL_PROMPT_DETAIL4)
    */
   #if DOXYGEN_JS
   String prompt(String message, Dictionary options);
@@ -228,5 +230,74 @@ namespace mysh {
 
     return shcore::Value(ret_val);
 
+  }
+
+  REGISTER_HELP(SHELL_CONNECT_BRIEF, "Establishes the shell global session.");
+  REGISTER_HELP(SHELL_CONNECT_PARAM, "@param connectionData the connection data to be used to establish the session.");
+  REGISTER_HELP(SHELL_CONNECT_PARAM1, "@param password Optional the password to be used when establishing the session.");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL, "This function will establish the global session with the received connection data.");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL1, "The connectionData parameter may be any of");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL2, "@li A URI string");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL3, "@li A dictionary with the connection data");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL4, "The password may be included on the connectionData, the optional parameter should be used only "\
+    "if the connectionData does not contain it already. If both are specified the password parameter will override the password defined on "\
+    "the connectionData." );
+  REGISTER_HELP(SHELL_CONNECT_DETAIL5, "The type of session will be determined by the given connectionData:");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL6, "@li When using URI with a mysqlx scheme, a NodeSession wil be created");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL7, "@li When using URI with a mysql scheme, a ClassicSession wil be created");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL8, "@li When using a dictionary containing the session type will be determined by the 'scheme' attribute");
+  REGISTER_HELP(SHELL_CONNECT_DETAIL9, "@li If the 'scheme' component is not provided, a NodeSession will be created");
+  /**
+   * $(SHELL_CONNECT_BRIEF)
+   *
+   * $(SHELL_CONNECT_PARAM)
+   * $(SHELL_CONNECT_PARAM1)
+   *
+   * $(SHELL_CONNECT_RETURN)
+   *
+   * $(SHELL_CONNECT_DETAIL)
+   *
+   * $(SHELL_CONNECT_DETAIL1)
+   * $(SHELL_CONNECT_DETAIL2)
+   * $(SHELL_CONNECT_DETAIL3)
+   *
+   * $(SHELL_CONNECT_DETAIL4)
+   *
+   * $(SHELL_CONNECT_DETAIL5)
+   * $(SHELL_CONNECT_DETAIL6)
+   * $(SHELL_CONNECT_DETAIL7)
+   * $(SHELL_CONNECT_DETAIL8)
+   * $(SHELL_CONNECT_DETAIL9)
+   */
+  #if DOXYGEN_JS
+  Session connect(String message, Dictionary options);
+  #elif DOXYGEN_PY
+  Session connect(str message, dict options);
+  #endif
+  shcore::Value Shell::connect(const shcore::Argument_list &args) {
+
+    args.ensure_count(1, 2, get_function_name("connect").c_str());
+
+    try {
+      auto options = mysh::dba::get_instance_options_map(args);
+      mysh::dba::resolve_instance_credentials(options);
+
+      SessionType type = SessionType::Auto;
+      if (options->has_key("scheme")) {
+        if (options->get_string("scheme") == "mysqlx")
+          type = SessionType::Node;
+        else if (options->get_string("scheme") == "mysql")
+          type = SessionType::Classic;
+      }
+
+      shcore::Argument_list new_args;
+
+      new_args.push_back(shcore::Value(options));
+
+      _shell_core->connect_dev_session(new_args, type);
+    }
+    CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
+
+    return shcore::Value();
   }
 }

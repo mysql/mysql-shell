@@ -225,6 +225,98 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   }
 }
 
+TEST_F(Interactive_shell_test, shell_function_connect_node) {
+  _interactive_shell->process_line("shell.connect('mysqlx://" + _uri+"');");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
+  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("db");
+  EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
+
+  _interactive_shell->process_line("session.close()");
+
+  _interactive_shell->process_line("shell.connect('mysqlx://" + _uri + "/mysql');");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "/mysql'");
+  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema `mysql` accessible through db.");
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("db");
+  MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session.close()");
+}
+
+TEST_F(Interactive_shell_test, shell_function_connect_classic) {
+  _interactive_shell->process_line("shell.connect('mysql://" + _mysql_uri + "');");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
+  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("db");
+  EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
+
+  _interactive_shell->process_line("session.close()");
+
+  _interactive_shell->process_line("shell.connect('mysql://" + _mysql_uri + "/mysql');");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "/mysql'");
+  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema set to `mysql`.");
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("db");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSchema:mysql>");
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session.close()");
+}
+
+TEST_F(Interactive_shell_test, shell_function_connect_auto) {
+  // Session type determined from connection success
+  {
+    _interactive_shell->process_line("shell.connect('" + _uri + "');");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
+    output_handler.wipe_all();
+
+    _interactive_shell->process_line("session");
+    MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+    output_handler.wipe_all();
+
+    _interactive_shell->process_line("session.close()");
+  }
+
+  // Session type determined from connection success
+  {
+    _interactive_shell->process_line("shell.connect('" + _mysql_uri + "');");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Classic Session successfully established. No default schema selected.");
+    output_handler.wipe_all();
+
+    _interactive_shell->process_line("session");
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    output_handler.wipe_all();
+
+    _interactive_shell->process_line("session.close()");
+  }
+}
+
 TEST_F(Interactive_shell_test, shell_command_use) {
   _interactive_shell->process_line("\\use mysql");
   MY_EXPECT_STDERR_CONTAINS("Not Connected.");

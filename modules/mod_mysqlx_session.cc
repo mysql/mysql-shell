@@ -82,12 +82,14 @@ REGISTER_HELP(BASESESSION_DETAIL3, "@li Enabling/disabling warning generation.")
 REGISTER_HELP(BASESESSION_DETAIL4, "@li Retrieval of connection information.");
 
 // Documentation of XSession class
+REGISTER_HELP(XSESSION_INTERACTIVE_BRIEF, "Represents the currently open MySQL session.");
 REGISTER_HELP(XSESSION_BRIEF, "Enables interaction with an X Protocol enabled MySQL Product.");
 REGISTER_HELP(XSESSION_DETAIL, "Note that this class inherits the behavior described on the BaseSession class.");
 REGISTER_HELP(XSESSION_DETAIL1, "In the future this class will be improved to support interacting not only with MySQL Server "\
 "but with other products.");
 
 // Documentation of NodeSession class
+REGISTER_HELP(NODESESSION_INTERACTIVE_BRIEF, "Represents the currently open MySQL session.");
 REGISTER_HELP(NODESESSION_BRIEF, "Enables interaction with an X Protocol enabled MySQL Server, this includes SQL Execution.");
 REGISTER_HELP(NODESESSION_DETAIL, "Note that this class inherits the behavior described on the BaseSession class.");
 

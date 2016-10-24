@@ -25,6 +25,7 @@
 #include "modules/base_session.h"
 #include "interactive/interactive_global_schema.h"
 #include "interactive/interactive_global_session.h"
+#include "interactive/interactive_global_shell.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "modules/mod_mysqlx.h"
@@ -74,11 +75,11 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
     set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
     set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)));
+    set_global("shell", shcore::Value::wrap<Global_shell>(new Global_shell(*this)));
   }
 
-  set_global("shell", shcore::Value::wrap<mysh::Shell>(new mysh::Shell(this)));
-
   set_dba_global();
+  set_shell_global();
 
   observe_notification("SN_SESSION_CONNECTION_LOST");
 
@@ -489,7 +490,20 @@ void Shell_core::set_dba_global() {
   // Use the admin session objects directly if the wizards are OFF
   else {
     set_global("dba", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(dba)));
-    //set_global("farm", _global_admin_session->get_member("defaultFarm"));
+  }
+}
+
+void Shell_core::set_shell_global() {
+  std::shared_ptr<mysh::Shell>shell(new mysh::Shell(this));
+
+  // When using the interactive wrappers instead of setting the global variables
+  // The target Objects on the wrappers are set
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
+    get_global("shell").as_object<Interactive_object_wrapper>()->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(shell));
+
+  // Use the admin session objects directly if the wizards are OFF
+  else {
+    set_global("shell", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(shell)));
   }
 }
 
