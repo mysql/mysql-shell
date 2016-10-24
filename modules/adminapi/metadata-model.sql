@@ -26,10 +26,10 @@ CREATE DATABASE mysql_innodb_cluster_metadata;
 USE mysql_innodb_cluster_metadata;
 
 /*
-  The major and minor version of the schema representing the semantic
+  The major, minor and patch version of the schema representing the semantic
   version of the schema that is in use
 */
-CREATE VIEW schema_version (major, minor) AS SELECT 1, 0;
+CREATE VIEW schema_version (major, minor, patch) AS SELECT 1, 0, 1;
 
 /*
   This table contain information about the metadata and is used to identify
@@ -230,7 +230,7 @@ CREATE TABLE routers (
   /*
     A user specified name for an instance of the router.
    */
-  `router_name` VARCHAR(40) NOT NULL,
+  `router_name` VARCHAR(256) NOT NULL,
   /* The ID of the host in which the server is running. */
   `host_id` INT UNSIGNED NOT NULL,
   /*
