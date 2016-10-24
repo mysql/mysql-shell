@@ -1,7 +1,7 @@
 //@<OUT> Cluster: getCluster with interaction
 
 //@ Cluster: validating members
-|Cluster Members: 12|
+|Cluster Members: 13|
 |name: OK|
 |getName: OK|
 |adminType: OK|

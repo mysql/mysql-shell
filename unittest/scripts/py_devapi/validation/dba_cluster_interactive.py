@@ -1,7 +1,7 @@
 #@<OUT> Cluster: get_cluster with interaction
 
 #@ Cluster: validating members
-|Cluster Members: 12|
+|Cluster Members: 13|
 |name: OK|
 |get_name: OK|
 |admin_type: OK|
