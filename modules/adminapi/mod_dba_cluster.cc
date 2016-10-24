@@ -191,6 +191,10 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_) {
   }
   // Add the Instance to the Default ReplicaSet
   ret_val = _default_replica_set->add_instance(args);
+
+  std::string group_replication_group_name = _metadata_storage->get_replicaset_group_name();
+  _metadata_storage->set_replicaset_group_name(_default_replica_set, group_replication_group_name);
+
   tx.commit();
   //}
   //CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addSeedInstance"));

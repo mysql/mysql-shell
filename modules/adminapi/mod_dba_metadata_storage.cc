@@ -564,6 +564,38 @@ bool MetadataStorage::is_replicaset_active(uint64_t rs_id) {
   return active == 1;
 }
 
+std::string MetadataStorage::get_replicaset_group_name() {
+  std::string group_name;
+
+  std::string query("SELECT @@group_replication_group_name");
+
+  // Any error will bubble up right away
+  auto result = execute_sql(query);
+  auto row = result->call("fetchOne", shcore::Argument_list());
+
+  if (row) {
+    shcore::Argument_list args;
+    args.push_back(shcore::Value("@@group_replication_group_name"));
+    group_name = row.as_object<Row>()->get_field(args).as_string();
+  }
+
+  return group_name;
+}
+
+void MetadataStorage::set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset, std::string group_name) {
+  uint64_t rs_id;
+
+  rs_id = replicaset->get_id();
+
+  shcore::sqlstring query("UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_object('group_replication_group_name', ?)"
+                          " WHERE replicaset_id = ?", 0);
+
+  query << group_name << rs_id;
+  query.done();
+
+  execute_sql(query);
+}
+
 std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id) {
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
