@@ -267,9 +267,6 @@ TEST_F(Shell_js_dba_tests, interactive_custom_global_cluster) {
   execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_sandbox_port1 + "');");
   execute("dba.resetSession(mySession);");
 
-  //@<OUT> Cluster: getCluster with interaction
-  output_handler.passwords.push_back("testing");
-
   //@# Cluster: addInstance errors: missing host interactive, cancel
   output_handler.prompts.push_back("3");
 
