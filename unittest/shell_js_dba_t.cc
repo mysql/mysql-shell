@@ -67,6 +67,8 @@ protected:
       exec_and_out_equals(code);
       code = "__mysql_port = " + _mysql_port + ";";
       exec_and_out_equals(code);
+      code = "__sandbox_dir = '" + _sandbox_dir + "';";
+      exec_and_out_equals(code);
       code = "var __mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
       exec_and_out_equals(code);
       code = "var __mysql_sandbox_port2 = " + _mysql_sandbox_port2 + ";";

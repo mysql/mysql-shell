@@ -22,9 +22,12 @@
 #include "mod_mysqlx_expression.h"
 #include "mod_mysqlx_constants.h"
 #include "shellcore/obj_date.h"
+#include "utils/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysh::mysqlx;
+
+REGISTER_HELP(MYSQLX_INTERACTIVE_BRIEF, "Used to work with X Protocol sessions using the MySQL X DevAPI.");
 
 REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");

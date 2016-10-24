@@ -33,6 +33,7 @@ public:
 
   void init_environment();
   void init_scripts(shcore::Shell_core::Mode mode);
+  void load_default_modules(shcore::Shell_core::Mode mode);
 
   bool cmd_process_file(const std::vector<std::string>& params);
   bool connect(bool primary_session = false);

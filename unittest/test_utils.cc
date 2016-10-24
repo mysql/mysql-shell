@@ -171,6 +171,9 @@ void Shell_core_test_wrapper::SetUp() {
   const char *tmpdir = getenv("TMPDIR");
   if (tmpdir)
     _sandbox_dir.assign(tmpdir);
+  else
+    _sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+
 
   // Initializes the interactive shell
   reset_shell();

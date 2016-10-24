@@ -136,8 +136,10 @@ _options(options) {
 
   _result_processor = std::bind(&Base_shell::process_result, this, _1);
 
-  if (lang_initialized)
+  if (lang_initialized) {
+    load_default_modules(_options.initial_mode);
     init_scripts(_options.initial_mode);
+  }
 }
 
 bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {
@@ -409,6 +411,17 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
   }
 }
 
+void Base_shell::load_default_modules(shcore::Shell_core::Mode mode) {
+  if (mode == shcore::Shell_core::Mode::JScript) {
+    process_line("var mysqlx = require('mysqlx');");
+    process_line("var mysql = require('mysql');");
+  }
+  else if (mode == shcore::Shell_core::Mode::Python) {
+    process_line("import mysqlx");
+    process_line("import mysql");
+  }
+}
+
 std::string Base_shell::prompt() {
   std::string ret_val = _shell->prompt();
 
@@ -472,8 +485,10 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
     }
 
     // load scripts for standard locations
-    if (lang_initialized)
+    if (lang_initialized) {
+      load_default_modules(mode);
       init_scripts(mode);
+    }
   }
 
   return true;
@@ -515,28 +530,41 @@ bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
     println("For help on a specific command use the command as \\? <command>");
     println("");
     auto globals = _shell->get_global_objects();
+    std::vector<std::pair<std::string, std::string> > global_names;
 
     if (globals.size()) {
-      println("===== Global Objects =====");
-
       for (auto name : globals) {
         auto object_val = _shell->get_global(name);
         auto object = std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(object_val.as_object());
-        auto brief = shcore::get_help_text(object->class_name() + "_INTERACTIVE_BRIEF");
+        global_names.push_back({name, object->class_name()});
+      }
+    }
+
+    // Inserts the default modules
+    global_names.push_back({"mysqlx", "mysqlx"});
+    global_names.push_back({"mysql", "mysql"});
+
+    std::sort(global_names.begin(), global_names.end());
+
+    if (!global_names.empty()) {
+      println("===== Global Objects =====");
+      for(auto name: global_names) {
+        auto brief = shcore::get_help_text(name.second + "_INTERACTIVE_BRIEF");
         if (brief.empty())
-          brief = shcore::get_help_text(object->class_name() + "_BRIEF");
+          brief = shcore::get_help_text(name.second + "_BRIEF");
 
         if (!brief.empty())
-          println((boost::format("%-10s %s") % name % brief[0]).str());
+          println((boost::format("%-10s %s") % name.first % brief[0]).str());
       }
-
-      println();
-      println("Please note that MySQL Document Store APIs are subject to change in future") ;
-      println("releases.");
-      println("");
-      println("For more help on a global variable use <var>.help(), e.g. dba.help()");
-      println("");
     }
+
+    println();
+    println("Please note that MySQL Document Store APIs are subject to change in future") ;
+    println("releases.");
+    println("");
+    println("For more help on a global variable use <var>.help(), e.g. dba.help()");
+    println("");
+
   }
 
   return true;

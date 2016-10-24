@@ -82,14 +82,14 @@ Please fix these issues and try again.
 ||Dba.configLocalInstance: This function only works with local instances
 
 //@<OUT> Dba: configLocalInstance error 2
-Please provide a password for 'root@localhost:<<<__mysql_port>>>': Please specify the path to the MySQL configuration file: 
+Please provide a password for 'root@localhost:<<<__mysql_port>>>': Please specify the path to the MySQL configuration file:
 The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
 
 //@<OUT> Dba: configLocalInstance error 3
-Please provide a password for 'root@localhost:<<<__mysql_sandbox_port1>>>': 
+Please provide a password for 'root@localhost:<<<__mysql_sandbox_port1>>>':
 Detected as sandbox instance.
 
-Validating MySQL configuration file at: /home/rennox/mysql-sandboxes/<<<__mysql_sandbox_port1>>>/my.cnf
+Validating MySQL configuration file at: <<<__sandbox_dir>>>/<<<__mysql_sandbox_port1>>>/my.cnf
 Validating instance...
 
 //@<ERR> Dba: configLocalInstance error 3

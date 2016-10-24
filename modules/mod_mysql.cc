@@ -19,9 +19,12 @@
 
 #include "mod_mysql.h"
 #include "base_session.h"
+#include "utils/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysh::mysql;
+
+REGISTER_HELP(MYSQL_INTERACTIVE_BRIEF, "Used to work with classic MySQL sessions using SQL.");
 
 REGISTER_MODULE(Mysql, mysql) {
   REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getClassicSession);

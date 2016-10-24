@@ -683,7 +683,7 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
   for (auto &arg : argv) {
     array->push_back(Value(arg));
   }
-  set_global_item("os", "argv", args);
+  set_global_item("sys", "argv", args);
 
   if (!script.IsEmpty()) {
     v8::Handle<v8::Value> result = script->Run();
