@@ -206,7 +206,6 @@ file(GLOB libmysqlshmods_SRC
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 
-add_definitions(-DWITH_ADMINAPI)
 include_directories("${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/include/"
                     "${CMAKE_SOURCE_DIR}/common/yassl/include/")
 if(WITH_SSL STREQUAL "bundled")
