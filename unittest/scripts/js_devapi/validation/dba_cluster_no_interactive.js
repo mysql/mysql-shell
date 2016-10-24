@@ -12,6 +12,7 @@
 |status: OK|
 |help: OK|
 |dissolve: OK|
+|rescan: OK|
 
 //@# Cluster: addInstance errors
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0

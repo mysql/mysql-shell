@@ -239,6 +239,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   std::string cluster_admin_type = "local"; // Default is local
 
   bool multi_master = false; // Default single/primary master
+  bool adopt_from_gr = false;
 
   try {
     std::string cluster_name = args.string_at(0);
@@ -256,7 +257,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
 
-      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster"}, "the options");
+      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster", "adoptFromGR"}, "the options");
 
       if (opt_map.has_key("clusterAdminType"))
         cluster_admin_type = opt_map.string_at("clusterAdminType");
@@ -270,6 +271,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           cluster_admin_type != "ssh") {
         throw shcore::Exception::argument_error("Cluster Administration Type invalid. Valid types are: 'local', 'guided', 'manual', 'ssh'");
       }
+
+      if (opt_map.has_key("adoptFromGR"))
+        adopt_from_gr = opt_map.bool_at("adoptFromGR");
     }
     /*
      * For V1.0 we only support one single Cluster. That one shall be the default Cluster.
@@ -290,13 +294,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
+    // For V1.0, let's see the Cluster's description to "default"
     cluster->set_description("Default Cluster");
 
     cluster->set_option(OPT_ADMIN_TYPE, shcore::Value(cluster_admin_type));
 
     cluster->set_attribute(ATT_DEFAULT, shcore::Value::True());
-
-    // For V1.0, let's see the Cluster's description to "default"
 
     // Insert Cluster on the Metadata Schema
     _metadata_storage->insert_cluster(cluster);
@@ -308,14 +311,18 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     options = get_connection_data(session->uri(), false);
     args.push_back(shcore::Value(options));
 
-    //args.push_back(shcore::Value(session->uri()));
+    // args.push_back(shcore::Value(session->uri()));
     args.push_back(shcore::Value(session->get_password()));
     args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
                                  : ReplicaSet::kTopologyPrimaryMaster));
+
     cluster->add_seed_instance(args);
 
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
+
+    if (adopt_from_gr)
+      cluster->adopt_from_gr(args);
 
     tx.commit();
   }

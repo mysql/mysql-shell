@@ -14,6 +14,7 @@
 |status: OK|
 |help: OK|
 |dissolve: OK|
+|rescan: OK|
 
 #@ Cluster: add_instance errors
 ||Invalid number of arguments in Cluster.add_instance, expected 1 to 2 but got 0

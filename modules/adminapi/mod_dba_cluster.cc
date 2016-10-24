@@ -23,6 +23,8 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <string>
+#include <vector>
 
 #include "my_aes.h"
 
@@ -76,6 +78,7 @@ void Cluster::init() {
   add_method("status", std::bind(&Cluster::status, this, _1), NULL);
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
   add_varargs_method("checkInstanceState", std::bind(&Cluster::check_instance_state, this, _1));
+  add_varargs_method("rescan", std::bind(&Cluster::rescan, this, _1));
 }
 
 // Documentation of the getName function
@@ -532,6 +535,52 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   return Value();
 }
 
+REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
+REGISTER_HELP(CLUSTER_RESCAN_PARAM, "@param options Optional parameter to specify if it should update the Metadata with the found changes.");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL, "This function rescans the cluster for new Group Replication members/instances. Optionally, also adds them to the metadata.");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL1, "The following is the only option supported:");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL2, "@li updateMetadata: boolean, confirms that the metadata shall be updated after the rescan.");
+
+/**
+* $(CLUSTER_RESCAN_BRIEF)
+*
+* $(CLUSTER_RESCAN_PARAM)
+*
+* $(CLUSTER_RESCAN_DETAIL)
+* $(CLUSTER_RESCAN_DETAIL1)
+*/
+#if DOXYGEN_JS
+Undefined Cluster::rescan(Dictionary options) {}
+#elif DOXYGEN_PY
+None Cluster::rescan(Dictionary options) {}
+#endif
+
+shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+
+  args.ensure_count(0, get_function_name("rescan").c_str());
+
+  try {
+    ret_val = shcore::Value(_rescan(args));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rescan"));
+
+  return ret_val;
+}
+
+shcore::Value::Map_type_ref Cluster::_rescan(const shcore::Argument_list &args) {
+  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
+
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+  // Rescan the Default ReplicaSet
+  (*ret_val)["defaultReplicaSet"] = _default_replica_set->rescan(args);
+
+  return ret_val;
+}
+
 void Cluster::set_option(const std::string& option, const shcore::Value& value) {
   if (!_options)
     _options.reset(new shcore::Value::Map_type());
@@ -590,4 +639,46 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getInstanceState"));
 
   return ret_val;
+}
+
+void Cluster::adopt_from_gr(const shcore::Argument_list &args) {
+  std::vector<std::string> instances_gr_array;
+  shcore::Value gr_instances_result;
+
+  // Get all the instances
+  instances_gr_array = get_default_replicaset()->get_instances_gr();
+
+  for (auto i : instances_gr_array) {
+    std::string query = "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT"
+                        " FROM performance_schema.replication_group_members"
+                        " WHERE MEMBER_ID = '" + i + "'";
+
+    auto result = _metadata_storage->execute_sql(query);
+    gr_instances_result = result->call("fetchAll", shcore::Argument_list());
+  }
+
+  shcore::Value::Array_type_ref newly_discovered_instances_list = get_default_replicaset()->get_newly_discovered_instances();
+
+  // Add all instances to the cluster metadata
+  if (newly_discovered_instances_list) {
+    for (auto i : *newly_discovered_instances_list.get()) {
+      for (auto value : *i.as_array()) {
+        Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type);
+        auto row = value.as_object<mysh::Row>();
+
+        (*newly_discovered_instance)["host"] = shcore::Value(row->get_member(1).as_string());
+        (*newly_discovered_instance)["port"] = shcore::Value(row->get_member(2).as_int());
+
+        // TODO: what if the password is different on each server?
+        // And what if is different from the current session?
+        auto session = _metadata_storage->get_dba()->get_active_session();
+        (*newly_discovered_instance)["user"] = shcore::Value(session->get_user());
+        (*newly_discovered_instance)["password"] = shcore::Value(session->get_password());
+
+        shcore::Argument_list args;
+        args.push_back(shcore::Value(newly_discovered_instance));
+        get_default_replicaset()->add_instance_metadata(args);
+      }
+    }
+  }
 }

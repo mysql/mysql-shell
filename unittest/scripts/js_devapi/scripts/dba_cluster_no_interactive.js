@@ -25,6 +25,7 @@ validateMember(members, 'describe');
 validateMember(members, 'status');
 validateMember(members, 'help');
 validateMember(members, 'dissolve');
+validateMember(members, 'rescan');
 
 //@# Cluster: addInstance errors
 Cluster.addInstance()

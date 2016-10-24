@@ -23,6 +23,7 @@
 #define JSON_STANDARD_OUTPUT 0
 #define JSON_STATUS_OUTPUT 1
 #define JSON_TOPOLOGY_OUTPUT 2
+#define JSON_RESCAN_OUTPUT 3
 
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
@@ -67,28 +68,35 @@ public:
 
   std::string get_topology_type() const { return _topology_type; }
 
+  void add_instance_metadata(const shcore::Argument_list &instance_options);
+  void remove_instance_metadata(const shcore::Argument_list &instance_options);
+
+  std::vector<std::string> get_instances_gr();
+  std::vector<std::string> get_instances_md();
+
+  shcore::Value::Array_type_ref get_newly_discovered_instances();
+  shcore::Value::Array_type_ref get_unavailable_instances();
+
   static char const *kTopologyPrimaryMaster;
   static char const *kTopologyMultiMaster;
 
 #if DOXYGEN_JS
   String getName();
-  Undefined addInstance(String conn);
-  Undefined addInstance(Document doc);
-  Undefined rejoinInstance(String name);
-  Undefined removeInstance(String name);
-  Undefined removeInstance(Document doc);
-  Undefined dissolve(Document doc);
+  Undefined addInstance(InstanceDef instance, String password);
+  Undefined rejoinInstance(IndtanceDef instance);
+  Undefined removeInstance(InstanceDef instance);
+  Undefined dissolve(Dictionary options);
   Undefined disable();
+  Undefined rescan();
 
 #elif DOXYGEN_PY
   str get_name();
-  None add_instance(str conn);
-  None add_instance(Document doc);
-  None rejoin_instance(str name);
-  None remove_instance(str name);
-  None remove_instance(Document doc);
-  None dissolve(Document doc);
+  None add_instance(InstanceDef instance, str password);
+  None rejoin_instance(InstanceDef instance);
+  None remove_instance(InstanceDef instance);
+  None dissolve(Dictionary options);
   None disable();
+  None rescan();
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
@@ -100,6 +108,8 @@ public:
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value disable(const shcore::Argument_list &args);
   shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
+  shcore::Value rescan(const shcore::Argument_list &args);
+
 protected:
   uint64_t _id;
   std::string _name;
@@ -126,6 +136,8 @@ private:
   void create_repl_account(const std::string &dest_uri,
                            const std::string &username,
                            const std::string &password);
+
+  shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
 
   std::shared_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;

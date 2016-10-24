@@ -37,6 +37,7 @@ void Interactive_dba_cluster::init() {
   add_method("removeInstance", std::bind(&Interactive_dba_cluster::remove_instance, this, _1), "data");
   add_varargs_method("dissolve", std::bind(&Interactive_dba_cluster::dissolve, this, _1));
   add_varargs_method("checkInstanceState", std::bind(&Interactive_dba_cluster::check_instace_state, this, _1));
+  add_varargs_method("rescan", std::bind(&Interactive_dba_cluster::rescan, this, _1));
 }
 
 shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_list &args) {
@@ -222,7 +223,6 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
         force = opt_map.bool_at("force");
     }
   }
-
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"));
 
   if (!force) {
@@ -301,4 +301,117 @@ shcore::Value Interactive_dba_cluster::check_instace_state(const shcore::Argumen
 
   return ret_val;
 
+}
+
+shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+
+  args.ensure_count(0, get_function_name("rescan").c_str());
+
+  println("Rescanning the cluster...");
+  println();
+
+  println("Result of the rescanning operation:");
+
+  shcore::Value rescan_report = call_target("rescan", shcore::Argument_list());
+
+  print_value(rescan_report, "");
+
+  auto result = rescan_report.as_map();
+
+  // We only support 1 ReplicaSet now, the DefaultReplicaSet
+  if (result->has_key("defaultReplicaSet")) {
+    auto default_rs = result->get_map("defaultReplicaSet");
+
+    // Check if there are unknown instances
+    if (default_rs->has_key("newlyDiscoveredInstances")) {
+      auto unknown_instances = default_rs->get_array("newlyDiscoveredInstances");
+
+      for(auto instance: *unknown_instances) {
+        auto instance_map = instance.as_map();
+        println();
+        println("A new instance '" + instance_map->get_string("host") + "' was discovered in the HA setup.");
+
+        std::string answer;
+        if (prompt("Would you like to add it to the cluster metadata? [Y|n]: ", answer)) {
+          if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
+            shcore::Argument_list args;
+            std::string full_host = instance_map->get_string("host");
+
+            Value::Map_type_ref options(new shcore::Value::Map_type);
+
+            std::string delimiter = ":";
+            std::string host = full_host.substr(0, full_host.find(delimiter));
+            std::string port = full_host.substr(full_host.find(delimiter)+1, full_host.length());
+
+            (*options)["host"] = shcore::Value(host);
+            (*options)["port"] = shcore::Value(atoi(port.c_str()));
+            mysh::dba::resolve_instance_credentials(options, _delegate);
+            args.push_back(shcore::Value(options));
+
+            println("Adding instance to the cluster metadata...");
+            println();
+
+            std::shared_ptr<mysh::dba::ReplicaSet> object;
+            auto cluster = std::dynamic_pointer_cast<mysh::dba::Cluster> (_target);
+
+            object = cluster->get_default_replicaset();
+
+            object->add_instance_metadata(args);
+
+            println("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster metadata.");
+            println();
+          }
+        }
+      }
+    }
+
+    // Check if there are missing instances
+    if (default_rs->has_key("unavailableInstances")) {
+      auto missing_instances = default_rs->get_array("unavailableInstances");
+
+      for(auto instance: *missing_instances) {
+        auto instance_map = instance.as_map();
+        println();
+        println("The instance '" + instance_map->get_string("host") + "' is no longer part of the HA setup. "
+                "It is either offline or left the HA group.");
+        println("You can try to add it to the cluster again with the cluster.rejoinInstance('" + instance_map->get_string("host") + "') "
+                "command or you can remove it from the cluster configuration.");
+
+        std::string answer;
+        if (prompt("Would you like to remove it from the cluster metadata? [Y|n]: ", answer)) {
+          if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
+            shcore::Argument_list args;
+
+            std::string full_host = instance_map->get_string("host");
+
+            Value::Map_type_ref options(new shcore::Value::Map_type);
+
+            std::string delimiter = ":";
+            std::string host = full_host.substr(0, full_host.find(delimiter));
+            std::string port = full_host.substr(full_host.find(delimiter)+1, full_host.length());
+
+            (*options)["host"] = shcore::Value(host);
+            (*options)["port"] = shcore::Value(atoi(port.c_str()));
+            args.push_back(shcore::Value(options));
+
+            println("Removing instance from the cluster metadata...");
+            println();
+
+            std::shared_ptr<mysh::dba::ReplicaSet> object;
+            auto cluster = std::dynamic_pointer_cast<mysh::dba::Cluster> (_target);
+
+            object = cluster->get_default_replicaset();
+
+            object->remove_instance_metadata(args);
+
+            println("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster metadata.");
+            println();
+          }
+        }
+      }
+    }
+  }
+
+  return shcore::Value();
 }

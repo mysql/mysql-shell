@@ -75,6 +75,8 @@ public:
     _provisioning_interface = provisioning_interface;
   }
 
+  void adopt_from_gr(const shcore::Argument_list &args);
+
   shcore::Value add_seed_instance(const shcore::Argument_list &args);
   shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
@@ -84,6 +86,7 @@ public:
   shcore::Value status(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value check_instance_state(const shcore::Argument_list &args);
+  shcore::Value rescan(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
   String name; //!< $(CLUSTER_NAME_BRIEF)
@@ -97,6 +100,7 @@ public:
   String describe();
   String status();
   Undefined dissolve(Dictionary options);
+  Undefined dissolve();
 #elif DOXYGEN_PY
   str name; //!< $(CLUSTER_NAME_BRIEF)
   std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)
@@ -109,6 +113,7 @@ public:
   str describe();
   str status();
   None dissolve(Dictionary options);
+  None rescan();
 #endif
 
 protected:
@@ -133,6 +138,7 @@ private:
 
   void set_account_data(const std::string& account, const std::string& key, const std::string& value);
   std::string get_account_data(const std::string& account, const std::string& key);
+  shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
 };
 }
 }
