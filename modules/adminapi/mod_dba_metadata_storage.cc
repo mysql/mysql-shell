@@ -738,31 +738,6 @@ bool MetadataStorage::is_instance_on_replicaset(uint64_t rs_id, std::string addr
   return count == 1;
 }
 
-bool MetadataStorage::is_instance_on_gr(std::string host, int port) {
-  shcore::sqlstring query;
-
-  query = shcore::sqlstring("SELECT COUNT(*) as count FROM performance_schema.replication_group_members WHERE MEMBER_HOST = ? AND MEMBER_PORT = ?", 0);
-  query << host;
-  query << port;
-  query.done();
-
-  auto result = execute_sql(query);
-
-  auto row = result->call("fetchOne", shcore::Argument_list());
-
-  //result->flush();
-
-  uint64_t count = 0;
-  if (row) {
-    auto real_row = row.as_object<Row>();
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("count"));
-    count = row.as_object<Row>()->get_field(args).as_int();
-  }
-
-  return count == 1;
-}
-
 std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
   std::string seed_address, query;
 

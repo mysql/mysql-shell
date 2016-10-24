@@ -646,21 +646,6 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
 }
 
 void Cluster::adopt_from_gr(const shcore::Argument_list &args) {
-  std::vector<std::string> instances_gr_array;
-  shcore::Value gr_instances_result;
-
-  // Get all the instances
-  instances_gr_array = get_default_replicaset()->get_instances_gr();
-
-  for (auto i : instances_gr_array) {
-    std::string query = "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT"
-                        " FROM performance_schema.replication_group_members"
-                        " WHERE MEMBER_ID = '" + i + "'";
-
-    auto result = _metadata_storage->execute_sql(query);
-    gr_instances_result = result->call("fetchAll", shcore::Argument_list());
-  }
-
   shcore::Value::Array_type_ref newly_discovered_instances_list = get_default_replicaset()->get_newly_discovered_instances();
 
   // Add all instances to the cluster metadata

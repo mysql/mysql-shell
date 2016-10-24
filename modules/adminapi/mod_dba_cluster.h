@@ -100,7 +100,7 @@ public:
   String describe();
   String status();
   Undefined dissolve(Dictionary options);
-  Undefined dissolve();
+  Undefined rescan();
 #elif DOXYGEN_PY
   str name; //!< $(CLUSTER_NAME_BRIEF)
   std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)

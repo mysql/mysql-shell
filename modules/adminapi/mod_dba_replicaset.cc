@@ -369,8 +369,16 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   instance_public_address = "tecra";
 
-  bool is_instance_on_gr = _metadata_storage->is_instance_on_gr(instance_public_address, options->get_int("port"));
+  bool is_instance_on_gr = false;
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_public_address);
+
+  auto session = _metadata_storage->get_dba()->get_active_session();
+  mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+
+  GRInstanceType type = get_gr_instance_type(classic->connection());
+
+  if (type == GRInstanceType::GroupReplication)
+    is_instance_on_md = true;
 
   if (is_instance_on_gr && is_instance_on_md)
     throw shcore::Exception::runtime_error("The instance '" + instance_public_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
@@ -612,12 +620,20 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   instance_public_address.append(":" + port);
 
-  bool is_instance_on_gr = _metadata_storage->is_instance_on_gr(host, options->get_int("port"));
+  bool is_instance_on_gr = false;
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_public_address);
+
+  auto session = _metadata_storage->get_dba()->get_active_session();
+  mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+
+  GRInstanceType type = get_gr_instance_type(classic->connection());
+
+  if (type == GRInstanceType::GroupReplication)
+    is_instance_on_md = true;
 
   // Check if the instance exists on the ReplicaSet
   //std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
-  if (!is_instance_on_gr && !is_instance_on_md) {
+  if (!is_instance_on_md) {
     std::string message = "The instance '" + instance_address + "'";
 
     if (instance_public_address != instance_address)
@@ -635,8 +651,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   // TODO: the instance_name can be actually a name, check TODO above
   if (is_instance_on_gr) {
-    // If the instance is not on MD we can remove it from GR
-
     // call provisioning to remove the instance from the replicaset
     int exit_code = -1;
     std::string instance_url;
