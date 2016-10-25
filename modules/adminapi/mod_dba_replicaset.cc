@@ -959,7 +959,7 @@ shcore::Value ReplicaSet::check_instance_state(const shcore::Argument_list &args
 
   // Verifies the transaction state of the instance ins relation to the cluster
   try {
-    ret_val = check_instance_state(args);
+    ret_val = retrieve_instance_state(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getInstanceState"));
 

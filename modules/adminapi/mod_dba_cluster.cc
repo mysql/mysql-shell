@@ -628,9 +628,9 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4, "The password may be contained
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL4)
  */
 #if DOXYGEN_JS
-Undefined Cluster::addInstance(InstanceDef instance, String password) {}
+Undefined Cluster::checkInstanceState(InstanceDef instance, String password) {}
 #elif DOXYGEN_PY
-None Cluster::add_instance(InstanceDef instance, str password) {}
+None Cluster::check_instance_state(InstanceDef instance, str password) {}
 #endif
 shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   shcore::Value ret_val;
