@@ -89,7 +89,7 @@ The path to the MySQL Configuration is required to verify and fix the InnoDB Clu
 Please provide a password for 'root@localhost:<<<__mysql_sandbox_port1>>>':
 Detected as sandbox instance.
 
-Validating MySQL configuration file at: <<<__sandbox_dir>>>/<<<__mysql_sandbox_port1>>>/my.cnf
+Validating MySQL configuration file at: <<<__sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Validating instance...
 
 //@<ERR> Dba: configLocalInstance error 3

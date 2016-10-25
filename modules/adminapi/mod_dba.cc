@@ -516,7 +516,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   } else {
     if (function == "deploy")
       throw shcore::Exception::argument_error("Missing root password for the deployed instance");
-    }
+  }
 
   shcore::Value::Array_type_ref errors;
 
@@ -557,7 +557,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   }
 
   return ret_val;
-  }
+}
 
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");
@@ -873,10 +873,8 @@ shcore::Value Dba::config_local_instance(const shcore::Argument_list &args) {
 
     if (shcore::is_local_host(opt_map.string_at("host"))) {
       ret_val = shcore::Value(_check_instance_config(args, true));
-    }
-    else
+    } else
       throw shcore::Exception::runtime_error("This function only works with local instances");
-
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("configLocalInstance"));
 
@@ -887,9 +885,7 @@ Dba::~Dba() {
   Dba::_session_cache.clear();
 }
 
-
 std::shared_ptr<mysh::mysql::ClassicSession> Dba::get_session(const shcore::Argument_list& args) {
-
   std::shared_ptr<mysh::mysql::ClassicSession> ret_val;
 
   auto options = args.map_at(0);
@@ -909,7 +905,6 @@ std::shared_ptr<mysh::mysql::ClassicSession> Dba::get_session(const shcore::Argu
 }
 
 shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_list &args, bool allow_update) {
-
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
 
   // Validates the connection options
@@ -953,9 +948,9 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
   GRInstanceType type = get_gr_instance_type(session->connection());
 
   if (type == GRInstanceType::GroupReplication)
-    throw shcore::Exception::runtime_error("The instance '"+ session->uri()+ "' is already part of a Replication Group");
+    throw shcore::Exception::runtime_error("The instance '" + session->uri() + "' is already part of a Replication Group");
   else if (type == GRInstanceType::InnoDBCluster)
-    throw shcore::Exception::runtime_error("The instance '"+ session->uri()+ "' is already part of an InnoDB Cluster");
+    throw shcore::Exception::runtime_error("The instance '" + session->uri() + "' is already part of an InnoDB Cluster");
   else if (type == GRInstanceType::Standalone) {
     std::string user;
     std::string password;
@@ -975,126 +970,121 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
 
       (*ret_val)["status"] = shcore::Value("error");
 
-      for (auto error_object : *mp_errors) {
-        auto map = error_object.as_map();
+      if (mp_errors) {
+        for (auto error_object : *mp_errors) {
+          auto map = error_object.as_map();
 
-        std::string error_str;
-        if (map->get_string("type") == "ERROR") {
-          error_str = map->get_string("msg");
+          std::string error_str;
+          if (map->get_string("type") == "ERROR") {
+            error_str = map->get_string("msg");
 
-          if (error_str.find("The operation could not continue due to the following requirements not being met") != std::string::npos) {
-            auto lines = shcore::split_string(error_str, "\n");
+            if (error_str.find("The operation could not continue due to the following requirements not being met") != std::string::npos) {
+              auto lines = shcore::split_string(error_str, "\n");
 
-            bool loading_options = false;
+              bool loading_options = false;
 
-            shcore::Value::Map_type_ref server_options(new shcore::Value::Map_type());
-            std::string option_type;
+              shcore::Value::Map_type_ref server_options(new shcore::Value::Map_type());
+              std::string option_type;
 
-            for (size_t index = 1; index < lines.size(); index++) {
-              if (loading_options) {
-                auto option_tokens = shcore::split_string(lines[index], " ", true);
+              for (size_t index = 1; index < lines.size(); index++) {
+                if (loading_options) {
+                  auto option_tokens = shcore::split_string(lines[index], " ", true);
 
+                  if (option_tokens[1] == "<no") {
+                    option_tokens[1] = "<no value>";
+                    option_tokens.erase(option_tokens.begin() + 2);
+                  }
 
-                if (option_tokens[1] == "<no") {
-                  option_tokens[1] = "<no value>";
-                  option_tokens.erase(option_tokens.begin() + 2);
-                }
+                  if (option_tokens[2] == "<not") {
+                    option_tokens[2] = "<not set>";
+                    option_tokens.erase(option_tokens.begin() + 3);
+                  }
 
-                if (option_tokens[2] == "<not") {
-                  option_tokens[2] = "<not set>";
-                  option_tokens.erase(option_tokens.begin() + 3);
-                }
+                  // The tokens describing each option have length of 5
+                  if (option_tokens.size() > 5) {
+                    index--;
+                    loading_options = false;
+                  } else {
+                    shcore::Value::Map_type_ref option;
+                    if (!server_options->has_key(option_tokens[0])) {
+                      option.reset(new shcore::Value::Map_type());
+                      (*server_options)[option_tokens[0]] = shcore::Value(option);
+                    } else
+                      option = (*server_options)[option_tokens[0]].as_map();
 
-                // The tokens describing each option have length of 5
-                if (option_tokens.size() > 5) {
-                  index--;
-                  loading_options = false;
+                    (*option)["required"] = shcore::Value(option_tokens[1]); // The required value
+                    (*option)[option_type] = shcore::Value(option_tokens[2]);// The current value
+                  }
                 } else {
-                  shcore::Value::Map_type_ref option;
-                  if (!server_options->has_key(option_tokens[0])) {
-                    option.reset(new shcore::Value::Map_type());
-                    (*server_options)[option_tokens[0]] = shcore::Value(option);
-                  } else
-                    option = (*server_options)[option_tokens[0]].as_map();
-
-
-                  (*option)["required"] = shcore::Value(option_tokens[1]); // The required value
-                  (*option)[option_type] = shcore::Value(option_tokens[2]);// The current value
-                }
-              } else {
-                if (lines[index].find("Some active options on server") != std::string::npos) {
-                  option_type = "server";
-                  loading_options = true;
-                  index += 3; // Skips to the actual option table
-                } else if (lines[index].find("Some of the configuration values on your options file") != std::string::npos) {
-                  option_type = "config";
-                  loading_options = true;
-                  index += 3; // Skips to the actual option table
+                  if (lines[index].find("Some active options on server") != std::string::npos) {
+                    option_type = "server";
+                    loading_options = true;
+                    index += 3; // Skips to the actual option table
+                  } else if (lines[index].find("Some of the configuration values on your options file") != std::string::npos) {
+                    option_type = "config";
+                    loading_options = true;
+                    index += 3; // Skips to the actual option table
+                  }
                 }
               }
-            }
 
-            if (server_options->size()) {
-              shcore::Value::Array_type_ref config_errors(new shcore::Value::Array_type());
-              for(auto option: *server_options) {
-                auto state = option.second.as_map();
+              if (server_options->size()) {
+                shcore::Value::Array_type_ref config_errors(new shcore::Value::Array_type());
+                for (auto option : *server_options) {
+                  auto state = option.second.as_map();
 
-                std::string required_value = state->get_string("required");
-                std::string server_value = state->get_string("server", "");
-                std::string config_value = state->get_string("config", "");
+                  std::string required_value = state->get_string("required");
+                  std::string server_value = state->get_string("server", "");
+                  std::string config_value = state->get_string("config", "");
 
-                // Taken from MP, reading docs made me think all variables should require restart
-                // Even several of them are dynamic, it seems changing values may lead to problems
-                // An extransaction_write_set_extraction which apparently is reserved for future use
-                // So I just took what I saw on the MP code
-                // Source: http://dev.mysql.com/doc/refman/5.7/en/dynamic-system-variables.html
-                std::vector<std::string> dynamic_variables = {"binlog_format", "binlog_checksum"};
+                  // Taken from MP, reading docs made me think all variables should require restart
+                  // Even several of them are dynamic, it seems changing values may lead to problems
+                  // An extransaction_write_set_extraction which apparently is reserved for future use
+                  // So I just took what I saw on the MP code
+                  // Source: http://dev.mysql.com/doc/refman/5.7/en/dynamic-system-variables.html
+                  std::vector<std::string> dynamic_variables = {"binlog_format", "binlog_checksum"};
 
+                  bool dynamic = std::find(dynamic_variables.begin(), dynamic_variables.end(), option.first) != dynamic_variables.end();
 
-                bool dynamic = std::find(dynamic_variables.begin(), dynamic_variables.end(), option.first) != dynamic_variables.end();
+                  std::string action;
+                  std::string current;
+                  if (!server_value.empty() && !config_value.empty()) { // Both server and configuration are wrong
+                    if (dynamic)
+                      action = "server_update+config_update";
+                    else {
+                      action = "config_update+restart";
+                      restart_required = true;
+                    }
 
-                std::string action;
-                std::string current;
-                if (!server_value.empty() && !config_value.empty()) { // Both server and configuration are wrong
-                  if (dynamic)
-                    action = "server_update+config_update";
-                  else {
-                    action = "config_update+restart";
-                    restart_required = true;
+                    current = server_value;
+                  } else if (!config_value.empty()) { // Configuration is wrong, server is OK
+                    action = "config_update";
+                    current = config_value;
+                  } else if (!server_value.empty()) { // Server is wronf, configuration is OK
+                    if (dynamic)
+                      action = "server_update";
+                    else {
+                      action = "restart";
+                      restart_required = true;
+                    }
+                    current = server_value;
                   }
 
-                  current = server_value;
+                  shcore::Value::Map_type_ref error(new shcore::Value::Map_type());
 
-                }
-                else if (!config_value.empty()) { // Configuration is wrong, server is OK
-                  action = "config_update";
-                  current = config_value;
-                }
-                else if (!server_value.empty()) { // Server is wronf, configuration is OK
-                  if (dynamic)
-                    action = "server_update";
-                  else {
-                    action = "restart";
-                    restart_required = true;
-                  }
-                  current = server_value;
+                  (*error)["option"] = shcore::Value(option.first);
+                  (*error)["current"] = shcore::Value(current);
+                  (*error)["required"] = shcore::Value(required_value);
+                  (*error)["action"] = shcore::Value(action);
+
+                  config_errors->push_back(shcore::Value(error));
                 }
 
-                shcore::Value::Map_type_ref error(new shcore::Value::Map_type());
-
-                (*error)["option"] = shcore::Value(option.first);
-                (*error)["current"] = shcore::Value(current);
-                (*error)["required"] = shcore::Value(required_value);
-                (*error)["action"] = shcore::Value(action);
-
-                config_errors->push_back(shcore::Value(error));
+                (*ret_val)["config_errors"] = shcore::Value(config_errors);
               }
-
-              (*ret_val)["config_errors"] = shcore::Value(config_errors);
-            }
-
-          } else
-            errors->push_back(shcore::Value(error_str));
+            } else
+              errors->push_back(shcore::Value(error_str));
+          }
         }
       }
 

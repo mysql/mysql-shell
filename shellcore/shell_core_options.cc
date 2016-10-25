@@ -98,8 +98,7 @@ _options(new shcore::Value::Map_type) {
   std::string home = shcore::get_home_dir();
 
 #ifdef WIN32
-  home += ("\\MySQL");
-  home += ("\\mysql-sandboxes");
+  home += ("MySQL\\mysql-sandboxes");
 #else
   home += ("mysql-sandboxes");
 #endif

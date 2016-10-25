@@ -67,8 +67,6 @@ protected:
       exec_and_out_equals(code);
       code = "__mysql_port = " + _mysql_port + ";";
       exec_and_out_equals(code);
-      code = "__sandbox_dir = '" + _sandbox_dir + "';";
-      exec_and_out_equals(code);
       code = "__mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
       exec_and_out_equals(code);
       code = "__mysql_sandbox_port2 = " + _mysql_sandbox_port2 + ";";
@@ -76,6 +74,21 @@ protected:
       code = "__mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
       exec_and_out_equals(code);
     }
+
+#ifdef _WIN32
+    code = "__path_splitter = '\\\\';";
+    exec_and_out_equals(code);
+    auto tokens = shcore::split_string(_sandbox_dir, "\\");
+    tokens.push_back("");
+    std::string js_sandbox_dir = shcore::join_strings(tokens, "\\\\");
+    code = "__sandbox_dir = '" + js_sandbox_dir + "';";
+    exec_and_out_equals(code);
+#else
+    code = "__path_splitter = '/';";
+    exec_and_out_equals(code);
+    code = "__sandbox_dir = '" + _sandbox_dir + "/';";
+    exec_and_out_equals(code);
+#endif
 
     code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
     exec_and_out_equals(code);

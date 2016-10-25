@@ -27,9 +27,7 @@
 #include "common/process_launcher/process_launcher.h"
 #include "utils/utils_file.h"
 
-
 static const char *kRequiredMySQLProvisionInterfaceVersion = "1.0";
-
 
 using namespace mysh;
 using namespace mysh::dba;
@@ -120,7 +118,6 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     bool last_closed = false;
     bool json_started = false;
     while (p.read(&c, 1) > 0) {
-
       // Ignores the initial output (most likely prompts)
       // Until the first { is found, indicating the start of JSON data
       if (!json_started) {
@@ -128,8 +125,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
         if (c == '{') {
           json_started = true;
           buf.clear();
-        }
-        else
+        } else
           continue;
       }
 
@@ -150,14 +146,13 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
             log_debug("DBA: mysqlprovision: %s", error.c_str());
           }
 
-          if(raw_data && raw_data.type == shcore::Map) {
+          if (raw_data && raw_data.type == shcore::Map) {
             auto data = raw_data.as_map();
 
             std::string type = data->get_string("type");
             std::string info;
 
             if (type == "WARNING" || type == "ERROR") {
-
               if (!errors)
                 errors.reset(new shcore::Value::Array_type());
 
@@ -168,7 +163,6 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
             info += data->get_string("msg") + "\n";
 
             if (verbose && info.find("Enter the password for") == std::string::npos) {
-
               if (format.find("json") == std::string::npos)
                 _delegate->print(_delegate->user_data, info.c_str());
               else
@@ -180,11 +174,11 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
           full_output.append(buf);
           buf = "";
-        }
-        else
+        } else
           buf += c;
-      }
-      else {
+      } else if (c == '\r') {
+        buf += c;
+      } else {
         buf += c;
 
         last_closed = c == '}';
@@ -204,11 +198,10 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   exit_code = p.wait();
 
   if (verbose) {
-    std::string footer (78, '=');
+    std::string footer(78, '=');
     footer.append("\n");
     _delegate->print(_delegate->user_data, footer.c_str());
   }
-
 
   /*
    * process launcher returns 128 if an ENOENT happened.
@@ -233,8 +226,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
     // This error implies a wrong integratio nbetween the chell and MP
     throw shcore::Exception::runtime_error("Error calling mysqlprovision. Look at the log for more details.");
-  }
-  else
+  } else
     log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
 
   return exit_code;
@@ -298,13 +290,12 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
       shcore::ensure_dir_exists(dir);
 
       sandbox_args.push_back("--sandboxdir");
-      #ifdef _WIN32
+#ifdef _WIN32
       sandbox_args.push_back("\"" + dir + "\"");
-      #else
+#else
       sandbox_args.push_back(dir);
-      #endif
-    }
-    catch(std::runtime_error &error) {
+#endif
+    } catch (std::runtime_error &error) {
       log_warning("DBA: Unable to create default sandbox directory at %s.", dir.c_str());
     }
   }
