@@ -97,6 +97,7 @@ private:
   void process_setup(std::istream & stream);
   void validate(const std::string& context, const std::string &chunk_id = "__global__");
   void validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual);
+  bool multi_value_compare(const std::string& expected, const std::string &actual);
   std::string resolve_string(const std::string& source);
   virtual void pre_process_line(const std::string &path, std::string & line) {};
 

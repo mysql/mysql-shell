@@ -72,7 +72,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
                         },
                         "mode": "R/O",
                         "role": "HA",
-                        "status": "RECOVERING"
+                        "status": "{{ONLINE|RECOVERING}}"
                     }
                 },
                 "mode": "R/W",

@@ -45,75 +45,75 @@
 {
     "config_errors": [
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "binlog_checksum", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "binlog_checksum",
             "required": "NONE"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "binlog_format", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "binlog_format",
             "required": "ROW"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "disabled_storage_engines", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "disabled_storage_engines",
             "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "enforce_gtid_consistency", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "enforce_gtid_consistency",
             "required": "ON"
         },
         {
-            "action": "config_update", 
-            "current": "OFF", 
-            "option": "gtid_mode", 
+            "action": "config_update",
+            "current": "OFF",
+            "option": "gtid_mode",
             "required": "ON"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "log_bin", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "log_bin",
             "required": "<no value>"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "log_slave_updates", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "log_slave_updates",
             "required": "ON"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "master_info_repository", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "master_info_repository",
             "required": "TABLE"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "relay_log_info_repository", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "relay_log_info_repository",
             "required": "TABLE"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "report_port", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "report_port",
             "required": "<<<__mysql_sandbox_port2>>>"
         },
         {
-            "action": "config_update", 
-            "current": "<not set>", 
-            "option": "transaction_write_set_extraction", 
+            "action": "config_update",
+            "current": "<not set>",
+            "option": "transaction_write_set_extraction",
             "required": "XXHASH64"
         }
-    ], 
+    ],
     "errors": [
-    ], 
-    "restart_required": false, 
+    ],
+    "restart_required": false,
     "status": "error"
 }
 

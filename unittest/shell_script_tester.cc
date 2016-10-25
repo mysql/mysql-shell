@@ -79,6 +79,48 @@ std::string Shell_script_tester::resolve_string(const std::string& source) {
   return updated;
 }
 
+/**
+ * Multiple value validation
+ * To be used on a single line
+ * Line may have an entry that may have one of several values, i.e. on an expected line like:
+ *
+ * My text line is {{empty|full}}
+ *
+ * Ths function would return true whenever the actual line is any of
+ *
+ * My text line is empty
+ * My text line is full
+ */
+bool Shell_script_tester::multi_value_compare(const std::string& expected, const std::string &actual) {
+  bool ret_val = false;
+
+  size_t start;
+  size_t end;
+
+  start = expected.find("{{");
+
+  if (start != std::string::npos) {
+    end = expected.find("}}");
+
+    std::string pre = expected.substr(0, start);
+    std::string post = expected.substr(end + 2);
+    std::string opts = expected.substr(start + 2, end - (start+2));
+    auto options = shcore::split_string(opts, "|");
+
+    for(auto item: options) {
+      std::string exp = pre + item + post;
+      if (ret_val = (exp == actual))
+        break;
+    }
+  }
+  else
+    ret_val = (expected == actual);
+
+
+  return ret_val;
+}
+
+
 void Shell_script_tester::validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual) {
   auto expected_lines = shcore::split_string(expected, "\n");
   auto actual_lines = shcore::split_string(actual, "\n");
@@ -97,7 +139,7 @@ void Shell_script_tester::validate_line_by_line(const std::string& context, cons
     for(expected_index = 0; expected_index < expected_lines.size(); expected_index++) {
       auto act_str = boost::trim_right_copy(actual_lines[actual_index + expected_index]);
       auto exp_str = boost::trim_right_copy(expected_lines[expected_index]);
-      if (act_str != exp_str) {
+      if (!multi_value_compare(exp_str, act_str)) {
         SCOPED_TRACE("File: " + context);
         SCOPED_TRACE("Executing: " + chunk_id);
         SCOPED_TRACE(stream + " actual: " + actual);
