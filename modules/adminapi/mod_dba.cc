@@ -240,6 +240,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
   bool multi_master = false; // Default single/primary master
   bool adopt_from_gr = false;
+  bool force = false;
 
   try {
     std::string cluster_name = args.string_at(0);
@@ -257,13 +258,16 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
 
-      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster", "adoptFromGR"}, "the options");
+      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster", "adoptFromGR", "force"}, "the options");
 
       if (opt_map.has_key("clusterAdminType"))
         cluster_admin_type = opt_map.string_at("clusterAdminType");
 
       if (opt_map.has_key("multiMaster"))
         multi_master = opt_map.bool_at("multiMaster");
+
+      if (opt_map.has_key("force"))
+        force = opt_map.bool_at("force");
 
       if (cluster_admin_type != "local" &&
           cluster_admin_type != "guided" &&
@@ -313,8 +317,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     // args.push_back(shcore::Value(session->uri()));
     args.push_back(shcore::Value(session->get_password()));
-    args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
-                                 : ReplicaSet::kTopologyPrimaryMaster));
+
+    if (force) {
+      args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
+                                   : ReplicaSet::kTopologyPrimaryMaster));
+    }
 
     cluster->add_seed_instance(args);
 

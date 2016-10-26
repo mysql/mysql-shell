@@ -34,6 +34,8 @@ print(c1)
 //@# Dba: createCluster already exist
 var c1 = dba.createCluster('devCluster');
 
+// TODO: add multi-master unit-tests
+
 //@# Dba: checkInstanceConfig errors
 dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port1);
 dba.checkInstanceConfig('sample@localhost:' + __mysql_sandbox_port1);

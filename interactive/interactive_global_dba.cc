@@ -219,6 +219,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     cluster_name = args.string_at(0);
     std::string answer;
     bool multi_master = false;
+    bool force = false;
 
     if (cluster_name.empty())
       throw Exception::argument_error("The Cluster name cannot be empty.");
@@ -233,17 +234,20 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
 
-      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster", "adoptFromGR"}, "the options");
+      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster", "adoptFromGR", "force"}, "the options");
 
       if (opt_map.has_key("multiMaster"))
         multi_master = opt_map.bool_at("multiMaster");
+
+      if (opt_map.has_key("force"))
+        force = opt_map.bool_at("force");
     }
 
     auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
     session = dba->get_active_session();
     println("A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n");
 
-    if (multi_master) {
+    if (multi_master && !force) {
       println(
         "The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.\n"
         "Before continuing you have to confirm that you understand the requirements and\n"

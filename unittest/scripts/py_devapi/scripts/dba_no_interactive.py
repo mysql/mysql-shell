@@ -38,6 +38,8 @@ c1 = dba.create_cluster('devCluster', {"invalid":1, "another":2})
 c1 = dba.create_cluster('devCluster');
 print c1
 
+# TODO: add multi-master unit-tests
+
 #@# Dba: create_cluster already exist
 c1 = dba.create_cluster('devCluster');
 

@@ -30,6 +30,8 @@ var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
 //@<OUT> Dba: createCluster with interaction
 var c1 = dba.createCluster('devCluster');
 
+// TODO: add multi-master unit-tests
+
 //@ Dba: checkInstanceConfig error
 dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port1);
 
