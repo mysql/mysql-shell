@@ -237,5 +237,6 @@ CREATE TABLE routers (
     Router specific custom attributes.
    */
   `attributes` JSON,
-  FOREIGN KEY (host_id) REFERENCES hosts(host_id) ON DELETE RESTRICT
+  FOREIGN KEY (host_id) REFERENCES hosts(host_id) ON DELETE RESTRICT,
+  UNIQUE (host_id, router_name)
 ) CHARSET = utf8mb4;
