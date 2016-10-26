@@ -22,9 +22,9 @@
 #include "utils_file.h"
 #include <locale>
 #ifdef WIN32
+#include <WinSock2.h>
 #include <windows.h>
 #include <Lmcons.h>
-#include <WinSock2.h>
 #define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
 #else
 #include <unistd.h>
