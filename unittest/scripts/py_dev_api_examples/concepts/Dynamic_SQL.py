@@ -15,9 +15,7 @@ def createTestTable(session, name):
 
 import mysqlx
 
-session = mysqlx.get_node_session({
-        'dataSourceFile': 'mysqlxconfig.json', 'app': 'myapp',
-        'dbUser': 'mike', 'dbPassword': 's3cr3t!'})
+session = mysqlx.get_node_session('mike:s3cr3t!@localhost:33060/test')
 
 default_schema = session.get_default_schema().name
 session.set_current_schema(default_schema)

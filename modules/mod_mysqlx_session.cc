@@ -27,7 +27,6 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "mod_mysqlx_session_sql.h"
-#include "shellcore/server_registry.h"
 #include "utils/utils_general.h"
 #include "utils/utils_time.h"
 #include "utils/utils_file.h"

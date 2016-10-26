@@ -31,7 +31,7 @@ namespace shcore {
 
 std::string session_type_name(mysh::SessionType type){
   std::string ret_val;
-  
+
   switch(type){
     case mysh::SessionType::Auto:
       ret_val = "Auto";
@@ -46,13 +46,13 @@ std::string session_type_name(mysh::SessionType type){
       ret_val = "X";
       break;
   }
-  
+
   return ret_val;
 }
 
 std::string shell_mode_name(IShell_core::Mode mode){
   std::string ret_val;
-  
+
   switch(mode){
     case IShell_core::Mode::JScript:
       ret_val = "JavaScript";
@@ -67,19 +67,17 @@ std::string shell_mode_name(IShell_core::Mode mode){
       ret_val = "None";
       break;
   }
-  
+
   return ret_val;
 }
 
-  
+
 class Shell_cmdline_options_t : public ::testing::Test {
 public:
   Shell_cmdline_options_t() {}
 
   std::string get_string(mysh::Shell_options* options, const std::string &option) {
-    if (option == "app")
-      return options->app;
-    else if (option == "host")
+    if (option == "host")
       return options->host;
     else if (option == "user")
       return options->user;
@@ -129,7 +127,7 @@ public:
       return AS__STRING(options->wizards);
     else if (option == "execute_statement")
       return options->execute_statement;
-    
+
 
     return "";
   }
@@ -391,7 +389,6 @@ TEST(Shell_cmdline_options, default_values) {
   Shell_command_line_options cmd_options(argc, argv);
   mysh::Shell_options options = cmd_options.get_options();
 
-  EXPECT_TRUE(options.app.empty());
   EXPECT_TRUE(options.exit_code == 0);
   EXPECT_FALSE(options.force);
   EXPECT_FALSE(options.full_interactive);
@@ -434,7 +431,6 @@ TEST(Shell_cmdline_options, default_values) {
 }
 
 TEST_F(Shell_cmdline_options_t, app) {
-  test_option_with_value("app", "", "sample", "", IS_CONNECTION_DATA, !IS_NULLABLE);
   test_option_with_value("host", "h", "localhost", "", IS_CONNECTION_DATA, !IS_NULLABLE);
   test_option_with_value("port", "P", "3306", "", IS_CONNECTION_DATA, !IS_NULLABLE);
   test_option_with_value("schema", "D", "sakila", "", IS_CONNECTION_DATA, !IS_NULLABLE);

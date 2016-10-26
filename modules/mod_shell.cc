@@ -20,7 +20,6 @@
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h"
-#include "shellcore/shell_registry.h"
 #include "utils/utils_help.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/base_session.h"
@@ -41,7 +40,6 @@ namespace mysh {
     _custom_prompt[1] = shcore::Value::Null();
 
     add_property("options");
-    add_property("storedSessions");
     add_property("customPrompt"); // Note that this specific property uses this name in both PY/JS (for now)
 
     add_method("parseUri", std::bind(&Shell::parse_uri, this, _1), "uri", shcore::String, NULL);
@@ -69,7 +67,6 @@ namespace mysh {
 
   // Documentation of getTables function
   REGISTER_HELP(SHELL_OPTIONS_BRIEF, "Displays the active shell options.");
-  REGISTER_HELP(SHELL_STOREDSESSIONS_BRIEF, "Accessor for the stored sessions.");
   REGISTER_HELP(SHELL_CUSTOMPROMPT_BRIEF, "Callback to modify the default shell prompt.");
   REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL, "This property can be used to customize the shell prompt, i.e. to make it include more information than the default implementation.");
   REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL1, "This property acts as a place holder for a function that would create the desired prompt.");
@@ -103,8 +100,6 @@ namespace mysh {
 
     if (prop == "options") {
       ret_val = shcore::Value(std::static_pointer_cast<Object_bridge>(shcore::Shell_core_options::get_instance()));
-    } else if (prop == "storedSessions") {
-      ret_val = shcore::StoredSessions::get();
     } else if (prop == "customPrompt") {
       ret_val = _custom_prompt[naming_style];
     } else {

@@ -32,7 +32,6 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
-#include "shellcore/server_registry.h"
 #include "shellcore/shell_notifications.h"
 
 #include "shellcore/proxy_object.h"

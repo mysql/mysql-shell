@@ -40,7 +40,6 @@
 #include "shellcore/jscript_function_wrapper.h"
 #include "shellcore/jscript_map_wrapper.h"
 #include "shellcore/jscript_array_wrapper.h"
-#include "shellcore/shell_registry.h"
 #include "utils/utils_general.h"
 
 #include "shellcore/jscript_type_conversion.h"

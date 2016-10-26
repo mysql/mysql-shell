@@ -21,7 +21,6 @@
 #include "interactive_global_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 //#include "modules/adminapi/mod_dba_instance.h"
-#include "shellcore/shell_registry.h"
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "modules/adminapi/mod_dba_common.h"

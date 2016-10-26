@@ -27,7 +27,6 @@
 
 #include "shellcore/object_factory.h"
 #include "shellcore/python_type_conversion.h"
-#include "shellcore/shell_registry.h"
 #include <boost/format.hpp>
 #include <exception>
 

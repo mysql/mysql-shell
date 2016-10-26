@@ -18,7 +18,6 @@
  */
 
 #include "interactive_global_session.h"
-#include "shellcore/shell_registry.h"
 #include "utils/utils_general.h"
 #include <boost/format.hpp>
 
@@ -55,15 +54,7 @@ void Global_session::resolve() const {
 
         if (!error) {
           if (prompt("Please specify the MySQL server URI (or $alias): ", answer)) {
-            Value::Map_type_ref connection_data;
-            if (answer.find("$") == 0) {
-              std::string stored_session_name = answer.substr(1);
-              if (StoredSessions::get_instance()->connections()->has_key(stored_session_name))
-                connection_data = (*StoredSessions::get_instance()->connections())[stored_session_name].as_map();
-              else
-                throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % stored_session_name).str());
-            } else
-              connection_data = shcore::get_connection_data(answer);
+            Value::Map_type_ref connection_data = shcore::get_connection_data(answer);
 
             if (!connection_data->has_key("dbPassword")) {
               if (password("Enter password: ", answer))

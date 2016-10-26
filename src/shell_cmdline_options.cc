@@ -64,8 +64,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         exit_code = 1;
         break;
       }
-    } else if (check_arg_with_value(argv, i, "--app", NULL, value))
-      _options.app = value;
+    }
     else if (check_arg_with_value(argv, i, "--host", "-h", value))
       _options.host = value;
     else if (check_arg_with_value(argv, i, "--dbuser", "-u", value))

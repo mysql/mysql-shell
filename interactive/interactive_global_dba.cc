@@ -21,7 +21,6 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/adminapi/mod_dba_common.h"
-#include "shellcore/shell_registry.h"
 #include "interactive/interactive_dba_cluster.h"
 //#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/adminapi/mod_dba_common.h"

@@ -53,8 +53,7 @@ Shell_options::Shell_options() {
 }
 
 bool Shell_options::has_connection_data() {
-  return !app.empty() ||
-         !uri.empty() ||
+  return !uri.empty() ||
          !user.empty() ||
          !host.empty() ||
          !schema.empty() ||

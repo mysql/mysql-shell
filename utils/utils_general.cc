@@ -20,7 +20,6 @@
 #include "utils_general.h"
 #include "uri_parser.h"
 #include "utils_file.h"
-#include "shellcore/server_registry.h"
 #include <locale>
 #ifdef WIN32
 #include <windows.h>

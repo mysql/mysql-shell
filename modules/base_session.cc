@@ -23,7 +23,6 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "shellcore/common.h"
-#include "shellcore/server_registry.h"
 #include "shellcore/shell_notifications.h"
 
 #include "shellcore/proxy_object.h"
@@ -164,7 +163,6 @@ shcore::Value ShellBaseSession::get_member(const std::string &prop) const {
 void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
   // The connection data can come from different sources
   std::string uri;
-  std::string app;
   std::string auth_method;
   std::string connections_file; // The default connection file or the indicated on the map as dataSourceFile
   shcore::Value::Map_type_ref options; // Map with the connection data
@@ -174,23 +172,12 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
   //-----------------------------------------------------
   if (args[0].type == String) {
     std::string temp = args.string_at(0);
-
-    // The connection data to be loaded from the stored sessions
-    if (temp[0] == '$')
-      app = temp.substr(1);
-
-    // The connection data comes in an URI
-    else
-      uri = temp;
+    uri = temp;
   }
 
   // Connection data comes in a dictionary
   else if (args[0].type == Map) {
     options = args.map_at(0);
-
-    // Connection data should be loaded from a stored session
-    if (options->has_key("app"))
-      app = (*options)["app"].as_string();
 
     // Use a custom stored sessions file, rather than the default one
     if (options->has_key("dataSourceFile"))
@@ -206,33 +193,8 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
     std::string protocol;
     int pwd_found;
     parse_mysql_connstring(uri, protocol, _user, _password, _host, _port, _sock, _schema, pwd_found, _ssl_ca, _ssl_cert, _ssl_key);
-  } else if (!app.empty()) {
-    // If no custom connection file is indicated, then uses the default one
-    if (connections_file.empty())
-      connections_file = shcore::get_default_config_path();
-
-    // Loads the connection data from a stored session
-    shcore::Server_registry sr(connections_file);
-    try { sr.load(); }
-    CATCH_AND_TRANSLATE();
-
-    shcore::Connection_options& conn = sr.get_connection_options(app);
-
-    _user = conn.get_user();
-    _host = conn.get_server();
-    std::string str_port = conn.get_port();
-    if (!str_port.empty()) {
-      int tmp_port = boost::lexical_cast<int>(str_port);
-      if (tmp_port)
-        _port = tmp_port;
-    }
-    _schema = conn.get_schema();
-
-    _ssl_ca = conn.get_value_if_exists("ssl_ca");
-    _ssl_cert = conn.get_value_if_exists("ssl_cert");
-    _ssl_key = conn.get_value_if_exists("ssl_key");
   }
-
+  
   // If the connection data came in a dictionary, the values in the dictionary override whatever
   // is already loaded: i.e. if the dictionary indicated a stored session, that info is already
   // loaded but will be overriden with whatever extra values exist on the dictionary

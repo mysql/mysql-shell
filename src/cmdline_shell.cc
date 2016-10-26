@@ -22,7 +22,6 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h" // <---
-#include "shellcore/shell_registry.h"
 #include "modules/base_resultset.h"
 #include "utils/utils_time.h"
 #include "utils/utils_help.h"
@@ -187,7 +186,6 @@ void Command_line_shell::print_cmd_line_helper() {
   println("  --uri                    Connect to Uniform Resource Identifier.");
   println("                           Format: [user[:pass]]@host[:port][/db]");
   println("                           or user[:pass]@::socket[/db] .");
-  println("  --app                    Connect to using a Stored Session.");
   println("  -h, --host=name          Connect to host.");
   println("  -P, --port=#             Port number to use for connection.");
   println("  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in Windows (only classic sessions).");

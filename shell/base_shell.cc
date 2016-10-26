@@ -22,7 +22,6 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h" // <---
-#include "shellcore/shell_registry.h"
 #include "shellcore/shell_notifications.h"
 #include "modules/base_resultset.h"
 #include "shell_resultset_dumper.h"
@@ -127,9 +126,6 @@ _options(options) {
     "   SESSION_CONFIG_NAME is the name of session configuration to be deleted.\n\n"
     "EXAMPLES:\n"
     "   \\rmconn my_config_name\n";
-  SET_SHELL_COMMAND("\\saveconn|\\savec", "Store a session configuration.", cmd_help_store_connection, Base_shell::cmd_store_connection);
-  SET_SHELL_COMMAND("\\rmconn|\\rmc", "Remove the stored session configuration.", cmd_help_delete_connection, Base_shell::cmd_delete_connection);
-  SET_SHELL_COMMAND("\\lsconn|\\lsc", "List stored session configurations.", "", Base_shell::cmd_list_connections);
 
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
@@ -191,12 +187,7 @@ bool Base_shell::connect(bool primary_session) {
     shcore::Argument_list args;
     shcore::Value::Map_type_ref connection_data;
     bool secure_password = true;
-    if (!_options.app.empty()) {
-      if (shcore::StoredSessions::get_instance()->connections()->has_key(_options.app))
-        connection_data = (*shcore::StoredSessions::get_instance()->connections())[_options.app].as_map();
-      else
-        throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
-    } else if (!_options.uri.empty()) {
+    if (!_options.uri.empty()) {
       connection_data = shcore::get_connection_data(_options.uri);
       if (connection_data->has_key("dbPassword") && !connection_data->get_string("dbPassword").empty())
         secure_password = false;
@@ -252,7 +243,7 @@ bool Base_shell::connect(bool primary_session) {
     shcore::set_default_connection_data(connection_data);
 
     if (_options.interactive)
-      print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), _options.app);
+      print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), /*_options.app*/"");
 
     args.push_back(shcore::Value(connection_data));
 
@@ -620,12 +611,12 @@ bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
 
     if (!error) {
       if (uri) {
-        if (args[target_index].find("$") == 0)
+        /*if (args[target_index].find("$") == 0)
           _options.app = args[target_index].substr(1);
         else {
-          _options.app = "";
+          _options.app = "";*/
           _options.uri = args[target_index];
-        }
+        //}
       }
       connect();
 
@@ -659,124 +650,6 @@ bool Base_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args)) {
   (*shcore::Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = shcore::Value::False();
 
   println("Show warnings disabled.");
-
-  return true;
-}
-
-bool Base_shell::cmd_store_connection(const std::vector<std::string>& args) {
-  std::string error;
-  std::string name;
-  std::string uri;
-
-  bool overwrite = false;
-
-  // Reads the parameters
-  switch (args.size()) {
-    case 2:
-      if (args[1] == "-f")
-        error = "usage";
-      else
-        name = args[1];
-      break;
-    case 3:
-      if (args[1] == "-f") {
-        overwrite = true;
-        name = args[2];
-      } else {
-        name = args[1];
-        uri = args[2];
-      }
-      break;
-    case 4:
-      if (args[1] != "-f")
-        error = "usage";
-      else {
-        overwrite = true;
-        name = args[2];
-        uri = args[3];
-      }
-
-      break;
-      break;
-    default:
-      error = "usage";
-  }
-
-  // Performs additional validations
-  if (error.empty()) {
-    if (!shcore::is_valid_identifier(name))
-      error = (boost::format("The session configuration name '%s' is not a valid identifier") % name).str();
-    else {
-      if (uri.empty()) {
-        if (_shell->get_dev_session())
-          uri = _shell->get_dev_session()->uri();
-        else
-          error = "Unable to save session information, no active session available";
-      }
-    }
-  }
-
-  // Attempsts the store
-  if (error.empty()) {
-    try {
-      shcore::StoredSessions::get_instance()->add_connection(name, uri, overwrite);
-
-      std::string uri = shcore::build_connection_string((*shcore::StoredSessions::get_instance()->connections())[name].as_map(), false);
-
-      println((boost::format("Successfully stored %s as %s.") % uri % name).str().c_str());
-    } catch (std::exception& err) {
-      error = err.what();
-    }
-  } else if (error == "usage")
-    error = "\\saveconn [-f] <session_cfg_name> [<uri>]";
-
-  if (!error.empty()) {
-    error += "\n";
-    print_error(error);
-  }
-
-  return true;
-}
-
-bool Base_shell::cmd_delete_connection(const std::vector<std::string>& args) {
-  std::string error;
-
-  if (args.size() == 2) {
-    try {
-      shcore::StoredSessions::get_instance()->remove_connection(args[1]);
-
-      println((boost::format("Successfully deleted session configuration named %s.") % args[1]).str().c_str());
-    } catch (std::exception& err) {
-      error = err.what();
-    }
-  } else
-    error = "\\rmconn <session_cfg_name>";
-
-  if (!error.empty()) {
-    error += "\n";
-    print_error(error);
-  }
-
-  return true;
-}
-
-bool Base_shell::cmd_list_connections(const std::vector<std::string>& args) {
-  if (args.size() == 1) {
-    std::string format = (*shcore::Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
-
-    shcore::Value::Map_type_ref connections = shcore::StoredSessions::get_instance()->connections();
-    if (format.find("json") != std::string::npos)
-      _shell->print_value(shcore::Value(connections), "");
-    else {
-      for (auto connection : (*connections.get())) {
-        std::string uri = shcore::build_connection_string(connection.second.as_map(), false);
-        println((boost::format("%1% : %2%") % connection.first % uri).str());
-      }
-    }
-
-    println();
-  } else
-    print_error("\\lsconn\n");
 
   return true;
 }

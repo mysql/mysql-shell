@@ -51,7 +51,6 @@ public:
   int ssl;
 
   std::string uri;
-  std::string app;
 
   std::string output_format;
   mysh::SessionType session_type;

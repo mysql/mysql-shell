@@ -409,102 +409,6 @@ TEST_F(Interactive_shell_test, shell_command_no_warnings) {
   output_handler.wipe_all();
 }
 
-TEST_F(Interactive_shell_test, shell_command_store_connection) {
-  // Cleanup for the test
-  _interactive_shell->process_line("\\rmconn test_01");
-  _interactive_shell->process_line("\\rmconn test_02");
-  output_handler.wipe_all();
-
-  // Command errors
-  _interactive_shell->process_line("\\savec 1");
-  MY_EXPECT_STDERR_CONTAINS("The session configuration name '1' is not a valid identifier");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\savec test_example");
-  MY_EXPECT_STDERR_CONTAINS("Unable to save session information, no active session available");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\savec");
-  MY_EXPECT_STDERR_CONTAINS("\\saveconn [-f] <session_cfg_name> [<uri>]");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\savec -f");
-  MY_EXPECT_STDERR_CONTAINS("\\saveconn [-f] <session_cfg_name> [<uri>]");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\savec wrong params root@localhost");
-  MY_EXPECT_STDERR_CONTAINS("\\saveconn [-f] <session_cfg_name> [<uri>]");
-  output_handler.wipe_all();
-
-  // Passing URI
-  _interactive_shell->process_line("\\savec test_01 sample:pwd@sometarget:45/schema");
-  MY_EXPECT_STDOUT_CONTAINS("Successfully stored sample@sometarget:45/schema as test_01.");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\savec test_01 sample2:pwd@sometarget:46");
-  MY_EXPECT_STDERR_CONTAINS("ShellRegistry.add: The name 'test_01' already exists");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\savec -f test_01 sample2:pwd@sometarget:46");
-  MY_EXPECT_STDOUT_CONTAINS("Successfully stored sample2@sometarget:46 as test_01.");
-  output_handler.wipe_all();
-
-  // Working with the current session
-  _interactive_shell->process_line("\\connect " + _uri);
-  _interactive_shell->process_line("\\savec test_02");
-  MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd);
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("session.close()");
-
-  _interactive_shell->process_line("\\savec test_02");
-  MY_EXPECT_STDERR_CONTAINS("ShellRegistry.add: The name 'test_02' already exists");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\savec -f test_02");
-  MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd);
-  output_handler.wipe_all();
-}
-
-TEST_F(Interactive_shell_test, shell_command_delete_connection) {
-  // Cleanup for the test
-  _interactive_shell->process_line("\\rmconn test_01");
-  _interactive_shell->process_line("\\rmconn test_02");
-  _interactive_shell->process_line("\\saveconn test_01 sample@host:4025");
-  output_handler.wipe_all();
-
-  // Command errors
-  _interactive_shell->process_line("\\rmconn");
-  MY_EXPECT_STDERR_CONTAINS("\\rmconn <session_cfg_name>");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\rmconn test_02");
-  MY_EXPECT_STDERR_CONTAINS("The name 'test_02' does not exist");
-  output_handler.wipe_all();
-
-  // Passing URI
-  _interactive_shell->process_line("\\rmconn test_01");
-  MY_EXPECT_STDOUT_CONTAINS("Successfully deleted session configuration named test_01.");
-  output_handler.wipe_all();
-}
-
-TEST_F(Interactive_shell_test, shell_command_list_connections) {
-  // Cleanup for the test
-  _interactive_shell->process_line("\\rmconn test_01");
-  _interactive_shell->process_line("\\rmconn test_02");
-  _interactive_shell->process_line("\\saveconn test_01 sample:pwd@host:4520");
-  output_handler.wipe_all();
-
-  // Command errors
-  _interactive_shell->process_line("\\lsc test_01");
-  MY_EXPECT_STDERR_CONTAINS("\\lsconn");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\lsconn");
-  MY_EXPECT_STDOUT_CONTAINS("test_01 : sample@host:4520");
-  output_handler.wipe_all();
-}
-
 TEST_F(Interactive_shell_test, shell_command_help) {
   // Cleanup for the test
   _interactive_shell->process_line("\\?");
@@ -521,9 +425,6 @@ TEST_F(Interactive_shell_test, shell_command_help) {
   MY_EXPECT_STDOUT_CONTAINS("\\nowarnings (\\w)       Don't show warnings after every statement.");
   MY_EXPECT_STDOUT_CONTAINS("\\status     (\\s)       Print information about the current global connection.");
   MY_EXPECT_STDOUT_CONTAINS("\\use        (\\u)       Set the current schema for the global session.");
-  MY_EXPECT_STDOUT_CONTAINS("\\saveconn   (\\savec)   Store a session configuration.");
-  MY_EXPECT_STDOUT_CONTAINS("\\rmconn     (\\rmc)     Remove the stored session configuration.");
-  MY_EXPECT_STDOUT_CONTAINS("\\lsconn     (\\lsc)     List stored session configurations.");
   MY_EXPECT_STDOUT_CONTAINS("For help on a specific command use the command as \\? <command>");
 
   _interactive_shell->process_line("\\help \\source");
@@ -536,14 +437,6 @@ TEST_F(Interactive_shell_test, shell_command_help) {
 
   _interactive_shell->process_line("\\help \\use");
   MY_EXPECT_STDOUT_CONTAINS("The global db variable will be updated to hold the requested schema.");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\help \\saveconn");
-  MY_EXPECT_STDOUT_CONTAINS("SESSION_CONFIG_NAME is the name to be assigned to the session configuration.");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("\\help \\rmconn");
-  MY_EXPECT_STDOUT_CONTAINS("SESSION_CONFIG_NAME is the name of session configuration to be deleted.");
   output_handler.wipe_all();
 }
 

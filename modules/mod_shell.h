@@ -45,12 +45,10 @@ namespace mysh {
 
     #if DOXYGEN_JS
     Dictionary options;
-    Dictionary storedSessions;
     Dictionary parseUri(String uri);
     String prompt(String message, Dictionary options);
     #elif DOXYGEN_PY
     dict options;
-    dict storedSessions;
     dict parseUri(str uri);
     str prompt(str message, dict options);
     #endif

@@ -18,15 +18,15 @@ if(WITH_TESTS)
     if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
       SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
     endif ()
-    
+
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
 
-    include_directories(${CMAKE_SOURCE_DIR}/unittest/include 
+    include_directories(${CMAKE_SOURCE_DIR}/unittest/include
                 ${CMAKE_SOURCE_DIR}/mysqlxtest
                 ${CMAKE_SOURCE_DIR}/mysqlxtest/common
                 ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
-                ${GTEST_INCLUDE_DIR} 
+                ${GTEST_INCLUDE_DIR}
                 ${CMAKE_SOURCE_DIR}/include
                 ${CMAKE_SOURCE_DIR}/modules
                 ${MYSQL_INCLUDE_DIRS}

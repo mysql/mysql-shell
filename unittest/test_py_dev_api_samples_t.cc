@@ -14,7 +14,6 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "shell_script_tester.h"
-#include "shellcore/server_registry.h"
 #include "utils/utils_general.h"
 
 namespace shcore {
@@ -67,23 +66,6 @@ protected:
       }
     }
   }
-
-  void create_connection() {
-    Server_registry* sr = new Server_registry("mysqlxconfig.json");
-    sr->load();
-    Connection_options cs;
-    try {
-      cs = sr->get_connection_options("myapp");
-    } catch (std::runtime_error &e) {
-      std::string connection_options = "host=localhost; dbUser=mike; schema=test;";
-
-      if (!_port.empty())
-        connection_options += " port=" + _port + ";";
-
-      cs = sr->add_connection_options("myapp", connection_options);
-      sr->merge();
-    }
-  }
 };
 
 //==================>>> building_expressions
@@ -108,7 +90,6 @@ TEST_F(Shell_py_dev_api_sample_tester, Database_Connection_Example) {
 }
 
 TEST_F(Shell_py_dev_api_sample_tester, Dynamic_SQL) {
-  create_connection();
   validate_interactive("concepts/Dynamic_SQL");
 }
 

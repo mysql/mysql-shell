@@ -28,8 +28,6 @@
 #include "shellcore/shell_jscript.h"
 #include "shell_script_tester.h"
 
-#include "shellcore/server_registry.h"
-
 namespace shcore {
 class Shell_js_dev_api_sample_tester : public Shell_js_script_tester {
 protected:
@@ -70,35 +68,6 @@ protected:
       }
     }
   }
-
-  void create_connection() {
-    Server_registry* sr = new Server_registry("mysqlxconfig.json");
-    sr->load();
-    Connection_options cs;
-    try {
-      cs = sr->get_connection_options("myapp");
-    } catch (std::runtime_error &e) {
-      std::string connection_options = "host=localhost; dbUser=mike; schema=test;";
-
-      if (!_port.empty())
-        connection_options += " port=" + _port + ";";
-
-      cs = sr->add_connection_options("myapp", connection_options);
-      sr->merge();
-    }
-  }
-
-  void delete_connection() {
-    Server_registry* sr = new Server_registry("mysqlxconfig.json");
-    sr->load();
-    Connection_options cs;
-    try {
-      cs = sr->get_connection_options("myapp");
-      sr->remove_connection_options(cs);
-      sr->merge();
-    } catch (std::runtime_error &e) {
-    }
-  }
 };
 //==================>>> building_expressions
 TEST_F(Shell_js_dev_api_sample_tester, Expression_Strings) {
@@ -111,9 +80,7 @@ TEST_F(Shell_js_dev_api_sample_tester, Database_Connection_Example) {
 }
 
 TEST_F(Shell_js_dev_api_sample_tester, Dynamic_SQL) {
-  create_connection();
   validate_interactive("concepts/Dynamic_SQL");
-  delete_connection();
 }
 
 TEST_F(Shell_js_dev_api_sample_tester, Setting_the_Current_Schema) {

@@ -154,45 +154,6 @@ else:
 
 mySession.close()
 
-
-#@ Stored Sessions, session from data dictionary
-shell.stored_sessions.add('mysqlx_data', data);
-
-mySession = mysqlx.get_session(shell.stored_sessions.mysqlx_data, __pwd);
-
-print "%s\n" % mySession
-
-if mySession.uri == __displayuridb:
-	print 'Session using right URI\n'
-else:
-	print 'Session using wrong URI\n'
-
-mySession.close()
-
-#@ Stored Sessions, session from data dictionary removed
-shell.stored_sessions.remove('mysqlx_data')
-mySession = mysqlx.get_session(shell.stored_sessions.mysqlx_data)
-
-
-#@ Stored Sessions, session from uri
-shell.stored_sessions.add('mysqlx_uri', __uripwd)
-
-mySession = mysqlx.get_session(shell.stored_sessions.mysqlx_uri, __pwd)
-
-print "%s\n" % mySession
-
-if mySession.uri == __displayuri:
-	print 'Session using right URI\n'
-else:
-	print 'Session using wrong URI\n'
-
-mySession.close()
-
-#@ Stored Sessions, session from uri removed
-shell.stored_sessions.remove('mysqlx_uri')
-mySession = mysqlx.get_session(shell.stored_sessions.mysqlx_uri)
-
-
 # @# mysqlx module: expression errors
 # expr = mysqlx.expr()
 # expr = mysqlx.expr(5)

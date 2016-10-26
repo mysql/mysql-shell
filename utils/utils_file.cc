@@ -396,13 +396,6 @@ void SHCORE_PUBLIC delete_file(const std::string& filename) {
 #endif
 }
 
-std::string get_default_config_path() {
-  static std::string _file_path = "stored_sessions.json";
-  std::string path = shcore::get_user_config_path();
-  path += _file_path;
-  return path;
-}
-
 /*
  * Returns the HOME path (~ in Unix or %AppData%\ in Windows).
  */
