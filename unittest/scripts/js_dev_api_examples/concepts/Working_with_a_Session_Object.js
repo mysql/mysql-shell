@@ -2,7 +2,7 @@
 var mysqlx = require('mysqlx');
 
 // Connect to a dedicated MySQL server using a connection URL
-var mySession = mysqlx.getSession('mike:s3cr3t!@localhost');
+var mySession = mysqlx.getNodeSession('mike:s3cr3t!@localhost');
 
 // Get a list of all available schemas
 var schemaList = mySession.getSchemas();

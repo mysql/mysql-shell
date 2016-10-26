@@ -35,17 +35,14 @@ void Global_session::resolve() const {
   bool error = false;
   if (prompt("The global session is not set, do you want to establish a session? [y/N]: ", answer)) {
     if (!answer.compare("y") || !answer.compare("Y")) {
-      if (prompt("Please specify the session type:\n\n   1) X\n   2) Node\n   3) Classic\n\nType: ", answer)) {
+      if (prompt("Please specify the session type:\n\n   1) Node\n   2) Classic\n\nType: ", answer)) {
         mysh::SessionType type;
-        std::string options = "123";
+        std::string options = "12";
         switch (options.find(answer)) {
           case 0:
-            type = mysh::SessionType::X;
-            break;
-          case 1:
             type = mysh::SessionType::Node;
             break;
-          case 2:
+          case 1:
             type = mysh::SessionType::Classic;
             break;
           default:
@@ -53,7 +50,7 @@ void Global_session::resolve() const {
         }
 
         if (!error) {
-          if (prompt("Please specify the MySQL server URI (or $alias): ", answer)) {
+          if (prompt("Please specify the MySQL server URI: ", answer)) {
             Value::Map_type_ref connection_data = shcore::get_connection_data(answer);
 
             if (!connection_data->has_key("dbPassword")) {

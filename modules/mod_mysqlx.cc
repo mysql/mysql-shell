@@ -32,7 +32,7 @@ REGISTER_HELP(MYSQLX_INTERACTIVE_BRIEF, "Used to work with X Protocol sessions u
 REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
   add_property("IndexType|IndexType");
-  REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
+  //REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_node_session, getNodeSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, date_value, dateValue);
   REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String, NULL);
@@ -54,10 +54,10 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-DEFINE_FUNCTION(Mysqlx, get_session) {
-  auto session = connect_session(args, mysh::SessionType::X);
-  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
-}
+// DEFINE_FUNCTION(Mysqlx, get_session) {
+//   auto session = connect_session(args, mysh::SessionType::X);
+//   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
+// }
 
 DEFINE_FUNCTION(Mysqlx, get_node_session) {
   auto session = connect_session(args, mysh::SessionType::Node);

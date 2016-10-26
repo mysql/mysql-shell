@@ -459,7 +459,6 @@ TEST_F(Shell_cmdline_options_t, app) {
 
   test_option_with_value("execute", "e", "show databases;", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "execute_statement");
 
-  test_option_with_no_value("--x", "session-type", session_type_name(mysh::SessionType::X));
   test_option_with_no_value("--classic", "session-type", session_type_name(mysh::SessionType::Classic));
   test_option_with_no_value("--node", "session-type", session_type_name(mysh::SessionType::Node));
 
@@ -501,31 +500,21 @@ TEST_F(Shell_cmdline_options_t, test_session_type_conflicts) {
   test_session_type_conflicts("--sqlc", "--sqlc", "Classic", "Classic", 0);
   test_session_type_conflicts("--sqlc", "--classic", "Classic", "Classic", 0);
   test_session_type_conflicts("--sqlc", "--node", "Classic", "Node", 1);
-  test_session_type_conflicts("--sqlc", "--x", "Classic", "X", 1);
   test_session_type_conflicts("--sqlc", "--sqln", "Classic", "Node", 1);
 
   test_session_type_conflicts("--sqln", "--sqln", "Node", "Node", 0);
   test_session_type_conflicts("--sqln", "--node", "Node", "Node", 0);
   test_session_type_conflicts("--sqln", "--classic", "Node", "Classic", 1);
-  test_session_type_conflicts("--sqln", "--x", "Node", "X", 1);
   test_session_type_conflicts("--sqln", "--sqlc", "Node", "Classic", 1);
 
   test_session_type_conflicts("--node", "--node", "Node", "Node", 0);
   test_session_type_conflicts("--node", "--sqln", "Node", "Node", 0);
   test_session_type_conflicts("--node", "--classic", "Node", "Classic", 1);
-  test_session_type_conflicts("--node", "--x", "Node", "X", 1);
   test_session_type_conflicts("--node", "--sqlc", "Node", "Classic", 1);
 
   test_session_type_conflicts("--classic", "--classic", "Classic", "Classic", 0);
   test_session_type_conflicts("--classic", "--sqlc", "Classic", "Classic", 0);
   test_session_type_conflicts("--classic", "--node", "Classic", "Node", 1);
-  test_session_type_conflicts("--classic", "--x", "Classic", "X", 1);
   test_session_type_conflicts("--classic", "--sqln", "Classic", "Node", 1);
-
-  test_session_type_conflicts("--x", "--x", "X", "X", 0);
-  test_session_type_conflicts("--x", "--classic", "X", "Classic", 1);
-  test_session_type_conflicts("--x", "--node", "X", "Node", 1);
-  test_session_type_conflicts("--x", "--sqlc", "X", "Classic", 1);
-  test_session_type_conflicts("--x", "--sqln", "X", "Node", 1);
 }
 }

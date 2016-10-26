@@ -197,7 +197,6 @@ void Command_line_shell::print_cmd_line_helper() {
   println("  -D --schema=name         Schema to use.");
   println("  --recreate-schema        Drop and recreate the specified schema. Schema will be deleted if it exists!");
   println("  --database=name          An alias for --schema.");
-  println("  --x                      Uses connection data to create an X Session.");
   println("  --node                   Uses connection data to create a Node Session.");
   println("  --classic                Uses connection data to create a Classic Session.");
   println("  --sql                    Start in SQL mode.");

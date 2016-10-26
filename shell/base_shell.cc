@@ -596,8 +596,6 @@ bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
 
     if (arg.empty())
       error = true;
-    else if (!arg.compare("-x") || !arg.compare("-X"))
-      _options.session_type = mysh::SessionType::X;
     else if (!arg.compare("-n") || !arg.compare("-N"))
       _options.session_type = mysh::SessionType::Node;
     else if (!arg.compare("-c") || !arg.compare("-C"))

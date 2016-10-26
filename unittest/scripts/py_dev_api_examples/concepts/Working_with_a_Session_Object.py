@@ -2,7 +2,7 @@
 import mysqlx
 
 # Connect to a dedicated MySQL server using a connection URL
-mySession = mysqlx.get_session('mike:s3cr3t!@localhost')
+mySession = mysqlx.get_node_session('mike:s3cr3t!@localhost')
 
 # Get a list of all available schemas
 schemaList = mySession.get_schemas()

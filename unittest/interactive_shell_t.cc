@@ -62,41 +62,6 @@ TEST_F(Interactive_shell_test, warning_insecure_password) {
   output_handler.wipe_all();
 }
 
-TEST_F(Interactive_shell_test, shell_command_connect_x) {
-  _interactive_shell->process_line("\\connect -x " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X Session to '" + _uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("db");
-  EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
-
-  _interactive_shell->process_line("session.close()");
-
-  _interactive_shell->process_line("\\connect -x " + _uri + "/mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X Session to '" + _uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema `mysql` accessible through db.");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("db");
-  MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
-  output_handler.wipe_all();
-
-  _interactive_shell->process_line("session.close()");
-
-  _interactive_shell->process_line("\\connect -x mysql://" + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS("Invalid URI for X session");
-  output_handler.wipe_all();
-}
-
 TEST_F(Interactive_shell_test, shell_command_connect_node) {
   _interactive_shell->process_line("\\connect -n " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
@@ -620,7 +585,7 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("dir(mysqlx)");
-  MY_EXPECT_STDOUT_CONTAINS("getSession");
+  MY_EXPECT_STDOUT_CONTAINS("getNodeSession");
   output_handler.wipe_all();
 
   EXPECT_EQ("---> ", _interactive_shell->prompt());

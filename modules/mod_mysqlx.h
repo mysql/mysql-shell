@@ -29,7 +29,7 @@ namespace mysh {
 namespace mysqlx {
 DECLARE_MODULE(Mysqlx, mysqlx);
 
-DECLARE_FUNCTION(get_session);
+//DECLARE_FUNCTION(get_session);
 DECLARE_FUNCTION(get_node_session);
 DECLARE_FUNCTION(expr);
 DECLARE_FUNCTION(date_value);

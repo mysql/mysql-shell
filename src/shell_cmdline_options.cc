@@ -184,8 +184,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
           break;
         }
       }
-    } else if (check_arg(argv, i, "--x", "--x"))
-      override_session_type(mysh::SessionType::X, "--x");
+    }
     else if (check_arg(argv, i, "--node", "--node"))
       override_session_type(mysh::SessionType::Node, "--node");
     else if (check_arg(argv, i, "--classic", "--classic"))

@@ -4,7 +4,7 @@ mySession
 
 try:
         # Connect to server on localhost
-        mySession = mysqlx.get_session( {
+        mySession = mysqlx.get_node_session( {
                 'host': 'localhost', 'port': 33060,
                 'dbUser': 'mike', 'dbPassword': 's3cr3t!' } )
 
