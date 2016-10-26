@@ -18,7 +18,7 @@ SET(MYSH_MINOR 0)
 SET(MYSH_PATCH 6)
 SET(MYSH_SPRINT 0)# Merge/Sprint Number (QA Tracking): 0 on Release
 IF("${MYSH_SPRINT}" STREQUAL "0")
-  SET(MYSH_LEVEL "-fb2")
+  SET(MYSH_LEVEL "-fb3")
 ELSE()
   SET(MYSH_LEVEL ".${MYSH_SPRINT}")
 ENDIF()
