@@ -63,9 +63,6 @@ void Command_line_shell::deleg_print_error(void *cdata, const char *text) {
 
 char *Command_line_shell::readline(const char *prompt) {
   char *tmp = NULL;
-#ifndef WIN32
-  tmp = ::readline(prompt);
-#else
   // TODO: This should be ported from the server, not used from there
   /*
   tmp = (char *)malloc(MAX_READLINE_BUF);
@@ -74,14 +71,30 @@ char *Command_line_shell::readline(const char *prompt) {
   my_win_console_fputs(&my_charset_latin1, prompt);
   tmp = my_win_console_readline(&my_charset_latin1, tmp, MAX_READLINE_BUF);
   */
+  
+#ifndef WIN32
+  std::string prompt_line(prompt);
+  
+  size_t pos = prompt_line.rfind("\n");
+  if (pos != std::string::npos) {
+    auto all_lines = prompt_line.substr(0, pos+1);
+    prompt_line = prompt_line.substr(pos+1);
+    
+    if (!all_lines.empty())
+      std::cout << all_lines << std::flush;
+  }
+  
+  tmp = ::readline(prompt_line.c_str());
+#else
   std::string line;
   std::cout << prompt << std::flush;
+  
   std::getline(std::cin, line);
 
   if (!std::cin.fail())
     tmp = strdup(line.c_str());
-
 #endif
+  
   return tmp;
 }
 

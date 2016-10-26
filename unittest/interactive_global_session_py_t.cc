@@ -24,6 +24,11 @@ public:
     _options->wizards = true;
     _options->initial_mode = IShell_core::Mode::Python;
   };
+protected:
+  std::string no_session_message = "The global session is not set, do you want to establish a session?\n\n"\
+  "   1) MySQL Document Store Session through X Protocol\n"\
+  "   2) Classic MySQL Session\n\n"\
+  "Please select the session type or ENTER to cancel: ";
 };
 
 TEST_F(Interactive_global_session_py_test, undefined_session_usage) {
@@ -32,14 +37,14 @@ TEST_F(Interactive_global_session_py_test, undefined_session_usage) {
   output_handler.wipe_all();
 
   // Answers no to the question if session should be established
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back("");
   _interactive_shell->process_line("session.uri");
   MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
   MY_EXPECT_STDERR_CONTAINS("unknown attribute: uri");
   output_handler.wipe_all();
 
   // Answers no to the question if session should be established
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back("");
   _interactive_shell->process_line("session.get_uri()");
   MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
   MY_EXPECT_STDERR_CONTAINS("unknown attribute: get_uri");
@@ -71,13 +76,11 @@ TEST_F(Interactive_global_session_py_test, resolve_property_access_to_node) {
   output_handler.wipe_all();
 
   // Answers no to the question if session should be established
-  output_handler.prompts.push_back("y");  // Would you like to establish a session
   output_handler.prompts.push_back("1");  // Session type 1) Node
   output_handler.prompts.push_back(_uri_nopasswd); // Connection data
   output_handler.passwords.push_back(_pwd);
   _interactive_shell->process_line("print 'Resolved: %s' % session.uri");
-  MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
-  MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
   MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
   MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
   MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _uri_nopasswd);
@@ -96,13 +99,11 @@ TEST_F(Interactive_global_session_py_test, resolve_method_call_to_node) {
   output_handler.wipe_all();
 
   // Answers no to the question if session should be established
-  output_handler.prompts.push_back("y");  // Would you like to establish a session
   output_handler.prompts.push_back("1");  // Session type 1) Node
   output_handler.prompts.push_back(_uri_nopasswd); // Connection data
   output_handler.passwords.push_back(_pwd);
   _interactive_shell->process_line("print 'Resolved: %s' % session.uri");
-  MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
-  MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
   MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
   MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
   MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _uri_nopasswd);
@@ -121,13 +122,11 @@ TEST_F(Interactive_global_session_py_test, resolve_property_access_to_classic) {
   output_handler.wipe_all();
 
   // Answers no to the question if session should be established
-  output_handler.prompts.push_back("y");  // Would you like to establish a session
   output_handler.prompts.push_back("2");  // Session type 1) Classic
   output_handler.prompts.push_back(_mysql_uri_nopasswd); // Connection data
   output_handler.passwords.push_back(_pwd);
   _interactive_shell->process_line("print 'Resolved: %s' % session.uri");
-  MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
-  MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
   MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
   MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
   MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _mysql_uri_nopasswd);
@@ -146,13 +145,11 @@ TEST_F(Interactive_global_session_py_test, resolve_method_call_to_classic) {
   output_handler.wipe_all();
 
   // Answers no to the question if session should be established
-  output_handler.prompts.push_back("y");  // Would you like to establish a session
   output_handler.prompts.push_back("2");  // Session type 1) Classic
   output_handler.prompts.push_back(_mysql_uri_nopasswd); // Connection data
   output_handler.passwords.push_back(_pwd);
   _interactive_shell->process_line("print 'Resolved: %s' % session.uri");
-  MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
-  MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
   MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
   MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
   MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _mysql_uri_nopasswd);
@@ -171,14 +168,12 @@ TEST_F(Interactive_global_session_py_test, get_unexisting_schema) {
   output_handler.wipe_all();
 
   // Answers no to the question if session should be established
-  output_handler.prompts.push_back("y");  // Would you like to establish a session
   output_handler.prompts.push_back("1");  // Session type 1) Node
   output_handler.prompts.push_back(_uri_nopasswd); // Connection data
   output_handler.passwords.push_back(_pwd);
   output_handler.prompts.push_back("y"); // Would you like to create the schema
   _interactive_shell->process_line("myschema = session.get_schema('mysample')");
-  MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
-  MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
   MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
   MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
   output_handler.wipe_all();

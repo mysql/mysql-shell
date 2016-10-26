@@ -20,6 +20,7 @@
 #include "interactive_global_session.h"
 #include "utils/utils_general.h"
 #include <boost/format.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -32,42 +33,51 @@ void Global_session::init() {
 
 void Global_session::resolve() const {
   std::string answer;
-  bool error = false;
-  if (prompt("The global session is not set, do you want to establish a session? [y/N]: ", answer)) {
-    if (!answer.compare("y") || !answer.compare("Y")) {
-      if (prompt("Please specify the session type:\n\n   1) Node\n   2) Classic\n\nType: ", answer)) {
-        mysh::SessionType type;
-        std::string options = "12";
-        switch (options.find(answer)) {
-          case 0:
-            type = mysh::SessionType::Node;
-            break;
-          case 1:
-            type = mysh::SessionType::Classic;
-            break;
-          default:
-            error = true;
-        }
+  bool error = true;
+  std::string message = "The global session is not set, do you want to establish a session?\n\n"\
+  "   1) MySQL Document Store Session through X Protocol\n"\
+  "   2) Classic MySQL Session\n\n"\
+  "Please select the session type or ENTER to cancel: ";
+  
+  if (prompt(message, answer)) {
+    boost::trim(answer);
+    if (!answer.empty() && answer.length() == 1) {
+      mysh::SessionType type;
+      std::string options = "12";
+      switch (options.find(answer)) {
+        case 0:
+          type = mysh::SessionType::Node;
+          error = false;
+          break;
+        case 1:
+          type = mysh::SessionType::Classic;
+          error = false;
+          break;
+        default:
+          break;
+      }
 
-        if (!error) {
-          if (prompt("Please specify the MySQL server URI: ", answer)) {
-            Value::Map_type_ref connection_data = shcore::get_connection_data(answer);
+      if (!error) {
+        if (prompt("Please specify the MySQL server URI: ", answer)) {
+          Value::Map_type_ref connection_data = shcore::get_connection_data(answer);
 
-            if (!connection_data->has_key("dbPassword")) {
-              if (password("Enter password: ", answer))
-                (*connection_data)["dbPassword"] = shcore::Value(answer);
-            }
+          if (!connection_data->has_key("dbPassword")) {
+            if (password("Enter password: ", answer))
+              (*connection_data)["dbPassword"] = shcore::Value(answer);
+          }
 
-            if (connection_data) {
-              shcore::Argument_list args;
-              args.push_back(shcore::Value(connection_data));
+          if (connection_data) {
+            shcore::Argument_list args;
+            args.push_back(shcore::Value(connection_data));
 
-              _shell_core.connect_dev_session(args, type);
-            }
+            _shell_core.connect_dev_session(args, type);
           }
         }
       }
     }
+    
+    if(error)
+      print("Invalid session type\n");
   }
 }
 
