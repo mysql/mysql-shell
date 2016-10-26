@@ -109,7 +109,7 @@ bool Shell_script_tester::multi_value_compare(const std::string& expected, const
 
     for(auto item: options) {
       std::string exp = pre + item + post;
-      if (ret_val = (exp == actual))
+      if ((ret_val = (exp == actual)))
         break;
     }
   }
