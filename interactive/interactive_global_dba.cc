@@ -227,10 +227,16 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       throw Exception::argument_error("The Cluster name must be a valid identifier.");
 
     if (args.size() > 1) {
-      options = args.map_at(1);
-      if (options->has_key("multiMaster")) {
-        multi_master = true;
-      }
+      // Map with the options
+      shcore::Value::Map_type_ref options = args.map_at(1);
+
+      // Verification of invalid attributes on the instance creation options
+      shcore::Argument_map opt_map(*options);
+
+      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster", "adoptFromGR"}, "the options");
+
+      if (opt_map.has_key("multiMaster"))
+        multi_master = opt_map.bool_at("multiMaster");
     }
 
     auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
