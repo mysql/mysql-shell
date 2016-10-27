@@ -27,7 +27,7 @@
 #include "shellcore/include_v8.h"
 
 namespace shcore {
-class SHCORE_PUBLIC JScript_function : public Function_base {
+class JScript_function : public Function_base {
 public:
   JScript_function(JScript_context* context, v8::Handle<v8::Function> function);
   virtual ~JScript_function() {}
@@ -44,7 +44,7 @@ public:
 
   virtual Value invoke(const Argument_list &args);
 
-  virtual bool has_var_args() {return false;}
+  virtual bool has_var_args() { return false; }
 
 private:
   JScript_context *_js;
