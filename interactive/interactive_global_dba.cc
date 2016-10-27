@@ -229,7 +229,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
     if (args.size() > 1) {
       // Map with the options
-      shcore::Value::Map_type_ref options = args.map_at(1);
+      options = args.map_at(1);
 
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
@@ -260,6 +260,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       if (!(prompt("Confirm (Yes/No): ", r) && (r == "y" || r == "yes" || r == "Yes"))) {
         println("Cancelled");
         return shcore::Value();
+      } else {
+          (*options)["force"] = shcore::Value(true);
       }
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));

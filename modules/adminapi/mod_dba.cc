@@ -319,6 +319,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     args.push_back(shcore::Value(session->get_password()));
 
     if (force) {
+      std::cout << "FORCE\n";
+      if (multi_master)
+        std::cout << "TRUE\n";
       args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
                                    : ReplicaSet::kTopologyPrimaryMaster));
     }
