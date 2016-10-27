@@ -133,8 +133,8 @@ public:
   }
 
   void test_option_equal_value(const std::string &option, const std::string & value, bool connection_data, const std::string& target_option = "", const char *target_value = NULL) {
-    // Redirect cout.
-    std::streambuf* backup = std::cout.rdbuf();
+    // Redirect cerr.
+    std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
 
@@ -159,13 +159,13 @@ public:
 
     EXPECT_STREQ("", cerr.str().c_str());
 
-    // Restore old cout.
+    // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
 
   void test_option_space_value(const std::string &option, const std::string & value, bool connection_data, const std::string &target_option = "", const char *target_value = NULL) {
-    // Redirect cout.
-    std::streambuf* backup = std::cout.rdbuf();
+    // Redirect cerr.
+    std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
 
@@ -190,13 +190,13 @@ public:
 
     EXPECT_STREQ("", cerr.str().c_str());
 
-    // Restore old cout.
+    // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
 
   void test_short_option_value(const std::string &option, const std::string &soption, const std::string &value, bool connection_data, const std::string& target_option = "", const char *target_value = NULL) {
-    // Redirect cout.
-    std::streambuf* backup = std::cout.rdbuf();
+    // Redirect cerr.
+    std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
 
@@ -221,13 +221,13 @@ public:
 
     EXPECT_STREQ("", cerr.str().c_str());
 
-    // Restore old cout.
+    // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
 
   void test_short_option_space_value(const std::string &option, const std::string& soption, const std::string &value, bool connection_data, const std::string& target_option = "", const char* target_value = NULL) {
-    // Redirect cout.
-    std::streambuf* backup = std::cout.rdbuf();
+    // Redirect cerr.
+    std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
 
@@ -252,13 +252,13 @@ public:
 
     EXPECT_STREQ("", cerr.str().c_str());
 
-    // Restore old cout.
+    // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
 
   void test_option_space_no_value(const std::string &option, bool valid, const std::string& defval, const std::string target_option = "", const char *target_value = NULL) {
-    // Redirect cout.
-    std::streambuf* backup = std::cout.rdbuf();
+    // Redirect cerr.
+    std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
 
@@ -290,13 +290,13 @@ public:
       EXPECT_STREQ(message.c_str(), cerr.str().c_str());
     }
 
-    // Restore old cout.
+    // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
 
   void test_option_equal_no_value(const std::string &option, bool valid) {
-    // Redirect cout.
-    std::streambuf* backup = std::cout.rdbuf();
+    // Redirect cerr.
+    std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
 
@@ -317,7 +317,7 @@ public:
       EXPECT_STREQ(message.c_str(), cerr.str().c_str());
     }
 
-    // Restore old cout.
+    // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
 
@@ -344,8 +344,8 @@ public:
   }
 
   void test_option_with_no_value(const std::string &option, const std::string &target_option, const std::string &target_value) {
-    // Redirect cout.
-    std::streambuf* backup = std::cout.rdbuf();
+    // Redirect cerr.
+    std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
 
@@ -360,12 +360,12 @@ public:
     EXPECT_STREQ(target_value.c_str(), get_string(&options, target_option).c_str());
     EXPECT_STREQ("", cerr.str().c_str());
 
-    // Restore old cout.
+    // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
 
   void test_session_type_conflicts(const std::string& firstArg, const std::string& secondArg, const std::string& firstST, const std::string& secondST, int ret_code) {
-    std::streambuf* backup = std::cout.rdbuf();
+    std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
 
@@ -379,6 +379,9 @@ public:
       std::string error = options.exit_code ? "Session type already configured to " + firstST + ", unable to change to " + secondST + " with option " + secondArg + "\n" : "";
       EXPECT_STREQ(error.c_str(), cerr.str().c_str());
     }
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
   }
 };
 
