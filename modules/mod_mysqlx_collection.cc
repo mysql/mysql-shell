@@ -143,23 +143,149 @@ shcore::Value Collection::add_(const shcore::Argument_list &args) {
   return collectionAdd->add(args);
 }
 
-//! Creates a collection update handler.
-#if DOXYGEN_CPP
-//! \param args may contain an optional string with the filter expression of the documents to be modified.
-#else
-//! \param searchCondition An optional string with the filter expression of the documents to be modified.
+REGISTER_HELP(COLLECTION_MODIFY_BRIEF, "Creates a collection update handler.");
+REGISTER_HELP(COLLECTION_MODIFY_CHAINED, "CollectionModify.modify.[set].[unset].[merge].[arrayInsert].[arrayAppend].[arrayDelete].[sort].[limit->[skip]].[bind].[execute]");
+
+/**
+* $(COLLECTION_ADD_BRIEF)
+*
+* ### Full Syntax
+*
+* <code>
+*   <table border = "0">
+*     <tr><td>Collection</td><td>.modify(...)</td></tr>
+*     <tr><td></td><td>[.$(COLLECTIONMODIFY_SET_SYNTAX)]</td></tr>
+*     <tr><td></td><td>[.$(COLLECTIONMODIFY_UNSET_SYNTAX)]</td></tr>
+*     <tr><td></td><td>[.$(COLLECTIONMODIFY_MERGE_SYNTAX)]</td></tr>
+*/
+#if DOXYGEN_JS
+/**
+*     <tr><td></td><td>[.arrayInsert(...)]</td></tr>
+*     <tr><td></td><td>[.arrayAppend(...)]</td></tr>
+*/
+#elif DOXYGEN_PY
+/**
+*     <tr><td></td><td>[.array_insert(...)]</td></tr>
+*     <tr><td></td><td>[.array_append(...)]</td></tr>
+*/
 #endif
 /**
-* \return A CollectionFind object.
+*     <tr><td></td><td>[.$(COLLECTIONMODIFY_ARRAYDELETE_SYNTAX)]</td></tr>
+*     <tr><td></td><td>[.$(COLLECTIONMODIFY_SORT_SYNTAX)[.limit(...)]]</td></tr>
+*     <tr><td></td><td>[.$(COLLECTIONMODIFY_BIND_SYNTAX)]</td></tr>
+*     <tr><td></td><td>[.$(COLLECTIONMODIFY_EXECUTE_SYNTAX)]</td></tr>
+*   </table>
+* </code>
 *
-* This function creates a CollectionModify object which is a document update handler.
+* #### .modify()
 *
-* The CollectionModify class has several functions that allow specifying the way the update occurs, if a searchCondition was specified, it will be set on the handler.
+* $(COLLECTIONMODIFY_MODIFY_DETAIL)
 *
-* The update is done when the execute function is called on the handler.
+* $(COLLECTIONMODIFY_MODIFY_DETAIL1)
 *
-* \sa CollectionModify
+* $(COLLECTIONMODIFY_MODIFY_DETAIL2)
+*
+* $(COLLECTIONMODIFY_MODIFY_DETAIL3)
+*
+* To define an expression use:
+* \code{.py}
+* mysqlx.expr(expression)
+* \endcode
+*
+* #### .set()
+*
+* $(COLLECTIONMODIFY_SET_DETAIL)
+* $(COLLECTIONMODIFY_SET_DETAIL1)
+* $(COLLECTIONMODIFY_SET_DETAIL2)
+*
+* $(COLLECTIONMODIFY_SET_DETAIL3)
+*
+* $(COLLECTIONMODIFY_SET_DETAIL4)
+*
+* $(COLLECTIONMODIFY_SET_DETAIL5)
+*
+* To define an expression use:
+* \code{.py}
+* mysqlx.expr(expression)
+* \endcode
+*
+* The expression also can be used for \a [Parameter Binding](param_binding.html).
+*
+* The attribute addition will be done on the collection's documents once the execute method is called.
+*
+* #### .unset()
+*
+* ##### Alternatives
+*
+* @li $(COLLECTIONMODIFY_UNSET_SYNTAX)
+* @li $(COLLECTIONMODIFY_UNSET_SYNTAX1)
+*
+* $(COLLECTIONMODIFY_UNSET_BRIEF)
+*
+* $(COLLECTIONMODIFY_UNSET_DETAIL)
+*
+* #### .merge()
+*
+* $(COLLECTIONMODIFY_MERGE_DETAIL)
+*
+* $(COLLECTIONMODIFY_MERGE_DETAIL1)
+*
+* $(COLLECTIONMODIFY_MERGE_DETAIL2)
+*
+* #### .arrayInsert()
+*
+* $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL)
+*
+* $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1)
+*
+* #### .arrayAppend()
+*
+* $(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL)
+*
+* #### .arrayDelete()
+*
+* $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
+*
+* $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1)
+*
+* #### .sort()
+*
+* $(COLLECTIONMODIFY_SORT_DETAIL)
+* $(COLLECTIONMODIFY_SORT_DETAIL1)
+*
+* $(COLLECTIONMODIFY_SORT_DETAIL2)
+*
+* #### .limit()
+*
+* $(COLLECTIONMODIFY_LIMIT_DETAIL)
+*
+* #### .bind()
+*
+* $(COLLECTIONMODIFY_BIND_BRIEF)
+*
+* #### .execute()
+*
+* $(COLLECTIONMODIFY_EXECUTE_BRIEF)
 */
+#if DOXYGEN_JS
+/**
+*
+* #### Examples
+* \dontinclude "js_devapi/scripts/mysqlx_collection_modify.js"
+* \skip //@# CollectionModify: Set Execution
+* \until //@ CollectionModify: sorting and limit Execution - 4
+* \until print(dir(doc));
+*/
+#elif DOXYGEN_PY
+/**
+*
+* #### Examples
+* \dontinclude "py_devapi/scripts/mysqlx_collection_modify.py"
+* \skip #@# CollectionModify: Set Execution
+* \until #@ CollectionModify: sorting and limit Execution - 4
+* \until print dir(doc)
+*/
+#endif
 #if DOXYGEN_JS
 CollectionModify Collection::modify(String searchCondition) {}
 #elif DOXYGEN_PY
@@ -171,23 +297,93 @@ shcore::Value Collection::modify_(const shcore::Argument_list &args) {
   return collectionModify->modify(args);
 }
 
-//! Creates a document deletion handler.
-#if DOXYGEN_CPP
-//! \param args may contain an optional string with the filter expression of the documents to be deleted.
-#else
-//! \param searchCondition An optional string with the filter expression of the documents to be deleted.
-#endif
+REGISTER_HELP(COLLECTION_REMOVE_BRIEF, "Creates a document deletion handler.");
+REGISTER_HELP(COLLECTION_REMOVE_CHAINED, "CollectionRemove.remove.[sort].[limit].[bind].[execute]");
+
 /**
-* \return A CollectionRemove object.
+* $(COLLECTION_REMOVE_BRIEF)
 *
-* This function creates a CollectionRemove object which is a document deletion handler.
+* ### Full Syntax
 *
-* The CollectionRemove class has several functions that allow specifying what should be deleted and how, if a searchCondition was specified, it will be set on the handler.
+* <code>
+*   <table border = "0">
+*     <tr><td>Collection</td><td>.remove(...)</td></tr>
+*     <tr><td></td><td>[.sort(...)]</td></tr>
+*     <tr><td></td><td>[.limit(...)]</td></tr>
+*     <tr><td></td><td>[.bind(...)]</td></tr>
+*     <tr><td></td><td>[.execute(...)]</td></tr>
+*   </table>
+* </code>
 *
-* The deletion is done when the execute function is called on the handler.
+* #### .remove()
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL)
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL1)
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL2)
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL3)
+*
+* #### .sort()
+*
+* $(COLLECTIONREMOVE_SORT_DETAIL)
+*
+* $(COLLECTIONREMOVE_SORT_DETAIL1)
+*
+* $(COLLECTIONREMOVE_SORT_DETAIL2)
+*
+* #### .limit()
+*
+* $(COLLECTIONREMOVE_LIMIT_BRIEF)
+*
+* $(COLLECTIONREMOVE_LIMIT_DETAIL)
+*
+* #### .bind()
+*
+* $(COLLECTIONREMOVE_BIND_DETAIL)
+*
+* $(COLLECTIONREMOVE_BIND_DETAIL1)
+*
+* #### .execute()
+*
+* $(COLLECTIONREMOVE_EXECUTE_BRIEF)
 *
 * \sa CollectionRemove
+*
+* #### Examples
 */
+#if DOXYGEN_JS
+/**
+* #### Remove under condition
+*
+* \snippet js_devapi/scripts/mysqlx_collection_remove.js CollectionRemove: remove under condition
+*
+* #### Remove with binding
+*
+* \snippet js_devapi/scripts/mysqlx_collection_remove.js CollectionRemove: remove with binding
+*
+* #### Full remove
+*
+* \snippet js_devapi/scripts/mysqlx_collection_remove.js CollectionRemove: full remove
+*
+*/
+#elif DOXYGEN_PY
+/**
+* #### Remove under condition
+*
+* \snippet py_devapi/scripts/mysqlx_collection_remove.py CollectionRemove: remove under condition
+*
+* #### Remove with binding
+*
+* \snippet py_devapi/scripts/mysqlx_collection_remove.py CollectionRemove: remove with binding
+*
+* #### Full remove
+*
+* \snippet py_devapi/scripts/mysqlx_collection_remove.py CollectionRemove: full remove
+*
+*/
+#endif
 #if DOXYGEN_JS
 CollectionRemove Collection::remove(String searchCondition) {}
 #elif DOXYGEN_PY
@@ -379,64 +575,68 @@ shcore::Value Collection::find_(const shcore::Argument_list &args) {
   return collectionFind->find(args);
 }
 
-#if DOXYGEN_CPP
-/**
- * Creates an index on a collection.
- * \param args should contain the name and optionally the type of index to be created.
- * \return A CollectionCreateIndex object.
- *
- * This function creates a CollectionCreateIndex object which is an index creation handler.
- *
- * The CollectionCreateIndex class has a function to define the fields to be included on the index.
- *
- * The index will be created when the execute function is called on the index creation handler.
- *
- * The function will create a non unique index unless mysqlx.IndexType.IndexUnique is passed as the second element on args.
- *
- * \sa CollectionCreateIndex
- */
-#else
-/**
-* Creates a non unique index on a collection.
-* \param name The name of the index to be created.
-* \return A CollectionCreateIndex object.
-*
-* This function creates a CollectionCreateIndex object which is an index creation handler.
-*
-* The CollectionCreateIndex class has a function to define the fields to be included on the index.
-*
-* The index will be created when the execute function is called on the index creation handler.
-*
-* \sa CollectionCreateIndex
-*/
-#if DOXYGEN_JS
-CollectionCreateIndex Collection::createIndex(String name) {}
-#elif DOXYGEN_PY
-CollectionCreateIndex Collection::create_index(str name) {}
-#endif
+REGISTER_HELP(COLLECTION_CREATEINDEX_BRIEF, "Creates a non unique/unique index on a collection.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_CHAINED, "CollectionCreateIndex.createIndex.[field].[execute]");
 
 /**
-* Creates a unique index on a collection.
-* \param name The name of the index to be created.
-* \param type The type of index to be created.
-* \return A CollectionCreateIndex object.
+* $(COLLECTION_CREATEINDEX_BRIEF)
 *
-* This function creates a CollectionCreateIndex object which is an index creation handler.
+* <code>
+*   <table border = "0">
+*/
+#if DOXYGEN_JS
+/**
+*     <tr><td>Collection</td><td>.createIndex(...)</td></tr>
+*/
+#elif DOXYGEN_PY
+/**
+*     <tr><td>Collection</td><td>.create_index(...)</td></tr>
+*/
+#endif
+/**
+*     <tr><td></td><td>[.field(...)]</td></tr>
+*     <tr><td></td><td>[.execute(...)]</td></tr>
+*   </table>
+* </code>
 *
-* The CollectionCreateIndex class has a function to define the fields to be included on the index.
+*/
+#if DOXYGEN_JS
+/**
+* #### .createIndex(...)
+*/
+#elif DOXYGEN_PY
+/**
+* #### .create_index(...)
+*/
+#endif
+/**
+* ##### Alternatives
 *
-* The index will be created when the execute function is called on the index creation handler.
+* @li $(COLLECTIONCREATEINDEX_CREATEINDEX_SYNTAX)
+* @li $(COLLECTIONCREATEINDEX_CREATEINDEX_SYNTAX1)
 *
-* The only available index type at the moment is mysqlx.IndexType.IndexUnique.
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF)
+* $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF1)
+*
+* #### .field(...)
+*
+* $(COLLECTIONCREATEINDEX_FIELD_BRIEF)
+*
+* #### .execute(...)
+*
+* $(COLLECTIONCREATEINDEX_EXECUTE_BRIEF)
 *
 * \sa CollectionCreateIndex
 */
+//@{
 #if DOXYGEN_JS
+CollectionCreateIndex Collection::createIndex(String name) {}
 CollectionCreateIndex Collection::createIndex(String name, IndexType type) {}
 #elif DOXYGEN_PY
+CollectionCreateIndex Collection::create_index(str name) {}
 CollectionCreateIndex Collection::create_index(str name, IndexType type) {}
 #endif
-#endif
+//@}
 
 shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionCreateIndex> createIndex(new CollectionCreateIndex(shared_from_this()));
@@ -446,18 +646,45 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
   return createIndex->create_index(args);
 }
 
-//! Drops an index from a collection.
-#if DOXYGEN_CPP
-//! \param args should contain the name of the index to be dropped.
-#else
-//! \param name The name of the index to be dropped.
+REGISTER_HELP(COLLECTION_DROPINDEX_BRIEF, "Drops an index from a collection.");
+REGISTER_HELP(COLLECTION_DROPINDEX_CHAINED, "CollectionDropIndex.dropIndex.[execute]");
+
+/**
+* $(COLLECTION_DROPINDEX_BRIEF)
+*
+* <code>
+*   <table border = "0">
+*/
+#if DOXYGEN_JS
+/**
+*     <tr><td>Collection</td><td>.dropIndex(...)</td></tr>
+*/
+#elif DOXYGEN_PY
+/**
+*     <tr><td>Collection</td><td>.drop_index(...)</td></tr>
+*/
 #endif
 /**
-* \return A CollectionDropIndex object.
+*     <tr><td></td><td>[.execute(...)]</td></tr>
+*   </table>
+* </code>
 *
-* This function creates a CollectionDropIndex object.
+*/
+#if DOXYGEN_JS
+/**
+* #### .dropIndex(...)
+*/
+#elif DOXYGEN_PY
+/**
+* #### .drop_index(...)
+*/
+#endif
+/**
+* $(COLLECTIONDROPINDEX_DROPINDEX_BRIEF)
 *
-* The index will be dropped when the execute function is called on the index dropping handler.
+* #### .execute(...)
+*
+* $(COLLECTIONDROPINDEX_EXECUTE_BRIEF)
 *
 * \sa CollectionDropIndex
 */

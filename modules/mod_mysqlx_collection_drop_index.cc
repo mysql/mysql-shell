@@ -67,11 +67,13 @@ REGISTER_HELP(COLLECTIONDROPINDEX_DROPINDEX_RETURN, "@return This CollectionDrop
 *
 * This function can be invoked only once but the operation will be performed when the execute() function is invoked.
 */
+//@{
 #if DOXYGEN_JS
 CollectionDropIndex CollectionDropIndex::dropIndex(String indexName) {}
 #elif DOXYGEN_PY
 CollectionDropIndex CollectionDropIndex::drop_index(str indexName) {}
 #endif
+//@}
 shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, 2, get_function_name("dropIndex").c_str());

@@ -56,6 +56,8 @@ CollectionCreateIndex::CollectionCreateIndex(std::shared_ptr<Collection> owner)
 
 // Documentation of createIndex function
 REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF, "Sets the name for the creation of a non unique index on the collection.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_SYNTAX, "createIndex(String indexName)");
+REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_SYNTAX1, "createIndex(String indexName, IndexType type)");
 REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM, "@param indexName The name of the index to be created.");
 REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_RETURN, "@return This CollectionCreateIndex object.");
 

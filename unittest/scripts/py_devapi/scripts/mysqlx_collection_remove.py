@@ -81,6 +81,7 @@ crud = collection.remove('name = :data and age > :years').bind('years', 5).execu
 # ---------------------------------------
 
 #@ CollectionRemove: remove under condition
+//! [CollectionRemove: remove under condition]
 result = collection.remove('age = 15').execute()
 print 'Affected Rows:', result.affected_item_count, '\n'
 
@@ -107,21 +108,25 @@ except Exception, err:
 
 docs = collection.find().execute().fetch_all()
 print 'Records Left:', len(docs), '\n'
+//! [CollectionRemove: remove under condition]
 
 #@ CollectionRemove: remove with binding
+//! [CollectionRemove: remove with binding]
 result = collection.remove('gender = :heorshe').limit(2).bind('heorshe', 'male').execute()
 print 'Affected Rows:', result.affected_item_count, '\n'
+//! [CollectionRemove: remove with binding]
 
 docs = collection.find().execute().fetch_all()
 print 'Records Left:', len(docs), '\n'
 
 #@ CollectionRemove: full remove
+//! [CollectionRemove: full remove]
 result = collection.remove().execute()
 print 'Affected Rows:', result.affected_item_count, '\n'
 
 docs = collection.find().execute().fetch_all()
 print 'Records Left:', len(docs), '\n'
-
+//! [CollectionRemove: full remove]
 
 # Cleanup
 mySession.drop_schema('js_shell_test')

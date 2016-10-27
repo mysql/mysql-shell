@@ -88,11 +88,13 @@ REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL3, "The actual deletion of the docum
 *
 * \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
 CollectionRemove CollectionRemove::remove(String searchCondition){}
 #elif DOXYGEN_PY
 CollectionRemove CollectionRemove::remove(str searchCondition){}
 #endif
+//@}
 shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, 1, get_function_name("remove").c_str());
@@ -151,11 +153,13 @@ REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL2, "This method is usually used in com
 * - bind(String name, Value value)
 * - execute()
 */
+//@{
 #if DOXYGEN_JS
 CollectionRemove CollectionRemove::sort(List sortExprStr){}
 #elif DOXYGEN_PY
 CollectionRemove CollectionRemove::sort(list sortExprStr){}
 #endif
+//@}
 shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
   args.ensure_at_least(1, get_function_name("sort").c_str());
 
@@ -205,11 +209,13 @@ REGISTER_HELP(COLLECTIONREMOVE_LIMIT_DETAIL, "This method is usually used in com
 *
 * \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
 CollectionRemove CollectionRemove::limit(Integer numberOfDocs){}
 #elif DOXYGEN_PY
 CollectionRemove CollectionRemove::limit(int numberOfDocs){}
 #endif
+//@}
 shcore::Value CollectionRemove::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
@@ -254,11 +260,13 @@ REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL1, "This function must be called once 
 *
 * \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
 CollectionFind CollectionRemove::bind(String name, Value value){}
 #elif DOXYGEN_PY
 CollectionFind CollectionRemove::bind(str name, Value value){}
 #endif
+//@}
 shcore::Value CollectionRemove::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
@@ -285,6 +293,7 @@ REGISTER_HELP(COLLECTIONREMOVE_EXECUTE_RETURN, "@return Result A Result object t
 *
 * This function can be invoked after any other function on this class.
 */
+//@{
 #if DOXYGEN_JS
 /**
 *
@@ -308,6 +317,7 @@ Result CollectionRemove::execute(){}
 */
 Result CollectionRemove::execute(){}
 #endif
+//@}
 shcore::Value CollectionRemove::execute(const shcore::Argument_list &args) {
   mysqlx::Result *result = NULL;
 

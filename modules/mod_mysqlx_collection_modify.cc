@@ -233,6 +233,8 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args) {
 
 // Documentation of unset function
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_BRIEF, "Removes attributes from documents in a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_SYNTAX, "unset(String attribute)");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_SYNTAX1, "unset(List attributes)");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM, "@param attribute A string with the document path of the attribute to be removed.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM1, "@param attributes A list with the document paths of the attributes to be removed.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_RETURN, "@return This CollectionModify object.");
@@ -278,11 +280,13 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2, "to remove the attribute on the do
 *
 * \sa Usage examples at execute().
 */
+//@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::unset(String attribute) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::unset(str attribute) {}
 #endif
+//@}
 
 /**
 * $(COLLECTIONMODIFY_UNSET_BRIEF)

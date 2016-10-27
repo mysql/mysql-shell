@@ -80,6 +80,7 @@ crud = collection.remove('name = :data and age > :years').bind('years', 5).execu
 // ---------------------------------------
 
 //@ CollectionRemove: remove under condition
+//! [CollectionRemove: remove under condition]
 var result = collection.remove('age = 15').execute();
 print('Affected Rows:', result.affectedItemCount, '\n');
 
@@ -121,20 +122,25 @@ catch(err)
 
 var docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
+//! [CollectionRemove: remove under condition]
 
 //@ CollectionRemove: remove with binding
+//! [CollectionRemove: remove with binding]
 var result = collection.remove('gender = :heorshe').limit(2).bind('heorshe', 'male').execute();
 print('Affected Rows:', result.affectedItemCount, '\n');
 
 var docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
+//! [CollectionRemove: remove with binding]
 
 //@ CollectionRemove: full remove
+//! [CollectionRemove: full remove]
 var result = collection.remove().execute();
 print('Affected Rows:', result.affectedItemCount, '\n');
 
 var docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
+//! [CollectionRemove: full remove]
 
 // Cleanup
 mySession.dropSchema('js_shell_test');
