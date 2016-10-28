@@ -359,15 +359,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   // Check if the instance was already added
   std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
-  std::string instance_public_address;
-  if (joiner_host == "localhost")
-    instance_public_address = get_my_hostname();
-  else
-    instance_public_address = joiner_host;
-  std::string instance_public_xaddress = instance_public_address;
-  instance_public_address.append(":" + std::to_string(options->get_int("port")));
 
-  bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_public_address);
+  bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
 
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(options));
@@ -377,7 +370,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   // If type is GRInstanceType::InnoDBCluster it means that is on GR and MD
   if (type == GRInstanceType::InnoDBCluster)
-    throw shcore::Exception::runtime_error("The instance '" + instance_public_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+    throw shcore::Exception::runtime_error("The instance '" + instance_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
   // If the instance is not on GR, we must add it
   if (type == GRInstanceType::Standalone) {
@@ -391,15 +384,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     std::string tstamp = std::to_string(timer.get_time());
     std::string base_user = "mysql_innodb_cluster_rplusr";
     replication_user = base_user.substr(0, 32 - tstamp.size()) + tstamp;
-    // Replication accounts must be created for the real hostname, because the GR
-    // plugin will connect to the real host interface of the peer,
-    // even if it's localhost
-
-    // TODO: Uncomment this when the logic to retrieve the correct hostname is fixed
-    //if (joiner_host == "localhost")
-    //  replication_user.append("@'").append(get_my_hostname()).append("'");
-    //else
-    //  replication_user.append("@'").append(joiner_host).append("'");
+    // TODO: Replication accounts should be created with grants for the joining instance only
+    // However, we don't have a reliable way of getting the external IP and/or fully qualified domain name
     replication_user.append("@'%'");
 
     // Call the gadget to bootstrap the group with this instance
@@ -415,13 +401,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
       // We need to retrieve a peer instance, so let's use the Seed one
       std::string peer_instance = get_peer_instances().front();
       create_repl_account(peer_instance, replication_user, replication_user_password);
-
-      // substitute the public hostname for localhost if we're running locally
-      // that is because root@localhost exists by default, while root@hostname doesn't
-      // so trying the 2nd will probably not work
-      auto sep = peer_instance.find(':');
-      if (peer_instance.substr(0, sep) == get_my_hostname())
-        peer_instance = "localhost:" + peer_instance.substr(sep + 1);
 
       // Call mysqlprovision to do the work
       do_join_replicaset(user + "@" + instance_address,
@@ -604,19 +583,11 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   std::string instance_admin_user_password = instance_session->get_password();
 
   std::string host = options->get_string("host");
-  std::string public_localhost_name = get_my_hostname();
 
   // Check if the instance was already added
   std::string instance_address = host + ":" + port;
-  std::string instance_public_address;
-  if (host == "localhost")
-    instance_public_address = public_localhost_name;
-  else
-    instance_public_address = host;
 
-  instance_public_address.append(":" + port);
-
-  bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_public_address);
+  bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
 
   auto session = _metadata_storage->get_dba()->get_active_session();
   mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
@@ -627,9 +598,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   //std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
   if (!is_instance_on_md) {
     std::string message = "The instance '" + instance_address + "'";
-
-    if (instance_public_address != instance_address)
-      message.append("(" + instance_public_address + ")");
 
     message.append(" does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
@@ -650,14 +618,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
     instance_url = instance_admin_user + "@";
 
-    if (host == public_localhost_name) {
-      instance_url.append("localhost");
-
-      // Override the host since admin user is root@localhost
-      // And wil be needed for the SQL operations below
-      (*options)["host"] = shcore::Value("localhost");
-    } else
-      instance_url.append(host);
+    instance_url.append(host);
 
     instance_url.append(":" + port);
 
@@ -764,8 +725,6 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
     // Get all instances of the replicaset
     auto instances = _metadata_storage->get_replicaset_instances(get_id());
 
-    auto local_public_host = get_my_hostname();
-
     for (auto value : *instances.get()) {
       int exit_code;
       auto row = value.as_object<mysh::Row>();
@@ -775,9 +734,6 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
       shcore::Value::Map_type_ref data = shcore::get_connection_data(instance_name, false);
       if (data->has_key("host")) {
         auto host = data->get_string("host");
-
-        if (host == local_public_host)
-          instance_name = "localhost:" + std::to_string(data->get_int("port"));
       }
 
       std::string instance_url = instance_admin_user + "@" + instance_name;
@@ -899,27 +855,13 @@ void ReplicaSet::create_repl_account(const std::string &dest_uri,
 
   std::shared_ptr<mysh::ShellDevelopmentSession> session;
   mysh::mysql::ClassicSession *classic;
-retry:
+
   try {
     log_info("Creating account '%s' at instance %s:%i", username.c_str(),
              (*options)["host"].as_string().c_str(),
              (int)(*options)["port"].as_int());
     session = mysh::connect_session(args, mysh::SessionType::Classic);
     classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
-  } catch (shcore::Exception &e) {
-    // Check if we're getting access denied to the local host
-    // If that's the case, retry the connection via localhost instead of the
-    // public hostname
-    if (e.is_mysql() && e.code() == 1045 &&
-        (*options)["host"].as_string() == get_my_hostname()) {
-      log_info("Access denied connecting to '%s', retrying via localhost",
-               (*options)["host"].as_string().c_str());
-      (*options)["host"] = shcore::Value("localhost");
-      args.clear();
-      args.push_back(shcore::Value(options));
-      goto retry;
-    }
-    throw;
   } catch (std::exception &e) {
     log_error("Could not open connection to %s: %s", dest_uri.c_str(),
               e.what());
@@ -1071,25 +1013,19 @@ void ReplicaSet::add_instance_metadata(const shcore::Argument_list &args) {
 
   // Check if the instance was already added
   std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
-  std::string instance_public_address;
-  if (joiner_host == "localhost")
-    instance_public_address = get_my_hostname();
-  else
-    instance_public_address = joiner_host;
-  std::string instance_public_xaddress = instance_public_address;
-  instance_public_address.append(":" + std::to_string(options->get_int("port")));
+
+  std::string instance_xaddress = joiner_host + ":" + std::to_string(xport);
 
   (*options)["role"] = shcore::Value("HA");
 
-  (*options)["endpoint"] = shcore::Value(instance_public_address);
+  (*options)["endpoint"] = shcore::Value(instance_address);
 
-  instance_public_xaddress.append(":" + std::to_string(xport));
-  (*options)["xendpoint"] = shcore::Value(instance_public_xaddress);
+  (*options)["xendpoint"] = shcore::Value(instance_xaddress);
 
   (*options)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
 
   if (!options->has_key("name"))
-    (*options)["instance_name"] = shcore::Value(instance_public_address);
+    (*options)["instance_name"] = shcore::Value(instance_address);
 
   // update the metadata with the host
   auto result = _metadata_storage->insert_host(args);
@@ -1109,19 +1045,11 @@ void ReplicaSet::remove_instance_metadata(const shcore::Argument_list &args) {
   std::string port = std::to_string(options->get_int("port"));
 
   std::string host = options->get_string("host");
-  std::string public_localhost_name = get_my_hostname();
 
   // Check if the instance was already added
   std::string instance_address = host + ":" + port;
-  std::string instance_public_address;
-  if (host == "localhost")
-    instance_public_address = public_localhost_name;
-  else
-    instance_public_address = host;
 
-  instance_public_address.append(":" + port);
-
-  _metadata_storage->remove_instance(instance_public_address);
+  _metadata_storage->remove_instance(instance_address);
 
   tx.commit();
 }
