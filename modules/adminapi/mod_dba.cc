@@ -211,6 +211,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1, "@li clusterAdminType: determines the t
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that indicates whether the group has a single master instance or multiple master instances. "\
 "If not specified false is assigned.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the multiMaster option must be applied.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value that indicates that the cluster shall be created empty and adopt the topology from an existing Group Replication group.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -224,6 +225,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the 
  * $(DBA_CREATECLUSTER_DETAIL1)
  * $(DBA_CREATECLUSTER_DETAIL2)
  * $(DBA_CREATECLUSTER_DETAIL3)
+ * $(DBA_CREATECLUSTER_DETAIL4)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
