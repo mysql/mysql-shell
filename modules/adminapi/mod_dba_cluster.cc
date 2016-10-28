@@ -541,9 +541,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 
 REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
 REGISTER_HELP(CLUSTER_RESCAN_PARAM, "@param options Optional parameter to specify if it should update the Metadata with the found changes.");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL, "This function rescans the cluster for new Group Replication members/instances. Optionally, also adds them to the metadata.");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL1, "The following is the only option supported:");
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL2, "@li updateMetadata: boolean, confirms that the metadata shall be updated after the rescan.");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL, "This function rescans the cluster for new Group Replication members/instances.");
 
 /**
 * $(CLUSTER_RESCAN_BRIEF)
@@ -551,7 +549,6 @@ REGISTER_HELP(CLUSTER_RESCAN_DETAIL2, "@li updateMetadata: boolean, confirms tha
 * $(CLUSTER_RESCAN_PARAM)
 *
 * $(CLUSTER_RESCAN_DETAIL)
-* $(CLUSTER_RESCAN_DETAIL1)
 */
 #if DOXYGEN_JS
 Undefined Cluster::rescan(Dictionary options) {}
