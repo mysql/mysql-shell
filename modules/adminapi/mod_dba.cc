@@ -210,6 +210,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1, "@li clusterAdminType: determines the t
 "Valid values include: local, manual, guided or ssh. At the moment only local is supported and used as default value if not specified.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that indicates whether the group has a single master instance or multiple master instances. "\
 "If not specified false is assigned.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the multiMaster option must be applied.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -222,6 +223,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that in
  *
  * $(DBA_CREATECLUSTER_DETAIL1)
  * $(DBA_CREATECLUSTER_DETAIL2)
+ * $(DBA_CREATECLUSTER_DETAIL3)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -319,9 +321,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     args.push_back(shcore::Value(session->get_password()));
 
     if (force) {
-      std::cout << "FORCE\n";
-      if (multi_master)
-        std::cout << "TRUE\n";
       args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
                                    : ReplicaSet::kTopologyPrimaryMaster));
     }
