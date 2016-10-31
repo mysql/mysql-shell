@@ -28,7 +28,7 @@
 
 #include <set>
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 #if DOXYGEN_CPP
 //! Layer to provide the behavior of objects that can dynamically enable/disable its functions.

@@ -35,7 +35,7 @@ namespace shcore {
 class Proxy_object;
 };
 
-namespace mysh {
+namespace mysqlsh {
 class DatabaseObject;
 namespace mysqlx {
 class Schema;

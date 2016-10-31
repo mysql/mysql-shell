@@ -24,9 +24,9 @@
 #include "utils/utils_general.h"
 #include <boost/algorithm/string.hpp>
 
-using namespace mysh;
+using namespace mysqlsh;
 using namespace shcore;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 
 void SessionHandle::open(const std::string &host, int port, const std::string &schema,
                           const std::string &user, const std::string &pass,

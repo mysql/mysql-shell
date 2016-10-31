@@ -42,8 +42,8 @@
 #include "common/process_launcher/process_launcher.h"
 
 using namespace std::placeholders;
-using namespace mysh;
-using namespace mysh::dba;
+using namespace mysqlsh;
+using namespace mysqlsh::dba;
 using namespace shcore;
 
 #define PASSWORD_LENGHT 16
@@ -60,7 +60,7 @@ REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deploySandboxInstance')");
 
 REGISTER_HELP(DBA_VERBOSE_BRIEF, "Enables verbose mode on the Dba operations.");
 
-std::map <std::string, std::shared_ptr<mysh::mysql::ClassicSession> > Dba::_session_cache;
+std::map <std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession> > Dba::_session_cache;
 
 Dba::Dba(IShell_core* owner) :
 _shell_core(owner) {
@@ -158,7 +158,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
 
   args.ensure_count(0, 1, get_function_name("getCluster").c_str());
 
-  std::shared_ptr<mysh::dba::Cluster> cluster;
+  std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   bool get_default_cluster = false;
   std::string cluster_name;
 
@@ -896,17 +896,17 @@ Dba::~Dba() {
   Dba::_session_cache.clear();
 }
 
-std::shared_ptr<mysh::mysql::ClassicSession> Dba::get_session(const shcore::Argument_list& args) {
-  std::shared_ptr<mysh::mysql::ClassicSession> ret_val;
+std::shared_ptr<mysqlsh::mysql::ClassicSession> Dba::get_session(const shcore::Argument_list& args) {
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> ret_val;
 
   auto options = args.map_at(0);
 
   std::string session_id = shcore::build_connection_string(options, false);
 
   if (_session_cache.find(session_id) == _session_cache.end()) {
-    auto session = mysh::connect_session(args, mysh::SessionType::Classic);
+    auto session = mysqlsh::connect_session(args, mysqlsh::SessionType::Classic);
 
-    ret_val = std::dynamic_pointer_cast<mysh::mysql::ClassicSession>(session);
+    ret_val = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
 
     // Disabling the session caching for now
     //_session_cache[session_id] = ret_val;

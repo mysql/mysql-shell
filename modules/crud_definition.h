@@ -35,7 +35,7 @@
 #define ATTR_UNUSED
 #endif
 
-namespace mysh {
+namespace mysqlsh {
 class DatabaseObject;
 namespace mysqlx {
 #if DOXYGEN_CPP

@@ -21,7 +21,7 @@
 #include "mod_mysqlx_expression.h"
 #include <sstream>
 
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 
 ::mysqlx::DocumentValue Collection_crud_definition::map_document_value(shcore::Value source) {
   switch (source.type) {

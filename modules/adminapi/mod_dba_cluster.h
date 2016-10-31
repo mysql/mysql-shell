@@ -32,7 +32,7 @@
 
 #define ATT_DEFAULT "default"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 class MetadataStorage;
 /**

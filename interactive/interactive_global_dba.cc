@@ -66,7 +66,7 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
 
     shcore::Argument_map opt_map (*options);
 
-    opt_map.ensure_keys({}, mysh::dba::Dba::_deploy_instance_opts, "the instance definition");
+    opt_map.ensure_keys({}, mysqlsh::dba::Dba::_deploy_instance_opts, "the instance definition");
 
     if (opt_map.has_key("sandboxDir")) {
       sandboxDir = opt_map.string_at("sandboxDir");
@@ -213,7 +213,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   shcore::Value::Map_type_ref options;
 
   std::string cluster_name;
-  std::shared_ptr<mysh::ShellDevelopmentSession> session;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
 
   try {
     cluster_name = args.string_at(0);
@@ -243,7 +243,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
         force = opt_map.bool_at("force");
     }
 
-    auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
+    auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
     session = dba->get_active_session();
     println("A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n");
 
@@ -396,7 +396,7 @@ shcore::Value Global_dba::check_instance_config(const shcore::Argument_list &arg
 
   std::string uri, user;
 
-  auto options = mysh::dba::get_instance_options_map(args, true);
+  auto options = mysqlsh::dba::get_instance_options_map(args, true);
 
   shcore::Argument_map opt_map(*options);
 
@@ -410,7 +410,7 @@ shcore::Value Global_dba::check_instance_config(const shcore::Argument_list &arg
   }
 
   // Gather username and password if missing
-  mysh::dba::resolve_instance_credentials(options, _delegate);
+  mysqlsh::dba::resolve_instance_credentials(options, _delegate);
 
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(options));
@@ -455,8 +455,8 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args, 
   // Path is not given, let's try to autodetect it
   int port = 0;
   std::string datadir;
-  auto session = mysh::dba::Dba::get_session(connection_args);
-  mysh::dba::get_port_and_datadir(session->connection(), port, datadir);
+  auto session = mysqlsh::dba::Dba::get_session(connection_args);
+  mysqlsh::dba::get_port_and_datadir(session->connection(), port, datadir);
 
   std::string path_separator = datadir.substr(datadir.size() - 1);
   auto path_elements = shcore::split_string(datadir, path_separator);
@@ -516,7 +516,7 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
   shcore::Argument_list target_args;
 
   try {
-    options = mysh::dba::get_instance_options_map(args, true);
+    options = mysqlsh::dba::get_instance_options_map(args, true);
 
     shcore::Argument_map opt_map(*options);
     std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
@@ -526,7 +526,7 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
       throw shcore::Exception::runtime_error("This function only works with local instances");
 
     // Gather username and password if missing
-    mysh::dba::resolve_instance_credentials(options, _delegate);
+    mysqlsh::dba::resolve_instance_credentials(options, _delegate);
 
     shcore::Value::Map_type_ref extra_options;
     if (args.size() == 2) {
@@ -628,7 +628,7 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
 }
 
 void Global_dba::validate_session(const std::string &source) const {
-  auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
+  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
   dba->validate_session(source);
 }
 

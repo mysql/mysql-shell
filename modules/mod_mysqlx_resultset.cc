@@ -29,7 +29,7 @@
 
 using namespace std::placeholders;
 using namespace shcore;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 
 // -----------------------------------------------------------------------
 
@@ -82,7 +82,7 @@ shcore::Value BaseResult::get_member(const std::string &prop) const {
 
     if (warnings.size()) {
       for (size_t index = 0; index < warnings.size(); index++) {
-        mysh::Row *warning_row = new mysh::Row();
+        mysqlsh::Row *warning_row = new mysqlsh::Row();
 
         warning_row->add_item("level", shcore::Value(warnings[index].is_note ? "Note" : "Warning"));
         warning_row->add_item("code", shcore::Value(warnings[index].code));
@@ -392,7 +392,7 @@ shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const {
 
 shcore::Value DocResult::get_metadata() const {
   if (!_metadata) {
-    shcore::Value data_type = mysh::Constant::get_constant("mysqlx", "Type", "JSON", shcore::Argument_list());
+    shcore::Value data_type = mysqlsh::Constant::get_constant("mysqlx", "Type", "JSON", shcore::Argument_list());
 
     // the plugin may not send these if they are equal to table/name respectively
     // We need to reconstruct them
@@ -405,7 +405,7 @@ shcore::Value DocResult::get_metadata() const {
     if (orig_name.empty())
       orig_name = _result->columnMetadata()->at(0).name;
 
-    std::shared_ptr<mysh::Column> metadata(new mysh::Column(
+    std::shared_ptr<mysqlsh::Column> metadata(new mysqlsh::Column(
       _result->columnMetadata()->at(0).schema,
       orig_table,
       _result->columnMetadata()->at(0).table,
@@ -634,7 +634,7 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
           break;
       }
 
-      shcore::Value data_type = mysh::Constant::get_constant("mysqlx", "Type", type_name, shcore::Argument_list());
+      shcore::Value data_type = mysqlsh::Constant::get_constant("mysqlx", "Type", type_name, shcore::Argument_list());
 
       // the plugin may not send these if they are equal to table/name respectively
       // We need to reconstruct them
@@ -647,7 +647,7 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
       if (orig_name.empty())
         orig_name = _result->columnMetadata()->at(i).name;
 
-      std::shared_ptr<mysh::Column> column(new mysh::Column(
+      std::shared_ptr<mysqlsh::Column> column(new mysqlsh::Column(
         _result->columnMetadata()->at(i).schema,
         orig_table,
         _result->columnMetadata()->at(i).table,
@@ -692,7 +692,7 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
     if (metadata->size() > 0) {
       std::shared_ptr< ::mysqlx::Row>row = _result->next();
       if (row) {
-        mysh::Row *value_row = new mysh::Row();
+        mysqlsh::Row *value_row = new mysqlsh::Row();
 
         for (int index = 0; index < int(metadata->size()); index++) {
           Value field_value;

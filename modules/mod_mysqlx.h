@@ -25,7 +25,7 @@
 
 #include "shellcore/module_registry.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 DECLARE_MODULE(Mysqlx, mysqlx);
 

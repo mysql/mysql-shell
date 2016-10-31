@@ -28,7 +28,7 @@ using namespace std::placeholders;
 
 REGISTER_HELP(SHELL_BRIEF, "Gives access to general purpose functions and objects.");
 
-namespace mysh {
+namespace mysqlsh {
 
   Shell::Shell(shcore::IShell_core* owner):
   _shell_core(owner) {
@@ -274,8 +274,8 @@ namespace mysh {
     args.ensure_count(1, 2, get_function_name("connect").c_str());
 
     try {
-      auto options = mysh::dba::get_instance_options_map(args);
-      mysh::dba::resolve_instance_credentials(options);
+      auto options = mysqlsh::dba::get_instance_options_map(args);
+      mysqlsh::dba::resolve_instance_credentials(options);
 
       SessionType type = SessionType::Auto;
       if (options->has_key("scheme")) {

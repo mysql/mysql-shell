@@ -20,10 +20,10 @@
 #include "modules/adminapi/mod_dba_sql.h"
 #include "utils/utils_sqlstring.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 
-  GRInstanceType get_gr_instance_type(mysh::mysql::Connection* connection) {
+  GRInstanceType get_gr_instance_type(mysqlsh::mysql::Connection* connection) {
     GRInstanceType ret_val = GRInstanceType::Standalone;
 
     std::string query("select count(*) "
@@ -66,7 +66,7 @@ namespace dba {
     return ret_val;
   }
 
-  void get_port_and_datadir(mysh::mysql::Connection* connection, int &port, std::string& datadir) {
+  void get_port_and_datadir(mysqlsh::mysql::Connection* connection, int &port, std::string& datadir) {
 
     std::string query("select @@port, @@datadir;");
 
@@ -78,7 +78,7 @@ namespace dba {
     datadir = row->get_value(1).as_string();
   }
 
-  void get_gtid_state_variables(mysh::mysql::Connection* connection, std::string &executed, std::string &purged) {
+  void get_gtid_state_variables(mysqlsh::mysql::Connection* connection, std::string &executed, std::string &purged) {
     // Retrieves the
     std::string query("show global variables where Variable_name in ('gtid_purged', 'gtid_executed')");
 
@@ -94,7 +94,7 @@ namespace dba {
     purged = row->get_value(1).as_string();
   }
 
-  SlaveReplicationState get_slave_replication_state(mysh::mysql::Connection* connection, std::string &slave_executed) {
+  SlaveReplicationState get_slave_replication_state(mysqlsh::mysql::Connection* connection, std::string &slave_executed) {
     SlaveReplicationState ret_val;
 
     if (slave_executed.empty())

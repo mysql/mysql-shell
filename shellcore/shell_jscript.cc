@@ -62,7 +62,7 @@ std::string Shell_javascript::prompt() {
   std::string node_type = "mysql";
   Value session_wrapper = _owner->active_session();
   if (session_wrapper) {
-    std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+    std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
 
     if (session) {
       shcore::Value st = session->get_capability("node_type");
@@ -84,19 +84,19 @@ void Shell_javascript::abort() {
   // TODO: this way to gather the session is wrong in JS, because there sessions are typically created with getNodeSession
 
   Value session_wrapper = _owner->active_session();
-  std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+  std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
   // duplicate the connection
-  std::shared_ptr<mysh::mysqlx::BaseSession> kill_session = NULL;
-  mysh::mysqlx::NodeSession* node_session = dynamic_cast<mysh::mysqlx::NodeSession*>(session.get());
-  mysh::mysqlx::XSession* x_session = dynamic_cast<mysh::mysqlx::XSession*>(session.get());
+  std::shared_ptr<mysqlsh::mysqlx::BaseSession> kill_session = NULL;
+  mysqlsh::mysqlx::NodeSession* node_session = dynamic_cast<mysqlsh::mysqlx::NodeSession*>(session.get());
+  mysqlsh::mysqlx::XSession* x_session = dynamic_cast<mysqlsh::mysqlx::XSession*>(session.get());
 
   if (node_session != NULL)
   {
-  kill_session.reset(new mysh::mysqlx::NodeSession(*node_session));
+  kill_session.reset(new mysqlsh::mysqlx::NodeSession(*node_session));
   }
   else if (x_session != NULL)
   {
-  kill_session.reset(new mysh::mysqlx::XSession(*x_session));
+  kill_session.reset(new mysqlsh::mysqlx::XSession(*x_session));
   }
   else
   throw std::runtime_error("Unexpected session type");

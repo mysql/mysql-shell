@@ -32,7 +32,7 @@ namespace shcore {
 class Proxy_object;
 };
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysql {
 class ClassicSession;
 class ClassicTable;

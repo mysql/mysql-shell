@@ -24,7 +24,7 @@
 #include "shellcore/lang_base.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 
 shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, bool get_password_from_options = false);

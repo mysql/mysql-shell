@@ -25,8 +25,8 @@
 #include "mod_mysqlx_expression.h"
 
 using namespace std::placeholders;
-using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysqlsh;
+using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 Crud_definition::Crud_definition(std::shared_ptr<DatabaseObject> owner) : _owner(owner) {
@@ -43,7 +43,7 @@ Crud_definition::Crud_definition(std::shared_ptr<DatabaseObject> owner) : _owner
 shcore::Value Crud_definition::execute(const shcore::Argument_list &UNUSED(args)) {
   // TODO: Callback handling logic
   shcore::Value ret_val;
-  /*std::shared_ptr<mysh::X_connection> connection(_conn.lock());
+  /*std::shared_ptr<mysqlsh::X_connection> connection(_conn.lock());
 
   if (connection)
   ret_val = connection->crud_execute(class_name(), _data);*/

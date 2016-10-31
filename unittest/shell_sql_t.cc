@@ -93,7 +93,7 @@ protected:
     if (pwd)
       args.push_back(Value(pwd));
 
-    env.shell_core->connect_dev_session(args, mysh::SessionType::Classic);
+    env.shell_core->connect_dev_session(args, mysqlsh::SessionType::Classic);
   }
 };
 

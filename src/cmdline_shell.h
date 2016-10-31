@@ -28,8 +28,8 @@
 #include "shellcore/types.h"
 #include "shellcore/shell_core.h"
 
-namespace mysh {
-class Command_line_shell :public mysh::Base_shell, public shcore::NotificationObserver {
+namespace mysqlsh {
+class Command_line_shell :public mysqlsh::Base_shell, public shcore::NotificationObserver {
 public:
   Command_line_shell(const Shell_options &options);
   void command_loop();

@@ -28,7 +28,7 @@
 #include <boost/format.hpp>
 
 using namespace std::placeholders;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of CollectionDropIndex class

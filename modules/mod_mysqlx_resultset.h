@@ -29,12 +29,12 @@ namespace mysqlx {
 class Result;
 }
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 /**
 * $(BASERESULT_BRIEF)
 */
-class SHCORE_PUBLIC BaseResult : public mysh::ShellBaseResult {
+class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
 public:
   BaseResult(std::shared_ptr< ::mysqlx::Result> result);
   virtual ~BaseResult() {}

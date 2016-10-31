@@ -28,7 +28,7 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 
-namespace mysh {
+namespace mysqlsh {
 class SHCORE_PUBLIC Constant : public shcore::Cpp_object_bridge {
 public:
   Constant(const shcore::Value &data);

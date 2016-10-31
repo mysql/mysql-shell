@@ -15,7 +15,7 @@
 
 cmake_minimum_required (VERSION 2.8)
 
-project (mysh)
+project (mysqlsh)
 
 IF(CMAKE_VERSION VERSION_EQUAL "3.0.0" OR
    CMAKE_VERSION VERSION_GREATER "3.0.0")
@@ -279,7 +279,7 @@ endif()
 add_subdirectory(mysqlxtest)
 add_subdirectory(shellcore)
 
-# mysh cmdline util build
+# mysqlsh cmdline util build
 if(NOT WIN32)
   include_directories( "${PROJECT_SOURCE_DIR}/src/libedit" )
 endif()

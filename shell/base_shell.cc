@@ -37,7 +37,7 @@
 //const int MAX_READLINE_BUF = 65536;
 extern char *mysh_get_tty_password(const char *opt_message);
 
-namespace mysh {
+namespace mysqlsh {
 Base_shell::Base_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate) :
 _options(options) {
   std::string log_path = shcore::get_user_config_path();
@@ -155,20 +155,20 @@ bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {
   return true;
 }
 
-void Base_shell::print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid) {
+void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::string& uri, const std::string& sessionid) {
   std::string stype;
 
   switch (type) {
-    case mysh::SessionType::X:
+    case mysqlsh::SessionType::X:
       stype = "an X";
       break;
-    case mysh::SessionType::Node:
+    case mysqlsh::SessionType::Node:
       stype = "a Node";
       break;
-    case mysh::SessionType::Classic:
+    case mysqlsh::SessionType::Classic:
       stype = "a Classic";
       break;
-    case mysh::SessionType::Auto:
+    case mysqlsh::SessionType::Auto:
       stype = "a";
       break;
   }
@@ -219,19 +219,19 @@ bool Base_shell::connect(bool primary_session) {
       std::string scheme = connection_data->get_string("scheme");
       std::string error;
 
-      if (_options.session_type == mysh::SessionType::Auto) {
+      if (_options.session_type == mysqlsh::SessionType::Auto) {
         if (scheme == "mysqlx")
-          _options.session_type = mysh::SessionType::Node;
+          _options.session_type = mysqlsh::SessionType::Node;
         else if (scheme == "mysql")
-          _options.session_type = mysh::SessionType::Classic;
+          _options.session_type = mysqlsh::SessionType::Classic;
       } else {
         if (scheme == "mysqlx") {
-          if (_options.session_type == mysh::SessionType::Classic)
+          if (_options.session_type == mysqlsh::SessionType::Classic)
             error = "Invalid URI for Classic session";
         } else if (scheme == "mysql") {
-          if (_options.session_type == mysh::SessionType::X)
+          if (_options.session_type == mysqlsh::SessionType::X)
             error = "Invalid URI for X session";
-          else if (_options.session_type == mysh::SessionType::Node)
+          else if (_options.session_type == mysqlsh::SessionType::Node)
             error = "Invalid URI for Node session";
         }
       }
@@ -259,7 +259,7 @@ bool Base_shell::connect(bool primary_session) {
   return true;
 }
 
-shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mysh::SessionType session_type, bool recreate_schema) {
+shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mysqlsh::SessionType session_type, bool recreate_schema) {
   std::string pass;
   std::string schema_name;
 
@@ -285,7 +285,7 @@ shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mys
       connect_args.push_back(shcore::Value(pass));
   }
 
-  std::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
                                                    new_session(_shell->connect_dev_session(connect_args, session_type));
 
   new_session->set_option("trace_protocol", _options.trace_protocol);
@@ -319,7 +319,7 @@ shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mys
     std::string session_type = new_session->class_name();
     std::string message;
 
-    if (_options.session_type == mysh::SessionType::Auto) {
+    if (_options.session_type == mysqlsh::SessionType::Auto) {
       if (session_type == "ClassicSession")
         message = "Classic ";
       else if (session_type == "NodeSession")
@@ -575,7 +575,7 @@ bool Base_shell::cmd_start_multiline(const std::vector<std::string>& args) {
 bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
   bool error = false;
   bool uri = false;
-  _options.session_type = mysh::SessionType::Auto;
+  _options.session_type = mysqlsh::SessionType::Auto;
 
   // Holds the argument index for the target to which the session will be established
   size_t target_index = 1;
@@ -597,9 +597,9 @@ bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
     if (arg.empty())
       error = true;
     else if (!arg.compare("-n") || !arg.compare("-N"))
-      _options.session_type = mysh::SessionType::Node;
+      _options.session_type = mysqlsh::SessionType::Node;
     else if (!arg.compare("-c") || !arg.compare("-C"))
-      _options.session_type = mysh::SessionType::Classic;
+      _options.session_type = mysqlsh::SessionType::Classic;
     else {
       if (args.size() == 3)
         error = true;
@@ -618,7 +618,7 @@ bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
       }
       connect();
 
-      if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL && _options.session_type == mysh::SessionType::X)
+      if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL && _options.session_type == mysqlsh::SessionType::X)
         println("WARNING: An X Session has been established and SQL execution is not allowed.");
     }
   } else
@@ -903,7 +903,7 @@ void Base_shell::process_result(shcore::Value result) {
       if (!shell_hook) {
         // Resultset objects get printed
         if (object && object->class_name().find("Result") != std::string::npos) {
-          std::shared_ptr<mysh::ShellBaseResult> resultset = std::static_pointer_cast<mysh::ShellBaseResult> (object);
+          std::shared_ptr<mysqlsh::ShellBaseResult> resultset = std::static_pointer_cast<mysqlsh::ShellBaseResult> (object);
 
           // Result buffering will be done ONLY if on any of the scripting interfaces
           ResultsetDumper dumper(resultset, _shell->get_delegate(), _shell->interactive_mode() != shcore::IShell_core::Mode::SQL);

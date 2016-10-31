@@ -23,8 +23,8 @@
 #include "utils/utils_help.h"
 
 using namespace std::placeholders;
-using namespace mysh;
-using namespace mysh::mysql;
+using namespace mysqlsh;
+using namespace mysqlsh::mysql;
 using namespace shcore;
 
 // Documentation of ClassicTable class

@@ -33,7 +33,7 @@
 #include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection_modify.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 class Schema;
 

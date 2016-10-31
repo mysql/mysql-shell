@@ -55,9 +55,9 @@
 #define mystrdup strdup
 #endif
 
-using namespace mysh;
+using namespace mysqlsh;
 using namespace shcore;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 
 REGISTER_OBJECT(mysqlx, XSession);
 REGISTER_OBJECT(mysqlx, NodeSession);
@@ -779,7 +779,7 @@ std::shared_ptr<BaseSession> XSession::_get_shared_this() const {
 }
 
 std::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysh::SessionType::X);
+  return connect_session(args, mysqlsh::SessionType::X);
 }
 
 NodeSession::NodeSession() : BaseSession() {
@@ -805,7 +805,7 @@ std::shared_ptr<BaseSession> NodeSession::_get_shared_this() const {
 }
 
 std::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysh::SessionType::Node);
+  return connect_session(args, mysqlsh::SessionType::Node);
 }
 
 // Documentation of sql function

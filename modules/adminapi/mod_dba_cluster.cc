@@ -35,8 +35,8 @@
 #include "utils/utils_help.h"
 
 using namespace std::placeholders;
-using namespace mysh;
-using namespace mysh::dba;
+using namespace mysqlsh;
+using namespace mysqlsh::dba;
 using namespace shcore;
 
 // Documentation of the Cluster Class
@@ -650,7 +650,7 @@ void Cluster::adopt_from_gr() {
     for (auto i : *newly_discovered_instances_list.get()) {
       for (auto value : *i.as_array()) {
         Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type);
-        auto row = value.as_object<mysh::Row>();
+        auto row = value.as_object<mysqlsh::Row>();
 
         (*newly_discovered_instance)["host"] = shcore::Value(row->get_member(1).as_string());
         (*newly_discovered_instance)["port"] = shcore::Value(row->get_member(2).as_int());

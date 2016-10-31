@@ -21,7 +21,7 @@
 #include "utils/utils_help.h"
 
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 
 REGISTER_HELP(INSTANCE_BRIEF, "Represents an Instance.");

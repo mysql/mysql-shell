@@ -94,7 +94,7 @@ std::string Shell_python::prompt() {
     else {
       Value session_wrapper = _owner->active_session();
       if (session_wrapper) {
-        std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+        std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
 
         if (session) {
           shcore::Value st = session->get_capability("node_type");

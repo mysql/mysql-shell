@@ -29,8 +29,8 @@
 #include "utils/utils_general.h"
 #include <random>
 
-using namespace mysh;
-using namespace mysh::dba;
+using namespace mysqlsh;
+using namespace mysqlsh::dba;
 using namespace shcore;
 
 MetadataStorage::MetadataStorage(Dba* dba) :

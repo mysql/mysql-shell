@@ -29,8 +29,8 @@
 
 static const char *kRequiredMySQLProvisionInterfaceVersion = "1.0";
 
-using namespace mysh;
-using namespace mysh::dba;
+using namespace mysqlsh;
+using namespace mysqlsh::dba;
 using namespace shcore;
 
 ProvisioningInterface::ProvisioningInterface(shcore::Interpreter_delegate* deleg) :

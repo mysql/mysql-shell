@@ -25,7 +25,7 @@
 #include "mod_dba_replicaset.h"
 #include "modules/base_resultset.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 #if DOXYGEN_CPP
 /**

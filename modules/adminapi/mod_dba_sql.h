@@ -22,7 +22,7 @@
 
 #include "modules/mysql_connection.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 
   enum class GRInstanceType {
@@ -39,10 +39,10 @@ namespace dba {
   };
 
 
-  GRInstanceType get_gr_instance_type(mysh::mysql::Connection* connection);
-  void get_port_and_datadir(mysh::mysql::Connection* connection, int &port, std::string& datadir);
-  void get_gtid_state_variables(mysh::mysql::Connection* connection, std::string &executed, std::string &purged);
-  SlaveReplicationState get_slave_replication_state(mysh::mysql::Connection* connection, std::string &slave_executed);
+  GRInstanceType get_gr_instance_type(mysqlsh::mysql::Connection* connection);
+  void get_port_and_datadir(mysqlsh::mysql::Connection* connection, int &port, std::string& datadir);
+  void get_gtid_state_variables(mysqlsh::mysql::Connection* connection, std::string &executed, std::string &purged);
+  SlaveReplicationState get_slave_replication_state(mysqlsh::mysql::Connection* connection, std::string &slave_executed);
 
 }
 }

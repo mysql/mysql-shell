@@ -32,7 +32,7 @@
 #include <set>
 
 using namespace std::placeholders;
-using namespace mysh;
+using namespace mysqlsh;
 using namespace shcore;
 
 DatabaseObject::DatabaseObject(std::shared_ptr<ShellBaseSession> session, std::shared_ptr<DatabaseObject> schema, const std::string &name)

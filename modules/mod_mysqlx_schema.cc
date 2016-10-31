@@ -37,8 +37,8 @@
 #include "logger/logger.h"
 #include "utils/utils_help.h"
 
-using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysqlsh;
+using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of Schema class
@@ -105,12 +105,12 @@ void Schema::update_cache() {
         args.push_back(Value(""));
 
         Value myres = sess->executeAdminCommand("list_objects", true, args);
-        std::shared_ptr<mysh::mysqlx::SqlResult> my_res = myres.as_object<mysh::mysqlx::SqlResult>();
+        std::shared_ptr<mysqlsh::mysqlx::SqlResult> my_res = myres.as_object<mysqlsh::mysqlx::SqlResult>();
 
         Value raw_entry;
 
         while ((raw_entry = my_res->fetch_one(shcore::Argument_list()))) {
-          std::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
+          std::shared_ptr<mysqlsh::Row> row = raw_entry.as_object<mysqlsh::Row>();
           std::string object_name = row->get_member("name").as_string();
           std::string object_type = row->get_member("type").as_string();
 

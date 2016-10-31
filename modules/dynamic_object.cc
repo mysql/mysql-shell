@@ -24,8 +24,8 @@
 #include "base_database_object.h"
 #include "mod_mysqlx_expression.h"
 
-using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysqlsh;
+using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 std::vector<std::string> Dynamic_object::get_members() const {

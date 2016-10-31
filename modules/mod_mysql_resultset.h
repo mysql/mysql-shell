@@ -28,7 +28,7 @@
 #include "base_resultset.h"
 #include <list>
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysql {
 class Result;
 

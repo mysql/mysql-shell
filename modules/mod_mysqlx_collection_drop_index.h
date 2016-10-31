@@ -25,7 +25,7 @@
 
 #include "dynamic_object.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 class Collection;
 

@@ -27,7 +27,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 /**
 * Constants to represent data types con Column objects

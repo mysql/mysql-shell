@@ -34,7 +34,7 @@
 #include <mysql.h>
 #include "mod_common.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysql {
 /*    class Session :public ISession, public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Mysql_connection>
     {

@@ -24,7 +24,7 @@
 #include "utils/utils_time.h"
 
 using namespace std::placeholders;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 TableSelect::TableSelect(std::shared_ptr<Table> owner)

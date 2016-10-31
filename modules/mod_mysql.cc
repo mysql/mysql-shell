@@ -22,7 +22,7 @@
 #include "utils/utils_help.h"
 
 using namespace std::placeholders;
-using namespace mysh::mysql;
+using namespace mysqlsh::mysql;
 
 REGISTER_HELP(MYSQL_INTERACTIVE_BRIEF, "Used to work with classic MySQL sessions using SQL.");
 
@@ -31,6 +31,6 @@ REGISTER_MODULE(Mysql, mysql) {
 }
 
 DEFINE_FUNCTION(Mysql, get_classic_session) {
-  auto session = connect_session(args, mysh::SessionType::Classic);
+  auto session = connect_session(args, mysqlsh::SessionType::Classic);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }

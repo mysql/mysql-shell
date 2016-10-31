@@ -25,7 +25,7 @@
 #include "shellcore/common.h"
 #include "utils/utils_general.h"
 
-using namespace mysh;
+using namespace mysqlsh;
 using namespace shcore;
 
 const Charset::Charset_entry Charset::item[] = {

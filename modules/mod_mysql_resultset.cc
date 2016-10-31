@@ -28,9 +28,9 @@
 #include "utils/utils_help.h"
 
 using namespace std::placeholders;
-using namespace mysh;
+using namespace mysqlsh;
 using namespace shcore;
-using namespace mysh::mysql;
+using namespace mysqlsh::mysql;
 
 // Documentation of the ClassicResult class
 REGISTER_HELP(CLASSICRESULT_BRIEF, "Allows browsing through the result information "\
@@ -93,7 +93,7 @@ shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const 
   Row *inner_row = _result->fetch_one();
 
   if (inner_row) {
-    mysh::Row *value_row = new mysh::Row();
+    mysqlsh::Row *value_row = new mysqlsh::Row();
 
     std::vector<Field> metadata(_result->get_metadata());
 
@@ -367,7 +367,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
 
     for (int i = 0; i < num_fields; i++) {
       bool numeric = IS_NUM(metadata[i].type());
-      std::shared_ptr<mysh::Column> column(new mysh::Column(
+      std::shared_ptr<mysqlsh::Column> column(new mysqlsh::Column(
         metadata[i].db(),
         metadata[i].org_table(),
         metadata[i].table(),

@@ -34,7 +34,7 @@ namespace shcore {
 class Proxy_object;
 };
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 class BaseSession;
 class Table;

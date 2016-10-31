@@ -28,8 +28,8 @@
 #include "utils/utils_help.h"
 
 using namespace std::placeholders;
-using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysqlsh;
+using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of Table class

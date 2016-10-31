@@ -30,7 +30,7 @@
 #endif
 
 using namespace shcore;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 
 #if DOXYGEN_CPP
 /**

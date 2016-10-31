@@ -69,7 +69,7 @@ protected:
   // First set the options on _options
   void reset_options() {
     char **argv = NULL;
-    _options.reset(new mysh::Shell_options());
+    _options.reset(new mysqlsh::Shell_options());
   }
 
   virtual void set_options() {};
@@ -88,14 +88,14 @@ protected:
   }
 
   void reset_shell() {
-    _interactive_shell.reset(new mysh::Base_shell(*_options.get(), &output_handler.deleg));
+    _interactive_shell.reset(new mysqlsh::Base_shell(*_options.get(), &output_handler.deleg));
 
     set_defaults();
   }
 
   Shell_test_output_handler output_handler;
-  std::shared_ptr<mysh::Base_shell> _interactive_shell;
-  std::shared_ptr<mysh::Shell_options> _options;
+  std::shared_ptr<mysqlsh::Base_shell> _interactive_shell;
+  std::shared_ptr<mysqlsh::Shell_options> _options;
   void wipe_out() { output_handler.wipe_out(); }
   void wipe_err() { output_handler.wipe_err(); }
   void wipe_all() { output_handler.wipe_all(); }

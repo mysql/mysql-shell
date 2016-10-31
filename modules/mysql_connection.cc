@@ -26,7 +26,7 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 
-using namespace mysh::mysql;
+using namespace mysqlsh::mysql;
 
 #include "shellcore/object_factory.h"
 #include "shellcore/common.h"

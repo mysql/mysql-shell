@@ -35,7 +35,7 @@
 #include "logger/logger.h"
 #include "utils/utils_help.h"
 
-using namespace mysh::mysql;
+using namespace mysqlsh::mysql;
 using namespace shcore;
 
 // Documentation of the ClassicSchema class
@@ -101,7 +101,7 @@ void ClassicSchema::update_cache() {
     auto val_row = result->fetch_one(shcore::Argument_list());
 
     if (val_row) {
-      auto row = val_row.as_object<mysh::Row>();
+      auto row = val_row.as_object<mysqlsh::Row>();
       while (row) {
         std::string object_name = row->get_member(0).as_string();
         std::string object_type = row->get_member(1).as_string();
@@ -117,7 +117,7 @@ void ClassicSchema::update_cache() {
         val_row = result->fetch_one(shcore::Argument_list());
 
         if (val_row)
-          row = val_row.as_object<mysh::Row>();
+          row = val_row.as_object<mysqlsh::Row>();
       }
     }
 

@@ -30,7 +30,7 @@
 #include <set>
 #include "mod_dba_provisioning_interface.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 class MetadataStorage;
 class Cluster;

@@ -25,7 +25,7 @@
 #include <sstream>
 
 using namespace std::placeholders;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 TableUpdate::TableUpdate(std::shared_ptr<Table> owner)

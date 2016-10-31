@@ -35,8 +35,8 @@
 //const int MAX_READLINE_BUF = 65536;
 extern char *mysh_get_tty_password(const char *opt_message);
 
-namespace mysh {
-Command_line_shell::Command_line_shell(const Shell_options &options) : mysh::Base_shell(options, &_delegate) {
+namespace mysqlsh {
+Command_line_shell::Command_line_shell(const Shell_options &options) : mysqlsh::Base_shell(options, &_delegate) {
 #ifndef WIN32
   rl_initialize();
 #endif

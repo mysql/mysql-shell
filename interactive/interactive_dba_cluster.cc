@@ -43,8 +43,8 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_
   shcore::Value ret_val;
   std::string function;
 
-  std::shared_ptr<mysh::dba::ReplicaSet> object;
-  auto cluster = std::dynamic_pointer_cast<mysh::dba::Cluster> (_target);
+  std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
+  auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
 
   if (cluster)
     object = cluster->get_default_replicaset();
@@ -60,8 +60,8 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_
     function = "addSeedInstance";
 
   if (!function.empty()) {
-    auto options = mysh::dba::get_instance_options_map(args, false);
-    mysh::dba::resolve_instance_credentials(options, _delegate);
+    auto options = mysqlsh::dba::get_instance_options_map(args, false);
+    mysqlsh::dba::resolve_instance_credentials(options, _delegate);
 
     shcore::Argument_list new_args;
     new_args.push_back(shcore::Value(options));
@@ -80,8 +80,8 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
   shcore::Value::Map_type_ref options;
 
   try {
-    std::shared_ptr<mysh::dba::ReplicaSet> object;
-    auto cluster = std::dynamic_pointer_cast<mysh::dba::Cluster> (_target);
+    std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
+    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
 
     if (cluster)
       object = cluster->get_default_replicaset();
@@ -102,12 +102,12 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
 
       print(message);
 
-      options = mysh::dba::get_instance_options_map(args, false);
+      options = mysqlsh::dba::get_instance_options_map(args, false);
 
       shcore::Argument_map opt_map(*options);
       opt_map.ensure_keys({"host"}, {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"}, "instance definition");
 
-      mysh::dba::resolve_instance_credentials(options, _delegate);
+      mysqlsh::dba::resolve_instance_credentials(options, _delegate);
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
@@ -172,7 +172,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
 
   std::string name;
 
-  //auto instance = args.object_at<mysh::dba::Instance> (0);
+  //auto instance = args.object_at<mysqlsh::dba::Instance> (0);
 
   // Identify the type of connection data (String or Document)
   if (args[0].type == String) {
@@ -225,8 +225,8 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"));
 
   if (!force) {
-    std::shared_ptr<mysh::dba::ReplicaSet> object;
-    auto cluster = std::dynamic_pointer_cast<mysh::dba::Cluster> (_target);
+    std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
+    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
 
     if (cluster)
       object = cluster->get_default_replicaset();
@@ -259,14 +259,14 @@ shcore::Value Interactive_dba_cluster::check_instace_state(const shcore::Argumen
   shcore::Argument_list target_args;
 
   try {
-    options = mysh::dba::get_instance_options_map(args, false);
+    options = mysqlsh::dba::get_instance_options_map(args, false);
 
     shcore::Argument_map opt_map(*options);
     std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
     opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
 
     // Gather username and password if missing
-    mysh::dba::resolve_instance_credentials(options, _delegate);
+    mysqlsh::dba::resolve_instance_credentials(options, _delegate);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("checkInstanceState"));
 
@@ -344,13 +344,13 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
 
             (*options)["host"] = shcore::Value(host);
             (*options)["port"] = shcore::Value(atoi(port.c_str()));
-            mysh::dba::resolve_instance_credentials(options, _delegate);
+            mysqlsh::dba::resolve_instance_credentials(options, _delegate);
 
             println("Adding instance to the cluster metadata...");
             println();
 
-            std::shared_ptr<mysh::dba::ReplicaSet> object;
-            auto cluster = std::dynamic_pointer_cast<mysh::dba::Cluster> (_target);
+            std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
+            auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
 
             object = cluster->get_default_replicaset();
 
@@ -395,8 +395,8 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
             println("Removing instance from the cluster metadata...");
             println();
 
-            std::shared_ptr<mysh::dba::ReplicaSet> object;
-            auto cluster = std::dynamic_pointer_cast<mysh::dba::Cluster> (_target);
+            std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
+            auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
 
             object = cluster->get_default_replicaset();
 

@@ -33,7 +33,7 @@
 #include <map>
 #include "mod_dba_provisioning_interface.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 class MetadataStorage;
 
@@ -109,10 +109,10 @@ public:
 
   void validate_session(const std::string &source) const;
 
-  static std::shared_ptr<mysh::mysql::ClassicSession> get_session(const shcore::Argument_list& args);
+  static std::shared_ptr<mysqlsh::mysql::ClassicSession> get_session(const shcore::Argument_list& args);
 
 protected:
-  std::shared_ptr<mysh::ShellDevelopmentSession> _custom_session;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> _custom_session;
   shcore::IShell_core *_shell_core;
 
   void init();
@@ -126,7 +126,7 @@ private:
   shcore::Value::Map_type_ref _check_instance_config(const shcore::Argument_list &args, bool allow_update);
 
 
-  static std::map <std::string, std::shared_ptr<mysh::mysql::ClassicSession> > _session_cache;
+  static std::map <std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession> > _session_cache;
 };
 }
 }

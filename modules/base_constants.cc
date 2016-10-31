@@ -30,7 +30,7 @@
 #endif
 
 using namespace shcore;
-using namespace mysh;
+using namespace mysqlsh;
 
 std::map<std::string, Constant::Module_constants> Constant::_constants;
 

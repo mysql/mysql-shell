@@ -27,7 +27,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-namespace mysh {
+namespace mysqlsh {
 // This is the Shell Common Base Class for all the resultset classes
 class ShellBaseResult : public shcore::Cpp_object_bridge {
 public:

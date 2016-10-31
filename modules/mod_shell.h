@@ -24,7 +24,7 @@
 #ifndef _MODULES_MOD_SHELL_H_
 #define _MODULES_MOD_SHELL_H_
 
-namespace mysh {
+namespace mysqlsh {
   /**
     * $(SHELL_BRIEF)
     */

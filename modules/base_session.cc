@@ -42,18 +42,18 @@
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-using namespace mysh;
+using namespace mysqlsh;
 using namespace shcore;
 
-std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type) {
+std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session(const shcore::Argument_list &args, SessionType session_type) {
   std::shared_ptr<ShellDevelopmentSession> ret_val;
 
-  mysh::SessionType type(session_type);
+  mysqlsh::SessionType type(session_type);
 
   // Automatic protocol detection is ON
   // Attempts X Protocol first, then Classic
-  if (type == mysh::SessionType::Auto) {
-    ret_val.reset(new mysh::mysqlx::NodeSession());
+  if (type == mysqlsh::SessionType::Auto) {
+    ret_val.reset(new mysqlsh::mysqlx::NodeSession());
     try {
       ret_val->connect(args);
 
@@ -69,21 +69,21 @@ std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcor
 
       if (code == 2027 || // Unknown message received from server 10
          code == 2002)    // No connection could be made because the target machine actively refused it connecting to host:port
-        type = mysh::SessionType::Classic;
+        type = mysqlsh::SessionType::Classic;
       else
         throw;
     }
   }
 
   switch (type) {
-    case mysh::SessionType::X:
-      ret_val.reset(new mysh::mysqlx::XSession());
+    case mysqlsh::SessionType::X:
+      ret_val.reset(new mysqlsh::mysqlx::XSession());
       break;
-    case mysh::SessionType::Node:
-      ret_val.reset(new mysh::mysqlx::NodeSession());
+    case mysqlsh::SessionType::Node:
+      ret_val.reset(new mysqlsh::mysqlx::NodeSession());
       break;
 #ifdef HAVE_LIBMYSQLCLIENT
-    case mysh::SessionType::Classic:
+    case mysqlsh::SessionType::Classic:
       ret_val.reset(new mysql::ClassicSession());
       break;
 #endif

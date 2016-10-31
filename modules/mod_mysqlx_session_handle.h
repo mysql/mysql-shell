@@ -29,7 +29,7 @@
 #include "shellcore/ishell_core.h"
 #include "mysqlxtest/mysqlx.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 // This is a helper class that wraps a connection created using mysqlxtest
 // and the different operations available through it.

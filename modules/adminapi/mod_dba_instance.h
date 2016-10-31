@@ -24,7 +24,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 
 /**
@@ -99,6 +99,6 @@ class Instance : public shcore::Cpp_object_bridge{
   shcore::Value::Map_type_ref _options;
 };
 }  // namespace dba
-}  // namespace mysh
+}  // namespace mysqlsh
 
 #endif  // MODULES_ADMINAPI_MOD_DBA_INSTANCE_H_

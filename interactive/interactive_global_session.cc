@@ -42,15 +42,15 @@ void Global_session::resolve() const {
   if (prompt(message, answer)) {
     boost::trim(answer);
     if (!answer.empty() && answer.length() == 1) {
-      mysh::SessionType type;
+      mysqlsh::SessionType type;
       std::string options = "12";
       switch (options.find(answer)) {
         case 0:
-          type = mysh::SessionType::Node;
+          type = mysqlsh::SessionType::Node;
           error = false;
           break;
         case 1:
-          type = mysh::SessionType::Classic;
+          type = mysqlsh::SessionType::Classic;
           error = false;
           break;
         default:

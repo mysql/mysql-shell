@@ -28,7 +28,7 @@
 #include "shellcore/shell_core_options.h"
 #include "shellcore/lang_base.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 #if DOXYGEN_CPP
 /**
@@ -85,6 +85,6 @@ private:
                       shcore::Value::Array_type_ref &errors);
 };
 }  // namespace mysqlx
-}  // namespace mysh
+}  // namespace mysqlsh
 
 #endif  // MODULES_ADMINAPI_MOD_DBA_PROVISIONING_INTERFACE_H_

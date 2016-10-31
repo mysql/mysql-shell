@@ -18,7 +18,7 @@
 ** This is an own file to avoid conflicts with curses
 */
 
-// modified to be standalone for mysh
+// modified to be standalone for mysqlsh
 
 #include "mysh_config.h"
 #include <cstring>

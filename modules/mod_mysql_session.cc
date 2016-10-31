@@ -51,8 +51,8 @@
 #define MIN_COLUMN_LENGTH 4
 
 using namespace std::placeholders;
-using namespace mysh;
-using namespace mysh::mysql;
+using namespace mysqlsh;
+using namespace mysqlsh::mysql;
 using namespace shcore;
 
 REGISTER_OBJECT(mysql, ClassicSession);
@@ -336,7 +336,7 @@ std::string ClassicSession::_retrieve_current_schema() {
     Value next_row = rset->fetch_one(shcore::Argument_list());
 
     if (next_row) {
-      std::shared_ptr<mysh::Row> row = next_row.as_object<mysh::Row>();
+      std::shared_ptr<mysqlsh::Row> row = next_row.as_object<mysqlsh::Row>();
       shcore::Value schema = row->get_member("schema()");
 
       if (schema)
@@ -425,10 +425,10 @@ shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) con
     shcore::Argument_list args;
     std::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
     Value next_row = rset->fetch_one(args);
-    std::shared_ptr<mysh::Row> row;
+    std::shared_ptr<mysqlsh::Row> row;
 
     while (next_row) {
-      row = next_row.as_object<mysh::Row>();
+      row = next_row.as_object<mysqlsh::Row>();
       shcore::Value schema = row->get_member("Database");
       if (schema) {
         update_schema_cache(schema.as_string(), true);
@@ -474,7 +474,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
 }
 
 std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysh::SessionType::Classic);
+  return connect_session(args, mysqlsh::SessionType::Classic);
 }
 
 // Documentation of dropSchema function
@@ -608,7 +608,7 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
     auto val_row = result->fetch_one(shcore::Argument_list());
 
     if (val_row) {
-      auto row = val_row.as_object<mysh::Row>();
+      auto row = val_row.as_object<mysqlsh::Row>();
       if (row)
         ret_val = row->get_member(0).as_string();
     }
@@ -619,7 +619,7 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
     auto val_row = result->fetch_one(shcore::Argument_list());
 
     if (val_row) {
-      auto row = val_row.as_object<mysh::Row>();
+      auto row = val_row.as_object<mysqlsh::Row>();
 
       if (row) {
         std::string db_type = row->get_member(1).as_string();
@@ -731,7 +731,7 @@ shcore::Value ClassicSession::get_status(const shcore::Argument_list &args) {
     auto result = val_result.as_object<ClassicResult>();
     auto val_row = result->fetch_one(shcore::Argument_list());
     if (val_row) {
-      auto row = val_row.as_object<mysh::Row>();
+      auto row = val_row.as_object<mysqlsh::Row>();
 
       if (row) {
         (*status)["SESSION_TYPE"] = shcore::Value("Classic");
@@ -761,7 +761,7 @@ shcore::Value ClassicSession::get_status(const shcore::Argument_list &args) {
     val_row = result->fetch_one(shcore::Argument_list());
 
     if (val_row) {
-      auto row = val_row.as_object<mysh::Row>();
+      auto row = val_row.as_object<mysqlsh::Row>();
 
       if (row) {
         (*status)["CLIENT_CHARSET"] = row->get_member(0);

@@ -29,20 +29,20 @@ namespace shcore {
 #define IS_NULLABLE true
 #define AS__STRING(x) std::to_string(x)
 
-std::string session_type_name(mysh::SessionType type){
+std::string session_type_name(mysqlsh::SessionType type){
   std::string ret_val;
 
   switch(type){
-    case mysh::SessionType::Auto:
+    case mysqlsh::SessionType::Auto:
       ret_val = "Auto";
       break;
-    case mysh::SessionType::Classic:
+    case mysqlsh::SessionType::Classic:
       ret_val = "Classic";
       break;
-    case mysh::SessionType::Node:
+    case mysqlsh::SessionType::Node:
       ret_val = "Node";
       break;
-    case mysh::SessionType::X:
+    case mysqlsh::SessionType::X:
       ret_val = "X";
       break;
   }
@@ -76,7 +76,7 @@ class Shell_cmdline_options_t : public ::testing::Test {
 public:
   Shell_cmdline_options_t() {}
 
-  std::string get_string(mysh::Shell_options* options, const std::string &option) {
+  std::string get_string(mysqlsh::Shell_options* options, const std::string &option) {
     if (option == "host")
       return options->host;
     else if (option == "user")
@@ -144,7 +144,7 @@ public:
     SCOPED_TRACE("TESTING: " + arg);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
     Shell_command_line_options cmd_options(2, argv);
-    mysh::Shell_options options = cmd_options.get_options();
+    mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
 
@@ -175,7 +175,7 @@ public:
     SCOPED_TRACE("TESTING: " + arg + " " + value);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
     Shell_command_line_options cmd_options(3, argv);
-    mysh::Shell_options options = cmd_options.get_options();
+    mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
 
@@ -206,7 +206,7 @@ public:
     SCOPED_TRACE("TESTING: " + arg);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
     Shell_command_line_options cmd_options(2, argv);
-    mysh::Shell_options options = cmd_options.get_options();
+    mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
 
@@ -237,7 +237,7 @@ public:
     SCOPED_TRACE("TESTING: " + arg + " " + value);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
     Shell_command_line_options cmd_options(3, argv);
-    mysh::Shell_options options = cmd_options.get_options();
+    mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
 
@@ -268,7 +268,7 @@ public:
     SCOPED_TRACE("TESTING: " + arg);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
     Shell_command_line_options cmd_options(2, argv);
-    mysh::Shell_options options = cmd_options.get_options();
+    mysqlsh::Shell_options options = cmd_options.get_options();
 
     if (valid) {
       EXPECT_EQ(0, options.exit_code);
@@ -354,7 +354,7 @@ public:
     SCOPED_TRACE("TESTING: " + option);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(option.c_str()), NULL};
     Shell_command_line_options cmd_options(2, argv);
-    mysh::Shell_options options = cmd_options.get_options();
+    mysqlsh::Shell_options options = cmd_options.get_options();
 
     EXPECT_EQ(0, options.exit_code);
     EXPECT_STREQ(target_value.c_str(), get_string(&options, target_option).c_str());
@@ -390,7 +390,7 @@ TEST(Shell_cmdline_options, default_values) {
   char **argv = NULL;
 
   Shell_command_line_options cmd_options(argc, argv);
-  mysh::Shell_options options = cmd_options.get_options();
+  mysqlsh::Shell_options options = cmd_options.get_options();
 
   EXPECT_TRUE(options.exit_code == 0);
   EXPECT_FALSE(options.force);
@@ -419,7 +419,7 @@ TEST(Shell_cmdline_options, default_values) {
   EXPECT_FALSE(options.recreate_database);
   EXPECT_TRUE(options.run_file.empty());
   EXPECT_TRUE(options.schema.empty());
-  EXPECT_EQ(options.session_type, mysh::SessionType::Auto);
+  EXPECT_EQ(options.session_type, mysqlsh::SessionType::Auto);
   EXPECT_TRUE(options.sock.empty());
   EXPECT_EQ(options.ssl, 0);
   EXPECT_TRUE(options.ssl_ca.empty());
@@ -462,16 +462,16 @@ TEST_F(Shell_cmdline_options_t, app) {
 
   test_option_with_value("execute", "e", "show databases;", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "execute_statement");
 
-  test_option_with_no_value("--classic", "session-type", session_type_name(mysh::SessionType::Classic));
-  test_option_with_no_value("--node", "session-type", session_type_name(mysh::SessionType::Node));
+  test_option_with_no_value("--classic", "session-type", session_type_name(mysqlsh::SessionType::Classic));
+  test_option_with_no_value("--node", "session-type", session_type_name(mysqlsh::SessionType::Node));
 
-  test_option_with_no_value("--sql", "session-type", session_type_name(mysh::SessionType::Auto));
+  test_option_with_no_value("--sql", "session-type", session_type_name(mysqlsh::SessionType::Auto));
   test_option_with_no_value("--sql", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--sqlc", "session-type", session_type_name(mysh::SessionType::Classic));
+  test_option_with_no_value("--sqlc", "session-type", session_type_name(mysqlsh::SessionType::Classic));
   test_option_with_no_value("--sqlc", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--sqln", "session-type", session_type_name(mysh::SessionType::Node));
+  test_option_with_no_value("--sqln", "session-type", session_type_name(mysqlsh::SessionType::Node));
   test_option_with_no_value("--sqln", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
 
   test_option_with_no_value("--javascript", "initial-mode", shell_mode_name(IShell_core::Mode::JScript));

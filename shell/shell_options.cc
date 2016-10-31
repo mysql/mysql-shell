@@ -18,7 +18,7 @@
  */
 
 #include "shell/shell_options.h"
-namespace mysh {
+namespace mysqlsh {
 Shell_options::Shell_options() {
 #ifdef HAVE_V8
   initial_mode = shcore::IShell_core::Mode::JScript;
@@ -32,7 +32,7 @@ Shell_options::Shell_options() {
 
   log_level = ngcommon::Logger::LOG_INFO;
   password = nullptr;
-  session_type = mysh::SessionType::Auto;
+  session_type = mysqlsh::SessionType::Auto;
 
   default_session_type = true;
   print_cmd_line_helper = false;

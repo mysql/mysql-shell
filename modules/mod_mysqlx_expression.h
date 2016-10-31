@@ -28,7 +28,7 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 class SHCORE_PUBLIC Expression : public shcore::Cpp_object_bridge {
 public:

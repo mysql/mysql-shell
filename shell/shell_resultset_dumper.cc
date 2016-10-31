@@ -29,7 +29,7 @@
 
 using options = shcore::Shell_core_options;
 
-ResultsetDumper::ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult> target, shcore::Interpreter_delegate *output_handler, bool buffer_data) :
+ResultsetDumper::ResultsetDumper(std::shared_ptr<mysqlsh::ShellBaseResult> target, shcore::Interpreter_delegate *output_handler, bool buffer_data) :
 _resultset(target), _output_handler(output_handler), _buffer_data(buffer_data) {
   _format = options::get()->get_string(SHCORE_OUTPUT_FORMAT);
   _interactive = options::get()->get_bool(SHCORE_INTERACTIVE);
@@ -71,29 +71,29 @@ void ResultsetDumper::dump_normal() {
   std::string class_name = _resultset->class_name();
 
   if (class_name == "ClassicResult") {
-    std::shared_ptr<mysh::mysql::ClassicResult> resultset = std::static_pointer_cast<mysh::mysql::ClassicResult>(_resultset);
+    std::shared_ptr<mysqlsh::mysql::ClassicResult> resultset = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   } else if (class_name == "SqlResult") {
-    std::shared_ptr<mysh::mysqlx::SqlResult> resultset = std::static_pointer_cast<mysh::mysqlx::SqlResult>(_resultset);
+    std::shared_ptr<mysqlsh::mysqlx::SqlResult> resultset = std::static_pointer_cast<mysqlsh::mysqlx::SqlResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   } else if (class_name == "RowResult") {
-    std::shared_ptr<mysh::mysqlx::RowResult> resultset = std::static_pointer_cast<mysh::mysqlx::RowResult>(_resultset);
+    std::shared_ptr<mysqlsh::mysqlx::RowResult> resultset = std::static_pointer_cast<mysqlsh::mysqlx::RowResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   } else if (class_name == "DocResult") {
-    std::shared_ptr<mysh::mysqlx::DocResult> resultset = std::static_pointer_cast<mysh::mysqlx::DocResult>(_resultset);
+    std::shared_ptr<mysqlsh::mysqlx::DocResult> resultset = std::static_pointer_cast<mysqlsh::mysqlx::DocResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   } else if (class_name == "Result") {
-    std::shared_ptr<mysh::mysqlx::Result> resultset = std::static_pointer_cast<mysh::mysqlx::Result>(_resultset);
+    std::shared_ptr<mysqlsh::mysqlx::Result> resultset = std::static_pointer_cast<mysqlsh::mysqlx::Result>(_resultset);
     if (resultset)
       dump_normal(resultset);
   }
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> result) {
+void ResultsetDumper::dump_normal(std::shared_ptr<mysqlsh::mysql::ClassicResult> result) {
   std::string output;
 
   do {
@@ -122,7 +122,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> re
   } while (result->next_data_set(shcore::Argument_list()).as_bool());
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::SqlResult> result) {
+void ResultsetDumper::dump_normal(std::shared_ptr<mysqlsh::mysqlx::SqlResult> result) {
   std::string output;
 
   do {
@@ -144,7 +144,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::SqlResult> resul
   } while (result->next_data_set(shcore::Argument_list()).as_bool());
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::RowResult> result) {
+void ResultsetDumper::dump_normal(std::shared_ptr<mysqlsh::mysqlx::RowResult> result) {
   std::string output;
 
   dump_records(output);
@@ -161,7 +161,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::RowResult> resul
   }
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> result) {
+void ResultsetDumper::dump_normal(std::shared_ptr<mysqlsh::mysqlx::DocResult> result) {
   std::string output;
 
   shcore::Value documents = result->fetch_all(shcore::Argument_list());
@@ -187,7 +187,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> resul
   }
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::Result> result) {
+void ResultsetDumper::dump_normal(std::shared_ptr<mysqlsh::mysqlx::Result> result) {
   // This information output is only printed in interactive mode
   if (_interactive) {
     std::string output = get_affected_stats("affectedItemCount", "item");
@@ -211,14 +211,14 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
   // Prints the initial separator line and the column headers
   // TODO: Consider the charset information on the length calculations
   for (index = 0; index < field_count; index++) {
-    std::shared_ptr<mysh::Column> column = std::static_pointer_cast<mysh::Column>(metadata->at(index).as_object());
+    std::shared_ptr<mysqlsh::Column> column = std::static_pointer_cast<mysqlsh::Column>(metadata->at(index).as_object());
     _output_handler->print(_output_handler->user_data, column->get_column_label().c_str());
     _output_handler->print(_output_handler->user_data, index < (field_count - 1) ? "\t" : "\n");
   }
 
   // Now prints the records
   for (size_t row_index = 0; row_index < records->size(); row_index++) {
-    std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
+    std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
       std::string raw_value = row->get_member(field_index).descr();
@@ -238,7 +238,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
 
   // Updates the max_length array with the maximum length between column name, min column length and column max length
   for (size_t field_index = 0; field_index < field_count; field_index++) {
-    std::shared_ptr<mysh::Column> column = std::static_pointer_cast<mysh::Column>(metadata->at(field_index).as_object());
+    std::shared_ptr<mysqlsh::Column> column = std::static_pointer_cast<mysqlsh::Column>(metadata->at(field_index).as_object());
 
     column_names.push_back(column->get_column_label());
     numerics.push_back(column->is_numeric());
@@ -250,7 +250,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   // Now updates the length with the real column data lengths
   size_t row_index;
   for (row_index = 0; row_index < records->size(); row_index++) {
-    std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
+    std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
     for (size_t field_index = 0; field_index < field_count; field_index++)
       max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], row->get_member(field_index).descr().length());
   }
@@ -296,7 +296,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   for (row_index = 0; row_index < records->size(); row_index++) {
     _output_handler->print(_output_handler->user_data, "| ");
 
-    std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
+    std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
       std::string raw_value = row->get_member(field_index).descr();
@@ -368,7 +368,7 @@ void ResultsetDumper::dump_warnings() {
 
     while (index < size) {
       shcore::Value record = warning_list->at(index);
-      std::shared_ptr<mysh::Row> row = record.as_object<mysh::Row>();
+      std::shared_ptr<mysqlsh::Row> row = record.as_object<mysqlsh::Row>();
 
       unsigned long error = row->get_member("code").as_int();
 
@@ -381,20 +381,20 @@ void ResultsetDumper::dump_warnings() {
   }
 }
 
-/*Value ResultsetDumper::get_all_records(mysh::mysql::ClassicResult* result)
+/*Value ResultsetDumper::get_all_records(mysqlsh::mysql::ClassicResult* result)
 {
 return result->all(shcore::Argument_list());
 }
-Value ResultsetDumper::get_all_records(mysh::mysqlx::SqlResult* result)
+Value ResultsetDumper::get_all_records(mysqlsh::mysqlx::SqlResult* result)
 {
 return result->fetch_all(shcore::Argument_list());
 }
 
-bool ResultsetDumper::move_next_data_set(mysh::mysql::ClassicResult* result)
+bool ResultsetDumper::move_next_data_set(mysqlsh::mysql::ClassicResult* result)
 {
 return result->next_result(shcore::Argument_list());
 }
-bool ResultsetDumper::move_next_data_set(mysh::mysqlx::SqlResult* result)
+bool ResultsetDumper::move_next_data_set(mysqlsh::mysqlx::SqlResult* result)
 {
 return result->next_data_set(shcore::Argument_list());
 }*/

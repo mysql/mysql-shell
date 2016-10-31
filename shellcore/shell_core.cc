@@ -54,8 +54,8 @@ using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   : IShell_core(), _client_delegate(shdelegate), _running_query(false), _reconnect_session(false) {
-  INIT_MODULE(mysh::mysqlx::Mysqlx);
-  INIT_MODULE(mysh::mysql::Mysql);
+  INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
+  INIT_MODULE(mysqlsh::mysql::Mysql);
 
   // Use a random seed for UUIDs
   std::time_t now = std::time(NULL);
@@ -424,8 +424,8 @@ bool Shell_core::handle_shell_command(const std::string &line) {
 *
 * If the Connection Data contained the *schema* attribute, the schema will be made available to the scripting interfaces on the global *db* variable.
 */
-std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session(const Argument_list &args, mysh::SessionType session_type) {
-  return set_dev_session(mysh::connect_session(args, session_type));
+std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type) {
+  return set_dev_session(mysqlsh::connect_session(args, session_type));
 }
 
 /**
@@ -434,7 +434,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session(c
 *
 * If there's a selected schema on the received session, it will be made available to the scripting interfaces on the global *db* variable
 */
-std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(std::shared_ptr<mysh::ShellDevelopmentSession> session) {
+std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::set_dev_session(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session) {
   _global_dev_session.swap(session);
 
   // X Session can't have a currentSchema so we set on db the default schema
@@ -469,7 +469,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(std::
 /**
 * Returns the global development session.
 */
-std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session() {
+std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::get_dev_session() {
   return _global_dev_session;
 }
 
@@ -480,7 +480,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session() {
  * If there's unique farm on the received session, it will be made available to the scripting interfaces on the global *farm* variable
  */
 void Shell_core::set_dba_global() {
-  std::shared_ptr<mysh::dba::Dba>dba(new mysh::dba::Dba(this));
+  std::shared_ptr<mysqlsh::dba::Dba>dba(new mysqlsh::dba::Dba(this));
 
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set
@@ -494,7 +494,7 @@ void Shell_core::set_dba_global() {
 }
 
 void Shell_core::set_shell_global() {
-  std::shared_ptr<mysh::Shell>shell(new mysh::Shell(this));
+  std::shared_ptr<mysqlsh::Shell>shell(new mysqlsh::Shell(this));
 
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set
@@ -545,7 +545,7 @@ shcore::Value Shell_core::set_current_schema(const std::string& name) {
 
 void Shell_core::handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data) {
   if (name == "SN_SESSION_CONNECTION_LOST") {
-    auto session = std::dynamic_pointer_cast<mysh::ShellDevelopmentSession>(sender);
+    auto session = std::dynamic_pointer_cast<mysqlsh::ShellDevelopmentSession>(sender);
 
     if (session && session == _global_dev_session)
       _reconnect_session = true;

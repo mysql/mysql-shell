@@ -171,7 +171,7 @@ std::string Shell_sql::prompt() {
     std::string node_type = "mysql";
     Value session_wrapper = _owner->active_session();
     if (session_wrapper) {
-      std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+      std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
 
       if (session) {
         shcore::Value st = session->get_capability("node_type");
@@ -209,18 +209,18 @@ void Shell_sql::print_exception(const shcore::Exception &e) {
 
 void Shell_sql::abort() {
   Value session_wrapper = _owner->active_session();
-  std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+  std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
   // duplicate the connection
-  std::shared_ptr<mysh::mysql::ClassicSession> kill_session;
-  std::shared_ptr<mysh::mysqlx::NodeSession> kill_session2;
-  mysh::mysql::ClassicSession* classic = NULL;
-  mysh::mysqlx::NodeSession* node = NULL;
-  classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
-  node = dynamic_cast<mysh::mysqlx::NodeSession*>(session.get());
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> kill_session;
+  std::shared_ptr<mysqlsh::mysqlx::NodeSession> kill_session2;
+  mysqlsh::mysql::ClassicSession* classic = NULL;
+  mysqlsh::mysqlx::NodeSession* node = NULL;
+  classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+  node = dynamic_cast<mysqlsh::mysqlx::NodeSession*>(session.get());
   if (classic) {
-    kill_session.reset(new mysh::mysql::ClassicSession(*dynamic_cast<mysh::mysql::ClassicSession*>(classic)));
+    kill_session.reset(new mysqlsh::mysql::ClassicSession(*dynamic_cast<mysqlsh::mysql::ClassicSession*>(classic)));
   } else {
-    kill_session2.reset(new mysh::mysqlx::NodeSession(*dynamic_cast<mysh::mysqlx::NodeSession*>(node)));
+    kill_session2.reset(new mysqlsh::mysqlx::NodeSession(*dynamic_cast<mysqlsh::mysqlx::NodeSession*>(node)));
   }
   uint64_t connection_id = session->get_connection_id();
   if (connection_id != 0) {

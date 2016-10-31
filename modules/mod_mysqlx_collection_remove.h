@@ -25,7 +25,7 @@
 
 #include "collection_crud_definition.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 class Collection;
 

@@ -31,7 +31,7 @@ namespace shcore {
 class Proxy_object;
 };
 
-namespace mysh {
+namespace mysqlsh {
 class ShellBaseSession;
 class CoreSchema;
 /**

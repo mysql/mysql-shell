@@ -127,9 +127,9 @@ public:
   void set_active_session(const Value &session);
   Value active_session() const { return _active_session; }
 
-  virtual std::shared_ptr<mysh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysh::SessionType session_type);
-  virtual std::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysh::ShellDevelopmentSession> session);
-  virtual std::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session();
+  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type);
+  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session);
+  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session();
 
   virtual shcore::Value set_current_schema(const std::string& name);
 
@@ -191,7 +191,7 @@ private:
   std::map<Mode, Shell_language*> _langs;
   Value _active_session;
 
-  std::shared_ptr<mysh::ShellDevelopmentSession> _global_dev_session;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> _global_dev_session;
 
   Interpreter_delegate *_client_delegate;
   Interpreter_delegate _delegate;

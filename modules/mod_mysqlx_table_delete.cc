@@ -23,7 +23,7 @@
 #include "utils/utils_time.h"
 
 using namespace std::placeholders;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 TableDelete::TableDelete(std::shared_ptr<Table> owner)

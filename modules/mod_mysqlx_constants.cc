@@ -33,7 +33,7 @@
 #endif
 
 using namespace shcore;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 
 Type::Type() {
   add_constant("BIT");
@@ -58,7 +58,7 @@ Type::Type() {
 }
 
 shcore::Value Type::get_member(const std::string &prop) const {
-  shcore::Value ret_val = mysh::Constant::get_constant("mysqlx", "Type", prop, shcore::Argument_list());
+  shcore::Value ret_val = mysqlsh::Constant::get_constant("mysqlx", "Type", prop, shcore::Argument_list());
 
   if (!ret_val)
      ret_val = Cpp_object_bridge::get_member(prop);
@@ -79,7 +79,7 @@ IndexType::IndexType() {
 }
 
 shcore::Value IndexType::get_member(const std::string &prop) const {
-  shcore::Value ret_val = mysh::Constant::get_constant("mysqlx", "IndexType", prop, shcore::Argument_list());
+  shcore::Value ret_val = mysqlsh::Constant::get_constant("mysqlx", "IndexType", prop, shcore::Argument_list());
 
   if (!ret_val)
      ret_val = Cpp_object_bridge::get_member(prop);

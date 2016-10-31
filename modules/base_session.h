@@ -28,7 +28,7 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 
-namespace mysh {
+namespace mysqlsh {
 #if DOXYGEN_CPP
 //! Abstraction layer with core elements for all the session types
 #endif
@@ -124,7 +124,7 @@ private:
   void init();
 };
 
-std::shared_ptr<mysh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
+std::shared_ptr<mysqlsh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
 };
 
 #endif

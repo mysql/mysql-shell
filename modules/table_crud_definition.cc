@@ -22,7 +22,7 @@
 #include "shellcore/obj_date.h"
 #include <sstream>
 
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 
 ::mysqlx::TableValue Table_crud_definition::map_table_value(shcore::Value source) {
   switch (source.type) {

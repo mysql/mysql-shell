@@ -33,7 +33,7 @@
 #include "mod_mysqlx_table_delete.h"
 #include "mod_mysqlx_table_update.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 class Schema;
 

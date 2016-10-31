@@ -27,7 +27,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysql {
 class ClassicSchema;
 

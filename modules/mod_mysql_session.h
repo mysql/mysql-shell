@@ -35,7 +35,7 @@ class Shell_core;
 class Proxy_object;
 };
 
-namespace mysh {
+namespace mysqlsh {
 class DatabaseObject;
 
 namespace mysql {

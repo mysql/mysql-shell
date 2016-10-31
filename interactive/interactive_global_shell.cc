@@ -36,9 +36,9 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   shcore::Value::Map_type_ref options;
   try {
-    options = mysh::dba::get_instance_options_map(args);
+    options = mysqlsh::dba::get_instance_options_map(args);
 
-    mysh::dba::resolve_instance_credentials(options, _delegate);
+    mysqlsh::dba::resolve_instance_credentials(options, _delegate);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
 

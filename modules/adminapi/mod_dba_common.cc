@@ -22,7 +22,7 @@
 #include "modules/adminapi/mod_dba_sql.h"
 //#include "mod_dba_instance.h"
 
-namespace mysh {
+namespace mysqlsh {
 namespace dba {
 
   void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate) {
@@ -51,7 +51,7 @@ namespace dba {
   args.ensure_at_least(1, "get_instance_options_map");
 
   // Attempts getting an instance object
-  //auto instance = args.object_at<mysh::dba::Instance>(0);
+  //auto instance = args.object_at<mysqlsh::dba::Instance>(0);
   //if (instance) {
   //  options = shcore::get_connection_data(instance->get_uri(), false);
   //  (*options)["password"] = shcore::Value(instance->get_password());
@@ -122,4 +122,4 @@ std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref&
 }
 
 } // dba
-} // mysh
+} // mysqlsh

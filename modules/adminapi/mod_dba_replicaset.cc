@@ -51,8 +51,8 @@
 #endif
 
 using namespace std::placeholders;
-using namespace mysh;
-using namespace mysh::dba;
+using namespace mysqlsh;
+using namespace mysqlsh::dba;
 using namespace shcore;
 
 #define PASSWORD_LENGTH 16
@@ -80,7 +80,7 @@ std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent), in
 }
 
 static void append_member_status(shcore::JSON_dumper& dumper,
-                                 std::shared_ptr<mysh::Row> member_row,
+                                 std::shared_ptr<mysqlsh::Row> member_row,
                                  bool read_write) {
   //dumper.append_string("name", member_row->get_member(1).as_string());
   auto status = member_row->get_member(3);
@@ -112,10 +112,10 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const {
   // First we identify the master instance
   auto instances = raw_instances.as_array();
 
-  std::shared_ptr<mysh::Row> master;
+  std::shared_ptr<mysqlsh::Row> master;
   int online_count = 0;
   for (auto value : *instances.get()) {
-    auto row = value.as_object<mysh::Row>();
+    auto row = value.as_object<mysqlsh::Row>();
     if (row->get_member(0).as_string() == master_uuid)
       master = row;
 
@@ -156,7 +156,7 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const {
       dumper.start_object();
     }
     for (auto value : *instances.get()) {
-      auto row = value.as_object<mysh::Row>();
+      auto row = value.as_object<mysqlsh::Row>();
       if (row != master) {
         dumper.append_string(row->get_member(1).as_string());
         dumper.start_object();
@@ -175,7 +175,7 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const {
   } else {
     dumper.start_object();
     for (auto value : *instances.get()) {
-      auto row = value.as_object<mysh::Row>();
+      auto row = value.as_object<mysqlsh::Row>();
       dumper.append_string(row->get_member(1).as_string());
       dumper.start_object();
       append_member_status(dumper, row, true);
@@ -209,7 +209,7 @@ void ReplicaSet::append_json_description(shcore::JSON_dumper& dumper) const {
   dumper.start_array();
 
   for (auto value : *instances.get()) {
-    auto row = value.as_object<mysh::Row>();
+    auto row = value.as_object<mysqlsh::Row>();
     dumper.start_object();
     dumper.append_string("name", row->get_member(1).as_string());
     dumper.append_string("host", row->get_member(3).as_string());
@@ -321,7 +321,7 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-static void run_queries(mysh::mysql::ClassicSession *session, const std::vector<std::string> &queries) {
+static void run_queries(mysqlsh::mysql::ClassicSession *session, const std::vector<std::string> &queries) {
   for (auto & q : queries) {
     shcore::Argument_list args;
     args.push_back(shcore::Value(q));
@@ -590,7 +590,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
 
   auto session = _metadata_storage->get_dba()->get_active_session();
-  mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+  mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
 
   GRInstanceType type = get_gr_instance_type(classic->connection());
 
@@ -634,8 +634,8 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     (*options)["dbPassword"] = shcore::Value(instance_admin_user_password);
     new_args.push_back(shcore::Value(options));
 
-    auto session = mysh::connect_session(new_args, mysh::SessionType::Classic);
-    mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+    auto session = mysqlsh::connect_session(new_args, mysqlsh::SessionType::Classic);
+    mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
 
     temp_args.clear();
     temp_args.push_back(shcore::Value("SET sql_log_bin = 0"));
@@ -692,7 +692,7 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
     auto instances = _metadata_storage->get_replicaset_instances(get_id());
 
     for (auto value : *instances.get()) {
-      auto row = value.as_object<mysh::Row>();
+      auto row = value.as_object<mysqlsh::Row>();
 
       std::string instance_name = row->get_member(1).as_string();
       shcore::Argument_list args_instance;
@@ -727,7 +727,7 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
 
     for (auto value : *instances.get()) {
       int exit_code;
-      auto row = value.as_object<mysh::Row>();
+      auto row = value.as_object<mysqlsh::Row>();
 
       std::string instance_name = row->get_member(1).as_string();
 
@@ -781,7 +781,7 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
     for (auto i : *newly_discovered_instances_list.get()) {
       for (auto value : *i.as_array()) {
         shcore::Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type());
-        auto row = value.as_object<mysh::Row>();
+        auto row = value.as_object<mysqlsh::Row>();
         (*newly_discovered_instance)["member_id"] = shcore::Value(row->get_member(0).as_string());
         (*newly_discovered_instance)["name"] = shcore::Value::Null();
 
@@ -807,7 +807,7 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
     for (auto i : *unavailable_instances_list.get()) {
       for (auto value : *i.as_array()) {
         shcore::Value::Map_type_ref unavailable_instance(new shcore::Value::Map_type());
-        auto row = value.as_object<mysh::Row>();
+        auto row = value.as_object<mysqlsh::Row>();
         (*unavailable_instance)["member_id"] = shcore::Value(row->get_member(0).as_string());
         (*unavailable_instance)["name"] = shcore::Value(row->get_member(1).as_string());
         (*unavailable_instance)["host"] = shcore::Value(row->get_member(2).as_string());
@@ -830,7 +830,7 @@ std::vector<std::string> ReplicaSet::get_peer_instances() {
   auto instances = _metadata_storage->get_replicaset_instances(get_id());
   if (instances) {
     for (auto value : *instances) {
-      auto row = value.as_object<mysh::Row>();
+      auto row = value.as_object<mysqlsh::Row>();
       std::string peer_instance = row->get_member("instance_name").as_string();
       result.push_back(peer_instance);
     }
@@ -853,15 +853,15 @@ void ReplicaSet::create_repl_account(const std::string &dest_uri,
   (*options)["dbPassword"] = shcore::Value(instance_session->get_password());
   args.push_back(shcore::Value(options));
 
-  std::shared_ptr<mysh::ShellDevelopmentSession> session;
-  mysh::mysql::ClassicSession *classic;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  mysqlsh::mysql::ClassicSession *classic;
 
   try {
     log_info("Creating account '%s' at instance %s:%i", username.c_str(),
              (*options)["host"].as_string().c_str(),
              (int)(*options)["port"].as_int());
-    session = mysh::connect_session(args, mysh::SessionType::Classic);
-    classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+    session = mysqlsh::connect_session(args, mysqlsh::SessionType::Classic);
+    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
   } catch (std::exception &e) {
     log_error("Could not open connection to %s: %s", dest_uri.c_str(),
               e.what());
@@ -929,7 +929,7 @@ shcore::Value ReplicaSet::retrieve_instance_state(const shcore::Argument_list &a
   // We will work with the current global session
   // Assuming it is the R/W instance
   auto master_dev_session = _metadata_storage->get_dba()->get_active_session();
-  auto master_session = std::dynamic_pointer_cast<mysh::mysql::ClassicSession>(master_dev_session);
+  auto master_session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(master_dev_session);
 
   // We have to retrieve these variables to do the actual state validation
   std::string master_gtid_executed;
@@ -983,25 +983,25 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
   {
     shcore::Argument_list temp_args, new_args;
     new_args.push_back(shcore::Value(instance_definition));
-    auto session = mysh::connect_session(new_args, mysh::SessionType::Classic);
-    mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+    auto session = mysqlsh::connect_session(new_args, mysqlsh::SessionType::Classic);
+    mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     {
       temp_args.clear();
       temp_args.push_back(shcore::Value("SELECT @@server_uuid"));
       auto uuid_raw_result = classic->run_sql(temp_args);
-      auto uuid_result = uuid_raw_result.as_object<mysh::mysql::ClassicResult>();
+      auto uuid_result = uuid_raw_result.as_object<mysqlsh::mysql::ClassicResult>();
       auto uuid_row = uuid_result->fetch_one(shcore::Argument_list());
       if (uuid_row)
-        mysql_server_uuid = uuid_row.as_object<mysh::Row>()->get_member(0).as_string();
+        mysql_server_uuid = uuid_row.as_object<mysqlsh::Row>()->get_member(0).as_string();
     }
     try {
       temp_args.clear();
       temp_args.push_back(shcore::Value("SELECT @@mysqlx_port"));
       auto raw_result = classic->run_sql(temp_args);
-      auto result = raw_result.as_object<mysh::mysql::ClassicResult>();
+      auto result = raw_result.as_object<mysqlsh::mysql::ClassicResult>();
       auto xport_row = result->fetch_one(shcore::Argument_list());
       if (xport_row)
-        xport = (int)xport_row.as_object<mysh::Row>()->get_member(0).as_int();
+        xport = (int)xport_row.as_object<mysqlsh::Row>()->get_member(0).as_int();
     } catch (std::exception &e) {
       log_info("Could not query xplugin port, using default value: %s", e.what());
     }
@@ -1064,7 +1064,7 @@ std::vector<std::string> ReplicaSet::get_instances_gr() {
   std::vector<std::string> instances_gr_array;
 
   for (auto value : *instances_gr.get()) {
-    auto row = value.as_object<mysh::Row>();
+    auto row = value.as_object<mysqlsh::Row>();
     instances_gr_array.push_back(row->get_member(0).as_string());
   }
 
@@ -1084,7 +1084,7 @@ std::vector<std::string> ReplicaSet::get_instances_md() {
   std::vector<std::string> instances_md_array;
 
   for (auto value : *instances_md.get()) {
-    auto row = value.as_object<mysh::Row>();
+    auto row = value.as_object<mysqlsh::Row>();
     instances_md_array.push_back(row->get_member(0).as_string());
   }
 

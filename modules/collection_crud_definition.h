@@ -37,7 +37,7 @@
 #define ATTR_UNUSED
 #endif
 
-namespace mysh {
+namespace mysqlsh {
 namespace mysqlx {
 #if DOXYGEN_CPP
 //! Base class for collection CRUD operations.

@@ -24,7 +24,7 @@
 #include <iostream>
 #include "shellcore/ishell_core.h"
 
-namespace mysh {
+namespace mysqlsh {
 struct SHCORE_PUBLIC Shell_options {
 public:
   Shell_options();
@@ -53,7 +53,7 @@ public:
   std::string uri;
 
   std::string output_format;
-  mysh::SessionType session_type;
+  mysqlsh::SessionType session_type;
   bool default_session_type;
   bool print_cmd_line_helper;
   bool print_version;

@@ -25,7 +25,7 @@
 #include "utils/utils_help.h"
 
 using namespace std::placeholders;
-using namespace mysh::mysqlx;
+using namespace mysqlsh::mysqlx;
 
 REGISTER_HELP(MYSQLX_INTERACTIVE_BRIEF, "Used to work with X Protocol sessions using the MySQL X DevAPI.");
 
@@ -55,12 +55,12 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 }
 
 // DEFINE_FUNCTION(Mysqlx, get_session) {
-//   auto session = connect_session(args, mysh::SessionType::X);
+//   auto session = connect_session(args, mysqlsh::SessionType::X);
 //   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 // }
 
 DEFINE_FUNCTION(Mysqlx, get_node_session) {
-  auto session = connect_session(args, mysh::SessionType::Node);
+  auto session = connect_session(args, mysqlsh::SessionType::Node);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 

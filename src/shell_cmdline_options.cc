@@ -186,9 +186,9 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       }
     }
     else if (check_arg(argv, i, "--node", "--node"))
-      override_session_type(mysh::SessionType::Node, "--node");
+      override_session_type(mysqlsh::SessionType::Node, "--node");
     else if (check_arg(argv, i, "--classic", "--classic"))
-      override_session_type(mysh::SessionType::Classic, "--classic");
+      override_session_type(mysqlsh::SessionType::Classic, "--classic");
     else if (check_arg(argv, i, "--sql", "--sql")) {
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
     } else if (check_arg(argv, i, "--js", "--javascript")) {
@@ -209,10 +209,10 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
 #endif
     } else if (check_arg(argv, i, NULL, "--sqlc")) {
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
-      override_session_type(mysh::SessionType::Classic, "--sqlc");
+      override_session_type(mysqlsh::SessionType::Classic, "--sqlc");
     } else if (check_arg(argv, i, NULL, "--sqln")) {
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
-      override_session_type(mysh::SessionType::Node, "--sqln");
+      override_session_type(mysqlsh::SessionType::Node, "--sqln");
     } else if (check_arg_with_value(argv, i, "--json", NULL, value, true)) {
       if (!value || strcmp(value, "pretty") == 0)
         _options.output_format = "json";
@@ -274,20 +274,20 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   _options.exit_code = exit_code;
 }
 
-void Shell_command_line_options::override_session_type(mysh::SessionType new_type, const std::string& option, char* value) {
-  auto get_session_type = [](mysh::SessionType type) {
+void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value) {
+  auto get_session_type = [](mysqlsh::SessionType type) {
     std::string label;
     switch (type) {
-      case mysh::SessionType::X:
+      case mysqlsh::SessionType::X:
         label = "X";
         break;
-      case mysh::SessionType::Node:
+      case mysqlsh::SessionType::Node:
         label = "Node";
         break;
-      case mysh::SessionType::Classic:
+      case mysqlsh::SessionType::Classic:
         label = "Classic";
         break;
-      case mysh::SessionType::Auto:
+      case mysqlsh::SessionType::Auto:
         break;
     }
 

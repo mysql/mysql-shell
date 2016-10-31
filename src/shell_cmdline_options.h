@@ -30,10 +30,10 @@ public:
   // Takes the URI and the individual connection parameters and overrides
   Shell_command_line_options(int argc, char **argv);
 
-  mysh::Shell_options& get_options() { return _options; }
+  mysqlsh::Shell_options& get_options() { return _options; }
 private:
-  void override_session_type(mysh::SessionType new_type, const std::string& option, char* value = NULL);
+  void override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value = NULL);
 
-  mysh::Shell_options _options;
+  mysqlsh::Shell_options _options;
 };
 #endif
