@@ -6964,7 +6964,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
         x_cmds = [(";\n", 'mysql-js>'),
                   ("function custom_prompt(){ return session.uri + \'>>\'; }\n", ""),
-                  ("shell.custom_prompt = custom_prompt\n",
+                  ("shell.customPrompt = custom_prompt\n",
                    LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>"),
                   ("\\py\n", "mysql-py>"),
                   ("\\js\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>")
@@ -8170,18 +8170,18 @@ class XShell_TestCases(unittest.TestCase):
         Sschema = "world_x"
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
-        x_cmds = [("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+        x_cmds = [("shell.parse_uri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                     LOCALHOST.port, Sschema),
                    "\"dbPassword\": \"" + LOCALHOST.password + "\""),
-                  ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                  ("shell.parse_uri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                     LOCALHOST.port, Sschema),
                    "\"dbUser\": \"" + LOCALHOST.user + "\""),
-                  ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                  ("shell.parse_uri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                     LOCALHOST.port, Sschema),
                    "\"host\": \"" + LOCALHOST.host + "\""),
                   # ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                   #                                                  LOCALHOST.port,  Sschema), "\"port\": " + LOCALHOST.xprotocol_port),
-                  ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                  ("shell.parse_uri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                     LOCALHOST.port, Sschema),
                    "\"schema\": \"" + Sschema + "\"")
                   ]
@@ -8406,12 +8406,12 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '--uri={0}:{1}@{2}:{3}'.
             format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port)]
-        x_cmds = [("SELECT * from /* this is an in-line comment */ world_x.city limit 1;\n", "1 row in set"),
+        x_cmds = [("SELECT * from /* this is an in-line comment */ sakila.actor limit 1;\n", "1 row in set"),
                   ("\\js\n", "mysql-js>"),
-                  ("session.runSql(\"SELECT * from /* this is an in-line comment */ world_x.city limit 1;\")\n",
+                  ("session.runSql(\"SELECT * from /* this is an in-line comment */ sakila.actor limit 1;\")\n",
                    "1 row in set"),
                   ("\\py\n", "mysql-py>"),
-                  ("session.run_sql(\"SELECT * from /* this is an in-line comment */ world_x.city limit 1;\")\n",
+                  ("session.run_sql(\"SELECT * from /* this is an in-line comment */ sakila.actor limit 1;\")\n",
                    "1 row in set")]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
