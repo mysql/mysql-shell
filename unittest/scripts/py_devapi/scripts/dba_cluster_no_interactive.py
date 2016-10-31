@@ -69,6 +69,17 @@ cluster.describe()
 #@<OUT> Cluster: status2
 cluster.status()
 
+#@ Cluster: addInstance 2
+cluster.add_instance("root@localhost:%s" % __mysql_sandbox_port2, "root")
+
+#@<OUT> Cluster: describe after adding 2
+cluster.describe()
+
+#@<OUT> Cluster: status after adding 2
+cluster.status()
+
+#@ Cluster: remove_instance added
+cluster.remove_instance("localhost:%s" % __mysql_sandbox_port2)
 
 #@ Cluster: remove_instance last
 cluster.remove_instance({"host":'localhost', "port":__mysql_sandbox_port1})

@@ -642,7 +642,7 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-void Cluster::adopt_from_gr(const shcore::Argument_list &args) {
+void Cluster::adopt_from_gr() {
   shcore::Value::Array_type_ref newly_discovered_instances_list = get_default_replicaset()->get_newly_discovered_instances();
 
   // Add all instances to the cluster metadata
@@ -661,9 +661,7 @@ void Cluster::adopt_from_gr(const shcore::Argument_list &args) {
         (*newly_discovered_instance)["user"] = shcore::Value(session->get_user());
         (*newly_discovered_instance)["password"] = shcore::Value(session->get_password());
 
-        shcore::Argument_list args;
-        args.push_back(shcore::Value(newly_discovered_instance));
-        get_default_replicaset()->add_instance_metadata(args);
+        get_default_replicaset()->add_instance_metadata(newly_discovered_instance);
       }
     }
   }

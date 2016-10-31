@@ -239,32 +239,14 @@ void MetadataStorage::insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
   execute_sql(query);
 }
 
-// TODO: This function is only used once, called from ReplicaSet::add_instance
-//       There, the connection data was already put on a map, there's no need to do
-//       it again here, it should receive that map instead!!
-std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argument_list &args) {
+std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Value::Map_type_ref &options) {
   std::string uri;
-  shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string host_name;
   std::string ip_address;
   std::string location;
 
   shcore::sqlstring query;
-
-  //auto instance = args.object_at<Instance>(0);
-  //if (instance)
-  //  options = get_connection_data(instance->get_uri(), false);
-
-  // Identify the type of args data (String or Document)
-  if (args[0].type == String) {
-    uri = args.string_at(0);
-    options = get_connection_data(uri, false);
-  }
-
-  // Connection data comes in a dictionary
-  else if (args[0].type == Map)
-    options = args.map_at(0);
 
   if (options->has_key("host"))
     host_name = (*options)["host"].as_string();
@@ -313,9 +295,8 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argu
   return result;
 }
 
-void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id) {
+void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options, uint64_t host_id, uint64_t rs_id) {
   std::string uri;
-  shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string mysql_server_uuid;
   std::string instance_name;
@@ -330,9 +311,6 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
   shcore::sqlstring query;
   std::shared_ptr< ::mysqlx::Result> result;
   std::shared_ptr< ::mysqlx::Row> row;
-
-  // args data comes in a dictionary
-  options = args.map_at(0);
 
   mysql_server_uuid = (*options)["mysql_server_uuid"].as_string();
   instance_name = (*options)["instance_name"].as_string();

@@ -412,7 +412,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   // If the instance is not on the Metadata, we must add it
   if (!is_instance_on_md) {
-    add_instance_metadata(args);
+    add_instance_metadata(options);
   }
 
   return ret_val;
@@ -973,18 +973,16 @@ shcore::Value ReplicaSet::retrieve_instance_state(const shcore::Argument_list &a
   return shcore::Value(ret_val);
 }
 
-void ReplicaSet::add_instance_metadata(const shcore::Argument_list &args) {
+void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instance_definition) {
   MetadataStorage::Transaction tx(_metadata_storage);
 
-  auto options = get_instance_options_map(args, true);
-
-  int xport = options->get_int("port") * 10;
+  int xport = instance_definition->get_int("port") * 10;
 
   std::string mysql_server_uuid;
   // get the server_uuid from the joining instance
   {
     shcore::Argument_list temp_args, new_args;
-    new_args.push_back(shcore::Value(options));
+    new_args.push_back(shcore::Value(instance_definition));
     auto session = mysh::connect_session(new_args, mysh::SessionType::Classic);
     mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
     {
@@ -1009,30 +1007,30 @@ void ReplicaSet::add_instance_metadata(const shcore::Argument_list &args) {
     }
   }
 
-  std::string joiner_host = options->get_string("host");
+  std::string joiner_host = instance_definition->get_string("host");
 
   // Check if the instance was already added
-  std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
+  std::string instance_address = joiner_host + ":" + std::to_string(instance_definition->get_int("port"));
 
   std::string instance_xaddress = joiner_host + ":" + std::to_string(xport);
 
-  (*options)["role"] = shcore::Value("HA");
+  (*instance_definition)["role"] = shcore::Value("HA");
 
-  (*options)["endpoint"] = shcore::Value(instance_address);
+  (*instance_definition)["endpoint"] = shcore::Value(instance_address);
 
-  (*options)["xendpoint"] = shcore::Value(instance_xaddress);
+  (*instance_definition)["xendpoint"] = shcore::Value(instance_xaddress);
 
-  (*options)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
+  (*instance_definition)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
 
-  if (!options->has_key("name"))
-    (*options)["instance_name"] = shcore::Value(instance_address);
+  if (!instance_definition->has_key("name"))
+    (*instance_definition)["instance_name"] = shcore::Value(instance_address);
 
   // update the metadata with the host
-  auto result = _metadata_storage->insert_host(args);
+  auto result = _metadata_storage->insert_host(instance_definition);
 
   // And the instance
   uint64_t host_id = result->get_member("autoIncrementValue").as_int();
-  _metadata_storage->insert_instance(args, host_id, get_id());
+  _metadata_storage->insert_instance(instance_definition, host_id, get_id());
 
   tx.commit();
 }

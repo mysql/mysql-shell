@@ -123,6 +123,61 @@
     }
 }
 
+//@ Cluster: addInstance 2 
+||
+
+//@<OUT> Cluster: describe after adding 2
+{
+    "adminType": "local", 
+    "clusterName": "devCluster", 
+    "defaultReplicaSet": {
+        "instances": [
+            {
+                "host": "localhost:3317", 
+                "name": "localhost:3317", 
+                "role": "HA"
+            },
+            {
+                "host": "localhost:3327", 
+                "name": "localhost:3327", 
+                "role": "HA"
+            }
+        ], 
+        "name": "default"
+    }
+}
+
+
+//@<OUT> Cluster: status after adding 2
+{
+    "clusterName": "devCluster", 
+    "defaultReplicaSet": {
+        "status": "Cluster is NOT tolerant to any failures.", 
+        "topology": {
+            "localhost:3317": {
+                "address": "localhost:3317", 
+                "leaves": {
+                    "localhost:3327": {
+                        "address": "localhost:3327", 
+                        "leaves": {
+
+                        }, 
+                        "mode": "R/O", 
+                        "role": "HA", 
+                        "status": "RECOVERING"
+                    }
+                }, 
+                "mode": "R/W", 
+                "role": "HA", 
+                "status": "ONLINE"
+            }
+        }
+    }
+}
+
+
+//@ Cluster: remove_instance added
+||
 
 //@ Cluster: remove_instance last
 ||

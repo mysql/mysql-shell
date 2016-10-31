@@ -65,6 +65,20 @@ Cluster.describe()
 //@<OUT> Cluster: status2
 Cluster.status()
 
+//@ Cluster: addInstance 2
+var uri = "root@localhost:" + __mysql_sandbox_port2;
+Cluster.addInstance(uri, "root");
+
+//@<OUT> Cluster: describe after adding 2
+Cluster.describe()
+
+//@<OUT> Cluster: status after adding 2
+Cluster.status()
+
+//@ Cluster: remove_instance added
+var uri = "localhost:" + __mysql_sandbox_port2;
+Cluster.removeInstance(uri)
+
 //@ Cluster: remove_instance last
 Cluster.removeInstance({host:'localhost', port:__mysql_sandbox_port1})
 

@@ -333,7 +333,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
 
     if (adopt_from_gr)
-      cluster->adopt_from_gr(args);
+      cluster->adopt_from_gr();
 
     tx.commit();
   }

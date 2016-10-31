@@ -75,7 +75,7 @@ public:
     _provisioning_interface = provisioning_interface;
   }
 
-  void adopt_from_gr(const shcore::Argument_list &args);
+  void adopt_from_gr();
 
   shcore::Value add_seed_instance(const shcore::Argument_list &args);
   shcore::Value add_instance(const shcore::Argument_list &args);

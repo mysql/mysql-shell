@@ -334,7 +334,6 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
         std::string answer;
         if (prompt("Would you like to add it to the cluster metadata? [Y|n]: ", answer)) {
           if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
-            shcore::Argument_list args;
             std::string full_host = instance_map->get_string("host");
 
             Value::Map_type_ref options(new shcore::Value::Map_type);
@@ -346,7 +345,6 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
             (*options)["host"] = shcore::Value(host);
             (*options)["port"] = shcore::Value(atoi(port.c_str()));
             mysh::dba::resolve_instance_credentials(options, _delegate);
-            args.push_back(shcore::Value(options));
 
             println("Adding instance to the cluster metadata...");
             println();
@@ -356,7 +354,7 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
 
             object = cluster->get_default_replicaset();
 
-            object->add_instance_metadata(args);
+            object->add_instance_metadata(options);
 
             println("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster metadata.");
             println();

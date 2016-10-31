@@ -68,7 +68,7 @@ public:
 
   std::string get_topology_type() const { return _topology_type; }
 
-  void add_instance_metadata(const shcore::Argument_list &instance_options);
+  void add_instance_metadata(const shcore::Value::Map_type_ref &instance_definition);
   void remove_instance_metadata(const shcore::Argument_list &instance_options);
 
   std::vector<std::string> get_instances_gr();

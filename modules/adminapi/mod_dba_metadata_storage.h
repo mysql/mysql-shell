@@ -45,8 +45,8 @@ public:
   bool cluster_exists(const std::string &cluster_name);
   void insert_cluster(const std::shared_ptr<Cluster> &cluster);
   void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset, bool is_default);
-  std::shared_ptr<ShellBaseResult> insert_host(const shcore::Argument_list &args);
-  void insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id);
+  std::shared_ptr<ShellBaseResult> insert_host(const shcore::Value::Map_type_ref &options);
+  void insert_instance(const shcore::Value::Map_type_ref& options, uint64_t host_id, uint64_t rs_id);
   void remove_instance(const std::string &instance_name);
   void drop_cluster(const std::string &cluster_name);
   bool cluster_has_default_replicaset_only(const std::string &cluster_name);
