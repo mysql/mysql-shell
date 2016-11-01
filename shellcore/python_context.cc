@@ -726,7 +726,7 @@ Value Python_context::execute_module(const std::string& file_name, const std::ve
   shcore::Value ret_val;
 
   PyObject *argv0 = PyString_FromString(file_name.c_str());
-  PyObject *sys_path = PySys_GetObject("path");
+  PyObject *sys_path = PySys_GetObject((char*)"path");
 
   // Register the module name as an input source
   if (sys_path) {
