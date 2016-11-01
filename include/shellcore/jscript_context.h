@@ -58,7 +58,7 @@ private:
 
   Object_registry *_registry;
 
-  Value get_v8_exception_data(v8::TryCatch *exc);
+  Value get_v8_exception_data(v8::TryCatch *exc, bool interactive);
   std::string format_exception(const shcore::Value &exc);
 };
 };
