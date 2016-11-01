@@ -132,13 +132,13 @@
     "defaultReplicaSet": {
         "instances": [
             {
-                "host": "localhost:3317", 
-                "name": "localhost:3317", 
+                "host": "localhost:<<<__mysql_sandbox_port1>>>", 
+                "name": "localhost:<<<__mysql_sandbox_port1>>>", 
                 "role": "HA"
             },
             {
-                "host": "localhost:3327", 
-                "name": "localhost:3327", 
+                "host": "localhost:<<<__mysql_sandbox_port2>>>", 
+                "name": "localhost:<<<__mysql_sandbox_port2>>>", 
                 "role": "HA"
             }
         ], 
@@ -153,11 +153,11 @@
     "defaultReplicaSet": {
         "status": "Cluster is NOT tolerant to any failures.", 
         "topology": {
-            "localhost:3317": {
-                "address": "localhost:3317", 
+            "localhost:<<<__mysql_sandbox_port1>>>": {
+                "address": "localhost:<<<__mysql_sandbox_port1>>>", 
                 "leaves": {
-                    "localhost:3327": {
-                        "address": "localhost:3327", 
+                    "localhost:<<<__mysql_sandbox_port2>>>": {
+                        "address": "localhost:<<<__mysql_sandbox_port2>>>", 
                         "leaves": {
 
                         }, 
