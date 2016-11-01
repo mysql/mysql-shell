@@ -406,10 +406,9 @@ void Base_shell::load_default_modules(shcore::Shell_core::Mode mode) {
   if (mode == shcore::Shell_core::Mode::JScript) {
     process_line("var mysqlx = require('mysqlx');");
     process_line("var mysql = require('mysql');");
-  }
-  else if (mode == shcore::Shell_core::Mode::Python) {
-    process_line("import mysqlx");
-    process_line("import mysql");
+  } else if (mode == shcore::Shell_core::Mode::Python) {
+    //process_line("import mysqlx");
+    //process_line("import mysql");
   }
 }
 
@@ -418,7 +417,6 @@ std::string Base_shell::prompt() {
 
   // The continuation prompt should be used if state != Ok
   if (_input_mode != shcore::Input_state::Ok) {
-
     if (ret_val.length() > 4)
       ret_val = std::string(ret_val.length() - 4, ' ');
     else
@@ -539,7 +537,7 @@ bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
 
     if (!global_names.empty()) {
       println("===== Global Objects =====");
-      for(auto name: global_names) {
+      for (auto name : global_names) {
         auto brief = shcore::get_help_text(name.second + "_INTERACTIVE_BRIEF");
         if (brief.empty())
           brief = shcore::get_help_text(name.second + "_BRIEF");
@@ -550,12 +548,11 @@ bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
     }
 
     println();
-    println("Please note that MySQL Document Store APIs are subject to change in future") ;
+    println("Please note that MySQL Document Store APIs are subject to change in future");
     println("releases.");
     println("");
     println("For more help on a global variable use <var>.help(), e.g. dba.help()");
     println("");
-
   }
 
   return true;
@@ -611,9 +608,9 @@ bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
       if (uri) {
         /*if (args[target_index].find("$") == 0)
           _options.app = args[target_index].substr(1);
-        else {
+          else {
           _options.app = "";*/
-          _options.uri = args[target_index];
+        _options.uri = args[target_index];
         //}
       }
       connect();
@@ -821,7 +818,7 @@ void Base_shell::process_line(const std::string &line) {
 
   if (handled_as_command)
     to_history = line;
-  else{
+  else {
     if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty())
       _input_mode = shcore::Input_state::Ok;
 
@@ -932,6 +929,8 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
 
   if (file.empty())
     print_error("Usage: \\. <filename> | \\source <filename>\n");
+  else if (_shell->is_module(file))
+    _shell->execute_module(file, _result_processor);
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {

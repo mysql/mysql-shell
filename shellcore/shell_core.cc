@@ -584,14 +584,14 @@ bool Shell_core::reconnect_if_needed() {
           usleep(1500000);
 #endif
           _global_dev_session->reconnect();
-    }
+        }
 
         print("The global session was successfully reconnected.\n");
         ret_val = true;
-  } catch (shcore::Exception &e) {
-    print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
-  }
-}
+      } catch (shcore::Exception &e) {
+        print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
+      }
+    }
 
     _reconnect_session = false;
   }

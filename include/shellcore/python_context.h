@@ -168,6 +168,9 @@ public:
       const std::vector<std::string> &argv = {}) throw (Exception);
   Value execute_interactive(const std::string &code, Input_state &r_state) BOOST_NOEXCEPT_OR_NOTHROW;
 
+  bool is_module(const std::string& file_name);
+  Value execute_module(const std::string& file_name, const std::vector<std::string> &argv);
+
   Value pyobj_to_shcore_value(PyObject *value);
   PyObject *shcore_value_to_pyobj(const Value &value);
 
@@ -195,6 +198,7 @@ public:
   static PyObject *shell_stderr(PyObject *self, PyObject *args);
   static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
   static PyObject *shell_parse_uri(PyObject *self, PyObject *args);
+  static bool exit_error;
 
 private:
   PyObject *_globals;
@@ -220,6 +224,8 @@ private:
   void init_shell_dict_type();
   void init_shell_object_type();
   void init_shell_function_type();
+
+  void set_argv(const std::vector<std::string> &argv);
 
   std::list<AutoPyObject> _captured_eval_result;
   std::string _error_buffer;

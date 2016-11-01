@@ -121,3 +121,32 @@ void Shell_python::set_global(const std::string &name, const Value &value) {
 void Shell_python::abort() {
   // TODO:
 }
+
+bool Shell_python::is_module(const std::string& file_name) {
+  bool ret_val = false;
+
+  try {
+    WillEnterPython lock;
+
+    ret_val = _py->is_module(file_name);
+  } catch (std::exception &exc) {
+    _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
+  }
+
+  return ret_val;
+}
+
+void Shell_python::execute_module(const std::string& file_name, std::function<void(shcore::Value)> result_processor) {
+  shcore::Value ret_val;
+  try {
+    WillEnterPython lock;
+
+    ret_val = _py->execute_module(file_name, _owner->get_input_args());
+
+    result_processor(ret_val);
+  } catch (std::exception &exc) {
+    _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
+
+    // Should shcore::Exceptions bubble up??
+  }
+}

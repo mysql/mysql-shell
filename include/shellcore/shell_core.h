@@ -93,6 +93,8 @@ public:
   virtual std::string prompt() = 0;
   virtual bool print_help(const std::string&) { return false; }
   virtual void abort() = 0;
+  virtual bool is_module(const std::string& UNUSED(file_name)) { return false; }
+  virtual void execute_module(const std::string& UNUSED(file_name), std::function<void(shcore::Value)> UNUSED(result_processor)) { /* Does Nothing by default*/ }
 protected:
   bool _killed;
   IShell_core *_owner;
@@ -142,6 +144,8 @@ public:
   virtual int process_stream(std::istream& stream, const std::string& source,
       std::function<void(shcore::Value)> result_processor,
       const std::vector<std::string> &argv);
+  virtual bool is_module(const std::string &file_name) { return _langs[_mode]->is_module(file_name); }
+  virtual void execute_module(const std::string &file_name, std::function<void(shcore::Value)> result_processor) { _langs[_mode]->execute_module(file_name, result_processor); }
 
   virtual std::string prompt();
 

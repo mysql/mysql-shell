@@ -38,6 +38,7 @@
 static const char *SHELLTypeSignature = "SHELLCONTEXT";
 
 namespace shcore {
+bool Python_context::exit_error = false;
 std::unique_ptr<Python_init_singleton> Python_init_singleton::_instance((Python_init_singleton *)NULL);
 int Python_init_singleton::cnt = 0;
 
@@ -51,7 +52,7 @@ void Python_init_singleton::init_python() {
 }
 
 Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
-    : _types(this), _error_buffer_ready(false) {
+  : _types(this), _error_buffer_ready(false) {
   _delegate = deleg;
 
   Python_init_singleton::init_python();
@@ -152,18 +153,24 @@ PyObject *Python_context::get_shell_python_support_module() {
   return _shell_python_support_module;
 }
 
+void Python_context::set_argv(const std::vector<std::string> &argv) {
+  std::vector<const char*> argvv;
+
+  for (const std::string &s : argv)
+    argvv.push_back(s.c_str());
+
+  argvv.push_back(nullptr);
+
+  PySys_SetArgv(argv.size(), const_cast<char**>(argvv.data()));
+}
+
 Value Python_context::execute(const std::string &code, boost::system::error_code &UNUSED(ret_error),
     const std::string& UNUSED(source),
     const std::vector<std::string> &argv) throw (Exception) {
   PyObject *py_result;
   Value retvalue;
 
-  std::vector<const char*> argvv;
-
-  for (const std::string &s : argv)
-    argvv.push_back(s.c_str());
-  argvv.push_back(nullptr);
-  PySys_SetArgv(argv.size(), const_cast<char**>(argvv.data()));
+  set_argv(argv);
 
   py_result = PyRun_String(code.c_str(), Py_file_input, _globals, _locals);
 
@@ -207,7 +214,6 @@ Value Python_context::execute_interactive(const std::string &code, Input_state &
    use the same multiline handling as the official interpreter. We emulate it
    by catching EOF parse errors and accumulate lines until it succeeds.
    */
-
   PyObject *orig_hook = PySys_GetObject((char*)"displayhook");
   Py_INCREF(orig_hook);
 
@@ -419,21 +425,25 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args, co
   // TODO: logging
 #endif
   if (stream == "error") {
-    ctx->_error_buffer += text;
+    if (exit_error) {
+      ctx->_delegate->print_error(ctx->_delegate->user_data, text.c_str());
+    } else {
+      ctx->_error_buffer += text;
 
-    // Hack to buffer python errors until error description is
-    // received and \n is received
-    // Python error descriptions come in the format of
-    // <Operation>Error
-    // i.e. ImportError, AttributeError, SystemError
-    auto position = text.find("Error");
-    if (position > 0 && position != std::string::npos)
-      ctx->_error_buffer_ready = true;
+      // Hack to buffer python errors until error description is
+      // received and \n is received
+      // Python error descriptions come in the format of
+      // <Operation>Error
+      // i.e. ImportError, AttributeError, SystemError
+      auto position = text.find("Error");
+      if (position > 0 && position != std::string::npos)
+        ctx->_error_buffer_ready = true;
 
-    if (ctx->_error_buffer_ready && text == "\n") {
-      ctx->_delegate->print_error(ctx->_delegate->user_data, ctx->_error_buffer.c_str());
-      ctx->_error_buffer.clear();
-      ctx->_error_buffer_ready = false;
+      if (ctx->_error_buffer_ready && text == "\n") {
+        ctx->_delegate->print_error(ctx->_delegate->user_data, ctx->_error_buffer.c_str());
+        ctx->_error_buffer.clear();
+        ctx->_error_buffer_ready = false;
+      }
     }
   } else
     ctx->_delegate->print(ctx->_delegate->user_data, text.c_str());
@@ -581,16 +591,15 @@ static PyMethodDef ShellStdErrMethods[] = {
 
 static PyMethodDef ShellStdOutMethods[] = {
   {"write", &Python_context::shell_stdout, METH_VARARGS,
-    "Write a string in the SHELL shell."},
-    {NULL, NULL, 0, NULL}        /* Sentinel */
+  "Write a string in the SHELL shell."},
+  {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
 static PyMethodDef ShellPythonSupportMethods[] = {
   {"interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
-    "Custom displayhook to capture interactive expr evaluation results."},
-    {NULL, NULL, 0, NULL}        /* Sentinel */
+  "Custom displayhook to capture interactive expr evaluation results."},
+  {NULL, NULL, 0, NULL}        /* Sentinel */
 };
-
 
 PyObject *Python_context::call_module_function(PyObject *self, PyObject *args, PyObject *keywords, const std::string& name) {
   Python_context *ctx;
@@ -694,6 +703,81 @@ void Python_context::register_shell_python_support_module() {
   init_shell_dict_type();
   init_shell_object_type();
   init_shell_function_type();
+}
 
+bool Python_context::is_module(const std::string& file_name) {
+  bool ret_val = false;
+
+  PyObject *argv0 = NULL, *importer = NULL;
+
+  ret_val = ((argv0 = PyString_FromString(file_name.c_str())) &&
+              (importer = PyImport_GetImporter(argv0)) &&
+              (importer->ob_type != &PyNullImporter_Type));
+
+  Py_XDECREF(argv0);
+  Py_XDECREF(importer);
+  if (PyErr_Occurred()) {
+    PyErr_Print();
+  }
+  return ret_val;
+}
+
+Value Python_context::execute_module(const std::string& file_name, const std::vector<std::string> &argv) {
+  shcore::Value ret_val;
+
+  PyObject *argv0 = PyString_FromString(file_name.c_str());
+  PyObject *sys_path = PySys_GetObject("path");
+
+  // Register the module name as an input source
+  if (sys_path) {
+    if (!PyList_Insert(sys_path, 0, argv0)) {
+      Py_INCREF(argv0);
+      sys_path = NULL;
+
+      // Now executes the __main__ module
+      PyObject *runpy, *runmodule, *runargs, *py_result;
+      runpy = PyImport_ImportModule("runpy");
+      if (runpy == NULL)
+        throw shcore::Exception::runtime_error("Could not import runpy module");
+
+      runmodule = PyObject_GetAttrString(runpy, "_run_module_as_main");
+      if (runmodule == NULL) {
+        Py_DECREF(runpy);
+        throw shcore::Exception::runtime_error("Could not access runpy._run_module_as_main");
+      }
+
+      runargs = Py_BuildValue("(si)", "__main__", 0);
+      if (runargs == NULL) {
+        Py_DECREF(runpy);
+        Py_DECREF(runmodule);
+        throw shcore::Exception::runtime_error("Could not create arguments for runpy._run_module_as_main");
+      }
+
+      py_result = PyObject_Call(runmodule, runargs, NULL);
+
+      if (!py_result) {
+        if (PyErr_ExceptionMatches(PyExc_SystemExit))
+          exit_error = true;
+
+        PyErr_Print();
+      }
+
+      Py_DECREF(runpy);
+      Py_DECREF(runmodule);
+      Py_DECREF(runargs);
+      Py_XDECREF(argv0);
+
+      if (py_result) {
+        ret_val = _types.pyobj_to_shcore_value(py_result);
+        Py_XDECREF(py_result);
+      }
+    } else {
+      throw shcore::Exception::runtime_error("Unable register the module on the system path");
+    }
+  } else {
+    throw shcore::Exception::runtime_error("Unable to retrieve the system path to register the module");
+  }
+
+  return ret_val;
 }
 }
