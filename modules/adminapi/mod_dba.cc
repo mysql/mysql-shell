@@ -325,6 +325,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     if (force) {
       args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
                                    : ReplicaSet::kTopologyPrimaryMaster));
+    } else {
+      if (multi_master)
+        throw shcore::Exception::argument_error("Use of multiMaster mode is not recommended unless you understand the limitations. Please use the 'force' option if you understand and accept them.");
     }
 
     cluster->add_seed_instance(args);
