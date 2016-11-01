@@ -1680,6 +1680,52 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    def test_3_3_11_1(self):
+        '''[3.3.011] PY Check Shell.Connect for node and classic session'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full', '--py']
+        x_cmds = [("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                               LOCALHOST.port),
+                   "Classic Session successfully established. No default schema selected."),
+                  (
+                  "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                     LOCALHOST.port),
+                  "Classic Session successfully established. Default schema set to `sakila`."),
+                  ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                               LOCALHOST.xprotocol_port),
+                   "Node Session successfully established. No default schema selected."),
+                  (
+                      "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                         LOCALHOST.host,
+                                                                         LOCALHOST.xprotocol_port),
+                      "Node Session successfully established. Default schema `sakila` accessible through db."),
+                  ]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
+
+    def test_3_3_12_1(self):
+        '''[3.3.012] JS Check Shell.Connect for node and classic session'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full', '--js']
+        x_cmds = [("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                               LOCALHOST.port),
+                   "Classic Session successfully established. No default schema selected."),
+                  (
+                  "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                     LOCALHOST.port),
+                  "Classic Session successfully established. Default schema set to `sakila`."),
+                  ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                               LOCALHOST.xprotocol_port),
+                   "Node Session successfully established. No default schema selected."),
+                  (
+                      "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                         LOCALHOST.host,
+                                                                         LOCALHOST.xprotocol_port),
+                      "Node Session successfully established. Default schema `sakila` accessible through db."),
+                  ]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
+		
     def test_4_0_01_01(self):
         '''[4.0.001]:1 Batch Exec - Loading code from file:  --file= createtable.js'''
         results = ''
