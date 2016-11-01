@@ -1,5 +1,6 @@
 |Sakila|
-var tst = myColl.find('age > 20').sort(['name']).execute()||MySQL Error (1146): Table 'test.my_collection' doesn't exist
+var tst = myColl.find('age > 20').sort(['name']).execute()||Table 'test.my_collection' doesn't exist
+MySQL Error (1146)
 mySession.close();||
 testSession.close();||
 testSession = null;||

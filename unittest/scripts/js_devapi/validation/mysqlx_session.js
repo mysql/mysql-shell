@@ -11,7 +11,7 @@
 |sql: OK|
 |defaultSchema: OK|
 |uri: OK|
-|currentSchema: OK|		
+|currentSchema: OK|
 
 //@ NodeSession: accessing Schemas
 |<Schema:mysql>|
@@ -32,7 +32,7 @@
 |<Schema:node_session_schema>|
 
 //@ NodeSession: create schema failure
-||MySQL Error (1007): Can't create database 'node_session_schema'; database exists
+||Can't create database 'node_session_schema'; database exists
 
 //@ NodeSession: Transaction handling: rollback
 |Inserted Documents: 0|
@@ -64,10 +64,10 @@
 |Can't drop database 'unexisting'; database doesn't exist|
 
 //@ NodeSession: quoteName no parameters
-||ArgumentError: Invalid number of arguments in NodeSession.quoteName, expected 1 but got 0
+||Invalid number of arguments in NodeSession.quoteName, expected 1 but got 0
 
 //@ NodeSession: quoteName wrong param type
-||TypeError: Argument #1 is expected to be a string
+||Argument #1 is expected to be a string
 
 //@ NodeSession: quoteName with correct parameters
 |`sample`|

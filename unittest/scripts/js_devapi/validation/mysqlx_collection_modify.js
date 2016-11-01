@@ -51,7 +51,7 @@
 |Updated Carol: 1|
 
 //@# CollectionModify: Error conditions on modify
-||CollectionModify.modify: Argument #1 is expected to be a string at
+||CollectionModify.modify: Argument #1 is expected to be a string
 ||CollectionModify.modify: Unterminated quoted string starting at position 8
 
 //@# CollectionModify: Error conditions on set

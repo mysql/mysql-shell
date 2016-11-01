@@ -694,7 +694,7 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
 
   if (!executed_ok) {
     if (try_catch.HasCaught()) {
-      Value e = get_v8_exception_data(&try_catch);
+      Value e = get_v8_exception_data(&try_catch, false);
 
       throw Exception::scripting_error(format_exception(e));
     } else
@@ -729,11 +729,11 @@ Value JScript_context::execute_interactive(const std::string &code_str, Input_st
     if (*message && strcmp(*message, "SyntaxError: Unexpected end of input") == 0)
       r_state = Input_state::ContinuedBlock;
     else
-      _impl->print_exception(format_exception(get_v8_exception_data(&try_catch)));
+      _impl->print_exception(format_exception(get_v8_exception_data(&try_catch, true)));
   } else {
     v8::Handle<v8::Value> result = script->Run();
     if (result.IsEmpty())
-      _impl->print_exception(format_exception(get_v8_exception_data(&try_catch)));
+      _impl->print_exception(format_exception(get_v8_exception_data(&try_catch, true)));
     else {
       try {
         return Value(v8_value_to_shcore_value(result));
@@ -757,17 +757,11 @@ std::string JScript_context::format_exception(const shcore::Value &exc) {
     std::string location = exc.as_map()->get_string("location", "");
 
     if (!message.empty()) {
-      if (!type.empty())
-        error_message += type;
-
-      if (code != -1)
-        error_message += (boost::format(" (%1%)") % code).str();
-
-      if (!error_message.empty())
-        error_message += ": ";
-
       error_message += message;
-
+      if (!type.empty())
+        error_message += "\n" + type;
+      if (code != -1)
+        error_message += " ("+std::to_string(code)+") ";
       if (!location.empty())
         error_message += " at " + location;
     }
@@ -780,7 +774,7 @@ std::string JScript_context::format_exception(const shcore::Value &exc) {
   return error_message;
 }
 
-Value JScript_context::get_v8_exception_data(v8::TryCatch *exc) {
+Value JScript_context::get_v8_exception_data(v8::TryCatch *exc, bool interactive) {
   Value::Map_type_ref data;
 
   v8::String::Utf8Value exec_error(exc->Exception());
@@ -793,6 +787,7 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc) {
     data = _impl->types.v8_value_to_shcore_value(exc->Exception()).as_map();
   }
 
+  bool include_location = !interactive;
   v8::Handle<v8::Message> message = exc->Message();
   if (!message.IsEmpty()) {
     // location
@@ -812,12 +807,13 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc) {
       std::string str_stack(*stack);
 
       auto new_lines = std::count(str_stack.begin(), str_stack.end(), '\n');
-
-      if (new_lines > 1)
+      if (new_lines > 1) {
         text.append(std::string(*stack).append("\n"));
+        include_location = true;
+      }
     }
-
-    (*data)["location"] = Value(text);
+    if (include_location)
+      (*data)["location"] = Value(text);
   }
 
   return Value(data);

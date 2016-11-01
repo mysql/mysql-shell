@@ -34,7 +34,7 @@
 |<ClassicSchema:node_session_schema>|
 
 //@ ClassicSession: create schema failure
-||MySQL Error (1007): Can't create database 'node_session_schema'; database exists
+||Can't create database 'node_session_schema'; database exists
 
 //@ Session: create quoted schema
 |<ClassicSchema:quoted schema>|
