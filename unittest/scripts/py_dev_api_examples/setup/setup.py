@@ -1,4 +1,4 @@
-import mysqlx
+from mysqlsh import mysqlx
 
 # Variables assummed to exist on the script must be declared in global scope
 testSession = None

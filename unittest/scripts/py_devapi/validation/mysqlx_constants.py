@@ -1,4 +1,4 @@
-import mysqlx
+from mysqlsh import mysqlx
 
 #@ mysqlx type constants
 |Type.BIT: <Type.BIT>|

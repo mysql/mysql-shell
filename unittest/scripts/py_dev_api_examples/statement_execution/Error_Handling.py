@@ -1,4 +1,4 @@
-import mysqlx
+from mysqlsh import mysqlx
 
 mySession
 

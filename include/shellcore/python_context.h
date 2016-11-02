@@ -201,6 +201,7 @@ public:
   static bool exit_error;
 
 private:
+  PyObject *_global_namespace;
   PyObject *_globals;
   PyObject *_locals;
   PyThreadState *_main_thread_state;
@@ -213,7 +214,7 @@ private:
 
   std::map<PyObject*, std::shared_ptr<shcore::Object_bridge> > _modules;
 
-  void register_shell_modules();
+  void register_mysqlsh_module();
   PyObject *call_module_function(PyObject *self, PyObject *args, PyObject *keywords, const std::string& name);
 
   void register_shell_stderr_module();

@@ -143,8 +143,8 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_python) {
   this->observe_notification("SN_SESSION_CONNECTED");
 
   _interactive_shell->process_line("\\py");
-  _interactive_shell->process_line("import mysqlx");
-  _interactive_shell->process_line("import mysql");
+  _interactive_shell->process_line("from mysqlsh import mysqlx");
+  _interactive_shell->process_line("from mysqlsh import mysql");
 
   _interactive_shell->process_line("session = mysql.get_classic_session('" + _mysql_uri + "');");
 

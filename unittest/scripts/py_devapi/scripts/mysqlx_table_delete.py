@@ -1,6 +1,6 @@
 # Assumptions: validate_crud_functions available
 
-import mysqlx
+from mysqlsh import mysqlx
 
 mySession = mysqlx.get_node_session(__uripwd)
 

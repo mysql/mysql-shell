@@ -1,6 +1,6 @@
 # Connecting to MySQL Server and working with a Collection
 
-import mysqlx
+from mysqlsh import mysqlx
 
 # Connect to server
 mySession = mysqlx.get_node_session( {

@@ -1,4 +1,4 @@
-import mysql
+from mysqlsh import mysql
 
 # The tests assume the next variables have been put in place
 # on the JS Context

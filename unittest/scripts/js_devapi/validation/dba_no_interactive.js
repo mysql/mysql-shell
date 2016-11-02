@@ -15,7 +15,7 @@
 |verbose: OK|
 
 //@# Dba: createCluster errors
-||ArgumentError: Invalid number of arguments in Dba.createCluster, expected 1 to 2 but got 0
+||Invalid number of arguments in Dba.createCluster, expected 1 to 2 but got 0
 ||Argument #1 is expected to be a string
 ||Dba.createCluster: The Cluster name cannot be empty
 ||Argument #2 is expected to be a map

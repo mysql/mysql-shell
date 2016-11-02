@@ -93,7 +93,7 @@ Validating MySQL configuration file at: <<<__sandbox_dir>>><<<__mysql_sandbox_po
 Validating instance...
 
 //@<ERR> Dba: configLocalInstance error 3
-RuntimeError: Dba.configLocalInstance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+Dba.configLocalInstance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
 //@<OUT> Dba: configLocalInstance updating config file
 Please provide a password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
@@ -102,7 +102,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
 You can now add it to an InnoDB Cluster with the <Cluster>.addInstance() function.
 
 //@# Dba: getCluster errors
-||ArgumentError: Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string
+||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string
 ||Dba.getCluster: The Cluster name cannot be empty
 
 //@<OUT> Dba: getCluster with interaction

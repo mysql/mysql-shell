@@ -1,7 +1,7 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
 # validateMemer and validateNotMember are defined on the setup script
-import mysql
+from mysqlsh import mysql
 
 #@ Session: validating members
 classicSession = mysql.get_classic_session(__uripwd)

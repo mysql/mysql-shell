@@ -1,4 +1,4 @@
-import mysqlx
+from mysqlsh import mysqlx
 
 # Connect to server
 mySession = mysqlx.get_node_session( {

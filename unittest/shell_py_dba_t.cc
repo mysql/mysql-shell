@@ -151,7 +151,7 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_dba) {
   _options->wizards = false;
   reset_shell();
 
-  execute("import mysql");
+  execute("from mysqlsh import mysql");
   execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
   execute("dba.reset_session(mySession)");
 
@@ -166,7 +166,7 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_cluster) {
   _options->wizards = false;
   reset_shell();
 
-  execute("import mysql");
+  execute("from mysqlsh import mysql");
   execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
   execute("dba.reset_session(mySession)");
   // Tests cluster functionality, adding, removing instances
@@ -246,7 +246,7 @@ TEST_F(Shell_py_dba_tests, interactive_custom_global_dba) {
   std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
   create_file("mybad.cnf", bad_config);
 
-  execute("import mysql");
+  execute("from mysqlsh import mysql");
   execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
   execute("dba.reset_session(mySession)");
 
@@ -278,7 +278,7 @@ TEST_F(Shell_py_dba_tests, interactive_custom_global_dba) {
 }
 
 TEST_F(Shell_py_dba_tests, interactive_custom_global_cluster) {
-  execute("import mysql");
+  execute("from mysqlsh import mysql");
   execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
   execute("dba.reset_session(mySession)");
 

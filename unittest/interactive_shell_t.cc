@@ -506,7 +506,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
 
   out.open(bin_path, std::ios_base::app);
   if (!out.fail()) {
-    out << "import mysqlx" << std::endl;
+    out << "from mysqlsh import mysqlx" << std::endl;
     out << "the_variable = 'Global Value'" << std::endl;
     out.close();
   }
@@ -517,7 +517,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("mysqlx");
-  MY_EXPECT_STDOUT_CONTAINS("<module 'mysqlx' (built-in)>");
+  MY_EXPECT_STDOUT_CONTAINS("<module '__mysqlx__' (built-in)>");
   output_handler.wipe_all();
 
   EXPECT_EQ("---> ", _interactive_shell->prompt());

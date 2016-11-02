@@ -13,7 +13,7 @@ def createTestTable(session, name):
     
     return session.get_current_schema().get_table(name)
 
-import mysqlx
+from mysqlsh import mysqlx
 
 session = mysqlx.get_node_session('mike:s3cr3t!@localhost:33060/test')
 

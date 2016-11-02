@@ -1,6 +1,6 @@
 # Assumptions: ensure_schema_does_not_exist
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
-import mysql
+from mysqlsh import mysql
 
 mySession = mysql.get_classic_session(__uripwd)
 

@@ -1,5 +1,5 @@
 # Connecting to MySQL and working with a Session
-import mysqlx
+from mysqlsh import mysqlx
 
 # Connect to a dedicated MySQL server using a connection URL
 mySession = mysqlx.get_node_session('mike:s3cr3t!@localhost')

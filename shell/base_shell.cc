@@ -403,12 +403,15 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
 }
 
 void Base_shell::load_default_modules(shcore::Shell_core::Mode mode) {
-  if (mode == shcore::Shell_core::Mode::JScript) {
-    process_line("var mysqlx = require('mysqlx');");
-    process_line("var mysql = require('mysql');");
-  } else if (mode == shcore::Shell_core::Mode::Python) {
-    //process_line("import mysqlx");
-    //process_line("import mysql");
+  // Module preloading only occurs on interactive mode
+  if (_options.interactive) {
+    if (mode == shcore::Shell_core::Mode::JScript) {
+      process_line("var mysqlx = require('mysqlx');");
+      process_line("var mysql = require('mysql');");
+    } else if (mode == shcore::Shell_core::Mode::Python) {
+      process_line("from mysqlsh import mysqlx");
+      process_line("from mysqlsh import mysql");
+    }
   }
 }
 

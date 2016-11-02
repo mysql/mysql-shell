@@ -1,5 +1,5 @@
 # Working with Relational Tables
-import mysqlx
+from mysqlsh import mysqlx
 
 # Connect to server using a connection URL
 mySession = mysqlx.get_node_session( {

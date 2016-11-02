@@ -1,4 +1,4 @@
-import mysqlx
+from mysqlsh import mysqlx
 
 def process_warnings(result):
   if result.get_warning_count():

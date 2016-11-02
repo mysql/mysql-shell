@@ -1,7 +1,7 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
-import mysqlx
+from mysqlsh import mysqlx
 
 #@ NodeSession: validating members
 nodeSession = mysqlx.get_node_session(__uripwd)
