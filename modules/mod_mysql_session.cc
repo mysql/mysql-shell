@@ -200,8 +200,18 @@ shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore
     else
       ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(query))));
   }
-
   return ret_val;
+}
+
+std::shared_ptr<ClassicResult> ClassicSession::execute_sql(const std::string& query) const {
+  if (!_conn)
+    throw Exception::logic_error("Not connected.");
+  else {
+    if (query.empty())
+      throw Exception::argument_error("No query specified.");
+    else
+      return std::shared_ptr<ClassicResult>(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(query))));
+  }
 }
 
 //Documentation of createSchema function

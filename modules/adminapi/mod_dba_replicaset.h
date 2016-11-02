@@ -74,9 +74,6 @@ public:
   std::vector<std::string> get_instances_gr();
   std::vector<std::string> get_instances_md();
 
-  shcore::Value::Array_type_ref get_newly_discovered_instances();
-  shcore::Value::Array_type_ref get_unavailable_instances();
-
   static char const *kTopologyPrimaryMaster;
   static char const *kTopologyMultiMaster;
 
@@ -109,6 +106,21 @@ public:
   shcore::Value disable(const shcore::Argument_list &args);
   shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
+
+private:
+  friend Cluster;
+  struct NewInstanceInfo {
+    std::string member_id;
+    std::string host;
+    int port;
+  };
+  struct MissingInstanceInfo {
+    std::string id;
+    std::string name;
+    std::string host;
+  };
+  std::vector<NewInstanceInfo> get_newly_discovered_instances();
+  std::vector<MissingInstanceInfo> get_unavailable_instances();
 
 protected:
   uint64_t _id;

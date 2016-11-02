@@ -155,13 +155,15 @@ None add_seed_instance(Document doc) {}
 #endif
 #endif
 #endif
-
 shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_) {
+  //args_.ensure_count(1, 3, (class_name() + ".addSeedInstance").c_str());
+  return add_seed_instance(args_, false);
+}
+
+shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_,
+    bool is_adopted) {
   shcore::Value ret_val;
   shcore::Argument_list args(args_);
-
-  //args.ensure_count(1, 3, (class_name() + ".addSeedInstance").c_str());
-
   //try
   //{
   MetadataStorage::Transaction tx(_metadata_storage);
@@ -187,7 +189,7 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_) {
     // If we reached here without errors we can update the Metadata
 
     // Update the Cluster table with the Default ReplicaSet on the Metadata
-    _metadata_storage->insert_replica_set(_default_replica_set, true);
+    _metadata_storage->insert_replica_set(_default_replica_set, true, is_adopted);
   }
   // Add the Instance to the Default ReplicaSet
   ret_val = _default_replica_set->add_instance(args);
@@ -643,26 +645,24 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
 }
 
 void Cluster::adopt_from_gr() {
-  shcore::Value::Array_type_ref newly_discovered_instances_list = get_default_replicaset()->get_newly_discovered_instances();
+  auto newly_discovered_instances_list(get_default_replicaset()->get_newly_discovered_instances());
 
   // Add all instances to the cluster metadata
-  if (newly_discovered_instances_list) {
-    for (auto i : *newly_discovered_instances_list.get()) {
-      for (auto value : *i.as_array()) {
-        Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type);
-        auto row = value.as_object<mysqlsh::Row>();
+  for (ReplicaSet::NewInstanceInfo &instance : newly_discovered_instances_list) {
+    Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type);
+    (*newly_discovered_instance)["host"] = shcore::Value(instance.host);
+    (*newly_discovered_instance)["port"] = shcore::Value(instance.port);
 
-        (*newly_discovered_instance)["host"] = shcore::Value(row->get_member(1).as_string());
-        (*newly_discovered_instance)["port"] = shcore::Value(row->get_member(2).as_int());
+    log_info("Adopting member %s:%d from existing group",
+              instance.host.c_str(),
+              instance.port);
 
-        // TODO: what if the password is different on each server?
-        // And what if is different from the current session?
-        auto session = _metadata_storage->get_dba()->get_active_session();
-        (*newly_discovered_instance)["user"] = shcore::Value(session->get_user());
-        (*newly_discovered_instance)["password"] = shcore::Value(session->get_password());
+    // TODO: what if the password is different on each server?
+    // And what if is different from the current session?
+    auto session = _metadata_storage->get_dba()->get_active_session();
+    (*newly_discovered_instance)["user"] = shcore::Value(session->get_user());
+    (*newly_discovered_instance)["password"] = shcore::Value(session->get_password());
 
-        get_default_replicaset()->add_instance_metadata(newly_discovered_instance);
-      }
-    }
+    get_default_replicaset()->add_instance_metadata(newly_discovered_instance);
   }
 }

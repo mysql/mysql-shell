@@ -40,6 +40,7 @@ class DatabaseObject;
 
 namespace mysql {
 class ClassicSchema;
+class ClassicResult;
 /**
 * $(CLASSICSESSION_BRIEF)
 *
@@ -65,6 +66,8 @@ public:
   ClassicSession();
   ClassicSession(const ClassicSession& session);
   virtual ~ClassicSession() { try { shcore::Argument_list a; close(a); } catch (...) {} };
+
+  std::shared_ptr<ClassicResult> execute_sql(const std::string& query) const;
 
   // Virtual methods from object bridge
   virtual std::string class_name() const { return "ClassicSession"; };

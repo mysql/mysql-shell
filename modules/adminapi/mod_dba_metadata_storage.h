@@ -23,9 +23,11 @@
 #include "mod_dba.h"
 #include "mod_dba_cluster.h"
 #include "mod_dba_replicaset.h"
-#include "modules/base_resultset.h"
 
 namespace mysqlsh {
+namespace mysql {
+  class ClassicResult;
+}
 namespace dba {
 #if DOXYGEN_CPP
 /**
@@ -44,8 +46,8 @@ public:
   uint64_t get_cluster_id(uint64_t rs_id);
   bool cluster_exists(const std::string &cluster_name);
   void insert_cluster(const std::shared_ptr<Cluster> &cluster);
-  void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset, bool is_default);
-  std::shared_ptr<ShellBaseResult> insert_host(const shcore::Value::Map_type_ref &options);
+  void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset, bool is_default, bool is_adopted);
+  uint32_t insert_host(const shcore::Value::Map_type_ref &options);
   void insert_instance(const shcore::Value::Map_type_ref& options, uint64_t host_id, uint64_t rs_id);
   void remove_instance(const std::string &instance_name);
   void drop_cluster(const std::string &cluster_name);
@@ -55,7 +57,7 @@ public:
   void disable_replicaset(uint64_t rs_id);
   bool is_replicaset_active(uint64_t rs_id);
   std::string get_replicaset_group_name();
-  void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset, std::string group_name);
+  void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset, const std::string &group_name);
 
   std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name);
   std::shared_ptr<Cluster> get_default_cluster();
@@ -63,14 +65,14 @@ public:
 
   std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
   bool is_replicaset_empty(uint64_t rs_id);
-  bool is_instance_on_replicaset(uint64_t rs_id, std::string address);
+  bool is_instance_on_replicaset(uint64_t rs_id, const std::string &address);
 
   std::string get_seed_instance(uint64_t rs_id);
   std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(uint64_t rs_id);
 
   Dba* get_dba() { return _dba; };
 
-  std::shared_ptr<ShellBaseResult> execute_sql(const std::string &sql) const;
+  std::shared_ptr<mysql::ClassicResult> execute_sql(const std::string &sql, bool retry=false) const;
 
   class Transaction {
   public:

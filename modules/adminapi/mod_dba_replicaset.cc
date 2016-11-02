@@ -36,6 +36,7 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_resultset.h"
 #include "utils/utils_time.h"
+#include "logger/logger.h"
 
 #include <sstream>
 #include <iostream>
@@ -354,13 +355,14 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   resolve_instance_credentials(options, nullptr);
   std::string user = options->get_string(options->has_key("user") ? "user" : "dbUser");
   std::string super_user_password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
-
   std::string joiner_host = options->get_string("host");
 
   // Check if the instance was already added
   std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
 
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
+  log_debug("RS %llu: Adding instance %s to replicaset%s",
+      _id, instance_address.c_str(), is_instance_on_md ? " (already in MD)" : "");
 
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(options));
@@ -369,51 +371,67 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   GRInstanceType type = get_gr_instance_type(session->connection());
 
   // If type is GRInstanceType::InnoDBCluster it means that is on GR and MD
-  if (type == GRInstanceType::InnoDBCluster)
-    throw shcore::Exception::runtime_error("The instance '" + instance_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+  switch (type) {
+    case GRInstanceType::InnoDBCluster:
+      log_debug("Instance already managed by InnoDB cluster");
+      throw shcore::Exception::runtime_error("The instance '" + instance_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
-  // If the instance is not on GR, we must add it
-  if (type == GRInstanceType::Standalone) {
-    // generate a replication user account + password for this instance
-    // This account will be replicated to all instances in the replicaset, so that
-    // the newly joining instance can connect to any of them for recovery.
-    std::string replication_user;
-    std::string replication_user_password = generate_password(PASSWORD_LENGTH);
+    // If the instance is not on GR, we must add it
+    case GRInstanceType::Standalone:
+    {
+      // generate a replication user account + password for this instance
+      // This account will be replicated to all instances in the replicaset, so that
+      // the newly joining instance can connect to any of them for recovery.
+      std::string replication_user;
+      std::string replication_user_password = generate_password(PASSWORD_LENGTH);
 
-    MySQL_timer timer;
-    std::string tstamp = std::to_string(timer.get_time());
-    std::string base_user = "mysql_innodb_cluster_rplusr";
-    replication_user = base_user.substr(0, 32 - tstamp.size()) + tstamp;
-    // TODO: Replication accounts should be created with grants for the joining instance only
-    // However, we don't have a reliable way of getting the external IP and/or fully qualified domain name
-    replication_user.append("@'%'");
+      log_debug("Instance is not yet on cluster");
 
-    // Call the gadget to bootstrap the group with this instance
-    if (seed_instance) {
-      create_repl_account(instance_address, replication_user, replication_user_password);
+      MySQL_timer timer;
+      std::string tstamp = std::to_string(timer.get_time());
+      std::string base_user = "mysql_innodb_cluster_rplusr";
+      replication_user = base_user.substr(0, 32 - tstamp.size()) + tstamp;
+      // TODO: Replication accounts should be created with grants for the joining instance only
+      // However, we don't have a reliable way of getting the external IP and/or fully qualified domain name
+      replication_user.append("@'%'");
+      // Call the gadget to bootstrap the group with this instance
+      if (seed_instance) {
+        log_debug("Creating replication user %s", replication_user.c_str());
+        create_repl_account(instance_address, replication_user, replication_user_password);
 
-      // Call mysqlprovision to bootstrap the group using "start"
-      do_join_replicaset(user + "@" + instance_address,
-                         "",
-                         super_user_password,
-                         replication_user, replication_user_password);
-    } else {
-      // We need to retrieve a peer instance, so let's use the Seed one
-      std::string peer_instance = get_peer_instances().front();
-      create_repl_account(peer_instance, replication_user, replication_user_password);
+        log_debug("Joining group using account %s@%s",
+            user.c_str(), instance_address.c_str());
+        // Call mysqlprovision to bootstrap the group using "start"
+        do_join_replicaset(user + "@" + instance_address,
+                           "",
+                           super_user_password,
+                           replication_user, replication_user_password);
+      } else {
+        // We need to retrieve a peer instance, so let's use the Seed one
+        std::string peer_instance = get_peer_instances().front();
+        log_debug("Creating replication user %s", replication_user.c_str());
+        create_repl_account(peer_instance, replication_user, replication_user_password);
 
-      // Call mysqlprovision to do the work
-      do_join_replicaset(user + "@" + instance_address,
-                         user + "@" + peer_instance,
-                         super_user_password,
-                         replication_user, replication_user_password);
+        log_debug("Joining group using account %s@%s",
+            user.c_str(), instance_address.c_str());
+        // Call mysqlprovision to do the work
+        do_join_replicaset(user + "@" + instance_address,
+                           user + "@" + peer_instance,
+                           super_user_password,
+                           replication_user, replication_user_password);
+      }
     }
+    break;
+  case GRInstanceType::GroupReplication:
+    log_debug("Instance is already part of GR, but not managed");
+    break;
   }
 
   // If the instance is not on the Metadata, we must add it
   if (!is_instance_on_md) {
     add_instance_metadata(options);
   }
+  log_debug("Instance add finished");
 
   return ret_val;
 }
@@ -772,53 +790,41 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
   // Set the ReplicaSet name on the result map
   (*ret_val)["name"] = shcore::Value(_name);
 
-  shcore::Value::Array_type_ref newly_discovered_instances_list = get_newly_discovered_instances();
+  std::vector<NewInstanceInfo> newly_discovered_instances_list = get_newly_discovered_instances();
 
   // Creates the newlyDiscoveredInstances map
   shcore::Value::Array_type_ref newly_discovered_instances(new shcore::Value::Array_type());
 
-  if (newly_discovered_instances_list) {
-    for (auto i : *newly_discovered_instances_list.get()) {
-      for (auto value : *i.as_array()) {
-        shcore::Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type());
-        auto row = value.as_object<mysqlsh::Row>();
-        (*newly_discovered_instance)["member_id"] = shcore::Value(row->get_member(0).as_string());
-        (*newly_discovered_instance)["name"] = shcore::Value::Null();
+  for (auto &instance : newly_discovered_instances_list) {
+    shcore::Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type());
+    (*newly_discovered_instance)["member_id"] = shcore::Value(instance.member_id);
+    (*newly_discovered_instance)["name"] = shcore::Value::Null();
 
-        std::string instance_address = row->get_member(1).as_string() + ":" + std::to_string(row->get_member(2).as_int());
+    std::string instance_address = instance.host + ":" + std::to_string(instance.port);
 
-        (*newly_discovered_instance)["host"] = shcore::Value(instance_address);
-        newly_discovered_instances->push_back(shcore::Value(newly_discovered_instance));
-      }
-
-      // Add the newly_discovered_instances list to the result Map
-      (*ret_val)["newlyDiscoveredInstances"] = shcore::Value(newly_discovered_instances);
-    }
+    (*newly_discovered_instance)["host"] = shcore::Value(instance_address);
+    newly_discovered_instances->push_back(shcore::Value(newly_discovered_instance));
   }
+  // Add the newly_discovered_instances list to the result Map
+  (*ret_val)["newlyDiscoveredInstances"] = shcore::Value(newly_discovered_instances);
 
   shcore::Value unavailable_instances_result;
 
-  shcore::Value::Array_type_ref unavailable_instances_list = get_unavailable_instances();
+  std::vector<MissingInstanceInfo> unavailable_instances_list = get_unavailable_instances();
 
   // Creates the unavailableInstances array
   shcore::Value::Array_type_ref unavailable_instances(new shcore::Value::Array_type());
 
-  if (unavailable_instances_list) {
-    for (auto i : *unavailable_instances_list.get()) {
-      for (auto value : *i.as_array()) {
-        shcore::Value::Map_type_ref unavailable_instance(new shcore::Value::Map_type());
-        auto row = value.as_object<mysqlsh::Row>();
-        (*unavailable_instance)["member_id"] = shcore::Value(row->get_member(0).as_string());
-        (*unavailable_instance)["name"] = shcore::Value(row->get_member(1).as_string());
-        (*unavailable_instance)["host"] = shcore::Value(row->get_member(2).as_string());
+  for (auto &instance : unavailable_instances_list) {
+    shcore::Value::Map_type_ref unavailable_instance(new shcore::Value::Map_type());
+    (*unavailable_instance)["member_id"] = shcore::Value(instance.id);
+    (*unavailable_instance)["name"] = shcore::Value(instance.name);
+    (*unavailable_instance)["host"] = shcore::Value(instance.host);
 
-        unavailable_instances->push_back(shcore::Value(unavailable_instance));
-      }
-    }
-
-    // Add the missing_instances list to the result Map
-    (*ret_val)["unavailableInstances"] = shcore::Value(unavailable_instances);
+    unavailable_instances->push_back(shcore::Value(unavailable_instance));
   }
+  // Add the missing_instances list to the result Map
+  (*ret_val)["unavailableInstances"] = shcore::Value(unavailable_instances);
 
   return ret_val;
 }
@@ -974,17 +980,47 @@ shcore::Value ReplicaSet::retrieve_instance_state(const shcore::Argument_list &a
 }
 
 void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instance_definition) {
+  log_debug("Adding instance to metadata");
+
   MetadataStorage::Transaction tx(_metadata_storage);
 
   int xport = instance_definition->get_int("port") * 10;
 
+  std::string joiner_host = instance_definition->get_string("host");
+
+  // Check if the instance was already added
+  std::string instance_address = joiner_host + ":" + std::to_string(instance_definition->get_int("port"));
+  std::string instance_xaddress = joiner_host + ":" + std::to_string(xport);
   std::string mysql_server_uuid;
+
+  log_debug("Connecting to %s to query for metadata information...",
+             instance_address.c_str());
   // get the server_uuid from the joining instance
   {
     shcore::Argument_list temp_args, new_args;
     new_args.push_back(shcore::Value(instance_definition));
-    auto session = mysqlsh::connect_session(new_args, mysqlsh::SessionType::Classic);
-    mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> classic;
+    try {
+      classic = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
+            mysqlsh::connect_session(new_args, mysqlsh::SessionType::Classic));
+    } catch (Exception &e) {
+      std::stringstream ss;
+      ss << "Error opening session to " << instance_address << ": " << e.what();
+      log_warning("%s", ss.str().c_str());
+
+      // Check if we're adopting a GR cluster, if so, it could happen that
+      // we can't connect to it because root@localhost exists but root@hostname
+      // doesn't (GR keeps the hostname in the members table)
+      if (e.is_mysql() && e.code() == 1045) { // access denied
+        std::stringstream se;
+        se << "Access denied connecting to new instance " << instance_address << ".\n"
+            << "Please ensure all instances in the same group/replicaset have"
+            " the same password for account '" << instance_definition->get_string("user")
+            << "' and that it is accessible from the host mysqlsh is running from.";
+        throw Exception::runtime_error(se.str());
+      }
+      throw Exception::runtime_error(ss.str());
+    }
     {
       temp_args.clear();
       temp_args.push_back(shcore::Value("SELECT @@server_uuid"));
@@ -993,6 +1029,8 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
       auto uuid_row = uuid_result->fetch_one(shcore::Argument_list());
       if (uuid_row)
         mysql_server_uuid = uuid_row.as_object<mysqlsh::Row>()->get_member(0).as_string();
+      else
+        throw Exception::runtime_error("@@server_uuid could not be queried");
     }
     try {
       temp_args.clear();
@@ -1006,30 +1044,18 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
       log_info("Could not query xplugin port, using default value: %s", e.what());
     }
   }
-
-  std::string joiner_host = instance_definition->get_string("host");
-
-  // Check if the instance was already added
-  std::string instance_address = joiner_host + ":" + std::to_string(instance_definition->get_int("port"));
-
-  std::string instance_xaddress = joiner_host + ":" + std::to_string(xport);
-
   (*instance_definition)["role"] = shcore::Value("HA");
-
   (*instance_definition)["endpoint"] = shcore::Value(instance_address);
-
   (*instance_definition)["xendpoint"] = shcore::Value(instance_xaddress);
-
   (*instance_definition)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
 
   if (!instance_definition->has_key("name"))
     (*instance_definition)["instance_name"] = shcore::Value(instance_address);
 
   // update the metadata with the host
-  auto result = _metadata_storage->insert_host(instance_definition);
+  uint32_t host_id = _metadata_storage->insert_host(instance_definition);
 
   // And the instance
-  uint64_t host_id = result->get_member("autoIncrementValue").as_int();
   _metadata_storage->insert_instance(instance_definition, host_id, get_id());
 
   tx.commit();
@@ -1091,10 +1117,9 @@ std::vector<std::string> ReplicaSet::get_instances_md() {
   return instances_md_array;
 }
 
-shcore::Value::Array_type_ref ReplicaSet::get_newly_discovered_instances() {
+std::vector<ReplicaSet::NewInstanceInfo> ReplicaSet::get_newly_discovered_instances() {
   std::vector<std::string> instances_gr_array, instances_md_array;
   std::string query;
-  shcore::Value::Array_type_ref ret(new shcore::Value::Array_type());
 
   instances_gr_array = get_instances_gr();
   instances_md_array = get_instances_md();
@@ -1107,22 +1132,27 @@ shcore::Value::Array_type_ref ReplicaSet::get_newly_discovered_instances() {
   std::set_difference(instances_gr_array.begin(), instances_gr_array.end(), instances_md_array.begin(),
                       instances_md_array.end(), std::inserter(new_members, new_members.begin()));
 
+  std::vector<NewInstanceInfo> ret;
   for (auto i : new_members) {
     query = "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT"
             " FROM performance_schema.replication_group_members"
             " WHERE MEMBER_ID = '" + i + "'";
 
     auto result = _metadata_storage->execute_sql(query);
-    shcore::Value newly_discovered_instance_result = result->call("fetchAll", shcore::Argument_list());
-    ret->push_back(newly_discovered_instance_result);
+    auto row = result->fetch_one();
+
+    NewInstanceInfo info;
+    info.member_id = row->get_value(0).as_string();
+    info.host = row->get_value(1).as_string();
+    info.port = row->get_value(2).as_int();
+    ret.push_back(info);
   }
 
   return ret;
 }
 
-shcore::Value::Array_type_ref ReplicaSet::get_unavailable_instances() {
+std::vector<ReplicaSet::MissingInstanceInfo> ReplicaSet::get_unavailable_instances() {
   std::vector<std::string> instances_gr_array, instances_md_array;
-  shcore::Value::Array_type_ref ret(new shcore::Value::Array_type());
 
   instances_gr_array = get_instances_gr();
   instances_md_array = get_instances_md();
@@ -1135,6 +1165,7 @@ shcore::Value::Array_type_ref ReplicaSet::get_unavailable_instances() {
   std::set_difference(instances_md_array.begin(), instances_md_array.end(), instances_gr_array.begin(),
                       instances_gr_array.end(), std::inserter(removed_members, removed_members.begin()));
 
+  std::vector<MissingInstanceInfo> ret;
   for (auto i : removed_members) {
     std::string query = "SELECT mysql_server_uuid, instance_name,"
                         " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host"
@@ -1142,8 +1173,12 @@ shcore::Value::Array_type_ref ReplicaSet::get_unavailable_instances() {
                         " WHERE mysql_server_uuid = '" + i + "'";
 
     auto result = _metadata_storage->execute_sql(query);
-    shcore::Value unavailable_instance_result = result->call("fetchAll", shcore::Argument_list());
-    ret->push_back(unavailable_instance_result);
+    auto row = result->fetch_one();
+    MissingInstanceInfo info;
+    info.id = row->get_value(0).as_string();
+    info.name = row->get_value(1).as_string();
+    info.host = row->get_value(2).as_string();
+    ret.push_back(info);
   }
 
   return ret;

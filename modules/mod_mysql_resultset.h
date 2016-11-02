@@ -31,6 +31,7 @@
 namespace mysqlsh {
 namespace mysql {
 class Result;
+class Row;
 
 /**
 * $(CLASSICRESULT_BRIEF)
@@ -40,6 +41,9 @@ class Result;
 class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 public:
   ClassicResult(std::shared_ptr<Result> result);
+
+  std::shared_ptr<mysql::Row> fetch_one() const;
+  std::vector<std::shared_ptr<mysql::Row>> fetch_all() const;
 
   virtual std::string class_name() const { return "ClassicResult"; }
   virtual shcore::Value get_member(const std::string &prop) const;

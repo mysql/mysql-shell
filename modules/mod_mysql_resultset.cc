@@ -50,8 +50,8 @@ ClassicResult::ClassicResult(std::shared_ptr<Result> result)
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("info", "getInfo");
 
-  add_method("fetchOne", std::bind(&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
-  add_method("fetchAll", std::bind(&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchOne", std::bind((shcore::Value(ClassicResult::*)(const shcore::Argument_list &)const)&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchAll", std::bind((shcore::Value(ClassicResult::*)(const shcore::Argument_list &)const)&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
   add_method("nextDataSet", std::bind(&ClassicResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
   add_method("hasData", std::bind(&ClassicResult::has_data, this, _1), "nothing", shcore::String, NULL);
 }
@@ -102,8 +102,11 @@ shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const 
 
     return shcore::Value::wrap(value_row);
   }
-
   return shcore::Value::Null();
+}
+
+std::shared_ptr<mysql::Row> ClassicResult::fetch_one() const {
+  return std::shared_ptr<Row>(_result->fetch_one());
 }
 
 // Documentation of the nextDataSet function
@@ -161,6 +164,16 @@ shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args) const 
   }
 
   return shcore::Value(array);
+}
+
+std::vector<std::shared_ptr<mysql::Row>> ClassicResult::fetch_all() const {
+  std::vector<std::shared_ptr<mysql::Row>> rows;
+  std::shared_ptr<mysql::Row> row = fetch_one();
+  while (row) {
+    rows.push_back(row);
+    row = fetch_one();
+  }
+  return rows;
 }
 
 // Documentation of the getAffectedRowCount function
