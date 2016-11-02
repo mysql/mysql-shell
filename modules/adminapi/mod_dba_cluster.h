@@ -77,6 +77,9 @@ public:
 
   void adopt_from_gr();
 
+  shcore::Value add_seed_instance(const shcore::Argument_list &args, bool is_adopted);
+
+public:
   shcore::Value add_seed_instance(const shcore::Argument_list &args);
   shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
