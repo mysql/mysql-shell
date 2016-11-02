@@ -6570,12 +6570,12 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node',
                         '--file=' + Exec_files_location + 'JavaScript_Error.js']
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdin, stdout = p.communicate()
-        if stdout.find(bytearray("Invalid object member getdatabase", "ascii")):
+        stdoutdata, stderrordata = p.communicate()
+        if stderrordata.find(bytearray("Invalid object member getdatabase", "ascii")) >= 0:
             results = 'PASS'
         else:
             results = 'FAIL'
-        self.assertEqual(results, 'PASS', str(stdout))
+        self.assertEqual(results, 'PASS', str(stderrordata))
 
     def test_MYS_290_01(self):
         '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --interactive=full --file '''
@@ -6584,12 +6584,12 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--interactive=full',
                         '--file=' + Exec_files_location + 'JavaScript_Error.js']
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdin, stdout = p.communicate()
-        if stdout.find(bytearray("Invalid object member getdatabase", "ascii")):
+        stdoutdata, stderrordata = p.communicate()
+        if stderrordata.find(bytearray("Invalid object member getdatabase", "ascii")) >= 0:
             results = 'PASS'
         else:
             results = 'FAIL'
-        self.assertEqual(results, 'PASS', str(stdout))
+        self.assertEqual(results, 'PASS', str(stderrordata))
 
     # FAILING........
     @unittest.skip("SSL is not creating the connection, related issue: https://jira.oraclecorp.com/jira/browse/MYS-488")
@@ -7862,7 +7862,7 @@ class XShell_TestCases(unittest.TestCase):
                                                  LOCALHOST.xprotocol_port), '--node', '--js']
         x_cmds = [("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
                   ("view.update().set('last_name','GUINESSE').where('actor_id=1').execute()\n",
-                   "MySQL Error (1288): The target table actor_info of the UPDATE is not updatable")
+                   "The target table actor_info of the UPDATE is not updatable")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8330,7 +8330,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=world_x', '--js']
-        var = "{ GNP: .6, IndepYear: 1967, Name: \"Sealand\", _id: \"SEA\"" + \
+        var = "{ GNP: .6, IndepYear: 1967, Name: \"Sealand\", _id: \"SEA\"," + \
               "demographics: { LifeExpectancy: 79, Population: 27}," + \
               "geography: { Continent: \"Europe\", Region: \"British Islands\", SurfaceArea: 193}," + \
               "government: { GovernmentForm: \"Monarchy\", HeadOfState: \"Michael Bates\"}}"
