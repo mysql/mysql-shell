@@ -810,7 +810,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[2.0.07]:4 Connect local Server on PY mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -850,7 +850,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[2.0.08]:4 Connect remote Server on PY mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(REMOTEHOST.user,
                                                                                      REMOTEHOST.password,
                                                                                      REMOTEHOST.host, REMOTEHOST.port),
@@ -1834,7 +1834,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.2.016]:2 PY Read executing the stored procedure: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                    LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -2658,7 +2658,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.3.021]:1 PY Update table using session object: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -2707,7 +2707,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.3.022]:1 PY Update table using multiline mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -2806,7 +2806,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.3.024]:1 PY Update database using session object: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -2841,7 +2841,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.3.025]:1 PY Update database using multiline mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -2933,7 +2933,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.3.027]:1 PY Update alter view using session object: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -2973,7 +2973,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.3.028]:1 PY Update alter view using multiline mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -3062,7 +3062,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.3.030]:1 PY Update alter stored procedure using session object: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -4085,7 +4085,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.4.021]:1 PY Delete table using session object: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import  mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -4137,7 +4137,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.4.022]:1 PY Delete table using multiline mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                    LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -4243,7 +4243,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.4.024]:1 PY Delete database using session object: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -4274,7 +4274,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.4.025]:1 PY Delete database using multiline mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -4358,7 +4358,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.4.027]:1 PY Delete view using session object: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                      LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
@@ -4402,7 +4402,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[4.4.028]:1 PY Delete view using multiline mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysql\n", "mysql-py>"),
+        x_cmds = [("from mysqlsh import mysql\n", "mysql-py>"),
                   ("session=mysql.get_classic_session('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                    LOCALHOST.host, LOCALHOST.port),
                    "mysql-py>"),
