@@ -163,7 +163,7 @@
                         }, 
                         "mode": "R/O", 
                         "role": "HA", 
-                        "status": "RECOVERING"
+                        "status": "{{ONLINE|RECOVERING}}"
                     }
                 }, 
                 "mode": "R/W", 
