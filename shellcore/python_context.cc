@@ -77,7 +77,7 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
     throw Exception::runtime_error("Error initializing python context.");
     PyErr_Print();
   }
-  
+
   // register shell module
   register_shell_stderr_module();
   register_shell_stdout_module();
@@ -436,15 +436,20 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args, co
       // <Operation>Error
       // i.e. ImportError, AttributeError, SystemError
       auto position = text.find("Error");
-      if (position > 0 && position != std::string::npos)
+      if (position == std::string::npos && text == "Exception")
         ctx->_error_buffer_ready = true;
-
+      else if (position > 0 && position != std::string::npos)
+        ctx->_error_buffer_ready = true;
       if (ctx->_error_buffer_ready && text == "\n") {
         ctx->_delegate->print_error(ctx->_delegate->user_data, ctx->_error_buffer.c_str());
         ctx->_error_buffer.clear();
         ctx->_error_buffer_ready = false;
       }
     }
+  } else if (stream == "error.flush") {
+    ctx->_delegate->print_error(ctx->_delegate->user_data, ctx->_error_buffer.c_str());
+    ctx->_error_buffer.clear();
+    ctx->_error_buffer_ready = false;
   } else
     ctx->_delegate->print(ctx->_delegate->user_data, text.c_str());
 
@@ -554,6 +559,15 @@ PyObject *Python_context::shell_stderr(PyObject *self, PyObject *args) {
   return shell_print(self, args, "error");
 }
 
+PyObject *Python_context::shell_flush_stderr(PyObject *self, PyObject *args) {
+  return shell_print(self, args, "error.flush");
+}
+
+PyObject *Python_context::shell_flush(PyObject *self, PyObject *args) {
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
 PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self), PyObject *args) {
   Python_context *ctx;
   std::string text;
@@ -574,19 +588,21 @@ PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self), Py
   return Py_None;
 }
 
-static PyMethodDef ShellStdErrMethods[] = {
+PyMethodDef Python_context::ShellStdErrMethods[] = {
   {"write", &Python_context::shell_stderr, METH_VARARGS,
   "Write an error string in the SHELL shell."},
+  {"flush", &Python_context::shell_flush_stderr, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-static PyMethodDef ShellStdOutMethods[] = {
+PyMethodDef Python_context::ShellStdOutMethods[] = {
   {"write", &Python_context::shell_stdout, METH_VARARGS,
   "Write a string in the SHELL shell."},
+  {"flush", &Python_context::shell_flush, METH_VARARGS, ""},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-static PyMethodDef ShellPythonSupportMethods[] = {
+PyMethodDef Python_context::ShellPythonSupportMethods[] = {
   {"interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
   "Custom displayhook to capture interactive expr evaluation results."},
   {NULL, NULL, 0, NULL}        /* Sentinel */
@@ -631,19 +647,19 @@ PyObject *Python_context::call_module_function(PyObject *self, PyObject *args, P
 }
 
 void Python_context::register_mysqlsh_module() {
-  
+
   // Registers the mysqlsh module/package, at least for now this exists
   // only on the python side of things, this module encloses the inner
   // modules: mysql and mysqlx to prevent class names i.e. using connector/py
   PyMethodDef py_mysqlsh_members[] = {{NULL, NULL, 0, NULL}};
   PyObject *py_mysqlsh_module = Py_InitModule("mysqlsh", py_mysqlsh_members);
-  
+
   if (py_mysqlsh_module == NULL)
     throw std::runtime_error("Error initializing the 'mysqlsh' module in Python support");
-  
+
   PyObject* py_mysqlsh_dict = PyModule_GetDict(py_mysqlsh_module );
-  
-  
+
+
   // Now registers each available module as part of the mysqlsh package
   auto modules = Object_factory::package_contents("__modules__");
 
@@ -658,10 +674,10 @@ void Python_context::register_mysqlsh_module() {
     // But exposed in the mysqlsh module as the original name
     std::string module_name = "__" + name + "__";
     PyObject *py_module = Py_InitModule(module_name.c_str(), py_members);
-    
+
     if (py_module == NULL)
       throw std::runtime_error("Error initializing the '" + name + "' module in Python support");
-    
+
     _modules[py_module] = module;
 
     // Now inserts every element on the module
@@ -672,11 +688,11 @@ void Python_context::register_mysqlsh_module() {
       if (member.type == shcore::Function || member.type == shcore::Object)
         PyDict_SetItem(py_dict, PyString_FromString(name.c_str()), _types.shcore_value_to_pyobj(member));
     }
-    
+
     // Now makes the module available through the mysqlsh module, using the original name
     PyDict_SetItem(py_mysqlsh_dict, PyString_FromString(name.c_str()), py_module);
   }
-  
+
   // Finally inserts the globals
   PyDict_SetItem(py_mysqlsh_dict, PyString_FromString("globals"), _global_namespace);
 }
