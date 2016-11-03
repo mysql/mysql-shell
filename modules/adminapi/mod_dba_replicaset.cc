@@ -68,8 +68,7 @@ static std::string generate_password(int password_lenght);
 
 ReplicaSet::ReplicaSet(const std::string &name, const std::string &topology_type,
                        std::shared_ptr<MetadataStorage> metadata_storage) :
-  _name(name), _topology_type(topology_type), _json_mode(JSON_STANDARD_OUTPUT),
-  _metadata_storage(metadata_storage) {
+  _name(name), _topology_type(topology_type), _metadata_storage(metadata_storage) {
   init();
 }
 
@@ -80,18 +79,21 @@ std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent), in
   return s_out;
 }
 
-static void append_member_status(shcore::JSON_dumper& dumper,
+static void append_member_status(const shcore::Value::Map_type_ref& node,
                                  std::shared_ptr<mysqlsh::Row> member_row,
                                  bool read_write) {
   //dumper.append_string("name", member_row->get_member(1).as_string());
   auto status = member_row->get_member(3);
-  dumper.append_string("address", member_row->get_member(4).as_string());
-  dumper.append_string("status", status ? status.as_string() : "OFFLINE");
-  dumper.append_string("role", member_row->get_member(2).as_string());
-  dumper.append_string("mode", read_write ? "R/W" : "R/O");
+  (*node)["address"] = member_row->get_member(4);
+  (*node)["status"] = status ? status : shcore::Value("OFFLINE");
+  (*node)["role"] = member_row->get_member(2);
+  (*node)["mode"] = shcore::Value(read_write ? "R/W" : "R/O");
 }
 
-void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const {
+shcore::Value ReplicaSet::get_status() const {
+  shcore::Value ret_val = shcore::Value::new_map();
+  auto status = ret_val.as_map();
+
   bool single_primary_mode = _topology_type == kTopologyPrimaryMaster;
 
   // Identifies the master node
@@ -104,8 +106,8 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const {
   }
 
   std::string query = "select mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
-                      " from mysql_innodb_cluster_metadata.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID`"
-                      " where replicaset_id = " + std::to_string(_id);
+  " from mysql_innodb_cluster_metadata.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID`"
+  " where replicaset_id = " + std::to_string(_id);
   auto result = _metadata_storage->execute_sql(query);
 
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());
@@ -141,60 +143,54 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const {
       break;
   }
 
-  dumper.start_object();
-  dumper.append_string("status", rset_status);
-  if (!single_primary_mode) {
-    //  dumper.append_string("topology", _topology_type);
+  (*status)["name"] = shcore::Value(_name);
+  (*status)["status"] = shcore::Value(rset_status);
+
+  // Creates the topology node
+  (*status)["topology"] = shcore::Value::new_map();
+  auto instance_owner_node = status->get_map("topology");
+
+  // In single primary mode there should be a master
+  if (single_primary_mode && master) {
+
+    auto master_name = master->get_member(1).as_string();
+    (*instance_owner_node)[master_name] = shcore::Value::new_map();
+    auto master_node = instance_owner_node->get_map(master_name);
+
+    append_member_status(master_node, master, true);
+
+    (*master_node)["leaves"] = shcore::Value::new_map();
+    instance_owner_node = master_node->get_map("leaves");
   }
-  dumper.append_string("topology");
-  if (single_primary_mode) {
-    dumper.start_object();
-    if (master) {
-      dumper.append_string(master->get_member(1).as_string());
-      dumper.start_object();
-      append_member_status(dumper, master, true);
-      dumper.append_string("leaves");
-      dumper.start_object();
+
+  //Inserts the read only instances
+  for (auto value : *instances.get()) {
+
+    // Gets each row
+    auto row = value.as_object<mysqlsh::Row>();
+
+    // Inserts the ones that are not the master
+    if (row != master) {
+      auto instance_name = row->get_member(1).as_string();
+      (*instance_owner_node)[instance_name] = shcore::Value::new_map();
+      auto instance_node = instance_owner_node->get_map(instance_name);
+      append_member_status(instance_node, row, single_primary_mode ? false : true);
+      (*instance_node)["leaves"] = shcore::Value::new_map();
     }
-    for (auto value : *instances.get()) {
-      auto row = value.as_object<mysqlsh::Row>();
-      if (row != master) {
-        dumper.append_string(row->get_member(1).as_string());
-        dumper.start_object();
-        append_member_status(dumper, row, single_primary_mode ? false : true);
-        dumper.append_string("leaves");
-        dumper.start_object();
-        dumper.end_object();
-        dumper.end_object();
-      }
-    }
-    if (master) {
-      dumper.end_object();
-      dumper.end_object();
-    }
-    dumper.end_object();
-  } else {
-    dumper.start_object();
-    for (auto value : *instances.get()) {
-      auto row = value.as_object<mysqlsh::Row>();
-      dumper.append_string(row->get_member(1).as_string());
-      dumper.start_object();
-      append_member_status(dumper, row, true);
-      dumper.append_string("leaves");
-      dumper.start_object();
-      dumper.end_object();
-      dumper.end_object();
-    }
-    dumper.end_object();
   }
-  dumper.end_object();
+
+  return ret_val;
 }
 
-void ReplicaSet::append_json_description(shcore::JSON_dumper& dumper) const {
+shcore::Value ReplicaSet::get_description() const {
+  shcore::Value ret_val = shcore::Value::new_map();
+  auto description = ret_val.as_map();
+
+
   std::string query = "select mysql_server_uuid, instance_name, role,"
-                      " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
-                      " from mysql_innodb_cluster_metadata.instances"
-                      " where replicaset_id = " + std::to_string(_id);
+  " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
+  " from mysql_innodb_cluster_metadata.instances"
+  " where replicaset_id = " + std::to_string(_id);
   auto result = _metadata_storage->execute_sql(query);
 
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());
@@ -202,34 +198,25 @@ void ReplicaSet::append_json_description(shcore::JSON_dumper& dumper) const {
   // First we identify the master instance
   auto instances = raw_instances.as_array();
 
-  dumper.start_object();
-  dumper.append_string("name", _name);
+  (*description)["name"] = shcore::Value(_name);
+  (*description)["instances"] = shcore::Value::new_array();
 
-  // Creates the instances element
-  dumper.append_string("instances");
-  dumper.start_array();
+  auto instance_list = description->get_array("instances");
+
 
   for (auto value : *instances.get()) {
     auto row = value.as_object<mysqlsh::Row>();
-    dumper.start_object();
-    dumper.append_string("name", row->get_member(1).as_string());
-    dumper.append_string("host", row->get_member(3).as_string());
-    dumper.append_string("role", row->get_member(2).as_string());
-    dumper.end_object();
-  }
-  dumper.end_array();
-  dumper.end_object();
-}
+    auto instance = shcore::Value::new_map();
+    auto instance_obj = instance.as_map();
 
-void ReplicaSet::append_json(shcore::JSON_dumper& dumper) const {
-  if (_json_mode == JSON_STANDARD_OUTPUT)
-    shcore::Cpp_object_bridge::append_json(dumper);
-  else {
-    if (_json_mode == JSON_STATUS_OUTPUT)
-      append_json_status(dumper);
-    else if (_json_mode == JSON_TOPOLOGY_OUTPUT)
-      append_json_description(dumper);
+    (*instance_obj)["name"] = row->get_member(1);
+    (*instance_obj)["host"] = row->get_member(3);
+    (*instance_obj)["role"] = row->get_member(2);
+
+    instance_list->push_back(instance);
   }
+
+  return ret_val;
 }
 
 bool ReplicaSet::operator == (const Object_bridge &other) const {
@@ -361,7 +348,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
 
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
-  log_debug("RS %llu: Adding instance %s to replicaset%s",
+  log_debug("RS %lu: Adding instance %s to replicaset%s",
       _id, instance_address.c_str(), is_instance_on_md ? " (already in MD)" : "");
 
   shcore::Argument_list new_args;

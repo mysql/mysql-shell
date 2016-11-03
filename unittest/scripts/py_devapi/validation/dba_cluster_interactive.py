@@ -37,7 +37,6 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 
 #@<OUT> Cluster: describe1
 {
-    "adminType": "local",
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
@@ -60,6 +59,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
+        "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
@@ -96,7 +96,6 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 
 #@<OUT> Cluster: describe2
 {
-    "adminType": "local",
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
@@ -114,6 +113,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
+        "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
@@ -136,7 +136,6 @@ and unregister the ReplicaSets from the cluster.
 
 The following replicasets are currently registered:
 {
-    "adminType": "local",
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
@@ -162,7 +161,6 @@ The following replicasets are currently registered:
 
 #@<OUT> Cluster: describe3
 {
-    "adminType": "local",
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
@@ -175,6 +173,7 @@ The following replicasets are currently registered:
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
+        "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
 

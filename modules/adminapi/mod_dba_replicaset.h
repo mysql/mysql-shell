@@ -52,16 +52,12 @@ public:
   virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
   virtual bool operator == (const Object_bridge &other) const;
 
-  virtual void append_json(shcore::JSON_dumper& dumper) const;
-
   virtual shcore::Value get_member(const std::string &prop) const;
 
   void set_id(uint64_t id) { _id = id; }
   uint64_t get_id() { return _id; }
 
   void set_name(std::string name) { _name = name; }
-
-  void set_json_mode(int mode) { _json_mode = mode; }
 
   void set_cluster(std::shared_ptr<Cluster> cluster) { _cluster = cluster; }
   std::shared_ptr<Cluster> get_cluster() const { return _cluster; }
@@ -122,6 +118,9 @@ private:
   std::vector<NewInstanceInfo> get_newly_discovered_instances();
   std::vector<MissingInstanceInfo> get_unavailable_instances();
 
+  shcore::Value get_status() const;
+  shcore::Value get_description() const;
+
 protected:
   uint64_t _id;
   std::string _name;
@@ -129,13 +128,6 @@ protected:
   // TODO: add missing fields, rs_type, etc
 
 private:
-  // This flag will be used to determine what should be included on the JSON output for the object
-  // 0 standard
-  // 1 means status
-  // 2 means describe
-  int _json_mode;
-  void append_json_status(shcore::JSON_dumper& dumper) const;
-  void append_json_description(shcore::JSON_dumper& dumper) const;
   void init();
 
   bool do_join_replicaset(const std::string &instance_url,

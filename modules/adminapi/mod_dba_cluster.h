@@ -47,8 +47,6 @@ public:
   virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
   virtual bool operator == (const Object_bridge &other) const;
 
-  virtual void append_json(shcore::JSON_dumper& dumper) const;
-
   virtual shcore::Value get_member(const std::string &prop) const;
 
   const uint64_t get_id() { return _id; }
@@ -129,11 +127,6 @@ protected:
   shcore::Value::Map_type_ref _attributes;
 
 private:
-  // This flag will be used to determine what should be included on the JSON output for the object
-  // 0 standard
-  // 1 means status
-  // 2 means describe
-  int _json_mode;
   void init();
 
   std::shared_ptr<MetadataStorage> _metadata_storage;

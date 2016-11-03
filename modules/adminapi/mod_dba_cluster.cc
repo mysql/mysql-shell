@@ -52,8 +52,7 @@ REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 REGISTER_HELP(CLUSTER_ADMINTYPE_BRIEF, "Cluster Administration type.");
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _json_mode(JSON_STANDARD_OUTPUT),
-_metadata_storage(metadata_storage) {
+_name(name),_metadata_storage(metadata_storage) {
   init();
 }
 
@@ -396,33 +395,8 @@ void Cluster::set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs) {
     _default_replica_set->set_cluster(shared_from_this());
 };
 
-void Cluster::append_json(shcore::JSON_dumper& dumper) const {
-  if (_json_mode) {
-    // Check if the Cluster exists (was dissolved previously)
-    if (!_metadata_storage->cluster_exists(_name))
-      throw Exception::argument_error("The cluster '" + _name + "' no longer exists.");
-
-    dumper.start_object();
-    dumper.append_string("clusterName", _name);
-
-    if (!_default_replica_set)
-      dumper.append_null("defaultReplicaSet");
-    else {
-      if (_json_mode == JSON_TOPOLOGY_OUTPUT)
-        dumper.append_string("adminType", (*_options)[OPT_ADMIN_TYPE].as_string());
-
-      _default_replica_set->set_json_mode(_json_mode);
-      dumper.append_value("defaultReplicaSet", shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set)));
-      _default_replica_set->set_json_mode(JSON_STANDARD_OUTPUT);
-    }
-
-    dumper.end_object();
-  } else
-    Cpp_object_bridge::append_json(dumper);
-}
-
 REGISTER_HELP(CLUSTER_DESCRIBE_BRIEF, "Describe the structure of the cluster.");
-REGISTER_HELP(CLUSTER_DESCRIBE_RETURN, "@return A formatted JSON describing the structure of the cluster.");
+REGISTER_HELP(CLUSTER_DESCRIBE_RETURN, "@return A JSON object describing the structure of the cluster.");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL, "This function describes the structure of the cluster including all its information, ReplicaSets and Instances.");
 
 /**
@@ -439,18 +413,32 @@ str Cluster::describe() {}
 #endif
 
 shcore::Value Cluster::describe(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("describe").c_str());
+
   shcore::Value ret_val;
-  _json_mode = JSON_TOPOLOGY_OUTPUT;
-  shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
-  shcore::Value json = shcore::Value(myself.json(true));
-  ret_val = shcore::Value::parse(json.as_string());
-  _json_mode = JSON_STANDARD_OUTPUT;
+
+  try {
+    if (!_metadata_storage->cluster_exists(_name))
+      throw Exception::argument_error("The cluster '" + _name + "' no longer exists.");
+
+    ret_val = shcore::Value::new_map();
+
+    auto description = ret_val.as_map();
+
+    (*description)["clusterName"] = shcore::Value(_name);
+
+    if (!_default_replica_set)
+      (*description)["defaultReplicaSet"] = shcore::Value::Null();
+    else
+      (*description)["defaultReplicaSet"] = _default_replica_set->get_description();
+
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("describe"));
 
   return ret_val;
 }
 
 REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
-REGISTER_HELP(CLUSTER_STATUS_RETURN, "@return A formatted JSON describing the status of the cluster.");
+REGISTER_HELP(CLUSTER_STATUS_RETURN, "@return A JSON object describing the status of the cluster.");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL, "This function describes the status of the cluster including its ReplicaSets and Instances.");
 
 /**
@@ -467,12 +455,26 @@ str Cluster::status() {}
 #endif
 
 shcore::Value Cluster::status(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("status").c_str());
+
   shcore::Value ret_val;
-  _json_mode = JSON_STATUS_OUTPUT;
-  shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
-  shcore::Value json = shcore::Value(myself.json(true));
-  ret_val = shcore::Value::parse(json.as_string());
-  _json_mode = JSON_STANDARD_OUTPUT;
+
+  try {
+    if (!_metadata_storage->cluster_exists(_name))
+      throw Exception::argument_error("The cluster '" + _name + "' no longer exists.");
+
+    ret_val = shcore::Value::new_map();
+
+    auto status = ret_val.as_map();
+
+    (*status)["clusterName"] = shcore::Value(_name);
+
+    if (!_default_replica_set)
+      (*status)["defaultReplicaSet"] = shcore::Value::Null();
+    else
+      (*status)["defaultReplicaSet"] = _default_replica_set->get_status();
+
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
 
   return ret_val;
 }

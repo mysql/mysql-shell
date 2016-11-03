@@ -30,7 +30,6 @@
 
 #@<OUT> Cluster: describe1
 {
-    "adminType": "local",
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
@@ -53,6 +52,7 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
+        "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
@@ -89,7 +89,6 @@
 
 #@<OUT> Cluster: describe2
 {
-    "adminType": "local",
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
@@ -107,6 +106,7 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
+        "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
@@ -127,7 +127,6 @@
 
 #@<OUT> Cluster: describe after adding 2
 {
-    "adminType": "local", 
     "clusterName": "devCluster", 
     "defaultReplicaSet": {
         "instances": [
@@ -151,6 +150,7 @@
 {
     "clusterName": "devCluster", 
     "defaultReplicaSet": {
+        "name": "default",
         "status": "Cluster is NOT tolerant to any failures.", 
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
@@ -183,7 +183,6 @@
 
 #@<OUT> Cluster: describe3
 {
-    "adminType": "local",
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
@@ -196,6 +195,7 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
+        "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
 
