@@ -206,8 +206,7 @@ file(GLOB libmysqlshmods_SRC
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 
-include_directories("${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/include/"
-                    "${CMAKE_SOURCE_DIR}/common/yassl/include/")
+include_directories(${SSL_INCLUDE_DIRS})
 if(WITH_SSL STREQUAL "bundled")
   set(MY_AES_SOURCE my_aes_yassl.cc)
 else()
