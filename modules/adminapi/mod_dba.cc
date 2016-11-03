@@ -26,6 +26,7 @@
 #include "modules/adminapi/mod_dba.h"
 //#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/mod_mysql_resultset.h"
 #include "utils/utils_general.h"
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core_options.h"
@@ -37,7 +38,6 @@
 
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
-#include <boost/lexical_cast.hpp>
 
 #include "common/process_launcher/process_launcher.h"
 
@@ -314,6 +314,18 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     auto session = get_active_session();
 
+    if (adopt_from_gr) { // TODO: move this to a GR specific class
+      // check whether single_primary_mode is on
+      auto classic = std::static_pointer_cast<mysql::ClassicSession>(session);
+      auto result = classic->execute_sql("select @@group_replication_single_primary_mode");
+      auto row = result->fetch_one();
+      if (row) {
+        log_info("Adopted cluster: group_replication_single_primary_mode=%s",
+                 row->get_value_as_string(0).c_str());
+        multi_master = row->get_value(0).as_int() == 0;
+      }
+    }
+
     Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list args;
     options = get_connection_data(session->uri(), false);
@@ -322,21 +334,16 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     // args.push_back(shcore::Value(session->uri()));
     args.push_back(shcore::Value(session->get_password()));
 
-    if (force) {
-      args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
-                                   : ReplicaSet::kTopologyPrimaryMaster));
-    } else {
-      if (multi_master)
-        throw shcore::Exception::argument_error("Use of multiMaster mode is not recommended unless you understand the limitations. Please use the 'force' option if you understand and accept them.");
+    if (multi_master && !(force || adopt_from_gr)) {
+      throw shcore::Exception::argument_error("Use of multiMaster mode is not recommended unless you understand the limitations. Please use the 'force' option if you understand and accept them.");
     }
-
-    cluster->add_seed_instance(args);
+    cluster->add_seed_instance(args, multi_master, adopt_from_gr);
 
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
 
     if (adopt_from_gr)
-      cluster->adopt_from_gr();
+      cluster->get_default_replicaset()->adopt_from_gr();
 
     tx.commit();
   }

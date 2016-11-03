@@ -73,12 +73,10 @@ public:
     _provisioning_interface = provisioning_interface;
   }
 
-  void adopt_from_gr();
-
-  shcore::Value add_seed_instance(const shcore::Argument_list &args, bool is_adopted);
+  shcore::Value add_seed_instance(const shcore::Argument_list &args,
+                                  bool multi_master, bool is_adopted);
 
 public:
-  shcore::Value add_seed_instance(const shcore::Argument_list &args);
   shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);

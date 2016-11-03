@@ -69,6 +69,7 @@ static std::string generate_password(int password_lenght);
 ReplicaSet::ReplicaSet(const std::string &name, const std::string &topology_type,
                        std::shared_ptr<MetadataStorage> metadata_storage) :
   _name(name), _topology_type(topology_type), _metadata_storage(metadata_storage) {
+  assert(topology_type == kTopologyMultiMaster || topology_type == kTopologyPrimaryMaster);
   init();
 }
 
@@ -265,6 +266,32 @@ void ReplicaSet::init() {
   add_varargs_method("checkInstanceState", std::bind(&ReplicaSet::check_instance_state, this, _1));
 }
 
+
+void ReplicaSet::adopt_from_gr() {
+  shcore::Value ret_val;
+
+  auto newly_discovered_instances_list(get_newly_discovered_instances());
+
+  // Add all instances to the cluster metadata
+  for (ReplicaSet::NewInstanceInfo &instance : newly_discovered_instances_list) {
+    Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type);
+    (*newly_discovered_instance)["host"] = shcore::Value(instance.host);
+    (*newly_discovered_instance)["port"] = shcore::Value(instance.port);
+
+    log_info("Adopting member %s:%d from existing group",
+              instance.host.c_str(),
+              instance.port);
+
+    // TODO: what if the password is different on each server?
+    // And what if is different from the current session?
+    auto session = _metadata_storage->get_dba()->get_active_session();
+    (*newly_discovered_instance)["user"] = shcore::Value(session->get_user());
+    (*newly_discovered_instance)["password"] = shcore::Value(session->get_password());
+
+    add_instance_metadata(newly_discovered_instance);
+  }
+}
+
 #if DOXYGEN_CPP
 /**
  * Use this function to add a Instance to the ReplicaSet object
@@ -349,7 +376,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
   log_debug("RS %lu: Adding instance %s to replicaset%s",
-      _id, instance_address.c_str(), is_instance_on_md ? " (already in MD)" : "");
+      static_cast<unsigned long>(_id), instance_address.c_str(),
+      is_instance_on_md ? " (already in MD)" : "");
 
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(options));

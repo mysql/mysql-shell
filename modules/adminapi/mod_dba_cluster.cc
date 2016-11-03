@@ -154,17 +154,10 @@ None add_seed_instance(Document doc) {}
 #endif
 #endif
 #endif
-shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_) {
-  //args_.ensure_count(1, 3, (class_name() + ".addSeedInstance").c_str());
-  return add_seed_instance(args_, false);
-}
-
-shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_,
-    bool is_adopted) {
+shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
+    bool multi_master, bool is_adopted) {
   shcore::Value ret_val;
-  shcore::Argument_list args(args_);
-  //try
-  //{
+
   MetadataStorage::Transaction tx(_metadata_storage);
   std::string default_replication_user = "rpl_user"; // Default for V1.0 is rpl_user
   std::shared_ptr<ReplicaSet> default_rs = get_default_replicaset();
@@ -176,9 +169,8 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_,
       throw shcore::Exception::logic_error("Default ReplicaSet already initialized. Please use: addInstance() to add more Instances to the ReplicaSet.");
   } else {
     std::string topology_type = ReplicaSet::kTopologyPrimaryMaster;
-    if (args.size() == 3) {
-      topology_type = args[2].as_string();
-      args.pop_back();
+    if (multi_master) {
+      topology_type = ReplicaSet::kTopologyMultiMaster;
     }
     // Create the Default ReplicaSet and assign it to the Cluster's default_replica_set var
     _default_replica_set.reset(new ReplicaSet("default", topology_type,
@@ -197,8 +189,6 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_,
   _metadata_storage->set_replicaset_group_name(_default_replica_set, group_replication_group_name);
 
   tx.commit();
-  //}
-  //CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addSeedInstance"));
 
   return ret_val;
 }
@@ -644,27 +634,4 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getInstanceState"));
 
   return ret_val;
-}
-
-void Cluster::adopt_from_gr() {
-  auto newly_discovered_instances_list(get_default_replicaset()->get_newly_discovered_instances());
-
-  // Add all instances to the cluster metadata
-  for (ReplicaSet::NewInstanceInfo &instance : newly_discovered_instances_list) {
-    Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type);
-    (*newly_discovered_instance)["host"] = shcore::Value(instance.host);
-    (*newly_discovered_instance)["port"] = shcore::Value(instance.port);
-
-    log_info("Adopting member %s:%d from existing group",
-              instance.host.c_str(),
-              instance.port);
-
-    // TODO: what if the password is different on each server?
-    // And what if is different from the current session?
-    auto session = _metadata_storage->get_dba()->get_active_session();
-    (*newly_discovered_instance)["user"] = shcore::Value(session->get_user());
-    (*newly_discovered_instance)["password"] = shcore::Value(session->get_password());
-
-    get_default_replicaset()->add_instance_metadata(newly_discovered_instance);
-  }
 }

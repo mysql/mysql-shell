@@ -67,6 +67,8 @@ public:
   void add_instance_metadata(const shcore::Value::Map_type_ref &instance_definition);
   void remove_instance_metadata(const shcore::Argument_list &instance_options);
 
+  void adopt_from_gr();
+
   std::vector<std::string> get_instances_gr();
   std::vector<std::string> get_instances_md();
 
@@ -104,6 +106,7 @@ public:
   shcore::Value rescan(const shcore::Argument_list &args);
 
 private:
+  //TODO these should go to a GroupReplication file
   friend Cluster;
   struct NewInstanceInfo {
     std::string member_id;
