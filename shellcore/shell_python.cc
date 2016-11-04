@@ -92,16 +92,13 @@ std::string Shell_python::prompt() {
     if (value && value.type == String)
       ret_val = value.as_string();
     else {
-      Value session_wrapper = _owner->active_session();
-      if (session_wrapper) {
-        std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
+      std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
 
-        if (session) {
-          shcore::Value st = session->get_capability("node_type");
+      if (session) {
+        shcore::Value st = session->get_capability("node_type");
 
-          if (st)
-            ret_val = st.as_string() + "-py> ";
-        }
+        if (st)
+          ret_val = st.as_string() + "-py> ";
       }
     }
   } catch (std::exception &exc) {

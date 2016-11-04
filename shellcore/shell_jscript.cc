@@ -60,16 +60,13 @@ std::string Shell_javascript::prompt() {
   }
 
   std::string node_type = "mysql";
-  Value session_wrapper = _owner->active_session();
-  if (session_wrapper) {
-    std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
+  std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
 
-    if (session) {
-      shcore::Value st = session->get_capability("node_type");
+  if (session) {
+    shcore::Value st = session->get_capability("node_type");
 
-      if (st)
-        node_type = st.as_string();
-    }
+    if (st)
+      node_type = st.as_string();
   }
 
   return node_type + "-js> ";

@@ -382,11 +382,6 @@ std::vector<std::string> Shell_core::get_global_objects() {
   return globals;
 }
 
-void Shell_core::set_active_session(const Value &session) {
-  _active_session = session;
-  set_global("session", session);
-}
-
 std::string Shell_core::prompt() {
   return _langs[interactive_mode()]->prompt();
 }

@@ -62,7 +62,6 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value) = 0;
   virtual Value get_global(const std::string &name) = 0;
-  virtual Value active_session() const = 0;
 
   virtual Object_registry *registry() = 0;
   virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) = 0;

@@ -169,16 +169,13 @@ std::string Shell_sql::prompt() {
     return (boost::format("%9s> ") % _parsing_context_stack.top().c_str()).str();
   else {
     std::string node_type = "mysql";
-    Value session_wrapper = _owner->active_session();
-    if (session_wrapper) {
-      std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
+    std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
 
-      if (session) {
-        shcore::Value st = session->get_capability("node_type");
+    if (session) {
+      shcore::Value st = session->get_capability("node_type");
 
-        if (st)
-          node_type = st.as_string();
-      }
+      if (st)
+        node_type = st.as_string();
     }
 
     return node_type + "-sql> ";
@@ -208,8 +205,11 @@ void Shell_sql::print_exception(const shcore::Exception &e) {
 }
 
 void Shell_sql::abort() {
-  Value session_wrapper = _owner->active_session();
-  std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
+  std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
+  if (!session) {
+    return;
+  }
+
   // duplicate the connection
   std::shared_ptr<mysqlsh::mysql::ClassicSession> kill_session;
   std::shared_ptr<mysqlsh::mysqlx::NodeSession> kill_session2;
@@ -219,7 +219,7 @@ void Shell_sql::abort() {
   node = dynamic_cast<mysqlsh::mysqlx::NodeSession*>(session.get());
   if (classic) {
     kill_session.reset(new mysqlsh::mysql::ClassicSession(*dynamic_cast<mysqlsh::mysql::ClassicSession*>(classic)));
-  } else {
+  } else if (node) {
     kill_session2.reset(new mysqlsh::mysqlx::NodeSession(*dynamic_cast<mysqlsh::mysqlx::NodeSession*>(node)));
   }
   uint64_t connection_id = session->get_connection_id();

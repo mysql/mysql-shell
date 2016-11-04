@@ -126,9 +126,6 @@ public:
   virtual Value get_global(const std::string &name);
   std::vector<std::string> get_global_objects();
 
-  void set_active_session(const Value &session);
-  Value active_session() const { return _active_session; }
-
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type);
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session);
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session();
@@ -193,7 +190,6 @@ private:
   Object_registry *_registry;
   std::map<std::string, Value> _globals;
   std::map<Mode, Shell_language*> _langs;
-  Value _active_session;
 
   std::shared_ptr<mysqlsh::ShellDevelopmentSession> _global_dev_session;
 
