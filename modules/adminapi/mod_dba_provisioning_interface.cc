@@ -34,13 +34,13 @@ using namespace mysqlsh::dba;
 using namespace shcore;
 
 ProvisioningInterface::ProvisioningInterface(shcore::Interpreter_delegate* deleg) :
-_verbose(false), _delegate(deleg) {}
+_verbose(0), _delegate(deleg) {}
 
 ProvisioningInterface::~ProvisioningInterface() {}
 
 int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
                                      const std::vector<std::string> &passwords,
-                                     shcore::Value::Array_type_ref &errors, bool verbose) {
+                                     shcore::Value::Array_type_ref &errors, int verbose) {
   std::vector<const char *> args_script;
   std::string buf;
   char c;
@@ -81,25 +81,35 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   // API version check for mysqlprovision
   args_script.push_back("--log-format=json");
   args_script.push_back("-xV");
+
   args_script.push_back(kRequiredMySQLProvisionInterfaceVersion);
+
+  if (verbose > 1)
+    args_script.push_back("--verbose");
+
   args_script.push_back(NULL);
 
-  {
-    std::string cmdline;
-    for (auto s : args_script) {
-      if (s)
-        cmdline.append(s).append(" ");
-    }
-    log_info("DBA: mysqlprovision: Executing %s", cmdline.c_str());
+  std::string cmdline;
+  for (auto s : args_script) {
+    if (s)
+      cmdline.append(s).append(" ");
+  }
+  std::string message = "DBA: mysqlprovision: Executing " + cmdline;
+  log_info("%s", message.c_str());
+
+  if (verbose > 1) {
+    message += "\n";
+    _delegate->print(_delegate->user_data, message.c_str());
   }
 
-  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
   if (verbose) {
     std::string title = " MySQL Provision Output ";
     std::string half_header((78 - title.size()) / 2, '=');
-    std::string header = half_header + title + half_header;
+    std::string header = half_header + title + half_header + "\n";
     _delegate->print(_delegate->user_data, header.c_str());
   }
+
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
   p.start();
@@ -121,12 +131,18 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
       // Ignores the initial output (most likely prompts)
       // Until the first { is found, indicating the start of JSON data
       if (!json_started) {
-        buf += c;
         if (c == '{') {
           json_started = true;
+
+          // Prints any initial data
+          if (!buf.empty() && verbose)
+            _delegate->print(_delegate->user_data, buf.c_str());
+
           buf.clear();
-        } else
+        } else {
+          buf += c;
           continue;
+        }
       }
 
       if (c == '\n') {
@@ -141,9 +157,14 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
             std::string error = e.what();
             error += ": ";
             error += buf;
-            throw shcore::Exception::parser_error(error);
 
-            log_debug("DBA: mysqlprovision: %s", error.c_str());
+            // Prints the bad formatted buffer, instead of trowing an exception and aborting
+            // This is because despite the problam parsing the MP output
+            // The work may have been completed there.
+            _delegate->print(_delegate->user_data, buf.c_str());
+            //throw shcore::Exception::parser_error(error);
+
+            log_error("DBA: mysqlprovision: %s", error.c_str());
           }
 
           if (raw_data && raw_data.type == shcore::Map) {
@@ -157,6 +178,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
                 errors.reset(new shcore::Value::Array_type());
 
               errors->push_back(raw_data);
+              info = type + ": ";
+            } else if (type == "DEBUG") {
               info = type + ": ";
             }
 
@@ -225,7 +248,10 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     log_error("DBA: mysqlprovision exited with error code (%s) : %s ", std::to_string(exit_code).c_str(), full_output.c_str());
 
     // This error implies a wrong integratio nbetween the chell and MP
-    throw shcore::Exception::runtime_error("Error calling mysqlprovision. Look at the log for more details.");
+    std::string log_path = shcore::get_user_config_path();
+    log_path += "mysqlsh.log";
+
+    throw shcore::Exception::runtime_error("Error calling mysqlprovision. For more details look at the log at: " + log_path);
   } else
     log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
 

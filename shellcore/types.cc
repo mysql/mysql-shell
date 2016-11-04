@@ -1188,7 +1188,11 @@ int64_t Value::as_int() const {
   if (type == Integer)
     ret_val = value.i;
   else if (type == UInteger && value.ui <= uint64_t(std::numeric_limits<int64_t>::max()))
-    ret_val = (int64_t)value.ui;
+    ret_val = static_cast<int64_t>(value.ui);
+  else if (type == Float)
+    ret_val = static_cast<int64_t>(value.d);
+  else if (type == Bool)
+    ret_val = value.b ? 1 : 0;
   else
     throw Exception::type_error("Invalid typecast");
 
@@ -1438,7 +1442,7 @@ void Argument_map::ensure_keys(const std::set<std::string> &mandatory_keys,
 
   std::vector<std::string> missing_keys;
   std::vector<std::string> invalid_keys;
-  
+
   if (!validate_keys(mandatory_keys, optional_keys, missing_keys, invalid_keys)) {
     std::string msg;
     if (!invalid_keys.empty() && !missing_keys.empty()) {
@@ -1462,20 +1466,20 @@ bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
                                  const std::set<std::string> &optional_keys,
                                  std::vector<std::string> &missing_keys,
                                  std::vector<std::string> &invalid_keys) const {
-                   
+
   std::map<std::string, std::string> mandatory_aliases;
-  
+
   missing_keys.clear();
   invalid_keys.clear();
-  
+
   for(auto key: mandatory_keys) {
     auto aliases = split_string(key, "|");
     missing_keys.push_back(aliases[0]);
-    
+
     for(auto alias: aliases)
       mandatory_aliases[alias] = aliases[0];
   }
-  
+
   for (auto k : _map) {
     if (mandatory_aliases.find(k.first) != mandatory_aliases.end()) {
       auto position = std::find(missing_keys.begin(), missing_keys.end(), mandatory_aliases[k.first]);
@@ -1490,7 +1494,7 @@ bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
     } else
       invalid_keys.push_back(k.first);
   }
-  
+
   return missing_keys.empty() && invalid_keys.empty();
 }
 

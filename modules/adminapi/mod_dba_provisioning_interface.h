@@ -68,17 +68,17 @@ public:
   int leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
                        shcore::Value::Array_type_ref &errors);
 
-  void set_verbose(bool verbose) { _verbose = verbose; }
-  bool get_verbose() { return _verbose; }
+  void set_verbose(int verbose) { _verbose = verbose; }
+  int get_verbose() { return _verbose; }
 
 private:
-  bool _verbose;
+  int _verbose;
   shcore::Interpreter_delegate *_delegate;
   std::string _local_mysqlprovision_path;
 
   int execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
                 const std::vector<std::string> &passwords,
-                shcore::Value::Array_type_ref &errors, bool verbose);
+                shcore::Value::Array_type_ref &errors, int verbose);
   int exec_sandbox_op(const std::string &op, int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
                      const std::vector<std::string> &extra_args,

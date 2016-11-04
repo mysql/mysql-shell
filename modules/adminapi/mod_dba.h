@@ -79,7 +79,7 @@ public:
   shcore::IShell_core* get_owner() { return _shell_core; }
 
 #if DOXYGEN_JS
-  Boolean verbose; //!< $(DBA_VERBOSE_BRIEF)
+  Integer verbose;
   Cluster createCluster(String name, Dictionary options);
   Undefined deleteSandboxInstance(Integer port, Dictionary options);
   Instance deploySandboxInstance(Integer port, Dictionary options);
@@ -92,7 +92,7 @@ public:
   Undefined checkInstanceConfig(InstanceDef instance, Dictionary options);
   Instance configLocalInstance(InstanceDef instance, Dictionary options);
 #elif DOXYGEN_PY
-  bool verbose; //! $(DBA_VERBOSE)
+  int verbose;
   Cluster create_cluster(str name, dict options);
   None delete_sandbox_instance(int port, dict options);
   Instance deploy_sandbox_instance(int port, dict options);

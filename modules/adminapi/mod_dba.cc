@@ -59,6 +59,11 @@ REGISTER_HELP(DBA_CLOSING, "For more help on a specific function use: dba.help('
 REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deploySandboxInstance')");
 
 REGISTER_HELP(DBA_VERBOSE_BRIEF, "Enables verbose mode on the Dba operations.");
+REGISTER_HELP(DBA_VERBOSE_DETAIL, "The assigned value can be either boolean or integer, the result depends on the assigned value:");
+REGISTER_HELP(DBA_VERBOSE_DETAIL1, "@li 0: disables mysqlprovision verbosity");
+REGISTER_HELP(DBA_VERBOSE_DETAIL2, "@li 1: enables mysqlprovision verbosity");
+REGISTER_HELP(DBA_VERBOSE_DETAIL3, "@li >1: enables mysqlprovision debug verbosity");
+REGISTER_HELP(DBA_VERBOSE_DETAIL4, "@li Boolean: equivalent to assign either 0 or 1");
 
 std::map <std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession> > Dba::_session_cache;
 
@@ -94,15 +99,30 @@ void Dba::init() {
 
 void Dba::set_member(const std::string &prop, Value value) {
   if (prop == "verbose") {
-    if (value && value.type == shcore::Bool) {
-      _provisioning_interface->set_verbose(value.as_bool());
-    } else
-      throw shcore::Exception::value_error("Invalid value for property 'verbose'");
+    int verbosity;
+    try {
+      verbosity = value.as_int();
+      _provisioning_interface->set_verbose(verbosity);
+    }
+    catch (shcore::Exception& e) {
+      throw shcore::Exception::value_error("Invalid value for property 'verbose', use either boolean or integer value.");
+    }
   } else {
     Cpp_object_bridge::set_member(prop, value);
   }
 }
-
+/**
+ * $(DBA_VERBOSE_BRIEF)
+ *
+ * $(DBA_VERBOSE_DETAIL)
+ * $(DBA_VERBOSE_DETAIL1)
+ * $(DBA_VERBOSE_DETAIL2)
+ * $(DBA_VERBOSE_DETAIL3)
+ * $(DBA_VERBOSE_DETAIL4)
+ */
+#if DOXYGEN_JS || DOXYGEN_PY
+Cluster Dba::verbose;
+#endif
 Value Dba::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
