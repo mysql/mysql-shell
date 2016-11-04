@@ -95,7 +95,7 @@ public:
   Undefined addInstance(InstanceDef instance, String password);
   Undefined rejoinInstance(InstanceDef instance);
   Undefined removeInstance(InstanceDef instance);
-  Dictionary checkInstanceState(InstanceDef instance);
+  Dictionary checkInstanceState(InstanceDef instance, String password);
   String describe();
   String status();
   Undefined dissolve(Dictionary options);
@@ -108,7 +108,7 @@ public:
   None add_instance(InstanceDef instance, str password);
   None rejoin_instance(InstanceDef instance);
   None remove_instance(InstanceDef instance);
-  dict check_instance_state(InstanceDef instance);
+  dict check_instance_state(InstanceDef instance, str password);
   str describe();
   str status();
   None dissolve(Dictionary options);

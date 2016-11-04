@@ -89,8 +89,8 @@ public:
   Undefined resetSession(Session session);
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
-  Undefined checkInstanceConfig(Variant connectionData, String password);
-  Instance configLocalInstance(Variant connectionData);
+  Undefined checkInstanceConfig(InstanceDef instance, Dictionary options);
+  Instance configLocalInstance(InstanceDef instance, Dictionary options);
 #elif DOXYGEN_PY
   bool verbose; //! $(DBA_VERBOSE)
   Cluster create_cluster(str name, dict options);
@@ -103,8 +103,8 @@ public:
   None reset_session(Session session);
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
-  None check_instance_config(variant connectionData, str password);
-  JSON config_local_instance(variant connectionData);
+  None check_instance_config(InstanceDef instance, dict options);
+  JSON config_local_instance(InstanceDef instance, dict options);
 #endif
 
   void validate_session(const std::string &source) const;

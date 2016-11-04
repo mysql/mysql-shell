@@ -534,20 +534,17 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
-REGISTER_HELP(CLUSTER_RESCAN_PARAM, "@param options Optional parameter to specify if it should update the Metadata with the found changes.");
 REGISTER_HELP(CLUSTER_RESCAN_DETAIL, "This function rescans the cluster for new Group Replication members/instances.");
 
 /**
 * $(CLUSTER_RESCAN_BRIEF)
 *
-* $(CLUSTER_RESCAN_PARAM)
-*
 * $(CLUSTER_RESCAN_DETAIL)
 */
 #if DOXYGEN_JS
-Undefined Cluster::rescan(Dictionary options) {}
+Undefined Cluster::rescan() {}
 #elif DOXYGEN_PY
-None Cluster::rescan(Dictionary options) {}
+None Cluster::rescan() {}
 #endif
 
 shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
@@ -593,7 +590,7 @@ void Cluster::set_attribute(const std::string& attribute, const shcore::Value& v
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_BRIEF, "Verifies the instance gtid state in relation with the cluster.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM, "@param instance An instance definition.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM1, "@param password Optional string with the password for the connection.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL, "Analyzes the instance executed GTIDs with the executed/purged GTIDs on the cluster "
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL, "Analyzes the instance executed GTIDs with the executed/purged GTIDs on the cluster "\
                                                  "to determine if the instance is valid for the cluster.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL1, "The instance definition can be any of:");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2, "@li URI string.");

@@ -26,7 +26,46 @@
 #include "shellcore/module_registry.h"
 
 namespace mysqlsh {
+
+/**
+* $(MYSQL_BRIEF)
+*
+* $(MYSQL_DETAIL)
+*
+* $(MYSQL_DETAIL1)
+*
+* $(MYSQL_DETAIL2)
+*
+* $(MYSQL_DETAIL3)
+*
+* \if DOXYGEN_JS
+* \code
+* mysql-js> var mysql = require('mysql');
+*
+* // Then you can use the module functions and properties
+* // for example to create a session
+* mysql-js> var mySession = mysql.getClassicSession('admin@localhost');
+* \endcode
+* \elseif DOXYGEN_PY
+* \code
+* mysql-py> from mysqlsh import mysql
+*
+* // Then you can use the module functions and properties
+* // for example to create a session
+* mysql-py> mySession = mysql.get_classic_session('admin@localhost')
+* \endcode
+* \endif
+*
+* $(MYSQL_DETAIL4)
+*/
 namespace mysql {
+
+#if DOXYGEN_JS
+ClassicSession getClassicSession(ConnectionData connectionData, String password);
+#elif DOXYGEN_PY
+ClassicSession get_classic_session(ConnectionData connectionData, str password);
+#endif
+
 DECLARE_MODULE(Mysql, mysql);
 
 DECLARE_FUNCTION(get_classic_session);

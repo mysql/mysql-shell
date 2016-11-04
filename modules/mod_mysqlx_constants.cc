@@ -20,6 +20,7 @@
 #include "base_constants.h"
 #include "mod_mysqlx_constants.h"
 #include "shellcore/object_factory.h"
+#include "utils/utils_help.h"
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -34,6 +35,8 @@
 
 using namespace shcore;
 using namespace mysqlsh::mysqlx;
+
+REGISTER_HELP(MYSQLX_TYPE_BRIEF, "Data type constants");
 
 Type::Type() {
   add_constant("BIT");
@@ -73,6 +76,8 @@ std::shared_ptr<shcore::Object_bridge> Type::create(const shcore::Argument_list 
 
   return ret_val;
 }
+
+REGISTER_HELP(MYSQLX_INDEXTYPE_BRIEF, "Index type constants");
 
 IndexType::IndexType() {
   add_constant("UNIQUE");

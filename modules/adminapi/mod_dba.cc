@@ -434,11 +434,11 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_BRIEF, "Validates an instance for usage in Group Replication.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_PARAM, "@param instance An instance definition.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_PARAM1, "@param options Optional data for the operation.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
 "for usage in group replication.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL1, "The connectionData parameter can be any of:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL1, "The instance definition can be any of:");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL2, "@li URI string.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL3, "@li Connection data dictionary.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL4, "The options parameter can be any of:");
@@ -467,9 +467,9 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL7, "The password may be contained on
 * $(DBA_CHECKINSTANCECONFIG_DETAIL7)
 */
 #if DOXYGEN_JS
-Undefined Dba::checkInstanceConfig(Variant connectionData, String password) {}
+Undefined Dba::checkInstanceConfig(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::check_instance_config(variant connectionData, str password) {}
+None Dba::check_instance_config(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Dba::check_instance_config(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("checkInstanceConfig").c_str());
@@ -847,12 +847,12 @@ void Dba::validate_session(const std::string &source) const {
 }
 
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_BRIEF, "Validates and configures an instance for cluster usage.");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_PARAM, "@param instance An instance definition.");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_PARAM1, "@param options Additional options for the operation.");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_RETURN, "@returns A JSON object with the status.");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
 "for usage in group replication and cluster. A JSON object is returned containing the result of the operation.");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL1, "The connectionData parameter can be any of:");
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL1, "The instance definition can be any of:");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL2, "@li URI string.");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL3, "@li Connection data dictionary.");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL4, "The options parameter may include:");
@@ -879,9 +879,9 @@ REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL6, "@li password: The password to be
 *
 */
 #if DOXYGEN_JS
-Instance Dba::configLocalInstance(Variant connectionData) {}
+Instance Dba::configLocalInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-Instance Dba::config_local_instance(variant connectionData) {}
+Instance Dba::config_local_instance(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Dba::config_local_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;

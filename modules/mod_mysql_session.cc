@@ -203,6 +203,8 @@ shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore
   return ret_val;
 }
 
+// We need to hide this from doxygen to avoif warnings
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
 std::shared_ptr<ClassicResult> ClassicSession::execute_sql(const std::string& query) const {
   if (!_conn)
     throw Exception::logic_error("Not connected.");
@@ -213,6 +215,7 @@ std::shared_ptr<ClassicResult> ClassicSession::execute_sql(const std::string& qu
       return std::shared_ptr<ClassicResult>(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(query))));
   }
 }
+#endif
 
 //Documentation of createSchema function
 REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_BRIEF, "Creates a schema on the database and returns the corresponding object.");

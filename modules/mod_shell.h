@@ -25,9 +25,9 @@
 #define _MODULES_MOD_SHELL_H_
 
 namespace mysqlsh {
-  /**
-    * $(SHELL_BRIEF)
-    */
+/**
+  * $(SHELL_BRIEF)
+  */
   class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge {
   public:
     Shell(shcore::IShell_core* owner);
@@ -45,14 +45,17 @@ namespace mysqlsh {
 
     #if DOXYGEN_JS
     Dictionary options;
+    Callback customPrompt;
     Dictionary parseUri(String uri);
     String prompt(String message, Dictionary options);
+    Undefined connect(ConnectionData connectionData, String password);
     #elif DOXYGEN_PY
     dict options;
-    dict parseUri(str uri);
+    Callback custom_prompt;
+    dict parse_uri(str uri);
     str prompt(str message, dict options);
+    None connect(ConnectionData connectionData, str password);
     #endif
-
 
   protected:
     void init();

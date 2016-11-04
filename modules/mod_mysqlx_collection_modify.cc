@@ -390,8 +390,7 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_BRIEF, "Adds attributes taken from a docume
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_PARAM, "@param document The document from which the attributes will be merged.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_RETURN, "@return This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL, "This function adds an operation to add into the documents of a collection, all the attribues defined in document that do not exist on the collection's documents.");
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1, "@todo Define what happens when document contains attributes that arelady exist on the collection's documents.");
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL2, "The attribute addition will be done on the collection's documents once the execute method is called.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1, "The attribute addition will be done on the collection's documents once the execute method is called.");
 
 /**
 * $(COLLECTIONMODIFY_MERGE_BRIEF)
@@ -403,8 +402,6 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL2, "The attribute addition will be do
 * $(COLLECTIONMODIFY_MERGE_DETAIL)
 *
 * $(COLLECTIONMODIFY_MERGE_DETAIL1)
-*
-* $(COLLECTIONMODIFY_MERGE_DETAIL2)
 *
 * #### Method Chaining
 *

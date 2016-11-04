@@ -67,7 +67,10 @@ public:
   ClassicSession(const ClassicSession& session);
   virtual ~ClassicSession() { try { shcore::Argument_list a; close(a); } catch (...) {} };
 
+// We need to hide this from doxygen to avoif warnings
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
   std::shared_ptr<ClassicResult> execute_sql(const std::string& query) const;
+#endif
 
   // Virtual methods from object bridge
   virtual std::string class_name() const { return "ClassicSession"; };

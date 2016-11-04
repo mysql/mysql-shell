@@ -26,7 +26,52 @@
 #include "shellcore/module_registry.h"
 
 namespace mysqlsh {
+
+/**
+  * $(MYSQLX_BRIEF)
+  *
+  * $(MYSQLX_DETAIL)
+  *
+  * $(MYSQLX_DETAIL1)
+  *
+  * $(MYSQLX_DETAIL2)
+  *
+  * $(MYSQLX_DETAIL3)
+  *
+  * \if DOXYGEN_JS
+  * \code
+  * mysql-js> var mysqlx = require('mysqlx');
+  *
+  * // Then you can use the module functions and properties
+  * // for example to create a session
+  * mysql-js> var mySession = mysqlx.getNodeSession('admin@localhost');
+  * \endcode
+  * \elseif DOXYGEN_PY
+  * \code
+  * mysql-py> from mysqlsh import mysqlx
+  *
+  * // Then you can use the module functions and properties
+  * // for example to create a session
+  * mysql-py> mySession = mysqlx.get_node_session('admin@localhost')
+  * \endcode
+  * \endif
+  *
+  * $(MYSQLX_DETAIL4)
+  */
 namespace mysqlx {
+
+#if DOXYGEN_JS
+Types Types; //!< $(MYSQLX_TYPE_BRIEF)
+IndexType IndexType;  //!< $(MYSQLX_INDEXTYPE_BRIEF)
+NodeSession getNodeSession(ConnectionData connectionData, String password);
+Expression expr(String expressionStr);
+#elif DOXYGEN_PY
+Types Types; //!< $(MYSQLX_TYPE_BRIEF)
+IndexType IndexType;  //!< $(MYSQLX_INDEXTYPE_BRIEF)
+NodeSession get_node_session(ConnectionData connectionData, str password);
+Expression expr(str expressionStr);
+#endif
+
 DECLARE_MODULE(Mysqlx, mysqlx);
 
 //DECLARE_FUNCTION(get_session);
@@ -34,7 +79,10 @@ DECLARE_FUNCTION(get_node_session);
 DECLARE_FUNCTION(expr);
 DECLARE_FUNCTION(date_value);
 
+// We need to hide this from doxygen to avoif warnings
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
 virtual shcore::Value get_member(const std::string &prop) const;
+#endif
 
 private:
   shcore::Object_bridge_ref _type;
