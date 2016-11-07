@@ -573,13 +573,8 @@ std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id) {
   throw Exception::metadata_error("Unknown replicaset " + std::to_string(rs_id));
 }
 
-std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string& condition) {
+std::shared_ptr<Cluster> MetadataStorage::get_cluster_from_query(const std::string &query) {
   std::shared_ptr<Cluster> cluster;
-  std::string query = "SELECT cluster_id, cluster_name, default_replicaset, description, options, attributes " \
-    "from mysql_innodb_cluster_metadata.clusters " \
-    "WHERE ";
-
-  query += condition;
 
   try {
     auto result = execute_sql(query);
@@ -605,19 +600,46 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string
     if (error == "Table 'mysql_innodb_cluster_metadata.clusters' doesn't exist") {
       log_debug("Metadata Schema does not exist.");
       throw Exception::metadata_error("Metadata Schema does not exist.");
-    } else
+    } else {
       throw;
+    }
   }
 
   return cluster;
 }
 
+std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string &condition, const std::string &value) {
+  shcore::sqlstring query;
+  std::string raw_query;
+
+  raw_query = "SELECT cluster_id, cluster_name, default_replicaset, description, options, attributes " \
+              "FROM mysql_innodb_cluster_metadata.clusters " \
+              "WHERE " + condition + " = ?";
+
+  query = shcore::sqlstring(raw_query.c_str(), 0);
+  query << value;
+  query.done();
+
+  return get_cluster_from_query(query);
+}
+
+std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string &condition, bool value) {
+  std::string query;
+  std::string str_value = value ? "true" : "false";
+
+  query = "SELECT cluster_id, cluster_name, default_replicaset, description, options, attributes " \
+          "FROM mysql_innodb_cluster_metadata.clusters " \
+          "WHERE " + condition + " = " + str_value;
+
+  return get_cluster_from_query(query);
+}
+
 std::shared_ptr<Cluster> MetadataStorage::get_default_cluster() {
-  return get_cluster_matching("attributes->'$.default' = true");
+  return get_cluster_matching("attributes->'$.default'", true);
 }
 
 std::shared_ptr<Cluster> MetadataStorage::get_cluster(const std::string &cluster_name) {
-  std::shared_ptr<Cluster> cluster = get_cluster_matching("cluster_name = '" + cluster_name + "'");
+  std::shared_ptr<Cluster> cluster = get_cluster_matching("cluster_name", cluster_name);
 
   if (!cluster)
     throw Exception::logic_error("The cluster with the name '" + cluster_name + "' does not exist.");

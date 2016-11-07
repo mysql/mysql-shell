@@ -37,6 +37,7 @@
 #include "modules/mod_mysql_resultset.h"
 #include "utils/utils_time.h"
 #include "logger/logger.h"
+#include "utils/utils_sqlstring.h"
 
 #include <sstream>
 #include <iostream>
@@ -106,9 +107,12 @@ shcore::Value ReplicaSet::get_status() const {
       master_uuid = uuid_row.as_object<Row>()->get_member(1).as_string();
   }
 
-  std::string query = "select mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
-  " from mysql_innodb_cluster_metadata.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID`"
-  " where replicaset_id = " + std::to_string(_id);
+  shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host " \
+                          " FROM mysql_innodb_cluster_metadata.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID` " \
+                          " WHERE replicaset_id = ?", 0);
+  query << _id;
+  query.done();
+
   auto result = _metadata_storage->execute_sql(query);
 
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());
@@ -188,10 +192,13 @@ shcore::Value ReplicaSet::get_description() const {
   auto description = ret_val.as_map();
 
 
-  std::string query = "select mysql_server_uuid, instance_name, role,"
-  " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
-  " from mysql_innodb_cluster_metadata.instances"
-  " where replicaset_id = " + std::to_string(_id);
+  shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, role, " \
+                          "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host "
+                          "FROM mysql_innodb_cluster_metadata.instances "
+                          "WHERE replicaset_id = ?", 0);
+  query << _id;
+  query.done();
+
   auto result = _metadata_storage->execute_sql(query);
 
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());
@@ -1114,8 +1121,10 @@ std::vector<std::string> ReplicaSet::get_instances_gr() {
 
 std::vector<std::string> ReplicaSet::get_instances_md() {
   // Get the list of instances registered on the Metadata
-  std::string query = "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances"
-                      " WHERE replicaset_id = " + std::to_string(_id);
+  shcore::sqlstring query("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances " \
+                          "WHERE replicaset_id = ?", 0);
+  query << _id;
+  query.done();
 
   auto result = _metadata_storage->execute_sql(query);
   auto mysql_server_uuids = result->call("fetchAll", shcore::Argument_list());
@@ -1149,9 +1158,11 @@ std::vector<ReplicaSet::NewInstanceInfo> ReplicaSet::get_newly_discovered_instan
 
   std::vector<NewInstanceInfo> ret;
   for (auto i : new_members) {
-    query = "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT"
-            " FROM performance_schema.replication_group_members"
-            " WHERE MEMBER_ID = '" + i + "'";
+    shcore::sqlstring query("SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT " \
+                            "FROM performance_schema.replication_group_members " \
+                            "WHERE MEMBER_ID = ?", 0);
+    query << i;
+    query.done();
 
     auto result = _metadata_storage->execute_sql(query);
     auto row = result->fetch_one();
@@ -1182,10 +1193,12 @@ std::vector<ReplicaSet::MissingInstanceInfo> ReplicaSet::get_unavailable_instanc
 
   std::vector<MissingInstanceInfo> ret;
   for (auto i : removed_members) {
-    std::string query = "SELECT mysql_server_uuid, instance_name,"
-                        " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host"
-                        " FROM mysql_innodb_cluster_metadata.instances"
-                        " WHERE mysql_server_uuid = '" + i + "'";
+    shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, " \
+                            "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host " \
+                            "FROM mysql_innodb_cluster_metadata.instances " \
+                            "WHERE mysql_server_uuid = ?", 0);
+    query << i;
+    query.done();
 
     auto result = _metadata_storage->execute_sql(query);
     auto row = result->fetch_one();

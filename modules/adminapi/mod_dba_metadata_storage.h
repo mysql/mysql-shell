@@ -23,6 +23,7 @@
 #include "mod_dba.h"
 #include "mod_dba_cluster.h"
 #include "mod_dba_replicaset.h"
+#include <string>
 
 namespace mysqlsh {
 namespace mysql {
@@ -100,7 +101,11 @@ private:
   void commit();
   void rollback();
 
-  std::shared_ptr<Cluster> get_cluster_matching(const std::string& condition);
+  std::shared_ptr<Cluster> get_cluster_from_query(const std::string &query);
+
+  std::shared_ptr<Cluster> get_cluster_matching(const std::string &condition, const std::string &value);
+  // Overload the function for different types of value
+  std::shared_ptr<Cluster> get_cluster_matching(const std::string &condition, bool value);
 };
 }
 }
