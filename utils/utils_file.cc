@@ -172,8 +172,11 @@ std::string get_binary_folder() {
 #else
 #ifdef __linux__
   char path[PATH_MAX] {'\0'};
-  if (-1 != readlink("/proc/self/exe", path, PATH_MAX))
+  ssize_t len = readlink("/proc/self/exe", path, PATH_MAX);
+  if (-1 != len) {
+    path[len] = '\0';
     exe_path.assign(path);
+  }
   else
     throw std::runtime_error((boost::format("get_binary_folder: Readlink failed with error %1%\n") % errno).str());
 #endif
