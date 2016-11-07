@@ -655,7 +655,7 @@ bool Base_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args)) {
 bool Base_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
   std::string version_msg("MySQL Shell Version ");
   version_msg += MYSH_VERSION;
-  version_msg += " Development Preview\n";
+  version_msg += "\n";
   println(version_msg);
 
   if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected()) {

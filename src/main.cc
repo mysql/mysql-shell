@@ -214,7 +214,6 @@ int main(int argc, char **argv) {
     } else if (options.print_version) {
       std::string version_msg("MySQL Shell Version ");
       version_msg += MYSH_VERSION;
-      version_msg += " Development Preview";
       shell.println(version_msg);
       ret_val = options.exit_code;
     } else if (options.print_cmd_line_helper) {

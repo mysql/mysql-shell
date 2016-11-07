@@ -169,7 +169,7 @@ void Command_line_shell::command_loop() {
 void Command_line_shell::print_banner() {
   std::string welcome_msg("Welcome to MySQL Shell ");
   welcome_msg += MYSH_VERSION;
-  welcome_msg += " Development Preview\n\n";
+  welcome_msg += "\n\n";
   welcome_msg += "Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.\n\n"\
                  "Oracle is a registered trademark of Oracle Corporation and/or its\n"\
                  "affiliates. Other names may be trademarks of their respective\n"\
@@ -183,7 +183,6 @@ void Command_line_shell::print_banner() {
 void Command_line_shell::print_cmd_line_helper() {
   std::string help_msg("MySQL Shell ");
   help_msg += MYSH_VERSION;
-  help_msg += " Development Preview";
   println(help_msg);
   println("");
   println("Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.");
