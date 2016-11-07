@@ -397,7 +397,7 @@ TEST_F(Interactive_shell_test, shell_command_help) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("\\help \\connect");
-  MY_EXPECT_STDOUT_CONTAINS("If the session type is not specified, an X session will be established.");
+  MY_EXPECT_STDOUT_CONTAINS("If the session type is not specified, an Node session will be established.");
   output_handler.wipe_all();
 
   _interactive_shell->process_line("\\help \\use");

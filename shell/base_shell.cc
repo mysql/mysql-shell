@@ -65,10 +65,9 @@ _options(options) {
     "   \\connect [-<TYPE >] $<SESSION_CFG_NAME>\n\n"
     "WHERE:\n"
     "   TYPE is an optional parameter to specify the session type. Accepts the next values:\n"
-    "        x: to establish an X session\n"
     "        n: to establish an Node session\n"
     "        c: to establish a Classic session\n"
-    "        If the session type is not specified, an X session will be established.\n"
+    "        If the session type is not specified, an Node session will be established.\n"
     "   URI is in the format of: [user[:password]@]hostname[:port]\n"
     "   SESSION_CFG_NAME is the name of a stored session configuration\n\n"
     "EXAMPLES:\n"
@@ -229,9 +228,7 @@ bool Base_shell::connect(bool primary_session) {
           if (_options.session_type == mysqlsh::SessionType::Classic)
             error = "Invalid URI for Classic session";
         } else if (scheme == "mysql") {
-          if (_options.session_type == mysqlsh::SessionType::X)
-            error = "Invalid URI for X session";
-          else if (_options.session_type == mysqlsh::SessionType::Node)
+          if (_options.session_type == mysqlsh::SessionType::Node)
             error = "Invalid URI for Node session";
         }
       }
@@ -617,9 +614,6 @@ bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
         //}
       }
       connect();
-
-      if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL && _options.session_type == mysqlsh::SessionType::X)
-        println("WARNING: An X Session has been established and SQL execution is not allowed.");
     }
   } else
     error = true;

@@ -432,14 +432,9 @@ std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::connect_dev_sessio
 std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::set_dev_session(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session) {
   _global_dev_session.swap(session);
 
-  // X Session can't have a currentSchema so we set on db the default schema
   shcore::Value currentSchema;
-  if (!_global_dev_session->class_name().compare("XSession"))
-    currentSchema = _global_dev_session->get_member("defaultSchema");
-
   // Non X Sessions can have currentSchema so we set on db that one
-  else
-    currentSchema = _global_dev_session->get_member("currentSchema");
+  currentSchema = _global_dev_session->get_member("currentSchema");
 
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set
