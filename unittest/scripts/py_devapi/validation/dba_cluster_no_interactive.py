@@ -60,9 +60,7 @@
                 "leaves": {
                     "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                         "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                        "leaves": {
-
-                        },
+                        "leaves": {},
                         "mode": "R/O",
                         "role": "HA",
                         "status": "{{ONLINE|RECOVERING}}"
@@ -111,9 +109,7 @@
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "leaves": {
-
-                },
+                "leaves": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
@@ -158,9 +154,7 @@
                 "leaves": {
                     "localhost:<<<__mysql_sandbox_port2>>>": {
                         "address": "localhost:<<<__mysql_sandbox_port2>>>", 
-                        "leaves": {
-
-                        }, 
+                        "leaves": {}, 
                         "mode": "R/O", 
                         "role": "HA", 
                         "status": "{{ONLINE|RECOVERING}}"
@@ -185,8 +179,7 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "instances": [
-        ],
+        "instances": [],
         "name": "default"
     }
 }
@@ -197,9 +190,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-
-        }
+        "topology": {}
     }
 }
 

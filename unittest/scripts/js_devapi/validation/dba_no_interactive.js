@@ -111,8 +111,7 @@
             "required": "XXHASH64"
         }
     ],
-    "errors": [
-    ],
+    "errors": [],
     "restart_required": false,
     "status": "error"
 }

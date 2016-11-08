@@ -67,9 +67,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
                 "leaves": {
                     "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                         "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                        "leaves": {
-
-                        },
+                        "leaves": {},
                         "mode": "R/O",
                         "role": "HA",
                         "status": "{{ONLINE|RECOVERING}}"
@@ -118,9 +116,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "leaves": {
-
-                },
+                "leaves": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
@@ -163,8 +159,7 @@ The following replicasets are currently registered:
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "instances": [
-        ],
+        "instances": [],
         "name": "default"
     }
 }
@@ -175,9 +170,7 @@ The following replicasets are currently registered:
     "defaultReplicaSet": {
         "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-
-        }
+        "topology": {}
     }
 }
 

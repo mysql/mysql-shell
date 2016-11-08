@@ -984,9 +984,13 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
           s_out.append((indent + 1) * 4, ' ');
         iter->append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
       }
-      s_out += nl;
-      if (indent > 0)
-        s_out.append(indent * 4, ' ');
+      
+      if (!vec->empty()) {
+        s_out += nl;
+        if (indent > 0)
+          s_out.append(indent * 4, ' ');
+      }
+      
       s_out += "]";
     }
     break;
@@ -996,7 +1000,11 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
         throw Exception::value_error("Invalid map value encountered");
       Map_type *map = value.map->get();
       Map_type::iterator myend = map->end(), mybegin = map->begin();
-      s_out += "{" + nl;
+      s_out += "{";
+      
+      if (!map->empty())
+        s_out += nl;
+      
       for (Map_type::iterator iter = mybegin; iter != myend; ++iter) {
         if (iter != mybegin)
           s_out += ", " + nl;
@@ -1007,9 +1015,13 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
         s_out += "\": ";
         iter->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
       }
-      s_out += nl;
-      if (indent > 0)
-        s_out.append(indent * 4, ' ');
+      
+      if (!map->empty()) {
+        s_out += nl;
+        if (indent > 0)
+          s_out.append(indent * 4, ' ');
+      }
+      
       s_out += "}";
     }
     break;

@@ -132,6 +132,7 @@ struct SHCORE_PUBLIC Value {
     container_type::mapped_type& operator [](const std::string &k) { return _map[k]; }
     bool operator == (const Map_type &other) const { return _map == other._map; }
 
+    bool empty() const { return _map.empty(); }
     size_t size() const { return _map.size(); }
     size_t count(const std::string &k) const { return _map.count(k); }
   private:
