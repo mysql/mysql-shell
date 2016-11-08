@@ -48,7 +48,7 @@ using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 
-std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword"};
+std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom"};
 std::set<std::string> Dba::_config_local_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket"};
 
 // Documentation of the DBA Class
@@ -570,7 +570,6 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     rc = _provisioning_interface->create_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors);
     if (rc == 0) {
       rc = _provisioning_interface->start_sandbox(port, sandbox_dir, errors);
-
       //std::string uri = "localhost:" + std::to_string(port);
       //ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
     }
@@ -609,13 +608,14 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL, "This function will deploy a new
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1, "@li portx: port where the new instance will listen for X Protocol connections.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the new instance will be deployed.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the new instance.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4, "If the portx option is not specified, it will be automatically calculated "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4, "@li allowRootFrom: create remote root account, restricted to the given address pattern (eg %).");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5, "If the portx option is not specified, it will be automatically calculated "\
 "as 10 times the value of the provided MySQL port.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5, "The password or dbPassword options are mandatory to specify the MySQL root "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6, "The password or dbPassword options are mandatory to specify the MySQL root "\
 "password on the new instance.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6, "The sandboxDir must be an existing folder where the new instance will be "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "The sandboxDir must be an existing folder where the new instance will be "\
 "deployed. If not specified the new instance will be deployed at:");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "  ~HOME/mysql-sandboxes");
 
 /**
 * $(DBA_DEPLOYSANDBOXINSTANCE_BRIEF)
@@ -628,7 +628,6 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1)
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2)
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3)
-*
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4)
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5)
@@ -636,6 +635,8 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6)
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7)
+*
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8)
 */
 #if DOXYGEN_JS
 Instance Dba::deploySandboxInstance(Integer port, Dictionary options) {}
@@ -649,6 +650,47 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, co
 
   try {
     ret_val = exec_instance_op("deploy", args);
+
+    if (args.size() == 2) {
+      shcore::Argument_map opt_map(*args.map_at(1));
+      // create root@<addr> if needed
+      // Valid values:
+      // allowRootFrom: address
+      // allowRootFrom: %
+      // allowRootFrom: null (that is, disable the option)
+      if (opt_map.has_key("allowRootFrom") && opt_map.at("allowRootFrom").type != shcore::Null) {
+        std::string remote_root = opt_map.string_at("allowRootFrom");
+        if (!remote_root.empty()) {
+          int port = args.int_at(0);
+          std::string password;
+          std::string uri = "root@localhost:"+std::to_string(port);
+          if (opt_map.has_key("password"))
+            password = opt_map.string_at("password");
+          else if (opt_map.has_key("dbPassword"))
+            password = opt_map.string_at("dbPassword");
+
+          auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
+                mysqlsh::connect_session(uri, password, mysqlsh::SessionType::Classic));
+          assert(session);
+
+          log_info("Creating root@%s account for sandbox %i", remote_root.c_str(), port);
+          session->execute_sql("SET sql_log_bin = 0");
+          {
+            sqlstring create_user("CREATE USER root@? IDENTIFIED BY ?", 0);
+            create_user << remote_root << password;
+            create_user.done();
+            session->execute_sql(create_user);
+          }
+          {
+            sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
+            grant << remote_root;
+            grant.done();
+            session->execute_sql(grant);
+          }
+          session->execute_sql("SET sql_log_bin = 1");
+        }
+      }
+    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
 

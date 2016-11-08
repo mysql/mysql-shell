@@ -125,6 +125,7 @@ private:
 };
 
 std::shared_ptr<mysqlsh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
+std::shared_ptr<mysqlsh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const std::string &uri, const std::string &password, SessionType session_type);
 };
 
 #endif

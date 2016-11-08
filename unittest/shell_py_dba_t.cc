@@ -86,7 +86,10 @@ protected:
 #else
     code = "__path_splitter = '/';";
     exec_and_out_equals(code);
-    code = "__sandbox_dir = '" + _sandbox_dir + "/';";
+    if (_sandbox_dir.back() != '/')
+      code = "__sandbox_dir = '" + _sandbox_dir + "/';";
+    else
+      code = "__sandbox_dir = '" + _sandbox_dir + "';";
     exec_and_out_equals(code);
 #endif
 
@@ -107,11 +110,11 @@ TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
   execute("dba.verbose = True");
 
   if (_sandbox_dir.empty()) {
-    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port1 + ", {'password': 'root'});");
-    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port2 + ", {'password': 'root'});");
+    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'allowRootFrom': '%'});");
+    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port2 + ", {'password': 'root', 'allowRootFrom': '%'});");
   } else {
-    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port2 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'allowRootFrom': '%', 'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port2 + ", {'password': 'root', 'allowRootFrom': '%', 'sandboxDir': '" + _sandbox_dir + "'});");
   }
 }
 

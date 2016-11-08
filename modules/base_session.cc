@@ -45,6 +45,17 @@
 using namespace mysqlsh;
 using namespace shcore;
 
+
+std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session(
+    const std::string &uri, const std::string &password, SessionType session_type) {
+  Argument_list args;
+
+  args.push_back(Value(shcore::get_connection_data(uri, true)));
+  (*args.map_at(0))["password"] = Value(password);
+
+  return connect_session(args, session_type);
+}
+
 std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session(const shcore::Argument_list &args, SessionType session_type) {
   std::shared_ptr<ShellDevelopmentSession> ret_val;
 
@@ -194,7 +205,7 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
     int pwd_found;
     parse_mysql_connstring(uri, protocol, _user, _password, _host, _port, _sock, _schema, pwd_found, _ssl_ca, _ssl_cert, _ssl_key);
   }
-  
+
   // If the connection data came in a dictionary, the values in the dictionary override whatever
   // is already loaded: i.e. if the dictionary indicated a stored session, that info is already
   // loaded but will be overriden with whatever extra values exist on the dictionary

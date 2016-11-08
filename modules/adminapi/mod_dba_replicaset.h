@@ -31,6 +31,10 @@
 #include "mod_dba_provisioning_interface.h"
 
 namespace mysqlsh {
+namespace mysql {
+class ClassicSession;
+}
+
 namespace dba {
 class MetadataStorage;
 class Cluster;
@@ -138,9 +142,9 @@ private:
       const std::string &super_user_password,
       const std::string &repl_user, const std::string &repl_user_password);
 
-  std::vector<std::string> get_peer_instances();
+  std::string get_peer_instance();
 
-  void create_repl_account(const std::string &dest_uri,
+  void create_repl_account(mysqlsh::mysql::ClassicSession *session,
                            const std::string &username,
                            const std::string &password);
 

@@ -118,25 +118,25 @@
     }
 }
 
-#@ Cluster: addInstance 2 
+#@ Cluster: addInstance 2
 ||
 
 #@<OUT> Cluster: describe after adding 2
 {
-    "clusterName": "devCluster", 
+    "clusterName": "devCluster",
     "defaultReplicaSet": {
         "instances": [
             {
-                "host": "localhost:<<<__mysql_sandbox_port1>>>", 
-                "name": "localhost:<<<__mysql_sandbox_port1>>>", 
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "host": "localhost:<<<__mysql_sandbox_port2>>>", 
-                "name": "localhost:<<<__mysql_sandbox_port2>>>", 
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
-        ], 
+        ],
         "name": "default"
     }
 }
@@ -144,24 +144,24 @@
 
 #@<OUT> Cluster: status after adding 2
 {
-    "clusterName": "devCluster", 
+    "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.", 
+        "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:<<<__mysql_sandbox_port1>>>": {
-                "address": "localhost:<<<__mysql_sandbox_port1>>>", 
+            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "leaves": {
-                    "localhost:<<<__mysql_sandbox_port2>>>": {
-                        "address": "localhost:<<<__mysql_sandbox_port2>>>", 
-                        "leaves": {}, 
-                        "mode": "R/O", 
-                        "role": "HA", 
+                    "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                        "leaves": {},
+                        "mode": "R/O",
+                        "role": "HA",
                         "status": "{{ONLINE|RECOVERING}}"
                     }
-                }, 
-                "mode": "R/W", 
-                "role": "HA", 
+                },
+                "mode": "R/W",
+                "role": "HA",
                 "status": "ONLINE"
             }
         }

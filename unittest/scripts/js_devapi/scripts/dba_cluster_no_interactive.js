@@ -8,6 +8,7 @@ var Cluster = dba.getCluster('devCluster');
 // Sets the correct local host
 var desc = Cluster.describe();
 var localhost = desc.defaultReplicaSet.instances[0].name.split(':')[0];
+var hostname = localhost;
 
 var members = dir(Cluster);
 
@@ -57,7 +58,7 @@ Cluster.removeInstance("somehost:3306");
 
 
 //@ Cluster: removeInstance
-Cluster.removeInstance({host:'localhost', port:__mysql_sandbox_port2})
+Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port2})
 
 //@<OUT> Cluster: describe2
 Cluster.describe()
@@ -76,11 +77,11 @@ Cluster.describe()
 Cluster.status()
 
 //@ Cluster: remove_instance added
-var uri = "localhost:" + __mysql_sandbox_port2;
+var uri = localhost + ":" + __mysql_sandbox_port2;
 Cluster.removeInstance(uri)
 
 //@ Cluster: remove_instance last
-Cluster.removeInstance({host:'localhost', port:__mysql_sandbox_port1})
+Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port1})
 
 //@<OUT> Cluster: describe3
 Cluster.describe()

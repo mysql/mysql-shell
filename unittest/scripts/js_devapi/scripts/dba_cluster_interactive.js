@@ -58,7 +58,7 @@ Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", authMet
 Cluster.removeInstance("somehost:3306");
 
 //@ Cluster: removeInstance
-Cluster.removeInstance({host:'localhost', port:__mysql_sandbox_port2})
+Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port2})
 
 //@<OUT> Cluster: describe2
 Cluster.describe()
@@ -77,7 +77,7 @@ Cluster.dissolve({foobar: true})
 Cluster.dissolve({force: 'sample'})
 
 //@ Cluster: remove_instance last
-Cluster.removeInstance({host:'localhost', port:__mysql_sandbox_port1})
+Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port1})
 
 //@<OUT> Cluster: describe3
 Cluster.describe()

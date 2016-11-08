@@ -132,6 +132,15 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
       } else
         cancelled = true;
     }
+    if (!options->has_key("allowRootFrom")) {
+      message = "\nTo allow remote access for the root MySQL account of this sandbox,\n";
+      message += "enter the address pattern to allow connections from (e.g. %) or\n";
+      message += "press Return to skip it.\n";
+
+      std::string pattern = "%";
+      if (prompt(message + "Create account for root@", pattern) && !pattern.empty())
+        (*options)["allowRootFrom"] = shcore::Value(pattern);
+    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
 
@@ -710,4 +719,3 @@ void Global_dba::dump_table(const std::vector<std::string>& column_names, const 
 
   println(separator);
 }
-

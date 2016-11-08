@@ -758,9 +758,11 @@ std::string JScript_context::format_exception(const shcore::Value &exc) {
 
     if (!message.empty()) {
       error_message += message;
-      if (!type.empty())
+      if (!type.empty() && code != -1)
+        error_message += " (" + type + " " + std::to_string(code) + ")\n";
+      else if (!type.empty())
         error_message += " (" + type + ")\n";
-      if (code != -1)
+      else if (code != -1)
         error_message += " ("+std::to_string(code)+") ";
       if (!location.empty())
         error_message += " at " + location;

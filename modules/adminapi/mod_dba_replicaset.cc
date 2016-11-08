@@ -345,10 +345,8 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args) {
 
 static void run_queries(mysqlsh::mysql::ClassicSession *session, const std::vector<std::string> &queries) {
   for (auto & q : queries) {
-    shcore::Argument_list args;
-    args.push_back(shcore::Value(q));
     log_info("DBA: run_sql(%s)", q.c_str());
-    session->run_sql(args);
+    session->execute_sql(q);
   }
 }
 
@@ -382,7 +380,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
 
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
-  log_debug("RS %lu: Adding instance %s to replicaset%s",
+  log_debug("RS %lu: Adding instance '%s' to replicaset%s",
       static_cast<unsigned long>(_id), instance_address.c_str(),
       is_instance_on_md ? " (already in MD)" : "");
 
@@ -390,12 +388,25 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   new_args.push_back(shcore::Value(options));
   auto session = Dba::get_session(new_args);
 
+  // get the public hostname of the instance being added
+  if (is_local_host(joiner_host)) {
+    auto result = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session)->execute_sql(
+        "SELECT IFNULL(@@report_host, @@hostname) as server_host");
+    auto row = result->fetch_one();
+    if (row) {
+      std::string hostname = row->get_value_as_string(0);
+      log_info("Instance '%s' detected as having hostname '%s'",
+               instance_address.c_str(), hostname.c_str());
+      instance_address = hostname + ":" + std::to_string(options->get_int("port"));
+    }
+  }
+
   GRInstanceType type = get_gr_instance_type(session->connection());
 
   // If type is GRInstanceType::InnoDBCluster it means that is on GR and MD
   switch (type) {
     case GRInstanceType::InnoDBCluster:
-      log_debug("Instance already managed by InnoDB cluster");
+      log_debug("Instance '%s' already managed by InnoDB cluster", instance_address.c_str());
       throw shcore::Exception::runtime_error("The instance '" + instance_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
     // If the instance is not on GR, we must add it
@@ -407,7 +418,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
       std::string replication_user;
       std::string replication_user_password = generate_password(PASSWORD_LENGTH);
 
-      log_debug("Instance is not yet on cluster");
+      log_debug("Instance '%s' is not yet in the cluster", instance_address.c_str());
 
       MySQL_timer timer;
       std::string tstamp = std::to_string(timer.get_time());
@@ -416,12 +427,15 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
       // TODO: Replication accounts should be created with grants for the joining instance only
       // However, we don't have a reliable way of getting the external IP and/or fully qualified domain name
       replication_user.append("@'%'");
+
+      log_debug("Creating replication user '%s'", replication_user.c_str());
+      create_repl_account(dynamic_cast<mysqlsh::mysql::ClassicSession*>(_metadata_storage->get_dba()->get_active_session().get()),
+                          replication_user, replication_user_password);
+
       // Call the gadget to bootstrap the group with this instance
       if (seed_instance) {
-        log_debug("Creating replication user %s", replication_user.c_str());
-        create_repl_account(instance_address, replication_user, replication_user_password);
-
-        log_debug("Joining group using account %s@%s",
+        log_info("Joining '%s' to group using account %s@%s",
+            instance_address.c_str(),
             user.c_str(), instance_address.c_str());
         // Call mysqlprovision to bootstrap the group using "start"
         do_join_replicaset(user + "@" + instance_address,
@@ -430,12 +444,10 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
                            replication_user, replication_user_password);
       } else {
         // We need to retrieve a peer instance, so let's use the Seed one
-        std::string peer_instance = get_peer_instances().front();
-        log_debug("Creating replication user %s", replication_user.c_str());
-        create_repl_account(peer_instance, replication_user, replication_user_password);
-
-        log_debug("Joining group using account %s@%s",
-            user.c_str(), instance_address.c_str());
+        std::string peer_instance = get_peer_instance();
+        log_info("Joining '%s' to group using account %s@%s to peer '%s'",
+            instance_address.c_str(),
+            user.c_str(), instance_address.c_str(), peer_instance.c_str());
         // Call mysqlprovision to do the work
         do_join_replicaset(user + "@" + instance_address,
                            user + "@" + peer_instance,
@@ -445,7 +457,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     }
     break;
   case GRInstanceType::GroupReplication:
-    log_debug("Instance is already part of GR, but not managed");
+    log_debug("Instance '%s' is already part of GR, but not managed", instance_address.c_str());
     break;
   }
 
@@ -851,8 +863,9 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
   return ret_val;
 }
 
-std::vector<std::string> ReplicaSet::get_peer_instances() {
+std::string ReplicaSet::get_peer_instance() {
   std::vector<std::string> result;
+  auto session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(_metadata_storage->get_dba()->get_active_session().get());
 
   // We need to retrieve a peer instance, so let's use the Seed one
   auto instances = _metadata_storage->get_replicaset_instances(get_id());
@@ -863,40 +876,17 @@ std::vector<std::string> ReplicaSet::get_peer_instances() {
       result.push_back(peer_instance);
     }
   }
-  return result;
+  return result.front();
 }
 
 /**
  * Create an account in the replicaset.
  */
-void ReplicaSet::create_repl_account(const std::string &dest_uri,
+void ReplicaSet::create_repl_account(mysqlsh::mysql::ClassicSession *session,
                                      const std::string &username,
                                      const std::string &password) {
-  auto instance_session(_metadata_storage->get_dba()->get_active_session());
-
-  shcore::Argument_list args;
-  auto options = get_connection_data(dest_uri, false);
-  // currently assuming metadata connection account is also valid in the cluster
-  (*options)["dbUser"] = shcore::Value(instance_session->get_user());
-  (*options)["dbPassword"] = shcore::Value(instance_session->get_password());
-  args.push_back(shcore::Value(options));
-
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
-  mysqlsh::mysql::ClassicSession *classic;
-
   try {
-    log_info("Creating account '%s' at instance %s:%i", username.c_str(),
-             (*options)["host"].as_string().c_str(),
-             (int)(*options)["port"].as_int());
-    session = mysqlsh::connect_session(args, mysqlsh::SessionType::Classic);
-    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-  } catch (std::exception &e) {
-    log_error("Could not open connection to %s: %s", dest_uri.c_str(),
-              e.what());
-    throw;
-  }
-  try {
-    run_queries(classic, {
+    run_queries(session, {
       "START TRANSACTION",
       "DROP USER IF EXISTS " + username,
       "CREATE USER IF NOT EXISTS " + username + " IDENTIFIED BY '" + password + "'",
@@ -904,9 +894,7 @@ void ReplicaSet::create_repl_account(const std::string &dest_uri,
       "COMMIT"
     });
   } catch (...) {
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("ROLLBACK"));
-    classic->run_sql(args);
+    session->execute_sql("ROLLBACK");
     throw;
   }
 }
@@ -1012,22 +1000,22 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
 
   // Check if the instance was already added
   std::string instance_address = joiner_host + ":" + std::to_string(instance_definition->get_int("port"));
-  std::string instance_xaddress = joiner_host + ":" + std::to_string(xport);
   std::string mysql_server_uuid;
+  std::string mysql_server_address;
 
-  log_debug("Connecting to %s to query for metadata information...",
+  log_debug("Connecting to '%s' to query for metadata information...",
              instance_address.c_str());
   // get the server_uuid from the joining instance
   {
-    shcore::Argument_list temp_args, new_args;
-    new_args.push_back(shcore::Value(instance_definition));
     std::shared_ptr<mysqlsh::mysql::ClassicSession> classic;
     try {
+      shcore::Argument_list new_args;
+      new_args.push_back(shcore::Value(instance_definition));
       classic = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
             mysqlsh::connect_session(new_args, mysqlsh::SessionType::Classic));
     } catch (Exception &e) {
       std::stringstream ss;
-      ss << "Error opening session to " << instance_address << ": " << e.what();
+      ss << "Error opening session to '" << instance_address << "': " << e.what();
       log_warning("%s", ss.str().c_str());
 
       // Check if we're adopting a GR cluster, if so, it could happen that
@@ -1044,28 +1032,35 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
       throw Exception::runtime_error(ss.str());
     }
     {
-      temp_args.clear();
-      temp_args.push_back(shcore::Value("SELECT @@server_uuid"));
-      auto uuid_raw_result = classic->run_sql(temp_args);
-      auto uuid_result = uuid_raw_result.as_object<mysqlsh::mysql::ClassicResult>();
-      auto uuid_row = uuid_result->fetch_one(shcore::Argument_list());
-      if (uuid_row)
-        mysql_server_uuid = uuid_row.as_object<mysqlsh::Row>()->get_member(0).as_string();
-      else
+      // Query UUID of the member and its public hostname
+      auto result = classic->execute_sql("SELECT @@server_uuid,"
+          " (SELECT IFNULL(@@report_host, @@hostname)) as server_host");
+      auto row = result->fetch_one();
+      if (row) {
+        mysql_server_uuid = row->get_value_as_string(0);
+        mysql_server_address = row->get_value_as_string(1);
+      } else
         throw Exception::runtime_error("@@server_uuid could not be queried");
     }
     try {
-      temp_args.clear();
-      temp_args.push_back(shcore::Value("SELECT @@mysqlx_port"));
-      auto raw_result = classic->run_sql(temp_args);
-      auto result = raw_result.as_object<mysqlsh::mysql::ClassicResult>();
-      auto xport_row = result->fetch_one(shcore::Argument_list());
+      auto result = classic->execute_sql("SELECT @@mysqlx_port");
+      auto xport_row = result->fetch_one();
       if (xport_row)
-        xport = (int)xport_row.as_object<mysqlsh::Row>()->get_member(0).as_int();
+        xport = (int)xport_row->get_value(0).as_int();
     } catch (std::exception &e) {
       log_info("Could not query xplugin port, using default value: %s", e.what());
     }
+
+    if (!mysql_server_address.empty() && mysql_server_address != joiner_host) {
+      log_info("Normalized address of '%s' to '%s'", joiner_host.c_str(), mysql_server_address.c_str());
+      instance_address = mysql_server_address + ":" + std::to_string(instance_definition->get_int("port"));
+    } else {
+      mysql_server_address = joiner_host;
+    }
   }
+  std::string instance_xaddress;
+  instance_xaddress = mysql_server_address + ":" + std::to_string(xport);
+
   (*instance_definition)["role"] = shcore::Value("HA");
   (*instance_definition)["endpoint"] = shcore::Value(instance_address);
   (*instance_definition)["xendpoint"] = shcore::Value(instance_xaddress);

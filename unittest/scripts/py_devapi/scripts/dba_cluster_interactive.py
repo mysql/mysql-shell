@@ -62,7 +62,7 @@ cluster.remove_instance({'host': 'localhost', 'schema': 'abs', 'user': 'sample',
 cluster.remove_instance("somehost:3306");
 
 #@ Cluster: remove_instance
-cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port2})
+cluster.remove_instance({'host': localhost, 'port': __mysql_sandbox_port2})
 
 #@<OUT> Cluster: describe2
 cluster.describe()
@@ -81,7 +81,7 @@ cluster.dissolve({'enforce': True})
 cluster.dissolve({'force': 'sample'})
 
 #@ Cluster: remove_instance last
-cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port1})
+cluster.remove_instance({'host': localhost, 'port': __mysql_sandbox_port1})
 
 #@<OUT> Cluster: describe3
 cluster.describe()
