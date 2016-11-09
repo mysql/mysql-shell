@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
@@ -17,7 +16,6 @@
 #ifndef _PROCESS_LAUNCHER_H_
 #define _PROCESS_LAUNCHER_H_
 
-
 #ifdef WIN32
 #  define _CRT_SECURE_NO_WARNINGS 1
 #  ifdef UNICODE
@@ -30,21 +28,18 @@
 #endif
 #include <stdint.h>
 
-namespace ngcommon
-{
-
+namespace ngcommon {
 // Launches a process as child of current process and exposes the stdin & stdout of the child process
 // (implemented thru pipelines) so the client of this class can read from the child's stdout and write to the child's stdin.
 // For usage, see unit tests.
-// 
+//
 // TODO: Make scenario 4 work correctly:
 //   spawn
 //   while not eof :
 //     stdin.write
 //     stdout.read
 //   wait
-class Process_launcher
-{
+class Process_launcher {
 public:
 
   /**
@@ -52,18 +47,17 @@ public:
    * Argument 'args' must have a last entry that is NULL.
    * If redirect_stderr is true, the child's stderr is redirected to the same stream than child's stdout.
    */
-  Process_launcher(const char *cmd_line, const char ** args, bool redirect_stderr = true) : is_alive(true)
-  {
+  Process_launcher(const char *cmd_line, const char ** args, bool redirect_stderr = true) : is_alive(false) {
     this->cmd_line = cmd_line;
     this->args = args;
     this->redirect_stderr = redirect_stderr;
   }
-  
-  ~Process_launcher() { if(is_alive) close(); }
+
+  ~Process_launcher() { if (is_alive) close(); }
 
   /** Launches the child process, and makes pipes available for read/write. */
   void start();
-  
+
   /**
    * Reads a single byte (and returns it).
    * Throws an shcore::Exception in case of error when reading.
@@ -123,8 +117,8 @@ public:
   uint64_t get_fd_read();
 
 private:
-  /** 
-   * Throws an exception with the specified message, if msg == NULL, the exception's message is specific of the platform error.  
+  /**
+   * Throws an exception with the specified message, if msg == NULL, the exception's message is specific of the platform error.
    * (errno in Linux / GetLastError in Windows).
    */
   void report_error(const char *msg);
@@ -145,12 +139,10 @@ private:
   pid_t childpid;
   int fd_in[2];
   int fd_out[2];
-//  struct pollfd _s_pollfd[2];
+  //  struct pollfd _s_pollfd[2];
 #endif
   bool redirect_stderr;
 };
-
 }  // namespace ngcommon
 
 #endif // _PROCESS_LAUNCHER_H_
-

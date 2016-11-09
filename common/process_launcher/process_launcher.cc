@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
@@ -21,11 +20,10 @@
 #include <string>
 #include <system_error>
 
-
 #ifdef WIN32
-#  include <windows.h> 
+#  include <windows.h>
 #  include <tchar.h>
-#  include <stdio.h> 
+#  include <stdio.h>
 #else
 #  include <stdio.h>
 #  include <unistd.h>
@@ -40,18 +38,15 @@
 #  include <fcntl.h>
 #endif
 
-
 #ifdef LINUX
 #  include <sys/prctl.h>
 #endif
-
 
 using namespace ngcommon;
 
 #ifdef WIN32
 
-void Process_launcher::start()
-{
+void Process_launcher::start() {
   SECURITY_ATTRIBUTES saAttr;
 
   saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -77,12 +72,11 @@ void Process_launcher::start()
   // Create Process
   std::string s = this->cmd_line;
   const char **pc = args;
-  while (*++pc != NULL)
-  {
+  while (*++pc != NULL) {
     s += " ";
     s += *pc;
   }
-  char *sz_cmd_line = ( char *)malloc(s.length() + 1);
+  char *sz_cmd_line = (char *)malloc(s.length() + 1);
   if (!sz_cmd_line)
     report_error("Cannot assign memory for command line in Process_launcher::start");
   _tcscpy(sz_cmd_line, s.c_str());
@@ -113,6 +107,8 @@ void Process_launcher::start()
 
   if (!bSuccess)
     report_error(NULL);
+  else
+    is_alive = true;
 
   CloseHandle(child_out_wr);
   CloseHandle(child_in_rd);
@@ -122,49 +118,38 @@ void Process_launcher::start()
   free(sz_cmd_line);
 }
 
-
-uint64_t Process_launcher::get_pid()
-{
+uint64_t Process_launcher::get_pid() {
   return (uint64_t)pi.hProcess;
 }
 
-
-int Process_launcher::wait()
-{
+int Process_launcher::wait() {
   DWORD dwExit = 0;
-  if (GetExitCodeProcess(pi.hProcess, &dwExit))
-  {
-    if (dwExit == STILL_ACTIVE)
-    {
+  if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
+    if (dwExit == STILL_ACTIVE) {
       WaitForSingleObject(pi.hProcess, INFINITE);
     }
-  }
-  else
-  {
+  } else {
     DWORD dwError = GetLastError();
     if (dwError != ERROR_INVALID_HANDLE)  // not closed already?
       report_error(NULL);
+    else
+      dwExit = 128; // Invalid handle
   }
   return dwExit;
 }
 
-
-void Process_launcher::close()
-{
+void Process_launcher::close() {
   DWORD dwExit;
-  if (GetExitCodeProcess(pi.hProcess, &dwExit))
-  {
-    if (dwExit == STILL_ACTIVE)
-    {
+  if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
+    if (dwExit == STILL_ACTIVE) {
       if (!TerminateProcess(pi.hProcess, 0))
         report_error(NULL);
       // TerminateProcess is async, wait for process to end.
       WaitForSingleObject(pi.hProcess, INFINITE);
     }
-  }
-  else 
-  {
-    report_error(NULL);
+  } else {
+    if (is_alive)
+      report_error(NULL);
   }
 
   if (!CloseHandle(pi.hProcess))
@@ -180,15 +165,12 @@ void Process_launcher::close()
   is_alive = false;
 }
 
-
-int Process_launcher::read_one_char()
-{
+int Process_launcher::read_one_char() {
   char buf[1];
   BOOL bSuccess = FALSE;
   DWORD dwBytesRead, dwCode;
 
-  while (!(bSuccess = ReadFile(child_out_rd, buf, 1, &dwBytesRead, NULL)))
-  {
+  while (!(bSuccess = ReadFile(child_out_rd, buf, 1, &dwBytesRead, NULL))) {
     dwCode = GetLastError();
     if (dwCode == ERROR_NO_DATA) continue;
     if (dwCode == ERROR_BROKEN_PIPE)
@@ -200,14 +182,12 @@ int Process_launcher::read_one_char()
   return buf[0];
 }
 
-int Process_launcher::read(char *buf, size_t count)
-{
+int Process_launcher::read(char *buf, size_t count) {
   BOOL bSuccess = FALSE;
   DWORD dwBytesRead, dwCode;
   int i = 0;
 
-  while (!(bSuccess = ReadFile(child_out_rd, buf, count, &dwBytesRead, NULL)))
-  {
+  while (!(bSuccess = ReadFile(child_out_rd, buf, count, &dwBytesRead, NULL))) {
     dwCode = GetLastError();
     if (dwCode == ERROR_NO_DATA) continue;
     if (dwCode == ERROR_BROKEN_PIPE)
@@ -219,57 +199,42 @@ int Process_launcher::read(char *buf, size_t count)
   return dwBytesRead;
 }
 
-
-int Process_launcher::write_one_char(int c)
-{
+int Process_launcher::write_one_char(int c) {
   CHAR buf[1];
   BOOL bSuccess = FALSE;
   DWORD dwBytesWritten;
 
-  bSuccess = WriteFile(child_in_wr, buf, 1, &dwBytesWritten, NULL);  
-  if (!bSuccess)
-  {
+  bSuccess = WriteFile(child_in_wr, buf, 1, &dwBytesWritten, NULL);
+  if (!bSuccess) {
     if (GetLastError() != ERROR_NO_DATA)  // otherwise child process just died.
       report_error(NULL);
-  }
-  else
-  {
+  } else {
     return 1;
   }
   return 0; // so the compiler does not cry
 }
 
-
-int Process_launcher::write(const char *buf, size_t count)
-{
+int Process_launcher::write(const char *buf, size_t count) {
   DWORD dwBytesWritten;
   BOOL bSuccess = FALSE;
   bSuccess = WriteFile(child_in_wr, buf, count, &dwBytesWritten, NULL);
-  if (!bSuccess)
-  {
+  if (!bSuccess) {
     if (GetLastError() != ERROR_NO_DATA)  // otherwise child process just died.
       report_error(NULL);
-  }
-  else
-  {
+  } else {
     // When child input buffer is full, this returns zero in NO_WAIT mode.
     return dwBytesWritten;
   }
   return 0; // so the compiler does not cry
 }
 
-
-void Process_launcher::report_error(const char *msg)
-{
+void Process_launcher::report_error(const char *msg) {
   DWORD dwCode = GetLastError();
   LPTSTR lpMsgBuf;
 
-  if (msg != NULL)
-  {
+  if (msg != NULL) {
     throw std::system_error(dwCode, std::generic_category(), msg);
-  }
-  else 
-  {
+  } else {
     FormatMessage(
       FORMAT_MESSAGE_ALLOCATE_BUFFER |
       FORMAT_MESSAGE_FROM_SYSTEM |
@@ -288,18 +253,13 @@ void Process_launcher::report_error(const char *msg)
   }
 }
 
-
-uint64_t Process_launcher::get_fd_write()
-{
+uint64_t Process_launcher::get_fd_write() {
   return (uint64_t)child_in_wr;
 }
 
-
-uint64_t Process_launcher::get_fd_read()
-{
+uint64_t Process_launcher::get_fd_read() {
   return (uint64_t)child_out_rd;
 }
-
 
 #else
 
@@ -321,7 +281,7 @@ void Process_launcher::start()
   if(childpid == -1)
   {
     report_error(NULL);
-  } 
+  }
 
   if(childpid == 0)
   {
@@ -331,12 +291,12 @@ void Process_launcher::start()
 
     ::close(fd_out[0]);
     ::close(fd_in[1]);
-    while( dup2(fd_out[1], STDOUT_FILENO) == -1 ) 
+    while( dup2(fd_out[1], STDOUT_FILENO) == -1 )
     {
       if(errno == EINTR) continue;
       else report_error(NULL);
     }
-      
+
     if(redirect_stderr)
     {
       while( dup2(fd_out[1], STDERR_FILENO) == -1 )
@@ -355,8 +315,8 @@ void Process_launcher::start()
     fcntl(fd_in[0], F_SETFD, FD_CLOEXEC);
 
     execvp(cmd_line, (char * const *)args);
-    // if exec returns, there is an error. 
-    // TODO: Use explain_execvp if available   
+    // if exec returns, there is an error.
+    // TODO: Use explain_execvp if available
     int my_errno = errno;
     fprintf(stderr, "%s could not be executed: %s (errno %d)\n", cmd_line, strerror(my_errno), my_errno);
 
@@ -368,7 +328,7 @@ void Process_launcher::start()
 
     exit(my_errno);
   }
-  else 
+  else
   {
     int status;
 
@@ -382,7 +342,6 @@ void Process_launcher::start()
     */
   }
 }
-
 
 void Process_launcher::close()
 {
@@ -398,21 +357,20 @@ void Process_launcher::close()
   /*
   while(::close(fd_out[0]) == -1)
   {
-    if(errno == EINTR) continue;
-    else report_error(NULL);
+  if(errno == EINTR) continue;
+  else report_error(NULL);
   }
 
   while(::close(fd_in[1]) == -1)
   {
-    if( errno == EINTR ) continue;
-    else report_error(NULL);
+  if( errno == EINTR ) continue;
+  else report_error(NULL);
   }*/
 
   ::close(fd_out[0]);
   ::close(fd_in[1]);
   is_alive = false;
 }
-
 
 int Process_launcher::read_one_char()
 {
@@ -429,7 +387,6 @@ int Process_launcher::read_one_char()
   return -1;
 }
 
-
 int Process_launcher::read(char *buf, size_t count)
 {
   int n;
@@ -444,7 +401,6 @@ int Process_launcher::read(char *buf, size_t count)
   return -1;
 }
 
-
 int Process_launcher::write_one_char(int c)
 {
   int n;
@@ -455,7 +411,6 @@ int Process_launcher::write_one_char(int c)
   return -1;
 }
 
-
 int Process_launcher::write(const char *buf, size_t count)
 {
   int n;
@@ -465,7 +420,6 @@ int Process_launcher::write(const char *buf, size_t count)
   report_error(NULL);
   return -1;
 }
-
 
 void Process_launcher::report_error(const char *msg)
 {
@@ -486,12 +440,10 @@ void Process_launcher::report_error(const char *msg)
   }
 }
 
-
 uint64_t Process_launcher::get_pid()
 {
   return (uint64_t)childpid;
 }
-
 
 /*
  * Waits for the child process to finish.
@@ -517,28 +469,24 @@ int Process_launcher::wait()
         report_error(NULL);
       }
     }
-  } 
+  }
   while(ret == -1);
 
   return exitstatus;
 }
-
 
 uint64_t Process_launcher::get_fd_write()
 {
   return (uint64_t)fd_in[1];
 }
 
-
 uint64_t Process_launcher::get_fd_read()
 {
   return (uint64_t)fd_out[0];
 }
 
-
 #endif
 
-void Process_launcher::kill()
-{
+void Process_launcher::kill() {
   close();
 }
