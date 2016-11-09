@@ -46,7 +46,15 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
   ssl.ca_path = my_ssl_ca_path.c_str();
 
   // TODO: Define a proper timeout for the session creation
+  try {
   _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 10000, auth_method, true);
+  } catch (const ::mysqlx::Error& error) {
+    if (error.error() == CR_MALFORMED_PACKET &&
+      !strcmp(error.what(), "Unknown message received from server 10")) {
+      std::string message = "Requested session assumes MySQL X Protocol but '" + host + ":" + std::to_string(port) + "' seems to speak the classic MySQL protocol";
+      throw shcore::Exception::error_with_code("RuntimeError", message, CR_MALFORMED_PACKET);
+    }
+  }
 }
 
 std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_sql(const std::string &sql) const {

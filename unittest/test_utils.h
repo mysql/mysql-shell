@@ -100,6 +100,7 @@ protected:
   void wipe_err() { output_handler.wipe_err(); }
   void wipe_all() { output_handler.wipe_all(); }
 
+  std::string _host;
   std::string _port;
   std::string _uri;
   std::string _uri_nopasswd;
