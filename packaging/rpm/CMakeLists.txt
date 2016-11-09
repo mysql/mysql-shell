@@ -30,18 +30,28 @@ include(../../version.cmake)
 #set(YEAR      2016)  # FIXME automate somehow
 set(PRODUCT   "MySQL Shell ${MYSH_BASE_VERSION}")
 
-if(NOT RPM_RELEASE)
-  set(RPM_RELEASE 1)
-endif()
-
 if(EXISTS "${CMAKE_SOURCE_DIR}/../../LICENSE.mysql")
   set(PRODUCT_SUFFIX "-commercial")
-  SET(LICENSE_FILE   "LICENSE.mysql")
+  set(LICENSE_FILE   "LICENSE.mysql")
   set(LICENSE_TYPE   "Commercial")
+  if(NOT RPM_RELEASE)
+    if(MYSH_LEVEL)
+      set(RPM_RELEASE "0.1")
+    else
+      set(RPM_RELEASE "1.1")
+    endif()
+  endif()
 else()
   set(PRODUCT_SUFFIX "")
   set(LICENSE_FILE   "COPYING.txt")
   set(LICENSE_TYPE   "GPLv2")
+  if(NOT RPM_RELEASE)
+    if(MYSH_LEVEL)
+      set(RPM_RELEASE "0.1")
+    else
+      set(RPM_RELEASE "1")
+    endif()
+  endif()
 endif()
 
 # ----------------------------------------------------------------------
