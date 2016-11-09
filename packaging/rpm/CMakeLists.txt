@@ -1,11 +1,11 @@
 # Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published
 # by the Free Software Foundation; version 2 of the License.
 #
-# This program is distributed in the hope that it will be useful, but 
-# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
 # or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
 # for more details.
 #
@@ -37,7 +37,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/../../LICENSE.mysql")
   if(NOT RPM_RELEASE)
     if(MYSH_LEVEL)
       set(RPM_RELEASE "0.1")
-    else
+    else()
       set(RPM_RELEASE "1.1")
     endif()
   endif()
@@ -48,7 +48,7 @@ else()
   if(NOT RPM_RELEASE)
     if(MYSH_LEVEL)
       set(RPM_RELEASE "0.1")
-    else
+    else()
       set(RPM_RELEASE "1")
     endif()
   endif()
