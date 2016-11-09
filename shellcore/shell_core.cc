@@ -589,6 +589,12 @@ bool Shell_core::reconnect_if_needed() {
   return ret_val;
 }
 
+void Shell_core::execute_module(const std::string &file_name, std::function<void(shcore::Value)> result_processor, const std::vector<std::string> &argv) {
+  _input_args = argv;
+
+  _langs[_mode]->execute_module(file_name, result_processor);
+}
+
 void Shell_core::deleg_print(void *self, const char *text) {
   Shell_core *shcore = (Shell_core*)self;
 

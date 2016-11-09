@@ -64,6 +64,7 @@ if(HAVE_PYTHON)
     IF (PYTHON_PATH AND PYTHON_FOLDER)
       SET(PYTHON_LIBRARY_PATH "${PYTHON_PATH}\\${PYTHON_FOLDER}\\Lib")
       STRING(REPLACE "\\" "\\\\" PYTHON_LIBRARY_PATH ${PYTHON_LIBRARY_PATH})
+      STRING(REPLACE "Lib" "DLLs" PYTHON_DLLS_PATH ${PYTHON_LIBRARY_PATH})
     ENDIF()
   ENDIF()
 endif()
@@ -321,9 +322,16 @@ target_link_libraries(mysqlsh ${MYSQLSHCORE_LIBS} ${GCOV_LDFLAGS})
 install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
 
 if(WIN32)
+  install(FILES "${CMAKE_SOURCE_DIR}/res/mysqlprovision.cmd" COMPONENT main DESTINATION ${INSTALL_BINDIR})
   if(NOT WINDOWS_RUNTIME_MD)
     CHANGE_MD_2_MT()
   endif()
+
+  IF(CMAKE_BUILD_TYPE MATCHES Debug)
+    add_custom_command(TARGET mysqlsh PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy
+                        "${CMAKE_SOURCE_DIR}/res/mysqlprovision.cmd" $<TARGET_FILE_DIR:mysqlsh>)
+  ENDIF()
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB)
@@ -337,6 +345,7 @@ if(WIN32)
 
   IF(PYTHON_LIBRARY_PATH)
     install(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+    install(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
 
     IF(CMAKE_BUILD_TYPE MATCHES Debug)
       # This is to copy the modules into the build directory to make them
@@ -344,6 +353,12 @@ if(WIN32)
       add_custom_command(TARGET mysqlsh PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/Python2.7/Lib)
+
+      # This is to copy the pyd modules into the build directory to make them
+      # available for debugging purposes
+      add_custom_command(TARGET mysqlsh PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                      "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:mysqlsh>/Python2.7/DLLs)
     ENDIF()
 
   ENDIF()
@@ -390,6 +405,7 @@ if (HAVE_PYTHON)
     set(PY_DLL ${PYTHON_LIBRARIES})
     string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
     get_filename_component(PY_FILE ${PY_DLL} NAME)
+    get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
 

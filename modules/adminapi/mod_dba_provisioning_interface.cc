@@ -44,7 +44,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   std::vector<const char *> args_script;
   std::string buf;
   char c;
-  int exit_code;
+  int exit_code = 0;
   std::string full_output;
 
   // set _local_mysqlprovision_path if empty
@@ -58,7 +58,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     if (_local_mysqlprovision_path.empty()) {
       std::string tmp(get_binary_folder());
 #ifdef _WIN32
-      tmp.append("\\mysqlprovision.exe");
+      tmp.append("\\mysqlprovision.cmd");
 #else
       tmp.append("/mysqlprovision");
 #endif
@@ -110,21 +110,22 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   }
 
   std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string stage_action;
 
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
-  p.start();
+  try {
+    stage_action = "starting";
+    p.start();
 
-  if (!passwords.empty()) {
-    try {
+    if (!passwords.empty()) {
+      stage_action = "executing";
       for (size_t i = 0; i < passwords.size(); i++) {
         p.write(passwords[i].c_str(), passwords[i].length());
       }
-    } catch (std::system_error &e) {
-      log_warning("DBA: %s while executing mysqlprovision", e.what());
     }
-  }
 
-  try {
+    stage_action = "reading from";
+
     bool last_closed = false;
     bool json_started = false;
     while (p.read(&c, 1) > 0) {
@@ -207,17 +208,20 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
         last_closed = c == '}';
       }
     }
-  } catch (std::system_error &e) {
-    log_warning("DBA: %s while reading from mysqlprovision", e.what());
-  }
-  if (!buf.empty()) {
-    if (verbose)
-      _delegate->print(_delegate->user_data, buf.c_str());
 
-    log_debug("DBA: mysqlprovision: %s", buf.c_str());
+    if (!buf.empty()) {
+      if (verbose)
+        _delegate->print(_delegate->user_data, buf.c_str());
 
-    full_output.append(buf);
+      log_debug("DBA: mysqlprovision: %s", buf.c_str());
+
+      full_output.append(buf);
+    }
+    stage_action = "terminating";
+  } catch (const std::system_error &e) {
+    log_warning("DBA: %s while %s mysqlprovision", e.what(), stage_action.c_str());
   }
+
   exit_code = p.wait();
 
   if (verbose) {
@@ -338,7 +342,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   for (size_t i = 0; i < extra_args.size(); i++)
     args.push_back(extra_args[i].c_str());
   if (!pwd.empty())
-    args.push_back("--stdin");
+  args.push_back("--stdin");
 
   return execute_mysqlprovision("sandbox", args, passwords, errors, _verbose);
 }

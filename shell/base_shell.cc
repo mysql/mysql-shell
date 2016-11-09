@@ -927,7 +927,7 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
   if (file.empty())
     print_error("Usage: \\. <filename> | \\source <filename>\n");
   else if (_shell->is_module(file))
-    _shell->execute_module(file, _result_processor);
+    _shell->execute_module(file, _result_processor, argv);
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {

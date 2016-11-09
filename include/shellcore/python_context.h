@@ -201,6 +201,7 @@ private:
   static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
   static PyObject *shell_parse_uri(PyObject *self, PyObject *args);
   static bool exit_error;
+  static bool module_processing;
   static PyMethodDef ShellStdErrMethods[];
   static PyMethodDef ShellStdOutMethods[];
   static PyMethodDef ShellPythonSupportMethods[];

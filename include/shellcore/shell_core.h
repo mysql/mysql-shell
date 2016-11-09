@@ -142,7 +142,7 @@ public:
       std::function<void(shcore::Value)> result_processor,
       const std::vector<std::string> &argv);
   virtual bool is_module(const std::string &file_name) { return _langs[_mode]->is_module(file_name); }
-  virtual void execute_module(const std::string &file_name, std::function<void(shcore::Value)> result_processor) { _langs[_mode]->execute_module(file_name, result_processor); }
+  virtual void execute_module(const std::string &file_name, std::function<void(shcore::Value)> result_processor, const std::vector<std::string> &argv);
 
   virtual std::string prompt();
 

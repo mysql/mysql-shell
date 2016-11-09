@@ -39,6 +39,7 @@ static const char *SHELLTypeSignature = "SHELLCONTEXT";
 
 namespace shcore {
 bool Python_context::exit_error = false;
+bool Python_context::module_processing = false;
 std::unique_ptr<Python_init_singleton> Python_init_singleton::_instance((Python_init_singleton *)NULL);
 int Python_init_singleton::cnt = 0;
 
@@ -92,8 +93,9 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
   PySys_SetObject((char*)"stdout", get_shell_stdout_module());
   PySys_SetObject((char*)"stderr", get_shell_stderr_module());
 
-  // set stdin to the Sh shell console
-  PySys_SetObject((char*)"stdin", get_shell_python_support_module());
+  // set stdin to the shell console when on interactive mode
+  if ((*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] == shcore::Value::True())
+    PySys_SetObject((char*)"stdin", get_shell_python_support_module());
 
   // Stores the main thread state
   _main_thread_state = PyThreadState_Get();
@@ -407,16 +409,18 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args, co
   if (!(ctx = Python_context::get_and_check()))
     return NULL;
 
-  PyObject *o;
-  if (!PyArg_ParseTuple(args, "O", &o)) {
-    if (PyTuple_Size(args) == 1 && PyTuple_GetItem(args, 0) == Py_None) {
-      PyErr_Clear();
-      text = "None";
+  if (stream != "error.flush") {
+    PyObject *o;
+    if (!PyArg_ParseTuple(args, "O", &o)) {
+      if (PyTuple_Size(args) == 1 && PyTuple_GetItem(args, 0) == Py_None) {
+        PyErr_Clear();
+        text = "None";
+      } else
+        return NULL;
     } else
+    if (!ctx->pystring_to_string(o, text, true))
       return NULL;
-  } else
-  if (!ctx->pystring_to_string(o, text, true))
-    return NULL;
+  }
 
 #ifdef _WIN32
   OutputDebugStringA(text.c_str());
@@ -425,7 +429,7 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args, co
   // TODO: logging
 #endif
   if (stream == "error") {
-    if (exit_error) {
+    if (exit_error || module_processing) {
       ctx->_delegate->print_error(ctx->_delegate->user_data, text.c_str());
     } else {
       ctx->_error_buffer += text;
@@ -591,14 +595,14 @@ PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self), Py
 PyMethodDef Python_context::ShellStdErrMethods[] = {
   {"write", &Python_context::shell_stderr, METH_VARARGS,
   "Write an error string in the SHELL shell."},
-  {"flush", &Python_context::shell_flush_stderr, METH_VARARGS, ""},
+  {"flush", &Python_context::shell_flush_stderr, METH_NOARGS, ""},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
 PyMethodDef Python_context::ShellStdOutMethods[] = {
   {"write", &Python_context::shell_stdout, METH_VARARGS,
   "Write a string in the SHELL shell."},
-  {"flush", &Python_context::shell_flush, METH_VARARGS, ""},
+  {"flush", &Python_context::shell_flush, METH_NOARGS, ""},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -647,7 +651,6 @@ PyObject *Python_context::call_module_function(PyObject *self, PyObject *args, P
 }
 
 void Python_context::register_mysqlsh_module() {
-
   // Registers the mysqlsh module/package, at least for now this exists
   // only on the python side of things, this module encloses the inner
   // modules: mysql and mysqlx to prevent class names i.e. using connector/py
@@ -657,8 +660,7 @@ void Python_context::register_mysqlsh_module() {
   if (py_mysqlsh_module == NULL)
     throw std::runtime_error("Error initializing the 'mysqlsh' module in Python support");
 
-  PyObject* py_mysqlsh_dict = PyModule_GetDict(py_mysqlsh_module );
-
+  PyObject* py_mysqlsh_dict = PyModule_GetDict(py_mysqlsh_module);
 
   // Now registers each available module as part of the mysqlsh package
   auto modules = Object_factory::package_contents("__modules__");
@@ -762,6 +764,8 @@ Value Python_context::execute_module(const std::string& file_name, const std::ve
   PyObject *argv0 = PyString_FromString(file_name.c_str());
   PyObject *sys_path = PySys_GetObject((char*)"path");
 
+  set_argv(argv);
+
   // Register the module name as an input source
   if (sys_path) {
     if (!PyList_Insert(sys_path, 0, argv0)) {
@@ -787,7 +791,9 @@ Value Python_context::execute_module(const std::string& file_name, const std::ve
         throw shcore::Exception::runtime_error("Could not create arguments for runpy._run_module_as_main");
       }
 
+      module_processing = true;
       py_result = PyObject_Call(runmodule, runargs, NULL);
+      module_processing = false;
 
       if (!py_result) {
         if (PyErr_ExceptionMatches(PyExc_SystemExit))

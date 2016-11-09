@@ -119,6 +119,7 @@ if(WITH_TESTS)
           string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
           get_filename_component(PY_FILE ${PY_DLL} NAME)
           get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
+          get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
 
           # Copies the dll to the binary location to enable debugging
           add_custom_command(TARGET run_unit_tests PRE_BUILD
