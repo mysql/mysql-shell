@@ -99,6 +99,12 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   _interactive_shell->process_line("\\connect -n " + _mysql_uri);
   MY_EXPECT_STDERR_CONTAINS("Requested session assumes MySQL X Protocol but '" + _host + ":" + _mysql_port + "' seems to speak the classic MySQL protocol");
   output_handler.wipe_all();
+
+  // Invalid user/password
+  output_handler.passwords.push_back("whatever");
+  _interactive_shell->process_line("\\connect -n " + _uri_nopasswd);
+  MY_EXPECT_STDERR_CONTAINS("ERROR: 1045: Invalid user or password");
+  output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_classic) {

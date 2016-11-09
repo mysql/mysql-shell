@@ -54,6 +54,8 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
       std::string message = "Requested session assumes MySQL X Protocol but '" + host + ":" + std::to_string(port) + "' seems to speak the classic MySQL protocol";
       throw shcore::Exception::error_with_code("RuntimeError", message, CR_MALFORMED_PACKET);
     }
+    else
+      throw;
   }
 }
 
