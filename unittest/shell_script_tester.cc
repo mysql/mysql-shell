@@ -156,14 +156,14 @@ void Shell_script_tester::validate_line_by_line(const std::string& context, cons
 
 void Shell_script_tester::validate(const std::string& context, const std::string &chunk_id) {
   if (_chunk_validations.count(chunk_id)) {
-    Validation_t* validations = _chunk_validations[chunk_id];
+    Validation_t validations = _chunk_validations[chunk_id];
 
     std::string original_std_out = output_handler.std_out;
     std::string original_std_err = output_handler.std_err;
 
-    for (size_t valindex = 0; valindex < validations->size(); valindex++) {
+    for (size_t valindex = 0; valindex < validations.size(); valindex++) {
       // Validation goes against validation code
-      if (!(*validations)[valindex].code.empty()) {
+      if (!validations[valindex].code.empty()) {
         // Before cleaning up, prints any error found on the script execution
         if (valindex == 0 && !original_std_err.empty()) {
           SCOPED_TRACE("File: " + context);
@@ -172,7 +172,7 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         }
 
         output_handler.wipe_all();
-        execute((*validations)[valindex].code);
+        execute(validations[valindex].code);
 
         original_std_err = output_handler.std_err;
         original_std_out = output_handler.std_out;
@@ -181,7 +181,7 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       }
 
       // Validates unexpected error
-      if ((*validations)[valindex].expected_error.empty() &&
+      if (validations[valindex].expected_error.empty() &&
           !original_std_err.empty()) {
         SCOPED_TRACE("File: " + context);
         SCOPED_TRACE("Executing: " + chunk_id);
@@ -190,13 +190,13 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       }
 
       // Validates expected output if any
-      if (!(*validations)[valindex].expected_output.empty()) {
-        std::string out = (*validations)[valindex].expected_output;
+      if (!validations[valindex].expected_output.empty()) {
+        std::string out = validations[valindex].expected_output;
 
         out = resolve_string(out);
 
         if (out != "*") {
-          if ((*validations)[valindex].type == ValidationType::Simple) {
+          if (validations[valindex].type == ValidationType::Simple) {
             SCOPED_TRACE("File: " + context);
             SCOPED_TRACE("Executing: " + chunk_id);
             SCOPED_TRACE("STDOUT missing: " + out);
@@ -210,8 +210,8 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       }
 
       // Validates unexpected output if any
-      if (!(*validations)[valindex].unexpected_output.empty()) {
-        std::string out = (*validations)[valindex].unexpected_output;
+      if (!validations[valindex].unexpected_output.empty()) {
+        std::string out = validations[valindex].unexpected_output;
 
         out = resolve_string(out);
 
@@ -224,13 +224,13 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       }
 
       // Validates expected error if any
-      if (!(*validations)[valindex].expected_error.empty()) {
-        std::string error = (*validations)[valindex].expected_error;
+      if (!validations[valindex].expected_error.empty()) {
+        std::string error = validations[valindex].expected_error;
 
         error = resolve_string(error);
 
         if (error != "*") {
-          if ((*validations)[valindex].type == ValidationType::Simple) {
+          if (validations[valindex].type == ValidationType::Simple) {
             SCOPED_TRACE("File: " + context);
             SCOPED_TRACE("Executing: " + chunk_id);
             SCOPED_TRACE("STDERR missing: " + error);
@@ -267,7 +267,7 @@ void Shell_script_tester::validate_interactive(const std::string& script) {
 
 void Shell_script_tester::load_source_chunks(std::istream & stream) {
   std::string chunk_id = "__global__";
-  std::vector<std::string> * current_chunk = NULL;
+  std::vector<std::string> current_chunk;
 
   while (!stream.eof()) {
     std::string line;
@@ -276,7 +276,7 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
     boost::trim_right_if(line, boost::is_any_of("\r\n"));
 
     if (line.find(get_chunk_token()) == 0) {
-      if (current_chunk) {
+      if (current_chunk.empty()) {
         _chunks[chunk_id] = current_chunk;
         _chunk_order.push_back(chunk_id);
       }
@@ -291,19 +291,19 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
         boost::trim(chunk_id);
       }
 
-      current_chunk = NULL;
+      current_chunk = {};
     } else {
-      if (!current_chunk)
-        current_chunk = new std::vector<std::string>();
+      if (current_chunk.empty())
+        current_chunk = std::vector<std::string>();
 
       // Only adds the lines that are NO snippet specifier
       if (line.find("//! [") != 0)
-        current_chunk->push_back(line);
+        current_chunk.push_back(line);
     }
   }
 
   // Inserts the remaining code chunk
-  if (current_chunk) {
+  if (!current_chunk.empty()) {
     _chunks[chunk_id] = current_chunk;
     _chunk_order.push_back(chunk_id);
   }
@@ -312,18 +312,18 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
 void Shell_script_tester::add_validation(const std::string &chunk_id, const std::vector<std::string>& source, ValidationType type) {
   if (source.size() == 3) {
     if (!_chunk_validations.count(chunk_id))
-      _chunk_validations[chunk_id] = new Validation_t();
+      _chunk_validations[chunk_id] = Validation_t();
 
     // Line by line validation may be complement of an existing validation
     if (type == ValidationType::LineByLine) {
-      if (_chunk_validations[chunk_id]->size() == 0)
-        _chunk_validations[chunk_id]->push_back(Validation(source, type));
-      else if (_chunk_validations[chunk_id]->size() == 1) {
-        if (_chunk_validations[chunk_id]->at(0).type == ValidationType::LineByLine) {
+      if (_chunk_validations[chunk_id].size() == 0)
+        _chunk_validations[chunk_id].push_back(Validation(source, type));
+      else if (_chunk_validations[chunk_id].size() == 1) {
+        if (_chunk_validations[chunk_id].at(0).type == ValidationType::LineByLine) {
           if (source[1].size() > 0)
-            _chunk_validations[chunk_id]->at(0).expected_output = source[1];
+            _chunk_validations[chunk_id].at(0).expected_output = source[1];
           if (source[2].size() > 0)
-            _chunk_validations[chunk_id]->at(0).expected_error = source[2];
+            _chunk_validations[chunk_id].at(0).expected_error = source[2];
         }
         else
           throw std::runtime_error("Unable to mix Single and Line by Line validations");
@@ -332,7 +332,7 @@ void Shell_script_tester::add_validation(const std::string &chunk_id, const std:
         throw std::runtime_error("Unable to mix Sinngle and Line by Line validations");
     }
     else
-      _chunk_validations[chunk_id]->push_back(Validation(source, type));
+      _chunk_validations[chunk_id].push_back(Validation(source, type));
   }
 }
 
@@ -451,8 +451,8 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       load_source_chunks(stream);
       for (size_t index = 0; index < _chunk_order.size(); index++) {
         // Executes the file line by line
-        for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]]->size(); chunk_item++) {
-          std::string line((*_chunks[_chunk_order[index]])[chunk_item]);
+        for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]].size(); chunk_item++) {
+          std::string line((_chunks[_chunk_order[index]])[chunk_item]);
 
           // There's chance to do preprocessing
           pre_process_line(path, line);

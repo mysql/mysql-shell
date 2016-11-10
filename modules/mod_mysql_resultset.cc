@@ -90,7 +90,7 @@ Row ClassicResult::fetch_one() {}
 #endif
 shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("fetchOne").c_str());
-  Row *inner_row = _result->fetch_one();
+  auto inner_row = std::unique_ptr<Row>(_result->fetch_one());
 
   if (inner_row) {
     mysqlsh::Row *value_row = new mysqlsh::Row();

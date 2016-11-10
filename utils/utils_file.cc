@@ -375,6 +375,7 @@ bool load_text_file(const std::string& path, std::string& data) {
     fdata[s.gcount()] = '\0';
 
     data.assign(fdata);
+    delete[] fdata;
     ret_val = true;
 
     s.close();
