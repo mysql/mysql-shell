@@ -148,6 +148,9 @@ private:
                            const std::string &username,
                            const std::string &password);
 
+  void validate_instance_address(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+                                 const std::string &hostname, int port);
+
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
 
   std::shared_ptr<Cluster> _cluster;
@@ -155,7 +158,7 @@ private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
 protected:
-  virtual int get_default_port() { return 33060; };
+  virtual int get_default_port() { return 3306; };
 };
 }
 }

@@ -57,8 +57,8 @@ cluster.status()
 cluster.remove_instance();
 cluster.remove_instance(1,2);
 cluster.remove_instance(1);
-cluster.remove_instance({'host': 'localhost'});
-cluster.remove_instance({'host': 'localhost', 'schema': 'abs', 'user': 'sample', 'authMethod': 56});
+cluster.remove_instance({'host': 'localhost', 'port': 33060});
+cluster.remove_instance({'host': 'localhost', 'port': 33060, 'schema': 'abs', 'user': 'sample', 'authMethod': 56});
 cluster.remove_instance("somehost:3306");
 
 #@ Cluster: remove_instance

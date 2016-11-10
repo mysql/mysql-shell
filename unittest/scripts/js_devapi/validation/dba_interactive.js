@@ -32,10 +32,10 @@ At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 //@ Dba: checkInstanceConfig error
-|Please provide a password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfig: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfig: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
 //@<OUT> Dba: checkInstanceConfig ok 1
-Please provide a password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
 {
@@ -52,7 +52,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
 
 
 //@<OUT> Dba: checkInstanceConfig report with errors
-Please provide a password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Validating instance...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is not valid for Cluster usage.
 
@@ -82,11 +82,11 @@ Please fix these issues and try again.
 ||Dba.configLocalInstance: This function only works with local instances
 
 //@<OUT> Dba: configLocalInstance error 2
-Please provide a password for 'root@localhost:<<<__mysql_port>>>': Please specify the path to the MySQL configuration file:
+Please provide the password for 'root@localhost:<<<__mysql_port>>>': Please specify the path to the MySQL configuration file:
 The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
 
 //@<OUT> Dba: configLocalInstance error 3
-Please provide a password for 'root@localhost:<<<__mysql_sandbox_port1>>>':
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':
 Detected as sandbox instance.
 
 Validating MySQL configuration file at: <<<__sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
@@ -96,7 +96,7 @@ Validating instance...
 Dba.configLocalInstance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
 //@<OUT> Dba: configLocalInstance updating config file
-Please provide a password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
 You can now add it to an InnoDB Cluster with the <Cluster>.addInstance() function.

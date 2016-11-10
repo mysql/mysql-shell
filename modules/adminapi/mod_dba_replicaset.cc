@@ -48,8 +48,12 @@
 #ifdef _WIN32
 #define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
 #else
-#include <unistd.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <unistd.h>
 #endif
 
 using namespace std::placeholders;
@@ -64,6 +68,8 @@ std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
+
+static const std::string kSandboxDatadir = "sandboxdata";
 
 static std::string generate_password(int password_lenght);
 
@@ -343,6 +349,68 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+/**
+ * Validate whether the hostname cannot be used for setting up a cluster.
+ * Basically, a local address can only be used if it's a sandbox.
+ */
+static bool check_if_local_host(const std::string &hostname) {
+  if (is_local_host(hostname)) {
+    return true;
+  } else {
+    struct hostent *he;
+    // if the host is not local, we try to resolve it and see if it points to
+    // a loopback
+    he = gethostbyname(hostname.c_str());
+    if (he) {
+      for (struct in_addr **h = (struct in_addr**)he->h_addr_list; *h; ++h) {
+        const char *addr = inet_ntoa(**h);
+        if (strncmp(addr, "127.", 4) == 0) {
+          log_info("'%s' is a loopback address '%s'",
+                   hostname.c_str(), addr);
+          return true;
+        }
+      }
+    }
+    // we can't be sure that the address is actually valid here (unless we
+    // traverse DNS explicitly), but we'll assume it is and check if the
+    // server has something different configured
+    return false;
+  }
+}
+
+
+void ReplicaSet::validate_instance_address(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    const std::string &hostname, int port) {
+
+  if (check_if_local_host(hostname)) {
+    // if the address is local (localhost or 127.0.0.1), we know it's local and so
+    // can be used with sandboxes only
+    std::string datadir = session->execute_sql("SELECT @@datadir")->fetch_one()->get_value_as_string(0);
+    if (datadir[datadir.size()-1] == '/' || datadir[datadir.size()-1] == '\\')
+      datadir.pop_back();
+    if (datadir.compare(datadir.length() - kSandboxDatadir.length(), kSandboxDatadir.length(),
+                        kSandboxDatadir) != 0) {
+      log_info("'%s' is a local address but not in a sandbox (datadir %s)",
+               hostname.c_str(), datadir.c_str());
+      throw shcore::Exception::runtime_error(
+         "To add an instance to the cluster, please use a valid, non-local hostname or IP. "
+         +hostname+" can only be used with sandbox MySQL instances.");
+    } else {
+      log_info("'%s' (%s) detected as local sandbox", hostname.c_str(), datadir.c_str());
+    }
+  } else {
+    auto row = session->execute_sql("select @@report_host, @@hostname")->fetch_one();
+    // host is not set explicitly by the user, so GR will pick hostname by default
+    // now we check if this is a loopback address
+    if (!row->get_value(0)) {
+      if (check_if_local_host(row->get_value_as_string(1))) {
+        std::string msg = "MySQL server reports hostname as being '"+row->get_value_as_string(1)+"', which may cause the cluster to be inaccessible externally. Please set report_host in MySQL to fix this.";
+        log_warning("%s", msg.c_str());
+      }
+    }
+  }
+}
+
 static void run_queries(mysqlsh::mysql::ClassicSession *session, const std::vector<std::string> &queries) {
   for (auto & q : queries) {
     log_info("DBA: run_sql(%s)", q.c_str());
@@ -388,18 +456,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   new_args.push_back(shcore::Value(options));
   auto session = Dba::get_session(new_args);
 
-  // get the public hostname of the instance being added
-  if (is_local_host(joiner_host)) {
-    auto result = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session)->execute_sql(
-        "SELECT IFNULL(@@report_host, @@hostname) as server_host");
-    auto row = result->fetch_one();
-    if (row) {
-      std::string hostname = row->get_value_as_string(0);
-      log_info("Instance '%s' detected as having hostname '%s'",
-               instance_address.c_str(), hostname.c_str());
-      instance_address = hostname + ":" + std::to_string(options->get_int("port"));
-    }
-  }
+  // Check whether the address being used is not in a known not-good case
+  validate_instance_address(session, joiner_host, options->get_int("port"));
 
   GRInstanceType type = get_gr_instance_type(session->connection());
 
@@ -1033,12 +1091,10 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
     }
     {
       // Query UUID of the member and its public hostname
-      auto result = classic->execute_sql("SELECT @@server_uuid,"
-          " (SELECT IFNULL(@@report_host, @@hostname)) as server_host");
+      auto result = classic->execute_sql("SELECT @@server_uuid");
       auto row = result->fetch_one();
       if (row) {
         mysql_server_uuid = row->get_value_as_string(0);
-        mysql_server_address = row->get_value_as_string(1);
       } else
         throw Exception::runtime_error("@@server_uuid could not be queried");
     }

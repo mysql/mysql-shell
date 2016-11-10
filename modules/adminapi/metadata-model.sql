@@ -133,6 +133,8 @@ CREATE TABLE hosts (
   `host_name` VARCHAR(256),
   /* network ip address of the host */
   `ip_address` VARCHAR(45),
+  /* public network ip address of the host */
+  `public_ip_address` VARCHAR(45),
   /* A string representing the location (e.g. datacenter name). */
   `location` VARCHAR(256) NOT NULL,
   /*

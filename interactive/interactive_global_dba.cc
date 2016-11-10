@@ -477,7 +477,7 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args, 
   std::string cnfPath;
 
   // Sandbox deployment structure would be:
-  // - <root_path>/<port>/data
+  // - <root_path>/<port>/sandboxdata
   // - <root_path>/<port>/my.cnf
   // So we validate such structure to determine it is a sandbox
   if (path_elements[path_elements.size() - 2] == std::to_string(port)) {

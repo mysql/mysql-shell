@@ -21,6 +21,8 @@
 
 using namespace shcore;
 
+static bool g_test_debug = getenv("TEST_DEBUG") != nullptr;
+
 Shell_test_output_handler::Shell_test_output_handler() {
   deleg.user_data = this;
   deleg.print = &Shell_test_output_handler::deleg_print;
@@ -31,17 +33,19 @@ Shell_test_output_handler::Shell_test_output_handler() {
 
 void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
-#ifdef TEST_DEBUG
-  std::cout << text << std::endl;
-#endif
+
+  if (g_test_debug)
+    std::cout << text << std::endl;
+
   target->std_out.append(text);
 }
 
 void Shell_test_output_handler::deleg_print_error(void *user_data, const char *text) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
-#ifdef TEST_DEBUG
-  std::cerr << text << std::endl;
-#endif
+
+  if (g_test_debug)
+    std::cerr << text << std::endl;
+
   target->std_err.append(text);
 }
 

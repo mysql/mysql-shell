@@ -53,12 +53,12 @@ Cluster.status()
 Cluster.removeInstance();
 Cluster.removeInstance(1,2);
 Cluster.removeInstance(1);
-Cluster.removeInstance({host: "localhost"});
-Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
+Cluster.removeInstance({host: "localhost", port:33060});
+Cluster.removeInstance({host: "localhost", port:33060, schema: 'abs', user:"sample", authMethod:56});
 Cluster.removeInstance("somehost:3306");
 
 //@ Cluster: removeInstance
-Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port2})
+Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2})
 
 //@<OUT> Cluster: describe2
 Cluster.describe()

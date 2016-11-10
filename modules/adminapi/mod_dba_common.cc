@@ -34,7 +34,7 @@ namespace dba {
       if (delegate) {
         std::string answer;
 
-        std::string prompt = "Please provide a password for '" + build_connection_string(options, false) + "': ";
+        std::string prompt = "Please provide the password for '" + build_connection_string(options, false) + "': ";
         if (delegate->password(delegate->user_data, prompt.c_str(), answer))
           (*options)["password"] = shcore::Value(answer);
       }
