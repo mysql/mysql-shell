@@ -156,7 +156,7 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
     else
       println("Instance localhost:" + std::to_string(port) + " successfully started.");
 
-    println("Use '\\connect root@localhost:" + std::to_string(port) + "' to connect to the instance.");
+    println("Use shell.connect('root@localhost:" + std::to_string(port) + "'); to connect to the instance.");
     println();
   }
 
