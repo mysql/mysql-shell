@@ -276,7 +276,7 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
     boost::trim_right_if(line, boost::is_any_of("\r\n"));
 
     if (line.find(get_chunk_token()) == 0) {
-      if (current_chunk.empty()) {
+      if (!current_chunk.empty()) {
         _chunks[chunk_id] = current_chunk;
         _chunk_order.push_back(chunk_id);
       }
