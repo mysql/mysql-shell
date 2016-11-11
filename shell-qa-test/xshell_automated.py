@@ -7041,7 +7041,7 @@ class XShell_TestCases(unittest.TestCase):
     def test_MYS_349(self):
         '''Valid DevAPI JavaScript code breaks in Shell when using copy & paste'''
         results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full', '-uroot', '--password=' + LOCALHOST.password,
+        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host]
         x_cmds = [("var db = session.getSchema(\"sakila\");\n", "mysql-js>"),
                   ("res = db.actor.select().where('actor_id=1').execute();\n", "1 row in set"),
@@ -7950,7 +7950,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("use collections;\n", "Query OK"),
                   ("drop table flags;\n", "Query OK"),
                   ("\\py\n", "mysql-py>"),
-                  ("db.get_collections()\n", "[" + os.linesep + "]"),
+                  ("db.get_collections()\n", "[]"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
