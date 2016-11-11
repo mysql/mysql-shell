@@ -109,6 +109,7 @@ public:
   shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
 
+  void remove_instances_from_gr(const shcore::Value::Array_type_ref & instances);
 private:
   //TODO these should go to a GroupReplication file
   friend Cluster;

@@ -42,10 +42,10 @@ Cluster.addInstance({host: "localhost", port:__mysql_sandbox_port1}, "root");
 //@ Cluster: addInstance
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
 
-//@<OUT> Cluster: describe1
+//@<OUT> Cluster: describe cluster with instance
 Cluster.describe()
 
-//@<OUT> Cluster: status1
+//@<OUT> Cluster: status cluster with instance
 Cluster.status()
 
 //@ Cluster: removeInstance errors
@@ -56,37 +56,52 @@ Cluster.removeInstance({host: "localhost"});
 Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
 Cluster.removeInstance("somehost:3306");
 
-
-//@ Cluster: removeInstance
+//@ Cluster: removeInstance read only
 Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port2})
 
-//@<OUT> Cluster: describe2
+//@<OUT> Cluster: describe removed read only member
 Cluster.describe()
 
-//@<OUT> Cluster: status2
+//@<OUT> Cluster: status removed read only member
 Cluster.status()
 
-//@ Cluster: addInstance 2
+//@ Cluster: addInstance read only back
 var uri = "root@localhost:" + __mysql_sandbox_port2;
 Cluster.addInstance(uri, "root");
 
-//@<OUT> Cluster: describe after adding 2
+//@<OUT> Cluster: describe after adding read only instance back
 Cluster.describe()
 
-//@<OUT> Cluster: status after adding 2
+//@<OUT> Cluster: status after adding read only instance back
 Cluster.status()
 
-//@ Cluster: remove_instance added
-var uri = localhost + ":" + __mysql_sandbox_port2;
-Cluster.removeInstance(uri)
+//@ Cluster: remove_instance master
+var uri1 = localhost + ":" + __mysql_sandbox_port1;
+var uri2 = localhost + ":" + __mysql_sandbox_port2;
+check_slave_online(Cluster, uri1, uri2);
 
-//@ Cluster: remove_instance last
-Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port1})
+Cluster.removeInstance(uri1)
 
-//@<OUT> Cluster: describe3
+//@ Connecting to new master
+var mysql = require('mysql');
+var customSession = mysql.getClassicSession({host:localhost, port:__mysql_sandbox_port2, user:'root', password: 'root'});
+dba.resetSession(customSession);
+var Cluster = dba.getCluster();
+
+//@<OUT> Cluster: describe on new master
 Cluster.describe()
 
-//@<OUT> Cluster: status3
+//@<OUT> Cluster: status on new master
+Cluster.status()
+
+//@ Cluster: addInstance adding old master as read only
+var uri = "root@localhost:" + __mysql_sandbox_port1;
+Cluster.addInstance(uri, "root");
+
+//@<OUT> Cluster: describe on new master with slave
+Cluster.describe()
+
+//@<OUT> Cluster: status on new master with slave
 Cluster.status()
 
 //@ Cluster: dissolve errors
@@ -105,3 +120,4 @@ Cluster.describe()
 
 //@ Cluster: status: dissolved cluster
 Cluster.status()
+customSession.close();

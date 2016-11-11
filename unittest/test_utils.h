@@ -75,8 +75,7 @@ protected:
   virtual void set_options() {};
 
   void create_file(const std::string& name, const std::string& content) {
-
-    std::ofstream file(name, std::ofstream::out|std::ofstream::trunc);
+    std::ofstream file(name, std::ofstream::out | std::ofstream::trunc);
 
     if (file.is_open()) {
       file << content;

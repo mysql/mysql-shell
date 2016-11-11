@@ -38,7 +38,7 @@ using namespace mysqlsh::dba;
 using namespace shcore;
 
 MetadataStorage::MetadataStorage(Dba* dba) :
-  _dba(dba) {}
+_dba(dba) {}
 
 MetadataStorage::~MetadataStorage() {}
 
@@ -65,11 +65,11 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::st
         throw Exception::metadata_error("The Metadata is inaccessible");
       } else if (retry && e.code() == 1290) { // SUPER_READ_ONLY enabled
         log_info("%s: retrying after 1s...\n", e.format().c_str());
-  #ifdef HAVE_SLEEP
+#ifdef HAVE_SLEEP
         sleep(1);
-  #elif defined(WIN32)
+#elif defined(WIN32)
         Sleep(1000);
-  #endif
+#endif
         retry_count--;
       } else {
         log_debug("%s", e.format().c_str());
@@ -473,6 +473,13 @@ void MetadataStorage::drop_replicaset(uint64_t rs_id) {
     query.done();
     execute_sql(query);
   }
+
+  // Delete the associated instances
+  query = shcore::sqlstring("delete from mysql_innodb_cluster_metadata.instances where replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
+
+  execute_sql(query);
 
   // Delete the replicaset
   query = shcore::sqlstring("delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = ?", 0);

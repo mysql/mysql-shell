@@ -232,6 +232,12 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
   //@<OUT> Cluster: addInstance with interaction, ok
   output_handler.passwords.push_back("root");
 
+  //@ Cluster: addInstance read only back
+  output_handler.passwords.push_back("root");
+
+  //@ Cluster: addInstance adding old master as read only
+  output_handler.passwords.push_back("root");
+
   //@<OUT> Cluster: addInstance with interaction, ok 2
   output_handler.passwords.push_back("root");
 

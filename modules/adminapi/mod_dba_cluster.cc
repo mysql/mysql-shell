@@ -52,7 +52,7 @@ REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 REGISTER_HELP(CLUSTER_ADMINTYPE_BRIEF, "Cluster Administration type.");
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name),_metadata_storage(metadata_storage) {
+_name(name), _metadata_storage(metadata_storage) {
   init();
 }
 
@@ -421,7 +421,6 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
       (*description)["defaultReplicaSet"] = shcore::Value::Null();
     else
       (*description)["defaultReplicaSet"] = _default_replica_set->get_description();
-
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("describe"));
 
   return ret_val;
@@ -463,7 +462,6 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
       (*status)["defaultReplicaSet"] = shcore::Value::Null();
     else
       (*status)["defaultReplicaSet"] = _default_replica_set->get_status();
-
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
 
   return ret_val;
@@ -519,10 +517,18 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
       tx.commit();
     } else {
       if (force) {
+        // Gets the instances on the only available replica set
+        auto instances = _metadata_storage->get_replicaset_instances(_default_replica_set->get_id());
+
+        _metadata_storage->drop_replicaset(_default_replica_set->get_id());
+
         // TODO: we only have the Default ReplicaSet, but will have more in the future
-        get_default_replicaset()->dissolve(args);
         _metadata_storage->drop_cluster(cluster_name);
+
         tx.commit();
+
+        // once the data changes are done, we proceed doing the remove from GR
+        _default_replica_set->remove_instances_from_gr(instances);
       } else {
         throw Exception::logic_error("Cannot drop cluster: The cluster is not empty.");
       }

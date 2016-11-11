@@ -180,7 +180,6 @@ void Shell_core_test_wrapper::SetUp() {
   else
     _sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
 
-
   // Initializes the interactive shell
   reset_shell();
 }

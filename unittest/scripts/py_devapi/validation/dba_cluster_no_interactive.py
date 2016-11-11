@@ -28,7 +28,7 @@
 #@ Cluster: add_instance
 ||
 
-#@<OUT> Cluster: describe1
+#@<OUT> Cluster: describe cluster with instance
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
@@ -48,7 +48,7 @@
     }
 }
 
-#@<OUT> Cluster: status1
+#@<OUT> Cluster: status cluster with instance
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
@@ -82,10 +82,10 @@
 ||Cluster.remove_instance: Invalid values in instance definition: authMethod, schema, user
 ||Cluster.remove_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
-#@ Cluster: remove_instance
+#@ Cluster: remove_instance read only
 ||
 
-#@<OUT> Cluster: describe2
+#@<OUT> Cluster: describe removed read only member
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
@@ -100,7 +100,7 @@
     }
 }
 
-#@<OUT> Cluster: status2
+#@<OUT> Cluster: status removed read only member
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
@@ -118,10 +118,10 @@
     }
 }
 
-#@ Cluster: addInstance 2
+#@ Cluster: addInstance read only back
 ||
 
-#@<OUT> Cluster: describe after adding 2
+#@<OUT> Cluster: describe after adding read only instance back
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
@@ -142,7 +142,7 @@
 }
 
 
-#@<OUT> Cluster: status after adding 2
+#@<OUT> Cluster: status after adding read only instance back
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
@@ -168,29 +168,91 @@
     }
 }
 
-
-#@ Cluster: remove_instance added
+#@ Cluster: remove_instance master
 ||
 
-#@ Cluster: remove_instance last
+#@ Connecting to new master
 ||
 
-#@<OUT> Cluster: describe3
+#@<OUT> Cluster: describe on new master
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "instances": [],
+        "instances": [
+            {
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "role": "HA"
+            }
+        ],
         "name": "default"
     }
 }
 
-#@<OUT> Cluster: status3
+#@<OUT> Cluster: status on new master
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
         "status": "Cluster is NOT tolerant to any failures.",
-        "topology": {}
+        "topology": {
+            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "leaves": {},
+                "mode": "R/W",
+                "role": "HA",
+                "status": "ONLINE"
+            }
+        }
+    }
+}
+
+#@ Cluster: addInstance adding old master as read only
+||
+
+#@<OUT> Cluster: describe on new master with slave
+{
+    "clusterName": "devCluster",
+    "defaultReplicaSet": {
+        "instances": [
+            {
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "role": "HA"
+            },
+            {
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "role": "HA"
+            }
+        ],
+        "name": "default"
+    }
+}
+
+#@<OUT> Cluster: status on new master with slave
+{
+    "clusterName": "devCluster",
+    "defaultReplicaSet": {
+        "name": "default",
+        "status": "Cluster is NOT tolerant to any failures.",
+        "topology": {
+            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "leaves": {
+                    "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                        "leaves": {},
+                        "mode": "R/O",
+                        "role": "HA",
+                        "status": "{{ONLINE|RECOVERING}}"
+                    }
+                },
+                "mode": "R/W",
+                "role": "HA",
+                "status": "ONLINE"
+            }
+        }
     }
 }
 
