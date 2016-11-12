@@ -339,6 +339,7 @@ add_definitions(-DBOOST_ALL_NO_LIB)
 ADD_SUBDIRECTORY(doc)
 
 include(packaging)
+include(extra_install)
 
 if(WIN32)
   remove_definitions(-DUNICODE)

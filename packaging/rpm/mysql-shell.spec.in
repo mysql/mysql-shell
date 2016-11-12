@@ -82,6 +82,9 @@ cmake .. \
     -DWITH_TESTS=ON \
     -DWITH_GTEST=%{with_gtest} \
 %endif
+%if 0%{?with_extra_exe:1}
+    -DEXTRA_INSTALL="%{with_extra_exe};bin;main" \
+%endif
     -DHAVE_PYTHON=1 \
 
 # Supported V8 versions are limited, disable
@@ -99,9 +102,6 @@ make DESTDIR=%{buildroot} install
 rm -rf %{buildroot}%{_includedir}
 rm -f %{buildroot}%{_prefix}/lib/*.{so,a}
 rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
-%if 0%{?with_extra_exe:1}
-install -D -m 0755 %{with_extra_exe} %{buildroot}%{_bindir}/%{basename:%{with_extra_exe}}
-%endif
 
 %files
 # FIXME EL6 doesn't like 'license' macro here, so we use 'doc'

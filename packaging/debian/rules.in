@@ -28,6 +28,7 @@ override_dh_auto_configure:
 	cmake -G 'Unix Makefiles' \
 	    -DCMAKE_INSTALL_PREFIX=/usr \
 	    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	    -DEXTRA_INSTALL="@EXTRA_INSTALL@" \
 	    @EXTRA_CMAKE_OPTS@ \
 	    .
 	DEB_BUILD_HARDENING=1 make VERBOSE=1
@@ -52,5 +53,4 @@ override_dh_auto_clean:
 
 override_dh_auto_install:
 	dh_auto_install -- libdir=$(PRIVATE_BINDIR) DESTDIR=$(TMP_INSTDIR)
-	if test -x "@WITH_EXTRA_EXE@" ; then install -D -m 0755 @WITH_EXTRA_EXE@ $(TMP_BINDIR)/@EXTRA_EXE_NAME@ ; fi
 
