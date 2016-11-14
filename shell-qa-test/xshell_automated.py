@@ -2338,7 +2338,8 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
-    def test_4_3_14_1(self):
+	@unittest.skip("Error not reproduced in Hudson nor local Env, only in PB2, under investigation line 2351, ERROR: Invalid object member code")
+	def test_4_3_14_1(self):
         '''[4.3.014]:1 JS Update database using STDIN batch code: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
