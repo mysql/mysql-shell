@@ -26,6 +26,7 @@
 #include "shellcore/proxy_object.h"
 #include "utils/utils_general.h"
 #include "base_session.h"
+#include "mysqlxtest_utils.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
@@ -163,21 +164,26 @@ Bool DatabaseObject::existsInDatabase() {}
 bool DatabaseObject::exists_in_database() {}
 #endif
 shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("existsInDatabase").c_str());
+
   shcore::Value ret_val;
   std::string type(get_object_type());
 
   auto session = _session.lock();
   auto schema = _schema.lock();
 
-  if (session)
-    ret_val = shcore::Value(!session->db_object_exists(type, _name, schema ? schema->get_member("name").as_string() : "").empty());
-  else {
-    std::string name = _name;
-    if (schema)
-      name = schema->get_member("name").as_string() + "." + _name;
+  try {
+    if (session)
+      ret_val = shcore::Value(!session->db_object_exists(type, _name, schema ? schema->get_member("name").as_string() : "").empty());
+    else {
+      std::string name = _name;
+      if (schema)
+        name = schema->get_member("name").as_string() + "." + _name;
 
-    throw shcore::Exception::logic_error("Unable to verify existence of '" + name + "', no Session available");
+      throw shcore::Exception::logic_error("Unable to verify existence of '" + name + "', no Session available");
+    }
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("existsInDatabase"));
 
   return ret_val;
 }

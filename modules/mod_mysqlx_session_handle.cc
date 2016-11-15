@@ -47,14 +47,13 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
 
   // TODO: Define a proper timeout for the session creation
   try {
-  _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 10000, auth_method, true);
+    _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 10000, auth_method, true);
   } catch (const ::mysqlx::Error& error) {
     if (error.error() == CR_MALFORMED_PACKET &&
       !strcmp(error.what(), "Unknown message received from server 10")) {
       std::string message = "Requested session assumes MySQL X Protocol but '" + host + ":" + std::to_string(port) + "' seems to speak the classic MySQL protocol";
       throw shcore::Exception::error_with_code("RuntimeError", message, CR_MALFORMED_PACKET);
-    }
-    else
+    } else
       throw;
   }
 }
@@ -96,15 +95,12 @@ std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_statement(const std::s
     for (size_t index = 0; index < args.size(); index++)
       arguments.push_back(get_argument_value(args[index]));
 
-    try {
-      _last_result = _session->executeStmt(domain, command, arguments);
+    _last_result = _session->executeStmt(domain, command, arguments);
 
-      // Calls wait so any error is properly triggered at execution time
-      _last_result->wait();
+    // Calls wait so any error is properly triggered at execution time
+    _last_result->wait();
 
-      ret_val = _last_result;
-    }
-    CATCH_AND_TRANSLATE();
+    ret_val = _last_result;
   }
 
   return ret_val;

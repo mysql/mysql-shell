@@ -164,7 +164,7 @@ void BaseSession::set_connection_id() {
   try {
     if (_session.is_connected()) {
       // the client id from xprotocol is not the same as the connection id so it is gathered here.
-      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select connection_id();");
+      std::shared_ptr< ::mysqlx::Result> result = execute_sql("select connection_id();");
       std::shared_ptr< ::mysqlx::Row> row = result->next();
       if (row) {
         if (!row->isNullField(0))
@@ -278,7 +278,7 @@ Value BaseSession::create_schema(const shcore::Argument_list &args) {
 
     ret_val = (*_schemas)[schema];
   }
-  CATCH_AND_TRANSLATE();
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createSchema"));
 
   return ret_val;
 }
@@ -311,7 +311,13 @@ Result BaseSession::start_transaction() {}
 shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("startTransaction").c_str());
 
-  return executeStmt("sql", "start transaction", false, shcore::Argument_list());
+  shcore::Value ret_val;
+  try {
+    ret_val = executeStmt("sql", "start transaction", false, shcore::Argument_list());
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("startTransaction"));
+
+  return ret_val;
 }
 
 // Documentation of commit function
@@ -337,7 +343,14 @@ Result BaseSession::commit() {}
 shcore::Value BaseSession::commit(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("commit").c_str());
 
-  return executeStmt("sql", "commit", false, shcore::Argument_list());
+  shcore::Value ret_val;
+
+  try {
+    ret_val = executeStmt("sql", "commit", false, shcore::Argument_list());
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("commit"));
+
+  return ret_val;
 }
 
 // Documentation of rollback function
@@ -363,11 +376,36 @@ Result BaseSession::rollback() {}
 shcore::Value BaseSession::rollback(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("rollback").c_str());
 
-  return executeStmt("sql", "rollback", false, shcore::Argument_list());
+  shcore::Value ret_val;
+
+  try {
+    ret_val = executeStmt("sql", "rollback", false, shcore::Argument_list());
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rollback"));
+
+  return ret_val;
 }
 
 Value BaseSession::execute_sql(const std::string& statement, const Argument_list &args) const {
   return executeStmt("sql", statement, true, args);
+}
+
+// This function is for SQL execution at the C++ layer
+std::shared_ptr< ::mysqlx::Result> BaseSession::execute_sql(const std::string &sql) const {
+  std::shared_ptr< ::mysqlx::Result> result;
+  try {
+    result = _session.execute_sql(sql);
+  } catch (const ::mysqlx::Error &e) {
+    if (e.error() == 2006 || e.error() == 5166 || e.error() == 2013) {
+      std::shared_ptr<BaseSession> myself = std::dynamic_pointer_cast<BaseSession>(_get_shared_this());
+      ShellNotifications::get()->notify("SN_SESSION_CONNECTION_LOST", std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
+    }
+
+    // Rethrows the exception for normal flow
+    throw;
+  }
+
+  return result;
 }
 
 Value BaseSession::executeAdminCommand(const std::string& command, bool expect_data, const Argument_list &args) const {
@@ -381,20 +419,30 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
   MySQL_timer timer;
   Value ret_val;
 
-  timer.start();
+  try {
+    timer.start();
 
-  std::shared_ptr< ::mysqlx::Result> exec_result = _session.execute_statement(domain, command, args);
+    std::shared_ptr< ::mysqlx::Result> exec_result = _session.execute_statement(domain, command, args);
 
-  timer.end();
+    timer.end();
 
-  if (expect_data) {
-    SqlResult *result = new SqlResult(exec_result);
-    result->set_execution_time(timer.raw_duration());
-    ret_val = shcore::Value::wrap(result);
-  } else {
-    Result *result = new Result(exec_result);
-    result->set_execution_time(timer.raw_duration());
-    ret_val = shcore::Value::wrap(result);
+    if (expect_data) {
+      SqlResult *result = new SqlResult(exec_result);
+      result->set_execution_time(timer.raw_duration());
+      ret_val = shcore::Value::wrap(result);
+    } else {
+      Result *result = new Result(exec_result);
+      result->set_execution_time(timer.raw_duration());
+      ret_val = shcore::Value::wrap(result);
+    }
+  } catch (const ::mysqlx::Error &e) {
+    if (e.error() == 2006 || e.error() == 5166 || e.error() == 2013) {
+      std::shared_ptr<BaseSession> myself = std::dynamic_pointer_cast<BaseSession>(_get_shared_this());
+      ShellNotifications::get()->notify("SN_SESSION_CONNECTION_LOST", std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
+    }
+
+    // Rethrows the exception for normal flow
+    throw;
   }
 
   return ret_val;
@@ -437,7 +485,7 @@ std::string BaseSession::_retrieve_current_schema() {
   try {
     if (_session.is_connected()) {
       // TODO: update this logic properly
-      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select schema()");
+      std::shared_ptr< ::mysqlx::Result> result = execute_sql("select schema()");
       std::shared_ptr< ::mysqlx::Row>row = result->next();
 
       if (!row->isNullField(0))
@@ -456,7 +504,7 @@ void BaseSession::_retrieve_session_info(std::string &current_schema,
   try {
     if (_session.is_connected()) {
       // TODO: update this logic properly
-      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select schema(), @@lower_case_table_names");
+      std::shared_ptr< ::mysqlx::Result> result = execute_sql("select schema(), @@lower_case_table_names");
       std::shared_ptr< ::mysqlx::Row>row = result->next();
 
       if (!row->isNullField(0))
@@ -492,21 +540,24 @@ shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const {
   args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
-  std::string type = "Schema";
-  std::string search_name = args.string_at(0);
-  std::string name = db_object_exists(type, search_name, "");
+  try {
+    std::string type = "Schema";
+    std::string search_name = args.string_at(0);
+    std::string name = db_object_exists(type, search_name, "");
 
-  if (!name.empty()) {
-    update_schema_cache(name, true);
+    if (!name.empty()) {
+      update_schema_cache(name, true);
 
-    ret_val = (*_schemas)[name];
+      ret_val = (*_schemas)[name];
 
-    ret_val.as_object<Schema>()->update_cache();
-  } else {
-    update_schema_cache(search_name, false);
+      ret_val.as_object<Schema>()->update_cache();
+    } else {
+      update_schema_cache(search_name, false);
 
-    throw Exception::runtime_error("Unknown database '" + search_name + "'");
+      throw Exception::runtime_error("Unknown database '" + search_name + "'");
+    }
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getSchema"));
 
   return ret_val;
 }
@@ -531,7 +582,7 @@ shcore::Value BaseSession::get_schemas(const shcore::Argument_list &args) const 
 
   try {
     if (_session.is_connected()) {
-      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("show databases;");
+      std::shared_ptr< ::mysqlx::Result> result = execute_sql("show databases;");
       std::shared_ptr< ::mysqlx::Row> row = result->next();
 
       while (row) {
@@ -565,7 +616,13 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
   shcore::Argument_list command_args;
   command_args.push_back(Value("warnings"));
 
-  return executeAdminCommand(command, false, command_args);
+  shcore::Value ret_val;
+  try {
+    ret_val = executeAdminCommand(command, false, command_args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setFetchWarnings"));
+
+  return ret_val;
 }
 
 // Documentation of dropSchema function
@@ -595,10 +652,14 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args) {
 
   std::string name = args[0].as_string();
 
-  Value ret_val = executeStmt("sql", sqlstring("drop schema !", 0) << name, false, shcore::Argument_list());
+  shcore::Value ret_val;
+  try {
+    ret_val = executeStmt("sql", sqlstring("drop schema !", 0) << name, false, shcore::Argument_list());
 
-  if (_schemas->find(name) != _schemas->end())
-    _schemas->erase(name);
+    if (_schemas->find(name) != _schemas->end())
+      _schemas->erase(name);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropSchema"));
 
   return ret_val;
 }
@@ -607,7 +668,6 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args) {
 REGISTER_HELP(BASESESSION_DROPTABLE_BRIEF, "Drops a table from the specified schema.");
 REGISTER_HELP(BASESESSION_DROPTABLE_RETURN, "@return A SqlResult object if succeeded.");
 REGISTER_HELP(BASESESSION_DROPTABLE_EXCEPTION, "@exception An error is raised if the table did not exist.");
-
 
 /**
 * $(BASESESSION_DROPTABLE_BRIEF)
@@ -673,21 +733,25 @@ shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args,
   std::string name = args[1].as_string();
 
   shcore::Value ret_val;
-  if (type == "View")
-    ret_val = executeStmt("sql", sqlstring("drop view !.!", 0) << schema << name + "", false, shcore::Argument_list());
-  else {
-    shcore::Argument_list command_args;
-    command_args.push_back(Value(schema));
-    command_args.push_back(Value(name));
 
-    ret_val = executeAdminCommand("drop_collection", false, command_args);
-  }
+  try {
+    if (type == "View")
+      ret_val = executeStmt("sql", sqlstring("drop view !.!", 0) << schema << name + "", false, shcore::Argument_list());
+    else {
+      shcore::Argument_list command_args;
+      command_args.push_back(Value(schema));
+      command_args.push_back(Value(name));
 
-  if (_schemas->count(schema)) {
-    std::shared_ptr<Schema> schema_obj = std::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
-    if (schema_obj)
-      schema_obj->_remove_object(name, type);
+      ret_val = executeAdminCommand("drop_collection", false, command_args);
+    }
+
+    if (_schemas->count(schema)) {
+      std::shared_ptr<Schema> schema_obj = std::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
+      if (schema_obj)
+        schema_obj->_remove_object(name, type);
+    }
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("drop" + type));
 
   return ret_val;
 }
@@ -725,7 +789,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args) {
   std::shared_ptr< ::mysqlx::Row>row;
 
   try {
-    result = _session.execute_sql("select DATABASE(), USER() limit 1");
+    result = execute_sql("select DATABASE(), USER() limit 1");
     row = result->next();
 
     std::string current_schema = row->isNullField(0) ? "" : row->stringField(0);
@@ -745,7 +809,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args) {
     //(*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
     //(*status)["INSERT_ID"] = shcore::Value(???);
 
-    result = _session.execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
+    result = execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
     row = result->next();
     (*status)["CLIENT_CHARSET"] = shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
     (*status)["CONNECTION_CHARSET"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
@@ -935,7 +999,7 @@ shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
   if (_session.is_connected()) {
     std::string name = args[0].as_string();
 
-    std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql(sqlstring("use !", 0) << name);
+    std::shared_ptr< ::mysqlx::Result> result = execute_sql(sqlstring("use !", 0) << name);
     result->flush();
   } else
     throw Exception::runtime_error(class_name() + " not connected");

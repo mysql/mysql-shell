@@ -42,7 +42,7 @@ using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of Schema class
-REGISTER_HELP(SCHEMA_INTERACTIVE_BRIEF,"Used to work with database schema objects.");
+REGISTER_HELP(SCHEMA_INTERACTIVE_BRIEF, "Used to work with database schema objects.");
 REGISTER_HELP(SCHEMA_BRIEF, "Represents a Schema as retrived from a session created using the X Protocol.");
 REGISTER_HELP(SCHEMA_DETAIL, "<b> View Support </b>");
 REGISTER_HELP(SCHEMA_DETAIL1, "MySQL Views are stored queries that when executed produce a result set.");
@@ -277,40 +277,43 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args) {
   std::string name = args.string_at(0);
   shcore::Value ret_val;
 
-  if (!name.empty()) {
-    std::string found_type;
-    std::string real_name;
+  try {
+    if (!name.empty()) {
+      std::string found_type;
+      std::string real_name;
 
-    auto session = _session.lock();
-    if (session)
-      real_name = session->db_object_exists(found_type, name, _name);
-    else
-      throw shcore::Exception::logic_error("Unable to get table '" + name + "', no Session available");
+      auto session = _session.lock();
+      if (session)
+        real_name = session->db_object_exists(found_type, name, _name);
+      else
+        throw shcore::Exception::logic_error("Unable to get table '" + name + "', no Session available");
 
-    bool exists = false;
+      bool exists = false;
 
-    if (!real_name.empty()) {
-      if (found_type == "TABLE") {
-        exists = true;
+      if (!real_name.empty()) {
+        if (found_type == "TABLE") {
+          exists = true;
 
-        // Updates the cache
-        update_table_cache(real_name, exists);
+          // Updates the cache
+          update_table_cache(real_name, exists);
 
-        ret_val = (*_tables)[real_name];
-      } else if (found_type == "VIEW") {
-        exists = true;
+          ret_val = (*_tables)[real_name];
+        } else if (found_type == "VIEW") {
+          exists = true;
 
-        // Updates the cache
-        update_view_cache(real_name, exists);
+          // Updates the cache
+          update_view_cache(real_name, exists);
 
-        ret_val = (*_views)[real_name];
+          ret_val = (*_views)[real_name];
+        }
       }
-    }
 
-    if (!exists)
-      throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
-  } else
-      throw shcore::Exception::argument_error("An empty name is invalid for a table");
+      if (!exists)
+        throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
+    } else
+        throw shcore::Exception::argument_error("An empty name is invalid for a table");
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getTable"));
 
   return ret_val;
 }
@@ -347,29 +350,32 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args) {
   std::string name = args.string_at(0);
   shcore::Value ret_val;
 
-  if (!name.empty()) {
-    std::string found_type;
-    std::string real_name;
+  try {
+    if (!name.empty()) {
+      std::string found_type;
+      std::string real_name;
 
-    auto session = _session.lock();
-    if (session)
-      real_name = session->db_object_exists(found_type, name, _name);
-    else
-      throw shcore::Exception::logic_error("Unable to retrieve collection '" + name + "', no Session available");
+      auto session = _session.lock();
+      if (session)
+        real_name = session->db_object_exists(found_type, name, _name);
+      else
+        throw shcore::Exception::logic_error("Unable to retrieve collection '" + name + "', no Session available");
 
-    bool exists = false;
-    if (!real_name.empty() && found_type == "COLLECTION")
-      exists = true;
+      bool exists = false;
+      if (!real_name.empty() && found_type == "COLLECTION")
+        exists = true;
 
-    // Updates the cache
-    update_collection_cache(real_name, exists);
+      // Updates the cache
+      update_collection_cache(real_name, exists);
 
-    if (exists)
-      ret_val = (*_collections)[real_name];
-    else
-      throw shcore::Exception::runtime_error("The collection " + _name + "." + name + " does not exist");
-  } else
-    throw shcore::Exception::argument_error("An empty name is invalid for a collection");
+      if (exists)
+        ret_val = (*_collections)[real_name];
+      else
+        throw shcore::Exception::runtime_error("The collection " + _name + "." + name + " does not exist");
+    } else
+      throw shcore::Exception::argument_error("An empty name is invalid for a collection");
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCollection"));
 
   return ret_val;
 }
@@ -438,14 +444,17 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
 
   std::shared_ptr<BaseSession> sess(std::static_pointer_cast<BaseSession>(_session.lock()));
 
-  if (sess) {
-    sess->executeAdminCommand("create_collection", false, command_args);
+  try {
+    if (sess) {
+      sess->executeAdminCommand("create_collection", false, command_args);
 
-    // If this is reached it implies all went OK on the previous operation
-    update_collection_cache(name, true);
-    ret_val = (*_collections)[name];
-  } else
-    throw shcore::Exception::logic_error("Unable to create collection '" + name + "', no Session available");
+      // If this is reached it implies all went OK on the previous operation
+      update_collection_cache(name, true);
+      ret_val = (*_collections)[name];
+    } else
+      throw shcore::Exception::logic_error("Unable to create collection '" + name + "', no Session available");
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCollection"));
 
   return ret_val;
 }

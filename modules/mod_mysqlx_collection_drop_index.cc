@@ -122,11 +122,14 @@ shcore::Value CollectionDropIndex::execute(const shcore::Argument_list &args) {
 
   std::shared_ptr<Collection> raw_owner(_owner.lock());
 
-  if (raw_owner) {
-    Value session = raw_owner->get_member("session");
-    std::shared_ptr<BaseSession> session_obj = std::static_pointer_cast<BaseSession>(session.as_object());
-    result = session_obj->executeAdminCommand("drop_collection_index", false, _drop_index_args);
+  try {
+    if (raw_owner) {
+      Value session = raw_owner->get_member("session");
+      std::shared_ptr<BaseSession> session_obj = std::static_pointer_cast<BaseSession>(session.as_object());
+      result = session_obj->executeAdminCommand("drop_collection_index", false, _drop_index_args);
+    }
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("execute"));
 
   update_functions("execute");
 

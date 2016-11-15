@@ -117,6 +117,7 @@ public:
 
   shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
   virtual shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
+  std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
   virtual bool is_connected() const;
   virtual shcore::Value get_status(const shcore::Argument_list &args);
   virtual shcore::Value get_capability(const std::string& name);

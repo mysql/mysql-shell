@@ -574,32 +574,39 @@ bool Shell_core::reconnect_if_needed() {
   bool ret_val = false;
   if (_reconnect_session) {
     {
-      print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'...\n");
-      try {
+      print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'..");
+
 #ifdef _WIN32
-        Sleep(500);
+      Sleep(500);
 #else
-        usleep(500000);
+      usleep(500000);
 #endif
-        if (!reconnect()) {
-          // Try again
+      int attempts = 6;
+      while (!ret_val && attempts > 0) {
+        ret_val = reconnect();
+
+        if (!ret_val) {
+          print("..");
+          attempts--;
+          if (attempts > 0) {
+            // Try again
 #ifdef _WIN32
-          Sleep(1500);
+            Sleep(1500);
 #else
-          usleep(1500000);
+            usleep(1500000);
 #endif
-          _global_dev_session->reconnect();
+          }
         }
-
-        print("The global session was successfully reconnected.\n");
-        ret_val = true;
-      } catch (shcore::Exception &e) {
-        print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
       }
-    }
 
-    _reconnect_session = false;
+      if (ret_val)
+        print("\nThe global session was successfully reconnected.\n");
+      else
+        print("\nThe global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
+    }
   }
+
+  _reconnect_session = false;
 
   return ret_val;
 }

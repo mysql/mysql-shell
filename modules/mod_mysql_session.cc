@@ -393,21 +393,24 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
   args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
-  std::string type = "Schema";
-  std::string search_name = args.string_at(0);
-  std::string name = db_object_exists(type, search_name, "");
+  try {
+    std::string type = "Schema";
+    std::string search_name = args.string_at(0);
+    std::string name = db_object_exists(type, search_name, "");
 
-  if (!name.empty()) {
-    update_schema_cache(name, true);
+    if (!name.empty()) {
+      update_schema_cache(name, true);
 
-    ret_val = (*_schemas)[name];
+      ret_val = (*_schemas)[name];
 
-    ret_val.as_object<ClassicSchema>()->update_cache();
-  } else {
-    update_schema_cache(search_name, false);
+      ret_val.as_object<ClassicSchema>()->update_cache();
+    } else {
+      update_schema_cache(search_name, false);
 
-    throw Exception::runtime_error("Unknown database '" + search_name + "'");
+      throw Exception::runtime_error("Unknown database '" + search_name + "'");
+    }
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getSchema"));
 
   return ret_val;
 }

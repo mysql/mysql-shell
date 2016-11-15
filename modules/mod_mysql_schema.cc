@@ -34,14 +34,15 @@
 #include "utils/utils_general.h"
 #include "logger/logger.h"
 #include "utils/utils_help.h"
+#include "mysqlxtest_utils.h"
 
 using namespace mysqlsh::mysql;
 using namespace shcore;
 
 // Documentation of the ClassicSchema class
-REGISTER_HELP(CLASSICSCHEMA_INTERACTIVE_BRIEF,"Used to work with database schema objects.");
-REGISTER_HELP(CLASSICSCHEMA_BRIEF,"Represents a Schema retrieved with a session created using the MySQL Protocol.");
-REGISTER_HELP(CLASSICSCHEMA_DETAIL,"<b>Dynamic Properties</b>");
+REGISTER_HELP(CLASSICSCHEMA_INTERACTIVE_BRIEF, "Used to work with database schema objects.");
+REGISTER_HELP(CLASSICSCHEMA_BRIEF, "Represents a Schema retrieved with a session created using the MySQL Protocol.");
+REGISTER_HELP(CLASSICSCHEMA_DETAIL, "<b>Dynamic Properties</b>");
 REGISTER_HELP(CLASSICSCHEMA_DETAIL1, "In addition to the properties documented above, when a schema object is retrieved from the session, "\
 "its Tables are loaded from the database and a cache is filled with the corresponding objects");
 REGISTER_HELP(CLASSICSCHEMA_DETAIL2, "This cache is used to allow the user accessing the Tables as Schema properties. "\
@@ -204,38 +205,41 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args) {
   std::string name = args.string_at(0);
   shcore::Value ret_val;
 
-  if (!name.empty()) {
-    std::string found_type;
-    auto session = _session.lock();
-    std::string real_name;
-    if (session)
-      real_name = session->db_object_exists(found_type, name, _name);
-    else
-      throw shcore::Exception::logic_error("Unable to retrieve table '" + name + "', no Session available");
+  try {
+    if (!name.empty()) {
+      std::string found_type;
+      auto session = _session.lock();
+      std::string real_name;
+      if (session)
+        real_name = session->db_object_exists(found_type, name, _name);
+      else
+        throw shcore::Exception::logic_error("Unable to retrieve table '" + name + "', no Session available");
 
-    bool exists = false;
-    if (!real_name.empty()) {
-      if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY") {
-        exists = true;
+      bool exists = false;
+      if (!real_name.empty()) {
+        if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY") {
+          exists = true;
 
-        // Updates the cache
-        update_table_cache(real_name, exists);
+          // Updates the cache
+          update_table_cache(real_name, exists);
 
-        ret_val = (*_tables)[real_name];
-      } else if (found_type == "VIEW" || found_type == "SYSTEM VIEW") {
-        exists = true;
+          ret_val = (*_tables)[real_name];
+        } else if (found_type == "VIEW" || found_type == "SYSTEM VIEW") {
+          exists = true;
 
-        // Updates the cache
-        update_view_cache(real_name, exists);
+          // Updates the cache
+          update_view_cache(real_name, exists);
 
-        ret_val = (*_views)[real_name];
+          ret_val = (*_views)[real_name];
+        }
       }
-    }
 
-    if (!exists)
-      throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
-  } else
-    throw shcore::Exception::argument_error("An empty name is invalid for a table");
+      if (!exists)
+        throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
+    } else
+      throw shcore::Exception::argument_error("An empty name is invalid for a table");
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getTable"));
 
   return ret_val;
 }
