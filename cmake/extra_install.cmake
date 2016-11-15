@@ -49,9 +49,20 @@ while(EXTRA_INSTALL)
   message(STATUS "Installing \"${_dir_or_file}\" into \"${_rel_inst_dir}\" component \"${_component_name}\"")
 
   if(IS_DIRECTORY "${_dir_or_file}")
-    install(DIRECTORY "${_dir_or_file}" DESTINATION ${_rel_inst_dir} COMPONENT ${_component_name})
+    install(DIRECTORY "${_dir_or_file}"
+            DESTINATION ${_rel_inst_dir}
+            USE_SOURCE_PERMISSIONS
+            COMPONENT ${_component_name})
   elseif(EXISTS   "${_dir_or_file}")
-    install(FILES     "${_dir_or_file}" DESTINATION ${_rel_inst_dir} COMPONENT ${_component_name})
+    # There is no USE_SOURCE_PERMISSIONS if using INSTALL(FILES...) so lets specify
+    # the enclosing directory and filter out the file to copy. Not perfect but...
+    get_filename_component(_filename  "${_dir_or_file}" NAME)
+    get_filename_component(_directory "${_dir_or_file}" PATH)
+    install(DIRECTORY "${_directory}/"
+            DESTINATION ${_rel_inst_dir}
+            USE_SOURCE_PERMISSIONS
+            COMPONENT ${_component_name}
+            FILES_MATCHING PATTERN "${_filename}")
   else()
     message(FATAL_ERROR "The file or directory \"${_dir_or_file}\" doesn't exist")
   endif()
