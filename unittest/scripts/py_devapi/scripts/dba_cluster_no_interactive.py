@@ -116,6 +116,7 @@ cluster.dissolve({'enforce': True})
 cluster.dissolve({'force': "whatever"})
 
 #@ Cluster: dissolve
+check_slave_online(cluster, uri2, uri1)
 cluster.dissolve({'force': True})
 
 #@ Cluster: describe: dissolved cluster

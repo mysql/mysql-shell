@@ -98,6 +98,7 @@ Cluster.status()
 var uri = "root@localhost:" + __mysql_sandbox_port1;
 Cluster.addInstance(uri, "root");
 
+
 //@<OUT> Cluster: describe on new master with slave
 Cluster.describe()
 
@@ -113,6 +114,7 @@ Cluster.dissolve({foobar: true})
 Cluster.dissolve({force: "whatever"})
 
 //@ Cluster: dissolve
+check_slave_online(Cluster, uri2, uri1);
 Cluster.dissolve({force: true})
 
 //@ Cluster: describe: dissolved cluster
