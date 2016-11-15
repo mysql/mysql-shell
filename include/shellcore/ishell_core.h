@@ -47,11 +47,13 @@ enum class Input_state {
 
 class SHCORE_PUBLIC IShell_core {
 public:
-  enum class Mode {
-    None,
-    SQL,
-    JScript,
-    Python
+  enum Mode {
+    None = 0,
+    SQL = 1 << 0,
+    JScript = 1 << 1,
+    Python = 1 << 2,
+    Scripting = Python|JScript,
+    All = SQL|Python|JScript
   };
 
   IShell_core(void);
@@ -60,7 +62,8 @@ public:
   virtual Mode interactive_mode() const = 0;
   virtual bool switch_mode(Mode mode, bool &lang_initialized) = 0;
 
-  virtual void set_global(const std::string &name, const Value &value) = 0;
+  // By default, globals apply to the three languages
+  virtual void set_global(const std::string &name, const Value &value, Mode mode = Mode::All) = 0;
   virtual Value get_global(const std::string &name) = 0;
 
   virtual Object_registry *registry() = 0;

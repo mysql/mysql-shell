@@ -94,6 +94,7 @@ public:
   //int get_quoted_token(char quote, size_t &index);
   void get_tokens(size_t start, size_t end);
   const std::string& get_input() { return _input; }
+  void add_token(const BaseToken& token);
 
 protected:
   std::vector<BaseToken> _tokens;
@@ -132,11 +133,16 @@ public:
   // Enable or disable spaces, i.e. if disabled and found, an error will be raised
   void set_allow_spaces(bool allow = true) { _allow_spaces = allow; }
 
+  // Enable or disable spaces, i.e. if disabled and found, an error will be raised
+  void set_allow_unknown_tokens(bool allow = true) { _allow_unknown_tokens = allow; }
+
   // Sets the tokens that mark the end of the parsing, remaining input is returned as
   // a final type token
   void set_final_token_group(const std::string &type, const std::string& group) { _final_type = type; _final_group = group; };
 private:
   bool _allow_spaces;
+  bool _allow_unknown_tokens;
+  std::string _unknown_token;
   std::string _final_type;
   std::string _final_group;
 

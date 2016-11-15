@@ -384,7 +384,7 @@ TEST_F(Interactive_shell_test, shell_command_no_warnings) {
   output_handler.wipe_all();
 }
 
-TEST_F(Interactive_shell_test, shell_command_help) {
+TEST_F(Interactive_shell_test, shell_command_help_js) {
   // Cleanup for the test
   _interactive_shell->process_line("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Commands =====");
@@ -412,6 +412,60 @@ TEST_F(Interactive_shell_test, shell_command_help) {
 
   _interactive_shell->process_line("\\help \\use");
   MY_EXPECT_STDOUT_CONTAINS("The global db variable will be updated to hold the requested schema.");
+  output_handler.wipe_all();
+}
+
+TEST_F(Interactive_shell_test, shell_command_help_global_objects_js) {
+  // Cleanup for the test
+  _interactive_shell->process_line("\\js");
+  _interactive_shell->process_line("\\connect -n " + _uri + "/mysql");
+  _interactive_shell->process_line("\\?");
+  MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
+  MY_EXPECT_STDOUT_CONTAINS("db         Used to work with database schema objects.");
+  MY_EXPECT_STDOUT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
+  MY_EXPECT_STDOUT_CONTAINS("mysql      Used to work with classic MySQL sessions using SQL.");
+  MY_EXPECT_STDOUT_CONTAINS("mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.");
+  MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
+  MY_EXPECT_STDOUT_CONTAINS("shell      Gives access to general purpose functions and properties.");
+  MY_EXPECT_STDOUT_CONTAINS("sys        Gives access to system specific parameters.");
+  _interactive_shell->process_line("session.close()");
+
+  output_handler.wipe_all();
+}
+
+TEST_F(Interactive_shell_test, shell_command_help_global_objects_py) {
+  // Cleanup for the test
+  _interactive_shell->process_line("\\py");
+  _interactive_shell->process_line("\\connect -n " + _uri + "/mysql");
+  _interactive_shell->process_line("\\?");
+  MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
+  MY_EXPECT_STDOUT_CONTAINS("db         Used to work with database schema objects.");
+  MY_EXPECT_STDOUT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
+  MY_EXPECT_STDOUT_CONTAINS("mysql      Used to work with classic MySQL sessions using SQL.");
+  MY_EXPECT_STDOUT_CONTAINS("mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.");
+  MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
+  MY_EXPECT_STDOUT_CONTAINS("shell      Gives access to general purpose functions and properties.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("sys        Gives access to system specific parameters.");
+  _interactive_shell->process_line("session.close()");
+
+  output_handler.wipe_all();
+}
+
+TEST_F(Interactive_shell_test, shell_command_help_global_objects_sql) {
+  // Cleanup for the test
+  _interactive_shell->process_line("\\sql");
+  _interactive_shell->process_line("\\connect -n " + _uri + "/mysql");
+  _interactive_shell->process_line("\\?");
+  MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("db         Used to work with database schema objects.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("mysql      Used to work with classic MySQL sessions using SQL.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.");
+  MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("shell      Gives access to general purpose functions and properties.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("sys        Gives access to system specific parameters.");
+  _interactive_shell->process_line("session.close()");
+
   output_handler.wipe_all();
 }
 

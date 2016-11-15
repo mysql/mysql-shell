@@ -677,12 +677,12 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
   Value ret_val;
   bool executed_ok = false;
 
-  Value args(Value::new_array());
-  auto array = args.as_array();
+  shcore::Value args_value = get_global("sys").as_object()->get_member("argv");
+  auto args = args_value.as_array();
+  args->clear();
   for (auto &arg : argv) {
-    array->push_back(Value(arg));
+    args->push_back(Value(arg));
   }
-  set_global_item("sys", "argv", args);
 
   if (!script.IsEmpty()) {
     v8::Handle<v8::Value> result = script->Run();

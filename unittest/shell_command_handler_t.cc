@@ -82,6 +82,15 @@ TEST_F(Command_handler_tests, processing_commands) {
   ASSERT_EQ(1, static_cast<int>(static_cast<int>(_params.size())));
   EXPECT_EQ("cmdone", _params[0]);
 
+  EXPECT_TRUE(_shell_command_handler.process("  cmdone   \" sample param \"  with  \" more spaces\" "));
+  EXPECT_EQ("cmd_one", _function);
+  ASSERT_EQ(4, static_cast<int>(static_cast<int>(_params.size())));
+  EXPECT_EQ("  cmdone   \" sample param \"  with  \" more spaces\" ", _params[0]);
+  EXPECT_EQ("\" sample param \"", _params[1]);
+  EXPECT_EQ("with", _params[2]);
+  EXPECT_EQ("\" more spaces\"", _params[3]);
+
+
   EXPECT_TRUE(_shell_command_handler.process("cmdone parameter"));
   EXPECT_EQ("cmd_one", _function);
   ASSERT_EQ(2, static_cast<int>(static_cast<int>(_params.size())));

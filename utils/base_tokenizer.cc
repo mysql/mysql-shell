@@ -62,7 +62,7 @@ using namespace shcore;
 
 BaseToken::BaseToken(const std::string& type, const std::string& text, int cur_pos) : _type(type), _text(text), _pos(cur_pos) {}
 
-BaseTokenizer::BaseTokenizer() : _allow_spaces(true) {
+BaseTokenizer::BaseTokenizer() : _allow_spaces(true), _allow_unknown_tokens(false) {
   _pos = 0;
   _parent_offset = 0;
 }
@@ -134,15 +134,17 @@ void BaseTokenizer::unget_token() {
 
 void BaseTokenizer::get_tokens(size_t start, size_t end) {
   for (size_t i = start; i <= end; ++i) {
-    if (std::isspace(_input[i])) {
-      if (!_allow_spaces)
-        throw std::runtime_error((boost::format("Illegal space found at position %1%") % (_parent_offset + i)).str());
 
-      continue;
-    } else {
+    // Safety measure, trying to parse ahead of the limit makes this end
+    if (i >= _input.length())
+      break;
+
+    if (std::isspace(_input[i]) && !_allow_spaces)
+        throw std::runtime_error((boost::format("Illegal space found at position %1%") % (_parent_offset + i)).str());
+    else {
       std::string type(&_input[i], 1);
       if (_base_tokens.find(type) != _base_tokens.end())
-        _tokens.push_back(BaseToken(type, _base_tokens[type], i));
+        add_token(BaseToken(type, _base_tokens[type], i));
       else {
         bool found = false;
         for (auto token_type : _custom_tokens) {
@@ -150,8 +152,9 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
             std::string text;
             size_t start = i;
             if (_token_functions[token_type](_input, i, text)) {
-              _tokens.push_back(BaseToken(token_type, text, start));
+              add_token(BaseToken(token_type, text, start));
               found = true;
+              i--;
               break;
             } else
               i = start;
@@ -166,7 +169,7 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
 
             found = i > start;
             if (found) {
-              _tokens.push_back(BaseToken(token_type, _input.substr(start, i - start), start));
+              add_token(BaseToken(token_type, _input.substr(start, i - start), start));
               i--;
               break;
             }
@@ -184,7 +187,7 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
             }
 
             if ((i - start) == _token_vectors[token_type].size()) {
-              _tokens.push_back(BaseToken(token_type, text, start));
+              add_token(BaseToken(token_type, text, start));
               found = true;
               i--;
               break;
@@ -194,16 +197,40 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
         }
 
         if (_final_group.find(type) != std::string::npos) {
-          _tokens.push_back(BaseToken(_final_type, _input.substr(i), i));
+          add_token(BaseToken(_final_type, _input.substr(i), i));
           found = true;
           break;
         }
 
-        if (!found)
-          throw std::runtime_error((boost::format("Illegal character [%1%] found at position %2%") % _input[i] % (_parent_offset + i)).str());
+        if (!found) {
+          if ( _allow_unknown_tokens)
+            _unknown_token += _input[i];
+          else
+            throw std::runtime_error((boost::format("Illegal character [%1%] found at position %2%") % _input[i] % (_parent_offset + i)).str());
+        }
       }
     }
   }
+
+  if (_allow_unknown_tokens && !_unknown_token.empty()) {
+    size_t position = 0;
+
+    if (!_tokens.empty())
+      position = _tokens[_tokens.size()-1].get_pos() + _tokens[_tokens.size()-1].get_text().length();
+
+    _tokens.push_back(BaseToken("unknown", _unknown_token, position));
+  }
+}
+
+void BaseTokenizer::add_token(const BaseToken& token) {
+
+  // If unknown tokens are allowed and there's one, adds it
+  if (_allow_unknown_tokens && !_unknown_token.empty()) {
+    _tokens.push_back(BaseToken("unknown", _unknown_token, token.get_pos() - _unknown_token.length()));
+    _unknown_token.clear();
+  }
+
+  _tokens.push_back(token);
 }
 
 void BaseTokenizer::inc_pos_token() {

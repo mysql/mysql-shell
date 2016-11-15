@@ -140,15 +140,23 @@ _options(options) {
 bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {
   std::string file;
 
-  if (params[0].find("\\source") != std::string::npos)
-    file = params[0].substr(8);
-  else
-    file = params[0].substr(3);
+  // The parameter 0 contains the somplete command as submitted by the user
+  // File name would be on parameter 1
+  file = params[1];
 
   boost::trim(file);
 
+  // Adds support for quoted files in case there are spaces in the path
+  if ((file[0] == '\'' && file[file.size()-1] == '\'') ||
+      (file[0] == '"' && file[file.size()-1] == '"'))
+    file = file.substr(1, file.size()-2);
+
   std::vector<std::string> args(params);
+
+  // Deletes the original command
+  args.erase(args.begin());
   args[0] = file;
+
   Base_shell::process_file(file, args);
 
   return true;
@@ -518,7 +526,7 @@ bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
     println("");
     println("For help on a specific command use the command as \\? <command>");
     println("");
-    auto globals = _shell->get_global_objects();
+    auto globals = _shell->get_global_objects(interactive_mode());
     std::vector<std::pair<std::string, std::string> > global_names;
 
     if (globals.size()) {
@@ -530,8 +538,10 @@ bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
     }
 
     // Inserts the default modules
-    global_names.push_back({"mysqlx", "mysqlx"});
-    global_names.push_back({"mysql", "mysql"});
+    if (interactive_mode() & shcore::IShell_core::Scripting) {
+      global_names.push_back({"mysqlx", "mysqlx"});
+      global_names.push_back({"mysql", "mysql"});
+    }
 
     std::sort(global_names.begin(), global_names.end());
 

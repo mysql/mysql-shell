@@ -98,14 +98,25 @@ void Shell_test_output_handler::validate_stdout_content(const std::string& conte
 }
 
 void Shell_test_output_handler::validate_stderr_content(const std::string& content, bool expected) {
-  bool found = std_err.find(content) != std::string::npos;
 
-  if (found != expected) {
-    std::string error = expected ? "Missing" : "Unexpected";
-    error += " Error: " + content;
-    SCOPED_TRACE("STDERR Actual: " + std_err);
-    SCOPED_TRACE(error);
-    ADD_FAILURE();
+  if (content.empty()) {
+    if (std_err.empty() != expected) {
+      std::string error = std_err.empty() ? "Missing" : "Unexpected";
+      error += " Error: " + content;
+      SCOPED_TRACE("STDERR Actual: " + std_err);
+      SCOPED_TRACE(error);
+      ADD_FAILURE();
+    }
+  } else {
+    bool found = std_err.find(content) != std::string::npos;
+
+    if (found != expected) {
+      std::string error = expected ? "Missing" : "Unexpected";
+      error += " Error: " + content;
+      SCOPED_TRACE("STDERR Actual: " + std_err);
+      SCOPED_TRACE(error);
+      ADD_FAILURE();
+    }
   }
 }
 

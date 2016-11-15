@@ -68,6 +68,7 @@ class SHCORE_PUBLIC Shell_command_handler {
   typedef std::map <std::string, Shell_command*> Command_registry;
   typedef std::list <Shell_command> Command_list;
 private:
+  std::vector<std::string> split_command_line(const std::string &command_line);
   Command_registry _command_dict;
   Command_list _commands;
 
@@ -122,9 +123,9 @@ public:
   // sets a global variable, exposed to all supported scripting languages
   // the value is saved in a map, so that the exposing can be deferred in
   // case the context for some langauge is not yet created at the time this is called
-  virtual void set_global(const std::string &name, const Value &value);
+  virtual void set_global(const std::string &name, const Value &value, Mode mode = Mode::All);
   virtual Value get_global(const std::string &name);
-  std::vector<std::string> get_global_objects();
+  std::vector<std::string> get_global_objects(Mode mode);
 
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type);
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session);
@@ -188,7 +189,7 @@ private:
 
 private:
   Object_registry *_registry;
-  std::map<std::string, Value> _globals;
+  std::map<std::string, std::pair<Mode, Value> > _globals;
   std::map<Mode, Shell_language*> _langs;
 
   std::shared_ptr<mysqlsh::ShellDevelopmentSession> _global_dev_session;

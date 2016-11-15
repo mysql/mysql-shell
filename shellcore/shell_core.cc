@@ -31,7 +31,9 @@
 #include "modules/mod_mysqlx.h"
 #include "modules/mod_mysql.h"
 #include "modules/mod_shell.h"
+#include "modules/mod_sys.h"
 #include "utils/utils_general.h"
+#include "utils/base_tokenizer.h"
 
 #include "interactive/interactive_global_dba.h"
 #include "modules/adminapi/mod_dba.h"
@@ -72,14 +74,19 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   // from the beggining, they will allow interactive resolution when the variables
   // are used by the first time
   if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
-    set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
+    set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)), Mode::Scripting);
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
-    set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)));
-    set_global("shell", shcore::Value::wrap<Global_shell>(new Global_shell(*this)));
+    set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)), Mode::Scripting);
+    set_global("shell", shcore::Value::wrap<Global_shell>(new Global_shell(*this)), Mode::Scripting);
   }
 
   set_dba_global();
   set_shell_global();
+
+  // The sys global is for JavaScript only
+
+  std::shared_ptr<mysqlsh::Sys>sys(new mysqlsh::Sys(this));
+  set_global("sys", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(sys)), Mode::JScript);
 
   observe_notification("SN_SESSION_CONNECTION_LOST");
 
@@ -326,9 +333,12 @@ void Shell_core::init_js() {
   Shell_javascript *js;
   _langs[Mode::JScript] = js = new Shell_javascript(this);
 
-  for (std::map<std::string, Value>::const_iterator iter = _globals.begin();
-       iter != _globals.end(); ++iter)
-    js->set_global(iter->first, iter->second);
+  for (std::map<std::string, std::pair<Mode, Value> >::const_iterator iter = _globals.begin();
+       iter != _globals.end(); ++iter) {
+
+    if (iter->second.first & Mode::JScript)
+      js->set_global(iter->first, iter->second.second);
+  }
 #endif
 }
 
@@ -337,13 +347,16 @@ void Shell_core::init_py() {
   Shell_python *py;
   _langs[Mode::Python] = py = new Shell_python(this);
 
-  for (std::map<std::string, Value>::const_iterator iter = _globals.begin();
-       iter != _globals.end(); ++iter)
-    py->set_global(iter->first, iter->second);
+  for (std::map<std::string, std::pair<Mode, Value> >::const_iterator iter = _globals.begin();
+       iter != _globals.end(); ++iter) {
+
+    if (iter->second.first & Mode::Python)
+      py->set_global(iter->first, iter->second.second);
+  }
 #endif
 }
 
-void Shell_core::set_global(const std::string &name, const Value &value) {
+void Shell_core::set_global(const std::string &name, const Value &value, Mode mode) {
   // Exception to ensure consistency, if wizard usage is ON then the global variables
   // Can't be replaced, they were set already and integrators (WB/VS) should use
   // set_dev_session or set_current_schema to set the variables
@@ -360,22 +373,26 @@ void Shell_core::set_global(const std::string &name, const Value &value) {
     throw std::logic_error(error);
   }
 
-  _globals[name] = value;
+  _globals[name] = {mode, value};
 
   for (std::map<Mode, Shell_language*>::const_iterator iter = _langs.begin();
-       iter != _langs.end(); ++iter)
-    iter->second->set_global(name, value);
+       iter != _langs.end(); ++iter) {
+
+    // Only sets the global where applicable
+    if (iter->first & mode)
+      iter->second->set_global(name, value);
+  }
 }
 
 Value Shell_core::get_global(const std::string &name) {
-  return (_globals.count(name) > 0) ? _globals[name] : Value();
+  return (_globals.count(name) > 0) ? _globals[name].second : Value();
 }
 
-std::vector<std::string> Shell_core::get_global_objects() {
+std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
   std::vector<std::string> globals;
 
   for (auto entry : _globals) {
-    if (entry.second.type == shcore::Object)
+    if (entry.second.first & mode && entry.second.second.type == shcore::Object)
       globals.push_back(entry.first);
   }
 
@@ -450,7 +467,7 @@ std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::set_dev_session(st
   // Use the db/session objects directly if the wizards are OFF
   else {
     set_global("session", shcore::Value(std::static_pointer_cast<Object_bridge>(_global_dev_session)));
-    set_global("db", currentSchema);
+    set_global("db", currentSchema, Mode::Scripting);
   }
 
   return _global_dev_session;
@@ -479,7 +496,7 @@ void Shell_core::set_dba_global() {
 
   // Use the admin session objects directly if the wizards are OFF
   else {
-    set_global("dba", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(dba)));
+    set_global("dba", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(dba)), Mode::Scripting);
   }
 }
 
@@ -493,7 +510,7 @@ void Shell_core::set_shell_global() {
 
   // Use the admin session objects directly if the wizards are OFF
   else {
-    set_global("shell", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(shell)));
+    set_global("shell", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(shell)), Mode::Scripting);
   }
 }
 
@@ -528,7 +545,7 @@ shcore::Value Shell_core::set_current_schema(const std::string& name) {
     else
       get_global("db").as_object<Interactive_object_wrapper>()->set_target(std::shared_ptr<Cpp_object_bridge>());
   } else
-    set_global("db", new_schema);
+    set_global("db", new_schema, Mode::Scripting);
 
   return new_schema;
 }
@@ -710,17 +727,91 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
+std::vector<std::string> Shell_command_handler::split_command_line(const std::string &command_line) {
+  shcore::BaseTokenizer _tokenizer;
+
+  std::vector<std::string> escaped_quotes = {"\\", "\""};
+
+  _tokenizer.set_complex_token("escaped-quote", escaped_quotes);
+  _tokenizer.set_complex_token("quote", "\"");
+  _tokenizer.set_complex_token("space", [](const std::string& input, size_t& index, std::string& text)->bool {
+    while(std::isspace(input[index]))
+      text += input[index++];
+
+    return !text.empty();
+  });
+  _tokenizer.set_allow_unknown_tokens(true);;
+  _tokenizer.set_allow_spaces(true);
+
+  _tokenizer.set_input(command_line);
+  _tokenizer.process({0, command_line.length()});
+
+  std::vector<std::string> ret_val;
+  bool quoted_param = false;
+  std::string param;
+
+  while (_tokenizer.tokens_available()) {
+    if (_tokenizer.cur_token_type_is("quote"))
+      quoted_param = !quoted_param;
+
+    // Quoted params will get accumulated into a single
+    // command argument
+    if (quoted_param)
+      param += _tokenizer.consume_any_token().get_text();
+    else {
+      auto token = _tokenizer.consume_any_token();
+      if (token.get_type() != "space")
+        param += token.get_text();
+      else {
+        if (!param.empty()) {
+          ret_val.push_back(param);
+          param.clear();
+        }
+      }
+    }
+  }
+
+  // Adds the last argument or raises an error if needed
+  if (!param.empty()) {
+    if (quoted_param)
+      throw shcore::Exception::runtime_error("Missing closing quotes on command parameter");
+    else
+      ret_val.push_back(param);
+  }
+
+  return ret_val;
+}
+
+
 bool Shell_command_handler::process(const std::string& command_line) {
   bool ret_val = false;
   std::vector<std::string> tokens;
-  boost::algorithm::split(tokens, command_line, boost::is_any_of(" "), boost::token_compress_on);
 
-  Command_registry::iterator item = _command_dict.find(tokens[0]);
-  if (item != _command_dict.end()) {
-    // Sends the original line on the first element
-    tokens[0] = command_line;
+  if (!_command_dict.empty()) {
 
-    ret_val = item->second->function(tokens);
+    // Identifies if the line is a registered command
+    size_t index = 0;
+    while (index < command_line.size() && std::isspace(command_line[index]))
+      index++;
+
+    size_t start = index;
+    while (index < command_line.size() && !std::isspace(command_line[index]))
+      index++;
+
+    std::string command = command_line.substr(start, index - start);
+
+    // Srearch on the registered command list and processes it if it exists
+    Command_registry::iterator item = _command_dict.find(command);
+    if (item != _command_dict.end()) {
+
+      // Parses the command
+      tokens = split_command_line(command_line);
+
+      // Updates the first element to contain the whole command line
+      tokens[0] = command_line;
+
+        ret_val = item->second->function(tokens);
+    }
   }
 
   return ret_val;

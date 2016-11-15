@@ -22,7 +22,7 @@ include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/common" )
-include_directories( "${CMAKE_SOURCE_DIR}/common/process_launcher" )
+include_directories( "${CMAKE_SOURCE_DIR}/common/process_launcher")
 include_directories( "${CMAKE_SOURCE_DIR}/ext/rapidjson/include" )
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
@@ -200,6 +200,8 @@ file(GLOB libmysqlshmods_SRC
       "../modules/mod_mysql_*.h"
       "../modules/mod_shell.cc"
       "../modules/mod_shell.h"
+      "../modules/mod_sys.cc"
+      "../modules/mod_sys.h"
       "../modules/mysql_connection.cc"
       "../modules/mysql_connection.h"
       "../modules/mysqlxtest_utils.h"

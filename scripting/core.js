@@ -90,47 +90,12 @@ function ModuleHandler()
   }
 }
 
-this.sys = {}
+this._module_handler = new ModuleHandler();
 
-Object.defineProperties(this.sys, {
-  'path': {
-    value: [],
-    writable: true,
-    enumerable: true
-  },
-  '_module_handler': {
-    value: new ModuleHandler(),
-    writable: false,
-    enumerable: false
-  }
-});
-
-// Searches for MYSQLX_HOME
-var path = os.get_mysqlx_home_path();
-if (path)
-  this.sys.path[this.sys.path.length] = path + '/share/mysqlsh/modules/js';
-
-// If MYSQLX_HOME not found, sets the current directory as a valid module path
-else
-{
-  path = os.get_binary_folder();
-  if (path)
-    this.sys.path[this.sys.path.length] = path + '/modules/js';
-  else
-    this.sys.path[this.sys.path.length] = './modules/js';
-}
-
-// Finally sees if there are additional configured paths
-path = os.getenv('MYSQLSH_JS_MODULE_PATH');
-if (path)
-{
-  var paths = path.split(';');
-  this.sys.path = this.sys.path.concat(paths);
-}
 
 this.require = function(module_name, reload)
 {
-  return this.sys._module_handler.get_module(module_name, reload);
+  return this._module_handler.get_module(module_name, reload);
 }
 
 // Object.keys(object) returns the enumerable properties found directly

@@ -29,6 +29,7 @@
 #include "shellcore/jscript_context.h"
 #include "test_utils.h"
 #include "shellcore/common.h"
+#include "modules/mod_sys.h"
 using namespace std::placeholders;
 
 extern void JScript_context_init();
@@ -151,6 +152,8 @@ public:
     JScript_context_init();
 
     js = new JScript_context(&reg, &output_handler.deleg);
+
+    js->set_global("sys", shcore::Value::wrap<mysqlsh::Sys>(new mysqlsh::Sys(nullptr)));
   }
 
   ~Environment() {

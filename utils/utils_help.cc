@@ -160,9 +160,8 @@ std::string get_property_help(shcore::NamingStyle style, const std::string& clas
   if (!details.empty()) {
     ret_val.append("DESCRIPTION\n\n");
     ret_val.append(shcore::format_markup_text(details, 80, 0));
+    ret_val += "\n";
   }
-
-  ret_val += "\n";
 
   return ret_val;
 };

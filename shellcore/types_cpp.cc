@@ -278,21 +278,30 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
     if (!briefs.empty()) {
       ret_val += shcore::format_text(briefs, 80, 0, true);
-      ret_val += "\n\n";  // Second \n
+      ret_val += "\n";  // Second \n
     }
 
     auto chain_definition = get_help_text(prefix + "_CHAINED");
 
+    std::string additional_help;
     if (chain_definition.empty()) {
       if (has_method_advanced(item, naming_style))
-        ret_val += shcore::get_function_help(naming_style, class_name(), base_name);
+        additional_help = shcore::get_function_help(naming_style, class_name(), base_name);
       else if (has_member_advanced(item, naming_style))
-        ret_val += shcore::get_property_help(naming_style, class_name(), base_name);
+        additional_help = shcore::get_property_help(naming_style, class_name(), base_name);
     } else {
-      ret_val += shcore::get_chained_function_help(naming_style, class_name(), base_name);
+      additional_help = shcore::get_chained_function_help(naming_style, class_name(), base_name);
     }
+
+    if (!additional_help.empty())
+      ret_val += "\n" + additional_help;
+
   } else {
     auto details = get_help_text(prefix + "_DETAIL");
+    // If there are no details at least includes the brief description
+    if (details.empty())
+      details = get_help_text(prefix + "_BRIEF");
+
     if (!details.empty())
       ret_val += shcore::format_markup_text(details, 80, 0);
 

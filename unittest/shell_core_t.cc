@@ -107,6 +107,70 @@ TEST_F(Shell_core_test, test_process_stream) {
   _interactive_shell->process_line("session.close()");
 }
 
+TEST_F(Shell_core_test, test_process_js_file_with_params) {
+
+  _interactive_shell->process_line("\\js");
+
+  std::string file_name = MYSQLX_SOURCE_HOME;
+  file_name += "/unittest/data/js/script.js";
+
+  _file_name = file_name + " one two";
+  _interactive_shell->process_line("\\. " + _file_name);
+  MY_EXPECT_STDOUT_CONTAINS("Processing file: " + file_name);
+  MY_EXPECT_STDOUT_CONTAINS("The received arguments were: one and two");
+  MY_EXPECT_STDERR_CONTAINS("");
+
+  wipe_all();
+
+  _file_name = "'" + file_name + "' one two";
+  _interactive_shell->process_line("\\. " + _file_name);
+  MY_EXPECT_STDOUT_CONTAINS("Processing file: " + file_name);
+  MY_EXPECT_STDOUT_CONTAINS("The received arguments were: one and two");
+  MY_EXPECT_STDERR_CONTAINS("");
+
+  wipe_all();
+
+  _file_name = "\"" + file_name + "\" one two";
+  _interactive_shell->process_line("\\. " + _file_name);
+  MY_EXPECT_STDOUT_CONTAINS("Processing file: " + file_name);
+  MY_EXPECT_STDOUT_CONTAINS("The received arguments were: one and two");
+  MY_EXPECT_STDERR_CONTAINS("");
+
+  wipe_all();
+}
+
+TEST_F(Shell_core_test, test_process_py_file_with_params) {
+
+  _interactive_shell->process_line("\\py");
+
+  std::string file_name = MYSQLX_SOURCE_HOME;
+  file_name += "/unittest/data/py/script.py";
+
+  _file_name = file_name + " one two";
+  _interactive_shell->process_line("\\. " + _file_name);
+  MY_EXPECT_STDOUT_CONTAINS("Processing file: " + file_name);
+  MY_EXPECT_STDOUT_CONTAINS("The received arguments were: one and two");
+  MY_EXPECT_STDERR_CONTAINS("");
+
+  wipe_all();
+
+  _file_name = "'" + file_name + "' one two";
+  _interactive_shell->process_line("\\. " + _file_name);
+  MY_EXPECT_STDOUT_CONTAINS("Processing file: " + file_name);
+  MY_EXPECT_STDOUT_CONTAINS("The received arguments were: one and two");
+  MY_EXPECT_STDERR_CONTAINS("");
+
+  wipe_all();
+
+  _file_name = "\"" + file_name + "\" one two";
+  _interactive_shell->process_line("\\. " + _file_name);
+  MY_EXPECT_STDOUT_CONTAINS("Processing file: " + file_name);
+  MY_EXPECT_STDOUT_CONTAINS("The received arguments were: one and two");
+  MY_EXPECT_STDERR_CONTAINS("");
+
+  wipe_all();
+}
+
 TEST_F(Shell_core_test, regression_prompt_on_override_session) {
   connect();
 
