@@ -191,16 +191,16 @@ if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfil
     config=json.load(open(config_path))
     MYSQL_SHELL = os.environ['MYSQLX_PATH']
     Exec_files_location = os.environ['AUX_FILES_PATH']
-    cluster_Path = str(config["general"]["cluster_path"])
+    cluster_Path = os.environ['CLUSTER_PATH']
     XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
-    XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml"
+    XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/adminapi_qa_test.xml"
 else:
     # **** LOCAL EXECUTION ****
     config=json.load(open('config_local.json'))
     MYSQL_SHELL = str(config["general"]["xshell_path"])
     Exec_files_location = str(config["general"]["aux_files_path"])
     cluster_Path = str(config["general"]["cluster_path"])
-    XMLReportFilePath = "xshell_qa_test.xml"
+    XMLReportFilePath = "adminapi_qa_test.xml"
 
 #########################################################################
 
