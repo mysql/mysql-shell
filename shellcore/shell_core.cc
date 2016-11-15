@@ -47,6 +47,7 @@
 #include "shellcore/lang_base.h"
 #include "uuid_gen.h"
 #include <fstream>
+#include <locale>
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -335,7 +336,6 @@ void Shell_core::init_js() {
 
   for (std::map<std::string, std::pair<Mode, Value> >::const_iterator iter = _globals.begin();
        iter != _globals.end(); ++iter) {
-
     if (iter->second.first & Mode::JScript)
       js->set_global(iter->first, iter->second.second);
   }
@@ -349,7 +349,6 @@ void Shell_core::init_py() {
 
   for (std::map<std::string, std::pair<Mode, Value> >::const_iterator iter = _globals.begin();
        iter != _globals.end(); ++iter) {
-
     if (iter->second.first & Mode::Python)
       py->set_global(iter->first, iter->second.second);
   }
@@ -377,7 +376,6 @@ void Shell_core::set_global(const std::string &name, const Value &value, Mode mo
 
   for (std::map<Mode, Shell_language*>::const_iterator iter = _langs.begin();
        iter != _langs.end(); ++iter) {
-
     // Only sets the global where applicable
     if (iter->first & mode)
       iter->second->set_global(name, value);
@@ -731,11 +729,13 @@ std::vector<std::string> Shell_command_handler::split_command_line(const std::st
   shcore::BaseTokenizer _tokenizer;
 
   std::vector<std::string> escaped_quotes = {"\\", "\""};
+  std::string quote("\"");
 
   _tokenizer.set_complex_token("escaped-quote", escaped_quotes);
-  _tokenizer.set_complex_token("quote", "\"");
+  _tokenizer.set_complex_token("quote", quote);
   _tokenizer.set_complex_token("space", [](const std::string& input, size_t& index, std::string& text)->bool {
-    while(std::isspace(input[index]))
+    std::locale locale;
+    while (std::isspace(input[index], locale))
       text += input[index++];
 
     return !text.empty();
@@ -782,20 +782,19 @@ std::vector<std::string> Shell_command_handler::split_command_line(const std::st
   return ret_val;
 }
 
-
 bool Shell_command_handler::process(const std::string& command_line) {
   bool ret_val = false;
   std::vector<std::string> tokens;
 
   if (!_command_dict.empty()) {
-
+    std::locale locale;
     // Identifies if the line is a registered command
     size_t index = 0;
-    while (index < command_line.size() && std::isspace(command_line[index]))
+    while (index < command_line.size() && std::isspace(command_line[index], locale))
       index++;
 
     size_t start = index;
-    while (index < command_line.size() && !std::isspace(command_line[index]))
+    while (index < command_line.size() && !std::isspace(command_line[index], locale))
       index++;
 
     std::string command = command_line.substr(start, index - start);
@@ -803,14 +802,13 @@ bool Shell_command_handler::process(const std::string& command_line) {
     // Srearch on the registered command list and processes it if it exists
     Command_registry::iterator item = _command_dict.find(command);
     if (item != _command_dict.end()) {
-
       // Parses the command
       tokens = split_command_line(command_line);
 
       // Updates the first element to contain the whole command line
       tokens[0] = command_line;
 
-        ret_val = item->second->function(tokens);
+      ret_val = item->second->function(tokens);
     }
   }
 
