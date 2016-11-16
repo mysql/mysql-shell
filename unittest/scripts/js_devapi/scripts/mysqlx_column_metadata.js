@@ -460,3 +460,5 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+
+mySession.close();

@@ -54,7 +54,7 @@ Command_line_shell::Command_line_shell(const Shell_options &options) : mysqlsh::
 }
 
 void Command_line_shell::deleg_print(void *cdata, const char *text) {
-  std::cout << text;
+  std::cout << text << std::flush;
 }
 
 void Command_line_shell::deleg_print_error(void *cdata, const char *text) {

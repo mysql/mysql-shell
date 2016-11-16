@@ -210,12 +210,15 @@ shcore::Value SqlExecute::execute(const shcore::Argument_list &args) {
 
   args.ensure_count(0, get_function_name("execute").c_str());
 
-  std::shared_ptr<NodeSession> session(std::static_pointer_cast<NodeSession>(_session.lock()));
+  try {
+    std::shared_ptr<NodeSession> session(std::static_pointer_cast<NodeSession>(_session.lock()));
 
-  if (session)
-    ret_val = session->execute_sql(_sql, _parameters);
-  else
-    throw shcore::Exception::logic_error("Unable to execute sql, no Session available");
+    if (session)
+      ret_val = session->execute_sql(_sql, _parameters);
+    else
+      throw shcore::Exception::logic_error("Unable to execute sql, no Session available");
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("execute"));
 
   return ret_val;
 }

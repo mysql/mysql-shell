@@ -460,3 +460,5 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+
+mySession.close()
