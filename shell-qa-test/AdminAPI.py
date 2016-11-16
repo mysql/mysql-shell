@@ -169,7 +169,20 @@ def exec_xshell_commands(init_cmdLine, commandList):
     else:
         return "PASS"
 
-
+def cleanup_instances(instances=[]):
+    # Add instances as String
+    init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+    # Destroy the instances
+    for instance in instances:
+        x_cmds = [("dba.stopSandboxInstance(" + instance + ")\n",
+                   "Instance localhost:" + instance + " successfully stopped."),
+                  ("dba.deleteSandboxInstance(" + instance + ")\n",
+                   "Instance localhost:" + instance + " successfully deleted.")
+                  ]
+        try:
+            results = exec_xshell_commands(init_command, x_cmds)
+        except Exception, e:
+            return e
 
 ############   Retrieve variables from configuration file    ##########################
 class LOCALHOST:
@@ -552,6 +565,86 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       kill_process(instance)
       self.assertEqual(results, 'PASS')
+
+  def test_MYS_829(self):
+      '''MYS-829 NOT ABLE TO ADD A REMOVED PRIMARY TO THE CLUSTER'''
+      instances = ["3310", "3320", "3330"]
+      default_sandbox_path = "/mysql-sandboxes"
+      for instance in instances:
+          os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+          shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+          shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                        onerror=None)
+
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"guidev!\"})\n",
+                 "Instance localhost:3310 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3320, {password: \"guidev!\"})\n",
+                 "Instance localhost:3320 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3330, {password: \"guidev!\"})\n",
+                 "Instance localhost:3330 successfully deployed and started."),
+                ("\connect root:" + LOCALHOST.password + "@localhost:3310\n",
+                 'Classic Session successfully established. No default schema selected.'),
+                ("myCluster = dba.createCluster(\"myCluster\")\n",
+                 'Cluster successfully created'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3320\")\n",
+                 'The instance \'root@localhost:3320\' was successfully added to the cluster'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3330\")\n",
+                 'The instance \'root@localhost:3330\' was successfully added to the cluster'),
+                ("myCluster.removeInstance('localhost:3310')\n",
+                 "The instance 'localhost:3310' was successfully removed from the cluster"),
+                ("\connect root:" + LOCALHOST.password + "@localhost:3320\n",
+                 'Classic Session successfully established. No default schema selected.'),
+                ("myCluster2 = dba.getCluster()\n",
+                 '<Cluster:myCluster>'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3310\")\n",
+                 "The instance 'root@localhost:3310' was successfully added to the cluster")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+      # Destroy the cluster
+      cleanup_instances(["3310", "3320", "3330"])
+
+  def test_MYS_956(self):
+      '''MYS-956 CREATECLUSTER() AFTER DISSOLVING EXISTING CLUSTER FAILS'''
+      instance = "3310"
+      default_sandbox_path = "/mysql-sandboxes"
+      os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+      shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+      shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                    onerror=None)
+
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"guidev!\"})\n",
+                 "Instance localhost:3310 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3320, {password: \"guidev!\"})\n",
+                 "Instance localhost:3320 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3330, {password: \"guidev!\"})\n",
+                 "Instance localhost:3330 successfully deployed and started."),
+                ("\connect root:" + LOCALHOST.password + "@localhost:3310\n",
+                 'Classic Session successfully established. No default schema selected.'),
+                ("myCluster = dba.createCluster(\"myCluster\")\n",
+                 'Cluster successfully created'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3320\")\n",
+                 'The instance \'root@localhost:3320\' was successfully added to the cluster'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3330\")\n",
+                 'The instance \'root@localhost:3330\' was successfully added to the cluster'),
+                ("myCluster.dissolve({force:true})\n",
+                 'The cluster was successfully dissolved.'),
+                ("\connect root:" + LOCALHOST.password + "@localhost:3320\n",
+                 'Classic Session successfully established. No default schema selected.'),
+                ("myCluster2 = dba.createCluster(\"myCluster2\")\n",
+                 'Cluster successfully created')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+      # Destroy the cluster
+      cleanup_instances(["3310", "3320", "3330"])
+
 
   def test_MYS_735_createCluster(self):
       '''MYS-735 [MYAA] CreateCluster() Empty'''
