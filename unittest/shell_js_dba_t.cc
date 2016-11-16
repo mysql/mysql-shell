@@ -17,6 +17,11 @@
 * 02110-1301  USA
 */
 
+#include <algorithm>
+
+#include "modules/adminapi/mod_dba_sql.h"
+#include "modules/base_session.h"
+#include "modules/mod_mysql_session.h"
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
 
@@ -39,9 +44,30 @@ protected:
     int port = 33060, pwd_found;
     std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
     shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+    std::string mysql_uri = "mysql://";
+    shcore::Argument_list session_args;
+    std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+    mysqlsh::mysql::ClassicSession *classic;
+    std::string have_ssl;
 
     if (_port.empty())
       _port = "33060";
+
+    // Connect to test server and check if SSL is enabled
+    mysql_uri.append(_mysql_uri);
+    if (_mysql_port.empty()) {
+      _mysql_port = "3306";
+      mysql_uri.append(_mysql_port);
+    }
+    session_args.push_back(Value(mysql_uri));
+    session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
+                                      have_ssl);
+    std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
+    _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
+    shcore::Argument_list args;
+    classic->close(args);
 
     std::string code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
@@ -74,6 +100,9 @@ protected:
       code = "var __mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
       exec_and_out_equals(code);
     }
+    std::string str_have_ssl = _have_ssl ? "true" : "false";
+    code = "var __have_ssl = " + str_have_ssl + ";";
+    exec_and_out_equals(code);
 
 #ifdef _WIN32
     code = "var __path_splitter = '\\\\';";
@@ -110,15 +139,19 @@ TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
 
   execute("dba.verbose = true;");
 
-  if (_sandbox_dir.empty()) {
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", allowRootFrom: '%'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {password: \"root\", allowRootFrom: '%'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", {password: \"root\", allowRootFrom: '%'});");
-  } else {
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-  }
+  std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
+  if (!_sandbox_dir.empty())
+    deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
+  if (!_have_ssl)
+    deploy_options.append(", ignoreSslError: true");
+  deploy_options.append("}");
+
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
+              + deploy_options + ");");
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
+              + deploy_options + ");");
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
+              + deploy_options + ");");
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
@@ -183,15 +216,19 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_global_cluster) {
     execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
   }
 
-  if (_sandbox_dir.empty()) {
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", allowRootFrom: '%'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {password: \"root\", allowRootFrom: '%'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", {password: \"root\", allowRootFrom: '%'});");
-  } else {
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-  }
+  std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
+  if (!_sandbox_dir.empty())
+    deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
+  if (!_have_ssl)
+    deploy_options.append(", ignoreSslError: true");
+  deploy_options.append("}");
+
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
+              + deploy_options + ");");
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
+              + deploy_options + ");");
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
+              + deploy_options + ");");
 
   execute("session.close();");
 }
@@ -245,15 +282,19 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_custom_cluster) {
     execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
   }
 
-  if (_sandbox_dir.empty()) {
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", allowRootFrom: '%'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {password: \"root\", allowRootFrom: '%'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", {password: \"root\", allowRootFrom: '%'});");
-  } else {
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", {password: \"root\", allowRootFrom: '%', sandboxDir: \"" + _sandbox_dir + "\"});");
-  }
+  std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
+  if (!_sandbox_dir.empty())
+    deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
+  if (!_have_ssl)
+    deploy_options.append(", ignoreSslError: true");
+  deploy_options.append("}");
+
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
+              + deploy_options + ");");
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
+              + deploy_options + ");");
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
+              + deploy_options + ");");
 
   execute("mySession.close();");
 }
@@ -368,15 +409,19 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
     execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
   }
 
-  if (_sandbox_dir.empty()) {
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'allowRootFrom': '%'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {'password': 'root', 'allowRootFrom': '%'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", {'password': 'root', 'allowRootFrom': '%'});");
-  } else {
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'allowRootFrom': '%', 'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", {'password': 'root', 'allowRootFrom': '%', 'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", {'password': 'root', 'allowRootFrom': '%', 'sandboxDir': '" + _sandbox_dir + "'});");
-  }
+  std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
+  if (!_sandbox_dir.empty())
+    deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
+  if (!_have_ssl)
+    deploy_options.append(", ignoreSslError: true");
+  deploy_options.append("}");
+
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
+              + deploy_options + ");");
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
+              + deploy_options + ");");
+  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
+              + deploy_options + ");");
 
   execute("session.close();");
 }

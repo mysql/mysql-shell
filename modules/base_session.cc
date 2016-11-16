@@ -232,14 +232,14 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
     else if (options->has_key("password"))
       _password = (*options)["password"].as_string();
 
-    if (options->has_key("ssl_ca"))
-      _ssl_ca = (*options)["ssl_ca"].as_string();
+    if (options->has_key("sslCa"))
+      _ssl_ca = (*options)["sslCa"].as_string();
 
-    if (options->has_key("ssl_cert"))
-      _ssl_cert = (*options)["ssl_cert"].as_string();
+    if (options->has_key("sslCert"))
+      _ssl_cert = (*options)["sslCert"].as_string();
 
-    if (options->has_key("ssl_key"))
-      _ssl_key = (*options)["ssl_key"].as_string();
+    if (options->has_key("sslKey"))
+      _ssl_key = (*options)["sslKey"].as_string();
 
     if (options->has_key("authMethod"))
       _auth_method = (*options)["authMethod"].as_string();

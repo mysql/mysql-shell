@@ -105,7 +105,7 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
       options = mysqlsh::dba::get_instance_options_map(args, false);
 
       shcore::Argument_map opt_map(*options);
-      opt_map.ensure_keys({"host"}, {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"}, "instance definition");
+      opt_map.ensure_keys({"host"}, {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "ssl"}, "instance definition");
 
       mysqlsh::dba::resolve_instance_credentials(options, _delegate);
     }
@@ -139,7 +139,7 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
     options = mysqlsh::dba::get_instance_options_map(args, false);
 
     shcore::Argument_map opt_map(*options);
-    opt_map.ensure_keys({"host"}, {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"}, "instance definition");
+    opt_map.ensure_keys({"host"}, {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "ssl"}, "instance definition");
 
     std::string message = "Rejoining the instance to the InnoDB cluster. Depending on the original\n"
                         "problem that made the instance unavailable, the rejoin operation might not be\n"
@@ -275,7 +275,7 @@ shcore::Value Interactive_dba_cluster::check_instace_state(const shcore::Argumen
     options = mysqlsh::dba::get_instance_options_map(args, false);
 
     shcore::Argument_map opt_map(*options);
-    std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+    std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
     opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
 
     // Gather username and password if missing

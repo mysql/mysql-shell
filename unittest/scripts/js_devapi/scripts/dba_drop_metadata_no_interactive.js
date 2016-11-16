@@ -9,7 +9,11 @@ dba.dropMetadataSchema()
 dba.dropMetadataSchema({enforce:false});
 
 //@# create cluster
-dba.createCluster("tempCluster");
+if (__have_ssl)
+  dba.createCluster("tempCluster")
+else
+  dba.createCluster("tempCluster", {ssl: false})
+
 session.getSchema('mysql_innodb_cluster_metadata');
 
 //@# drop metadata: enforce true

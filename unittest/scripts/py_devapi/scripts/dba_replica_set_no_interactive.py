@@ -5,7 +5,11 @@
 dba.drop_metadata_schema({'enforce':True})
 
 #@ Cluster: validating members
-cluster = dba.create_cluster('devCluster')
+if __have_ssl:
+  cluster = dba.create_cluster('devCluster')
+else:
+  cluster = dba.create_cluster('devCluster', {'ssl': False})
+
 rset = cluster.get_replica_set()
 
 all_members = dir(rset)

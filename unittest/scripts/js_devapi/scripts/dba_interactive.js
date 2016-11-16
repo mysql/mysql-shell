@@ -28,7 +28,10 @@ var c1 = dba.createCluster('');
 var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
 
 //@<OUT> Dba: createCluster with interaction
-var c1 = dba.createCluster('devCluster');
+if (__have_ssl)
+  var c1 = dba.createCluster('devCluster')
+else
+  var c1 = dba.createCluster('devCluster', {ssl: false})
 
 // TODO: add multi-master unit-tests
 

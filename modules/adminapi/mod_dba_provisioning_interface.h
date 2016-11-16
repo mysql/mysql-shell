@@ -46,6 +46,7 @@ public:
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
                      const shcore::Value &mycnf_options,
+                     bool ignore_ssl_error,
                      shcore::Value::Array_type_ref &errors);
   int delete_sandbox(int port, const std::string &sandbox_dir,
                      shcore::Value::Array_type_ref &errors);
@@ -57,12 +58,14 @@ public:
                    shcore::Value::Array_type_ref &errors);
   int start_replicaset(const std::string &instance_url, const std::string &repl_user,
                  const std::string &super_user_password, const std::string &repl_user_password,
-                 bool multi_master,
+                 bool multi_master, bool ssl, const std::string &ssl_ca,
+                 const std::string &ssl_cert, const std::string &ssl_key,
                  shcore::Value::Array_type_ref &errors);
   int join_replicaset(const std::string &instance_url, const std::string &repl_user,
                  const std::string &peer_instance_url, const std::string &super_user_password,
                  const std::string &repl_user_password,
-                 bool multi_master,
+                 bool multi_master, bool ssl, const std::string &ssl_ca,
+                 const std::string &ssl_cert, const std::string &ssl_key,
                  shcore::Value::Array_type_ref &errors);
 
   int leave_replicaset(const std::string &instance_url, const std::string &super_user_password,

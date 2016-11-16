@@ -44,12 +44,18 @@ var uri2 = localhost + ":" + __mysql_sandbox_port2;
 var uri3 = localhost + ":" + __mysql_sandbox_port3;
 
 //@ Cluster: addInstance 2
-Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
+if (__have_ssl)
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
+else
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false}, "root");
 
 check_slave_online(Cluster, uri1, uri2);
 
 //@ Cluster: addInstance 3
-Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
+if (__have_ssl)
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
+else
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root");
 
 check_slave_online(Cluster, uri1, uri3);
 
@@ -78,7 +84,10 @@ Cluster.status()
 
 //@ Cluster: addInstance read only back
 var uri = "root@localhost:" + __mysql_sandbox_port2;
-Cluster.addInstance(uri, "root");
+if (__have_ssl)
+  Cluster.addInstance(uri, "root");
+else
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false}, "root");
 check_slave_online(Cluster, uri1, uri2);
 
 //@<OUT> Cluster: describe after adding read only instance back
@@ -101,7 +110,10 @@ var Cluster = dba.getCluster();
 
 // Add back uri3
 var uri = "root@localhost:" + __mysql_sandbox_port3;
-Cluster.addInstance(uri, "root");
+if (__have_ssl)
+  Cluster.addInstance(uri, "root");
+else
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root");
 check_slave_online(Cluster, uri2, uri3);
 
 //@<OUT> Cluster: describe on new master
@@ -112,7 +124,10 @@ Cluster.status()
 
 //@ Cluster: addInstance adding old master as read only
 var uri = "root@localhost:" + __mysql_sandbox_port1;
-Cluster.addInstance(uri, "root");
+if (__have_ssl)
+  Cluster.addInstance(uri, "root");
+else
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port1, ssl: false}, "root");
 
 check_slave_online(Cluster, uri2, uri1);
 
@@ -151,7 +166,10 @@ Cluster.rejoinInstance({host: "localhost", schema: 'abs', authMethod:56});
 Cluster.rejoinInstance("somehost:3306");
 
 //@#: Dba: rejoin instance 3 ok
-Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
+if (__have_ssl)
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
+else
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root");
 
 check_slave_online(Cluster, uri2, uri3);
 
@@ -194,7 +212,10 @@ else
 Cluster.status()
 
 //@#: Dba: rejoin instance 3
-Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
+if (__have_ssl)
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
+else
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root");
 
 //@ Cluster: dissolve: error quorum
 Cluster.dissolve()
@@ -208,12 +229,18 @@ os.sleep(5)
 
 //@ Cluster: rejoinInstance 1
 var uri = "root@localhost:" + __mysql_sandbox_port1;
-Cluster.rejoinInstance(uri, "root");
+if (__have_ssl)
+  Cluster.rejoinInstance(uri, "root")
+else
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port1, ssl: false}, "root")
 check_slave_online(Cluster, uri2, uri1)
 
 //@ Cluster: rejoinInstance 3
 var uri = "root@localhost:" + __mysql_sandbox_port3;
-Cluster.rejoinInstance(uri, "root");
+if (__have_ssl)
+  Cluster.rejoinInstance(uri, "root")
+else
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root")
 check_slave_online(Cluster, uri2, uri3)
 
 // Verify the cluster status after rejoining the 2 members

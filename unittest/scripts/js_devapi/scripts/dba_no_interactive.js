@@ -28,7 +28,10 @@ var c1 = dba.createCluster('devCluster', 'bla');
 var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
 
 //@# Dba: createCluster succeed
-var c1 = dba.createCluster('devCluster');
+if (__have_ssl)
+  var c1 = dba.createCluster('devCluster')
+else
+  var c1 = dba.createCluster('devCluster', {ssl: false})
 print(c1)
 
 //@# Dba: createCluster already exist

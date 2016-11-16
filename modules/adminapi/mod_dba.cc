@@ -48,8 +48,9 @@ using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 
-std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom"};
-std::set<std::string> Dba::_config_local_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket"};
+std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom", "ignoreSslError"};
+std::set<std::string> Dba::_default_local_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom"};
+std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "ssl", "sslCa", "sslCert", "sslKey"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL X AdminAPI.");
@@ -232,6 +233,15 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that in
 "If not specified false is assigned.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the multiMaster option must be applied.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value that indicates that the cluster shall be created empty and adopt the topology from an existing Group Replication group.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li ssl: boolean, indicates if SSL "\
+    "is used for the instance to start the cluster, by default: true. Set this "\
+    "option to false to not use SSL.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li sslCa: Path of file that "\
+    "contains list of trusted SSL CAs.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li sslCert: Path of file that "\
+    "contains X509 certificate in PEM format.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "@li sslKey: Path of file that "\
+    "contains X509 key in PEM format.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -246,6 +256,10 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value that in
  * $(DBA_CREATECLUSTER_DETAIL2)
  * $(DBA_CREATECLUSTER_DETAIL3)
  * $(DBA_CREATECLUSTER_DETAIL4)
+ * $(DBA_CREATECLUSTER_DETAIL5)
+ * $(DBA_CREATECLUSTER_DETAIL6)
+ * $(DBA_CREATECLUSTER_DETAIL7)
+ * $(DBA_CREATECLUSTER_DETAIL8)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -265,6 +279,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   bool multi_master = false; // Default single/primary master
   bool adopt_from_gr = false;
   bool force = false;
+  bool ssl = true;  // SSL used by default.
+  std::string ssl_ca, ssl_cert, ssl_key = "";
+
 
   try {
     std::string cluster_name = args.string_at(0);
@@ -282,7 +299,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
 
-      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster", "adoptFromGR", "force"}, "the options");
+      opt_map.ensure_keys({}, _create_cluster_opts, "the options");
 
       if (opt_map.has_key("clusterAdminType"))
         cluster_admin_type = opt_map.string_at("clusterAdminType");
@@ -302,6 +319,15 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
       if (opt_map.has_key("adoptFromGR"))
         adopt_from_gr = opt_map.bool_at("adoptFromGR");
+
+      if (opt_map.has_key("ssl"))
+        ssl = opt_map.bool_at("ssl");
+      if (opt_map.has_key("sslCa"))
+        ssl_ca = opt_map.string_at("sslCa");
+      if (opt_map.has_key("sslCert"))
+        ssl_cert = opt_map.string_at("sslCert");
+      if (opt_map.has_key("sslKey"))
+        ssl_key = opt_map.string_at("sslKey");
     }
     /*
      * For V1.0 we only support one single Cluster. That one shall be the default Cluster.
@@ -349,6 +375,10 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list args;
     options = get_connection_data(session->uri(), false);
+    (*options)["ssl"] = Value(ssl);
+    (*options)["sslCa"] = Value(ssl_ca);
+    (*options)["sslCert"] = Value(ssl_cert);
+    (*options)["sslKey"] = Value(ssl_key);
     args.push_back(shcore::Value(options));
 
     // args.push_back(shcore::Value(session->uri()));
@@ -514,6 +544,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   int portx = 0;
   std::string password;
   std::string sandbox_dir;
+  bool ignore_ssl_error = false;  // SSL is used by default and errors reported.
 
   if (args.size() == 2) {
     options = args.map_at(1);
@@ -521,15 +552,17 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     // Verification of invalid attributes on the instance deployment data
     shcore::Argument_map opt_map(*options);
 
-    opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
-
     if (function == "deploy") {
+      opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
+
       if (opt_map.has_key("password"))
         password = opt_map.string_at("password");
       else if (opt_map.has_key("dbPassword"))
         password = opt_map.string_at("dbPassword");
       else
         throw shcore::Exception::argument_error("Missing root password for the deployed instance");
+    } else {
+      opt_map.ensure_keys({}, _default_local_instance_opts, "the instance data");
     }
 
     if (opt_map.has_key("portx")) {
@@ -552,6 +585,9 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     }
 #endif
 
+    if (opt_map.has_key("ignoreSslError"))
+      ignore_ssl_error = opt_map.bool_at("ignoreSslError");
+
     if (options->has_key("options"))
       mycnf_options = (*options)["options"];
   } else {
@@ -567,7 +603,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   int rc = 0;
   if (function == "deploy") {
     // First we need to create the instance
-    rc = _provisioning_interface->create_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors);
+    rc = _provisioning_interface->create_sandbox(port, portx, sandbox_dir, password, mycnf_options, ignore_ssl_error, errors);
     if (rc == 0) {
       rc = _provisioning_interface->start_sandbox(port, sandbox_dir, errors);
       //std::string uri = "localhost:" + std::to_string(port);
@@ -609,13 +645,19 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1, "@li portx: port where the new 
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the new instance will be deployed.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the new instance.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4, "@li allowRootFrom: create remote root account, restricted to the given address pattern (eg %).");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5, "If the portx option is not specified, it will be automatically calculated "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5, "@li ignoreSslError: Ignore errors when adding SSL support for the new "\
+    "instance, by default: false.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6, "If the portx option is not specified, it will be automatically calculated "\
 "as 10 times the value of the provided MySQL port.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6, "The password or dbPassword options are mandatory to specify the MySQL root "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "The password or dbPassword options are mandatory to specify the MySQL root "\
 "password on the new instance.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "The sandboxDir must be an existing folder where the new instance will be "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "The sandboxDir must be an existing folder where the new instance will be "\
 "deployed. If not specified the new instance will be deployed at:");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL10, "SSL support is added by "\
+    "default if not already available for the new instance. If it fails to be "\
+    "added set the ignoreSslError option to true to allow the new instance to "\
+    "be deployed without SSL support.");
 
 /**
 * $(DBA_DEPLOYSANDBOXINSTANCE_BRIEF)
@@ -629,7 +671,6 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "  ~HOME/mysql-sandboxes");
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2)
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3)
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4)
-*
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5)
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6)
@@ -637,6 +678,10 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "  ~HOME/mysql-sandboxes");
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7)
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8)
+*
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9)
+*
+* $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL10)
 */
 #if DOXYGEN_JS
 Instance Dba::deploySandboxInstance(Integer port, Dictionary options) {}
@@ -999,7 +1044,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
   shcore::Argument_map opt_map(*options);
   shcore::Argument_map validate_opt_map;
 
-  std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+  std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
 
   opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
 

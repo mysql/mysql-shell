@@ -142,7 +142,9 @@ private:
   bool do_join_replicaset(const std::string &instance_url,
       const std::string &peer_instance_url,
       const std::string &super_user_password,
-      const std::string &repl_user, const std::string &repl_user_password);
+      const std::string &repl_user, const std::string &repl_user_password,
+      bool ssl, const std::string &ssl_ca, const std::string &ssl_cert,
+      const std::string &ssl_key);
 
   std::string get_peer_instance();
 

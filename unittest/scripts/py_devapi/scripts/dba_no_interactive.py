@@ -35,7 +35,11 @@ c1 = dba.create_cluster('devCluster', 'bla')
 c1 = dba.create_cluster('devCluster', {"invalid":1, "another":2})
 
 #@# Dba: create_cluster succeed
-c1 = dba.create_cluster('devCluster');
+if __have_ssl:
+  c1 = dba.create_cluster('devCluster')
+else:
+  c1 = dba.create_cluster('devCluster', {'ssl': False})
+
 print c1
 
 # TODO: add multi-master unit-tests

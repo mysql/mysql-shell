@@ -9,8 +9,12 @@ dba.drop_metadata_schema()
 dba.drop_metadata_schema({enforce:false});
 
 @# create cluster
-dba.create_cluster("tempCluster");
-session.get_schema('mysql_innodb_cluster_metadata');
+if __have_ssl:
+  dba.create_cluster("tempCluster")
+else:
+  dba.create_cluster("tempCluster", {'ssl': False})
+
+session.get_schema('mysql_innodb_cluster_metadata')
 
 @# drop metadata: enforce true
 dba.drop_metadata_schema({enforce:true});

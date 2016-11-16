@@ -43,8 +43,8 @@ public:
   virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;
-  static std::set<std::string> _check_instance_config_opts;
-  static std::set<std::string> _config_local_instance_opts;
+  static std::set<std::string> _default_local_instance_opts;
+  static std::set<std::string> _create_cluster_opts;
 
   virtual std::string class_name() const { return "Dba"; };
 

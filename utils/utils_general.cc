@@ -100,8 +100,8 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
       uri.append((*data)["schema"].as_string());
     }
 
-    if (data->has_key("ssl_ca") && data->has_key("ssl_cert") && data->has_key("ssl_key"))
-      conn_str_cat_ssl_data(uri, (*data)["ssl_ca"].as_string(), (*data)["ssl_cert"].as_string(), (*data)["ssl_key"].as_string());
+    if (data->has_key("sslCa") && data->has_key("sslCert") && data->has_key("sslKey"))
+      conn_str_cat_ssl_data(uri, (*data)["sslCa"].as_string(), (*data)["sslCert"].as_string(), (*data)["sslKey"].as_string());
   }
 
   return uri;
@@ -173,14 +173,14 @@ void parse_mysql_connstring(const std::string &connstring,
     if (pwd_found)
       password = data.get_password();
 
-    if (data.has_attribute("ssl_ca"))
-      ssl_ca = data.get_attribute("ssl_ca");
+    if (data.has_attribute("sslCa"))
+      ssl_ca = data.get_attribute("sslCa");
 
-    if (data.has_attribute("ssl_cert"))
-      ssl_cert = data.get_attribute("ssl_cert");
+    if (data.has_attribute("sslCert"))
+      ssl_cert = data.get_attribute("sslCert");
 
-    if (data.has_attribute("ssl_key"))
-      ssl_key = data.get_attribute("ssl_key");
+    if (data.has_attribute("sslKey"))
+      ssl_key = data.get_attribute("sslKey");
 
     if (set_defaults) {
       if (user.empty())
@@ -346,13 +346,13 @@ Value::Map_type_ref get_connection_data(const std::string &uri, bool set_default
       (*ret_val)["sock"] = Value(uri_sock);
 
     if (!uri_ssl_ca.empty())
-      (*ret_val)["ssl_ca"] = Value(uri_ssl_ca);
+      (*ret_val)["sslCa"] = Value(uri_ssl_ca);
 
     if (!uri_ssl_cert.empty())
-      (*ret_val)["ssl_cert"] = Value(uri_ssl_cert);
+      (*ret_val)["sslCert"] = Value(uri_ssl_cert);
 
     if (!uri_ssl_key.empty())
-      (*ret_val)["ssl_key"] = Value(uri_ssl_key);
+      (*ret_val)["sslKey"] = Value(uri_ssl_key);
   }
 
   // If needed we construct the URi from the individual parameters
@@ -387,17 +387,17 @@ void update_connection_data(Value::Map_type_ref data,
 
   if (ssl) {
     if (!ssl_ca.empty())
-      (*data)["ssl_ca"] = Value(ssl_ca);
+      (*data)["sslCa"] = Value(ssl_ca);
 
     if (!ssl_cert.empty())
-      (*data)["ssl_cert"] = Value(ssl_cert);
+      (*data)["sslCert"] = Value(ssl_cert);
 
     if (!ssl_key.empty())
-      (*data)["ssl_key"] = Value(ssl_key);
+      (*data)["sslKey"] = Value(ssl_key);
   } else {
-    data->erase("ssl_ca");
-    data->erase("ssl_cert");
-    data->erase("ssl_key");
+    data->erase("sslCa");
+    data->erase("sslCert");
+    data->erase("sslKey");
   }
 
   if (!auth_method.empty())

@@ -63,8 +63,8 @@ using namespace shcore;
 
 #define PASSWORD_LENGTH 16
 
-std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
-std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "ssl"};
+std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port", "socket", "sslCa", "sslCert", "sslKey"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
@@ -408,6 +408,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   bool seed_instance = false;
+  bool ssl = true;  //SSL used by default
+  std::string ssl_ca, ssl_cert, ssl_key = "";
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Cluster class, hence this just throws exceptions
@@ -423,6 +425,15 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   if (!options->has_key("port"))
     (*options)["port"] = shcore::Value(get_default_port());
+
+  if (options->has_key("ssl"))
+    ssl = options->get_bool("ssl");
+  if (options->has_key("sslCa"))
+    ssl_ca = options->get_string("sslCa");
+  if (options->has_key("sslCert"))
+    ssl_cert = options->get_string("sslCert");
+  if (options->has_key("sslKey"))
+    ssl_key = options->get_string("sslKey");
 
   // Sets a default user if not specified
   resolve_instance_credentials(options, nullptr);
@@ -484,7 +495,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
         do_join_replicaset(user + "@" + instance_address,
                            "",
                            super_user_password,
-                           replication_user, replication_user_password);
+                           replication_user, replication_user_password,
+                           ssl, ssl_ca, ssl_cert, ssl_key);
       } else {
         // We need to retrieve a peer instance, so let's use the Seed one
         std::string peer_instance = get_peer_instance();
@@ -495,7 +507,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
         do_join_replicaset(user + "@" + instance_address,
                            user + "@" + peer_instance,
                            super_user_password,
-                           replication_user, replication_user_password);
+                           replication_user, replication_user_password,
+                           ssl, ssl_ca, ssl_cert, ssl_key);
       }
     }
     break;
@@ -516,7 +529,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                                     const std::string &peer_instance_url,
                                     const std::string &super_user_password,
-                                    const std::string &repl_user, const std::string &repl_user_password) {
+                                    const std::string &repl_user,
+                                    const std::string &repl_user_password,
+                                    bool ssl, const std::string &ssl_ca,
+                                    const std::string &ssl_cert,
+                                    const std::string &ssl_key) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -530,12 +547,14 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                 repl_user, super_user_password,
                 repl_user_password,
                 _topology_type == kTopologyMultiMaster,
+                ssl, ssl_ca, ssl_cert, ssl_key,
                 errors);
   } else {
     exit_code = _cluster->get_provisioning_interface()->join_replicaset(instance_url,
                 repl_user, peer_instance_url,
                 super_user_password, repl_user_password,
                 _topology_type == kTopologyMultiMaster,
+                ssl, ssl_ca, ssl_cert, ssl_key,
                 errors);
   }
 
@@ -590,6 +609,8 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string host;
   int port = 0;
+  bool ssl = true;  //SSL used by default
+  std::string ssl_ca, ssl_cert, ssl_key = "";
 
   auto options = get_instance_options_map(args);
   shcore::Argument_map opt_map(*options);
@@ -602,6 +623,15 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   host = options->get_string("host");
 
   std::string instance_address = host + ":" + std::to_string(port);
+
+  if (options->has_key("ssl"))
+    ssl = options->get_bool("ssl");
+  if (options->has_key("sslCa"))
+    ssl_ca = options->get_string("sslCa");
+  if (options->has_key("sslCert"))
+    ssl_cert = options->get_string("sslCert");
+  if (options->has_key("sslKey"))
+    ssl_key = options->get_string("sslKey");
 
   // Check if the instance is part of the Metadata
   if (!_metadata_storage->is_instance_on_replicaset(get_id(), instance_address)) {
@@ -735,6 +765,39 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     std::string local_address = local_address_host + ":" + std::to_string(local_address_port);
 
     set_global_variable(classic->connection(), "group_replication_local_address", local_address);
+
+    // Set SSL option
+    if (ssl) {
+      //const double use_ssl = 1;
+      std::string use_ssl = "ON";
+      std::string ssl_mode = "REQUIRED";
+      log_info("Setting the group_replication_recovery_use_ssl at instance %s",
+               instance_address.c_str());
+      set_global_variable(classic->connection(),
+                          "group_replication_recovery_use_ssl", use_ssl);
+      log_info("Setting the group_replication_ssl_mode at instance %s",
+               instance_address.c_str());
+      set_global_variable(classic->connection(),
+                          "group_replication_ssl_mode", ssl_mode);
+      if (!ssl_ca.empty()) {
+        log_info("Setting the group_replication_recovery_ssl_ca at instance %s",
+                 instance_address.c_str());
+        set_global_variable(classic->connection(),
+                            "group_replication_recovery_ssl_ca", ssl_ca);
+      }
+      if (!ssl_cert.empty()) {
+        log_info("Setting the group_replication_recovery_ssl_cert at instance %s",
+                 instance_address.c_str());
+        set_global_variable(classic->connection(),
+                            "group_replication_recovery_ssl_cert", ssl_cert);
+      }
+      if (!ssl_key.empty()) {
+        log_info("Setting the group_replication_recovery_ssl_key at instance %s",
+                 instance_address.c_str());
+        set_global_variable(classic->connection(),
+                            "group_replication_recovery_ssl_key", ssl_key);
+      }
+    }
 
     // Start group-replication
     log_info("Starting group-replication at instance %s",

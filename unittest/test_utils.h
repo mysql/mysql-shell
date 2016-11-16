@@ -111,6 +111,7 @@ protected:
   std::string _mysql_uri;
   std::string _mysql_uri_nopasswd;
   std::string _sandbox_dir;
+  bool _have_ssl;
 
   shcore::Value _returned_value;
 

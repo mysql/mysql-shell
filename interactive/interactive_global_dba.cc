@@ -47,7 +47,8 @@ void Global_dba::init() {
   add_method("configLocalInstance", std::bind(&Global_dba::config_local_instance, this, _1), "data", shcore::Map, NULL);
 }
 
-shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argument_list &args) {
+shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argument_list &args,
+                                                           bool deploy) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
@@ -66,7 +67,12 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
 
     shcore::Argument_map opt_map(*options);
 
-    opt_map.ensure_keys({}, mysqlsh::dba::Dba::_deploy_instance_opts, "the instance definition");
+    if (deploy == true) {
+      opt_map.ensure_keys({}, mysqlsh::dba::Dba::_deploy_instance_opts, "the instance definition");
+    } else {
+      opt_map.ensure_keys({}, mysqlsh::dba::Dba::_default_local_instance_opts, "the instance definition");
+    }
+
 
     if (opt_map.has_key("sandboxDir")) {
       sandboxDir = opt_map.string_at("sandboxDir");
@@ -94,7 +100,7 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
     // Verifies and sets default args
     // After this there is port and options
     // options at least contains sandboxDir
-    valid_args = check_instance_op_params(args);
+    valid_args = check_instance_op_params(args, deploying);
     port = valid_args.int_at(0);
 
     std::string sandbox_dir;
@@ -164,7 +170,8 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
   args.ensure_count(1, 2, get_function_name(fname).c_str());
 
   try {
-    valid_args = check_instance_op_params(args);
+    // Not used for deploy, only for other sandbox instance operation.
+    valid_args = check_instance_op_params(args, false);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
 
@@ -235,7 +242,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
 
-      opt_map.ensure_keys({}, {"clusterAdminType", "multiMaster", "adoptFromGR", "force"}, "the options");
+      opt_map.ensure_keys({}, mysqlsh::dba::Dba::_create_cluster_opts,
+                          "the options");
 
       if (opt_map.has_key("multiMaster"))
         multi_master = opt_map.bool_at("multiMaster");
@@ -411,7 +419,7 @@ shcore::Value Global_dba::check_instance_config(const shcore::Argument_list &arg
 
   shcore::Argument_map opt_map(*options);
 
-  std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+  std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
 
   opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
 
@@ -529,7 +537,7 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
     options = mysqlsh::dba::get_instance_options_map(args, true);
 
     shcore::Argument_map opt_map(*options);
-    std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+    std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
     opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
 
     if (!shcore::is_local_host(opt_map.string_at("host")))

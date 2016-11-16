@@ -1,4 +1,8 @@
-dba.createCluster("tempCluster");
+if (__have_ssl)
+  dba.createCluster("tempCluster");
+else
+  dba.createCluster("tempCluster", {ssl: false});
+
 //@# Invalid dropMetadataSchema call
 dba.dropMetadataSchema(1,2,3,4,5);
 dba.dropMetadataSchema({not_valid:true});
@@ -15,5 +19,9 @@ session.getSchema('mysql_innodb_cluster_metadata');
 dba.dropMetadataSchema({enforce:true});
 
 //@# drop metadata: user response yes
-dba.createCluster("tempCluster");
+if (__have_ssl)
+  dba.createCluster("tempCluster")
+else
+  dba.createCluster("tempCluster", {ssl: false})
+
 dba.dropMetadataSchema()
