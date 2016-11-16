@@ -108,9 +108,9 @@ public:
   std::vector<Field>& get_metadata() { return _metadata; };
 
   // Data Retrieving
-  Row *fetch_one();
+  std::unique_ptr<Row> fetch_one();
   bool next_data_set();
-  Result *query_warnings();
+  std::unique_ptr<Result> query_warnings();
 
   bool has_resultset() { return _has_resultset; }
 
@@ -148,7 +148,7 @@ public:
   ~Connection();
 
   void close();
-  Result *run_sql(const std::string &sql);
+  std::unique_ptr<Result> run_sql(const std::string &sql);
   bool next_data_set(Result *target, bool first_result = false);
   std::string uri() { return _uri; }
 

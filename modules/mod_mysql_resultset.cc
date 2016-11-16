@@ -338,7 +338,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
     return shcore::Value(_result->warning_count());
 
   if (prop == "warnings") {
-    Result* inner_warnings = _result->query_warnings();
+    auto inner_warnings = _result->query_warnings().release();
     std::shared_ptr<ClassicResult> warnings(new ClassicResult(std::shared_ptr<Result>(inner_warnings)));
     return warnings->fetch_all(shcore::Argument_list());
   }

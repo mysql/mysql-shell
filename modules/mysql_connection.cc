@@ -73,8 +73,8 @@ int Result::fetch_metadata() {
 
 Result::~Result() {}
 
-Row * Result::fetch_one() {
-  Row *ret_val = NULL;
+std::unique_ptr<Row> Result::fetch_one() {
+  std::unique_ptr<Row> ret_val = nullptr;
 
   if (has_resultset()) {
     // Loads the first row
@@ -86,7 +86,7 @@ Row * Result::fetch_one() {
         unsigned long *lengths;
         lengths = mysql_fetch_lengths(res.get());
 
-        ret_val = new Row(mysql_row, lengths, &_metadata);
+        ret_val = std::unique_ptr<Row>(new Row(mysql_row, lengths, &_metadata));
 
         // Each read row increases the count
         _fetched_row_count++;
@@ -101,7 +101,7 @@ bool Result::next_data_set() {
   return _connection->next_data_set(this);
 }
 
-Result *Result::query_warnings() {
+std::unique_ptr<Result> Result::query_warnings() {
   return _connection->run_sql("show warnings");
 }
 
@@ -278,7 +278,7 @@ void Connection::close() {
   _mysql = NULL;
 }
 
-Result *Connection::run_sql(const std::string &query) {
+std::unique_ptr<Result> Connection::run_sql(const std::string &query) {
   if (_prev_result) {
     _prev_result.reset();
 
@@ -294,9 +294,10 @@ Result *Connection::run_sql(const std::string &query) {
     throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
-  Result* result = new Result(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_insert_id(_mysql), mysql_info(_mysql));
+  auto result = std::unique_ptr<Result>(new Result(shared_from_this(),
+      mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_insert_id(_mysql), mysql_info(_mysql)));
 
-  next_data_set(result, true);
+  next_data_set(result.get(), true);
 
   return result;
 }
