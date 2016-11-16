@@ -31,7 +31,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
-// TODO: This should be ported from the server, not used from there (see comment bellow)
+// TODO: This should be ported from the server, not used from there (see comment below)
 //const int MAX_READLINE_BUF = 65536;
 extern char *mysh_get_tty_password(const char *opt_message);
 
@@ -71,30 +71,30 @@ char *Command_line_shell::readline(const char *prompt) {
   my_win_console_fputs(&my_charset_latin1, prompt);
   tmp = my_win_console_readline(&my_charset_latin1, tmp, MAX_READLINE_BUF);
   */
-  
+
 #ifndef WIN32
   std::string prompt_line(prompt);
-  
+
   size_t pos = prompt_line.rfind("\n");
   if (pos != std::string::npos) {
     auto all_lines = prompt_line.substr(0, pos+1);
     prompt_line = prompt_line.substr(pos+1);
-    
+
     if (!all_lines.empty())
       std::cout << all_lines << std::flush;
   }
-  
+
   tmp = ::readline(prompt_line.c_str());
 #else
   std::string line;
   std::cout << prompt << std::flush;
-  
+
   std::getline(std::cin, line);
 
   if (!std::cin.fail())
     tmp = strdup(line.c_str());
 #endif
-  
+
   return tmp;
 }
 
@@ -191,7 +191,8 @@ void Command_line_shell::print_cmd_line_helper() {
   println("affiliates. Other names may be trademarks of their respective");
   println("owners.");
   println("");
-  println("Usage: mysqlsh [OPTIONS] [db_name]");
+  println("Usage: mysqlsh [OPTIONS] [URI]");
+  println("Usage: mysqlsh [OPTIONS] [URI] -f <path> [script args...]");
   println("  --help                   Display this help and exit.");
   println("  -f, --file=file          Process file.");
   println("  -e, --execute=<cmd>      Execute command and quit.");
@@ -234,6 +235,12 @@ void Command_line_shell::print_cmd_line_helper() {
   println("  --dba enableXProtocol    Enable the X Protocol in the server connected to. Must be used with --classic");
   println("  --no-wizard              Disables wizard mode");
 
+  println("");
+  println("Usage examples:");
+  println("$ mysqlsh root@localhost/schema");
+  println("$ mysqlsh mysqlx://root@some.server:3307/world_x");
+  println("$ mysqlsh --uri root@localhost --py -f sample.py sample param");
+  println("$ mysqlsh root@targethost:33070 -s world_x -f sample.js");
   println("");
 }
 

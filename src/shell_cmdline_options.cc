@@ -56,7 +56,6 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
           // Required replacement when --uri=<value>
           if (arg_format == 3)
             nopwd_uri = "--uri=" + nopwd_uri;
-
            strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()).c_str());
         }
       } else {
@@ -261,8 +260,25 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       } else
         _options.log_level = nlog_level;
     } else if (exit_code == 0) {
-      if (argv[i][0] != '-')
-        _options.schema = argv[i];
+      if (argv[i][0] != '-') {
+          value = argv[i];
+        if (shcore::validate_uri(value)) {
+          _options.uri = value;
+          shcore::Value::Map_type_ref data = shcore::get_connection_data(value, false);
+          if (data->has_key("dbPassword")) {
+            std::string pwd(data->get_string("dbPassword").length(), '*');
+            (*data)["dbPassword"] = shcore::Value(pwd);
+
+            // Hide password being used.
+            auto nopwd_uri = shcore::build_connection_string(data, true);
+            strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()).c_str());
+          }
+        } else {
+          std::cerr << "Invalid uri parameter.\n";
+          exit_code = 1;
+          break;
+        }
+      }
       else {
         std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
         exit_code = 1;

@@ -520,4 +520,73 @@ TEST_F(Shell_cmdline_options_t, test_session_type_conflicts) {
   test_session_type_conflicts("--classic", "--node", "Classic", "Node", 1);
   test_session_type_conflicts("--classic", "--sqln", "Classic", "Node", 1);
 }
+
+TEST_F(Shell_cmdline_options_t, test_positional_argument) {
+  // Redirect cerr.
+  std::streambuf* backup = std::cerr.rdbuf();
+  std::ostringstream cerr;
+  std::cerr.rdbuf(cerr.rdbuf());
+  std::string firstArg, secondArg;
+
+  // Using a correct uri should yield no error
+  SCOPED_TRACE("TESTING: uri as positional argument.");
+  firstArg = "root@localhost:3301";
+
+  char *argv[] {const_cast<char *>("ut"),
+                const_cast<char *>(firstArg.c_str()), NULL};
+  Shell_command_line_options cmd_options(2, argv);
+  mysqlsh::Shell_options options = cmd_options.get_options();
+
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(options.uri.c_str(), "root@localhost:3301");
+  EXPECT_STREQ("", cerr.str().c_str());
+
+
+  // Using a correct uri plus the --uri option
+  SCOPED_TRACE("TESTING: uri as positional argument followed by --uri option");
+  firstArg = "root@localhost:3301";
+  secondArg = "--uri=user2:pass@localhost";
+
+  char *argv2[] {const_cast<char *>("ut"),
+                 const_cast<char *>(firstArg.c_str()),
+                 const_cast<char *>(secondArg.c_str()), NULL};
+  cmd_options = Shell_command_line_options(3, argv2);
+  options = cmd_options.get_options();
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(options.uri.c_str(), "user2:pass@localhost");
+  EXPECT_STREQ("", cerr.str().c_str());
+
+  SCOPED_TRACE("TESTING: --uri option followed by uri as positional argument");
+  firstArg = "--uri=user2@localhost";
+  secondArg = "root:pass@localhost:3301";
+
+  char *argv3[] {const_cast<char *>("ut"),
+                 const_cast<char *>(firstArg.c_str()),
+                 const_cast<char *>(secondArg.c_str()), NULL};
+
+  cmd_options = Shell_command_line_options(3, argv3);
+  options = cmd_options.get_options();
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(options.uri.c_str(), "root:pass@localhost:3301");
+  EXPECT_STREQ("", cerr.str().c_str());
+
+  //Using an invalid uri as positional argument
+  SCOPED_TRACE("TESTING: invalid uri as positional argument");
+  firstArg = "not:valid_uri";
+
+  char *argv4[] {const_cast<char *>("ut"),
+                 const_cast<char *>(firstArg.c_str()), NULL};
+
+  cmd_options = Shell_command_line_options(2, argv4);
+  options = cmd_options.get_options();
+  EXPECT_EQ(1, options.exit_code);
+  EXPECT_STREQ(options.uri.c_str(), "");
+  EXPECT_STREQ("Invalid uri parameter.\n", cerr.str().c_str());
+  // Restore old cerr.
+  std::cerr.rdbuf(backup);
+}
+
 }

@@ -78,14 +78,20 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
     if (!uri.empty())
       uri.append("@");
 
-    // Sets the host
-    if (data->has_key("host"))
-      uri.append((*data)["host"].as_string());
+    // Sets the socket
+    if (data->has_key("sock"))
+      uri.append((*data)["sock"].as_string());
 
-    // Sets the port
-    if (data->has_key("port")) {
-      uri.append(":");
-      uri.append((*data)["port"].descr(true));
+    else{ // the uri either has a socket, or an hostname and port
+      // Sets the host
+      if (data->has_key("host"))
+        uri.append((*data)["host"].as_string());
+
+      // Sets the port
+      if (data->has_key("port")) {
+        uri.append(":");
+        uri.append((*data)["port"].descr(true));
+      }
     }
 
     // Sets the database
@@ -407,7 +413,7 @@ void set_default_connection_data(Value::Map_type_ref data) {
       (*data)["dbUser"] = Value(username);
   }
 
-  if (!data->has_key("host"))
+  if (!data->has_key("host") && !data->has_key("sock"))
     (*data)["host"] = Value("localhost");
 }
 
