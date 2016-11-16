@@ -926,7 +926,9 @@ class XShell_TestCases(unittest.TestCase):
                 #("cluster.addInstance({host: '"+ LOCALHOST.host+"', port: "+instance2+", user: 'root', name: 'InstanceOne'});\n", "\"devCluster\""),
                 #("cluster.addInstance({user: '"+ LOCALHOST.user+"password: '"+ LOCALHOST.password+"', port: "+instance2+", name: 'InstanceOne'});\n", "\"devCluster\""),
                 #("cluster.addInstance( {user: \"root\", password: \"guidev!\", host: \"localhost\", port: 3313, name: \"instance3313\"});\n", "\"devCluster\"")
-                ("cluster.addInstance( \"root:guidev!@localhost:3313\");\n", "was successfully added to the cluster")
+                ("cluster.addInstance( \"{0}:{1}@{2}:3313\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       ##########################
@@ -1012,7 +1014,9 @@ class XShell_TestCases(unittest.TestCase):
                 #("cluster.addInstance({host: '"+ LOCALHOST.host+"', port: "+instance2+", user: 'root', name: 'InstanceOne'});\n", "\"devCluster\""),
                 #("cluster.addInstance({user: '"+ LOCALHOST.user+"password: '"+ LOCALHOST.password+"', port: "+instance2+", name: 'InstanceOne'});\n", "\"devCluster\""),
                 #("cluster.addInstance( {user: \"root\", password: \"guidev!\", host: \"localhost\", port: 3313, name: \"instance3313\"});\n", "\"devCluster\"")
-                ("cluster.addInstance( \"root:guidev!@localhost:3313\");\n", "was successfully added to the cluster"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3313\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
                 #"cluster.addInstance( \"root:guidev!@localhost:3314\");\n", "was successfully added to the cluster")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1087,8 +1091,12 @@ class XShell_TestCases(unittest.TestCase):
                 #("cluster.addInstance({host: '"+ LOCALHOST.host+"', port: "+instance2+", user: 'root', name: 'InstanceOne'});\n", "\"devCluster\""),
                 #("cluster.addInstance({user: '"+ LOCALHOST.user+"password: '"+ LOCALHOST.password+"', port: "+instance2+", name: 'InstanceOne'});\n", "\"devCluster\""),
                 #("cluster.addInstance( {user: \"root\", password: \"guidev!\", host: \"localhost\", port: 3313, name: \"instance3313\"});\n", "\"devCluster\"")
-                ("cluster.addInstance( \"root:guidev!@localhost:3313\");\n", "was successfully added to the cluster"),
-                ("cluster.addInstance( \"root:guidev!@localhost:3316\");\n", "Can't connect to MySQL server on")
+                ("cluster.addInstance( \"{0}:{1}@{2}:3313\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3316\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "Can't connect to MySQL server on")
 
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1176,8 +1184,12 @@ class XShell_TestCases(unittest.TestCase):
                 # ("cluster.addInstance({host: '"+ LOCALHOST.host+"', port: "+instance2+", user: 'root', name: 'InstanceOne'});\n", "\"devCluster\""),
                 # ("cluster.addInstance({user: '"+ LOCALHOST.user+"password: '"+ LOCALHOST.password+"', port: "+instance2+", name: 'InstanceOne'});\n", "\"devCluster\""),
                 # ("cluster.addInstance( {user: \"root\", password: \"guidev!\", host: \"localhost\", port: 3313, name: \"instance3313\"});\n", "\"devCluster\"")
-                ("cluster.addInstance( \"root:guidev!@localhost:3313\");\n", "was successfully added to the cluster"),
-                ("cluster.addInstance( \"root:guidev!@localhost:3314\");\n", "was successfully added to the cluster"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3313\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3314\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
                 ("cluster.removeInstance(\"localhost:3314\");\n", "was successfully removed from the cluster.")
 
 
@@ -1266,10 +1278,14 @@ class XShell_TestCases(unittest.TestCase):
                 # ("cluster.addInstance({host: '"+ LOCALHOST.host+"', port: "+instance2+", user: 'root', name: 'InstanceOne'});\n", "\"devCluster\""),
                 # ("cluster.addInstance({user: '"+ LOCALHOST.user+"password: '"+ LOCALHOST.password+"', port: "+instance2+", name: 'InstanceOne'});\n", "\"devCluster\""),
                 # ("cluster.addInstance( {user: \"root\", password: \"guidev!\", host: \"localhost\", port: 3313, name: \"instance3313\"});\n", "\"devCluster\"")
-                ("cluster.addInstance( \"root:guidev!@localhost:3313\");\n", "was successfully added to the cluster"),
-                ("cluster.addInstance( \"root:guidev!@localhost:3314\");\n", "was successfully added to the cluster"),
-                ("cluster.removeInstance(\"localhost:3312\");\n", "was successfully removed from the cluster.")
-
+                ("cluster.addInstance( \"{0}:{1}@{2}:3313\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3314\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
+                ("cluster.removeInstance(\"{0}:3312\");\n".format(LOCALHOST.host),
+                 "was successfully removed from the cluster.")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       ##########################
@@ -1387,10 +1403,14 @@ class XShell_TestCases(unittest.TestCase):
                 # ("cluster.addInstance({host: '"+ LOCALHOST.host+"', port: "+instance2+", user: 'root', name: 'InstanceOne'});\n", "\"devCluster\""),
                 # ("cluster.addInstance({user: '"+ LOCALHOST.user+"password: '"+ LOCALHOST.password+"', port: "+instance2+", name: 'InstanceOne'});\n", "\"devCluster\""),
                 # ("cluster.addInstance( {user: \"root\", password: \"guidev!\", host: \"localhost\", port: 3313, name: \"instance3313\"});\n", "\"devCluster\"")
-                ("cluster.addInstance( \"root:guidev!@localhost:3313\");\n", "was successfully added to the cluster"),
-                ("cluster.addInstance( \"root:guidev!@localhost:3314\");\n", "was successfully added to the cluster"),
-                ("cluster.removeInstance(\"localhost:3315\");\n", "does not belong to the ReplicaSet")
-
+                ("cluster.addInstance( \"{0}:{1}@{2}:3313\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3314\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
+                ("cluster.removeInstance(\"{0}:3315\");\n".format(LOCALHOST.host),
+                 "does not belong to the ReplicaSet")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       ##########################
@@ -1662,8 +1682,12 @@ class XShell_TestCases(unittest.TestCase):
                       '-h' + LOCALHOST.host, '-P' + instance1, '--classic']
       x_cmds = [("dba.createCluster(\"devCluster\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:devCluster>"),
                 ("cluster = dba.getCluster('devCluster');\n", "<Cluster:devCluster>"),
-                ("cluster.addInstance( \"root:guidev!@localhost:3313\");\n", "was successfully added to the cluster"),
-                ("cluster.addInstance( \"root:guidev!@localhost:3314\");\n", "was successfully added to the cluster")
+                ("cluster.addInstance( \"{0}:{1}@{2}:3313\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3314\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
