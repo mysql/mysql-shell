@@ -145,10 +145,6 @@ private:
 
   std::string get_peer_instance();
 
-  void create_repl_account(mysqlsh::mysql::ClassicSession *session,
-                           const std::string &username,
-                           const std::string &password);
-
   void validate_instance_address(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
                                  const std::string &hostname, int port);
 

@@ -404,13 +404,6 @@ void ReplicaSet::validate_instance_address(std::shared_ptr<mysqlsh::mysql::Class
   }
 }
 
-static void run_queries(mysqlsh::mysql::ClassicSession *session, const std::vector<std::string> &queries) {
-  for (auto & q : queries) {
-    log_info("DBA: run_sql(%s)", q.c_str());
-    session->execute_sql(q);
-  }
-}
-
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
@@ -480,8 +473,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
       replication_user.append("@'%'");
 
       log_debug("Creating replication user '%s'", replication_user.c_str());
-      create_repl_account(dynamic_cast<mysqlsh::mysql::ClassicSession*>(_metadata_storage->get_dba()->get_active_session().get()),
-                          replication_user, replication_user_password);
+      _metadata_storage->create_repl_account(replication_user, replication_user_password);
 
       // Call the gadget to bootstrap the group with this instance
       if (seed_instance) {
@@ -919,26 +911,6 @@ std::string ReplicaSet::get_peer_instance() {
     }
   }
   return result.front();
-}
-
-/**
- * Create an account in the replicaset.
- */
-void ReplicaSet::create_repl_account(mysqlsh::mysql::ClassicSession *session,
-                                     const std::string &username,
-                                     const std::string &password) {
-  try {
-    run_queries(session, {
-      "START TRANSACTION",
-      "DROP USER IF EXISTS " + username,
-      "CREATE USER IF NOT EXISTS " + username + " IDENTIFIED BY '" + password + "'",
-      "GRANT REPLICATION SLAVE ON *.* to " + username,
-      "COMMIT"
-    });
-  } catch (...) {
-    session->execute_sql("ROLLBACK");
-    throw;
-  }
 }
 
 static std::string generate_password(int password_lenght) {

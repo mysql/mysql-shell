@@ -42,10 +42,13 @@ _dba(dba) {}
 
 MetadataStorage::~MetadataStorage() {}
 
-std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::string &sql, bool retry) const {
+std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::string &sql, bool retry, const std::string &log_sql) const {
   shcore::Value ret_val;
 
-  log_debug("DBA: execute_sql('%s'", sql.c_str());
+  if (log_sql.empty())
+    log_debug("DBA: execute_sql('%s'", sql.c_str());
+  else
+    log_debug("DBA: execute_sql('%s'", log_sql.c_str());
 
   auto session = _dba->get_active_session();
   if (!session)
@@ -120,7 +123,7 @@ void MetadataStorage::create_metadata_schema() {
     while ((pos = query.find(delimiter)) != std::string::npos) {
       token = query.substr(0, pos);
 
-      session->execute_sql(token, shcore::Argument_list());
+      execute_sql(token);
 
       query.erase(0, pos + delimiter.length());
     }
@@ -741,4 +744,17 @@ std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_insta
   auto instances = raw_instances.as_array();
 
   return instances;
+}
+
+void MetadataStorage::create_repl_account(const std::string &username,
+                                          const std::string &password) {
+  Transaction tx(shared_from_this());
+
+  execute_sql("DROP USER IF EXISTS " + username);
+  std::string query = "CREATE USER IF NOT EXISTS " + username + " IDENTIFIED BY '" + password + "'";
+  std::string query_log = "CREATE USER IF NOT EXISTS " + username + " IDENTIFIED BY '" + std::string(password.length(), '*') + "'";
+  execute_sql(query, false, query_log);
+  execute_sql("GRANT REPLICATION SLAVE ON *.* to " + username);
+
+  tx.commit();
 }

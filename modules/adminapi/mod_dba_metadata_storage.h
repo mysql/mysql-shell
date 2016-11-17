@@ -27,7 +27,7 @@
 
 namespace mysqlsh {
 namespace mysql {
-  class ClassicResult;
+class ClassicResult;
 }
 namespace dba {
 #if DOXYGEN_CPP
@@ -71,9 +71,11 @@ public:
   std::string get_seed_instance(uint64_t rs_id);
   std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(uint64_t rs_id);
 
+  void create_repl_account(const std::string &username, const std::string &password);
+
   Dba* get_dba() { return _dba; };
 
-  std::shared_ptr<mysql::ClassicResult> execute_sql(const std::string &sql, bool retry=false) const;
+  std::shared_ptr<mysql::ClassicResult> execute_sql(const std::string &sql, bool retry = false, const std::string &log_sql = "") const;
 
   class Transaction {
   public:
