@@ -6341,16 +6341,43 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
-    def test_MYS_192(self):
-        '''[CONNECTION] CONNECTION IS CLOSED, WHEN A NEW WRONG CONNECTION IS REQUESTED'''
+    def test_MYS_192_01(self):
+        '''[MYS-192]: JS [CONNECTION] Connection is closed, when a new wrong connection is requested'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [("\\connect {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                        LOCALHOST.port), "Classic Session successfully established"),
-                  ("\\connect wrongconn:wrongconn@localhost:3300\n", "mysql-js>"),
-                  ("\\sql\n", "mysql-js>"),
-                  ("show databases;\n", "sakila"),
-                  ]
+        x_cmds = [
+            ('\\connect -c {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
+                                                     LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+            ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
+            ('\\connect -c {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
+                                                   LOCALHOST.host), "mysql-js>"),
+            ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
+            ('\\connect -n {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
+                                                     LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
+            ('\\connect -n {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
+                                                   LOCALHOST.host), "mysql-js>"),
+            ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
+
+    def test_MYS_192_02(self):
+        '''[MYS-192]: PY [CONNECTION] Connection is closed, when a new wrong connection is requested'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full', '--py']
+        x_cmds = [
+            ('\\connect -c {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
+                                                     LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+            ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
+            ('\\connect -c {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
+                                                   LOCALHOST.host), "mysql-py>"),
+            ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
+            ('\\connect -n {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
+                                                     LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-py>"),
+            ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
+            ('\\connect -n {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
+                                                   LOCALHOST.host), "mysql-py>"),
+            ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
@@ -6916,42 +6943,6 @@ class XShell_TestCases(unittest.TestCase):
                   ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
                   ("db.name\n", "The db variable is not set, establish a global session first."),
-                  ]
-        results = exec_xshell_commands(init_command, x_cmds)
-        self.assertEqual(results, 'PASS')
-
-    @unittest.skip("SESSION.URI DISPLAY WRONG MENU DATA TO THE USER: ISSUE MYS-542")
-    def test_MYS_338_04(self):
-        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
-        results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [(";\n", "mysql-js>"),
-                  ("session.uri\n", "establish a session?"),
-                  ("y\n", "Please specify the session type:"),
-                  ("1\n", "MySQL server URI (or $alias)"),
-                  ("{0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                              REMOTEHOST.xprotocol_port), "mysql-js>"),
-                  ("session.uri\n", "{0}@{1}:{2}".format(REMOTEHOST.user, REMOTEHOST.host, REMOTEHOST.xprotocol_port)),
-                  ]
-        results = exec_xshell_commands(init_command, x_cmds)
-        self.assertEqual(results, 'PASS')
-
-    @unittest.skip("SESSION.URI DISPLAY WRONG MENU DATA TO THE USER: ISSUE MYS-542")
-    def test_MYS_338_05(self):
-        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
-        results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [(";\n", "mysql-js>"),
-                  ("session.uri\n", "establish a session?"),
-                  ("y\n", "Please specify the session type:"),
-                  ("1\n", "MySQL server URI (or $alias)"),
-                  ("{0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                              REMOTEHOST.xprotocol_port), "mysql-js>"),
-                  ("session.uri\n", "{0}@{1}:{2}".format(REMOTEHOST.user, REMOTEHOST.host, REMOTEHOST.xprotocol_port)),
-                  ("db.name\n", "want to set the active schema?"),
-                  ("y\n", "Please specify the schema:"),
-                  ("sakila\n", "mysql-js>"),
-                  ("db.name\n", "sakila"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7537,21 +7528,28 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_MYS_420(self):
-        '''[MYS-420]: https://jira.oraclecorp.com/jira/browse/MYS-420
-      Help in command prompt with space blank behaves different (add  trim() function)'''
+        '''[MYS-420]: Help in command prompt with space blank behaves different (add trim() function)'''
         results = 'PASS'
-        init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [("\\connect\n", "\\connect [-<type>] <uri or $name>"),
-                  ("\\connect      \n", "\\connect [-<type>] <uri or $name>")]
+        init_command = [MYSQL_SHELL, '--interactive=full', '--py']
+        x_cmds = [("\\connect\n", "\connect [-<type>] <uri or $name>"),
+                  ("\\connect      \n", "\connect [-<type>] <uri or $name>"),
+                  ("       \\connect      \n", "\connect [-<type>] <uri or $name>"),
+                  ("\\py\n", "mysql-py>"),
+                  ("\\connect\n", "\connect [-<type>] <uri or $name>"),
+                  ("\\connect      \n", "\connect [-<type>] <uri or $name>"),
+                  ("       \\connect      \n", "\connect [-<type>] <uri or $name>")
+                  ]
         for command, expectedResult in x_cmds:
             p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
             p.stdin.write(command)
             p.stdin.flush()
             stdoutdata, stderrdata = p.communicate()
-            found = stderrdata.find(expectedResult, 0, len(stderrdata))
+            found = stdoutdata.find(expectedResult, 0, len(stdoutdata))
             if found == -1:
-                results = "FAIL"
-                break
+                found = stderrdata.find(expectedResult, 0, len(stderrdata))
+                if found == -1:
+                    results = "FAIL"
+                    break
         self.assertEqual(results, 'PASS')
 
     def test_MYS_427(self):
@@ -8384,6 +8382,78 @@ class XShell_TestCases(unittest.TestCase):
             else:
                 results = "PASS"
             self.assertEqual(results, 'PASS')
+
+    def test_MYS_542_01(self):
+        '''[MYS-542]:Session.uri display wrong menu data to the user'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+        x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
+                  ("2\n", "specify the MySQL server URI"),
+                  ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port), "Enter password"),
+                  ("{0}\n".format(LOCALHOST.password), "{0}@{1}:{2}".format(LOCALHOST.user, LOCALHOST.host,
+                                                                            LOCALHOST.port)),
+                  ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host,
+                                                                      LOCALHOST.port))]
+        # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
+        command_stdin = ""
+        for command, result in x_cmds:
+            command_stdin = command_stdin + command
+        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        p.stdin.write(command_stdin)
+        stdoutdata, stderrdata = p.communicate()
+        stdoutsplitted = stdoutdata.splitlines()
+        # Verify the information from expectedResult of x_cmds againt the stdout response from subprocess
+        for command, expectedResult in x_cmds:
+            count = 1
+            for line in stdoutsplitted:
+                count += 1
+                found = line.find(expectedResult, 0, len(line))
+                if found == -1 and count > len(stdoutsplitted):
+                    results = "FAIL"
+                    break
+                elif found != -1:
+                    results = "PASS"
+                    # stdoutsplitted.remove(line)
+                    break
+            if results == "FAIL":
+                break
+        self.assertEqual(results, 'PASS')
+
+    def test_MYS_542_02(self):
+        '''[MYS-542]:Session.uri display wrong menu data to the user'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+        x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
+                  ("1\n", "specify the MySQL server URI"),
+                  ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port), "Enter password"),
+                  ("{0}\n".format(LOCALHOST.password), "{0}@{1}:{2}".format(LOCALHOST.user, LOCALHOST.host,
+                                                                            LOCALHOST.xprotocol_port)),
+                  ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host,
+                                                                   LOCALHOST.xprotocol_port))]
+        # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
+        command_stdin = ""
+        for command, result in x_cmds:
+            command_stdin = command_stdin + command
+        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        p.stdin.write(command_stdin)
+        stdoutdata, stderrdata = p.communicate()
+        stdoutsplitted = stdoutdata.splitlines()
+        # Verify the information from expectedResult of x_cmds againt the stdout response from subprocess
+        for command, expectedResult in x_cmds:
+            count = 1
+            for line in stdoutsplitted:
+                count += 1
+                found = line.find(expectedResult, 0, len(line))
+                if found == -1 and count > len(stdoutsplitted):
+                    results = "FAIL"
+                    break
+                elif found != -1:
+                    results = "PASS"
+                    # stdoutsplitted.remove(line)
+                    break
+            if results == "FAIL":
+                break
+        self.assertEqual(results, 'PASS')
 
     @unittest.skip("X sessions and Stored sessions removed for mysql-shell-1.0.6-release, therefore must be skipped")
     def test_MYS_560(self):
