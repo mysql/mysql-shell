@@ -1401,6 +1401,30 @@ class XShell_TestCases(unittest.TestCase):
 
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_622_createCluster_UC2(self):
+      '''MYS-622 [MYAA] dba.createCluster(name)'''
+      instance = "3312"
+      kill_process(instance)
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'Please enter a MySQL root password for the new instance:'),
+                (LOCALHOST.password + '\n', "Instance localhost:" + instance + " successfully deployed and started."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      results2=str(results)
+      if results2.find(bytearray("FAIL","ascii"),0,len(results2))> -1:
+        self.assertEqual(results2, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + instance, '--classic']
+      x_cmds = [("dba.createCluster('devCluster',{clusterAdminType:'local'});\n","<Cluster:devCluster>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      kill_process(instance)
+      self.assertEqual(results, 'PASS')
+
+
   def test_MYS_855_checkInstanceState_UC1(self):
       '''MYS-855 [MYAA] cluster.checkInstanceState()'''
       instance = "3312"
