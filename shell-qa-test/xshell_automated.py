@@ -7306,6 +7306,22 @@ class XShell_TestCases(unittest.TestCase):
             results = "FAIL"
         self.assertEqual(results, 'PASS')
 
+    def test_MYS_387(self):
+        '''[MYS-387]: Unknown message received from server 10, when create node session with non xport
+        https://jira.oraclecorp.com/jira/browse/MYS-387'''
+        results = 'FAIL'
+        init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                        '{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                 REMOTEHOST.port), '--node']
+        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             stdin=subprocess.PIPE)
+        stdoutdata, stderrordata = p.communicate()
+        if stderrordata.find("Requested session assumes MySQL X Protocol but '{0}:{1}'"
+                             " seems to speak the classic MySQL protocol".format(LOCALHOST.host, LOCALHOST.port),
+                             0, len(stderrordata)) > -1:
+            results = 'PASS'
+        self.assertEqual(results, 'PASS')
+
     def test_MYS_399(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-224 with node session and json=raw"""
         results = ''
@@ -8480,7 +8496,7 @@ class XShell_TestCases(unittest.TestCase):
 
     def test_MYS_816(self):
         '''[MYS-816]: https://jira.oraclecorp.com/jira/browse/MYS-816
-      Default Session Type Should be Node instead of X'''
+        Default Session Type Should be Node instead of X'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port]

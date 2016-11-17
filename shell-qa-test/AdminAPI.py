@@ -124,7 +124,7 @@ def kill_process(instance, argument=""):
 
 
 
-@timeout(40)
+@timeout(240)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -169,18 +169,19 @@ def exec_xshell_commands(init_cmdLine, commandList):
     else:
         return "PASS"
 
+@timeout(240)
 def cleanup_instances(instances=[]):
     # Add instances as String
     init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
     # Destroy the instances
     for instance in instances:
         x_cmds = [("dba.stopSandboxInstance(" + instance + ")\n",
-                   "Instance localhost:" + instance + " successfully stopped."),
+                   "Instance localhost:" + instance[0:4] + " successfully stopped."),
                   ("dba.deleteSandboxInstance(" + instance + ")\n",
-                   "Instance localhost:" + instance + " successfully deleted.")
+                   "Instance localhost:" + instance[0:4] + " successfully deleted.")
                   ]
         try:
-            results = exec_xshell_commands(init_command, x_cmds)
+            exec_xshell_commands(init_command, x_cmds)
         except Exception, e:
             return e
 
@@ -1728,6 +1729,71 @@ class XShell_TestCases(unittest.TestCase):
       #               onerror=None)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_850(self):
+      '''[MYS-850] Cluster.status output is mixed up, kind of nested and not easily readable'''
+      results = ''
+      instances = ["3312, { sandboxDir: \"" + cluster_Path + "\"}",
+                   "3313, { sandboxDir: \"" + cluster_Path + "\"}",
+                   "3314, { sandboxDir: \"" + cluster_Path + "\"}"]
+      for instance in instances:
+          init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+          x_cmds = [("dba.deploySandboxInstance( " + instance + ");\n",
+                     'Please enter a MySQL root password for the new instance:'),
+                    (LOCALHOST.password + '\n',
+                     "Instance localhost:" + instance[0:4] + " successfully deployed and started.")]
+          results = exec_xshell_commands(init_command, x_cmds)
+          if results.find("Error", 0, len(results)) > -1:
+              results="FAIL"
+              break
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P 3312', '--classic']
+      x_cmds = [("dba.createCluster(\"devCluster\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:devCluster>"),
+                ("cluster = dba.getCluster('devCluster');\n", "<Cluster:devCluster>"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3313\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster"),
+                ("cluster.addInstance( \"{0}:{1}@{2}:3314\");\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                        LOCALHOST.host),
+                 "was successfully added to the cluster")]
+      results = exec_xshell_commands(init_command, x_cmds)
+      # cluster.status() display recovering for some added instances, require some time to set it to ONLINE
+      time.sleep(10)
+      x_cmds = [("cluster = dba.getCluster('devCluster');\n", "<Cluster:devCluster>"),
+                ("cluster.status()\n",
+                 "{" + os.linesep +
+                 "    \"clusterName\": \"devCluster\", " + os.linesep +
+                 "    \"defaultReplicaSet\": {" + os.linesep +
+                 "        \"name\": \"default\", " + os.linesep +
+                 "        \"status\": \"Cluster tolerant to up to ONE failure.\", " + os.linesep +
+                 "        \"topology\": {" + os.linesep +
+                 "            \"localhost:3312\": {" + os.linesep +
+                 "                \"address\": \"localhost:3312\", " + os.linesep +
+                 "                \"leaves\": {" + os.linesep +
+                 "                    \"localhost:3313\": {" + os.linesep +
+                 "                        \"address\": \"localhost:3313\", " + os.linesep +
+                 "                        \"leaves\": {}, " + os.linesep +
+                 "                        \"mode\": \"R/O\", " + os.linesep +
+                 "                        \"role\": \"HA\", " + os.linesep +
+                 "                        \"status\": \"ONLINE\"" + os.linesep +
+                 "                    }, " + os.linesep +
+                 "                    \"localhost:3314\": {" + os.linesep +
+                 "                        \"address\": \"localhost:3314\", " + os.linesep +
+                 "                        \"leaves\": {}, " + os.linesep +
+                 "                        \"mode\": \"R/O\", " + os.linesep +
+                 "                        \"role\": \"HA\", " + os.linesep +
+                 "                        \"status\": \"ONLINE\"" + os.linesep +
+                 "                    }" + os.linesep +
+                 "                }, " + os.linesep +
+                 "                \"mode\": \"R/W\", " + os.linesep +
+                 "                \"role\": \"HA\", " + os.linesep +
+                 "                \"status\": \"ONLINE\"" + os.linesep +
+                 "            }" + os.linesep +
+                 "        }" + os.linesep +
+                 "    }" + os.linesep +
+                 "}")]
+      results = exec_xshell_commands(init_command, x_cmds)
+      cleanup_instances(instances)
+      self.assertEqual(results, 'PASS')
 
   def test_MYS_690_reconfigure_when_removing_instance(self):
       '''MYS-690 [MYAA] reconfigure_when_removing_instance'''
