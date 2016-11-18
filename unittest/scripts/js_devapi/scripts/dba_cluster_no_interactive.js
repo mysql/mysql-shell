@@ -87,10 +87,10 @@ Cluster.describe()
 //@<OUT> Cluster: status after adding read only instance back
 Cluster.status()
 
+// Make sure uri2 is selected as the new master
+Cluster.removeInstance(uri3)
+
 //@ Cluster: remove_instance master
-
-check_slave_online(Cluster, uri1, uri2);
-
 Cluster.removeInstance(uri1)
 
 //@ Connecting to new master
@@ -98,6 +98,11 @@ var mysql = require('mysql');
 var customSession = mysql.getClassicSession({host:localhost, port:__mysql_sandbox_port2, user:'root', password: 'root'});
 dba.resetSession(customSession);
 var Cluster = dba.getCluster();
+
+// Add back uri3
+var uri = "root@localhost:" + __mysql_sandbox_port3;
+Cluster.addInstance(uri, "root");
+check_slave_online(Cluster, uri2, uri3);
 
 //@<OUT> Cluster: describe on new master
 Cluster.describe()
@@ -109,6 +114,7 @@ Cluster.status()
 var uri = "root@localhost:" + __mysql_sandbox_port1;
 Cluster.addInstance(uri, "root");
 
+check_slave_online(Cluster, uri2, uri1);
 
 //@<OUT> Cluster: describe on new master with slave
 Cluster.describe()

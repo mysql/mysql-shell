@@ -91,10 +91,10 @@ cluster.describe()
 #@<OUT> Cluster: status after adding read only instance back
 cluster.status()
 
+# Make sure uri2 is selected as the new master
+cluster.remove_instance(uri3)
+
 #@ Cluster: remove_instance master
-
-check_slave_online(cluster, uri1, uri2)
-
 cluster.remove_instance(uri1)
 
 #@ Connecting to new master
@@ -102,6 +102,10 @@ from mysqlsh import mysql
 customSession = mysql.get_classic_session({"host":localhost, "port":__mysql_sandbox_port2, "user":'root', "password": 'root'})
 dba.reset_session(customSession)
 cluster = dba.get_cluster()
+
+# Add back uri3
+cluster.add_instance("root@localhost:%s" % __mysql_sandbox_port3, "root")
+check_slave_online(cluster, uri2, uri3);
 
 #@<OUT> Cluster: describe on new master
 cluster.describe()
@@ -112,6 +116,8 @@ cluster.status()
 #@ Cluster: addInstance adding old master as read only
 uri = "root@localhost:%s" % __mysql_sandbox_port1;
 cluster.add_instance(uri, "root");
+
+check_slave_online(cluster, uri2, uri1)
 
 #@<OUT> Cluster: describe on new master with slave
 cluster.describe()
