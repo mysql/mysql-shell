@@ -579,11 +579,11 @@ class XShell_TestCases(unittest.TestCase):
 
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"guidev!\"})\n",
+      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3310 successfully deployed and started."),
-                ("dba.deploySandboxInstance(3320, {password: \"guidev!\"})\n",
+                ("dba.deploySandboxInstance(3320, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3320 successfully deployed and started."),
-                ("dba.deploySandboxInstance(3330, {password: \"guidev!\"})\n",
+                ("dba.deploySandboxInstance(3330, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3330 successfully deployed and started."),
                 ("\connect root:" + LOCALHOST.password + "@localhost:3310\n",
                  'Classic Session successfully established. No default schema selected.'),
@@ -620,11 +620,11 @@ class XShell_TestCases(unittest.TestCase):
 
       results = 'PASS'
       init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"guidev!\"})\n",
+      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3310 successfully deployed and started."),
-                ("dba.deploySandboxInstance(3320, {password: \"guidev!\"})\n",
+                ("dba.deploySandboxInstance(3320, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3320 successfully deployed and started."),
-                ("dba.deploySandboxInstance(3330, {password: \"guidev!\"})\n",
+                ("dba.deploySandboxInstance(3330, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3330 successfully deployed and started."),
                 ("\connect root:" + LOCALHOST.password + "@localhost:3310\n",
                  'Classic Session successfully established. No default schema selected.'),
@@ -662,11 +662,11 @@ class XShell_TestCases(unittest.TestCase):
 
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"guidev!\"})\n",
+      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3310 successfully deployed and started."),
-                ("dba.deploySandboxInstance(3320, {password: \"guidev!\"})\n",
+                ("dba.deploySandboxInstance(3320, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3320 successfully deployed and started."),
-                ("dba.deploySandboxInstance(3330, {password: \"guidev!\"})\n",
+                ("dba.deploySandboxInstance(3330, {password: \"" + LOCALHOST.password + "\"})\n",
                  "Instance localhost:3330 successfully deployed and started."),
                 ("\connect root:" + LOCALHOST.password + "@localhost:3310\n",
                  'Classic Session successfully established. No default schema selected.'),
