@@ -313,7 +313,7 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   std::shared_ptr< ::mysqlx::Row> row;
 
   mysql_server_uuid = (*options)["mysql_server_uuid"].as_string();
-  instance_name = (*options)["instance_name"].as_string();
+  instance_name = (*options)["name"].as_string();
 
   if (options->has_key("role"))
     role = (*options)["role"].as_string();

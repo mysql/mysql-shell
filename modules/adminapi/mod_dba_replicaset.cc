@@ -1076,7 +1076,7 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
   (*instance_definition)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
 
   if (!instance_definition->has_key("name"))
-    (*instance_definition)["instance_name"] = shcore::Value(instance_address);
+    (*instance_definition)["name"] = shcore::Value(instance_address);
 
   // update the metadata with the host
   uint32_t host_id = _metadata_storage->insert_host(instance_definition);
