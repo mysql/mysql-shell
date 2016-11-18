@@ -1,3 +1,5 @@
+import time
+
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
@@ -42,8 +44,19 @@ cluster.add_instance({'host': 'localhost', 'schema': 'abs', 'user':"sample", 'au
 cluster.add_instance({'port': __mysql_sandbox_port1})
 cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1}, 'root')
 
-#@ Cluster: add_instance
+uri1 = "%s:%s" % (localhost, __mysql_sandbox_port1)
+uri2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
+uri3 = "%s:%s" % (localhost, __mysql_sandbox_port3)
+
+#@ Cluster: add_instance 2
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2}, "root");
+
+check_slave_online(cluster, uri1, uri2);
+
+#@ Cluster: add_instance 3
+cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, "root");
+
+check_slave_online(cluster, uri1, uri3);
 
 #@<OUT> Cluster: describe cluster with instance
 cluster.describe()
@@ -59,9 +72,8 @@ cluster.remove_instance({"host": "localhost"});
 cluster.remove_instance({"host": "localhost", "schema": 'abs', "user":"sample", "authMethod":56});
 cluster.remove_instance("somehost:3306");
 
-
 #@ Cluster: remove_instance read only
-cluster.remove_instance({"host":localhost, "port":__mysql_sandbox_port2})
+cluster.remove_instance({"host": "localhost", "port":__mysql_sandbox_port2})
 
 #@<OUT> Cluster: describe removed read only member
 cluster.describe()
@@ -71,6 +83,7 @@ cluster.status()
 
 #@ Cluster: addInstance read only back
 cluster.add_instance("root@localhost:%s" % __mysql_sandbox_port2, "root")
+check_slave_online(cluster, uri1, uri2);
 
 #@<OUT> Cluster: describe after adding read only instance back
 cluster.describe()
@@ -79,8 +92,7 @@ cluster.describe()
 cluster.status()
 
 #@ Cluster: remove_instance master
-uri1 = "%s:%s" % (localhost, __mysql_sandbox_port1)
-uri2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
+
 check_slave_online(cluster, uri1, uri2)
 
 cluster.remove_instance(uri1)
@@ -107,20 +119,119 @@ cluster.describe()
 #@<OUT> Cluster: status on new master with slave
 cluster.status()
 
+# Rejoin tests
+
+#@# Dba: kill instance 3
+if __sandbox_dir:
+  dba.kill_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir":__sandbox_dir})
+else:
+  dba.kill_sandbox_instance(__mysql_sandbox_port3)
+
+# XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
+# But won't be available for the GA release. So we need a sleep here
+time.sleep(2)
+
+#@# Dba: start instance 3
+if __sandbox_dir:
+  dba.start_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir": __sandbox_dir})
+else:
+  dba.start_sandbox_instance(__mysql_sandbox_port3)
+
+check_slave_offline(Cluster, uri2, uri3);
+
+#@# Cluster: rejoin_instance errors
+cluster.rejoin_instance();
+cluster.rejoin_instance(1,2,3);
+cluster.rejoin_instance(1);
+cluster.rejoin_instance({"host": "localhost"});
+cluster.rejoin_instance({"host": "localhost", "schema": 'abs', "authMethod":56});
+cluster.rejoin_instance("somehost:3306");
+
+#@#: Dba: rejoin instance 3 ok
+cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, "root");
+
+check_slave_online(cluster, uri2, uri3);
+
+# Verify if the cluster is OK
+
+#@<OUT> Cluster: status for rejoin: success
+cluster.status()
+
+
+# test the lost of quorum
+
+#@# Dba: kill instance 1
+if __sandbox_dir:
+  dba.kill_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir":__sandbox_dir})
+else:
+  dba.kill_sandbox_instance(__mysql_sandbox_port1)
+
+#@# Dba: kill instance 3
+if __sandbox_dir:
+  dba.kill_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir":__sandbox_dir})
+else:
+  dba.kill_sandbox_instance(__mysql_sandbox_port3)
+
+# GR needs to detect the loss of quorum
+time.sleep(5)
+
+#@# Dba: start instance 1
+if __sandbox_dir:
+  dba.start_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir": __sandbox_dir})
+else:
+  dba.start_sandbox_instance(__mysql_sandbox_port1)
+
+#@# Dba: start instance 3
+if __sandbox_dir:
+  dba.start_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir": __sandbox_dir})
+else:
+  dba.start_sandbox_instance(__mysql_sandbox_port3)
+
+# Verify the cluster status after loosing 2 members
+#@<OUT> Cluster: status for rejoin quorum lost
+cluster.status()
+
+#@#: Dba: rejoin instance 3
+cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, "root");
+
+#@ Cluster: dissolve: error quorum
+cluster.dissolve()
+
+# In order to be able to run dissolve, we must force the reconfiguration of the group using
+# group_replication_force_members
+customSession.run_sql("SET GLOBAL group_replication_force_members = 'localhost:1" + str(__mysql_sandbox_port2) + "'");
+time.sleep(5)
+
+# Add back the instances to make the dissolve possible
+
+#@ Cluster: rejoinInstance 1
+uri = "root@localhost:%s" % __mysql_sandbox_port1;
+cluster.rejoin_instance(uri, "root");
+check_slave_online(cluster, uri2, uri1)
+
+#@ Cluster: rejoinInstance 3
+uri = "root@localhost:%s" % __mysql_sandbox_port3;
+cluster.rejoin_instance(uri, "root");
+check_slave_online(cluster, uri2, uri3)
+
+# Verify the cluster status after rejoining the 2 members
+#@<OUT> Cluster: status for rejoin successful
+cluster.status()
+
 #@ Cluster: dissolve errors
 cluster.dissolve()
 cluster.dissolve(1)
 cluster.dissolve(1,2)
 cluster.dissolve("")
-cluster.dissolve({'enforce': True})
+cluster.dissolve({'foobar': True})
 cluster.dissolve({'force': "whatever"})
 
-#@ Cluster: dissolve
-check_slave_online(cluster, uri2, uri1)
-cluster.dissolve({'force': True})
+# We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
+# BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
+# As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
 
-#@ Cluster: describe: dissolved cluster
-cluster.describe()
+#cluster.dissolve({force: true})
+#cluster.describe()
+#cluster.status()
 
-#@ Cluster: status: dissolved cluster
-cluster.status()
+customSession.close();

@@ -56,10 +56,10 @@ def getSchemaFromList(schemas, name):
   for schema in schemas:
     if schema.name == name:
       return schema
-  
+
   return None
 
-import time  
+import time
 def wait(timeout, wait_interval, condition):
   waiting = 0
   while not condition() and waiting < timeout:
@@ -71,16 +71,16 @@ ro_session = None;
 from mysqlsh import mysql as ro_module;
 def wait_super_read_only_done():
   global ro_session
-  
+
   super_read_only = ro_session.run_sql('select @@super_read_only').fetch_one()[0]
-  
+
   print "---> Super Read Only = %s" % super_read_only
-  
+
   return super_read_only == "0"
 
 def check_super_read_only_done(connection):
   global ro_session
-  
+
   ro_session = ro_module.get_classic_session(connection)
   wait(60, 1, wait_super_read_only_done)
   ro_session.close()
@@ -93,22 +93,46 @@ def wait_slave_online():
   global recov_cluster
   global recov_master_uri
   global recov_slave_uri
-  
+
   full_status = recov_cluster.status()
   slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].leaves[recov_slave_uri].status
-  
+
   print "---> %s: %s" % (recov_slave_uri, slave_status)
   return slave_status == "ONLINE"
+
+def wait_slave_offline():
+  global recov_cluster
+  global recov_master_uri
+  global recov_slave_uri
+
+  full_status = recov_cluster.status()
+  slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].leaves[recov_slave_uri].status
+
+  print "---> %s: %s" % (recov_slave_uri, slave_status)
+  return ((slave_status == "OFFLINE") or (slave_status == "UNREACHABLE"))
 
 def check_slave_online(cluster, master_uri, slave_uri):
   global recov_cluster
   global recov_master_uri
   global recov_slave_uri
-  
+
   recov_cluster = cluster
   recov_master_uri = master_uri
   recov_slave_uri = slave_uri
-  
+
   wait(60, 1, wait_slave_online)
-  
+
+  recov_cluster = None
+
+def check_slave_offline(cluster, master_uri, slave_uri):
+  global recov_cluster
+  global recov_master_uri
+  global recov_slave_uri
+
+  recov_cluster = cluster
+  recov_master_uri = master_uri
+  recov_slave_uri = slave_uri
+
+  wait(60, 1, wait_slave_offline)
+
   recov_cluster = None

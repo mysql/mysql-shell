@@ -41,11 +41,18 @@ cluster.add_instance('', 5)
 cluster.add_instance({'host': 'localhost', 'schema': 'abs', 'user': 'sample', 'authMethod': 56});
 cluster.add_instance({'port': __mysql_sandbox_port1});
 
+uri1 = "%s:%s" % (localhost, __mysql_sandbox_port1)
+uri2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
+uri3 = "%s:%s" % (localhost, __mysql_sandbox_port3)
+
 #@ Cluster: add_instance with interaction, error
 cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1});
 
 #@<OUT> Cluster: add_instance with interaction, ok
 cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2});
+
+#@<OUT> Cluster: add_instance 3 with interaction, ok
+cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
 
 #@<OUT> Cluster: describe1
 cluster.describe()
@@ -62,7 +69,7 @@ cluster.remove_instance({'host': 'localhost', 'port': 33060, 'schema': 'abs', 'u
 cluster.remove_instance("somehost:3306");
 
 #@ Cluster: remove_instance
-cluster.remove_instance({'host': localhost, 'port': __mysql_sandbox_port2})
+cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port2})
 
 #@<OUT> Cluster: describe2
 cluster.describe()
@@ -80,8 +87,11 @@ cluster.dissolve("")
 cluster.dissolve({'enforce': True})
 cluster.dissolve({'force': 'sample'})
 
+#@ Cluster: remove_instance 3
+cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port3})
+
 #@ Cluster: remove_instance last
-cluster.remove_instance({'host': localhost, 'port': __mysql_sandbox_port1})
+cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port1})
 
 #@<OUT> Cluster: describe3
 cluster.describe()
@@ -95,11 +105,60 @@ cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_san
 #@<OUT> Cluster: add_instance with interaction, ok 3
 cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2});
 
-#@<OUT> Cluster: dissolve
-cluster.dissolve({'force': True})
+check_slave_online(cluster, uri1, uri2);
 
-#@ Cluster: describe: dissolved cluster
-cluster.describe()
+#@<OUT> Cluster: add_instance with interaction, ok 4
+cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
 
-#@ Cluster: status: dissolved cluster
+check_slave_online(cluster, uri1, uri3);
+
+#@<OUT> Cluster: status: success
 cluster.status()
+
+# Rejoin tests
+
+#@# Dba: kill instance 3
+if __sandbox_dir:
+  dba.kill_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir":__sandbox_dir})
+else:
+  dba.kill_sandbox_instance(__mysql_sandbox_port3)
+
+# XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
+# But won't be available for the GA release. So we need a sleep here
+time.sleep(5)
+
+#@# Dba: start instance 3
+if __sandbox_dir:
+  dba.start_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir": __sandbox_dir})
+else:
+  dba.start_sandbox_instance(__mysql_sandbox_port3)
+
+check_slave_offline(cluster, uri1, uri3);
+
+#@: Cluster: rejoin_instance errors
+cluster.rejoin_instance();
+cluster.rejoin_instance(1,2,3);
+cluster.rejoin_instance(1);
+cluster.rejoin_instance({"host": "localhost"});
+cluster.rejoin_instance({"host": "localhost", "schema": 'abs', "authMethod":56});
+cluster.rejoin_instance("somehost:3306");
+
+#@<OUT> Cluster: rejoin_instance with interaction, ok
+cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
+
+check_slave_online(cluster, uri1, uri3);
+
+# Verify if the cluster is OK
+
+#@<OUT> Cluster: status for rejoin: success
+cluster.status()
+
+# We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
+# BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
+# As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
+
+#cluster.dissolve({force: true})
+
+#cluster.describe()
+
+#cluster.status()

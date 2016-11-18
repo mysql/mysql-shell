@@ -131,23 +131,36 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
 shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
+  args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
+
   shcore::Value::Map_type_ref options;
 
-  std::string message = "The instance will try rejoining the InnoDB cluster. Depending on the original\n"
+  try {
+    options = mysqlsh::dba::get_instance_options_map(args, false);
+
+    shcore::Argument_map opt_map(*options);
+    opt_map.ensure_keys({"host"}, {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"}, "instance definition");
+
+    std::string message = "Rejoining the instance to the InnoDB cluster. Depending on the original\n"
                         "problem that made the instance unavailable, the rejoin operation might not be\n"
                         "successful and further manual steps will be needed to fix the underlying\n"
                         "problem.\n"
                         "\n"
                         "Please monitor the output of the rejoin operation and take necessary action if\n"
-                        "the instance cannot rejoin.\n";
+                        "the instance cannot rejoin.\n\n";
 
-  std::string answer;
-
-  if (password("Please provide the password for '" + args.string_at(0) + "': ", answer)) {
-    shcore::Argument_list new_args;
-    new_args.push_back(args[0]);
-    new_args.push_back(shcore::Value(answer));
     print(message);
+
+    mysqlsh::dba::resolve_instance_credentials(options, _delegate);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
+
+  if (options) {
+    shcore::Argument_list new_args;
+    new_args.push_back(shcore::Value(options));
+
+    println("Rejoining instance to the cluster ...");
+    println();
     ret_val = call_target("rejoinInstance", new_args);
 
     println("The instance '" + build_connection_string(options, false) + "' was successfully rejoined on the cluster.");

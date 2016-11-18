@@ -33,6 +33,7 @@
 #include "../mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "utils/utils_help.h"
+#include "mod_dba_sql.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -510,6 +511,15 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 
     MetadataStorage::Transaction tx(_metadata_storage);
     std::string cluster_name = get_name();
+
+    // We need to check if the group has quorum and if not we must abort the operation
+    // otherwise we GR blocks the writes to preserve the consistency of the group and we end up
+    // with a hang.
+    auto session = _metadata_storage->get_dba()->get_active_session();
+    mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+
+    if (!has_quorum(classic->connection()))
+      throw Exception::runtime_error("Cannot dissolve the cluster: the group doesn't have quorum.");
 
     // check if the Cluster is empty
     if (_metadata_storage->is_cluster_empty(get_id())) {

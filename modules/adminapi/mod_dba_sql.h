@@ -43,7 +43,11 @@ namespace dba {
   void get_port_and_datadir(mysqlsh::mysql::Connection* connection, int &port, std::string& datadir);
   void get_gtid_state_variables(mysqlsh::mysql::Connection* connection, std::string &executed, std::string &purged);
   SlaveReplicationState get_slave_replication_state(mysqlsh::mysql::Connection* connection, std::string &slave_executed);
-
+  bool has_quorum(mysqlsh::mysql::Connection* connection);
+  std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::string plugin_name);
+  bool get_server_variable(mysqlsh::mysql::Connection *connection, std::string name,
+                           std::string &value, bool throw_on_error = true);
+  void set_global_variable(mysqlsh::mysql::Connection *connection, std::string name, std::string &value);
 }
 }
 

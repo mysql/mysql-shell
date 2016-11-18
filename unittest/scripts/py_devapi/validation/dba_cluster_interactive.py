@@ -35,6 +35,14 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Ad
 
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
+#@<OUT> Cluster: add_instance 3 with interaction, ok
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
+
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Adding instance to the cluster ...
+
+The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
+
 #@<OUT> Cluster: describe1
 {
     "clusterName": "devCluster",
@@ -48,6 +56,11 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "role": "HA"
+            },
+            {
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -67,6 +80,13 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
                 "leaves": {
                     "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                         "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                        "leaves": {},
+                        "mode": "R/O",
+                        "role": "HA",
+                        "status": "{{ONLINE|RECOVERING}}"
+                    },
+                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                         "leaves": {},
                         "mode": "R/O",
                         "role": "HA",
@@ -101,6 +121,11 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
+            },
+            {
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "role": "HA"
             }
         ],
         "name": "default"
@@ -116,7 +141,15 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
+                "leaves": {
+                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                        "leaves": {},
+                        "mode": "R/O",
+                        "role": "HA",
+                        "status": "ONLINE"
+                    }
+                },
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
@@ -139,6 +172,11 @@ The following replicasets are currently registered:
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
+            },
+            {
+                "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "role": "HA"
             }
         ],
         "name": "default"
@@ -151,6 +189,9 @@ The following replicasets are currently registered:
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Cluster.dissolve: Invalid values in dissolve options: enforce
 ||Cluster.dissolve: Argument 'force' is expected to be a bool
+
+#@ Cluster: remove_instance 3
+||
 
 #@ Cluster: remove_instance last
 ||
@@ -190,12 +231,103 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Ad
 
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-#@<OUT> Cluster: dissolve
-The cluster was successfully dissolved.
-Replication was disabled but user data was left intact.
+#@<OUT> Cluster: add_instance with interaction, ok 4
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
 
-#@ Cluster: describe: dissolved cluster
-||The cluster 'devCluster' no longer exists.
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Adding instance to the cluster ...
 
-#@ Cluster: status: dissolved cluster
-||The cluster 'devCluster' no longer exists.
+The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
+
+#@<OUT> Cluster: status: success
+{
+    "clusterName": "devCluster",
+    "defaultReplicaSet": {
+        "name": "default",
+        "status": "Cluster tolerant to up to ONE failure.",
+        "topology": {
+            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "leaves": {
+                    "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                        "leaves": {},
+                        "mode": "R/O",
+                        "role": "HA",
+                        "status": "ONLINE"
+                    },
+                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                        "leaves": {},
+                        "mode": "R/O",
+                        "role": "HA",
+                        "status": "ONLINE"
+                    }
+                },
+                "mode": "R/W",
+                "role": "HA",
+                "status": "ONLINE"
+            }
+        }
+    }
+}
+
+#@# Dba: kill instance 3
+||
+
+#@# Dba: start instance 3
+||
+
+#@: Cluster: rejoin_instance errors
+||Invalid number of arguments in Cluster.rejoin_instance, expected 1 to 2 but got 0
+||Invalid number of arguments in Cluster.rejoin_instance, expected 1 to 2 but got 3
+||Invalid connection options, expected either a URI or a Dictionary
+||Cluster.rejoin_instance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
+||Cluster.rejoin_instance: Invalid values in instance definition: authMethod, schema
+||Cluster.rejoin_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
+
+#@<OUT> Cluster: rejoin_instance with interaction, ok
+The instance will try rejoining the InnoDB cluster. Depending on the original
+problem that made the instance unavailable, the rejoin operation might not be
+successful and further manual steps will be needed to fix the underlying
+problem.
+
+Please monitor the output of the rejoin operation and take necessary action if
+the instance cannot rejoin.
+
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Rejoining instance to the cluster ...
+
+The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
+
+#@<OUT> Cluster: status for rejoin: success
+{
+    "clusterName": "devCluster",
+    "defaultReplicaSet": {
+        "name": "default",
+        "status": "Cluster tolerant to up to ONE failure.",
+        "topology": {
+            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "leaves": {
+                    "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                        "leaves": {},
+                        "mode": "R/O",
+                        "role": "HA",
+                        "status": "ONLINE"
+                    },
+                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                        "leaves": {},
+                        "mode": "R/O",
+                        "role": "HA",
+                        "status": "ONLINE"
+                    }
+                },
+                "mode": "R/W",
+                "role": "HA",
+                "status": "ONLINE"
+            }
+        }
+    }
+}

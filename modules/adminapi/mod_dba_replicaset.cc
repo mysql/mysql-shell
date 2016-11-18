@@ -267,9 +267,9 @@ shcore::Value ReplicaSet::get_member(const std::string &prop) const {
 
 void ReplicaSet::init() {
   add_property("name", "getName");
-  add_method("addInstance", std::bind(&ReplicaSet::add_instance_, this, _1), "data");
-  add_method("rejoinInstance", std::bind(&ReplicaSet::rejoin_instance, this, _1), "data");
-  add_method("removeInstance", std::bind(&ReplicaSet::remove_instance_, this, _1), "data");
+  add_varargs_method("addInstance", std::bind(&ReplicaSet::add_instance_, this, _1));
+  add_varargs_method("rejoinInstance", std::bind(&ReplicaSet::rejoin_instance_, this, _1));
+  add_varargs_method("removeInstance", std::bind(&ReplicaSet::remove_instance_, this, _1));
   add_varargs_method("disable", std::bind(&ReplicaSet::disable, this, _1));
   add_varargs_method("dissolve", std::bind(&ReplicaSet::dissolve, this, _1));
   add_varargs_method("checkInstanceState", std::bind(&ReplicaSet::check_instance_state, this, _1));
@@ -567,48 +567,184 @@ Undefined ReplicaSet::rejoinInstance(String name, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::rejoin_instance(str name, Dictionary options) {}
 #endif
-#endif // DOXYGEN_CPP
-shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
+#endif  // DOXYGEN_CPP
+shcore::Value ReplicaSet::rejoin_instance_(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
+
   // Check if the ReplicaSet is empty
   if (_metadata_storage->is_replicaset_empty(get_id()))
     throw shcore::Exception::runtime_error(
       "ReplicaSet not initialized. Please add the Seed Instance using: addSeedInstance().");
 
-  // Add the Instance to the Default ReplicaSet
+  // Rejoin the Instance to the Default ReplicaSet
   try {
-    std::string super_user_password;
-    std::string host;
-    int port = 0;
+    ret_val = rejoin_instance(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
 
-    auto options = get_instance_options_map(args);
-    shcore::Argument_map opt_map(*options);
-    opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+  return ret_val;
+}
 
-    if (!options->has_key("port"))
-      (*options)["port"] = shcore::Value(get_default_port());
+shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  std::string host;
+  int port = 0;
 
-    port = options->get_int("port");
+  auto options = get_instance_options_map(args);
+  shcore::Argument_map opt_map(*options);
+  opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
 
-    std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
-    if (peer_instance.empty()) {
-      throw shcore::Exception::runtime_error("Cannot rejoin instance. There are no remaining available instances in the replicaset.");
+  if (!options->has_key("port"))
+    (*options)["port"] = shcore::Value(get_default_port());
+
+  port = options->get_int("port");
+  host = options->get_string("host");
+
+  std::string instance_address = host + ":" + std::to_string(port);
+
+  // Check if the instance is part of the Metadata
+  if (!_metadata_storage->is_instance_on_replicaset(get_id(), instance_address)) {
+    std::string message = "The instance '" + instance_address + "'";
+
+    message.append(" does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+
+    throw shcore::Exception::runtime_error(message);
+  }
+
+  // Get a peer instance
+  std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
+  if (peer_instance.empty()) {
+    throw shcore::Exception::runtime_error(
+      "Cannot rejoin instance. There is no remaining available seed instance in the replicaset.");
+  }
+
+  // Before rejoining an instance we must verify if the group was quorum and if the gr plugin is active
+  // otherwise we may end up hanging the system
+
+  // Sets a default user if not specified
+  resolve_instance_credentials(options, nullptr);
+  std::string password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  mysqlsh::mysql::ClassicSession *classic;
+
+  // Session args holds all the connection data, including the resolved user/password
+  shcore::Argument_list session_args;
+  Value::Map_type_ref seed_options(new shcore::Value::Map_type);
+
+  std::string delimiter = ":";
+  std::string seed_host = peer_instance.substr(0, peer_instance.find(delimiter));
+  std::string seed_port = peer_instance.substr(peer_instance.find(delimiter)+1, peer_instance.length());
+
+  (*seed_options)["host"] = shcore::Value(seed_host);
+  (*seed_options)["port"] = shcore::Value(atoi(seed_port.c_str()));
+  // We assume the root password is the same on all instances
+  (*seed_options)["password"] = shcore::Value(password);
+  mysqlsh::dba::resolve_instance_credentials(seed_options, nullptr);
+  session_args.push_back(shcore::Value(seed_options));
+
+  try {
+    log_info("Opening a new session to the seed instance for validations %s",
+             peer_instance.c_str());
+    session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+  } catch (std::exception &e) {
+    log_error("Could not open connection to %s: %s", instance_address.c_str(),
+              e.what());
+    throw;
+  }
+
+  shcore::Argument_list temp_args;
+
+  // Verify if the group_replication plugin is active on the seed instance
+  {
+    log_info("Verifying if the group_replication plugin is active on the seed instance %s",
+             instance_address.c_str());
+
+    std::string plugin_status = get_plugin_status(classic->connection(), "group_replication");
+
+    if (plugin_status != "ACTIVE") {
+      throw shcore::Exception::runtime_error(
+        "Cannot rejoin instance. The seed instance doesn't have group-replication active.");
+    }
+  }
+
+  // Check if the Group has quorum
+  if (!has_quorum(classic->connection()))
+    throw Exception::runtime_error("Cannot rejoin instance: the group doesn't have quorum. "
+                                    "Please remove and re-add the OFFLINE/UNREACHABLE instances from the cluster.");
+
+  // To rejoin an instance we must set the seeds list at: group_replication_group_seeds
+  // And to start group replication
+
+  std::string peer_instance_xcom_address, peer_instance_group_name;
+
+  // Get @@group_replication_local_address
+  get_server_variable(classic->connection(), "group_replication_local_address", peer_instance_xcom_address);
+
+  // Get @@group_replication_group_name
+  get_server_variable(classic->connection(), "group_replication_group_name", peer_instance_group_name);
+
+  // Set group_replication_group_seeds, group_replication_group_name,
+  // group_replication_local_address, and restart group_replication
+  {
+    try {
+      log_info("Opening a new session to the rejoining instance %s",
+               instance_address.c_str());
+      session = mysqlsh::connect_session(args, mysqlsh::SessionType::Classic);
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    } catch (std::exception &e) {
+      log_error("Could not open connection to '%s': %s", instance_address.c_str(),
+                e.what());
+      throw;
     }
 
-    resolve_instance_credentials(options, nullptr);
-    std::string user = options->get_string(options->has_key("user") ? "user" : "dbUser");
-    std::string password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+    // Stop group-replication
+    log_info("Stopping group-replication at instance %s",
+             instance_address.c_str());
+    temp_args.clear();
+    temp_args.push_back(shcore::Value("STOP GROUP_REPLICATION"));
+    classic->run_sql(temp_args);
 
-    host = options->get_string("host");
+    // Set the group_seeds
+    log_info("Setting the group_replication_group_seeds at instance %s",
+             instance_address.c_str());
 
-    do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
-                       user + "@" + peer_instance,
-                       super_user_password,
-                       "", "");
+    set_global_variable(classic->connection(), "group_replication_group_seeds", peer_instance_xcom_address);
+
+    // Set the group_name
+    log_info("Setting the group_replication_group_name at instance %s",
+             instance_address.c_str());
+
+    set_global_variable(classic->connection(), "group_replication_group_name", peer_instance_group_name);
+
+    // Set the local_address
+    int local_address_port = port + 10000;
+
+    // if port is >= 65535 generate a random number
+    if (port >= 65535) {
+      std::random_device rd;
+      std::mt19937 eng(rd());
+      std::uniform_int_distribution<> distr(10000, 65535); // define the range
+      local_address_port = distr(eng);
+    }
+    // TODO: shall we verify if the assigned port is in use?
+
+    std::string local_address_host = host;
+    std::string local_address = local_address_host + ":" + std::to_string(local_address_port);
+
+    set_global_variable(classic->connection(), "group_replication_local_address", local_address);
+
+    // Start group-replication
+    log_info("Starting group-replication at instance %s",
+             instance_address.c_str());
+    temp_args.clear();
+    temp_args.push_back(shcore::Value("START GROUP_REPLICATION"));
+    classic->run_sql(temp_args);
+
+    // TODO: do we check if 'start group_replication' was successful?
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
-
   return ret_val;
 }
 
@@ -714,6 +850,12 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   //       - If removing the master instance, a new master will be promoted but this instance will never
   //         be removed from the cluster
 
+  // We need to check if the group has quorum and if not we must abort the operation
+  // otherwise we GR blocks the writes to preserve the consistency of the group and we end up
+  // with a hang.
+  if (!has_quorum(classic->connection()))
+    throw Exception::runtime_error("Cannot remove the instance: the group doesn't have quorum.");
+
   MetadataStorage::Transaction tx(_metadata_storage);
 
   if (type == GRInstanceType::InnoDBCluster || type == GRInstanceType::GroupReplication) {
@@ -787,33 +929,71 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref & instances) {
+void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &instances) {
   MetadataStorage::Transaction tx(_metadata_storage);
+  int exit_code;
 
   auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
   std::string instance_admin_user = instance_session->get_user();
   std::string instance_admin_user_password = instance_session->get_password();
 
+  /* This function usually starts by removing from the replicaset the R/W instance, which
+   * usually is the first on the instances list, and on primary-master mode that implies
+   * a new master election. So to avoid GR BUG#24818604 , we must leave the R/W instance for last.
+   */
+
+  // Get the R/W instance
+  std::string master_uuid;
+  get_server_variable(classic->connection(), "group_replication_primary_member", master_uuid);
+
+  std::shared_ptr<mysqlsh::Row> master;
   for (auto value : *instances.get()) {
-    int exit_code;
+    auto row = value.as_object<mysqlsh::Row>();
+    if (row->get_member(0).as_string() == master_uuid)
+    master = row;
+  }
+
+  auto master_instance = master->get_member(1).as_string();
+
+  for (auto value : *instances.get()) {
     auto row = value.as_object<mysqlsh::Row>();
 
     std::string instance_name = row->get_member(1).as_string();
 
-    shcore::Value::Map_type_ref data = shcore::get_connection_data(instance_name, false);
-    if (data->has_key("host")) {
-      auto host = data->get_string("host");
+    if (instance_name != master_instance) {
+      shcore::Value::Map_type_ref data = shcore::get_connection_data(instance_name, false);
+
+      if (data->has_key("host")) {
+        auto host = data->get_string("host");
+      }
+
+      std::string instance_url = instance_admin_user + "@" + instance_name;
+      shcore::Value::Array_type_ref errors;
+
+      // Leave the replicaset
+      exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
+                                                                           instance_admin_user_password, errors);
+      if (exit_code != 0)
+        throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
     }
-
-    std::string instance_url = instance_admin_user + "@" + instance_name;
-    shcore::Value::Array_type_ref errors;
-
-    // Leave the replicaset
-    exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
-                                                                         instance_admin_user_password, errors);
-    if (exit_code != 0)
-      throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
   }
+
+  // Remove the master instance
+  shcore::Value::Map_type_ref data = shcore::get_connection_data(master_instance, false);
+
+  if (data->has_key("host")) {
+    auto host = data->get_string("host");
+  }
+
+  std::string instance_url = instance_admin_user + "@" + master_instance;
+  shcore::Value::Array_type_ref errors;
+
+  // Leave the replicaset
+  exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
+                                                                       instance_admin_user_password, errors);
+  if (exit_code != 0)
+    throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
 
   tx.commit();
 }

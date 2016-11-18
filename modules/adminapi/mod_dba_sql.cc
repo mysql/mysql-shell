@@ -132,5 +132,62 @@ namespace dba {
     return ret_val;
   }
 
-}
+  bool has_quorum(mysqlsh::mysql::Connection *connection) {
+    int sum, count;
+    std::string query("SELECT CAST(SUM(IF(member_state = 'ONLINE', 1, 0)) AS SIGNED), COUNT(*) FROM performance_schema.replication_group_members");
+
+    auto result = connection->run_sql(query);
+    auto row = result->fetch_one();
+
+    sum = row->get_value(0).as_int();
+    count = row->get_value(1).as_int();
+
+    return sum > (count/2);
+  }
+
+  std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::string plugin_name) {
+    std::string query, status;
+    query = shcore::sqlstring("SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = ?", 0) << plugin_name;
+
+    // Any error will bubble up right away
+    auto result = connection->run_sql(query);
+
+    // Selects the PLUGIN_STATUS value
+    auto row = result->fetch_one();
+
+    if (row)
+      status = row->get_value(0).as_string();
+    else
+      throw shcore::Exception::runtime_error("'"+ plugin_name + "' could not be queried");
+
+    return status;
+  }
+
+  bool get_server_variable(mysqlsh::mysql::Connection *connection, std::string name,
+                           std::string &value, bool throw_on_error) {
+    bool ret_val = true;
+    std::string query = "SELECT @@" + name;
+
+    auto result = connection->run_sql(query);
+    auto row = result->fetch_one();
+
+    if (row)
+      value = row->get_value(0).as_string();
+    else if (throw_on_error)
+      throw shcore::Exception::runtime_error("@@"+ name + " could not be queried");
+    else
+      ret_val = false;
+
+    return ret_val;
+  }
+
+  void set_global_variable(mysqlsh::mysql::Connection *connection, std::string name, std::string &value) {
+    std::string query, query_raw = "SET GLOBAL " + name + " = ?";
+    query = shcore::sqlstring(query_raw.c_str(), 0) << value;
+
+    auto result = connection->run_sql(query);
+  }
+
+
+  }
 }
