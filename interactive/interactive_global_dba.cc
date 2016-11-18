@@ -64,7 +64,7 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
     new_args.push_back(args[1]);
     options = args.map_at(1);
 
-    shcore::Argument_map opt_map (*options);
+    shcore::Argument_map opt_map(*options);
 
     opt_map.ensure_keys({}, mysqlsh::dba::Dba::_deploy_instance_opts, "the instance definition");
 
@@ -75,7 +75,6 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
       if (!shcore::is_folder(sandboxDir))
         throw shcore::Exception::argument_error("The sandboxDir path '" + sandboxDir + "' is not valid");
     }
-
   } else {
     options.reset(new shcore::Value::Map_type());
     new_args.push_back(shcore::Value(options));
@@ -124,12 +123,9 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
       }
 
       std::string answer;
-      if (password(message, answer)) {
-        if (answer.empty())
-          throw shcore::Exception::runtime_error("A password must be specified for the new instance.");
-        else
+      if (password(message, answer))
           (*options)["password"] = shcore::Value(answer);
-      } else
+      else
         cancelled = true;
     }
     if (!options->has_key("allowRootFrom")) {
@@ -266,7 +262,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
         println("Cancelled");
         return shcore::Value();
       } else {
-          (*options)["force"] = shcore::Value(true);
+        (*options)["force"] = shcore::Value(true);
       }
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
@@ -340,13 +336,12 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
 }
 
 void Global_dba::print_validation_results(const shcore::Value::Map_type_ref& result) {
-
   println();
   println("The following issues were encountered:");
   println();
 
   auto errors = result->get_array("errors");
-  for(auto error: *errors)
+  for (auto error : *errors)
     println(" - " + error.as_string());
 
   bool restart_required = result->get_bool("restart_required");
@@ -357,7 +352,7 @@ void Global_dba::print_validation_results(const shcore::Value::Map_type_ref& res
 
     auto config_errors = result->get_array("config_errors");
 
-    for(auto option: *config_errors){
+    for (auto option : *config_errors) {
       auto opt_map = option.as_map();
       std::string action = opt_map->get_string("action");
       std::string note;
@@ -367,8 +362,7 @@ void Global_dba::print_validation_results(const shcore::Value::Map_type_ref& res
           note = "Update the config file and update or restart the server variable";
         else
           note = "Update the server variable and the config file";
-      }
-      else if (action == "config_update+restart")
+      } else if (action == "config_update+restart")
         note = "Update the config file and restart the server";
       else if (action == "config_update")
         note = "Update the config file";
@@ -377,8 +371,7 @@ void Global_dba::print_validation_results(const shcore::Value::Map_type_ref& res
           note = "Update the server variable or restart the server";
         else
           note = "Update the server variable";
-      }
-      else if (action == "restart")
+      } else if (action == "restart")
         note = "Restart the server";
 
       (*opt_map)["note"] = shcore::Value(note);
@@ -386,7 +379,7 @@ void Global_dba::print_validation_results(const shcore::Value::Map_type_ref& res
 
     dump_table({"option", "current", "required", "note"}, {"Variable", "Current Value", "Required Value", "Note"}, config_errors);
 
-    for(auto option: *config_errors){
+    for (auto option : *config_errors) {
       auto opt_map = option.as_map();
       opt_map->erase("note");
     }
@@ -491,15 +484,14 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args, 
 
   if (cnfPath.empty()) {
     bool done = false;
-    while(!done && prompt("Please specify the path to the MySQL configuration file: ", tmpPath)) {
+    while (!done && prompt("Please specify the path to the MySQL configuration file: ", tmpPath)) {
       if (tmpPath.empty())
         done = true;
       else {
         if (shcore::file_exists(tmpPath)) {
           cnfPath = tmpPath;
           done = true;
-        }
-        else {
+        } else {
           println("The given path to the MySQL configuration file is invalid.");
           println();
         }
@@ -567,7 +559,6 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
   println("Validating instance...");
   println();
 
-
   // Algorithm Step 2: Call mp on the provided MySQL URI with the validate option
   // Algorithm Step 3: IF GR is already active on the remote server, stop and tell user that the server is already part of a group and return
   shcore::Value validation_report = call_target("configLocalInstance", target_args);
@@ -576,11 +567,10 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
 
   // Algorithm Step 4: IF instance is ready for GR, stop and return
   if (result->get_string("status") == "ok") {
-    println("The instance '" + options->get_string("host") + ":" +  std::to_string(options->get_int("port")) + "' is valid for Cluster usage");
-    println("You can now add it to an InnoDB Cluster with the <Cluster>."+ get_member_name("addInstance", naming_style) +"() function.");
+    println("The instance '" + options->get_string("host") + ":" + std::to_string(options->get_int("port")) + "' is valid for Cluster usage");
+    println("You can now add it to an InnoDB Cluster with the <Cluster>." + get_member_name("addInstance", naming_style) + "() function.");
     println();
   } else {
-
     auto errors = result->get_array("errors");
 
     // If there are only configuration errors, a simple restart may solve them
@@ -593,9 +583,8 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
       if (just_restart && result->has_key("config_errors")) {
         auto config_errors = result->get_array("config_errors");
 
-
         // We gotta review item by item to determine if a simple restart is enough
-        for(auto config_error: *config_errors){
+        for (auto config_error : *config_errors) {
           auto error_map = config_error.as_map();
 
           std::string action = error_map->get_string("action");
@@ -604,8 +593,7 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
           if (action == "server_update+config_update" || action == "server_update") {
             if (!restart_required)
               just_restart = false;
-          }
-          else if (action != "restart")
+          } else if (action != "restart")
             just_restart = false;
 
           if (!just_restart)
@@ -652,7 +640,7 @@ void Global_dba::dump_table(const std::vector<std::string>& column_names, const 
   // Now updates the length with the real column data lengths
   if (documents) {
     size_t row_index;
-    for (auto map: *documents) {
+    for (auto map : *documents) {
       auto document = map.as_map();
       for (size_t field_index = 0; field_index < field_count; field_index++)
         max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], document->get_string(column_names[field_index]).size());
@@ -671,11 +659,11 @@ void Global_dba::dump_table(const std::vector<std::string>& column_names, const 
     formats[index].append(std::to_string(max_lengths[index]));
     if (index == field_count - 1)
       formats[index].append("s |");
-      else
-        formats[index].append("s | ");
+    else
+      formats[index].append("s | ");
 
-        std::string field_separator(max_lengths[index] + 2, '-');
-      field_separator.append("+");
+    std::string field_separator(max_lengths[index] + 2, '-');
+    field_separator.append("+");
     separator.append(field_separator);
   }
   separator.append("\n");
@@ -698,7 +686,7 @@ void Global_dba::dump_table(const std::vector<std::string>& column_names, const 
 
   if (documents) {
     // Now prints the records
-    for (auto map: *documents) {
+    for (auto map : *documents) {
       auto document = map.as_map();
 
       print("| ");

@@ -330,7 +330,8 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
     }
   }
 
-  if (!pwd.empty()) {
+  // Inserts the indicated password
+  if (op == "create") {
     pwd += "\n";
     passwords.push_back(pwd);
   }
@@ -342,7 +343,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   for (size_t i = 0; i < extra_args.size(); i++)
     args.push_back(extra_args[i].c_str());
   if (!pwd.empty())
-  args.push_back("--stdin");
+    args.push_back("--stdin");
 
   return execute_mysqlprovision("sandbox", args, passwords, errors, _verbose);
 }
