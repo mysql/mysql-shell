@@ -39,3 +39,28 @@
 |First Field: name|
 |Second Field: age|
 |Third Field: gender|
+
+//@ Resultset row members
+|Member Count: 6|
+|length: OK|
+|getField: OK|
+|getLength: OK|
+|alias: OK|
+|age: OK|
+
+// Resultset row index access
+|Name with index: jack|
+|Age with index: 17|
+|Length with index: 17|
+|Gender with index: male|
+
+// Resultset row index access
+|Name with getField: jack|
+|Age with getField: 17|
+|Length with getField: 17|
+|Unable to get gender from alias: jack|
+
+// Resultset property access
+|Name with property: jack|
+|Age with property: 17|
+|Unable to get length with property: 4|

@@ -204,4 +204,41 @@ print "Result 2 Record 4:", record2.name
 #@ Resultset table
 print table.select(["count(*)"]).execute().fetch_one()[0]
 
+#@ Resultset row members
+result = mySession.sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"').execute();
+row = result.fetch_one();
+
+all_members = dir(row)
+
+# Remove the python built in members
+members = []
+for member in all_members:
+  if not member.startswith('__'):
+    members.append(member)
+
+print "Member Count: %s" % len(members)
+validateMember(members, 'length');
+validateMember(members, 'get_field');
+validateMember(members, 'get_length');
+validateMember(members, 'help');
+validateMember(members, 'alias');
+validateMember(members, 'age');
+
+# Resultset row index access
+print "Name with index: %s" % row[0]
+print "Age with index: %s" % row[1]
+print "Length with index: %s" % row[2]
+print "Gender with index: %s" % row[3]
+
+# Resultset row index access
+print "Name with get_field: %s" % row.get_field('alias')
+print "Age with get_field: %s" % row.get_field('age')
+print "Length with get_field: %s" % row.get_field('length')
+print "Unable to get gender from alias: %s" % row.get_field('alias')
+
+# Resultset property access
+print "Name with property: %s" % row.alias
+print "Age with property: %s" % row.age
+print "Unable to get length with property: %s" %  row.length
+
 mySession.close()

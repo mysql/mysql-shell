@@ -119,3 +119,28 @@
 
 #@ Resultset table
 |7|
+
+#@ Resultset row members
+|Member Count: 6|
+|length: OK|
+|get_field: OK|
+|get_length: OK|
+|alias: OK|
+|age: OK|
+
+# Resultset row index access
+|Name with index: jack|
+|Age with index: 17|
+|Length with index: 17|
+|Gender with index: male|
+
+# Resultset row index access
+|Name with get_field: jack|
+|Age with get_field: 17|
+|Length with get_field: 17|
+|Unable to get gender from alias: jack|
+
+# Resultset property access
+|Name with property: jack|
+|Age with property: 17|
+|Unable to get length with property: 4|

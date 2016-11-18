@@ -341,7 +341,7 @@ Row::Row() {
 std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_strings)) const {
   std::string nl = (indent >= 0) ? "\n" : "";
   s_out += "[";
-  for (size_t index = 0; index < value_iterators.size(); index++) {
+  for (size_t index = 0; index < value_array.size(); index++) {
     if (index > 0)
       s_out += ",";
 
@@ -350,7 +350,7 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
     if (indent >= 0)
       s_out.append((indent + 1) * 4, ' ');
 
-    value_iterators[index]->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+    value_array[index].append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
   }
 
   s_out += nl;
@@ -365,8 +365,8 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
 void Row::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
-  for (size_t index = 0; index < value_iterators.size(); index++)
-    dumper.append_value(value_iterators[index]->first, value_iterators[index]->second);
+  for (size_t index = 0; index < value_array.size(); index++)
+    dumper.append_value(names[index], value_array[index]);
 
   dumper.end_object();
 }
@@ -432,7 +432,7 @@ int Row::get_length() {}
 #endif
 shcore::Value Row::get_member(const std::string &prop) const {
   if (prop == "length")
-    return shcore::Value((int)values.size());
+    return shcore::Value((int)value_array.size());
   else {
     std::map<std::string, shcore::Value>::const_iterator it;
     if ((it = values.find(prop)) != values.end())
@@ -448,15 +448,26 @@ shcore::Value Row::get_member(const std::string &prop) const {
  */
 #endif
 shcore::Value Row::get_member(size_t index) const {
-  if (index < value_iterators.size())
-    return value_iterators[index]->second;
+  if (index < value_array.size())
+    return value_array[index];
   else
     return shcore::Value();
 }
 
 void Row::add_item(const std::string &key, shcore::Value value) {
-  if (shcore::is_valid_identifier(key))
+  // All the values are available through index
+  value_array.push_back(value);
+  names.push_back(key);
+
+  // Values would be available as properties if they are valid identifier
+  // and not base members like lenght and getField
+  // O on this case the values would be available as
+  // row.property
+  if (shcore::is_valid_identifier(key) && !has_member(key))
     add_property(key);
 
-  value_iterators.push_back(values.insert(values.end(), std::pair<std::string, shcore::Value>(key, value)));
+  // Values would be retrievable with getMember if the name
+  // is an existing member as long as the name is not duplicate
+  if (values.find(key) == values.end())
+    values[key] = value;
 }

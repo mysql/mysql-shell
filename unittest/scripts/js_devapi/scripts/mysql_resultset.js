@@ -72,4 +72,33 @@ print('First Field:', metadata[0].columnName);
 print('Second Field:', metadata[1].columnName);
 print('Third Field:', metadata[2].columnName);
 
+//@ Resultset row members
+var result = mySession.runSql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"');
+var row = result.fetchOne();
+var members = dir(row);
+println("Member Count: " + members.length);
+validateMember(members, 'length');
+validateMember(members, 'getField');
+validateMember(members, 'getLength');
+validateMember(members, 'help');
+validateMember(members, 'alias');
+validateMember(members, 'age');
+
+// Resultset row index access
+println("Name with index: " +  row[0]);
+println("Age with index: " +  row[1]);
+println("Length with index: " +  row[2]);
+println("Gender with index: " +  row[3]);
+
+// Resultset row index access
+println("Name with getField: " +  row.getField('alias'));
+println("Age with getField: " +  row.getField('age'));
+println("Length with getField: " +  row.getField('length'));
+println("Unable to get gender from alias: " +  row.getField('alias'));
+
+// Resultset property access
+println("Name with property: " +  row.alias);
+println("Age with property: " +  row.age);
+println("Unable to get length with property: " +  row.length);
+
 mySession.close()

@@ -286,7 +286,8 @@ public:
   virtual std::string class_name() const { return "Row"; }
 
   std::map<std::string, shcore::Value> values;
-  std::vector<std::map<std::string, shcore::Value>::iterator> value_iterators;
+  std::vector<std::string> names;
+  shcore::Value::Array_type value_array;
 
   virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
   virtual std::string &append_repr(std::string &s_out) const;

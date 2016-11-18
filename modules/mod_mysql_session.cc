@@ -350,7 +350,7 @@ std::string ClassicSession::_retrieve_current_schema() {
 
     if (next_row) {
       std::shared_ptr<mysqlsh::Row> row = next_row.as_object<mysqlsh::Row>();
-      shcore::Value schema = row->get_member("schema()");
+      shcore::Value schema = row->get_member(0);
 
       if (schema)
         name = schema.as_string();
