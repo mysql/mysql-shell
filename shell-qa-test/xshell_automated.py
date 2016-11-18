@@ -8382,10 +8382,9 @@ class XShell_TestCases(unittest.TestCase):
             else:
                 results = "PASS"
             self.assertEqual(results, 'PASS')
-
     def test_MYS_542_01(self):
         '''[MYS-542]:Session.uri display wrong menu data to the user'''
-        results = ''
+        results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
         x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
                   ("2\n", "specify the MySQL server URI"),
@@ -8394,65 +8393,68 @@ class XShell_TestCases(unittest.TestCase):
                                                                             LOCALHOST.port)),
                   ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host,
                                                                       LOCALHOST.port))]
-        # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
-        command_stdin = ""
-        for command, result in x_cmds:
-            command_stdin = command_stdin + command
-        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        p.stdin.write(command_stdin)
-        stdoutdata, stderrdata = p.communicate()
-        stdoutsplitted = stdoutdata.splitlines()
-        # Verify the information from expectedResult of x_cmds againt the stdout response from subprocess
-        for command, expectedResult in x_cmds:
-            count = 1
-            for line in stdoutsplitted:
-                count += 1
-                found = line.find(expectedResult, 0, len(line))
-                if found == -1 and count > len(stdoutsplitted):
-                    results = "FAIL"
+        if str(platform.platform()).find("Windows") > -1:
+            # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
+            command_stdin = ""
+            for command, result in x_cmds:
+                command_stdin = command_stdin + command
+            p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            p.stdin.write(command_stdin)
+            stdoutdata, stderrdata = p.communicate()
+            stdoutsplitted = stdoutdata.splitlines()
+            # Verify the information from expectedResult of x_cmds againt the stdout response from subprocess
+            for command, expectedResult in x_cmds:
+                count = 1
+                for line in stdoutsplitted:
+                    count += 1
+                    found = line.find(expectedResult, 0, len(line))
+                    if found == -1 and count > len(stdoutsplitted):
+                        results = "FAIL"
+                        break
+                    elif found != -1:
+                        results = "PASS"
+                        # stdoutsplitted.remove(line)
+                        break
+                if results == "FAIL":
                     break
-                elif found != -1:
-                    results = "PASS"
-                    # stdoutsplitted.remove(line)
-                    break
-            if results == "FAIL":
-                break
         self.assertEqual(results, 'PASS')
 
     def test_MYS_542_02(self):
         '''[MYS-542]:Session.uri display wrong menu data to the user'''
-        results = ''
+        results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
         x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
                   ("1\n", "specify the MySQL server URI"),
-                  ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port), "Enter password"),
+                  ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port),
+                   "Enter password"),
                   ("{0}\n".format(LOCALHOST.password), "{0}@{1}:{2}".format(LOCALHOST.user, LOCALHOST.host,
                                                                             LOCALHOST.xprotocol_port)),
                   ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host,
                                                                    LOCALHOST.xprotocol_port))]
-        # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
-        command_stdin = ""
-        for command, result in x_cmds:
-            command_stdin = command_stdin + command
-        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        p.stdin.write(command_stdin)
-        stdoutdata, stderrdata = p.communicate()
-        stdoutsplitted = stdoutdata.splitlines()
-        # Verify the information from expectedResult of x_cmds againt the stdout response from subprocess
-        for command, expectedResult in x_cmds:
-            count = 1
-            for line in stdoutsplitted:
-                count += 1
-                found = line.find(expectedResult, 0, len(line))
-                if found == -1 and count > len(stdoutsplitted):
-                    results = "FAIL"
+        if str(platform.platform()).find("Windows") > -1:
+            # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
+            command_stdin = ""
+            for command, result in x_cmds:
+                command_stdin = command_stdin + command
+            p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            p.stdin.write(command_stdin)
+            stdoutdata, stderrdata = p.communicate()
+            stdoutsplitted = stdoutdata.splitlines()
+            # Verify the information from expectedResult of x_cmds againt the stdout response from subprocess
+            for command, expectedResult in x_cmds:
+                count = 1
+                for line in stdoutsplitted:
+                    count += 1
+                    found = line.find(expectedResult, 0, len(line))
+                    if found == -1 and count > len(stdoutsplitted):
+                        results = "FAIL"
+                        break
+                    elif found != -1:
+                        results = "PASS"
+                        # stdoutsplitted.remove(line)
+                        break
+                if results == "FAIL":
                     break
-                elif found != -1:
-                    results = "PASS"
-                    # stdoutsplitted.remove(line)
-                    break
-            if results == "FAIL":
-                break
         self.assertEqual(results, 'PASS')
 
     @unittest.skip("X sessions and Stored sessions removed for mysql-shell-1.0.6-release, therefore must be skipped")
