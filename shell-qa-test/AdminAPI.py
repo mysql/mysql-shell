@@ -608,6 +608,49 @@ class XShell_TestCases(unittest.TestCase):
       # Destroy the cluster
       cleanup_instances(["3310", "3320", "3330"])
 
+  def test_MYS_900(self):
+      '''MYS-900 REMOVED SEED NODE SHOWN AS OFFLINE CLUSTER MEMBER'''
+      instances = ["3310", "3320", "3330"]
+      default_sandbox_path = "/mysql-sandboxes"
+      for instance in instances:
+          os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+          shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
+          shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True,
+                        onerror=None)
+
+      results = 'PASS'
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"guidev!\"})\n",
+                 "Instance localhost:3310 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3320, {password: \"guidev!\"})\n",
+                 "Instance localhost:3320 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3330, {password: \"guidev!\"})\n",
+                 "Instance localhost:3330 successfully deployed and started."),
+                ("\connect root:" + LOCALHOST.password + "@localhost:3310\n",
+                 'Classic Session successfully established. No default schema selected.'),
+                ("myCluster = dba.createCluster(\"myCluster\")\n",
+                 'Cluster successfully created'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3320\")\n",
+                 'The instance \'root@localhost:3320\' was successfully added to the cluster'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3330\")\n",
+                 'The instance \'root@localhost:3330\' was successfully added to the cluster'),
+                ("myCluster.removeInstance('localhost:3310')\n",
+                 "The instance 'localhost:3310' was successfully removed from the cluster"),
+                ("\connect root:" + LOCALHOST.password + "@localhost:3320\n",
+                 'Classic Session successfully established. No default schema selected.'),
+                ("myCluster.status()\n",
+                 'root@localhost:3310')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+
+      if results.find("localhost:3310") == -1:
+          results = 'PASS'
+
+      self.assertEqual(results, 'PASS')
+
+      # Destroy the cluster
+      cleanup_instances(["3310", "3320", "3330"])
+
   def test_MYS_956(self):
       '''MYS-956 CREATECLUSTER() AFTER DISSOLVING EXISTING CLUSTER FAILS'''
       instance = "3310"

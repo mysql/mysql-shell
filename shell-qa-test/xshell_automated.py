@@ -8566,6 +8566,56 @@ class XShell_TestCases(unittest.TestCase):
                 break
         self.assertEqual(results, 'PASS')
 
+    def test_MYS_796(self):
+        '''MYS-796 \H DOES NOT LIST ALL GLOBAL OBJECTS/VARIABLES'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full', "--uri=root:guidev!@localhost/sakila"]
+        x_cmds = [("\\h\n", "===== Global Objects =====\n" +
+                   "db         Used to work with database schema objects.\n" +
+                   "dba        Allows performing DBA operations using the MySQL X AdminAPI.\n" +
+                   "mysql      Used to work with classic MySQL sessions using SQL.\n" +
+                   "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.\n" +
+                   "session    Represents the currently open MySQL session.\n" +
+                   "shell      Gives access to general purpose functions and properties.\n" +
+                   "sys        Gives access to system specific parameters.\n" +
+                   "\n" +
+                   "Please note that MySQL Document Store APIs are subject to change in future\n" +
+                   "releases.\n" +
+                   "\n" +
+                   "For more help on a global variable use <var>.help(), e.g. dba.help()\n" +
+                   "\n" +
+                   "mysql-js> "),
+                  ("\\py\n",
+                   "mysql-py>"),
+                  ("\\h\n", "===== Global Objects =====\n" +
+                   "db         Used to work with database schema objects.\n" +
+                   "dba        Allows performing DBA operations using the MySQL X AdminAPI.\n" +
+                   "mysql      Used to work with classic MySQL sessions using SQL.\n" +
+                   "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.\n" +
+                   "session    Represents the currently open MySQL session.\n" +
+                   "shell      Gives access to general purpose functions and properties.\n" +
+                   "\n" +
+                   "Please note that MySQL Document Store APIs are subject to change in future\n" +
+                   "releases.\n" +
+                   "\n" +
+                   "For more help on a global variable use <var>.help(), e.g. dba.help()\n" +
+                   "\n" +
+                   "mysql-py> "),
+                  ("\\sql\n",
+                   "mysql-sql>"),
+                  ("\\h\n", "===== Global Objects =====\n" +
+                   "session    Represents the currently open MySQL session.\n" +
+                   "\n" +
+                   "Please note that MySQL Document Store APIs are subject to change in future\n" +
+                   "releases.\n" +
+                   "\n" +
+                   "For more help on a global variable use <var>.help(), e.g. dba.help()\n" +
+                   "\n" +
+                   "mysql-sql> ")
+                  ]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
+
     def test_MYS_816(self):
         '''[MYS-816]: https://jira.oraclecorp.com/jira/browse/MYS-816
         Default Session Type Should be Node instead of X'''
