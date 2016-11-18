@@ -140,6 +140,9 @@ if (__sandbox_dir)
 else
   dba.startSandboxInstance(__mysql_sandbox_port3)
 
+// startSanboxInstance() is returning before the instance is actually ready
+os.sleep(5)
+
 check_slave_offline(Cluster, uri2, uri3);
 
 //@ Cluster: rejoinInstance errors
