@@ -168,26 +168,32 @@ namespace dba {
     bool ret_val = true;
     std::string query = "SELECT @@" + name;
 
-    auto result = connection->run_sql(query);
-    auto row = result->fetch_one();
+    try {
+      auto result = connection->run_sql(query);
+      auto row = result->fetch_one();
 
-    if (row)
-      value = row->get_value(0).as_string();
-    else if (throw_on_error)
+      if (row)
+        value = row->get_value(0).as_string();
+      else
+        ret_val = false;
+    }
+    catch (shcore::Exception& error) {
+      if (throw_on_error)
+        throw;
+    }
+
+    if (!ret_val && throw_on_error)
       throw shcore::Exception::runtime_error("@@"+ name + " could not be queried");
-    else
-      ret_val = false;
 
     return ret_val;
   }
 
-  void set_global_variable(mysqlsh::mysql::Connection *connection, std::string name, std::string &value) {
+  void set_global_variable(mysqlsh::mysql::Connection *connection, std::string name,
+                           std::string &value) {
     std::string query, query_raw = "SET GLOBAL " + name + " = ?";
     query = shcore::sqlstring(query_raw.c_str(), 0) << value;
 
     auto result = connection->run_sql(query);
   }
-
-
   }
 }

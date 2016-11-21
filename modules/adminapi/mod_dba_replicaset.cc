@@ -944,17 +944,19 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
    */
 
   // Get the R/W instance
-  std::string master_uuid;
-  get_server_variable(classic->connection(), "group_replication_primary_member", master_uuid);
+  std::string master_uuid, master_instance;
+  get_server_variable(classic->connection(), "group_replication_primary_member", master_uuid, false);
 
-  std::shared_ptr<mysqlsh::Row> master;
-  for (auto value : *instances.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-    if (row->get_member(0).as_string() == master_uuid)
-    master = row;
+  if (!master_uuid.empty()) {
+    std::shared_ptr<mysqlsh::Row> master;
+    for (auto value : *instances.get()) {
+      auto row = value.as_object<mysqlsh::Row>();
+      if (row->get_member(0).as_string() == master_uuid)
+      master = row;
+    }
+
+    master_instance = master->get_member(1).as_string();
   }
-
-  auto master_instance = master->get_member(1).as_string();
 
   for (auto value : *instances.get()) {
     auto row = value.as_object<mysqlsh::Row>();
@@ -962,7 +964,8 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
     std::string instance_name = row->get_member(1).as_string();
 
     if (instance_name != master_instance) {
-      shcore::Value::Map_type_ref data = shcore::get_connection_data(instance_name, false);
+      shcore::Value::Map_type_ref data = shcore::get_connection_data(instance_name,
+                                                                     false);
 
       if (data->has_key("host")) {
         auto host = data->get_string("host");
@@ -973,27 +976,32 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
 
       // Leave the replicaset
       exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
-                                                                           instance_admin_user_password, errors);
+                                                                           instance_admin_user_password,
+                                                                           errors);
       if (exit_code != 0)
         throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
     }
   }
 
   // Remove the master instance
-  shcore::Value::Map_type_ref data = shcore::get_connection_data(master_instance, false);
+  if (!master_uuid.empty()) {
+    shcore::Value::Map_type_ref data = shcore::get_connection_data(master_instance,
+                                                                   false);
 
-  if (data->has_key("host")) {
-    auto host = data->get_string("host");
+    if (data->has_key("host")) {
+      auto host = data->get_string("host");
+    }
+
+    std::string instance_url = instance_admin_user + "@" + master_instance;
+    shcore::Value::Array_type_ref errors;
+
+    // Leave the replicaset
+    exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
+                                                                         instance_admin_user_password,
+                                                                         errors);
+    if (exit_code != 0)
+      throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
   }
-
-  std::string instance_url = instance_admin_user + "@" + master_instance;
-  shcore::Value::Array_type_ref errors;
-
-  // Leave the replicaset
-  exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
-                                                                       instance_admin_user_password, errors);
-  if (exit_code != 0)
-    throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
 
   tx.commit();
 }
