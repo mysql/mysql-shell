@@ -125,7 +125,7 @@ else:
 
 # XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
 # But won't be available for the GA release. So we need a sleep here
-time.sleep(5)
+time.sleep(10)
 
 #@# Dba: start instance 3
 if __sandbox_dir:

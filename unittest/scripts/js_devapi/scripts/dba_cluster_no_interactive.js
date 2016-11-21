@@ -132,16 +132,13 @@ else
 
 // XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
 // But won't be available for the GA release. So we need a sleep here
-os.sleep(5)
+os.sleep(10)
 
 //@# Dba: start instance 3
 if (__sandbox_dir)
   dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir})
 else
   dba.startSandboxInstance(__mysql_sandbox_port3)
-
-// startSanboxInstance() is returning before the instance is actually ready
-os.sleep(5)
 
 check_slave_offline(Cluster, uri2, uri3);
 
@@ -163,7 +160,6 @@ check_slave_online(Cluster, uri2, uri3);
 //@<OUT> Cluster: status for rejoin: success
 Cluster.status()
 
-
 // test the lost of quorum
 
 //@# Dba: kill instance 1
@@ -179,7 +175,7 @@ else
   dba.killSandboxInstance(__mysql_sandbox_port3)
 
 // GR needs to detect the loss of quorum
-os.sleep(5)
+os.sleep(10)
 
 //@# Dba: start instance 1
 if (__sandbox_dir)
