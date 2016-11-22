@@ -91,7 +91,7 @@ def kill_process(instance, argument=""):
     default_sandbox_path = "/mysql-sandboxes"
     outputshell=""
     if argument=="":
-        os.popen("kill $(ps -aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
+        os.popen("kill $(ps aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
     else:
         #outputshell = subprocess.check_output("ps -aux|grep mysqld | grep " + instance + " | awk '{print $2}'", shell=True, stderr=subprocess.STDOUT,)
         outputshell = subprocess.check_output("ps -aux | grep mysqld | grep " + instance + " | awk '{print $2}'", shell=True)
