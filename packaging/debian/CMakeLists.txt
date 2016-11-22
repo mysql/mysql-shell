@@ -177,7 +177,7 @@ set(in_files
 )
 
 foreach(_in_file ${in_files})
-  string(REPLACE "PRODUCTSUFFIX" ${PRODUCT_SUFFIX} _out_file "${_in_file}")
+  string(REPLACE "PRODUCTSUFFIX" "${PRODUCT_SUFFIX}" _out_file "${_in_file}")
   configure_file(
     ${CMAKE_SOURCE_DIR}/${_in_file}.in
     ${DEST_DIR}/${_out_file}
