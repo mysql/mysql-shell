@@ -126,7 +126,13 @@ TEST_F(Shell_py_dba_tests, no_interactive_drop_metadata_schema) {
 
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
+  // Disable the binary logging to not introduce overhead on the following tests
+  execute("session.run_sql('SET sql_log_bin = 0');");
+
   validate_interactive("dba_drop_metadata_no_interactive.py");
+
+  // Re-enable binary logging
+  execute("session.run_sql('SET sql_log_bin = 1');");
 
   execute("session.close();");
 }
@@ -254,6 +260,9 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_cluster) {
 TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
+  // Disable the binary logging to not introduce overhead on the following tests
+  execute("session.run_sql('SET sql_log_bin = 0');");
+
   //@# drop metadata: no user response
   output_handler.prompts.push_back("");
 
@@ -264,6 +273,9 @@ TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
   output_handler.prompts.push_back("y");
 
   validate_interactive("dba_drop_metadata_interactive.py");
+
+  // Re-enable binary logging
+  execute("session.run_sql('SET sql_log_bin = 1');");
 
   execute("session.close();");
 }

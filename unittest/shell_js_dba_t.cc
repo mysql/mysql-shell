@@ -127,7 +127,13 @@ TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
 
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
+  // Disable the binary logging to not introduce overhead on the following tests
+  execute("session.runSql('SET sql_log_bin = 0');");
+
   validate_interactive("dba_drop_metadata_no_interactive.js");
+
+  // Re-enable binary logging
+  execute("session.runSql('SET sql_log_bin = 1');");
 
   execute("session.close();");
 }
@@ -255,6 +261,9 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_custom_cluster) {
 TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
+  // Disable the binary logging to not introduce overhead on the following tests
+  execute("session.runSql('SET sql_log_bin = 0');");
+
   //@# drop metadata: no user response
   output_handler.prompts.push_back("");
 
@@ -265,6 +274,9 @@ TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {
   output_handler.prompts.push_back("y");
 
   validate_interactive("dba_drop_metadata_interactive.js");
+
+  // Re-enable binary logging
+  execute("session.runSql('SET sql_log_bin = 1');");
 
   execute("session.close();");
 }
