@@ -128,6 +128,8 @@ TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   validate_interactive("dba_drop_metadata_no_interactive.js");
+
+  execute("session.close();");
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_classic_global_dba) {
