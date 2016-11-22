@@ -165,17 +165,17 @@ namespace dba {
 
   bool get_server_variable(mysqlsh::mysql::Connection *connection, std::string name,
                            std::string &value, bool throw_on_error) {
-    bool ret_val = true;
+    bool ret_val = false;
     std::string query = "SELECT @@" + name;
 
     try {
       auto result = connection->run_sql(query);
       auto row = result->fetch_one();
 
-      if (row)
+      if (row) {
         value = row->get_value(0).as_string();
-      else
-        ret_val = false;
+        ret_val = true;
+      }
     }
     catch (shcore::Exception& error) {
       if (throw_on_error)
