@@ -120,6 +120,15 @@ TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
   }
 }
 
+TEST_F(Shell_py_dba_tests, no_interactive_drop_metadata_schema) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+
+  validate_interactive("dba_drop_metadata_no_interactive.py");
+}
+
 TEST_F(Shell_py_dba_tests, no_interactive_classic_global_dba) {
   std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
   create_file("mybad.cnf", bad_config);
@@ -238,6 +247,23 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_cluster) {
   }
 
   execute("mySession.close()");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+
+  //@# drop metadata: no user response
+  output_handler.prompts.push_back("");
+
+  //@# drop metadata: user response no
+  output_handler.prompts.push_back("n");
+
+  //@# drop metadata: user response yes
+  output_handler.prompts.push_back("y");
+
+  validate_interactive("dba_drop_metadata_interactive.py");
+
+  execute("session.close();");
 }
 
 TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {

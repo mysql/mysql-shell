@@ -301,25 +301,38 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
+  args.ensure_count(0, 1, get_function_name("dropMetadataSchema").c_str());
+  shcore::Argument_list new_args;
+  bool enforce = false;
+
   if (args.size() < 1) {
     std::string answer;
 
     if (prompt((boost::format("Are you sure you want to remove the Metadata? [y/N]: ")).str().c_str(), answer)) {
       if (!answer.compare("y") || !answer.compare("Y")) {
-        shcore::Argument_list new_args;
         Value::Map_type_ref options(new shcore::Value::Map_type);
 
         (*options)["enforce"] = shcore::Value(true);
         new_args.push_back(shcore::Value(options));
-
-        ret_val = call_target("dropMetadataSchema", new_args);
+        enforce = true;
       }
     }
   } else {
-    ret_val = call_target("dropMetadataSchema", args);
+    try {
+      auto options = mysqlsh::dba::get_instance_options_map(args, true);
+      shcore::Argument_map opt_map(*options);
+      opt_map.ensure_keys({}, {"enforce"},"drop options");
+      enforce = options->get_bool("enforce");
+    }
+    CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
   }
 
-  println("Metadata Schema successfully removed.");
+  if (enforce) {
+    ret_val = call_target("dropMetadataSchema", (args.size() < 1) ? new_args : args);
+    println("Metadata Schema successfully removed.");
+  } else {
+    println("No changes made to the Metadata Schema.");
+  }
   println();
 
   return ret_val;
