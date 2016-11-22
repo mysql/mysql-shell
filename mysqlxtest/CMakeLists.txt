@@ -22,7 +22,7 @@ include_directories(${SSL_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-    
+
 add_definitions(${SSL_DEFINES} -DUSE_SYS_STL -DWITH_LOGGER)
 
 file(GLOB libmysqlxtest_SRC

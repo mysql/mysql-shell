@@ -151,6 +151,8 @@ string(REPLACE ";" ", " DEB_BUILD_DEPS   "${DEB_BUILD_DEPS}")
 
 if(WITH_EXTRA_EXE)
   set(EXTRA_INSTALL "${WITH_EXTRA_EXE};bin;main")
+  get_filename_component(_name "${WITH_EXTRA_EXE}" NAME)
+  set(EXTRA_EXE_INSTALL "usr/bin/${_name}")
 endif()
 
 # ----------------------------------------------------------------------
@@ -171,13 +173,14 @@ set(in_files
   control
   copyright
   rules
-  mysql-shell.install
+  mysql-shellPRODUCTSUFFIX.install
 )
 
 foreach(_in_file ${in_files})
+  string(REPLACE "PRODUCTSUFFIX" ${PRODUCT_SUFFIX} _out_file "${_in_file}")
   configure_file(
     ${CMAKE_SOURCE_DIR}/${_in_file}.in
-    ${DEST_DIR}/${_in_file}
+    ${DEST_DIR}/${_out_file}
     @ONLY
   )
 endforeach()
