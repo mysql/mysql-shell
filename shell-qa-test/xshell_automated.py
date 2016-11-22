@@ -8569,48 +8569,50 @@ class XShell_TestCases(unittest.TestCase):
     def test_MYS_796(self):
         '''MYS-796 \H DOES NOT LIST ALL GLOBAL OBJECTS/VARIABLES'''
         results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full', "--uri=root:guidev!@localhost/sakila"]
-        x_cmds = [("\\h\n", "===== Global Objects =====\n" +
-                   "db         Used to work with database schema objects.\n" +
-                   "dba        Allows performing DBA operations using the MySQL X AdminAPI.\n" +
-                   "mysql      Used to work with classic MySQL sessions using SQL.\n" +
-                   "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.\n" +
-                   "session    Represents the currently open MySQL session.\n" +
-                   "shell      Gives access to general purpose functions and properties.\n" +
-                   "sys        Gives access to system specific parameters.\n" +
-                   "\n" +
-                   "Please note that MySQL Document Store APIs are subject to change in future\n" +
-                   "releases.\n" +
-                   "\n" +
-                   "For more help on a global variable use <var>.help(), e.g. dba.help()\n" +
-                   "\n" +
+        init_command = [MYSQL_SHELL, '--interactive=full',
+                        "--uri={0}:{1}@{2}:{3}/sakila".format(LOCALHOST.user, LOCALHOST.password,
+                                                              LOCALHOST.host, LOCALHOST.xprotocol_port)]
+        x_cmds = [("\\h\n", "===== Global Objects =====" + os.linesep +
+                   "db         Used to work with database schema objects." + os.linesep +
+                   "dba        Allows performing DBA operations using the MySQL X AdminAPI." + os.linesep +
+                   "mysql      Used to work with classic MySQL sessions using SQL." + os.linesep +
+                   "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep +
+                   "session    Represents the currently open MySQL session." + os.linesep +
+                   "shell      Gives access to general purpose functions and properties." + os.linesep +
+                   "sys        Gives access to system specific parameters." + os.linesep +
+                   "" + os.linesep +
+                   "Please note that MySQL Document Store APIs are subject to change in future" + os.linesep +
+                   "releases." + os.linesep +
+                   "" + os.linesep +
+                   "For more help on a global variable use <var>.help(), e.g. dba.help()" + os.linesep +
+                   "" + os.linesep +
                    "mysql-js> "),
                   ("\\py\n",
                    "mysql-py>"),
-                  ("\\h\n", "===== Global Objects =====\n" +
-                   "db         Used to work with database schema objects.\n" +
-                   "dba        Allows performing DBA operations using the MySQL X AdminAPI.\n" +
-                   "mysql      Used to work with classic MySQL sessions using SQL.\n" +
-                   "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.\n" +
-                   "session    Represents the currently open MySQL session.\n" +
-                   "shell      Gives access to general purpose functions and properties.\n" +
-                   "\n" +
-                   "Please note that MySQL Document Store APIs are subject to change in future\n" +
-                   "releases.\n" +
-                   "\n" +
-                   "For more help on a global variable use <var>.help(), e.g. dba.help()\n" +
-                   "\n" +
+                  ("\\h\n", "===== Global Objects =====" + os.linesep +
+                   "db         Used to work with database schema objects." + os.linesep +
+                   "dba        Allows performing DBA operations using the MySQL X AdminAPI." + os.linesep +
+                   "mysql      Used to work with classic MySQL sessions using SQL." + os.linesep +
+                   "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep +
+                   "session    Represents the currently open MySQL session." + os.linesep +
+                   "shell      Gives access to general purpose functions and properties." + os.linesep +
+                   "" + os.linesep +
+                   "Please note that MySQL Document Store APIs are subject to change in future" + os.linesep +
+                   "releases." + os.linesep +
+                   "" + os.linesep +
+                   "For more help on a global variable use <var>.help(), e.g. dba.help()" + os.linesep +
+                   "" + os.linesep +
                    "mysql-py> "),
                   ("\\sql\n",
                    "mysql-sql>"),
-                  ("\\h\n", "===== Global Objects =====\n" +
-                   "session    Represents the currently open MySQL session.\n" +
-                   "\n" +
-                   "Please note that MySQL Document Store APIs are subject to change in future\n" +
-                   "releases.\n" +
-                   "\n" +
-                   "For more help on a global variable use <var>.help(), e.g. dba.help()\n" +
-                   "\n" +
+                  ("\\h\n", "===== Global Objects =====" + os.linesep +
+                   "session    Represents the currently open MySQL session." + os.linesep +
+                   "" + os.linesep +
+                   "Please note that MySQL Document Store APIs are subject to change in future" + os.linesep +
+                   "releases." + os.linesep +
+                   "" + os.linesep +
+                   "For more help on a global variable use <var>.help(), e.g. dba.help()" + os.linesep +
+                   "" + os.linesep +
                    "mysql-sql> ")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
