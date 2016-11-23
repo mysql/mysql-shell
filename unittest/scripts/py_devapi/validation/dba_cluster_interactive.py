@@ -73,7 +73,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.",
+        "status": "Cluster tolerant to up to ONE failure.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
@@ -83,14 +83,14 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                         "leaves": {},
                         "mode": "R/O",
                         "role": "HA",
-                        "status": "{{ONLINE|RECOVERING}}"
+                        "status": "ONLINE"
                     },
                     "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
                         "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                         "leaves": {},
                         "mode": "R/O",
                         "role": "HA",
-                        "status": "{{ONLINE|RECOVERING}}"
+                        "status": "ONLINE"
                     }
                 },
                 "mode": "R/W",
