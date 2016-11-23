@@ -87,7 +87,7 @@ def read_til_getShell(proc, fd, text):
     return "".join(data)
 
 
-@timeout(15)
+@timeout(40)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -8533,6 +8533,24 @@ class XShell_TestCases(unittest.TestCase):
             results = "PASS"
         else:
             results = "FAIL"
+        self.assertEqual(results, 'PASS')
+
+    def test_MYS_598(self):
+        '''MYS-598 Row object overwrites values if two columns have the same name'''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full',
+                        "--uri={0}:{1}@{2}:{3}/sakila".format(LOCALHOST.user, LOCALHOST.password,
+                                                              LOCALHOST.host, LOCALHOST.port)]
+        x_cmds = [("\\sql\n", "mysql-sql>"),
+                  ("CREATE TABLE mys598 (TestCol int(11) NOT NULL, TestCol2 int(11) NOT NULL, "
+                   "PRIMARY KEY (TestCol)) ENGINE=InnoDB DEFAULT CHARSET=latin1;\n", "Query OK"),
+                  ("INSERT INTO mys598 (TestCol,TestCol2) VALUES(1,2);\n", "Query OK"),
+                  ("select * from mys598;\n", "| TestCol | TestCol2 |" + os.linesep + "+---------+----------+" +
+                   os.linesep + "|       1 |        2 |" + os.linesep),
+                  ("select TestCol as Test, TestCol2 as Test from mys598;\n", "| Test | Test |" + os.linesep +
+                   "+------+------+" + os.linesep + "|    1 |    2 |" + os.linesep),
+                  ("drop table sakila.mys598;\n", "Query OK")]
+        results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
     def test_MYS_697(self):
