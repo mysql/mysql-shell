@@ -47,8 +47,12 @@ Cluster.addInstance({host: "localhost", port:__mysql_sandbox_port1});
 //@<OUT> Cluster: addInstance with interaction, ok
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2});
 
+check_slave_online(Cluster, uri1, uri2);
+
 //@<OUT> Cluster: addInstance 3 with interaction, ok
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3});
+
+check_slave_online(Cluster, uri1, uri3);
 
 //@<OUT> Cluster: describe1
 Cluster.describe()
