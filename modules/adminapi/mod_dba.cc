@@ -49,7 +49,7 @@ using namespace shcore;
 #define PASSWORD_LENGHT 16
 
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom", "ignoreSslError"};
-std::set<std::string> Dba::_default_local_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom"};
+std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "ssl", "sslCa", "sslCert", "sslKey"};
 
 // Documentation of the DBA Class
@@ -549,11 +549,18 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   if (args.size() == 2) {
     options = args.map_at(1);
 
-    // Verification of invalid attributes on the instance deployment data
+    // Verification of invalid attributes on the instance commands
     shcore::Argument_map opt_map(*options);
 
     if (function == "deploy") {
       opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
+
+      if (opt_map.has_key("portx")) {
+        portx = opt_map.int_at("portx");
+
+        if (portx < 1024 || portx > 65535)
+          throw shcore::Exception::argument_error("Invalid value for 'portx': Please use a valid TCP port number >= 1024 and <= 65535");
+      }
 
       if (opt_map.has_key("password"))
         password = opt_map.string_at("password");
@@ -563,13 +570,6 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
         throw shcore::Exception::argument_error("Missing root password for the deployed instance");
     } else {
       opt_map.ensure_keys({}, _default_local_instance_opts, "the instance data");
-    }
-
-    if (opt_map.has_key("portx")) {
-      portx = opt_map.int_at("portx");
-
-      if (portx < 1024 || portx > 65535)
-        throw shcore::Exception::argument_error("Invalid value for 'portx': Please use a valid TCP port number >= 1024 and <= 65535");
     }
 
 #ifndef WIN32
@@ -653,7 +653,7 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "The password or dbPassword opt
 "password on the new instance.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "The sandboxDir must be an existing folder where the new instance will be "\
 "deployed. If not specified the new instance will be deployed at:");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL10, "SSL support is added by "\
     "default if not already available for the new instance. If it fails to be "\
     "added set the ignoreSslError option to true to allow the new instance to "\
@@ -748,13 +748,10 @@ REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_BRIEF, "Deletes an existing MySQL Server
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM, "@param port The port of the instance to be deleted.");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options that modify the way this function is executed.");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL, "This function will delete an existing MySQL Server instance on the local host. The next options affect the result:");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL1, "@li portx: port where new instance listens for X Protocol connections.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL4, "If the instance is not located on the used path an error will occur.");
 
 /**
 * $(DBA_DELETESANDBOXINSTANCE_BRIEF)
@@ -800,13 +797,10 @@ REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_PARAM, "@param port The port of the instan
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL, "This function will kill the process of a running MySQL Server instance "\
 "on the local host. The next options affect the result:");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance.");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL4, "If the instance is not located on the used path an error will occur.");
 
 /**
 * $(DBA_KILLSANDBOXINSTANCE_BRIEF)
@@ -851,13 +845,10 @@ REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM, "@param port The port of the instan
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL, "This function will gracefully stop a running MySQL Server instance "\
 "on the local host. The next options affect the result:");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4, "If the instance is not located on the used path an error will occur.");
 
 /**
 * $(DBA_STOPSANDBOXINSTANCE_BRIEF)
@@ -902,13 +893,10 @@ REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_PARAM, "@param port The port where the in
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL, "This function will start an existing MySQL Server instance on the local "\
               "host. The next options affect the result:");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance.");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL4, "If the instance is not located on the used path an error will occur.");
 
 /**
 * $(DBA_STARTSANDBOXINSTANCE_BRIEF)
