@@ -162,6 +162,7 @@ public:
 
 private:
   bool setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key);
+  void throw_on_connection_fail();
   std::string _uri;
   MYSQL *_mysql;
   MySQL_timer _timer;

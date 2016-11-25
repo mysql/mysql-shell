@@ -197,6 +197,14 @@ std::string Row::get_value_as_string(int index) {
 }
 
 //----------------------------------------------
+void Connection::throw_on_connection_fail()
+{
+  auto local_error = mysql_error(_mysql);
+  auto local_errno = mysql_errno(_mysql);
+  auto local_sqlstate = mysql_sqlstate(_mysql);
+  close();
+  throw shcore::Exception::mysql_error_with_code_and_state(local_error, local_errno, local_sqlstate);
+}
 
 Connection::Connection(const std::string &uri_, const char *password)
   : _mysql(NULL) {
@@ -226,8 +234,7 @@ Connection::Connection(const std::string &uri_, const char *password)
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags)) {
-    close();
-    throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+    throw_on_connection_fail();
   }
 }
 
@@ -253,8 +260,7 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags)) {
-    close();
-    throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+    throw_on_connection_fail();
   }
 }
 
