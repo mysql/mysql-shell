@@ -135,9 +135,20 @@ size_t determineStatementRanges(const char *sql, size_t length, std::string &del
 
         if (input_context_stack.empty() || input_context_stack.top() == "-") {
           // Quoted string/id. Skip this in a local loop if is opening quote.
-          while (tail < end && *tail != quote) {
-            // Skip any escaped character too.
-            if (*tail == '\\')
+          while (tail < end ) {
+            // Handle consecutive double quotes within a quoted string (for ' and ")
+            // Consecutive double quotes for identifiers should not be handled, i. e., in case of `
+            // See http://dev.mysql.com/doc/refman/5.7/en/string-literals.html#character-escape-sequences
+            if(*tail == quote) {
+              if((tail + 1) < end && *(tail + 1) == quote && quote != '`')
+                tail++;
+              else
+                break;
+            }
+            // Skip any escaped character within a quoted string (for ' and ")
+            // Escaped characters for identifiers should not be handled, i. e., in case of `
+            // See http://dev.mysql.com/doc/refman/5.7/en/string-literals.html#character-escape-sequences
+            if (*tail == '\\' && quote != '`')
               tail++;
             tail++;
           }

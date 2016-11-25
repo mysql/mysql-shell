@@ -327,5 +327,37 @@ TEST_F(Shell_sql_test, DISABLED_multiline_backtick_string) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
+
+TEST_F(Shell_sql_test, multiple_single_double_quotes) {
+  Input_state state;
+  std::string query = "SELECT '''' as a;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("SELECT '''' as a;", env.shell_sql->get_handled_input());
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+
+  query = "SELECT \"\"\"\" as a;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("SELECT \"\"\"\" as a;", env.shell_sql->get_handled_input());
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+
+  query = "SELECT \"\'\" as a;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("SELECT \"\'\" as a;", env.shell_sql->get_handled_input());
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+
+  query = "SELECT '\\'' as a;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("SELECT '\\'' as a;", env.shell_sql->get_handled_input());
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+
+}
 }
 }
