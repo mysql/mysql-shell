@@ -102,12 +102,28 @@ function wait_slave_online() {
   return slave_status == "ONLINE";
 }
 
+function wait_slave_online_multimaster() {
+  var full_status = recov_cluster.status();
+  var slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].status;
+
+  println("--->" + recov_master_uri + ": " + slave_status);
+  return slave_status == "ONLINE";
+}
+
 function wait_slave_offline() {
   var full_status = recov_cluster.status();
   var slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].leaves[recov_slave_uri].status;
 
   println("--->" + recov_slave_uri + ": " + slave_status);
-  return ((slave_status == "OFFLINE") || (slave_status == "UNREACHABLE"));
+  return slave_status == "OFFLINE";
+}
+
+function wait_slave_offline_multimaster() {
+  var full_status = recov_cluster.status();
+  var slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].status;
+
+  println("--->" + recov_master_uri + ": " + slave_status);
+  return slave_status == "OFFLINE";
 }
 
 function check_slave_online(cluster, master_uri, slave_uri) {
@@ -120,12 +136,30 @@ function check_slave_online(cluster, master_uri, slave_uri) {
   recov_cluster = null;
 }
 
+function check_slave_online_multimaster(cluster, master_uri) {
+  recov_cluster = cluster;
+  recov_master_uri = master_uri;
+
+  wait(60, 1, wait_slave_online_multimaster);
+
+  recov_cluster = null;
+}
+
 function check_slave_offline(cluster, master_uri, slave_uri) {
   recov_cluster = cluster;
   recov_master_uri = master_uri;
   recov_slave_uri = slave_uri;
 
   wait(60, 1, wait_slave_offline);
+
+  recov_cluster = null;
+}
+
+function check_slave_offline_multimaster(cluster, master_uri) {
+  recov_cluster = cluster;
+  recov_master_uri = master_uri;
+
+  wait(60, 1, wait_slave_offline_multimaster);
 
   recov_cluster = null;
 }

@@ -100,6 +100,16 @@ def wait_slave_online():
   print "---> %s: %s" % (recov_slave_uri, slave_status)
   return slave_status == "ONLINE"
 
+def wait_slave_online_multimaster():
+  global recov_cluster
+  global recov_master_uri
+
+  full_status = recov_cluster.status()
+  slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].status
+
+  print "---> %s: %s" % (recov_master_uri, slave_status)
+  return slave_status == "ONLINE"
+
 def wait_slave_offline():
   global recov_cluster
   global recov_master_uri
@@ -109,7 +119,17 @@ def wait_slave_offline():
   slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].leaves[recov_slave_uri].status
 
   print "---> %s: %s" % (recov_slave_uri, slave_status)
-  return ((slave_status == "OFFLINE") or (slave_status == "UNREACHABLE"))
+  return slave_status == "OFFLINE"
+
+def wait_slave_offline_multimaster():
+  global recov_cluster
+  global recov_master_uri
+
+  full_status = recov_cluster.status()
+  slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].status
+
+  print "---> %s: %s" % (recov_master_uri, slave_status)
+  return slave_status == "OFFLINE"
 
 def check_slave_online(cluster, master_uri, slave_uri):
   global recov_cluster
@@ -124,6 +144,17 @@ def check_slave_online(cluster, master_uri, slave_uri):
 
   recov_cluster = None
 
+def check_slave_online_multimaster(cluster, master_uri):
+  global recov_cluster
+  global recov_master_uri
+
+  recov_cluster = cluster
+  recov_master_uri = master_uri
+
+  wait(60, 1, wait_slave_online_multimaster)
+
+  recov_cluster = None
+
 def check_slave_offline(cluster, master_uri, slave_uri):
   global recov_cluster
   global recov_master_uri
@@ -134,5 +165,16 @@ def check_slave_offline(cluster, master_uri, slave_uri):
   recov_slave_uri = slave_uri
 
   wait(60, 1, wait_slave_offline)
+
+  recov_cluster = None
+
+def check_slave_offline_multimaster(cluster, master_uri):
+  global recov_cluster
+  global recov_master_uri
+
+  recov_cluster = cluster
+  recov_master_uri = master_uri
+
+  wait(60, 1, wait_slave_offline_multimaster)
 
   recov_cluster = None

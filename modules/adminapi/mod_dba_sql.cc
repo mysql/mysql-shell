@@ -19,6 +19,7 @@
 
 #include "modules/adminapi/mod_dba_sql.h"
 #include "utils/utils_sqlstring.h"
+#include <string>
 
 namespace mysqlsh {
 namespace dba {
@@ -163,7 +164,7 @@ namespace dba {
     return status;
   }
 
-  bool get_server_variable(mysqlsh::mysql::Connection *connection, std::string name,
+  bool get_server_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
                            std::string &value, bool throw_on_error) {
     bool ret_val = false;
     std::string query = "SELECT @@" + name;
@@ -177,7 +178,7 @@ namespace dba {
         ret_val = true;
       }
     }
-    catch (shcore::Exception& error) {
+    catch (shcore::Exception &error) {
       if (throw_on_error)
         throw;
     }
@@ -188,12 +189,37 @@ namespace dba {
     return ret_val;
   }
 
-  void set_global_variable(mysqlsh::mysql::Connection *connection, std::string name,
-                           std::string &value) {
+  void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
+                           const std::string &value) {
     std::string query, query_raw = "SET GLOBAL " + name + " = ?";
     query = shcore::sqlstring(query_raw.c_str(), 0) << value;
 
     auto result = connection->run_sql(query);
+  }
+
+  bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
+                           std::string &value, bool throw_on_error) {
+    bool ret_val = false;
+    std::string query = "SHOW STATUS LIKE '" + name + "'";
+
+    try {
+      auto result = connection->run_sql(query);
+      auto row = result->fetch_one();
+
+      if (row) {
+        value = row->get_value(1).as_string();
+        ret_val = true;
+      }
+    }
+    catch (shcore::Exception &error) {
+      if (throw_on_error)
+        throw;
+    }
+
+    if (!ret_val && throw_on_error)
+      throw shcore::Exception::runtime_error("'" + name + "' could not be queried");
+
+    return ret_val;
   }
   }
 }

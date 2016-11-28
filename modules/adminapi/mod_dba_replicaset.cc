@@ -770,7 +770,6 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
     // Set SSL option
     if (ssl) {
-      //const double use_ssl = 1;
       std::string use_ssl = "ON";
       std::string ssl_mode = "REQUIRED";
       log_info("Setting the group_replication_recovery_use_ssl at instance %s",
@@ -799,6 +798,14 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
         set_global_variable(classic->connection(),
                             "group_replication_recovery_ssl_key", ssl_key);
       }
+    }
+
+    // If multiMaster is being used, we must set group_replication_single_primary_mode to OFF
+    if (_topology_type == kTopologyMultiMaster) {
+      log_info("Setting the group_replication_single_primary_mode at instance %s",
+                instance_address.c_str());
+
+      set_global_variable(classic->connection(), "group_replication_single_primary_mode", "OFF");
     }
 
     // Start group-replication
@@ -1010,17 +1017,15 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
 
   // Get the R/W instance
   std::string master_uuid, master_instance;
-  get_server_variable(classic->connection(), "group_replication_primary_member", master_uuid, false);
+  get_status_variable(classic->connection(), "group_replication_primary_member", master_uuid, false);
 
   if (!master_uuid.empty()) {
-    std::shared_ptr<mysqlsh::Row> master;
     for (auto value : *instances.get()) {
       auto row = value.as_object<mysqlsh::Row>();
-      if (row->get_member(0).as_string() == master_uuid)
-      master = row;
+      if (row->get_member(0).as_string() == master_uuid) {
+        master_instance = row->get_member(1).as_string();
+      }
     }
-
-    master_instance = master->get_member(1).as_string();
   }
 
   for (auto value : *instances.get()) {

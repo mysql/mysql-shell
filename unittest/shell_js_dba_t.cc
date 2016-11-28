@@ -131,6 +131,38 @@ protected:
     code = "var __displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
     exec_and_out_equals(code);
   }
+
+  void clean_and_deploy() {
+    if (_sandbox_dir.empty()) {
+      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ");");
+      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ");");
+      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ");");
+      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ");");
+      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ");");
+      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ");");
+    } else {
+      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
+
+    std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
+    if (!_sandbox_dir.empty())
+      deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
+    if (!_have_ssl)
+      deploy_options.append(", ignoreSslError: true");
+    deploy_options.append("}");
+
+    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
+            + deploy_options + ");");
+    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
+            + deploy_options + ");");
+    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
+            + deploy_options + ");");
+  }
 };
 
 TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
@@ -200,35 +232,25 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_global_cluster) {
   // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
   // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
   // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  if (_sandbox_dir.empty()) {
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ");");
-  } else {
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-  }
+  clean_and_deploy();
 
-  std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
-  if (!_sandbox_dir.empty())
-    deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
-  if (!_have_ssl)
-    deploy_options.append(", ignoreSslError: true");
-  deploy_options.append("}");
+  execute("session.close();");
+}
 
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
-              + deploy_options + ");");
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
-              + deploy_options + ");");
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
-              + deploy_options + ");");
+TEST_F(Shell_js_dba_tests, no_interactive_classic_global_cluster_multimaster) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_multimaster_no_interactive.js");
+
+  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
+  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
+  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
+  clean_and_deploy();
 
   execute("session.close();");
 }
@@ -266,37 +288,29 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_custom_cluster) {
   // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
   // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
   // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  if (_sandbox_dir.empty()) {
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ");");
-  } else {
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-  }
-
-  std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
-  if (!_sandbox_dir.empty())
-    deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
-  if (!_have_ssl)
-    deploy_options.append(", ignoreSslError: true");
-  deploy_options.append("}");
-
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
-              + deploy_options + ");");
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
-              + deploy_options + ");");
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
-              + deploy_options + ");");
+  clean_and_deploy();
 
   execute("mySession.close();");
+}
+
+TEST_F(Shell_js_dba_tests, no_interactive_classic_custom_cluster_multimaster) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("var mysql = require('mysql');");
+  execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_sandbox_port1 + "');");
+  execute("dba.resetSession(mySession);");
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_multimaster_no_interactive.js");
+
+  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
+  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
+  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
+  clean_and_deploy();
+
+  execute("session.close();");
 }
 
 TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {
@@ -393,35 +407,56 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
   // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
   // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
   // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  if (_sandbox_dir.empty()) {
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ");");
-  } else {
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-  }
+  clean_and_deploy();
 
-  std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
-  if (!_sandbox_dir.empty())
-    deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
-  if (!_have_ssl)
-    deploy_options.append(", ignoreSslError: true");
-  deploy_options.append("}");
+  execute("session.close();");
+}
 
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
-              + deploy_options + ");");
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
-              + deploy_options + ");");
-  execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
-              + deploy_options + ");");
+TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster_multimaster) {
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+
+  //@<OUT> Dba: createCluster multiMaster with interaction, cancel
+  output_handler.prompts.push_back("no");
+
+  //@<OUT> Dba: createCluster multiMaster with interaction, ok
+  output_handler.prompts.push_back("yes");
+
+  //@# Cluster: add_instance with interaction, error
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance 3 with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 2
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 3
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 4
+  output_handler.passwords.push_back("root");
+
+  //@# Cluster: rejoin_instance with interaction, error
+  output_handler.passwords.push_back("n");
+
+  //@# Cluster: rejoin_instance with interaction, error 2
+  output_handler.passwords.push_back("n");
+
+  //@<OUT> Cluster: rejoin_instance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_multimaster_interactive.js");
+
+  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
+  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
+  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
+  clean_and_deploy();
 
   execute("session.close();");
 }
@@ -497,6 +532,62 @@ TEST_F(Shell_js_dba_tests, interactive_custom_global_cluster) {
   // error conditions
   // Lets the cluster empty
   validate_interactive("dba_cluster_interactive.js");
+
+  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
+  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
+  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
+  clean_and_deploy();
+
+  execute("mySession.close();");
+}
+
+TEST_F(Shell_js_dba_tests, interactive_custom_global_cluster_multimaster) {
+  execute("var mysql = require('mysql');");
+  execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_sandbox_port1 + "');");
+  execute("dba.resetSession(mySession);");
+
+  //@<OUT> Dba: createCluster multiMaster with interaction, cancel
+  output_handler.prompts.push_back("no");
+
+  //@<OUT> Dba: createCluster multiMaster with interaction, ok
+  output_handler.prompts.push_back("yes");
+
+  //@# Cluster: add_instance with interaction, error
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance 3 with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 2
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 3
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 4
+  output_handler.passwords.push_back("root");
+
+  //@# Cluster: rejoin_instance with interaction, error
+  output_handler.passwords.push_back("n");
+
+  //@# Cluster: rejoin_instance with interaction, error 2
+  output_handler.passwords.push_back("n");
+
+  //@<OUT> Cluster: rejoin_instance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_multimaster_interactive.js");
+
+  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
+  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
+  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
+  clean_and_deploy();
 
   execute("mySession.close();");
 }

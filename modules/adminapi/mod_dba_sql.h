@@ -45,9 +45,11 @@ namespace dba {
   SlaveReplicationState get_slave_replication_state(mysqlsh::mysql::Connection* connection, std::string &slave_executed);
   bool has_quorum(mysqlsh::mysql::Connection* connection);
   std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::string plugin_name);
-  bool get_server_variable(mysqlsh::mysql::Connection *connection, std::string name,
+  bool get_server_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
                            std::string &value, bool throw_on_error = true);
-  void set_global_variable(mysqlsh::mysql::Connection *connection, std::string name, std::string &value);
+  void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name, const std::string &value);
+  bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
+                           std::string &value, bool throw_on_error = true);
 }
 }
 
