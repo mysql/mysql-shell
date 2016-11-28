@@ -31,6 +31,7 @@
 #include "utils/utils_time.h"
 #include "utils/utils_file.h"
 #include "shellcore/proxy_object.h"
+#include "shellcore/shell_notifications.h"
 
 #include "mysqlxtest_utils.h"
 
@@ -216,6 +217,8 @@ Value BaseSession::close(const shcore::Argument_list &args) {
   // automatic destruction because if shared across different objects
   // it may remain open
   reset_session();
+
+  ShellNotifications::get()->notify("SN_SESSION_CLOSED", _get_shared_this());
 
   return shcore::Value();
 }

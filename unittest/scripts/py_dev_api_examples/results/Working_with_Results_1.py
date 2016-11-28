@@ -1,5 +1,3 @@
-# Assumptions: test schema assigned to db, my_collection collection exists
-
 # Gets the collection
 myColl = db.get_collection('my_collection')
 

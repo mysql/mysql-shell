@@ -43,19 +43,17 @@ struct Notification {
   shcore::Value::Map_type_ref data;
 };
 
-class Shell_notifications_test : public Shell_core_test_wrapper, public shcore::NotificationObserver {
+class Shell_notifications_test : public Shell_core_test_wrapper{
 protected:
   std::queue<Notification> _notifications;
 
-  virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data) {
+  virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
     _notifications.push({name, sender, data});
   }
 };
 
 TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
   Notification n;
-
-  this->observe_notification("SN_SESSION_CONNECTED");
 
   _interactive_shell->process_line("\\connect " + _uri);
 
@@ -67,6 +65,12 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
 
   _interactive_shell->process_line("session.close()");
 
+  ASSERT_EQ(1, _notifications.size());
+  n = _notifications.front();
+  _notifications.pop();
+  ASSERT_EQ("SN_SESSION_CLOSED", n.name);
+  ASSERT_EQ("NodeSession", n.sender->class_name());
+
   _interactive_shell->process_line("\\connect -c " + _mysql_uri);
 
   ASSERT_EQ(1, _notifications.size());
@@ -78,8 +82,14 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
   _interactive_shell->process_line("session.close()");
 
 
-  this->ignore_notification("SN_SESSION_CONNECTED");
+  ASSERT_EQ(1, _notifications.size());
+  n = _notifications.front();
+  _notifications.pop();
+  ASSERT_EQ("SN_SESSION_CLOSED", n.name);
+  ASSERT_EQ("ClassicSession", n.sender->class_name());
 
+  this->ignore_notification("SN_SESSION_CONNECTED");
+  this->ignore_notification("SN_SESSION_CLOSED");
 
   _interactive_shell->process_line("\\connect -c " + _mysql_uri);
 
@@ -87,21 +97,27 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
 
   _interactive_shell->process_line("session.close()");
 
+  ASSERT_EQ(0, _notifications.size());
+
   _interactive_shell->process_line("\\connect -n " + _uri);
 
   ASSERT_EQ(0, _notifications.size());
 
   _interactive_shell->process_line("session.close()");
+
+  ASSERT_EQ(0, _notifications.size());
+
+  // We restore the default configuration
+  this->observe_notification("SN_SESSION_CONNECTED");
+  this->observe_notification("SN_SESSION_CLOSED");
 }
 
 TEST_F(Shell_notifications_test, test_sn_session_connected_javascript) {
   Notification n;
 
-  this->observe_notification("SN_SESSION_CONNECTED");
-
   _interactive_shell->process_line("var mysqlx = require('mysqlx');");
   _interactive_shell->process_line("var mysql = require('mysql');");
-  
+
   _interactive_shell->process_line("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
   ASSERT_EQ(1, _notifications.size());
@@ -111,6 +127,13 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_javascript) {
   ASSERT_EQ("ClassicSession", n.sender->class_name());
 
   _interactive_shell->process_line("session.close()");
+
+  ASSERT_EQ(1, _notifications.size());
+  n = _notifications.front();
+  _notifications.pop();
+  ASSERT_EQ("SN_SESSION_CLOSED", n.name);
+  ASSERT_EQ("ClassicSession", n.sender->class_name());
+
 
   _interactive_shell->process_line("var session = mysqlx.getNodeSession('" + _uri + "');");
 
@@ -122,7 +145,15 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_javascript) {
 
   _interactive_shell->process_line("session.close()");
 
+  ASSERT_EQ(1, _notifications.size());
+  n = _notifications.front();
+  _notifications.pop();
+  ASSERT_EQ("SN_SESSION_CLOSED", n.name);
+  ASSERT_EQ("NodeSession", n.sender->class_name());
+
+
   this->ignore_notification("SN_SESSION_CONNECTED");
+  this->ignore_notification("SN_SESSION_CLOSED");
 
   _interactive_shell->process_line("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
@@ -130,17 +161,23 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_javascript) {
 
   _interactive_shell->process_line("session.close()");
 
+  ASSERT_EQ(0, _notifications.size());
+
   _interactive_shell->process_line("var session = mysqlx.getNodeSession('" + _uri + "');");
 
   ASSERT_EQ(0, _notifications.size());
 
   _interactive_shell->process_line("session.close()");
+
+  ASSERT_EQ(0, _notifications.size());
+
+  // We restore the default configuration
+  this->observe_notification("SN_SESSION_CONNECTED");
+  this->observe_notification("SN_SESSION_CLOSED");
 }
 
 TEST_F(Shell_notifications_test, test_sn_session_connected_python) {
   Notification n;
-
-  this->observe_notification("SN_SESSION_CONNECTED");
 
   _interactive_shell->process_line("\\py");
   _interactive_shell->process_line("from mysqlsh import mysqlx");
@@ -156,6 +193,12 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_python) {
 
   _interactive_shell->process_line("session.close()");
 
+  ASSERT_EQ(1, _notifications.size());
+  n = _notifications.front();
+  _notifications.pop();
+  ASSERT_EQ("SN_SESSION_CLOSED", n.name);
+  ASSERT_EQ("ClassicSession", n.sender->class_name());
+
   _interactive_shell->process_line("session = mysqlx.get_node_session('" + _uri + "');");
 
   ASSERT_EQ(1, _notifications.size());
@@ -166,7 +209,15 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_python) {
 
   _interactive_shell->process_line("session.close()");
 
+  ASSERT_EQ(1, _notifications.size());
+  n = _notifications.front();
+  _notifications.pop();
+  ASSERT_EQ("SN_SESSION_CLOSED", n.name);
+  ASSERT_EQ("NodeSession", n.sender->class_name());
+
+
   this->ignore_notification("SN_SESSION_CONNECTED");
+  this->ignore_notification("SN_SESSION_CLOSED");
 
   _interactive_shell->process_line("session = mysql.get_classic_session('" + _mysql_uri + "');");
 
@@ -174,11 +225,19 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_python) {
 
   _interactive_shell->process_line("session.close()");
 
+  ASSERT_EQ(0, _notifications.size());
+
   _interactive_shell->process_line("session = mysqlx.get_node_session('" + _uri + "');");
 
   ASSERT_EQ(0, _notifications.size());
 
   _interactive_shell->process_line("session.close()");
+
+  ASSERT_EQ(0, _notifications.size());
+
+  // We restore the default configuration
+  this->observe_notification("SN_SESSION_CONNECTED");
+  this->observe_notification("SN_SESSION_CLOSED");
 }
 }
 }

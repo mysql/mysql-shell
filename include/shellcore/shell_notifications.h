@@ -26,7 +26,7 @@
 namespace shcore {
 class SHCORE_PUBLIC NotificationObserver {
 public:
-  virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data) = 0;
+  virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) = 0;
   void observe_notification(const std::string& notification);
   void ignore_notification(const std::string& notification);
   virtual ~NotificationObserver();
@@ -50,8 +50,8 @@ public:
 
   bool add_observer(NotificationObserver *observer, const std::string &notification);
   bool remove_observer(NotificationObserver *observer, const std::string &notification);
-  void notify(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data);
-  void notify(const std::string &name, shcore::Object_bridge_ref sender);
+  void notify(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data);
+  void notify(const std::string &name, const shcore::Object_bridge_ref& sender);
 };
 };
 

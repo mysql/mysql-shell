@@ -128,7 +128,7 @@ public:
   std::vector<std::string> get_global_objects(Mode mode);
 
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type);
-  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session);
+  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session);
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session();
 
   virtual shcore::Value set_current_schema(const std::string& name);
@@ -178,7 +178,7 @@ private:
   std::string format_json_output(const std::string &info, const std::string& tag);
   std::string format_json_output(const shcore::Value &info, const std::string& tag);
 
-  virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data);
+  virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data);
   void set_dba_global();
   void set_shell_global();
   void init_sql();

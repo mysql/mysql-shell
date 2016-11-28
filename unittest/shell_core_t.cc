@@ -179,6 +179,9 @@ TEST_F(Shell_core_test, regression_prompt_on_override_session) {
   _interactive_shell->shell_context()->set_global("session", Value(std::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
   (*Shell_core_options::get())[SHCORE_USE_WIZARDS] = shcore::Value::True();
   EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
+
+  // The session object has been overriden, even so we need to close th session
+  _interactive_shell->shell_context()->get_dev_session()->close(shcore::Argument_list());
 }
 
 TEST_F(Shell_core_test, process_sql_no_delim_from_stream) {
@@ -188,6 +191,9 @@ TEST_F(Shell_core_test, process_sql_no_delim_from_stream) {
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
   EXPECT_EQ(0, _ret_val);
   MY_EXPECT_STDOUT_CONTAINS("| Database");
+
+  _interactive_shell->process_line("\\js");
+  _interactive_shell->process_line("session.close();");
 }
 }
 }

@@ -244,7 +244,7 @@ void Command_line_shell::print_cmd_line_helper() {
   println("");
 }
 
-void Command_line_shell::handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data){
+void Command_line_shell::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data){
 #ifndef WIN32
   if(name=="SN_STATEMENT_EXECUTED"){
     std::string executed = data->get_string("statement");

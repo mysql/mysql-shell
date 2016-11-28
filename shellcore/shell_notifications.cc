@@ -92,7 +92,7 @@ bool ShellNotifications::remove_observer(NotificationObserver *observer, const s
   return ret_val;
 }
 
-void ShellNotifications::notify(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data) {
+void ShellNotifications::notify(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
   if (_observers.find(name) != _observers.end()) {
     ObserverList *list = _observers[name];
 
@@ -104,7 +104,7 @@ void ShellNotifications::notify(const std::string &name, shcore::Object_bridge_r
   }
 };
 
-void ShellNotifications::notify(const std::string &name, shcore::Object_bridge_ref sender) {
+void ShellNotifications::notify(const std::string &name, const shcore::Object_bridge_ref& sender) {
   notify(name, sender, shcore::Value::Map_type_ref());
 }
 };

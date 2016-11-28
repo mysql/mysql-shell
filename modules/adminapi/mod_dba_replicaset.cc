@@ -458,6 +458,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 
   GRInstanceType type = get_gr_instance_type(session->connection());
 
+  session->close(shcore::Argument_list());
+
   // If type is GRInstanceType::InnoDBCluster it means that is on GR and MD
   switch (type) {
     case GRInstanceType::InnoDBCluster:

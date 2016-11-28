@@ -172,8 +172,11 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         }
 
         output_handler.wipe_all();
+        std::string backup = _custom_context;
+        _custom_context += "[" + validations[valindex].code + "]";
         execute(validations[valindex].code);
-
+        _custom_context = backup;
+        
         original_std_err = output_handler.std_err;
         original_std_out = output_handler.std_out;
 
@@ -433,11 +436,13 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         std::ifstream pre_stream(pre_script.c_str());
         if (!pre_stream.fail()) {
           pre_stream.close();
+          _custom_context = "Preprocessing";
           execute_script(path, false, true);
         }
       }
 
       // Preprocesses the test file itself
+      _custom_context = "Setup";
       process_setup(stream);
 
       // Loads the validations
@@ -454,6 +459,9 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]].size(); chunk_item++) {
           std::string line((_chunks[_chunk_order[index]])[chunk_item]);
 
+          // Execution context is at line level
+          _custom_context = path + "@["+_chunk_order[index] + "][" + line + "]";
+
           // There's chance to do preprocessing
           pre_process_line(path, line);
 
@@ -463,6 +471,8 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         execute("");
         execute("");
 
+        // Validation contexts is at chunk level
+        _custom_context = path + "@["+_chunk_order[index] + " validation]";
         validate(path, _chunk_order[index]);
       }
     } else {

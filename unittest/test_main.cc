@@ -22,6 +22,7 @@
 #include <iostream>
 #include <stdlib.h>
 
+
 int main(int argc, char **argv) {
 #ifdef HAVE_V8
   extern void JScript_context_init();

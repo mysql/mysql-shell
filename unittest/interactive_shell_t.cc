@@ -464,6 +464,9 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_sql) {
   MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
   MY_EXPECT_STDOUT_NOT_CONTAINS("shell      Gives access to general purpose functions and properties.");
   MY_EXPECT_STDOUT_NOT_CONTAINS("sys        Gives access to system specific parameters.");
+
+  // We have to change to a scripting mode to close the session
+  _interactive_shell->process_line("\\js");
   _interactive_shell->process_line("session.close()");
 
   output_handler.wipe_all();

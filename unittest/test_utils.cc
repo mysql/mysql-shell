@@ -18,6 +18,7 @@
 #include "shellcore/shell_core_options.h"
 #include "shell/shell_resultset_dumper.h"
 #include "utils/utils_general.h"
+#include "modules/base_session.h"
 
 using namespace shcore;
 
@@ -120,6 +121,23 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
   }
 }
 
+std::string Shell_core_test_wrapper::context_identifier() {
+  std::string ret_val;
+
+  auto test_info = info();
+
+  if (test_info) {
+    ret_val.append(test_info->test_case_name());
+    ret_val.append(".");
+    ret_val.append(test_info->name());
+  }
+
+  if (!_custom_context.empty())
+    ret_val.append(": " + _custom_context);
+
+  return ret_val;
+}
+
 void Shell_core_test_wrapper::SetUp() {
   // Initializes the options member
   reset_options();
@@ -193,11 +211,49 @@ void Shell_core_test_wrapper::SetUp() {
 
   // Initializes the interactive shell
   reset_shell();
+
+  observe_notification("SN_SESSION_CONNECTED");
+  observe_notification("SN_SESSION_CONNECTION_LOST");
+  observe_notification("SN_SESSION_CLOSED");
 }
 
 void Shell_core_test_wrapper::TearDown() {
+
+  ignore_notification("SN_SESSION_CONNECTED");
+  ignore_notification("SN_SESSION_CONNECTION_LOST");
+  ignore_notification("SN_SESSION_CLOSED");
+
+  if (!_open_sessions.empty()) {
+    for(auto entry: _open_sessions) {
+      std::cerr << "WARNING: Closing dangling session opened on " << entry.second << std::endl;
+
+      auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
+      session->close(shcore::Argument_list());
+    }
+  }
+
   _interactive_shell.reset();
 }
+
+void Shell_core_test_wrapper::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data){
+  std::string identifier = context_identifier();
+
+  if(name=="SN_SESSION_CONNECTED"){
+    auto position = _open_sessions.find(sender);
+    if (position == _open_sessions.end())
+      _open_sessions[sender] = identifier;
+    else {
+      std::cerr << "WARNING: Reopening session from " << _open_sessions[sender] << " at " << identifier << std::endl;
+    }
+  } else if ( name == "SN_SESSION_CONNECTION_LOST" || name == "SN_SESSION_CLOSED") {
+    auto position = _open_sessions.find(sender);
+    if (position != _open_sessions.end())
+      _open_sessions.erase(position);
+    else
+      std::cerr << "WARNING: Closing a session that was never opened at " << identifier << std::endl;
+  }
+}
+
 
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);

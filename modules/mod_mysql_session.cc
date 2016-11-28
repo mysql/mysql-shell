@@ -139,6 +139,8 @@ Value ClassicSession::close(const shcore::Argument_list &args) {
 
   _conn.reset();
 
+  ShellNotifications::get()->notify("SN_SESSION_CLOSED", shared_from_this());
+
   return shcore::Value();
 }
 

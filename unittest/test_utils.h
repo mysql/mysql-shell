@@ -17,9 +17,41 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
+#include "shellcore/shell_notifications.h"
 #include <set>
 #include <fstream>
 #include "shell/base_shell.h"
+
+#ifdef GTEST_TEST_
+#undef GTEST_TEST_
+// Our custom helper macro for defining tests.
+// Only change: we expose test case name and test name
+#define GTEST_TEST_(test_case_name, test_name, parent_class, parent_id)\
+class GTEST_TEST_CLASS_NAME_(test_case_name, test_name) : public parent_class {\
+public:\
+  GTEST_TEST_CLASS_NAME_(test_case_name, test_name)() {}\
+  private:\
+    virtual ::testing::TestInfo* info();\
+    virtual void TestBody();\
+    static ::testing::TestInfo* const test_info_ GTEST_ATTRIBUTE_UNUSED_;\
+    GTEST_DISALLOW_COPY_AND_ASSIGN_(\
+    GTEST_TEST_CLASS_NAME_(test_case_name, test_name));\
+    };\
+    \
+    ::testing::TestInfo* const GTEST_TEST_CLASS_NAME_(test_case_name, test_name)\
+    ::test_info_ =\
+    ::testing::internal::MakeAndRegisterTestInfo(\
+    #test_case_name, #test_name, NULL, NULL, \
+    (parent_id), \
+    parent_class::SetUpTestCase, \
+    parent_class::TearDownTestCase, \
+    new ::testing::internal::TestFactoryImpl<\
+    GTEST_TEST_CLASS_NAME_(test_case_name, test_name)>);\
+    ::testing::TestInfo* GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::info(){\
+    return test_info_;\
+    }\
+    void GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::TestBody()
+#endif
 
 class Shell_test_output_handler {
 public:
@@ -53,17 +85,23 @@ public:
 #define MY_EXPECT_STDOUT_NOT_CONTAINS(x) output_handler.validate_stdout_content(x,false)
 #define MY_EXPECT_STDERR_NOT_CONTAINS(x) output_handler.validate_stderr_content(x,false)
 
-class Shell_core_test_wrapper : public ::testing::Test {
+class Shell_core_test_wrapper : public ::testing::Test, public shcore::NotificationObserver {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
   virtual void TearDown();
   virtual void set_defaults() {};
+  virtual ::testing::TestInfo* info() {return nullptr; }
+  virtual std::string context_identifier();
+
+  std::string _custom_context;
 
   // void process_result(shcore::Value result);
   shcore::Value execute(const std::string& code);
   shcore::Value exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "");
   shcore::Value exec_and_out_contains(const std::string& code, const std::string& out = "", const std::string& err = "");
+
+  virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data);
 
   // This can be use to reinitialize the interactive shell with different options
   // First set the options on _options
@@ -116,6 +154,9 @@ protected:
   shcore::Value _returned_value;
 
   shcore::Interpreter_delegate deleg;
+
+private:
+  std::map<shcore::Object_bridge_ref, std::string > _open_sessions;
 };
 
 // Helper class to ease the creation of tests on the CRUD operations

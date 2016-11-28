@@ -76,7 +76,7 @@ public:
 
   // Development Session Handling
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type) = 0;
-  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session) = 0;
+  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session) = 0;
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session() = 0;
 
   // Global Schema

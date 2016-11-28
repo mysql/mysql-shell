@@ -733,6 +733,8 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, co
             session->execute_sql(grant);
           }
           session->execute_sql("SET sql_log_bin = 1");
+
+          session->close(shcore::Argument_list());
         }
       }
     }
@@ -1073,12 +1075,16 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
   new_args.push_back(shcore::Value(options));
   auto session = Dba::get_session(new_args);
 
+  auto uri = session->uri();
+
   GRInstanceType type = get_gr_instance_type(session->connection());
 
+  session->close(shcore::Argument_list());
+
   if (type == GRInstanceType::GroupReplication)
-    throw shcore::Exception::runtime_error("The instance '" + session->uri() + "' is already part of a Replication Group");
+    throw shcore::Exception::runtime_error("The instance '" + uri + "' is already part of a Replication Group");
   else if (type == GRInstanceType::InnoDBCluster)
-    throw shcore::Exception::runtime_error("The instance '" + session->uri() + "' is already part of an InnoDB Cluster");
+    throw shcore::Exception::runtime_error("The instance '" + uri + "' is already part of an InnoDB Cluster");
   else if (type == GRInstanceType::Standalone) {
     std::string user;
     std::string password;

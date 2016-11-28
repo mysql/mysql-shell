@@ -47,7 +47,7 @@ private:
   static bool deleg_password(void *self, const char *text, std::string &ret);
   static void deleg_source(void *self, const char *module);
   
-  virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data);
+  virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data);
 };
 }
 #endif
