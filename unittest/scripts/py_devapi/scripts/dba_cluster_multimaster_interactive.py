@@ -5,7 +5,10 @@
 dba.create_cluster('devCluster', {'multiMaster': True});
 
 #@<OUT> Dba: create_cluster multiMaster with interaction, ok
-dba.create_cluster('devCluster', {'multiMaster': True});
+if __have_ssl:
+  dba.create_cluster('devCluster', {'multiMaster': True});
+else:
+  dba.create_cluster('devCluster', {'multiMaster': True, 'ssl': False});
 
 cluster = dba.get_cluster('devCluster');
 

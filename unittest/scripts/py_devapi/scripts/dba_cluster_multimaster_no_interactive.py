@@ -2,7 +2,10 @@
 # are defined
 
 #@ Dba: create_cluster multiMaster, ok
-dba.create_cluster('devCluster', {'multiMaster': True, 'force': True});
+if __have_ssl:
+  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True});
+else:
+  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'ssl': False});
 
 cluster = dba.get_cluster('devCluster');
 

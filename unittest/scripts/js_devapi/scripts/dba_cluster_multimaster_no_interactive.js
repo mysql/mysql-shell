@@ -2,7 +2,10 @@
 // are defined
 
 //@ Dba: createCluster multiMaster, ok
-dba.createCluster('devCluster', {multiMaster: true, force: true});
+if (__have_ssl)
+  dba.createCluster('devCluster', {multiMaster: true, force: true});
+else
+  dba.createCluster('devCluster', {multiMaster: true,force: true, ssl: false});
 
 var Cluster = dba.getCluster('devCluster');
 

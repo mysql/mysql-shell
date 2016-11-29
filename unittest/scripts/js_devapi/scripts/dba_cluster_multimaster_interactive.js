@@ -5,7 +5,10 @@
 dba.createCluster('devCluster', {multiMaster: true});
 
 //@<OUT> Dba: createCluster multiMaster with interaction, ok
-dba.createCluster('devCluster', {multiMaster: true});
+if (__have_ssl)
+  dba.createCluster('devCluster', {multiMaster: true});
+else
+  dba.createCluster('devCluster', {multiMaster: true, ssl: false});
 
 var Cluster = dba.getCluster('devCluster');
 
