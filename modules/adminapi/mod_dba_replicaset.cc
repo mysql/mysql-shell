@@ -349,7 +349,7 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args) {
  * Basically, a local address can only be used if it's a sandbox.
  */
 static bool check_if_local_host(const std::string &hostname) {
-  if (is_local_host(hostname)) {
+  if (is_local_host(hostname, false)){
     return true;
   } else {
     struct hostent *he;

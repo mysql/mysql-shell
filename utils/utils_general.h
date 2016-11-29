@@ -71,7 +71,7 @@ std::string SHCORE_PUBLIC format_text(const std::vector<std::string>& lines, siz
 std::string SHCORE_PUBLIC format_markup_text(const std::vector<std::string>& lines, size_t width, size_t left_padding);
 std::string SHCORE_PUBLIC replace_text(const std::string& source, const std::string& from, const std::string& to);
 std::string get_my_hostname();
-bool is_local_host(const std::string &host);
+bool is_local_host(const std::string &host, bool check_hostname);
 }
 
 #endif /* defined(__mysh__utils_general__) */

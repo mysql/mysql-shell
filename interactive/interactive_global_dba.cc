@@ -540,7 +540,7 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
     std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
     opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
 
-    if (!shcore::is_local_host(opt_map.string_at("host")))
+    if (!shcore::is_local_host(opt_map.string_at("host"), true))
       throw shcore::Exception::runtime_error("This function only works with local instances");
 
     // Gather username and password if missing

@@ -759,11 +759,11 @@ std::string get_my_hostname() {
   return hostname;
 }
 
-bool is_local_host(const std::string &host) {
-  // TODO: Simple implementation for now, we may inprove this to analyze
+bool is_local_host(const std::string &host, bool check_hostname) {
+  // TODO: Simple implementation for now, we may improve this to analyze
   // a given IP address or hostname against the local interfaces
   return (host == "127.0.0.1" ||
           host == "localhost" ||
-          host == get_my_hostname());
+          (host == get_my_hostname() && check_hostname));
 }
 } // namespace

@@ -1001,7 +1001,7 @@ shcore::Value Dba::config_local_instance(const shcore::Argument_list &args) {
 
     shcore::Argument_map opt_map(*options);
 
-    if (shcore::is_local_host(opt_map.string_at("host"))) {
+    if (shcore::is_local_host(opt_map.string_at("host"), true)) {
       ret_val = shcore::Value(_check_instance_config(args, true));
     } else
       throw shcore::Exception::runtime_error("This function only works with local instances");
