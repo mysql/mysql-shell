@@ -112,7 +112,7 @@ Cluster.rejoinInstance("somehost:3306");
 if (__have_ssl)
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
 else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root", ssl: false);
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root",);
 
 check_slave_online_multimaster(Cluster, uri3);
 
