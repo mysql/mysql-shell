@@ -17,7 +17,10 @@ uri2 = "%s:%s" % ("localhost", __mysql_sandbox_port2)
 uri3 = "%s:%s" % ("localhost", __mysql_sandbox_port3)
 
 #@ Cluster: add_instance with interaction, error
-cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1});
+if __have_ssl:
+  cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1});
+else:
+  cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1, 'ssl': False});
 
 #@<OUT> Cluster: add_instance with interaction, ok
 cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2});
@@ -25,7 +28,10 @@ cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_san
 check_slave_online_multimaster(cluster, uri2);
 
 #@<OUT> Cluster: add_instance 3 with interaction, ok
-cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
+if __have_ssl:
+  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
+else:
+  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'ssl': False});
 
 check_slave_online_multimaster(cluster, uri3);
 
@@ -57,7 +63,10 @@ cluster.describe()
 cluster.status()
 
 #@<OUT> Cluster: add_instance with interaction, ok 2
-cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port1});
+if __have_ssl:
+  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port1});
+else:
+  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port1, 'ssl': False});
 
 #@<OUT> Cluster: add_instance with interaction, ok 3
 cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2});
@@ -65,7 +74,10 @@ cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_san
 check_slave_online_multimaster(cluster, uri2);
 
 #@<OUT> Cluster: add_instance with interaction, ok 4
-cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
+if __have_ssl:
+  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
+else:
+  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'ssl': False});
 
 check_slave_online_multimaster(cluster, uri3);
 
@@ -100,7 +112,10 @@ cluster.rejoin_instance({'host': "localhost", 'schema': "abs", 'authMethod':56})
 cluster.rejoin_instance("somehost:3306");
 
 #@<OUT> Cluster: rejoin_instance with interaction, ok
-cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
+if __have_ssl:
+  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
+else:
+  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'ssl': False});
 
 check_slave_online_multimaster(cluster, uri3);
 
