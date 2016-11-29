@@ -173,17 +173,25 @@ def exec_xshell_commands(init_cmdLine, commandList):
 def cleanup_instances(instances=[]):
     # Add instances as String
     init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+    e = "Done"
     # Destroy the instances
     for instance in instances:
-        x_cmds = [("dba.stopSandboxInstance(" + instance + ")\n",
-                   "Instance localhost:" + instance[0:4] + " successfully stopped."),
-                  ("dba.deleteSandboxInstance(" + instance + ")\n",
-                   "Instance localhost:" + instance[0:4] + " successfully deleted.")
-                  ]
-        try:
-            exec_xshell_commands(init_command, x_cmds)
-        except Exception, e:
-            return e
+        # Verify if the instance exist before anything
+        x_cmds = [
+            ("\connect " + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + ":" + instance + "\n",
+             "Classic Session successfully established")
+            ]
+        if (exec_xshell_commands(init_command, x_cmds) == "PASS"):
+            x_cmds = [("dba.stopSandboxInstance(" + instance + ")\n",
+                       "Instance localhost:" + instance[0:4] + " successfully stopped."),
+                      ("dba.deleteSandboxInstance(" + instance + ")\n",
+                       "Instance localhost:" + instance[0:4] + " successfully deleted.")
+                      ]
+            try:
+                exec_xshell_commands(init_command, x_cmds)
+            except Exception, e:
+                print e
+    return e
 
 ############   Retrieve variables from configuration file    ##########################
 class LOCALHOST:
@@ -538,6 +546,90 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       kill_process(instance)
       self.assertEqual(results, 'PASS')
+
+  def test_MYS_774(self):
+      '''NGSHELL CRASHES WHEN DBA.GETCLUSTER WITHOUT A CLUSTER SETUP'''
+      #Armando López Valencia
+      #armando.lopezv@oracle.com
+      # Destroy the cluster
+      cleanup_instances(["3310", "3320", "3330"])
+
+      results = 'PASS'
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"" + LOCALHOST.password + "\"})\n",
+                 "Instance localhost:3310 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3320, {password: \"" + LOCALHOST.password + "\"})\n",
+                 "Instance localhost:3320 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3330, {password: \"" + LOCALHOST.password + "\"})\n",
+                 "Instance localhost:3330 successfully deployed and started."),
+                ("\connect root:" + LOCALHOST.password + "@localhost:3310\n",
+                 'Classic Session successfully established. No default schema selected.'),
+                ("myCluster = dba.createCluster(\"myCluster\")\n",
+                 'Cluster successfully created'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3320\")\n",
+                 'The instance \'root@localhost:3320\' was successfully added to the cluster'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3330\")\n",
+                 'The instance \'root@localhost:3330\' was successfully added to the cluster'),
+                ("myCluster.dissolve({force: true})\n",
+                 "The cluster was successfully dissolved"),
+                ("myCluster.status()\n",
+                 "Cluster.status: The cluster 'myCluster' no longer exists"),
+                ("cluster = dba.getCluster()\n",
+                 "Dba.getCluster: No default cluster is configured")
+                ]
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+      for command, responce in x_cmds:
+          #print "\nCommand: " + command
+          p.stdin.write(command)
+          p.stdin.flush()
+          found = read_til_getShell(p, p.stdout, "mysql-js>")
+          found = read_til_getShell(p, p.stdout, responce)
+          #print "Responce: " + found
+
+          if ((found.find(responce, 0, len(found))) > -1):
+              found = 1
+          if found == -1:
+              stdout, stderr = p.communicate()
+              results = "FAIL \n\r" + stdout.decode("ascii")
+              break
+      stdout, stderr = p.communicate()
+      #results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+      # Destroy the cluster
+      cleanup_instances(["3310", "3320", "3330"])
+
+  def test_MYS_809(self):
+      '''MYS-829 NOT ABLE TO ADD A REMOVED PRIMARY TO THE CLUSTER'''
+      #Armando López Valencia
+      #armando.lopezv@oracle.com
+      # Destroy the cluster
+      cleanup_instances(["3310", "3320", "3330"])
+
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.deploySandboxInstance(3310, {password: \"" + LOCALHOST.password + "\"})\n",
+                 "Instance localhost:3310 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3320, {password: \"" + LOCALHOST.password + "\"})\n",
+                 "Instance localhost:3320 successfully deployed and started."),
+                ("dba.deploySandboxInstance(3330, {password: \"" + LOCALHOST.password + "\"})\n",
+                 "Instance localhost:3330 successfully deployed and started."),
+                ("\connect root:" + LOCALHOST.password + "@localhost:3310\n",
+                 'Classic Session successfully established. No default schema selected.'),
+                ("myCluster = dba.createCluster(\"myCluster\")\n",
+                 'Cluster successfully created'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3320\")\n",
+                 'The instance \'root@localhost:3320\' was successfully added to the cluster'),
+                ("myCluster.addInstance(\"root:" + LOCALHOST.password + "@localhost:3330\")\n",
+                 'The instance \'root@localhost:3330\' was successfully added to the cluster'),
+                ("dba.configLocalInstance('root:guidev!@localhost:3320')\n",
+                 "The instance 'root@localhost:3320' is already part of an InnoDB Cluster")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+      # Destroy the cluster
+      cleanup_instances(["3310", "3320", "3330"])
 
   def test_MYS_820_createCluster(self):
       '''MYS-820 [MYAA] dba.createCluster(name[, options])'''
