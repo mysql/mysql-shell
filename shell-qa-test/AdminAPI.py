@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import subprocess
 import time
 import sys
@@ -549,8 +550,8 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_774(self):
       '''NGSHELL CRASHES WHEN DBA.GETCLUSTER WITHOUT A CLUSTER SETUP'''
-      #Armando López Valencia
-      #armando.lopezv@oracle.com
+      # Armando Lopez Valencia
+      # armando.lopezv@oracle.com
       # Destroy the cluster
       cleanup_instances(["3310", "3320", "3330"])
 
@@ -733,10 +734,15 @@ class XShell_TestCases(unittest.TestCase):
                 ("myCluster.status()\n",
                  'root@localhost:3310')
                 ]
-      results = exec_xshell_commands(init_command, x_cmds)
+      try:
+          results = exec_xshell_commands(init_command, x_cmds)
+          if results.find("localhost:3310") == -1:
+              results = 'PASS'
+      except Exception as ex:
+          results = "FAIL: " + str(results)
+          if results.find("localhost:3310") == -1:
+              results = 'PASS'
 
-      if results.find("localhost:3310") == -1:
-          results = 'PASS'
 
       self.assertEqual(results, 'PASS')
 
