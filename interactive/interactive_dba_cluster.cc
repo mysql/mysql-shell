@@ -39,6 +39,12 @@ void Interactive_dba_cluster::init() {
   add_varargs_method("rescan", std::bind(&Interactive_dba_cluster::rescan, this, _1));
 }
 
+mysqlsh::dba::ReplicationGroupState Interactive_dba_cluster::check_preconditions(const std::string& function_name) const {
+  ScopedStyle ss(_target.get(), naming_style);
+  auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
+  return cluster->check_preconditions(function_name);
+}
+
 shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string function;
@@ -77,12 +83,13 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
+  check_preconditions("addInstance");
+
   shcore::Value::Map_type_ref options;
 
   try {
     std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
-
+    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
     if (cluster)
       object = cluster->get_default_replicaset();
 
@@ -120,7 +127,6 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
     println();
     ret_val = call_target(function, new_args);
 
-
     println("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster.");
     println();
   }
@@ -132,6 +138,8 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
   shcore::Value ret_val;
 
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
+
+  check_preconditions("rejoinInstance");
 
   shcore::Value::Map_type_ref options;
 
@@ -176,6 +184,8 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
   shcore::Value::Map_type_ref options; // Map with the connection data
 
   args.ensure_count(1, get_function_name("removeInstance").c_str());
+
+  check_preconditions("removeInstance");
 
   std::string message = "The instance will be removed from the InnoDB cluster. Depending on the \n"
                         "instance being the Seed or not, the Metadata session might become invalid. \n"
@@ -222,6 +232,8 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
 
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
+  check_preconditions("dissolve");
+
   try {
     if (args.size() == 1)
       options = args.map_at(0);
@@ -239,8 +251,7 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
 
   if (!force) {
     std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
-
+    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
     if (cluster)
       object = cluster->get_default_replicaset();
 
@@ -266,8 +277,10 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
 }
 
 shcore::Value Interactive_dba_cluster::check_instace_state(const shcore::Argument_list &args) {
-
   args.ensure_count(0, 1, get_function_name("checkInstanceState").c_str());
+
+  check_preconditions("checkInstanceState");
+
   shcore::Value::Map_type_ref options;
   shcore::Argument_list target_args;
 
@@ -300,8 +313,7 @@ shcore::Value Interactive_dba_cluster::check_instace_state(const shcore::Argumen
       println("The instance is new to Group Replication.");
     else
       println("The instance is fully recoverable.");
-  }
-  else {
+  } else {
     println("The instance '" + options->get_string("host") + ":" + std::to_string(options->get_int("port")) + "' is invalid for the cluster.");
 
     if (result->get_string("reason") == "diverged")
@@ -312,13 +324,14 @@ shcore::Value Interactive_dba_cluster::check_instace_state(const shcore::Argumen
   println();
 
   return ret_val;
-
 }
 
 shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   args.ensure_count(0, get_function_name("rescan").c_str());
+
+  check_preconditions("rescan");
 
   println("Rescanning the cluster...");
   println();
@@ -334,12 +347,12 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
   // We only support 1 ReplicaSet now, the DefaultReplicaSet
   if (result->has_key("defaultReplicaSet")) {
     auto default_rs = result->get_map("defaultReplicaSet");
-
+    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
     // Check if there are unknown instances
     if (default_rs->has_key("newlyDiscoveredInstances")) {
       auto unknown_instances = default_rs->get_array("newlyDiscoveredInstances");
 
-      for(auto instance: *unknown_instances) {
+      for (auto instance : *unknown_instances) {
         auto instance_map = instance.as_map();
         println();
         println("A new instance '" + instance_map->get_string("host") + "' was discovered in the HA setup.");
@@ -353,7 +366,7 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
 
             std::string delimiter = ":";
             std::string host = full_host.substr(0, full_host.find(delimiter));
-            std::string port = full_host.substr(full_host.find(delimiter)+1, full_host.length());
+            std::string port = full_host.substr(full_host.find(delimiter) + 1, full_host.length());
 
             (*options)["host"] = shcore::Value(host);
             (*options)["port"] = shcore::Value(atoi(port.c_str()));
@@ -363,7 +376,6 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
             println();
 
             std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-            auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
 
             object = cluster->get_default_replicaset();
 
@@ -380,7 +392,7 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
     if (default_rs->has_key("unavailableInstances")) {
       auto missing_instances = default_rs->get_array("unavailableInstances");
 
-      for(auto instance: *missing_instances) {
+      for (auto instance : *missing_instances) {
         auto instance_map = instance.as_map();
         println();
         println("The instance '" + instance_map->get_string("host") + "' is no longer part of the HA setup. "
@@ -399,7 +411,7 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
 
             std::string delimiter = ":";
             std::string host = full_host.substr(0, full_host.find(delimiter));
-            std::string port = full_host.substr(full_host.find(delimiter)+1, full_host.length());
+            std::string port = full_host.substr(full_host.find(delimiter) + 1, full_host.length());
 
             (*options)["host"] = shcore::Value(host);
             (*options)["port"] = shcore::Value(atoi(port.c_str()));
@@ -409,7 +421,6 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
             println();
 
             std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-            auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
 
             object = cluster->get_default_replicaset();
 

@@ -1,7 +1,7 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMember and validateNotMember are defined on the setup script
-dba.drop_metadata_schema({"enforce":True})
+dba.drop_metadata_schema({"force":True})
 
 #@ Session: validating members
 all_members = dir(dba)

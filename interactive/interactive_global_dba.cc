@@ -23,7 +23,6 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "interactive/interactive_dba_cluster.h"
 //#include "modules/adminapi/mod_dba_instance.h"
-#include "modules/adminapi/mod_dba_common.h"
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
@@ -39,12 +38,18 @@ void Global_dba::init() {
   add_varargs_method("deleteSandboxInstance", std::bind(&Global_dba::delete_sandbox_instance, this, _1));
   add_varargs_method("killSandboxInstance", std::bind(&Global_dba::kill_sandbox_instance, this, _1));
   add_varargs_method("stopSandboxInstance", std::bind(&Global_dba::stop_sandbox_instance, this, _1));
+  add_varargs_method("getCluster", std::bind(&Global_dba::get_cluster, this, _1));
 
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
-  add_method("getCluster", std::bind(&Global_dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("checkInstanceConfig", std::bind(&Global_dba::check_instance_config, this, _1), "data", shcore::Map, NULL);
   add_method("configLocalInstance", std::bind(&Global_dba::config_local_instance, this, _1), "data", shcore::Map, NULL);
+}
+
+mysqlsh::dba::ReplicationGroupState Global_dba::check_preconditions(const std::string& function_name) const {
+  ScopedStyle ss(_target.get(), naming_style);
+  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
+  return dba->check_preconditions(function_name);
 }
 
 shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argument_list &args,
@@ -72,7 +77,6 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
     } else {
       opt_map.ensure_keys({}, mysqlsh::dba::Dba::_default_local_instance_opts, "the instance definition");
     }
-
 
     if (opt_map.has_key("sandboxDir")) {
       sandboxDir = opt_map.string_at("sandboxDir");
@@ -212,14 +216,28 @@ shcore::Value Global_dba::start_sandbox_instance(const shcore::Argument_list &ar
 }
 
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  validate_session(get_function_name("createCluster"));
-
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
-  shcore::Value::Map_type_ref options;
+  mysqlsh::dba::ReplicationGroupState state;
 
+  try {
+    state = check_preconditions("createCluster");
+  } catch (shcore::Exception &e) {
+    std::string error(e.what());
+    if (error.find("already in an InnoDB cluster") != std::string::npos) {
+      /*
+      * For V1.0 we only support one single Cluster. That one shall be the default Cluster.
+      * We must check if there's already a Default Cluster assigned, and if so thrown an exception.
+      * And we must check if there's already one Cluster on the MD and if so assign it to Default
+      */
+      std::string nice_error = get_function_name("createCluster") + ": Cluster is already initialized. "\
+        "Use " + get_function_name("getCluster") + "() to access it";
+      throw Exception::runtime_error(nice_error);
+    } else throw;
+  }
+
+  shcore::Value ret_val;
+  shcore::Value::Map_type_ref options;
   std::string cluster_name;
   std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
 
@@ -228,6 +246,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     std::string answer;
     bool multi_master = false;
     bool force = false;
+    bool adopt_from_gr = false;
 
     if (cluster_name.empty())
       throw Exception::argument_error("The Cluster name cannot be empty.");
@@ -250,6 +269,19 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
       if (opt_map.has_key("force"))
         force = opt_map.bool_at("force");
+
+      if (opt_map.has_key("adoptFromGR"))
+        adopt_from_gr = opt_map.bool_at("adoptFromGR");
+    } else {
+      options.reset(new shcore::Value::Map_type());
+    }
+
+    if (state.source_type == mysqlsh::dba::GRInstanceType::GroupReplication && !adopt_from_gr) {
+      if (prompt("You are connected to an instance that belongs to an unmanaged replication group.\n"\
+        "Do you want to setup an InnoDB cluster based on this replication group?", answer) && (answer == "y" || answer == "yes" || answer == "Yes"))
+        (*options)["adoptFromGR"] = shcore::Value(true);
+      else
+        throw Exception::argument_error("Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
     }
 
     auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
@@ -307,11 +339,13 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 }
 
 shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
   args.ensure_count(0, 1, get_function_name("dropMetadataSchema").c_str());
+
+  check_preconditions("dropMetadataSchema");
+
+  shcore::Value ret_val;
   shcore::Argument_list new_args;
-  bool enforce = false;
+  bool force = false;
 
   if (args.size() < 1) {
     std::string answer;
@@ -320,22 +354,22 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
       if (!answer.compare("y") || !answer.compare("Y")) {
         Value::Map_type_ref options(new shcore::Value::Map_type);
 
-        (*options)["enforce"] = shcore::Value(true);
+        (*options)["force"] = shcore::Value(true);
         new_args.push_back(shcore::Value(options));
-        enforce = true;
+        force = true;
       }
     }
   } else {
     try {
       auto options = mysqlsh::dba::get_instance_options_map(args, true);
       shcore::Argument_map opt_map(*options);
-      opt_map.ensure_keys({}, {"enforce"},"drop options");
-      enforce = options->get_bool("enforce");
+      opt_map.ensure_keys({}, {"force"}, "drop options");
+      force = options->get_bool("force");
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
   }
 
-  if (enforce) {
+  if (force) {
     ret_val = call_target("dropMetadataSchema", (args.size() < 1) ? new_args : args);
     println("Metadata Schema successfully removed.");
   } else {
@@ -347,7 +381,17 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
 }
 
 shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
-  validate_session(get_function_name("getCluster"));
+  args.ensure_count(0, 1, get_function_name("getCluster").c_str());
+
+  auto state = check_preconditions("getCluster");
+
+  if (state.source_state == mysqlsh::dba::ManagedInstance::OnlineRO) {
+    println("WARNING: The session is on a " + mysqlsh::dba::ManagedInstance::describe(static_cast<mysqlsh::dba::ManagedInstance::State>(state.source_state)) + " instance.\n"\
+              "         Write operations on the InnoDB cluster will not be allowed\n");
+  } else if (state.source_state != mysqlsh::dba::ManagedInstance::OnlineRW)
+    println("WARNING: The session is on a " + mysqlsh::dba::ManagedInstance::describe(static_cast<mysqlsh::dba::ManagedInstance::State>(state.source_state)) + " instance.\n"\
+      "         Write operations in the InnoDB cluster will not be allowed.\n"\
+      "         The information retrieved with describe() and status() may be outdated.\n");
 
   Value raw_cluster = call_target("getCluster", args);
 
@@ -639,11 +683,6 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
   }
 
   return validation_report;
-}
-
-void Global_dba::validate_session(const std::string &source) const {
-  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
-  dba->validate_session(source);
 }
 
 void Global_dba::dump_table(const std::vector<std::string>& column_names, const std::vector<std::string>& column_labels, shcore::Value::Array_type_ref documents) {

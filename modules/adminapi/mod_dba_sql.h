@@ -21,35 +21,21 @@
 #define _MODULES_ADMINAPI_MOD_DBA_SQL_
 
 #include "modules/mysql_connection.h"
+#include "modules/adminapi/mod_dba_common.h"
 
 namespace mysqlsh {
 namespace dba {
-
-  enum class GRInstanceType {
-    Standalone,
-    GroupReplication,
-    InnoDBCluster
-  };
-
-  enum class SlaveReplicationState {
-    New,
-    Recoverable,
-    Diverged,
-    Irrecoverable
-  };
-
-
-  GRInstanceType get_gr_instance_type(mysqlsh::mysql::Connection* connection);
-  void get_port_and_datadir(mysqlsh::mysql::Connection* connection, int &port, std::string& datadir);
-  void get_gtid_state_variables(mysqlsh::mysql::Connection* connection, std::string &executed, std::string &purged);
-  SlaveReplicationState get_slave_replication_state(mysqlsh::mysql::Connection* connection, std::string &slave_executed);
-  bool has_quorum(mysqlsh::mysql::Connection* connection);
-  std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::string plugin_name);
-  bool get_server_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
-                           std::string &value, bool throw_on_error = true);
-  void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name, const std::string &value);
-  bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
-                           std::string &value, bool throw_on_error = true);
+GRInstanceType get_gr_instance_type(mysqlsh::mysql::Connection* connection);
+void get_port_and_datadir(mysqlsh::mysql::Connection* connection, int &port, std::string& datadir);
+void get_gtid_state_variables(mysqlsh::mysql::Connection* connection, std::string &executed, std::string &purged);
+SlaveReplicationState get_slave_replication_state(mysqlsh::mysql::Connection* connection, std::string &slave_executed);
+ReplicationGroupState get_replication_group_state(mysqlsh::mysql::Connection* connection, GRInstanceType source_type);
+std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::string plugin_name);
+bool get_server_variable(mysqlsh::mysql::Connection *connection, std::string name,
+                         std::string &value, bool throw_on_error = true);
+void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name, const std::string &value);
+bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
+                         std::string &value, bool throw_on_error = true);
 }
 }
 

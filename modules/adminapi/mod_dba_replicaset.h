@@ -29,6 +29,7 @@
 #include "shellcore/types_cpp.h"
 #include <set>
 #include "mod_dba_provisioning_interface.h"
+#include "modules/adminapi/mod_dba_common.h"
 
 namespace mysqlsh {
 namespace mysql {
@@ -111,6 +112,7 @@ public:
   shcore::Value rescan(const shcore::Argument_list &args);
 
   void remove_instances_from_gr(const shcore::Value::Array_type_ref &instances);
+  ReplicationGroupState check_preconditions(const std::string& function_name) const;
 private:
   //TODO these should go to a GroupReplication file
   friend Cluster;

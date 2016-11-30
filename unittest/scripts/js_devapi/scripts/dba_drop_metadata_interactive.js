@@ -1,3 +1,11 @@
+// Assumptions: smart deployment functions available
+
+// Smart deployment
+var deployed_here = reset_or_deploy_sandbox(__mysql_sandbox_port1);
+
+shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
+
+// Assumptions: reset_or_deploy_sandboxes available
 if (__have_ssl)
   dba.createCluster("tempCluster");
 else
@@ -13,15 +21,28 @@ dba.dropMetadataSchema()
 //@# drop metadata: user response no
 dba.dropMetadataSchema()
 
-//@# drop metadata: enforce option
-dba.dropMetadataSchema({enforce:false});
+//@# drop metadata: force option
+dba.dropMetadataSchema({force:false});
 session.getSchema('mysql_innodb_cluster_metadata');
-dba.dropMetadataSchema({enforce:true});
+dba.dropMetadataSchema({force:true});
+
+session.close();
 
 //@# drop metadata: user response yes
+reset_or_deploy_sandbox(__mysql_sandbox_port1);
+shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
 if (__have_ssl)
   dba.createCluster("tempCluster")
 else
   dba.createCluster("tempCluster", {ssl: false})
 
 dba.dropMetadataSchema()
+
+session.close();
+
+// Smart deployment cleanup
+if (deployed_here)
+  cleanup_sandbox(__mysql_sandbox_port1);
+else
+  reset_or_deploy_sandbox(__mysql_sandbox_port1);
+

@@ -355,5 +355,6 @@ bool Connection::next_data_set(Result *target, bool first_result) {
 }
 
 Connection::~Connection() {
+  _prev_result.reset();
   close();
 }

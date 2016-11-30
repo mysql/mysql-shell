@@ -94,13 +94,43 @@ function check_super_read_only_done(connection) {
 var recov_cluster;
 var recov_master_uri;
 var recov_slave_uri;
-function wait_slave_online() {
+var recov_state_list;
+
+function _check_slave_state() {
   var full_status = recov_cluster.status();
   var slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].leaves[recov_slave_uri].status;
 
   println("--->" + recov_slave_uri + ": " + slave_status);
-  return slave_status == "ONLINE";
+  
+  ret_val = false
+  for(state in recov_state_list){
+    if (recov_state_list[state] == slave_status) {
+      ret_val = true;
+      println ("Done!");
+      break;
+    }
+  }
+  
+  return ret_val;
 }
+
+function wait_slave_state(cluster, master_uri, slave_uri, states) {
+  recov_cluster = cluster;
+  recov_master_uri = master_uri;
+  recov_slave_uri = slave_uri;
+  
+  if (type(states) == "Array")
+    recov_state_list = states;
+  else
+    recov_state_list = [states];
+
+  println ("WAITING for " + slave_uri + " to be in one of these states: " + states);
+
+  wait(60, 1, _check_slave_state);
+
+  recov_cluster = null;
+}
+
 
 function wait_slave_online_multimaster() {
   var full_status = recov_cluster.status();
@@ -110,30 +140,12 @@ function wait_slave_online_multimaster() {
   return slave_status == "ONLINE";
 }
 
-function wait_slave_offline() {
-  var full_status = recov_cluster.status();
-  var slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].leaves[recov_slave_uri].status;
-
-  println("--->" + recov_slave_uri + ": " + slave_status);
-  return slave_status == "OFFLINE";
-}
-
 function wait_slave_offline_multimaster() {
   var full_status = recov_cluster.status();
   var slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].status;
 
   println("--->" + recov_master_uri + ": " + slave_status);
   return slave_status == "OFFLINE";
-}
-
-function check_slave_online(cluster, master_uri, slave_uri) {
-  recov_cluster = cluster;
-  recov_master_uri = master_uri;
-  recov_slave_uri = slave_uri;
-
-  wait(60, 1, wait_slave_online);
-
-  recov_cluster = null;
 }
 
 function check_slave_online_multimaster(cluster, master_uri) {
@@ -145,16 +157,6 @@ function check_slave_online_multimaster(cluster, master_uri) {
   recov_cluster = null;
 }
 
-function check_slave_offline(cluster, master_uri, slave_uri) {
-  recov_cluster = cluster;
-  recov_master_uri = master_uri;
-  recov_slave_uri = slave_uri;
-
-  wait(60, 1, wait_slave_offline);
-
-  recov_cluster = null;
-}
-
 function check_slave_offline_multimaster(cluster, master_uri) {
   recov_cluster = cluster;
   recov_master_uri = master_uri;
@@ -162,4 +164,76 @@ function check_slave_offline_multimaster(cluster, master_uri) {
   wait(60, 1, wait_slave_offline_multimaster);
 
   recov_cluster = null;
+}
+// Smart deployment routines
+function reset_or_deploy_sandbox(port) {
+  var deployed_here = false;
+
+  options = {}
+  if (__sandbox_dir != '')
+    options['sandboxDir'] = __sandbox_dir;
+  
+  println('Killing sandbox at: ' + port);
+  try {dba.killSandboxInstance(port, options);} catch (err) {}
+  
+  var started = false;
+  try {
+    print('Starting sandbox at: ' + port);
+    dba.startSandboxInstance(port, options);
+    started = true;
+    println('succeeded');
+  } catch (err) {println('failed: ' + err.message);}
+  
+  if (started) {
+    var connected = false;
+    try {
+      print('Dropping metadata...');
+      shell.connect({host:localhost, port:port, password:'root'});
+      connected = true;
+      session.runSql('set sql_log_bin = 0');
+      session.runSql('drop schema mysql_innodb_cluster_metadata');
+      session.runSql('flush logs');
+      session.runSql('set sql_log_bin = 1');
+      println('succeeded');
+    } catch (err) {
+      println('failed: ' + err.message);
+    }
+    if (connected) {
+      session.runSql('set sql_log_bin = 1');
+      session.close();
+    }
+  } else {
+    println('Deploying instance');
+    options['password'] = 'root';
+    options['allowRootFrom'] = '%';
+    
+    if (!__have_ssl)
+      options['ignoreSslError'] = true;
+    
+    dba.deploySandboxInstance(port, options);
+    deployed_here = true;
+  }
+  
+  return deployed_here;
+}
+
+function reset_or_deploy_sandboxes() {
+  var deploy1 = reset_or_deploy_sandbox(__mysql_sandbox_port1);
+  var deploy2 = reset_or_deploy_sandbox(__mysql_sandbox_port2);
+  var deploy3 = reset_or_deploy_sandbox(__mysql_sandbox_port3);
+  
+  return deploy1 || deploy2 || deploy3;
+}
+
+function cleanup_sandbox(port) {
+  try {dba.killSandboxInstance(port);} catch (err) {}
+  try { dba.deleteSandboxInstance(port);} catch (err) {}
+}
+
+function cleanup_sandboxes(deployed_here) {
+  if (deployed_here) {
+    cleanup_sandbox(__mysql_sandbox_port1);
+    cleanup_sandbox(__mysql_sandbox_port2);
+    cleanup_sandbox(__mysql_sandbox_port3);
+  }
 }

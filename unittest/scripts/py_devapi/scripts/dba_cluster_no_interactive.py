@@ -42,7 +42,10 @@ cluster.add_instance('',5)
 cluster.add_instance({"user":"sample", "weird":1},5)
 cluster.add_instance({'host': 'localhost', 'schema': 'abs', 'user':"sample", 'authMethod':56})
 cluster.add_instance({'port': __mysql_sandbox_port1})
-cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1}, 'root')
+if __have_ssl:
+  cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1}, 'root')
+else:
+  cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port1, "ssl": False}, "root")
 
 uri1 = "%s:%s" % (localhost, __mysql_sandbox_port1)
 uri2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
@@ -54,7 +57,7 @@ if __have_ssl:
 else:
   cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "ssl": False}, "root")
 
-check_slave_online(cluster, uri1, uri2);
+wait_slave_state(cluster, uri1, uri2, "ONLINE");
 
 #@ Cluster: add_instance 3
 if __have_ssl:
@@ -62,7 +65,7 @@ if __have_ssl:
 else:
   cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "ssl": False}, "root")
 
-check_slave_online(cluster, uri1, uri3);
+wait_slave_state(cluster, uri1, uri3, "ONLINE");
 
 #@<OUT> Cluster: describe cluster with instance
 cluster.describe()
@@ -93,7 +96,7 @@ if __have_ssl:
 else:
   cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "ssl": False}, "root")
 
-check_slave_online(cluster, uri1, uri2);
+wait_slave_state(cluster, uri1, uri2, "ONLINE");
 
 #@<OUT> Cluster: describe after adding read only instance back
 cluster.describe()
@@ -119,7 +122,7 @@ if __have_ssl:
 else:
   cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "ssl": False}, "root")
 
-check_slave_online(cluster, uri2, uri3);
+wait_slave_state(cluster, uri2, uri3, "ONLINE")
 
 #@<OUT> Cluster: describe on new master
 cluster.describe()
@@ -134,7 +137,7 @@ if __have_ssl:
 else:
   cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port1, "ssl": False}, "root")
 
-check_slave_online(cluster, uri2, uri1)
+wait_slave_state(cluster, uri2, uri1, "ONLINE");
 
 #@<OUT> Cluster: describe on new master with slave
 cluster.describe()
@@ -160,7 +163,7 @@ if __sandbox_dir:
 else:
   dba.start_sandbox_instance(__mysql_sandbox_port3)
 
-check_slave_offline(Cluster, uri2, uri3);
+wait_slave_state(cluster, uri2, uri3, "OFFLINE");
 
 #@# Cluster: rejoin_instance errors
 cluster.rejoin_instance();
@@ -176,83 +179,11 @@ if __have_ssl:
 else:
   cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "ssl": False}, "root")
 
-check_slave_online(cluster, uri2, uri3);
+wait_slave_state(cluster, uri2, uri3, "ONLINE");
 
 # Verify if the cluster is OK
 
 #@<OUT> Cluster: status for rejoin: success
-cluster.status()
-
-
-# test the lost of quorum
-
-#@# Dba: kill instance 1
-if __sandbox_dir:
-  dba.kill_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir":__sandbox_dir})
-else:
-  dba.kill_sandbox_instance(__mysql_sandbox_port1)
-
-#@# Dba: kill instance 3
-if __sandbox_dir:
-  dba.kill_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir":__sandbox_dir})
-else:
-  dba.kill_sandbox_instance(__mysql_sandbox_port3)
-
-# GR needs to detect the loss of quorum
-time.sleep(10)
-
-#@# Dba: start instance 1
-if __sandbox_dir:
-  dba.start_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir": __sandbox_dir})
-else:
-  dba.start_sandbox_instance(__mysql_sandbox_port1)
-
-#@# Dba: start instance 3
-if __sandbox_dir:
-  dba.start_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir": __sandbox_dir})
-else:
-  dba.start_sandbox_instance(__mysql_sandbox_port3)
-
-# Verify the cluster status after loosing 2 members
-#@<OUT> Cluster: status for rejoin quorum lost
-cluster.status()
-
-#@#: Dba: rejoin instance 3
-if __have_ssl:
-  cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, "root")
-else:
-  cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "ssl": False}, "root")
-
-#@ Cluster: dissolve: error quorum
-cluster.dissolve()
-
-# In order to be able to run dissolve, we must force the reconfiguration of the group using
-# group_replication_force_members
-customSession.run_sql("SET GLOBAL group_replication_force_members = 'localhost:1" + str(__mysql_sandbox_port2) + "'");
-time.sleep(5)
-
-# Add back the instances to make the dissolve possible
-
-#@ Cluster: rejoinInstance 1
-uri = "root@localhost:%s" % __mysql_sandbox_port1;
-if __have_ssl:
-  cluster.rejoin_instance(uri, "root")
-else:
-  cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port1, "ssl": False}, "root")
-
-check_slave_online(cluster, uri2, uri1)
-
-#@ Cluster: rejoinInstance 3
-uri = "root@localhost:%s" % __mysql_sandbox_port3;
-if __have_ssl:
-  cluster.rejoin_instance(uri, "root")
-else:
-  cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "ssl": False}, "root")
-
-check_slave_online(cluster, uri2, uri3)
-
-# Verify the cluster status after rejoining the 2 members
-#@<OUT> Cluster: status for rejoin successful
 cluster.status()
 
 #@ Cluster: dissolve errors
@@ -263,12 +194,8 @@ cluster.dissolve("")
 cluster.dissolve({'foobar': True})
 cluster.dissolve({'force': "whatever"})
 
-# We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-# BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-# As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-
 #cluster.dissolve({force: true})
-#cluster.describe()
-#cluster.status()
 
-customSession.close();
+customSession.close()
+
+reset_or_deploy_sandboxes()

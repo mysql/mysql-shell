@@ -24,6 +24,7 @@
 #define _INTERACTIVE_DBA_CLUSTER_H_
 
 #include "shellcore/interactive_object_wrapper.h"
+#include "modules/adminapi/mod_dba_common.h"
 
 namespace shcore {
 class SHCORE_PUBLIC Interactive_dba_cluster : public Interactive_object_wrapper {
@@ -41,7 +42,8 @@ public:
   shcore::Value rescan(const shcore::Argument_list &args);
 
 private:
-  bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const;
+  bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const; \
+  mysqlsh::dba::ReplicationGroupState check_preconditions(const std::string& function_name) const;
 };
 }
 

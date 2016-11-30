@@ -131,12 +131,4 @@ check_slave_online_multimaster(Cluster, uri3);
 Cluster.status()
 
 
-// We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-// BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-// As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-
-//Cluster.dissolve({force: true})
-
-//Cluster.describe()
-
-//Cluster.status()
+Cluster.dissolve({force: true})

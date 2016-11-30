@@ -104,29 +104,26 @@ bool Shell_script_tester::multi_value_compare(const std::string& expected, const
 
     std::string pre = expected.substr(0, start);
     std::string post = expected.substr(end + 2);
-    std::string opts = expected.substr(start + 2, end - (start+2));
+    std::string opts = expected.substr(start + 2, end - (start + 2));
     auto options = shcore::split_string(opts, "|");
 
-    for(auto item: options) {
+    for (auto item : options) {
       std::string exp = pre + item + post;
       if ((ret_val = (exp == actual)))
         break;
     }
-  }
-  else
+  } else
     ret_val = (expected == actual);
-
 
   return ret_val;
 }
-
 
 void Shell_script_tester::validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual) {
   auto expected_lines = shcore::split_string(expected, "\n");
   auto actual_lines = shcore::split_string(actual, "\n");
 
   // Identifies the index of the actual line containing the first expected line
-  size_t actual_index=0;
+  size_t actual_index = 0;
   while (actual_index < actual_lines.size()) {
     if (actual_lines[actual_index].find(expected_lines[0]) != std::string::npos)
       break;
@@ -136,7 +133,7 @@ void Shell_script_tester::validate_line_by_line(const std::string& context, cons
 
   if (actual_index < actual_lines.size()) {
     size_t expected_index;
-    for(expected_index = 0; expected_index < expected_lines.size(); expected_index++) {
+    for (expected_index = 0; expected_index < expected_lines.size(); expected_index++) {
       auto act_str = boost::trim_right_copy(actual_lines[actual_index + expected_index]);
       auto exp_str = boost::trim_right_copy(expected_lines[expected_index]);
       if (!multi_value_compare(exp_str, act_str)) {
@@ -167,7 +164,7 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         // Before cleaning up, prints any error found on the script execution
         if (valindex == 0 && !original_std_err.empty()) {
           SCOPED_TRACE("File: " + context);
-          SCOPED_TRACE("Unexpexted Error: " + original_std_err);
+          SCOPED_TRACE("Unexpected Error: " + original_std_err);
           ADD_FAILURE();
         }
 
@@ -188,7 +185,7 @@ void Shell_script_tester::validate(const std::string& context, const std::string
           !original_std_err.empty()) {
         SCOPED_TRACE("File: " + context);
         SCOPED_TRACE("Executing: " + chunk_id);
-        SCOPED_TRACE("Unexpexted Error: " + original_std_err);
+        SCOPED_TRACE("Unexpected Error: " + original_std_err);
         ADD_FAILURE();
       }
 
@@ -238,7 +235,7 @@ void Shell_script_tester::validate(const std::string& context, const std::string
             SCOPED_TRACE("Executing: " + chunk_id);
             SCOPED_TRACE("STDERR missing: " + error);
             SCOPED_TRACE("STDERR actual: " + original_std_err);
-            if (original_std_err.find(error)  == std::string::npos)
+            if (original_std_err.find(error) == std::string::npos)
               ADD_FAILURE();
           } else {
             validate_line_by_line(context, chunk_id, "STDERR", error, original_std_out);
@@ -289,7 +286,7 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
         chunk_id = chunk_id.substr(1);
       boost::trim(chunk_id);
 
-      if (chunk_id.find("<OUT>") == 0 || chunk_id.find("<ERR>") == 0 ) {
+      if (chunk_id.find("<OUT>") == 0 || chunk_id.find("<ERR>") == 0) {
         chunk_id = chunk_id.substr(5);
         boost::trim(chunk_id);
       }
@@ -327,14 +324,11 @@ void Shell_script_tester::add_validation(const std::string &chunk_id, const std:
             _chunk_validations[chunk_id].at(0).expected_output = source[1];
           if (source[2].size() > 0)
             _chunk_validations[chunk_id].at(0).expected_error = source[2];
-        }
-        else
+        } else
           throw std::runtime_error("Unable to mix Single and Line by Line validations");
-      }
-      else
+      } else
         throw std::runtime_error("Unable to mix Sinngle and Line by Line validations");
-    }
-    else
+    } else
       _chunk_validations[chunk_id].push_back(Validation(source, type));
   }
 }
@@ -376,13 +370,11 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
             format = "OUT";
             chunk_id = chunk_id.substr(5);
             boost::trim(chunk_id);
-          }
-          else if (chunk_id.find("<ERR>") == 0) {
+          } else if (chunk_id.find("<ERR>") == 0) {
             format = "ERR";
             chunk_id = chunk_id.substr(5);
             boost::trim(chunk_id);
-          }
-          else
+          } else
             format = "";
         }
       } else {

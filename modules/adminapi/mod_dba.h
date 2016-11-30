@@ -29,11 +29,10 @@
 #include <set>
 #include <map>
 #include "mod_dba_provisioning_interface.h"
+#include "modules/adminapi/mod_dba_common.h"
 
 namespace mysqlsh {
 namespace dba {
-class MetadataStorage;
-
 /**
 * $(DBA_BRIEF)
 */
@@ -54,6 +53,7 @@ public:
   virtual shcore::Value get_member(const std::string &prop) const;
 
   std::shared_ptr<ShellDevelopmentSession> get_active_session() const;
+  ReplicationGroupState check_preconditions(const std::string& function_name) const;
   virtual int get_default_port() { return 33060; };
   int get_default_instance_port() { return 3306; }
 
@@ -104,8 +104,6 @@ public:
   JSON config_local_instance(InstanceDef instance, dict options);
 #endif
 
-  void validate_session(const std::string &source) const;
-
   static std::shared_ptr<mysqlsh::mysql::ClassicSession> get_session(const shcore::Argument_list& args);
 
 protected:
@@ -121,7 +119,6 @@ private:
 
   shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
   shcore::Value::Map_type_ref _check_instance_config(const shcore::Argument_list &args, bool allow_update);
-
 
   static std::map <std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession> > _session_cache;
 };

@@ -22,7 +22,6 @@
 #include <iostream>
 #include <stdlib.h>
 
-
 int main(int argc, char **argv) {
 #ifdef HAVE_V8
   extern void JScript_context_init();
@@ -53,45 +52,45 @@ int main(int argc, char **argv) {
     else if (flags == "DBAPY")
       new_flags = "Shell_py_dba_tests.*";
     else if (flags == "DBAJSNIG")
-      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_global*";
+      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_global*:Shell_js_dba_tests.function_preconditions";
     else if (flags == "DBAPYNIG")
-      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_global*";
+      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_global*:Shell_py_dba_tests.function_preconditions";
     else if (flags == "DBAJSNIGDBA")
       new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_global_dba";
     else if (flags == "DBAPYNIGDBA")
       new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_global_dba";
     else if (flags == "DBAJSNIC")
-      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_custom*";
+      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_custom*:Shell_js_dba_tests.function_preconditions";
     else if (flags == "DBAPYNIC")
-      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_custom*";
+      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_custom*:Shell_py_dba_tests.function_preconditions";
     else if (flags == "DBAJSNICDBA")
       new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_custom_dba";
     else if (flags == "DBAPYNICDBA")
       new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_custom_dba";
     else if (flags == "DBAJSNI")
-      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_*";
+      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.no_interactive_classic_*:Shell_js_dba_tests.function_preconditions";
     else if (flags == "DBAPYNI")
-      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_*";
+      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.no_interactive_classic_*:Shell_py_dba_tests.function_preconditions";
     else if (flags == "DBAJSIG")
-      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_global*";
+      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_global*:Shell_js_dba_tests.function_preconditions_interactive";
     else if (flags == "DBAPYIG")
-      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_global*";
+      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_global*:Shell_py_dba_tests.function_preconditions_interactive";
     else if (flags == "DBAJSIGDBA")
       new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_global_dba";
     else if (flags == "DBAPYIGDBA")
       new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_global_dba";
     else if (flags == "DBAJSIC")
-      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_custom*";
+      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_custom*Shell_js_dba_tests.function_preconditions_interactive";
     else if (flags == "DBAPYIC")
-      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_custom*";
+      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_custom*Shell_py_dba_tests.function_preconditions_interactive";
     else if (flags == "DBAJSICDBA")
       new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_custom_dba";
     else if (flags == "DBAPYICDBA")
       new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_custom_dba";
     else if (flags == "DBAJSI")
-      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_*";
+      new_flags = "Shell_js_dba_tests.no_interactive_de*:Shell_js_dba_tests.interactive_classic_*Shell_js_dba_tests.function_preconditions_interactive";
     else if (flags == "DBAPYI")
-      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_*";
+      new_flags = "Shell_py_dba_tests.no_interactive_de*:Shell_py_dba_tests.interactive_classic_*Shell_py_dba_tests.function_preconditions_interactive";
     else if (flags == "ALLBUTDBA")
       new_flags = "*:-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
 

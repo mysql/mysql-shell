@@ -9,7 +9,7 @@
 //@# drop metadata: user response no
 |No changes made to the Metadata Schema.|
 
-//@# drop metadata: enforce option
+//@# drop metadata: force option
 |No changes made to the Metadata Schema.|
 |Metadata Schema successfully removed.|
 

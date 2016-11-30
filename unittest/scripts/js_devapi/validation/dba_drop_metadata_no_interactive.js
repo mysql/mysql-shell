@@ -4,10 +4,11 @@
 //@# drop metadata: no arguments
 ||Invalid number of arguments in Dba.dropMetadataSchema, expected 1 but got 0 (ArgumentError)
 
-//@# drop metadata: enforce false
-||
-
 //@# create cluster
 |<Cluster:tempCluster>|
-//@# drop metadata: enforce true
+
+//@# drop metadata: force false
+||Dba.dropMetadataSchema: No operation executed, use the 'force' option (RuntimeError)
+
+//@# drop metadata: force true
 ||

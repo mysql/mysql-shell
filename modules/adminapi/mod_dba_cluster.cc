@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#include "mod_dba_cluster.h"
-
+#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_common.h"
 #include "common/uuid/include/uuid_gen.h"
 #include <sstream>
 #include <iostream>
@@ -229,16 +229,17 @@ Undefined Cluster::addInstance(InstanceDef instance, String password) {}
 None Cluster::add_instance(InstanceDef instance, str password) {}
 #endif
 shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+  check_preconditions("addInstance");
 
   // Add the Instance to the Default ReplicaSet
+  shcore::Value ret_val;
   try {
+    // Check if we have a Default ReplicaSet
+    if (!_default_replica_set)
+      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
     ret_val = _default_replica_set->add_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
@@ -281,13 +282,17 @@ None Cluster::rejoin_instance(InstanceDef instance) {}
 #endif
 
 shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
-  // Check if we have a Default ReplicaSet
-  if (!_default_replica_set)
-    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+  check_preconditions("rejoinInstance");
+
   // rejoin the Instance to the Default ReplicaSet
+  shcore::Value ret_val;
   try {
+    // Check if we have a Default ReplicaSet
+    if (!_default_replica_set)
+      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
     // if not, call mysqlprovision to join the instance to its own group
     ret_val = _default_replica_set->rejoin_instance(args);
   }
@@ -327,6 +332,8 @@ None Cluster::remove_instance(InstanceDef instance) {}
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("removeInstance").c_str());
+
+  check_preconditions("removeInstance");
 
   // Remove the Instance from the Default ReplicaSet
   try {
@@ -406,8 +413,12 @@ str Cluster::describe() {}
 shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("describe").c_str());
 
-  shcore::Value ret_val;
+  auto state = check_preconditions("describe");
 
+  bool warning = (state.source_state != ManagedInstance::OnlineRW &&
+                  state.source_state != ManagedInstance::OnlineRO);
+
+  shcore::Value ret_val;
   try {
     if (!_metadata_storage->cluster_exists(_name))
       throw Exception::argument_error("The cluster '" + _name + "' no longer exists.");
@@ -422,6 +433,13 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
       (*description)["defaultReplicaSet"] = shcore::Value::Null();
     else
       (*description)["defaultReplicaSet"] = _default_replica_set->get_description();
+
+    if (warning) {
+      std::string warning = "The instance description may be outdated since was generated from an instance in ";
+      warning.append(ManagedInstance::describe(static_cast<ManagedInstance::State>(state.source_state)));
+      warning.append(" state");
+      (*description)["warning"] = shcore::Value(warning);
+    }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("describe"));
 
   return ret_val;
@@ -447,12 +465,13 @@ str Cluster::status() {}
 shcore::Value Cluster::status(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("status").c_str());
 
+  auto state = check_preconditions("status");
+
+  bool warning = (state.source_state != ManagedInstance::OnlineRW &&
+                  state.source_state != ManagedInstance::OnlineRO);
+
   shcore::Value ret_val;
-
   try {
-    if (!_metadata_storage->cluster_exists(_name))
-      throw Exception::argument_error("The cluster '" + _name + "' no longer exists.");
-
     ret_val = shcore::Value::new_map();
 
     auto status = ret_val.as_map();
@@ -463,6 +482,13 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
       (*status)["defaultReplicaSet"] = shcore::Value::Null();
     else
       (*status)["defaultReplicaSet"] = _default_replica_set->get_status();
+
+    if (warning) {
+      std::string warning = "The instance status may be outdated since was generated from an instance in ";
+      warning.append(ManagedInstance::describe(static_cast<ManagedInstance::State>(state.source_state)));
+      warning.append(" state");
+      (*status)["warning"] = shcore::Value(warning);
+    }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
 
   return ret_val;
@@ -492,6 +518,8 @@ None Cluster::dissolve(Dictionary options) {}
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
+  check_preconditions("dissolve");
+
   try {
     shcore::Value::Map_type_ref options;
 
@@ -517,9 +545,6 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     // with a hang.
     auto session = _metadata_storage->get_dba()->get_active_session();
     mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-
-    if (!has_quorum(classic->connection()))
-      throw Exception::runtime_error("Cannot dissolve the cluster: the group doesn't have quorum.");
 
     // check if the Cluster is empty
     if (_metadata_storage->is_cluster_empty(get_id())) {
@@ -564,10 +589,11 @@ None Cluster::rescan() {}
 #endif
 
 shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
   args.ensure_count(0, get_function_name("rescan").c_str());
 
+  check_preconditions("rescan");
+
+  shcore::Value ret_val;
   try {
     ret_val = shcore::Value(_rescan(args));
   }
@@ -637,14 +663,20 @@ Undefined Cluster::checkInstanceState(InstanceDef instance, String password) {}
 None Cluster::check_instance_state(InstanceDef instance, str password) {}
 #endif
 shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
   args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
 
+  check_preconditions("checkInstanceState");
+
+  shcore::Value ret_val;
   // Verifies the transaction state of the instance ins relation to the cluster
   try {
     ret_val = get_default_replicaset()->retrieve_instance_state(args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getInstanceState"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("checkInstanceState"));
 
   return ret_val;
+}
+
+ReplicationGroupState Cluster::check_preconditions(const std::string& function_name) const {
+  return check_function_preconditions(class_name(), function_name, get_function_name(function_name), _metadata_storage);
 }

@@ -50,7 +50,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false});
 
-check_slave_online(Cluster, uri1, uri2);
+wait_slave_state(Cluster, uri1, uri2, "ONLINE");
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok
 if (__have_ssl)
@@ -58,7 +58,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false});
 
-check_slave_online(Cluster, uri1, uri3);
+wait_slave_state(Cluster, uri1, uri3, "ONLINE");
 
 //@<OUT> Cluster: describe1
 Cluster.describe()
@@ -90,26 +90,11 @@ Cluster.dissolve()
 Cluster.dissolve(1)
 Cluster.dissolve(1,2)
 Cluster.dissolve("")
-Cluster.dissolve({foobar: true})
+Cluster.dissolve({enforce: true})
 Cluster.dissolve({force: 'sample'})
 
 //@ Cluster: remove_instance 3
 Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3})
-
-//@ Cluster: remove_instance last
-Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port1})
-
-//@<OUT> Cluster: describe3
-Cluster.describe()
-
-//@<OUT> Cluster: status3
-Cluster.status()
-
-//@<OUT> Cluster: addInstance with interaction, ok 2
-if (__have_ssl)
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port1});
-else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port1, ssl: false});
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
 if (__have_ssl)
@@ -117,7 +102,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false});
 
-check_slave_online(Cluster, uri1, uri2);
+wait_slave_state(Cluster, uri1, uri2, "ONLINE");
 
 //@<OUT> Cluster: addInstance with interaction, ok 4
 if (__have_ssl)
@@ -125,7 +110,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false});
 
-check_slave_online(Cluster, uri1, uri3);
+wait_slave_state(Cluster, uri1, uri3, "ONLINE");
 
 //@<OUT> Cluster: status: success
 Cluster.status()
@@ -134,13 +119,11 @@ Cluster.status()
 
 //@# Dba: kill instance 3
 if (__sandbox_dir)
-  dba.killSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir})
+  dba.killSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir});
 else
-  dba.killSandboxInstance(__mysql_sandbox_port3)
+  dba.killSandboxInstance(__mysql_sandbox_port3);
 
-// XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
-// But won't be available for the GA release. So we need a sleep here
-os.sleep(10)
+wait_slave_state(Cluster, uri1, uri3, ["UNREACHABLE", "OFFLINE"]);
 
 //@# Dba: start instance 3
 if (__sandbox_dir)
@@ -148,7 +131,7 @@ if (__sandbox_dir)
 else
   dba.startSandboxInstance(__mysql_sandbox_port3)
 
-check_slave_offline(Cluster, uri1, uri3);
+wait_slave_state(Cluster, uri1, uri3, "OFFLINE");
 
 //@: Cluster: rejoinInstance errors
 Cluster.rejoinInstance();
@@ -164,20 +147,13 @@ if (__have_ssl)
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, ssl: false});
 
-check_slave_online(Cluster, uri1, uri3);
+wait_slave_state(Cluster, uri1, uri3, "ONLINE");
 
 // Verify if the cluster is OK
 
 //@<OUT> Cluster: status for rejoin: success
 Cluster.status()
 
-
-// We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-// BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-// As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-
 //Cluster.dissolve({force: true})
 
-//Cluster.describe()
-
-//Cluster.status()
+reset_or_deploy_sandboxes();

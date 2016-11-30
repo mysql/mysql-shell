@@ -667,7 +667,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
   std::string delimiter = ":";
   std::string seed_host = peer_instance.substr(0, peer_instance.find(delimiter));
-  std::string seed_port = peer_instance.substr(peer_instance.find(delimiter)+1, peer_instance.length());
+  std::string seed_port = peer_instance.substr(peer_instance.find(delimiter) + 1, peer_instance.length());
 
   (*seed_options)["host"] = shcore::Value(seed_host);
   (*seed_options)["port"] = shcore::Value(atoi(seed_port.c_str()));
@@ -702,11 +702,6 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     }
   }
 
-  // Check if the Group has quorum
-  if (!has_quorum(classic->connection()))
-    throw Exception::runtime_error("Cannot rejoin instance: the group doesn't have quorum. "
-                                    "Please remove and re-add the OFFLINE/UNREACHABLE instances from the cluster.");
-
   // To rejoin an instance we must set the seeds list at: group_replication_group_seeds
   // And to start group replication
 
@@ -724,7 +719,9 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     try {
       log_info("Opening a new session to the rejoining instance %s",
                instance_address.c_str());
-      session = mysqlsh::connect_session(args, mysqlsh::SessionType::Classic);
+      shcore::Argument_list slave_args;
+      slave_args.push_back(shcore::Value(options));
+      session = mysqlsh::connect_session(slave_args, mysqlsh::SessionType::Classic);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s", instance_address.c_str(),
@@ -921,12 +918,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   //         out of the game: can't be added again because of the gtid diverge
   //       - If removing the master instance, a new master will be promoted but this instance will never
   //         be removed from the cluster
-
-  // We need to check if the group has quorum and if not we must abort the operation
-  // otherwise we GR blocks the writes to preserve the consistency of the group and we end up
-  // with a hang.
-  if (!has_quorum(classic->connection()))
-    throw Exception::runtime_error("Cannot remove the instance: the group doesn't have quorum.");
 
   MetadataStorage::Transaction tx(_metadata_storage);
 
@@ -1468,4 +1459,8 @@ std::vector<ReplicaSet::MissingInstanceInfo> ReplicaSet::get_unavailable_instanc
   }
 
   return ret;
+}
+
+ReplicationGroupState ReplicaSet::check_preconditions(const std::string& function_name) const {
+  return check_function_preconditions(class_name(), function_name, get_function_name(function_name), _metadata_storage);
 }

@@ -185,23 +185,6 @@ TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
               + deploy_options + ")");
 }
 
-TEST_F(Shell_py_dba_tests, no_interactive_drop_metadata_schema) {
-  _options->wizards = false;
-  reset_shell();
-
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
-
-  // Disable the binary logging to not introduce overhead on the following tests
-  execute("session.run_sql('SET sql_log_bin = 0');");
-
-  validate_interactive("dba_drop_metadata_no_interactive.py");
-
-  // Re-enable binary logging
-  execute("session.run_sql('SET sql_log_bin = 1');");
-
-  execute("session.close();");
-}
-
 TEST_F(Shell_py_dba_tests, no_interactive_classic_global_dba) {
   std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
   create_file("mybad.cnf", bad_config);
@@ -228,15 +211,10 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_global_cluster) {
   // Lets the cluster empty
   validate_interactive("dba_cluster_no_interactive.py");
 
-  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  clean_and_deploy();
-
   execute("session.close()");
 }
 
-TEST_F(Shell_py_dba_tests, no_interactive_classic_global_cluster_multimaster) {
+TEST_F(Shell_py_dba_tests, DISABLED_no_interactive_classic_global_cluster_multimaster) {
   _options->wizards = false;
   reset_shell();
 
@@ -245,92 +223,6 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_global_cluster_multimaster) {
   // error conditions
   // Lets the cluster empty
   validate_interactive("dba_cluster_multimaster_no_interactive.py");
-
-  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  clean_and_deploy();
-
-  execute("session.close();");
-}
-
-TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_dba) {
-  std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
-  create_file("mybad.cnf", bad_config);
-
-  _options->wizards = false;
-  reset_shell();
-
-  execute("from mysqlsh import mysql");
-  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
-  execute("dba.reset_session(mySession)");
-
-  // Validates error conditions on create, get and drop cluster
-  // Lets the cluster created
-  validate_interactive("dba_no_interactive.py");
-
-  execute("mySession.close()");
-}
-
-TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_cluster) {
-  _options->wizards = false;
-  reset_shell();
-
-  execute("from mysqlsh import mysql");
-  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
-  execute("dba.reset_session(mySession)");
-  // Tests cluster functionality, adding, removing instances
-  // error conditions
-  // Lets the cluster empty
-  validate_interactive("dba_cluster_no_interactive.py");
-
-  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  clean_and_deploy();
-
-  execute("mySession.close()");
-}
-
-TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_cluster_multimaster) {
-  _options->wizards = false;
-  reset_shell();
-
-  execute("from mysqlsh import mysql");
-  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
-  execute("dba.reset_session(mySession)");
-  // Tests cluster functionality, adding, removing instances
-  // error conditions
-  // Lets the cluster empty
-  validate_interactive("dba_cluster_multimaster_no_interactive.py");
-
-  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  clean_and_deploy();
-
-  execute("mySession.close();");
-}
-
-TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
-
-  // Disable the binary logging to not introduce overhead on the following tests
-  execute("session.run_sql('SET sql_log_bin = 0');");
-
-  //@# drop metadata: no user response
-  output_handler.prompts.push_back("");
-
-  //@# drop metadata: user response no
-  output_handler.prompts.push_back("n");
-
-  //@# drop metadata: user response yes
-  output_handler.prompts.push_back("y");
-
-  validate_interactive("dba_drop_metadata_interactive.py");
-
-  // Re-enable binary logging
-  execute("session.run_sql('SET sql_log_bin = 1');");
 
   execute("session.close();");
 }
@@ -380,9 +272,6 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
   //@<OUT> Cluster: add_instance 3 with interaction, ok
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Cluster: add_instance with interaction, ok 2
-  output_handler.passwords.push_back("root");
-
   //@<OUT> Cluster: add_instance with interaction, ok 3
   output_handler.passwords.push_back("root");
 
@@ -403,15 +292,10 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
   // Lets the cluster empty
   validate_interactive("dba_cluster_interactive.py");
 
-  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  clean_and_deploy();
-
   execute("session.close();");
 }
 
-TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster_multimaster) {
+TEST_F(Shell_py_dba_tests, DISABLED_interactive_classic_global_cluster_multimaster) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@<OUT> Dba: createCluster multiMaster with interaction, cancel
@@ -452,144 +336,43 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster_multimaster) {
   // Lets the cluster empty
   validate_interactive("dba_cluster_multimaster_interactive.py");
 
-  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  clean_and_deploy();
-
   execute("session.close();");
 }
 
-TEST_F(Shell_py_dba_tests, interactive_custom_global_dba) {
-  std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
-  create_file("mybad.cnf", bad_config);
 
-  execute("from mysqlsh import mysql");
-  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
-  execute("dba.reset_session(mySession)");
+TEST_F(Shell_py_dba_tests, function_preconditions) {
+  _options->wizards = false;
+  reset_shell();
 
-  //@# Dba: checkInstanceConfig error
-  output_handler.passwords.push_back("root");
+  validate_interactive("dba_preconditions.py");
+}
 
-  //@<OUT> Dba: checkInstanceConfig ok 1
-  output_handler.passwords.push_back("root");
+TEST_F(Shell_py_dba_tests, no_interactive_drop_metadata_schema) {
+  _options->wizards = false;
+  reset_shell();
 
-  //@<OUT> Dba: checkInstanceConfig report with errors
-  output_handler.passwords.push_back("root");
+  validate_interactive("dba_drop_metadata_no_interactive.py");
+}
 
-  //@<OUT> Dba: configLocalInstance error 2
-  output_handler.passwords.push_back(_pwd);
+
+
+TEST_F(Shell_py_dba_tests, function_preconditions_interactive) {
+  validate_interactive("dba_preconditions.py");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
+  //@# drop metadata: no user response
   output_handler.prompts.push_back("");
 
-  //@<OUT> Dba: configLocalInstance error 3
-  output_handler.passwords.push_back("root");
-  output_handler.prompts.push_back("mybad.cnf");
+  //@# drop metadata: user response no
+  output_handler.prompts.push_back("n");
 
-  //@<OUT> Dba: configLocalInstance updating config file
-  output_handler.passwords.push_back("root");
+  //@# drop metadata: user response yes
+  output_handler.prompts.push_back("y");
 
-  // Validates error conditions on create, get and drop cluster
-  // Lets the cluster created
-  validate_interactive("dba_interactive.py");
-
-  execute("mySession.close();");
+  validate_interactive("dba_drop_metadata_interactive.py");
 }
 
-TEST_F(Shell_py_dba_tests, interactive_custom_global_cluster) {
-  execute("from mysqlsh import mysql");
-  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
-  execute("dba.reset_session(mySession)");
-
-  //@# Cluster: add_instance with interaction, error
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance 3 with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 2
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 3
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 4
-  output_handler.passwords.push_back("root");
-
-  //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back("n");
-
-  //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back("n");
-
-  //@<OUT> Cluster: rejoin_instance with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  // Tests cluster functionality, adding, removing instances
-  // error conditions
-  // Lets the cluster empty
-  validate_interactive("dba_cluster_interactive.py");
-
-  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  clean_and_deploy();
-
-  execute("mySession.close();");
-}
-
-TEST_F(Shell_py_dba_tests, interactive_classic_custom_cluster_multimaster) {
-  execute("from mysqlsh import mysql");
-  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
-  execute("dba.reset_session(mySession)");
-
-  //@<OUT> Dba: createCluster multiMaster with interaction, cancel
-  output_handler.prompts.push_back("no");
-
-  //@<OUT> Dba: createCluster multiMaster with interaction, ok
-  output_handler.prompts.push_back("yes");
-
-  //@# Cluster: add_instance with interaction, error
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance 3 with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 2
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 3
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 4
-  output_handler.passwords.push_back("root");
-
-  //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back("n");
-
-  //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back("n");
-
-  //@<OUT> Cluster: rejoin_instance with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  // Tests cluster functionality, adding, removing instances
-  // error conditions
-  // Lets the cluster empty
-  validate_interactive("dba_cluster_multimaster_interactive.py");
-
-  // We cannot test the output of dissolve because it will crash the rejoined instance, hitting the bug:
-  // BUG#24818604: MYSQLD CRASHES WHILE STARTING GROUP REPLICATION FOR A NODE IN RECOVERY PROCESS
-  // As soon as the bug is fixed, dissolve will work fine and we can remove the above workaround to do a clean-up
-  clean_and_deploy();
-
-  execute("session.close();");
-}
 
 TEST_F(Shell_py_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;

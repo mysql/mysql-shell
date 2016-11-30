@@ -25,7 +25,7 @@
 |<Cluster:devCluster>|
 
 #@# Dba: create_cluster already exist
-||Dba.create_cluster: Cluster is already initialized. Use Dba.get_cluster() to access it.
+||Dba.create_cluster: Cluster is already initialized. Use Dba.get_cluster() to access it
 
 #@# Dba: check_instance_config errors
 ||Dba.check_instance_config: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'

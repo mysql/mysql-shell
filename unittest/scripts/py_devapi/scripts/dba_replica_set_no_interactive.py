@@ -2,7 +2,7 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
 
-dba.drop_metadata_schema({'enforce':True})
+dba.drop_metadata_schema({'force':True})
 
 #@ Cluster: validating members
 if __have_ssl:

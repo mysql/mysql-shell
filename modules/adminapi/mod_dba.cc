@@ -104,8 +104,7 @@ void Dba::set_member(const std::string &prop, Value value) {
     try {
       verbosity = value.as_int();
       _provisioning_interface->set_verbose(verbosity);
-    }
-    catch (shcore::Exception& e) {
+    } catch (shcore::Exception& e) {
       throw shcore::Exception::value_error("Invalid value for property 'verbose', use either boolean or integer value.");
     }
   } else {
@@ -173,15 +172,14 @@ Cluster Dba::getCluster(String name) {}
 Cluster Dba::get_cluster(str name) {}
 #endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
-  Value ret_val;
-
-  validate_session(get_function_name("getCluster"));
-
   args.ensure_count(0, 1, get_function_name("getCluster").c_str());
+
+  check_preconditions("getCluster");
 
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   bool get_default_cluster = false;
   std::string cluster_name;
+  Value ret_val;
 
   try {
     // gets the cluster_name and/or options
@@ -267,21 +265,34 @@ Cluster Dba::createCluster(String name, Dictionary options) {}
 Cluster Dba::create_cluster(str name, dict options) {}
 #endif
 shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
-  Value ret_val;
-
-  validate_session(get_function_name("createCluster"));
-
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
+
+  ReplicationGroupState state;
+
+  try {
+    state = check_preconditions("createCluster");
+  } catch (shcore::Exception &e) {
+    std::string error(e.what());
+    if (error.find("already in an InnoDB cluster") != std::string::npos) {
+      /*
+      * For V1.0 we only support one single Cluster. That one shall be the default Cluster.
+      * We must check if there's already a Default Cluster assigned, and if so thrown an exception.
+      * And we must check if there's already one Cluster on the MD and if so assign it to Default
+      */
+      std::string nice_error = get_function_name("createCluster") + ": Cluster is already initialized. "\
+                               "Use " + get_function_name("getCluster") + "() to access it";
+      throw shcore::Exception::runtime_error(nice_error);
+    } else throw;
+  }
 
   // Available options
   std::string cluster_admin_type = "local"; // Default is local
-
+  Value ret_val;
   bool multi_master = false; // Default single/primary master
   bool adopt_from_gr = false;
   bool force = false;
   bool ssl = true;  // SSL used by default.
   std::string ssl_ca, ssl_cert, ssl_key = "";
-
 
   try {
     std::string cluster_name = args.string_at(0);
@@ -329,15 +340,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       if (opt_map.has_key("sslKey"))
         ssl_key = opt_map.string_at("sslKey");
     }
-    /*
-     * For V1.0 we only support one single Cluster. That one shall be the default Cluster.
-     * We must check if there's already a Default Cluster assigned, and if so thrown an exception.
-     * And we must check if there's already one Cluster on the MD and if so assign it to Default
-     */
-    bool has_default_cluster = _metadata_storage->has_default_cluster();
 
-    if (has_default_cluster)
-      throw Exception::argument_error("Cluster is already initialized. Use " + get_function_name("getCluster") + "() to access it.");
+    if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
+      throw Exception::argument_error("Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
 
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();
@@ -404,7 +409,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_BRIEF, "Drops the Metadata Schema.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM, "@param options Dictionary containing an option to confirm the drop operation.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL, "The next is the only option supported:");
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL1, "@li enforce: boolean, confirms that the drop operation must be executed.");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL1, "@li force: boolean, confirms that the drop operation must be executed.");
 
 /**
 * $(DBA_DROPMETADATASCHEMA_BRIEF)
@@ -423,20 +428,27 @@ None Dba::drop_metadata_schema(dict options) {}
 shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("dropMetadataSchema").c_str());
 
-  bool enforce = false;
+  check_preconditions("dropMetadataSchema");
 
-  // Map with the options
-  shcore::Value::Map_type_ref options = args.map_at(0);
+  try {
+    bool force = false;
 
-  if (options->has_key("enforce"))
-    enforce = options->get_bool("enforce");
+    // Map with the options
+    shcore::Value::Map_type_ref options = args.map_at(0);
 
-  if (enforce) {
-    try {
+    shcore::Argument_map opt_map(*options);
+
+    opt_map.ensure_keys({}, {"force"}, "the options");
+
+    if (opt_map.has_key("force"))
+      force = opt_map.bool_at("force");
+
+    if (force)
       _metadata_storage->drop_metadata_schema();
-    }
-    CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
+    else
+      throw shcore::Exception::runtime_error("No operation executed, use the 'force' option");
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
 
   return Value();
 }
@@ -476,7 +488,7 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
       if (!_custom_session)
         throw shcore::Exception::argument_error("Invalid session object.");
     } else
-      _custom_session.reset();
+    _custom_session.reset();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("resetSession"))
 
@@ -708,7 +720,7 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, co
         if (!remote_root.empty()) {
           int port = args.int_at(0);
           std::string password;
-          std::string uri = "root@localhost:"+std::to_string(port);
+          std::string uri = "root@localhost:" + std::to_string(port);
           if (opt_map.has_key("password"))
             password = opt_map.string_at("password");
           else if (opt_map.has_key("dbPassword"))
@@ -934,13 +946,6 @@ shcore::Value Dba::start_sandbox_instance(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("startSandboxInstance"));
 
   return ret_val;
-}
-
-void Dba::validate_session(const std::string &source) const {
-  auto session = get_active_session();
-
-  if (!session || session->class_name() != "ClassicSession")
-    throw shcore::Exception::runtime_error(source + ": a Classic Session is required to perform this operation");
 }
 
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_BRIEF, "Validates and configures an instance for cluster usage.");
@@ -1216,4 +1221,8 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
   }
 
   return ret_val;
+}
+
+ReplicationGroupState Dba::check_preconditions(const std::string& function_name) const {
+  return check_function_preconditions(class_name(), function_name, get_function_name(function_name), _metadata_storage);
 }

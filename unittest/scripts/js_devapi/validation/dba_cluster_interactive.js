@@ -187,41 +187,11 @@ The following replicasets are currently registered:
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
-||Cluster.dissolve: Invalid values in dissolve options: foobar
+||Cluster.dissolve: Invalid values in dissolve options: enforce
 ||Cluster.dissolve: Argument 'force' is expected to be a bool
 
 //@ Cluster: remove_instance 3
 ||
-
-//@ Cluster: remove_instance last
-||
-
-//@<OUT> Cluster: describe3
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "instances": [],
-        "name": "default"
-    }
-}
-
-//@<OUT> Cluster: status3
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.",
-        "topology": {}
-    }
-}
-
-//@<OUT> Cluster: addInstance with interaction, ok 2
-A new instance will be added to the InnoDB cluster. Depending on the amount of
-data on the cluster this might take from a few seconds to several hours.
-
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Adding instance to the cluster ...
-
-The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
 A new instance will be added to the InnoDB cluster. Depending on the amount of

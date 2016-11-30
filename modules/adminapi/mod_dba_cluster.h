@@ -24,6 +24,7 @@
 #include "shellcore/types_cpp.h"
 
 #include "mod_dba_replicaset.h"
+#include "modules/adminapi/mod_dba_common.h"
 
 #define ACC_USER "username"
 #define ACC_PASSWORD "password"
@@ -35,6 +36,7 @@
 namespace mysqlsh {
 namespace dba {
 class MetadataStorage;
+
 /**
  * $(CLUSTER_BRIEF)
  */
@@ -86,6 +88,8 @@ public:
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
+
+  ReplicationGroupState check_preconditions(const std::string& function_name) const;
 
 #if DOXYGEN_JS
   String name; //!< $(CLUSTER_NAME_BRIEF)

@@ -23,6 +23,7 @@
 using namespace shcore;
 
 static bool g_test_debug = getenv("TEST_DEBUG") != nullptr;
+static bool g_test_sessions = getenv("TEST_SESSIONS") != nullptr;
 
 Shell_test_output_handler::Shell_test_output_handler() {
   deleg.user_data = this;
@@ -225,7 +226,10 @@ void Shell_core_test_wrapper::TearDown() {
 
   if (!_open_sessions.empty()) {
     for(auto entry: _open_sessions) {
-      std::cerr << "WARNING: Closing dangling session opened on " << entry.second << std::endl;
+
+      // Prints the session warnings ONLY if TEST_SESSIONS is enabled
+      if (g_test_sessions)
+        std::cerr << "WARNING: Closing dangling session opened on " << entry.second << std::endl;
 
       auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
       session->close(shcore::Argument_list());
@@ -242,15 +246,18 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
     auto position = _open_sessions.find(sender);
     if (position == _open_sessions.end())
       _open_sessions[sender] = identifier;
-    else {
-      std::cerr << "WARNING: Reopening session from " << _open_sessions[sender] << " at " << identifier << std::endl;
+    // Prints the session warnings ONLY if TEST_SESSIONS is enabled
+    else if (g_test_sessions) {
+        std::cerr << "WARNING: Reopening session from " << _open_sessions[sender] << " at " << identifier << std::endl;
     }
   } else if ( name == "SN_SESSION_CONNECTION_LOST" || name == "SN_SESSION_CLOSED") {
     auto position = _open_sessions.find(sender);
     if (position != _open_sessions.end())
       _open_sessions.erase(position);
-    else
+    // Prints the session warnings ONLY if TEST_SESSIONS is enabled
+    else if (g_test_sessions) {
       std::cerr << "WARNING: Closing a session that was never opened at " << identifier << std::endl;
+    }
   }
 }
 
