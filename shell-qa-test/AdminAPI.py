@@ -77,6 +77,8 @@ def read_til_getShell(proc, fd, text):
     #while line.find(text,0,len(line))< 0  and proc.poll() == None:
         try:
             line = read_line(proc, fd, text)
+            if debugMode == "true":
+                print line
             globalvar.last_found = globalvar.last_found + line
             if line:
                 data.append(line)
@@ -139,7 +141,7 @@ def exec_xshell_commands(init_cmdLine, commandList):
         expectbefore = "mysql-js>"
     else:
         expectbefore = "mysql-js>"
-    p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          stdin=subprocess.PIPE, bufsize=-1)
     for command, lookup in commandList:
         # p.stdin.write(bytearray(command + "\n", 'ascii'))
@@ -161,7 +163,9 @@ def exec_xshell_commands(init_cmdLine, commandList):
     p.stdin.flush()
     #p.stdout.reset()
     stdin,stdout = p.communicate()
-    found = stdout.find(bytearray(expectbefore,"ascii"), 0, len(stdout))
+    #Avoid any validation in stderr because is already redirected to stdout
+    #found = stdout.find(bytearray(expectbefore,"ascii"), 0, len(stdout))
+    found = -1
     if found == -1 and commandList.__len__() != 0 :
             found = stdin.find(bytearray(expectbefore,"ascii"), 0, len(stdin))
             if found == -1 :
@@ -217,6 +221,7 @@ if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfil
     Exec_files_location = os.environ['AUX_FILES_PATH']
     cluster_Path = os.environ['CLUSTER_PATH']
     XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
+    debugMode = os.environ['DEBUG_MODE']
     XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/adminapi_qa_test.xml"
 else:
     # **** LOCAL EXECUTION ****
@@ -1973,8 +1978,13 @@ class XShell_TestCases(unittest.TestCase):
                  "Instance localhost:" + instance1 + " successfully deployed and started."),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
-      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
-          self.assertEqual(results, 'PASS')
+      try:
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
+      except Exception as ex:
+          results = "FAIL: " + str(results) + ", Exception: " + str(ex)
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
       ################################ deploySandboxInstance 3313  #####################################################
       instance2 = "3313"
       kill_process(instance2)
@@ -1986,8 +1996,13 @@ class XShell_TestCases(unittest.TestCase):
                  "Instance localhost:" + instance2 + " successfully deployed and started."),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
-      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
-          self.assertEqual(results, 'PASS')
+      try:
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
+      except Exception as ex:
+          results = "FAIL: " + str(results) + ", Exception: " + str(ex)
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
       ################################# deploySandboxInstance 3314  ###################################################
       instance3 = "3314"
       kill_process(instance3)
@@ -1999,8 +2014,13 @@ class XShell_TestCases(unittest.TestCase):
                  "Instance localhost:" + instance3 + " successfully deployed and started."),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
-      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
-          self.assertEqual(results, 'PASS')
+      try:
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
+      except Exception as ex:
+          results = "FAIL: " + str(results) + ", Exception: " + str(ex)
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
       #################################### createCluster  #################################################
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
@@ -2015,8 +2035,13 @@ class XShell_TestCases(unittest.TestCase):
                  "was successfully added to the cluster")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
-      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
-          self.assertEqual(results, 'PASS')
+      try:
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
+      except Exception as ex:
+          results = "FAIL: " + str(results) + ", Exception: " + str(ex)
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
       ########################## STOP INSTANCE
 
       instance="3312"
@@ -2092,8 +2117,13 @@ class XShell_TestCases(unittest.TestCase):
                 ("cluster.status();\n", findString)
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
-      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
-          self.assertEqual(results, 'PASS')
+      try:
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
+      except Exception as ex:
+          results = "FAIL: " + str(results) + ", Exception: " + str(ex)
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
       ##########################
 
       #kill_process(instance2)
