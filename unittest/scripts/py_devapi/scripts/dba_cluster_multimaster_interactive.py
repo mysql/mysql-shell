@@ -23,7 +23,10 @@ else:
   cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1, 'ssl': False});
 
 #@<OUT> Cluster: add_instance with interaction, ok
-cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2});
+if __have_ssl:
+  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2});
+else:
+  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2, 'ssl': False});
 
 check_slave_online_multimaster(cluster, uri2);
 
