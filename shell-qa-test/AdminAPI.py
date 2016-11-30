@@ -139,7 +139,8 @@ def exec_xshell_commands(init_cmdLine, commandList):
         expectbefore = "mysql-js>"
     else:
         expectbefore = "mysql-js>"
-    p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         stdin=subprocess.PIPE, bufsize=-1)
     for command, lookup in commandList:
         # p.stdin.write(bytearray(command + "\n", 'ascii'))
         p.stdin.write(bytearray(command , 'ascii'))
