@@ -37,7 +37,11 @@ session.close()
 
 #@ Read Only Instance : get cluster
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
-cluster.add_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
+
+if __have_ssl: 
+  cluster.add_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
+else:
+  cluster.add_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'ssl':False})
 
 # Waiting for the second added instance to become online
 wait_slave_state(cluster, uri1, uri2, "ONLINE")
@@ -76,7 +80,11 @@ session.close()
 #@ Preparation for quorumless cluster tests
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 cluster = dba.get_cluster()
-dba.kill_sandbox_instance(__mysql_sandbox_port2)
+
+if __sandbox_dir:
+  dba.kill_sandbox_instance(__mysql_sandbox_port2, {'sandboxDir':__sandbox_dir})
+else:
+  dba.kill_sandbox_instance(__mysql_sandbox_port2)
 
 # Waiting for the second instance to become offline
 wait_slave_state(cluster, uri1, uri2, ["UNREACHABLE", "OFFLINE"])
