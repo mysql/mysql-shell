@@ -11,6 +11,16 @@ import unittest
 import json
 import xmlrunner
 import shutil
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+fh = logging.FileHandler('AdminAPI_Log_Execution.txt', mode='w')
+fh.setLevel(logging.DEBUG)
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 def timeout(timeout):
     def deco(func):
@@ -77,8 +87,8 @@ def read_til_getShell(proc, fd, text):
     #while line.find(text,0,len(line))< 0  and proc.poll() == None:
         try:
             line = read_line(proc, fd, text)
-            if debugMode == "true":
-                print line
+            if debug_mode == "true":
+                logger.debug(line)
             globalvar.last_found = globalvar.last_found + line
             if line:
                 data.append(line)
@@ -225,7 +235,7 @@ if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfil
     Exec_files_location = os.environ['AUX_FILES_PATH']
     cluster_Path = os.environ['CLUSTER_PATH']
     XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
-    debugMode = os.environ['DEBUG_MODE']
+    debug_mode = os.environ['DEBUG_MODE']
     XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/adminapi_qa_test.xml"
 else:
     # **** LOCAL EXECUTION ****
@@ -233,6 +243,7 @@ else:
     MYSQL_SHELL = str(config["general"]["xshell_path"])
     Exec_files_location = str(config["general"]["aux_files_path"])
     cluster_Path = str(config["general"]["cluster_path"])
+    debug_mode = "false"
     XMLReportFilePath = "adminapi_qa_test.xml"
 
 #########################################################################
@@ -265,7 +276,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--dba','enableXProtocol']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       p.stdin.flush()
       stdin,stdout = p.communicate()
       if stdin.find(bytearray("X Protocol plugin is already enabled and listening for connections","ascii"), 0, len(stdin)) >= 0:
@@ -277,7 +288,7 @@ class XShell_TestCases(unittest.TestCase):
       # create world_x and world_x-data
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic', '--file=' + Exec_files_location + 'world_x.sql']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -286,7 +297,6 @@ class XShell_TestCases(unittest.TestCase):
                 ("use world_x;\n", "mysql-sql>"),
                 ("show tables ;\n", "4 rows in set"),
                 ]
-
       results = exec_xshell_commands(init_command, x_cmds)
       if results !="PASS":
         raise ValueError("FAILED initializing schema world_x")
@@ -294,11 +304,11 @@ class XShell_TestCases(unittest.TestCase):
       # create sakila and sakila-data
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic','--file=' + Exec_files_location + 'sakila-schema.sql']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       stdin, stdout = p.communicate()
       init_command = [MYSQL_SHELL, '--interactive=full',  '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,'--sqlc','--classic','--file=' +Exec_files_location+'sakila-data-5712.sql']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
       #if stdout.find(bytearray("ERROR","ascii"),0,len(stdout))> -1:
       #  self.assertEqual(stdin, 'PASS')
@@ -318,7 +328,7 @@ class XShell_TestCases(unittest.TestCase):
       # create sakila_x
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic','--file=' + Exec_files_location + 'sakila_x.sql']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       stdin, stdout = p.communicate()
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -333,9 +343,9 @@ class XShell_TestCases(unittest.TestCase):
         raise ValueError("FAILED initializing schema sakila_x")
 
 
-
   def test_MYS_619_deploySandboxInstance(self):
       '''MYS-619 [MYAA] dba.deployLocalInstance(port)'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       results = ''
@@ -351,6 +361,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_751_deploySandboxInstance(self):
       '''MYS-751 [MYAA] dba.deployLocalInstance(port[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       results = ''
@@ -365,6 +376,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_620_deleteSandboxInstance(self):
       '''MYS-620 [MYAA] dba.deleteLocalInstance(port)'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       results = ''
@@ -380,6 +392,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_755_deleteSandboxInstance(self):
       '''MYS-755 [MYAA] dba.deleteLocalInstance(port[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       # default_sandbox_path="/mysql-sandboxes"
@@ -400,6 +413,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_749_killSandboxInstance(self):
       '''MYS-749 [MYAA] dba.killLocalInstance(port)'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       # default_sandbox_path="/mysql-sandboxes"
@@ -420,6 +434,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_756_killSandboxInstance(self):
       '''MYS-756 [MYAA] dba.killLocalInstance(port[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       # default_sandbox_path="/mysql-sandboxes"
@@ -439,6 +454,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_633_startSandboxInstance(self):
       '''MYS-633 [MYAA] dba.startLocalInstance(port)'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       # default_sandbox_path="/mysql-sandboxes"
@@ -462,6 +478,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_757_startSandboxInstance(self):
       '''MYS-757 [MYAA] dba.startLocalInstance(port[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       # default_sandbox_path="/mysql-sandboxes"
@@ -482,6 +499,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_634_stopSandboxInstance(self):
       '''MYS-634 [MYAA] dba.stopLocalInstance(port)'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       # default_sandbox_path="/mysql-sandboxes"
@@ -503,6 +521,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_758_stopSandboxInstance(self):
       '''MYS-758 [MYAA] dba.stopLocalInstance(port[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       # default_sandbox_path="/mysql-sandboxes"
@@ -523,6 +542,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_MYS_750_checkInstanceConfig(self):
       '''MYS-750 [MYAA] dba.validateInstance(instance[, password])
       NOTE: validateInstance was changed to checkInstanceConfig'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance="3312"
       kill_process(instance)
       results = ''
@@ -537,6 +557,7 @@ class XShell_TestCases(unittest.TestCase):
   #@unittest.skip("sometimes pass , sometimes fail")
   def test_MYS_622_createCluster(self):
       '''MYS-622 [MYAA] dba.createCluster(name)'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       results = ''
@@ -560,6 +581,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_774(self):
       '''NGSHELL CRASHES WHEN DBA.GETCLUSTER WITHOUT A CLUSTER SETUP'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       # Armando Lopez Valencia
       # armando.lopezv@oracle.com
       # Destroy the cluster
@@ -612,6 +634,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_809(self):
       '''MYS-829 NOT ABLE TO ADD A REMOVED PRIMARY TO THE CLUSTER'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       #Armando López Valencia
       #armando.lopezv@oracle.com
       # Destroy the cluster
@@ -644,6 +667,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_820_createCluster(self):
       '''MYS-820 [MYAA] dba.createCluster(name[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -672,6 +696,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_829(self):
       '''MYS-829 NOT ABLE TO ADD A REMOVED PRIMARY TO THE CLUSTER'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instances = ["3310", "3320", "3330"]
       default_sandbox_path = "/mysql-sandboxes"
       for instance in instances:
@@ -713,6 +738,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_900(self):
       '''MYS-900 REMOVED SEED NODE SHOWN AS OFFLINE CLUSTER MEMBER'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instances = ["3310", "3320", "3330"]
       default_sandbox_path = "/mysql-sandboxes"
       for instance in instances:
@@ -800,6 +826,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_735_createCluster(self):
       '''MYS-735 [MYAA] CreateCluster() Empty'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -832,6 +859,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_628_getCluster(self):
       '''MYS-628 [MYAA] dba.getCluster()'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -865,6 +893,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_763_getCluster(self):
       '''MYS-763 [MYAA] dba.getCluster([name][, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -898,6 +927,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_764_getCluster(self):
       '''MYS-764 [MYAA] dba.getCluster([name][, options]) FAILOVER-Invalid Cluster'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -931,6 +961,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_624_cluster_describe(self):
       '''MYS-820 [MYAA] dba.createCluster(name[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -965,6 +996,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_625_cluster_status(self):
       '''MYS-820 [MYAA] dba.createCluster(name[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -999,6 +1031,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_625_cluster_rescan(self):
       '''MYS-820 [MYAA] dba.createCluster(name[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -1033,6 +1066,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_742_dba_checkInstanceConfig(self):
       '''MYS-820 [MYAA] dba.createCluster(name[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -1064,14 +1098,9 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-
-
-
-
-
-
   def test_MYS_720_cluster_dissolve(self):
       '''MYS-820 [MYAA] dba.createCluster(name[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -1109,6 +1138,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_635_cluster_addInstance_UC1(self):
       '''MYS-735 [MYAA] CreateCluster() Empty'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       ################################ deploySandboxInstance 3312  #####################################################
       instance1 = "3312"
       kill_process(instance1)
@@ -1197,6 +1227,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_635_cluster_addInstance_UC2(self):
       '''MYS-735 [MYAA] CreateCluster() Empty'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       ################################ deploySandboxInstance 3312  #####################################################
       instance1 = "3312"
       kill_process(instance1)
@@ -1274,6 +1305,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_767_cluster_addInstance_UC3(self):
       '''MYS-735 [MYAA] CreateCluster() Empty'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       ################################ deploySandboxInstance 3312  #####################################################
       instance1 = "3312"
       kill_process(instance1)
@@ -1367,6 +1399,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_684_cluster_removeInstance(self):
       '''MYS-735 [MYAA] CreateCluster() Empty'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       ################################ deploySandboxInstance 3312  #####################################################
       instance1 = "3312"
       kill_process(instance1)
@@ -1461,6 +1494,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_769_cluster_removeInstance(self):
       '''MYS-735 [MYAA] CreateCluster() Empty'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       ################################ deploySandboxInstance 3312  #####################################################
       instance1 = "3312"
       kill_process(instance1)
@@ -1554,6 +1588,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_622_createCluster_UC2(self):
       '''MYS-622 [MYAA] dba.createCluster(name)'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       results = ''
@@ -1578,6 +1613,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_855_checkInstanceState_UC1(self):
       '''MYS-855 [MYAA] cluster.checkInstanceState()'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       results = ''
@@ -1610,6 +1646,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_770_cluster_removeInstance(self):
       '''MYS-735 [MYAA] CreateCluster() Empty'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       ################################ deploySandboxInstance 3312  #####################################################
       instance1 = "3312"
       kill_process(instance1)
@@ -1769,6 +1806,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_737_cluster_getName(self):
       '''MYS-737 [MYAA] cluster.name()'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -1803,6 +1841,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_831_cluster_name(self):
       '''MYS-831 [MYAA] cluster.name()'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -1838,6 +1877,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_738_cluster_adminType(self):
       '''MYS-738 [MYAA] cluster.adminType'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -1872,6 +1912,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_741_cluster_getAdminType(self):
       '''MYS-741 [MYAA] cluster.getAdminType()'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       instance = "3312"
       kill_process(instance)
       # default_sandbox_path = "/mysql-sandboxes"
@@ -1906,6 +1947,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_850(self):
       '''[MYS-850] Cluster.status output is mixed up, kind of nested and not easily readable'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       results = ''
       instances = ["3312, { sandboxDir: \"" + cluster_Path + "\"}",
                    "3313, { sandboxDir: \"" + cluster_Path + "\"}",
@@ -1972,6 +2014,7 @@ class XShell_TestCases(unittest.TestCase):
 
   def test_MYS_690_reconfigure_when_removing_instance(self):
       '''MYS-690 [MYAA] reconfigure_when_removing_instance'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
       ################################ deploySandboxInstance 3312  #####################################################
       instance1 = "3312"
       kill_process(instance1)
