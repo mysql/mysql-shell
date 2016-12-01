@@ -90,7 +90,7 @@ def read_til_getShell(proc, fd, text):
             break
     return "".join(data)
 
-def kill_process(instance, argument=""):
+def kill_process2(instance, argument=""):
     default_sandbox_path = "/mysql-sandboxes"
     outputshell=""
     if argument=="":
@@ -106,25 +106,29 @@ def kill_process(instance, argument=""):
     shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
     shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True, onerror=None)
 
-    #return "kil".join(data)
-# def kill_process2(instance, argument=""):
-#     default_sandbox_path = "/mysql-sandboxes"
-#     outputshell=""
-#     if argument=="":
-#         os.popen("kill $(ps -aux|grep mysqld | grep /" + instance + "/ | awk '{print $2}')")
-#     else:
-#         #outputshell = subprocess.check_output("ps -aux|grep mysqld | grep " + instance + " | awk '{print $2}'", shell=True, stderr=subprocess.STDOUT,)
-#         outputshell = subprocess.check_output("ps -aux | grep mysqld | grep " + instance + " | awk '{print $2}'", shell=True)
-#         #outputshell =os. os.call("ps -aux|grep mysqld | grep " + instance + " | awk '{print $2}'", shell=True)
-#         procNumber =outputshell.strip()
-#         os.call("kill " + argument + " " + procNumber, shell=True)
-#         #os.kill(pid,9)
-#
-#     shutil.rmtree(cluster_Path + "/" + instance, ignore_errors=True, onerror=None)
-#     shutil.rmtree(os.path.expanduser("~") + default_sandbox_path + "/" + instance, ignore_errors=True, onerror=None)
-
-    #return "kil".join(data)
-
+def kill_process(instance):
+    results = "PASS"
+    home = os.path.expanduser("~")
+    try:
+        init_command = [MYSQL_SHELL, '--interactive=full']
+        if os.path.isdir(os.path.join(home, "mysql-sandboxes", instance)):
+            x_cmds = [
+                ("dba.killSandboxInstance(" + instance + ");\n", "successfully killed."),
+                ("dba.deleteSandboxInstance(" + instance + ");\n", "successfully deleted."),
+            ]
+            results = exec_xshell_commands(init_command, x_cmds)
+        if os.path.isdir(os.path.join(cluster_Path, instance)):
+            x_cmds = [
+                ("dba.killSandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 "successfully killed."),
+                ("dba.deleteSandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 "successfully deleted."),
+            ]
+            results = exec_xshell_commands(init_command, x_cmds)
+    except Exception, e:
+        # kill instance failed
+        print("kill instance" + instance + "Failed, " + e)
+    return results
 
 
 @timeout(240)
