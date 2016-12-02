@@ -189,7 +189,7 @@ def exec_xshell_commands(init_cmdLine, commandList):
     else:
         return "PASS"
 
-@timeout(240)
+@timeout(350)
 def cleanup_instances(instances=[]):
     # Add instances as String
     init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
@@ -579,6 +579,7 @@ class XShell_TestCases(unittest.TestCase):
       kill_process(instance)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("Avoiding hanging test in Hudson")
   def test_MYS_774(self):
       '''NGSHELL CRASHES WHEN DBA.GETCLUSTER WITHOUT A CLUSTER SETUP'''
       logger.debug("--------- " + str(self._testMethodName) + " ---------")
@@ -586,7 +587,6 @@ class XShell_TestCases(unittest.TestCase):
       # armando.lopezv@oracle.com
       # Destroy the cluster
       cleanup_instances(["3310", "3320", "3330"])
-
       results = 'PASS'
       init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
       x_cmds = [("dba.deploySandboxInstance(3310, {password: \"" + LOCALHOST.password + "\"})\n",
