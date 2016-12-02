@@ -184,14 +184,14 @@ def reset_or_deploy_sandbox(port):
   print 'Killing sandbox at: %s' % port
   
   try:
-    dba.kill_sandbox_instance(port)
+    dba.kill_sandbox_instance(port, options)
   except Exception, err:
     pass
   
   started = False
   try:
     print 'Starting sandbox at: %s' % port
-    dba.start_sandbox_instance(port)
+    dba.start_sandbox_instance(port, options)
     started = True
     print 'succeeded'
   except Exception, err:

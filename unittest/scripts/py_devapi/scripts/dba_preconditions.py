@@ -15,7 +15,10 @@ dba.check_instance_config({'host': localhost, 'port': __mysql_sandbox_port1, 'pa
 dba.config_local_instance({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
 
 #@<OUT> Standalone Instance: create cluster
-cluster = dba.create_cluster('dev')
+if __have_ssl:
+  cluster = dba.create_cluster('dev')
+else:
+  cluster = dba.create_cluster('dev', {'ssl':False})
 
 cluster.status()
 session.close()
@@ -120,7 +123,12 @@ reset_or_deploy_sandbox(__mysql_sandbox_port1)
 reset_or_deploy_sandbox(__mysql_sandbox_port2)
 
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
-cluster = dba.create_cluster('temporal')
+
+if __have_ssl:
+  cluster = dba.create_cluster('temporal')
+else:
+  cluster = dba.create_cluster('temporal', {'ssl':False})
+
 dba.drop_metadata_schema({'force': True})
 
 #@ Unmanaged Instance: Failed preconditions

@@ -15,7 +15,10 @@ dba.checkInstanceConfig({host: localhost, port: __mysql_sandbox_port1, password:
 dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:'root'}, {mycnfPath:'mybad.cnf'});
 
 //@<OUT> Standalone Instance: create cluster
-var cluster = dba.createCluster('dev');
+if (__have_ssl)
+  var cluster = dba.createCluster('dev');
+else
+  var cluster = dba.createCluster('dev', {ssl:false});
 
 cluster.status();
 session.close();
@@ -119,7 +122,12 @@ reset_or_deploy_sandbox(__mysql_sandbox_port1);
 reset_or_deploy_sandbox(__mysql_sandbox_port2);
 
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-var cluster = dba.createCluster('temporal');
+
+if (__have_ssl)
+  var cluster = dba.createCluster('temporal');
+else
+  var cluster = dba.createCluster('temporal', {ssl:false});
+
 dba.dropMetadataSchema({force:true});
 
 //@ Unmanaged Instance: Failed preconditions
