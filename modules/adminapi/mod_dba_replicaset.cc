@@ -32,7 +32,6 @@
 #include "xerrmsg.h"
 #include "mysqlx_connection.h"
 #include "shellcore/shell_core_options.h"
-#include "common/process_launcher/process_launcher.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_resultset.h"
 #include "utils/utils_time.h"

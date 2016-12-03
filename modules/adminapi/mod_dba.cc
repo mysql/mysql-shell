@@ -39,8 +39,6 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 
-#include "common/process_launcher/process_launcher.h"
-
 using namespace std::placeholders;
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
