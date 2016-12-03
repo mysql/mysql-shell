@@ -334,6 +334,8 @@ void Process_launcher::start()
 
     ::close(fd_out[1]);
     ::close(fd_in[0]);
+    
+    is_alive = true;
     /*
     _s_pollfd[0].fd = fd_out[0];
     _s_pollfd[0].events = POLLIN;
