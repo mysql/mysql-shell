@@ -127,6 +127,10 @@ def kill_process(instance):
                 ("dba.deleteSandboxInstance(" + instance + ");\n", "successfully deleted."),
             ]
             results = exec_xshell_commands(init_command, x_cmds)
+            if os.path.isdir(os.path.join(home, "mysql-sandboxes", instance)):
+                logger.debug("FAILED to kill/delete instance: " + instance + " " + str(results))
+            else:
+                logger.debug("kill/delete sucessfull for instance: " + instance)
         if os.path.isdir(os.path.join(cluster_Path, instance)):
             x_cmds = [
                 ("dba.killSandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
@@ -135,9 +139,13 @@ def kill_process(instance):
                  "successfully deleted."),
             ]
             results = exec_xshell_commands(init_command, x_cmds)
+            if os.path.isdir(os.path.join(cluster_Path, instance)):
+                logger.debug("FAILED to kill/delete instance: " + instance + " " + str(results))
+            else:
+                logger.debug("kill/delete sucessfull for instance: " + instance)
     except Exception, e:
         # kill instance failed
-        print("kill instance" + instance + "Failed, " + e)
+        print("kill instance" + instance + "Failed, " + str(e))
     return results
 
 
@@ -180,14 +188,24 @@ def exec_xshell_commands(init_cmdLine, commandList):
     #Avoid any validation in stderr because is already redirected to stdout
     #found = stdout.find(bytearray(expectbefore,"ascii"), 0, len(stdout))
     found = -1
-    if found == -1 and commandList.__len__() != 0 :
-            found = stdin.find(bytearray(expectbefore,"ascii"), 0, len(stdin))
-            if found == -1 :
+    try:
+        if found == -1 and commandList.__len__() != 0:
+            found = stdin.find(bytearray(expectbefore, "ascii"), 0, len(stdin))
+            if found == -1:
+                if debug_mode == "true":
+                    logger.debug("exec_xshell_command: return FAILURE, found= " + str(found))
                 return "FAIL:  " + stdin.decode("ascii") + stdout.decode("ascii")
-            else :
+            else:
                 return "PASS"
-    else:
-        return "PASS"
+        else:
+            return "PASS"
+    except Exception as ex:
+        if found == -1:
+            if debug_mode == "true":
+                logger.debug("exec_xshell_command: handled exception return: " + "FAIL:  " + str(stdin) + str(stdout))
+            return "FAIL:  " + str(stdin) + str(stdout)
+        else:
+            return "PASS"
 
 @timeout(350)
 def cleanup_instances(instances=[]):
