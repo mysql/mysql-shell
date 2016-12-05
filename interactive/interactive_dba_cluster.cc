@@ -112,7 +112,10 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
       options = mysqlsh::dba::get_instance_options_map(args, false);
 
       shcore::Argument_map opt_map(*options);
-      opt_map.ensure_keys({"host"}, {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "ssl"}, "instance definition");
+      opt_map.ensure_keys({"host"}, mysqlsh::dba::ReplicaSet::_add_instance_opts, "instance definition");
+
+      // Validate SSL options for the cluster instance
+      mysqlsh::dba::validate_ssl_instance_options(options);
 
       mysqlsh::dba::resolve_instance_credentials(options, _delegate);
     }
@@ -147,7 +150,10 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
     options = mysqlsh::dba::get_instance_options_map(args, false);
 
     shcore::Argument_map opt_map(*options);
-    opt_map.ensure_keys({"host"}, {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "ssl"}, "instance definition");
+    opt_map.ensure_keys({"host"}, mysqlsh::dba::ReplicaSet::_add_instance_opts, "instance definition");
+
+    // Validate SSL options for the cluster instance
+    mysqlsh::dba::validate_ssl_instance_options(options);
 
     std::string message = "Rejoining the instance to the InnoDB cluster. Depending on the original\n"
                         "problem that made the instance unavailable, the rejoin operation might not be\n"

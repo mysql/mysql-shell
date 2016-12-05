@@ -36,6 +36,15 @@ Cluster.addInstance('', 5)
 Cluster.addInstance( 5)
 Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
 Cluster.addInstance({port: __mysql_sandbox_port1});
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false, memberSslCa: "ca"}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false, memberSslCert: "cert"}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false, memberSslKey: "key"}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslCa: ""}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslCert: ""}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslKey: ""}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslCa: " "}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslCert: " "}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslKey: " "}, "root");
 
 var uri1 = localhost + ":" + __mysql_sandbox_port1;
 var uri2 = localhost + ":" + __mysql_sandbox_port2;
@@ -48,7 +57,7 @@ Cluster.addInstance({host: "localhost", port:__mysql_sandbox_port1});
 if (__have_ssl)
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2});
 else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false});
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false});
 
 wait_slave_state(Cluster, uri2, "ONLINE");
 
@@ -56,7 +65,7 @@ wait_slave_state(Cluster, uri2, "ONLINE");
 if (__have_ssl)
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3});
 else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false});
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false});
 
 wait_slave_state(Cluster, uri3, "ONLINE");
 
@@ -100,7 +109,7 @@ Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3})
 if (__have_ssl)
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2});
 else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false});
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false});
 
 wait_slave_state(Cluster, uri2, "ONLINE");
 
@@ -108,7 +117,7 @@ wait_slave_state(Cluster, uri2, "ONLINE");
 if (__have_ssl)
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3});
 else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false});
+  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false});
 
 wait_slave_state(Cluster, uri3, "ONLINE");
 
@@ -140,12 +149,21 @@ Cluster.rejoinInstance(1);
 Cluster.rejoinInstance({host: "localhost"});
 Cluster.rejoinInstance({host: "localhost", schema: "abs", authMethod:56});
 Cluster.rejoinInstance("somehost:3306");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false, memberSslCa: "ca"}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false, memberSslCert: "cert"}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false, memberSslKey: "key"}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslCa: ""}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslCert: ""}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslKey: ""}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslCa: " "}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslCert: " "}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslKey: " "}, "root");
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
 if (__have_ssl)
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3});
 else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, ssl: false});
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, memberSsl: false});
 
 wait_slave_state(Cluster, uri3, "ONLINE");
 

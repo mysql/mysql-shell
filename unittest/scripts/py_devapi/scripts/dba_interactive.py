@@ -34,12 +34,25 @@ c1 = dba.create_cluster(1,2,3,4)
 c1 = dba.create_cluster(5)
 c1 = dba.create_cluster('')
 c1 = dba.create_cluster('devCluster', {"invalid":1, "another":2})
+c1 = dba.create_cluster('devCluster', {"memberSsl": False, "memberSslCa": "ca"})
+c1 = dba.create_cluster('devCluster', {"memberSsl": False, "memberSslCert": "cert"})
+c1 = dba.create_cluster('devCluster', {"memberSsl": False, "memberSslKey": "key"})
+c1 = dba.create_cluster('devCluster', {"memberSsl": True, "memberSslCa": ""})
+c1 = dba.create_cluster('devCluster', {"memberSsl": True, "memberSslCert": ""})
+c1 = dba.create_cluster('devCluster', {"memberSsl": True, "memberSslKey": ""})
+c1 = dba.create_cluster('devCluster', {"memberSsl": True, "memberSslCa": " "})
+c1 = dba.create_cluster('devCluster', {"memberSsl": True, "memberSslCert": " "})
+c1 = dba.create_cluster('devCluster', {"memberSsl": True, "memberSslKey": " "})
+c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSsl": True})
+c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslCa": "ca"})
+c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslCert": "cert"})
+c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslKey": "key"})
 
 #@<OUT> Dba: create_cluster with interaction
 if __have_ssl:
   c1 = dba.create_cluster('devCluster')
 else:
-  c1 = dba.create_cluster('devCluster', {'ssl': False})
+  c1 = dba.create_cluster('devCluster', {'memberSsl': False})
 
 # TODO: add multi-master unit-tests
 

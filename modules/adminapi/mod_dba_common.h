@@ -97,6 +97,8 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
 void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate = nullptr);
 std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);
 ReplicationGroupState check_function_preconditions(const std::string& class_name, const std::string& base_function_name, const std::string &function_name, const std::shared_ptr<MetadataStorage>& metadata);
+
+void validate_ssl_instance_options(shcore::Value::Map_type_ref &options);
 }
 }
 #endif

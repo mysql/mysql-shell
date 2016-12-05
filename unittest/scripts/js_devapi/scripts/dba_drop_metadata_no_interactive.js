@@ -15,7 +15,7 @@ dba.dropMetadataSchema()
 if (__have_ssl)
   dba.createCluster("tempCluster")
 else
-  dba.createCluster("tempCluster", {ssl: false})
+  dba.createCluster("tempCluster", {memberSsl: false})
 
 session.getSchema('mysql_innodb_cluster_metadata');
 

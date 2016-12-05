@@ -18,7 +18,7 @@ dba.config_local_instance({'host': localhost, 'port': __mysql_sandbox_port1, 'pa
 if __have_ssl:
   cluster = dba.create_cluster('dev')
 else:
-  cluster = dba.create_cluster('dev', {'ssl':False})
+  cluster = dba.create_cluster('dev', {'memberSsl':False})
 
 cluster.status()
 session.close()
@@ -44,7 +44,7 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root',
 if __have_ssl:
   cluster.add_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
 else:
-  cluster.add_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'ssl':False})
+  cluster.add_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'memberSsl':False})
 
 # Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE")
@@ -127,7 +127,7 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root',
 if __have_ssl:
   cluster = dba.create_cluster('temporal')
 else:
-  cluster = dba.create_cluster('temporal', {'ssl':False})
+  cluster = dba.create_cluster('temporal', {'memberSsl':False})
 
 dba.drop_metadata_schema({'force': True})
 

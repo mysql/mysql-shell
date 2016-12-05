@@ -26,12 +26,25 @@ var c1 = dba.createCluster(5);
 var c1 = dba.createCluster('', 5);
 var c1 = dba.createCluster('devCluster', 'bla');
 var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
+var c1 = dba.createCluster('devCluster', {memberSsl: false, memberSslCa: "ca"});
+var c1 = dba.createCluster('devCluster', {memberSsl: false, memberSslCert: "cert"});
+var c1 = dba.createCluster('devCluster', {memberSsl: false, memberSslKey: "key"});
+var c1 = dba.createCluster('devCluster', {memberSsl: true, memberSslCa: ""});
+var c1 = dba.createCluster('devCluster', {memberSsl: true, memberSslCert: ""});
+var c1 = dba.createCluster('devCluster', {memberSsl: true, memberSslKey: ""});
+var c1 = dba.createCluster('devCluster', {memberSsl: true, memberSslCa: " "});
+var c1 = dba.createCluster('devCluster', {memberSsl: true, memberSslCert: " "});
+var c1 = dba.createCluster('devCluster', {memberSsl: true, memberSslKey: " "});
+var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSsl: true});
+var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslCa: "ca"});
+var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslCert: "cert"});
+var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslKey: "key"});
 
 //@# Dba: createCluster succeed
 if (__have_ssl)
   var c1 = dba.createCluster('devCluster')
 else
-  var c1 = dba.createCluster('devCluster', {ssl: false})
+  var c1 = dba.createCluster('devCluster', {memberSsl: false})
 print(c1)
 
 //@# Dba: createCluster already exist

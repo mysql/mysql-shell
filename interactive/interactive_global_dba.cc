@@ -264,6 +264,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       opt_map.ensure_keys({}, mysqlsh::dba::Dba::_create_cluster_opts,
                           "the options");
 
+      // Validate SSL options for the cluster instance
+      mysqlsh::dba::validate_ssl_instance_options(options);
+
       if (opt_map.has_key("multiMaster"))
         multi_master = opt_map.bool_at("multiMaster");
 

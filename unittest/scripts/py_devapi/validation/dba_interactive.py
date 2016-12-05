@@ -20,6 +20,19 @@
 ||Dba.create_cluster: Argument #1 is expected to be a string
 ||Dba.create_cluster: The Cluster name cannot be empty
 ||Dba.create_cluster: Invalid values in the options: another, invalid
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
+||Invalid value for memberSslCa, string value cannot be empty.
+||Invalid value for memberSslCert, string value cannot be empty.
+||Invalid value for memberSslKey, string value cannot be empty.
+||Invalid value for memberSslCa, string value cannot be empty.
+||Invalid value for memberSslCert, string value cannot be empty.
+||Invalid value for memberSslKey, string value cannot be empty.
+||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
+||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
+||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
+||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
 
 #@<OUT> Dba: create_cluster with interaction
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.

@@ -9,7 +9,7 @@ shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_san
 if (__have_ssl)
   dba.createCluster("tempCluster");
 else
-  dba.createCluster("tempCluster", {ssl: false});
+  dba.createCluster("tempCluster", {memberSsl: false});
 
 //@# Invalid dropMetadataSchema call
 dba.dropMetadataSchema(1,2,3,4,5);
@@ -34,7 +34,7 @@ shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_san
 if (__have_ssl)
   dba.createCluster("tempCluster")
 else
-  dba.createCluster("tempCluster", {ssl: false})
+  dba.createCluster("tempCluster", {memberSsl: false})
 
 dba.dropMetadataSchema()
 

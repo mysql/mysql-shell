@@ -8,7 +8,7 @@ shell.connect({'user':'root', 'password': 'root', 'host':'localhost', 'port':__m
 if __have_ssl:
   dba.create_cluster("tempCluster")
 else:
-  dba.create_cluster("tempCluster", {'ssl': False})
+  dba.create_cluster("tempCluster", {'memberSsl': False})
 
 #@# Invalid drop_metadata_schema call
 dba.drop_metadata_schema(1,2,3,4,5);
@@ -35,7 +35,7 @@ shell.connect({'user':'root', 'password': 'root', 'host':'localhost', 'port':__m
 if __have_ssl:
   dba.create_cluster("tempCluster")
 else:
-  dba.create_cluster("tempCluster", {'ssl': False})
+  dba.create_cluster("tempCluster", {'memberSsl': False})
 
 dba.drop_metadata_schema()
 

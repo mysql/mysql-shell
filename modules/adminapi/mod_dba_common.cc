@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
+#include <boost/algorithm/string.hpp>
+
 #include "modules/adminapi/mod_dba_common.h"
 #include "utils/utils_general.h"
 #include "modules/adminapi/mod_dba.h"
@@ -280,5 +282,52 @@ ReplicationGroupState check_function_preconditions(const std::string &class_name
   // is required, i.e. for warning processing
   return state;
 }
+
+void validate_ssl_instance_options(shcore::Value::Map_type_ref &options) {
+  // Validate use of SSL options for the cluster instance and issue an
+  // exception if invalid.
+  shcore::Argument_map opt_map(*options);
+  if (opt_map.has_key("adoptFromGR")){
+    bool adopt_from_gr = opt_map.bool_at("adoptFromGR");
+    if (adopt_from_gr && (opt_map.has_key("memberSsl") ||
+        opt_map.has_key("memberSslCa") ||
+        opt_map.has_key("memberSslCert") ||
+        opt_map.has_key("memberSslKey")))
+      throw shcore::Exception::argument_error(
+          "Cannot use member SSL options (memberSsl, memberSslCa, "
+              "memberSslCert, memberSslKey) if adoptFromGR is set to true.");
+  }
+  if (opt_map.has_key("memberSsl")) {
+    bool use_ssl = opt_map.bool_at("memberSsl");
+    if (!use_ssl && (opt_map.has_key("memberSslCa") ||
+        opt_map.has_key("memberSslCert") ||
+        opt_map.has_key("memberSslKey")))
+      throw shcore::Exception::argument_error(
+          "Cannot use other member SSL options (memberSslCa, "
+              "memberSslCert, memberSslKey) if memberSsl is set to false.");
+  }
+  if (opt_map.has_key("memberSslCa")) {
+    std::string ssl_ca = options->get_string("memberSslCa");
+    boost::trim(ssl_ca);
+    if (ssl_ca.empty())
+      throw shcore::Exception::argument_error(
+          "Invalid value for memberSslCa, string value cannot be empty.");
+  }
+  if (opt_map.has_key("memberSslCert")) {
+    std::string ssl_cert = options->get_string("memberSslCert");
+    boost::trim(ssl_cert);
+    if (ssl_cert.empty())
+      throw shcore::Exception::argument_error(
+          "Invalid value for memberSslCert, string value cannot be empty.");
+  }
+  if (opt_map.has_key("memberSslKey")) {
+    std::string ssl_key = options->get_string("memberSslKey");
+    boost::trim(ssl_key);
+    if (ssl_key.empty())
+      throw shcore::Exception::argument_error(
+          "Invalid value for memberSslKey, string value cannot be empty.");
+  }
+}
+
 } // dba
 } // mysqlsh

@@ -18,7 +18,7 @@ dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:
 if (__have_ssl)
   var cluster = dba.createCluster('dev');
 else
-  var cluster = dba.createCluster('dev', {ssl:false});
+  var cluster = dba.createCluster('dev', {memberSsl:false});
 
 cluster.status();
 session.close();
@@ -44,7 +44,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 if (__have_ssl)
   cluster.addInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
 else
-  cluster.addInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', ssl:false});
+  cluster.addInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', memberSsl:false});
 
 // Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE");
@@ -127,7 +127,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 if (__have_ssl)
   var cluster = dba.createCluster('temporal');
 else
-  var cluster = dba.createCluster('temporal', {ssl:false});
+  var cluster = dba.createCluster('temporal', {memberSsl:false});
 
 dba.dropMetadataSchema({force:true});
 

@@ -48,7 +48,7 @@ using namespace shcore;
 
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom", "ignoreSslError"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
-std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "ssl", "sslCa", "sslCert", "sslKey"};
+std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL X AdminAPI.");
@@ -229,15 +229,15 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that in
 "If not specified false is assigned.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the multiMaster option must be applied.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value that indicates that the cluster shall be created empty and adopt the topology from an existing Group Replication group.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li ssl: boolean, indicates if SSL "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li memberSsl: boolean, indicates if SSL "\
     "is used for the instance to start the cluster, by default: true. Set this "\
     "option to false to not use SSL.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li sslCa: Path of file that "\
-    "contains list of trusted SSL CAs.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li sslCert: Path of file that "\
-    "contains X509 certificate in PEM format.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "@li sslKey: Path of file that "\
-    "contains X509 key in PEM format.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li memberSslCa: Path of file that "\
+    "contains list of trusted SSL CAs to set for the instance.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li memberSslCert: Path of file that "\
+    "contains X509 certificate in PEM format to set for the instance.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "@li memberSslKey: Path of file that "\
+    "contains X509 key in PEM format to set for the instance.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -289,8 +289,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   bool multi_master = false; // Default single/primary master
   bool adopt_from_gr = false;
   bool force = false;
-  bool ssl = true;  // SSL used by default.
-  std::string ssl_ca, ssl_cert, ssl_key = "";
+  // SSL values are only set if available from args.
+  bool has_ssl = false;
+  bool has_ssl_ca = false, has_ssl_cert = false, has_ssl_key = false;
+  bool ssl;
+  std::string ssl_ca, ssl_cert, ssl_key;
 
   try {
     std::string cluster_name = args.string_at(0);
@@ -309,6 +312,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       shcore::Argument_map opt_map(*options);
 
       opt_map.ensure_keys({}, _create_cluster_opts, "the options");
+
+      // Validate SSL options for the cluster instance
+      validate_ssl_instance_options(options);
 
       if (opt_map.has_key("clusterAdminType"))
         cluster_admin_type = opt_map.string_at("clusterAdminType");
@@ -329,14 +335,22 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       if (opt_map.has_key("adoptFromGR"))
         adopt_from_gr = opt_map.bool_at("adoptFromGR");
 
-      if (opt_map.has_key("ssl"))
-        ssl = opt_map.bool_at("ssl");
-      if (opt_map.has_key("sslCa"))
-        ssl_ca = opt_map.string_at("sslCa");
-      if (opt_map.has_key("sslCert"))
-        ssl_cert = opt_map.string_at("sslCert");
-      if (opt_map.has_key("sslKey"))
-        ssl_key = opt_map.string_at("sslKey");
+      if (opt_map.has_key("memberSsl")) {
+        has_ssl = true;
+        ssl = opt_map.bool_at("memberSsl");
+      }
+      if (opt_map.has_key("memberSslCa")) {
+        has_ssl_ca = true;
+        ssl_ca = opt_map.string_at("memberSslCa");
+      }
+      if (opt_map.has_key("memberSslCert")) {
+        has_ssl_cert = true;
+        ssl_cert = opt_map.string_at("memberSslCert");
+      }
+      if (opt_map.has_key("memberSslKey")) {
+        has_ssl_key = true;
+        ssl_key = opt_map.string_at("memberSslKey");
+      }
     }
 
     if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
@@ -378,10 +392,16 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list args;
     options = get_connection_data(session->uri(), false);
-    (*options)["ssl"] = Value(ssl);
-    (*options)["sslCa"] = Value(ssl_ca);
-    (*options)["sslCert"] = Value(ssl_cert);
-    (*options)["sslKey"] = Value(ssl_key);
+    // Only set SSL option if available from createCluster options. Do not set
+    // default values to avoid validation issues for addInstance.
+    if (has_ssl)
+      (*options)["memberSsl"] = Value(ssl);
+    if (has_ssl_ca)
+      (*options)["memberSslCa"] = Value(ssl_ca);
+    if (has_ssl_cert)
+      (*options)["memberSslCert"] = Value(ssl_cert);
+    if (has_ssl_key)
+      (*options)["memberSslKey"] = Value(ssl_key);
     args.push_back(shcore::Value(options));
 
     // args.push_back(shcore::Value(session->uri()));

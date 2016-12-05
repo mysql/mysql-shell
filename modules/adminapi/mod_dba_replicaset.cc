@@ -62,7 +62,7 @@ using namespace shcore;
 
 #define PASSWORD_LENGTH 16
 
-std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "ssl"};
+std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey"};
 std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port", "socket", "sslCa", "sslCert", "sslKey"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
@@ -292,17 +292,20 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   shcore::Argument_map opt_map(*options);
   opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
 
+  // Validate SSL options for the cluster instance
+  validate_ssl_instance_options(options);
+
   if (!options->has_key("port"))
     (*options)["port"] = shcore::Value(get_default_port());
 
-  if (options->has_key("ssl"))
-    ssl = options->get_bool("ssl");
-  if (options->has_key("sslCa"))
-    ssl_ca = options->get_string("sslCa");
-  if (options->has_key("sslCert"))
-    ssl_cert = options->get_string("sslCert");
-  if (options->has_key("sslKey"))
-    ssl_key = options->get_string("sslKey");
+  if (options->has_key("memberSsl"))
+    ssl = options->get_bool("memberSsl");
+  if (options->has_key("memberSslCa"))
+    ssl_ca = options->get_string("memberSslCa");
+  if (options->has_key("memberSslCert"))
+    ssl_cert = options->get_string("memberSslCert");
+  if (options->has_key("memberSslKey"))
+    ssl_key = options->get_string("memberSslKey");
 
   // Sets a default user if not specified
   resolve_instance_credentials(options, nullptr);
@@ -487,6 +490,9 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Argument_map opt_map(*options);
   opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
 
+  // Validate SSL options for the cluster instance
+  validate_ssl_instance_options(options);
+
   if (!options->has_key("port"))
     (*options)["port"] = shcore::Value(get_default_port());
 
@@ -495,14 +501,14 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
   std::string instance_address = host + ":" + std::to_string(port);
 
-  if (options->has_key("ssl"))
-    ssl = options->get_bool("ssl");
-  if (options->has_key("sslCa"))
-    ssl_ca = options->get_string("sslCa");
-  if (options->has_key("sslCert"))
+  if (options->has_key("memberSsl"))
+    ssl = options->get_bool("memberSsl");
+  if (options->has_key("memberSslCa"))
+    ssl_ca = options->get_string("memberSslCa");
+  if (options->has_key("memberSslCert"))
     ssl_cert = options->get_string("sslCert");
-  if (options->has_key("sslKey"))
-    ssl_key = options->get_string("sslKey");
+  if (options->has_key("memberSslKey"))
+    ssl_key = options->get_string("memberSslKey");
 
   // Check if the instance is part of the Metadata
   if (!_metadata_storage->is_instance_on_replicaset(get_id(), instance_address)) {
