@@ -73,8 +73,8 @@ if __have_ssl:
 else:
   cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "memberSsl": False}, "root")
 
-wait_slave_state(cluster, uri1, uri2, "ONLINE");
-wait_slave_state(cluster, uri1, uri3, "ONLINE");
+wait_slave_state(cluster, uri2, "ONLINE");
+wait_slave_state(cluster, uri3, "ONLINE");
 
 #@<OUT> Cluster: describe cluster with instance
 cluster.describe()
