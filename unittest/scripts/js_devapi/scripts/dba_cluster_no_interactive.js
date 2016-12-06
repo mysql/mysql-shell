@@ -52,7 +52,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false}, "root");
 
-wait_slave_state(Cluster, uri1, uri2, "ONLINE");
+wait_slave_state(Cluster, uri2, "ONLINE");
 
 //@ Cluster: addInstance 3
 if (__have_ssl)
@@ -60,7 +60,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root");
 
-wait_slave_state(Cluster, uri1, uri3, "ONLINE");
+wait_slave_state(Cluster, uri3, "ONLINE");
 
 //@<OUT> Cluster: describe cluster with instance
 Cluster.describe()
@@ -92,7 +92,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false}, "root");
 
-wait_slave_state(Cluster, uri1, uri2, "ONLINE");
+wait_slave_state(Cluster, uri2, "ONLINE");
 
 //@<OUT> Cluster: describe after adding read only instance back
 Cluster.describe()
@@ -119,7 +119,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root");
 
-wait_slave_state(Cluster, uri2, uri3, "ONLINE");
+wait_slave_state(Cluster, uri3, "ONLINE");
 
 //@<OUT> Cluster: describe on new master
 Cluster.describe()
@@ -134,7 +134,7 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port1, ssl: false}, "root");
 
-wait_slave_state(Cluster, uri2, uri1, "ONLINE");
+wait_slave_state(Cluster, uri1, "ONLINE");
 
 //@<OUT> Cluster: describe on new master with slave
 Cluster.describe()
@@ -150,7 +150,7 @@ if (__sandbox_dir)
 else
   dba.killSandboxInstance(__mysql_sandbox_port3)
 
-  wait_slave_state(Cluster, uri2, uri3, ["UNREACHABLE", "OFFLINE"]);
+  wait_slave_state(Cluster, uri3, ["UNREACHABLE", "OFFLINE"]);
 
 //@# Dba: start instance 3
 if (__sandbox_dir)
@@ -172,7 +172,7 @@ if (__have_ssl)
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root");
 
-wait_slave_state(Cluster, uri2, uri3, "ONLINE");
+wait_slave_state(Cluster, uri3, "ONLINE");
 
 // Verify if the cluster is OK
 

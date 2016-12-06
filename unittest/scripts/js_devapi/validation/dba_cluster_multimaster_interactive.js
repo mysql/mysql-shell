@@ -82,21 +82,21 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
@@ -137,14 +137,14 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
@@ -211,21 +211,21 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
@@ -270,21 +270,21 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoi
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
+                "readReplicas": {},
                 "mode": "R/W",
                 "role": "HA",
                 "status": "ONLINE"

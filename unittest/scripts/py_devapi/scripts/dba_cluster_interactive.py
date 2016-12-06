@@ -54,7 +54,7 @@ if __have_ssl:
 else:
   cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2, 'ssl': False})
 
-wait_slave_state(cluster, uri1, uri2, "ONLINE");
+wait_slave_state(cluster, uri2, "ONLINE");
 
 #@<OUT> Cluster: add_instance 3 with interaction, ok
 if __have_ssl:
@@ -62,7 +62,7 @@ if __have_ssl:
 else:
   cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'ssl': False})
 
-wait_slave_state(cluster, uri1, uri3, "ONLINE");
+wait_slave_state(cluster, uri3, "ONLINE");
 
 #@<OUT> Cluster: describe1
 cluster.describe()
@@ -106,7 +106,7 @@ if __have_ssl:
 else:
   cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2, 'ssl': False})
 
-wait_slave_state(cluster, uri1, uri2, "ONLINE");
+wait_slave_state(cluster, uri2, "ONLINE");
 
 #@<OUT> Cluster: add_instance with interaction, ok 4
 if __have_ssl:
@@ -114,7 +114,7 @@ if __have_ssl:
 else:
   cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'ssl': False})
 
-wait_slave_state(cluster, uri1, uri3, "ONLINE");
+wait_slave_state(cluster, uri3, "ONLINE");
 
 #@<OUT> Cluster: status: success
 cluster.status()
@@ -127,7 +127,7 @@ if __sandbox_dir:
 else:
   dba.kill_sandbox_instance(__mysql_sandbox_port3)
 
-wait_slave_state(cluster, uri1, uri3, ["UNREACHABLE", "OFFLINE"])
+wait_slave_state(cluster, uri3, ["UNREACHABLE", "OFFLINE"])
 
 #@# Dba: start instance 3
 if __sandbox_dir:
@@ -149,7 +149,7 @@ if __have_ssl:
 else:
   cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'ssl': False})
 
-wait_slave_state(cluster, uri1, uri3, "ONLINE");
+wait_slave_state(cluster, uri3, "ONLINE");
 
 # Verify if the cluster is OK
 

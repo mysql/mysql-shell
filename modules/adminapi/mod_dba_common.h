@@ -81,6 +81,18 @@ struct ReplicationGroupState {
   ManagedInstance::State source_state;// The state of the instance from which the data was consulted
 };
 
+namespace ReplicaSetStatus {
+enum Status {
+  OK,
+  OK_PARTIAL,
+  OK_NOTOLERANCE,
+  NOQUORUM,
+  UNKNOWN
+};
+
+std::string describe(Status state);
+};
+
 shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, bool get_password_from_options = false);
 void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate = nullptr);
 std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);

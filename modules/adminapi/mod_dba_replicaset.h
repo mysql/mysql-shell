@@ -30,6 +30,7 @@
 #include <set>
 #include "mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/mod_mysql_resultset.h"
 
 namespace mysqlsh {
 namespace mysql {
@@ -88,6 +89,8 @@ public:
   Undefined dissolve(Dictionary options);
   Undefined disable();
   Undefined rescan();
+  String describe();
+  String status();
 
 #elif DOXYGEN_PY
   str get_name();
@@ -97,6 +100,8 @@ public:
   None dissolve(Dictionary options);
   None disable();
   None rescan();
+  str describe();
+  str status();
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
@@ -129,7 +134,7 @@ private:
   std::vector<NewInstanceInfo> get_newly_discovered_instances();
   std::vector<MissingInstanceInfo> get_unavailable_instances();
 
-  shcore::Value get_status() const;
+  shcore::Value get_status(const mysqlsh::dba::ReplicationGroupState &state) const;
   shcore::Value get_description() const;
 
 protected:

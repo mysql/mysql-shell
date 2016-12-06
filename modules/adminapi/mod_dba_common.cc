@@ -39,7 +39,8 @@ std::map<std::string, FunctionAvailability> AdminAPI_function_availability = {
   {"Cluster.status", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
   {"Cluster.dissolve", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
   {"Cluster.checkInstanceState", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
-  {"Cluster.rescan", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}}
+  {"Cluster.rescan", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
+  {"ReplicaSet.status", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}}
 };
 
 namespace ManagedInstance {
@@ -64,13 +65,35 @@ std::string describe(State state) {
     case Error:
       ret_val = "Error";
       break;
-    default:
-      break;
   }
-
   return ret_val;
 }
-};
+};  // namespace ManagedInstance
+
+namespace ReplicaSetStatus {
+std::string describe(Status state) {
+  std::string ret_val;
+
+  switch (state) {
+    case OK:
+      ret_val = "OK";
+      break;
+    case OK_PARTIAL:
+      ret_val = "OK_PARTIAL";
+      break;
+    case OK_NOTOLERANCE:
+      ret_val = "OK_NOTOLERANCE";
+      break;
+    case NOQUORUM:
+      ret_val = "NOQUORUM";
+      break;
+    case UNKNOWN:
+      ret_val = "UNKNOWN";
+      break;
+  }
+  return ret_val;
+}
+};  // namespace ReplicaSetStatus
 
 void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate) {
   // Sets a default user if not specified

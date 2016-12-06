@@ -88,144 +88,14 @@ std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent), in
 
 static void append_member_status(const shcore::Value::Map_type_ref& node,
                                  std::shared_ptr<mysqlsh::Row> member_row,
-                                 bool read_write) {
-  //dumper.append_string("name", member_row->get_member(1).as_string());
-  auto status = member_row->get_member(3);
+                                 bool read_write,
+                                 bool active_session_instance) {
   (*node)["address"] = member_row->get_member(4);
-  (*node)["status"] = status ? status : shcore::Value("OFFLINE");
+
+  auto status = member_row->get_member(3);
+  (*node)["status"] = status ? status : shcore::Value("(MISSING)");
   (*node)["role"] = member_row->get_member(2);
   (*node)["mode"] = shcore::Value(read_write ? "R/W" : "R/O");
-}
-
-shcore::Value ReplicaSet::get_status() const {
-  shcore::Value ret_val = shcore::Value::new_map();
-  auto status = ret_val.as_map();
-
-  bool single_primary_mode = _topology_type == kTopologyPrimaryMaster;
-
-  // Identifies the master node
-  std::string master_uuid;
-  if (single_primary_mode) {
-    auto uuid_result = _metadata_storage->execute_sql("show status like 'group_replication_primary_member'");
-    auto uuid_row = uuid_result->call("fetchOne", shcore::Argument_list());
-    if (uuid_row)
-      master_uuid = uuid_row.as_object<Row>()->get_member(1).as_string();
-  }
-
-  shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host " \
-                          " FROM mysql_innodb_cluster_metadata.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID` " \
-                          " WHERE replicaset_id = ?", 0);
-  query << _id;
-  query.done();
-
-  auto result = _metadata_storage->execute_sql(query);
-
-  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
-
-  // First we identify the master instance
-  auto instances = raw_instances.as_array();
-
-  std::shared_ptr<mysqlsh::Row> master;
-  int online_count = 0;
-  for (auto value : *instances.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-    if (row->get_member(0).as_string() == master_uuid)
-      master = row;
-
-    auto status = row->get_member(3);
-    if (status && status.as_string() == "ONLINE")
-      online_count++;
-  }
-
-  std::string rset_status;
-  switch (online_count) {
-    case 0:
-    case 1:
-    case 2:
-      rset_status = "Cluster is NOT tolerant to any failures.";
-      break;
-    case 3:
-      rset_status = "Cluster tolerant to up to ONE failure.";
-      break;
-      // Add logic on the default for the even/uneven count
-    default:
-      rset_status = "Cluster tolerant to up to " + std::to_string(online_count - 2) + " failures.";
-      break;
-  }
-
-  (*status)["name"] = shcore::Value(_name);
-  (*status)["status"] = shcore::Value(rset_status);
-
-  // Creates the topology node
-  (*status)["topology"] = shcore::Value::new_map();
-  auto instance_owner_node = status->get_map("topology");
-
-  // In single primary mode there should be a master
-  if (single_primary_mode && master) {
-    auto master_name = master->get_member(1).as_string();
-    (*instance_owner_node)[master_name] = shcore::Value::new_map();
-    auto master_node = instance_owner_node->get_map(master_name);
-
-    append_member_status(master_node, master, true);
-
-    (*master_node)["leaves"] = shcore::Value::new_map();
-    instance_owner_node = master_node->get_map("leaves");
-  }
-
-  //Inserts the read only instances
-  for (auto value : *instances.get()) {
-    // Gets each row
-    auto row = value.as_object<mysqlsh::Row>();
-
-    // Inserts the ones that are not the master
-    if (row != master) {
-      auto instance_name = row->get_member(1).as_string();
-      (*instance_owner_node)[instance_name] = shcore::Value::new_map();
-      auto instance_node = instance_owner_node->get_map(instance_name);
-      append_member_status(instance_node, row, single_primary_mode ? false : true);
-      (*instance_node)["leaves"] = shcore::Value::new_map();
-    }
-  }
-
-  return ret_val;
-}
-
-shcore::Value ReplicaSet::get_description() const {
-  shcore::Value ret_val = shcore::Value::new_map();
-  auto description = ret_val.as_map();
-
-  shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, role, " \
-                          "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host "
-                          "FROM mysql_innodb_cluster_metadata.instances "
-                          "WHERE replicaset_id = ?", 0);
-  query << _id;
-  query.done();
-
-  auto result = _metadata_storage->execute_sql(query);
-
-  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
-
-  // First we identify the master instance
-  auto instances = raw_instances.as_array();
-
-  (*description)["name"] = shcore::Value(_name);
-  (*description)["instances"] = shcore::Value::new_array();
-
-  auto instance_list = description->get_array("instances");
-
-  for (auto value : *instances.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-    auto instance = shcore::Value::new_map();
-    auto instance_obj = instance.as_map();
-
-    (*instance_obj)["name"] = row->get_member(1);
-    (*instance_obj)["host"] = row->get_member(3);
-    (*instance_obj)["role"] = row->get_member(2);
-
-    instance_list->push_back(instance);
-  }
-
-  return ret_val;
 }
 
 bool ReplicaSet::operator == (const Object_bridge &other) const {
@@ -1462,4 +1332,178 @@ std::vector<ReplicaSet::MissingInstanceInfo> ReplicaSet::get_unavailable_instanc
 
 ReplicationGroupState ReplicaSet::check_preconditions(const std::string& function_name) const {
   return check_function_preconditions(class_name(), function_name, get_function_name(function_name), _metadata_storage);
+}
+
+shcore::Value ReplicaSet::get_description() const {
+  shcore::Value ret_val = shcore::Value::new_map();
+  auto description = ret_val.as_map();
+
+  shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, role, " \
+                          "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host "
+                          "FROM mysql_innodb_cluster_metadata.instances "
+                          "WHERE replicaset_id = ?", 0);
+  query << _id;
+  query.done();
+
+  auto result = _metadata_storage->execute_sql(query);
+
+  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
+
+  // First we identify the master instance
+  auto instances = raw_instances.as_array();
+
+  (*description)["name"] = shcore::Value(_name);
+  (*description)["instances"] = shcore::Value::new_array();
+
+  auto instance_list = description->get_array("instances");
+
+  for (auto value : *instances.get()) {
+    auto row = value.as_object<mysqlsh::Row>();
+    auto instance = shcore::Value::new_map();
+    auto instance_obj = instance.as_map();
+
+    (*instance_obj)["name"] = row->get_member(1);
+    (*instance_obj)["host"] = row->get_member(3);
+    (*instance_obj)["role"] = row->get_member(2);
+
+    instance_list->push_back(instance);
+  }
+
+  return ret_val;
+}
+
+shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &state) const {
+  shcore::Value ret_val = shcore::Value::new_map();
+  auto status = ret_val.as_map();
+
+  bool single_primary_mode = _topology_type == kTopologyPrimaryMaster;
+
+  // Identifies the master node
+  std::string master_uuid;
+  if (single_primary_mode) {
+    auto instance_session(_metadata_storage->get_dba()->get_active_session());
+    auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
+    get_status_variable(classic->connection(), "group_replication_primary_member", master_uuid, false);
+  }
+
+  shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, role, MEMBER_STATE, "
+                          "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host "
+                          "FROM mysql_innodb_cluster_metadata.instances "
+                          "LEFT JOIN performance_schema.replication_group_members "
+                          "ON `mysql_server_uuid`=`MEMBER_ID` WHERE replicaset_id = ?", 0);
+  query << _id;
+  query.done();
+
+  auto result = _metadata_storage->execute_sql(query);
+
+  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
+
+  auto instances = raw_instances.as_array();
+
+  std::shared_ptr<mysqlsh::Row> master;
+  int online_count = 0, total_count = 0;
+
+  for (auto value : *instances.get()) {
+    total_count++;
+    auto row = value.as_object<mysqlsh::Row>();
+    if (row->get_member(0).as_string() == master_uuid)
+      master = row;
+
+    auto status = row->get_member(3);
+    if (status && status.as_string() == "ONLINE")
+      online_count++;
+  }
+
+  /*
+   * Theory:
+   *
+   * unreachable_instances = COUNT(member_state = 'UNREACHABLE')
+   * quorum = unreachable_instances < (total_instances / 2)
+   * total_ha_instances = 2 * (number_of_failures) + 1
+   * number_of_failures = (total_ha_instances - 1) / 2
+   */
+
+  int number_of_failures = (online_count - 1) / 2;
+  int non_active = total_count - online_count;
+
+  std::string desc_status;
+  ReplicaSetStatus::Status rs_status;
+
+  // Get the current session instance address
+  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(_metadata_storage
+                      ->get_dba()->get_active_session());
+  auto uri = session->uri();
+  auto options = get_connection_data(session->uri(), false);
+
+  std::string port = std::to_string(options->get_int("port"));
+  std::string host = options->get_string("host");
+  std::string active_session_address = host + ":" + port;
+
+  if (state.quorum == ReplicationQuorum::Quorumless) {
+    rs_status = ReplicaSetStatus::NOQUORUM;
+    desc_status = "Cluster has no quorum as visible from '" +
+                  active_session_address + "' and cannot process write transactions.";
+  } else {
+    if (number_of_failures == 0) {
+      rs_status = ReplicaSetStatus::OK_NOTOLERANCE;
+
+      desc_status = "Cluster is NOT tolerant to any failures.";
+    } else {
+      if (non_active > 0)
+        rs_status = ReplicaSetStatus::OK_PARTIAL;
+      else
+        rs_status = ReplicaSetStatus::OK;
+
+      if (number_of_failures == 1)
+        desc_status = "Cluster is ONLINE and can tolerate up to ONE failure.";
+      else
+        desc_status = "Cluster is ONLINE and can tolerate up to " +
+                      std::to_string(number_of_failures) + " failures.";
+    }
+  }
+
+  if (non_active > 0) {
+    if (non_active == 1)
+      desc_status.append(" " + std::to_string(non_active) + " member is not active");
+    else
+      desc_status.append(" " + std::to_string(non_active) + " members are not active");
+  }
+
+  (*status)["name"] = shcore::Value(_name);
+  (*status)["statusText"] = shcore::Value(desc_status);
+  (*status)["status"] = shcore::Value(ReplicaSetStatus::describe(rs_status));
+
+  // In single primary mode we need to add the "primary" field
+  if (single_primary_mode && master)
+    (*status)["primary"] = master->get_member(4);
+
+  // Creates the topology node
+  (*status)["topology"] = shcore::Value::new_map();
+  auto instance_owner_node = status->get_map("topology");
+
+  // Inserts the instances
+  for (auto value : *instances.get()) {
+    // Gets each row
+    auto row = value.as_object<mysqlsh::Row>();
+
+    auto instance_name = row->get_member(1).as_string();
+    (*instance_owner_node)[instance_name] = shcore::Value::new_map();
+    auto instance_node = instance_owner_node->get_map(instance_name);
+
+    // check if it is the active session instance
+    bool active_session_instance = false;
+
+    if (active_session_address == row->get_member(4).as_string())
+      active_session_instance = true;
+
+    if (row == master && single_primary_mode)
+      append_member_status(instance_node, row, true, active_session_instance);
+    else
+      append_member_status(instance_node, row, single_primary_mode ? false : true,
+                           active_session_instance);
+
+    (*instance_node)["readReplicas"] = shcore::Value::new_map();
+  }
+
+  return ret_val;
 }

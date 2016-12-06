@@ -77,7 +77,7 @@ if __have_ssl:
 else:
   cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2, 'ssl': False});
 
-check_slave_online_multimaster(cluster, uri2);
+wait_slave_state(cluster, uri2, "ONLINE");
 
 #@<OUT> Cluster: add_instance with interaction, ok 4
 if __have_ssl:
@@ -85,7 +85,7 @@ if __have_ssl:
 else:
   cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'ssl': False});
 
-check_slave_online_multimaster(cluster, uri3);
+wait_slave_state(cluster, uri3, "ONLINE");
 
 #@<OUT> Cluster: status: success
 cluster.status()
@@ -101,7 +101,7 @@ else:
 # XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
 # But won't be available for the GA release. So we need to wait until the instance is reported
 # as offline
-check_slave_offline_multimaster(cluster, uri3);
+wait_slave_state(cluster, uri3, "OFFLINE");
 
 #@# Dba: start instance 3
 if __sandbox_dir:
@@ -123,7 +123,7 @@ if __have_ssl:
 else:
   cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'ssl': False});
 
-check_slave_online_multimaster(cluster, uri3);
+wait_slave_state(cluster, uri3, "ONLINE");
 
 # Verify if the cluster is OK
 

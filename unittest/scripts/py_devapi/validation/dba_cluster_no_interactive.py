@@ -61,34 +61,34 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "leaves": {
-                    "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    },
-                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    }
-                },
                 "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
         }
     }
 }
-
 
 #@ Cluster: remove_instance errors
 ||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 0
@@ -125,20 +125,21 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.",
+        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "OK_NOTOLERANCE",
+        "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "leaves": {
-                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    }
-                },
                 "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -180,27 +181,28 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "leaves": {
-                    "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    },
-                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    }
-                },
                 "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -239,20 +241,21 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.",
+        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+        "status": "OK_NOTOLERANCE",
+        "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "leaves": {
-                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    }
-                },
                 "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -293,27 +296,28 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
+            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "leaves": {
-                    "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    },
-                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    }
-                },
                 "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -342,27 +346,28 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
+            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "leaves": {
-                    "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    },
-                    "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                        "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                        "leaves": {},
-                        "mode": "R/O",
-                        "role": "HA",
-                        "status": "ONLINE"
-                    }
-                },
                 "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }

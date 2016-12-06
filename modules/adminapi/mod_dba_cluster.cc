@@ -481,10 +481,10 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
     if (!_default_replica_set)
       (*status)["defaultReplicaSet"] = shcore::Value::Null();
     else
-      (*status)["defaultReplicaSet"] = _default_replica_set->get_status();
+      (*status)["defaultReplicaSet"] = _default_replica_set->get_status(state);
 
     if (warning) {
-      std::string warning = "The instance status may be outdated since was generated from an instance in ";
+      std::string warning = "The instance status may be inaccurate as it was generated from an instance in ";
       warning.append(ManagedInstance::describe(static_cast<ManagedInstance::State>(state.source_state)));
       warning.append(" state");
       (*status)["warning"] = shcore::Value(warning);

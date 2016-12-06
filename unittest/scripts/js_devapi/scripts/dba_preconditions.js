@@ -40,13 +40,14 @@ session.close();
 
 //@ Read Only Instance : get cluster
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
 if (__have_ssl)
   cluster.addInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
 else
   cluster.addInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', ssl:false});
 
 // Waiting for the second added instance to become online
-wait_slave_state(cluster, uri1, uri2, "ONLINE");
+wait_slave_state(cluster, uri2, "ONLINE");
 session.close();
 
 shell.connect({host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
@@ -89,7 +90,7 @@ else
   dba.killSandboxInstance(__mysql_sandbox_port2);
 
 // Waiting for the second instance to become offline
-wait_slave_state(cluster, uri1, uri2, ["UNREACHABLE", "OFFLINE"]);
+wait_slave_state(cluster, uri2, ["UNREACHABLE", "OFFLINE"]);
 
 //@ Quorumless Cluster: Failed preconditions
 dba.createCluster('failed');

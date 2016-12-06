@@ -1,6 +1,6 @@
 def validate_crud_functions(crud, expected):
 	actual = crud.__members__
-  
+
 	# Ensures expected functions are on the actual list
 	missing = []
 	for exp_funct in expected:
@@ -9,12 +9,12 @@ def validate_crud_functions(crud, expected):
 			actual.remove(exp_funct)
 		except:
 			missing.append(exp_funct)
-  
+
 	if len(missing) == 0:
 		print ("All expected functions are available\n")
 	else:
 		print "Missing Functions:", missing
-  
+
 	if len(actual) == 0:
 		print "No additional functions are available\n"
 	else:
@@ -34,7 +34,7 @@ def validateMember(memberList, member):
 		index = memberList.index(member)
 	except:
 		pass
-  
+
 	if index != -1:
 		print member + ": OK\n"
 	else:
@@ -46,7 +46,7 @@ def validateNotMember(memberList, member):
 		index = memberList.index(member)
 	except:
 		pass
-  
+
 	if index != -1:
 		print member + ": Unexpected\n"
 	else:
@@ -56,7 +56,7 @@ def getSchemaFromList(schemas, name):
   for schema in schemas:
     if schema.name == name:
       return schema
-  
+
   return None
 
 import time
@@ -71,16 +71,16 @@ ro_session = None;
 from mysqlsh import mysql as ro_module;
 def wait_super_read_only_done():
   global ro_session
-  
+
   super_read_only = ro_session.run_sql('select @@super_read_only').fetch_one()[0]
-  
+
   print "---> Super Read Only = %s" % super_read_only
-  
+
   return super_read_only == "0"
 
 def check_super_read_only_done(connection):
   global ro_session
-  
+
   ro_session = ro_module.get_classic_session(connection)
   wait(60, 1, wait_super_read_only_done)
   ro_session.close()
@@ -92,102 +92,57 @@ recov_state_list = None;
 
 def _check_slave_state():
   global recov_cluster
-  global recov_master_uri
   global recov_slave_uri
   global recov_state_list
-  
+
   full_status = recov_cluster.status()
-  slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].leaves[recov_slave_uri].status
-  
+  slave_status = full_status.defaultReplicaSet.topology[recov_slave_uri].status
+
   print "--->%s: %s" % (recov_slave_uri, slave_status)
-  
+
   ret_val = False
   for state in recov_state_list:
     if state == slave_status:
       ret_val = True
       print "Done!"
       break
-  
+
   return ret_val
 
-def wait_slave_state(cluster, master_uri, slave_uri, states):
+def wait_slave_state(cluster, slave_uri, states):
   global recov_cluster
-  global recov_master_uri
   global recov_slave_uri
   global recov_state_list
-  
+
   recov_cluster = cluster
-  recov_master_uri = master_uri
   recov_slave_uri = slave_uri
-  
+
   if type(states) is list:
     recov_state_list = states
   else:
     recov_state_list = [states]
-  
+
   print "WAITING for %s to be in one of these states: %s" % (slave_uri, states)
-  
+
   wait(60, 1, _check_slave_state)
-  
-  recov_cluster = None
 
-def wait_slave_online_multimaster():
-  global recov_cluster
-  global recov_master_uri
-  
-  full_status = recov_cluster.status()
-  slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].status
-  
-  print "---> %s: %s" % (recov_master_uri, slave_status)
-  return slave_status == "ONLINE"
-
-def wait_slave_offline_multimaster():
-  global recov_cluster
-  global recov_master_uri
-  
-  full_status = recov_cluster.status()
-  slave_status = full_status.defaultReplicaSet.topology[recov_master_uri].status
-  
-  print "---> %s: %s" % (recov_master_uri, slave_status)
-  return slave_status == "OFFLINE"
-
-def check_slave_online_multimaster(cluster, master_uri):
-  global recov_cluster
-  global recov_master_uri
-  
-  recov_cluster = cluster
-  recov_master_uri = master_uri
-  
-  wait(60, 1, wait_slave_online_multimaster)
-  
-  recov_cluster = None
-
-def check_slave_offline_multimaster(cluster, master_uri):
-  global recov_cluster
-  global recov_master_uri
-  
-  recov_cluster = cluster
-  recov_master_uri = master_uri
-  
-  wait(60, 1, wait_slave_offline_multimaster)
-  
   recov_cluster = None
 
 # Smart deployment routines
 def reset_or_deploy_sandbox(port):
   deployed_here = False;
-  
+
   options = {}
   if __sandbox_dir != '':
     options['sandboxDir'] = __sandbox_dir
-  
+
   print 'Killing sandbox at: %s' % port
-  
+
   try:
     dba.kill_sandbox_instance(port, options)
   except Exception, err:
     pass
-  
+
   started = False
   try:
     print 'Starting sandbox at: %s' % port
@@ -196,7 +151,7 @@ def reset_or_deploy_sandbox(port):
     print 'succeeded'
   except Exception, err:
     print 'failed: %s' % str(err)
-  
+
   if started:
     connected = False
     try:
@@ -210,7 +165,7 @@ def reset_or_deploy_sandbox(port):
       print 'succeeded'
     except Exception, err:
       print 'failed: %s' % str(err)
-    
+
     if connected:
       session.run_sql('set sql_log_bin = 1')
       session.close()
@@ -218,20 +173,20 @@ def reset_or_deploy_sandbox(port):
     print 'Deploying instance'
     options['password'] = 'root'
     options['allowRootFrom'] = '%'
-    
+
     if not __have_ssl:
       options['ignoreSslError'] = True
-    
+
     dba.deploy_sandbox_instance(port, options)
     deployed_here = True
-  
+
   return deployed_here
 
 def reset_or_deploy_sandboxes():
   deploy1 = reset_or_deploy_sandbox(__mysql_sandbox_port1)
   deploy2 = reset_or_deploy_sandbox(__mysql_sandbox_port2)
   deploy3 = reset_or_deploy_sandbox(__mysql_sandbox_port3)
-  
+
   return deploy1 or deploy2 or deploy3
 
 def cleanup_sandbox(port):
@@ -239,7 +194,7 @@ def cleanup_sandbox(port):
     dba.kill_sandbox_instance(port)
   except Exception, err:
     pass
-  
+
   try:
     dba.delete_sandbox_instance(port)
   except Exception, err:
