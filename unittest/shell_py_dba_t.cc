@@ -108,18 +108,32 @@ protected:
     code = "__path_splitter = '\\\\';";
     exec_and_out_equals(code);
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
-    tokens.push_back("");
-    std::string js_sandbox_dir = shcore::join_strings(tokens, "\\\\");
-    code = "__sandbox_dir = '" + js_sandbox_dir + "';";
+    if (!tokens.at(tokens.size() - 1).empty()) {
+      tokens.push_back("");
+      tokens.push_back("");
+    }
+
+    _sandbox_dir = shcore::join_strings(tokens, "\\\\");
+    code = "__sandbox_dir = '" + _sandbox_dir + "';";
+    exec_and_out_equals(code);
+
+    // output sandbox dir
+    code = "__output_sandbox_dir = '" + shcore::join_strings(tokens, "\\") + "';";
     exec_and_out_equals(code);
 #else
     code = "__path_splitter = '/';";
     exec_and_out_equals(code);
-    if (_sandbox_dir.back() != '/')
+    if (_sandbox_dir.back() != '/') {
       code = "__sandbox_dir = '" + _sandbox_dir + "/';";
-    else
+      exec_and_out_equals(code);
+      code = "__output_sandbox_dir = '" + _sandbox_dir + "/';";
+      exec_and_out_equals(code);
+    } else {
       code = "__sandbox_dir = '" + _sandbox_dir + "';";
-    exec_and_out_equals(code);
+      exec_and_out_equals(code);
+      code = "__output_sandbox_dir = '" + _sandbox_dir + "';";
+      exec_and_out_equals(code);
+    }
 #endif
 
     code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
@@ -339,7 +353,6 @@ TEST_F(Shell_py_dba_tests, DISABLED_interactive_classic_global_cluster_multimast
   execute("session.close();");
 }
 
-
 TEST_F(Shell_py_dba_tests, function_preconditions) {
   _options->wizards = false;
   reset_shell();
@@ -353,8 +366,6 @@ TEST_F(Shell_py_dba_tests, no_interactive_drop_metadata_schema) {
 
   validate_interactive("dba_drop_metadata_no_interactive.py");
 }
-
-
 
 TEST_F(Shell_py_dba_tests, function_preconditions_interactive) {
   validate_interactive("dba_preconditions.py");
@@ -372,7 +383,6 @@ TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
 
   validate_interactive("dba_drop_metadata_interactive.py");
 }
-
 
 TEST_F(Shell_py_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;

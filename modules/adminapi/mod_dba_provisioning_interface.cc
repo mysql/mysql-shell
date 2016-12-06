@@ -321,7 +321,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
 
       sandbox_args.push_back("--sandboxdir");
 #ifdef _WIN32
-      sandbox_args.push_back("\"" + dir + "\"");
+      sandbox_args.push_back("\\\"" + dir + "\\\"");
 #else
       sandbox_args.push_back(dir);
 #endif
@@ -360,7 +360,7 @@ int ProvisioningInterface::create_sandbox(int port, int portx, const std::string
     }
   }
 
-  if(ignore_ssl_error)
+  if (ignore_ssl_error)
     extra_args.push_back("--ignore-ssl-error");
 
   return exec_sandbox_op("create", port, portx, sandbox_dir, password,

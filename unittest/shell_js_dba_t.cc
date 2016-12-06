@@ -108,18 +108,32 @@ protected:
     code = "var __path_splitter = '\\\\';";
     exec_and_out_equals(code);
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
-    tokens.push_back("");
-    std::string js_sandbox_dir = shcore::join_strings(tokens, "\\\\");
-    code = "var __sandbox_dir = '" + js_sandbox_dir + "';";
+    if (!tokens.at(tokens.size() - 1).empty()) {
+      tokens.push_back("");
+      tokens.push_back("");
+    }
+
+    _sandbox_dir = shcore::join_strings(tokens, "\\\\");
+    code = "var __sandbox_dir = '" + _sandbox_dir + "';";
+    exec_and_out_equals(code);
+
+    // output sandbox dir
+    code = "var __output_sandbox_dir = '" + shcore::join_strings(tokens, "\\") + "';";
     exec_and_out_equals(code);
 #else
     code = "var __path_splitter = '/';";
     exec_and_out_equals(code);
-    if (_sandbox_dir.back() != '/')
+    if (_sandbox_dir.back() != '/') {
       code = "var __sandbox_dir = '" + _sandbox_dir + "/';";
-    else
+      exec_and_out_equals(code);
+      code = "var __output_sandbox_dir = '" + _sandbox_dir + "/';";
+      exec_and_out_equals(code);
+    } else {
       code = "var __sandbox_dir = '" + _sandbox_dir + "';";
-    exec_and_out_equals(code);
+      exec_and_out_equals(code);
+      code = "var __output_sandbox_dir = '" + _sandbox_dir + "';";
+      exec_and_out_equals(code);
+    }
 #endif
 
     code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
@@ -173,13 +187,14 @@ TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
 
   std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
   if (!_sandbox_dir.empty())
-    deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
+    deploy_options.append(", sandboxDir: '" + _sandbox_dir + "'");
   if (!_have_ssl)
     deploy_options.append(", ignoreSslError: true");
   deploy_options.append("}");
 
   execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
               + deploy_options + ");");
+
   execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
               + deploy_options + ");");
   execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
@@ -353,7 +368,6 @@ TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
 
   validate_interactive("dba_drop_metadata_no_interactive.js");
 }
-
 
 TEST_F(Shell_js_dba_tests, function_preconditions_interactive) {
   validate_interactive("dba_preconditions.js");

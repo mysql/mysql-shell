@@ -100,7 +100,6 @@ void Shell_test_output_handler::validate_stdout_content(const std::string& conte
 }
 
 void Shell_test_output_handler::validate_stderr_content(const std::string& content, bool expected) {
-
   if (content.empty()) {
     if (std_err.empty() != expected) {
       std::string error = std_err.empty() ? "Missing" : "Unexpected";
@@ -205,9 +204,14 @@ void Shell_core_test_wrapper::SetUp() {
   }
 
   const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir)
+  if (tmpdir) {
     _sandbox_dir.assign(tmpdir);
-  else
+
+#ifdef WIN32
+    auto tokens = shcore::split_string(_sandbox_dir, "\\");
+    _sandbox_dir = shcore::join_strings(tokens, "\\\\");
+#endif
+  } else
     _sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
 
   // Initializes the interactive shell
@@ -219,14 +223,12 @@ void Shell_core_test_wrapper::SetUp() {
 }
 
 void Shell_core_test_wrapper::TearDown() {
-
   ignore_notification("SN_SESSION_CONNECTED");
   ignore_notification("SN_SESSION_CONNECTION_LOST");
   ignore_notification("SN_SESSION_CLOSED");
 
   if (!_open_sessions.empty()) {
-    for(auto entry: _open_sessions) {
-
+    for (auto entry : _open_sessions) {
       // Prints the session warnings ONLY if TEST_SESSIONS is enabled
       if (g_test_sessions)
         std::cerr << "WARNING: Closing dangling session opened on " << entry.second << std::endl;
@@ -239,18 +241,18 @@ void Shell_core_test_wrapper::TearDown() {
   _interactive_shell.reset();
 }
 
-void Shell_core_test_wrapper::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data){
+void Shell_core_test_wrapper::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
   std::string identifier = context_identifier();
 
-  if(name=="SN_SESSION_CONNECTED"){
+  if (name == "SN_SESSION_CONNECTED") {
     auto position = _open_sessions.find(sender);
     if (position == _open_sessions.end())
       _open_sessions[sender] = identifier;
     // Prints the session warnings ONLY if TEST_SESSIONS is enabled
     else if (g_test_sessions) {
-        std::cerr << "WARNING: Reopening session from " << _open_sessions[sender] << " at " << identifier << std::endl;
+      std::cerr << "WARNING: Reopening session from " << _open_sessions[sender] << " at " << identifier << std::endl;
     }
-  } else if ( name == "SN_SESSION_CONNECTION_LOST" || name == "SN_SESSION_CLOSED") {
+  } else if (name == "SN_SESSION_CONNECTION_LOST" || name == "SN_SESSION_CLOSED") {
     auto position = _open_sessions.find(sender);
     if (position != _open_sessions.end())
       _open_sessions.erase(position);
@@ -260,7 +262,6 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
     }
   }
 }
-
 
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
