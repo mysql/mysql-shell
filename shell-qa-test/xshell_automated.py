@@ -87,7 +87,7 @@ def read_til_getShell(proc, fd, text):
     return "".join(data)
 
 
-@timeout(40)
+@timeout(80)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
