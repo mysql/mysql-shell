@@ -197,13 +197,12 @@ std::string Row::get_value_as_string(int index) {
 }
 
 //----------------------------------------------
-void Connection::throw_on_connection_fail()
-{
-  auto local_error = mysql_error(_mysql);
+void Connection::throw_on_connection_fail() {
+  std::string local_error(mysql_error(_mysql));
   auto local_errno = mysql_errno(_mysql);
-  auto local_sqlstate = mysql_sqlstate(_mysql);
+  std::string local_sqlstate = mysql_sqlstate(_mysql);
   close();
-  throw shcore::Exception::mysql_error_with_code_and_state(local_error, local_errno, local_sqlstate);
+  throw shcore::Exception::mysql_error_with_code_and_state(local_error, local_errno, local_sqlstate.c_str());
 }
 
 Connection::Connection(const std::string &uri_, const char *password)
