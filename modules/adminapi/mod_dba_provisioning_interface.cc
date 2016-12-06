@@ -321,7 +321,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
 
       sandbox_args.push_back("--sandboxdir");
 #ifdef _WIN32
-      sandbox_args.push_back("\\\"" + dir + "\\\"");
+      sandbox_args.push_back("\"" + dir + "\"");
 #else
       sandbox_args.push_back(dir);
 #endif
