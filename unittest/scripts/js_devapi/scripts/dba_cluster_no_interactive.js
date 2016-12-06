@@ -52,15 +52,15 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ssl: false}, "root");
 
-wait_slave_state(Cluster, uri2, "ONLINE");
-
+// Third instance will be added while the second is still on RECOVERY
 //@ Cluster: addInstance 3
 if (__have_ssl)
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ssl: false}, "root");
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+wait_slave_state(Cluster, uri1, uri2, "ONLINE");
+wait_slave_state(Cluster, uri1, uri3, "ONLINE");
 
 //@<OUT> Cluster: describe cluster with instance
 Cluster.describe()

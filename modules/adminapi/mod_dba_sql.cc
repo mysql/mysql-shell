@@ -167,17 +167,18 @@ ReplicationGroupState get_replication_group_state(mysqlsh::mysql::Connection* co
     ret_val.source_state = ManagedInstance::State::Error;
 
   // Gets the cluster instance status count
-  std::string state_count_query("SELECT CAST(SUM(IF(member_state = 'ONLINE', 1, 0)) AS SIGNED) AS ONLINE,  COUNT(*) AS TOTAL FROM performance_schema.replication_group_members");
+  // The quorum is said to be true if #UNREACHABLE_NODES < (TOTAL_NODES/2)
+  std::string state_count_query("SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) AS UNREACHABLE,  COUNT(*) AS TOTAL FROM performance_schema.replication_group_members");
 
   result = connection->run_sql(state_count_query);
   row = result->fetch_one();
-  int online_count = row->get_value(0).as_int();
+  int unreachable_count = row->get_value(0).as_int();
   int instance_count = row->get_value(1).as_int();
 
-  if (online_count > (instance_count / 2))
-    ret_val.quorum = ReplicationQuorum::State::Normal;
+  if (unreachable_count >= (double(instance_count) / 2))
+    ret_val.quorum = ReplicationQuorum::State::Quorumless;
   else
-    ret_val.quorum = online_count ? ReplicationQuorum::State::Quorumless : ReplicationQuorum::State::Dead;
+    ret_val.quorum = ReplicationQuorum::State::Normal;
 
   return ret_val;
 }
