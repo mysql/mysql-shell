@@ -77,6 +77,7 @@ public:
 
   std::vector<std::string> get_instances_gr();
   std::vector<std::string> get_instances_md();
+  std::vector<std::string> get_online_instances();
 
   static char const *kTopologyPrimaryMaster;
   static char const *kTopologyMultiMaster;
@@ -91,6 +92,7 @@ public:
   Undefined rescan();
   String describe();
   String status();
+  Undefined forceQuorumUsingPartitionOf(InstanceDef instance);
 
 #elif DOXYGEN_PY
   str get_name();
@@ -102,6 +104,7 @@ public:
   None rescan();
   str describe();
   str status();
+  None force_quorum_using_partition_of(InstanceDef instance);
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
@@ -115,6 +118,8 @@ public:
   shcore::Value disable(const shcore::Argument_list &args);
   shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
+  shcore::Value force_quorum_using_partition_of(const shcore::Argument_list &args);
+  shcore::Value force_quorum_using_partition_of_(const shcore::Argument_list &args);
 
   void remove_instances_from_gr(const shcore::Value::Array_type_ref &instances);
   ReplicationGroupState check_preconditions(const std::string& function_name) const;

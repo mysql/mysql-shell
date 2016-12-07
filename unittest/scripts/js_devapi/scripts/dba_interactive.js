@@ -19,6 +19,7 @@ validateMember(members, 'checkInstanceConfig');
 validateMember(members, 'stopSandboxInstance');
 validateMember(members, 'configLocalInstance');
 validateMember(members, 'verbose');
+validateMember(members, 'rebootClusterFromCompleteOutage');
 
 //@# Dba: createCluster errors
 var c1 = dba.createCluster();

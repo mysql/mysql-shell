@@ -27,6 +27,7 @@ validateMember(members, 'check_instance_config');
 validateMember(members, 'stop_sandbox_instance');
 validateMember(members, 'config_local_instance');
 validateMember(members, 'verbose');
+validateMember(members, 'reboot_cluster_from_complete_outage');
 
 #@# Dba: create_cluster errors
 c1 = dba.create_cluster()

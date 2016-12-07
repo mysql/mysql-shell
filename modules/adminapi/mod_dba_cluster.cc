@@ -79,6 +79,7 @@ void Cluster::init() {
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
   add_varargs_method("checkInstanceState", std::bind(&Cluster::check_instance_state, this, _1));
   add_varargs_method("rescan", std::bind(&Cluster::rescan, this, _1));
+  add_varargs_method("forceQuorumUsingPartitionOf", std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
 }
 
 // Documentation of the getName function
@@ -611,6 +612,58 @@ shcore::Value::Map_type_ref Cluster::_rescan(const shcore::Argument_list &args) 
 
   // Rescan the Default ReplicaSet
   (*ret_val)["defaultReplicaSet"] = _default_replica_set->rescan(args);
+
+  return ret_val;
+}
+
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF, "Restores the cluster from quorum loss.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM, "@param instance The instance to derive the forced group from. "\
+"All members that are ONLINE from the point of view of this instance will be added to the group.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1, "@param password Optional string with the password for the connection.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL, "This function restores the cluster's default replicaset back into operational status from a loss of quorum scenario. "\
+"Such a scenario can occur if a group is partitioned or more crashes than tolerable occur. "\
+"Note that this operation is DANGEROUS as it can create a split-brain if incorrectly used and should be considered a last resort. "\
+"Make absolutely sure that there are no partitions of this group that are still operating somewhere in the network, but not accessible from your location.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2, "@li URI string.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4, "The password may be contained on the connectionData parameter or can be "\
+"specified on the password parameter. When both are specified the password parameter "\
+"is used instead of the one in the instance data.");
+
+/**
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF)
+*
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM)
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1)
+*
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL)
+*
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2)
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3)
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
+*/
+#if DOXYGEN_JS
+Undefined Cluster::forceQuorumUsingPartitionOf() {}
+#elif DOXYGEN_PY
+None Cluster::force_quorum_using_partition_of() {}
+#endif
+
+shcore::Value Cluster::force_quorum_using_partition_of(const shcore::Argument_list &args) {
+  args.ensure_count(1, 2, get_function_name("forceQuorumUsingPartitionOf").c_str());
+
+  check_preconditions("forceQuorumUsingPartitionOf");
+
+  shcore::Value ret_val;
+  try {
+    // Check if we have a Default ReplicaSet
+    if (!_default_replica_set)
+      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+    ret_val = _default_replica_set->force_quorum_using_partition_of(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("forceQuorumUsingPartitionOf"));
 
   return ret_val;
 }

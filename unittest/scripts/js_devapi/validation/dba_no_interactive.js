@@ -1,5 +1,5 @@
 //@ Session: validating members
-|Session Members: 13|
+|Session Members: 14|
 |createCluster: OK|
 |deleteSandboxInstance: OK|
 |deploySandboxInstance: OK|
@@ -13,6 +13,7 @@
 |dropMetadataSchema: OK|
 |configLocalInstance: OK|
 |verbose: OK|
+|rebootClusterFromCompleteOutage: OK|
 
 //@# Dba: createCluster errors
 ||Invalid number of arguments in Dba.createCluster, expected 1 to 2 but got 0

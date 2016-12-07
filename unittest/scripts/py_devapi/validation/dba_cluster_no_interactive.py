@@ -1,5 +1,5 @@
 #@ Cluster: validating members
-|Cluster Members: 13|
+|Cluster Members: 14|
 |name: OK|
 |get_name: OK|
 |admin_type: OK|
@@ -13,6 +13,7 @@
 |help: OK|
 |dissolve: OK|
 |rescan: OK|
+|force_quorum_using_partition_of: OK|
 
 #@# Cluster: add_instance errors
 ||Invalid number of arguments in Cluster.add_instance, expected 1 to 2 but got 0
@@ -135,7 +136,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-        "status": "OK_NOTOLERANCE",
+        "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
@@ -251,7 +252,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-        "status": "OK_NOTOLERANCE",
+        "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {

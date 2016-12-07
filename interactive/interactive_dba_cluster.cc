@@ -26,6 +26,7 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include <boost/format.hpp>
 #include <string>
+#include <vector>
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -37,6 +38,7 @@ void Interactive_dba_cluster::init() {
   add_varargs_method("dissolve", std::bind(&Interactive_dba_cluster::dissolve, this, _1));
   add_varargs_method("checkInstanceState", std::bind(&Interactive_dba_cluster::check_instace_state, this, _1));
   add_varargs_method("rescan", std::bind(&Interactive_dba_cluster::rescan, this, _1));
+  add_varargs_method("forceQuorumUsingPartitionOf", std::bind(&Interactive_dba_cluster::force_quorum_using_partition_of, this, _1));
 }
 
 mysqlsh::dba::ReplicationGroupState Interactive_dba_cluster::check_preconditions(const std::string& function_name) const {
@@ -441,4 +443,75 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
   }
 
   return shcore::Value();
+}
+
+shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 2, get_function_name("forceQuorumUsingPartitionOf").c_str());
+
+  check_preconditions("forceQuorumUsingPartitionOf");
+
+  shcore::Value::Map_type_ref options;
+
+  try {
+    options = mysqlsh::dba::get_instance_options_map(args, false);
+
+    shcore::Argument_map opt_map(*options);
+    opt_map.ensure_keys({"host"},
+                        {"name", "host", "port", "user", "dbUser", "password",
+                         "dbPassword", "socket", "memberSslCa", "memberSslCert", "memberSslKey", "memberSsl"},
+                        "instance definition");
+
+    // Validate SSL options for the cluster instance
+    mysqlsh::dba::validate_ssl_instance_options(options);
+
+    std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replica_set;
+    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
+
+    default_replica_set = cluster->get_default_replicaset();
+
+    std::string rs_name;
+
+    if (default_replica_set)
+      rs_name = default_replica_set->get_member("name").as_string();
+    else
+      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+    std::vector<std::string> online_instances_array = default_replica_set->get_online_instances();
+
+    if (online_instances_array.empty())
+      throw shcore::Exception::logic_error("No online instances are visible from the given one.");
+
+    auto group_peers = shcore::join_strings(online_instances_array, ",");
+
+    // Remove the trailing comma of group_peers
+    if (group_peers.back() == ',')
+      group_peers.pop_back();
+
+    std::string message = "Restoring replicaset '" + rs_name + "'"
+                          " from loss of quorum, by using the partition composed of [" + group_peers + "]\n\n";
+    print(message);
+
+    mysqlsh::dba::resolve_instance_credentials(options, _delegate);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("forceQuorumUsingPartitionOf"));
+
+  if (options) {
+    shcore::Argument_list new_args;
+    new_args.push_back(shcore::Value(options));
+
+    println("Restoring the InnoDB cluster ...");
+    println();
+    ret_val = call_target("forceQuorumUsingPartitionOf", new_args);
+
+    println("The InnoDB cluster was successfully restored using the partition from the instance '" +
+             build_connection_string(options, false) + "'.");
+    println();
+    println("WARNING: To avoid a split-brain scenario, ensure that all other members of the replicaset "
+            "are removed or joined back to the group that was restored.");
+    println();
+  }
+
+  return ret_val;
 }

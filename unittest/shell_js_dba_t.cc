@@ -355,6 +355,23 @@ TEST_F(Shell_js_dba_tests, DISABLED_interactive_classic_global_cluster_multimast
   execute("session.close();");
 }
 
+TEST_F(Shell_js_dba_tests, force_quorum) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_cluster_force_quorum.js");
+}
+
+TEST_F(Shell_js_dba_tests, force_quorum_interactive) {
+  //@ Cluster.forceQuorumUsingPartitionOf error interactive
+  output_handler.passwords.push_back("root");
+
+  //@ Cluster.forceQuorumUsingPartitionOf success
+  output_handler.passwords.push_back("root");
+
+  validate_interactive("dba_cluster_force_quorum_interactive.js");
+}
+
 TEST_F(Shell_js_dba_tests, function_preconditions) {
   _options->wizards = false;
   reset_shell();

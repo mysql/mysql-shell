@@ -88,6 +88,7 @@ public:
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
+  shcore::Value force_quorum_using_partition_of(const shcore::Argument_list &args);
 
   ReplicationGroupState check_preconditions(const std::string& function_name) const;
 
@@ -104,6 +105,7 @@ public:
   String status();
   Undefined dissolve(Dictionary options);
   Undefined rescan();
+  Undefined forceQuorumUsingPartitionOf(InstanceDef instance);
 #elif DOXYGEN_PY
   str name; //!< $(CLUSTER_NAME_BRIEF)
   std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)
@@ -117,6 +119,7 @@ public:
   str status();
   None dissolve(Dictionary options);
   None rescan();
+  None force_quorum_using_partition_of(InstanceDef instance);
 #endif
 
 protected:

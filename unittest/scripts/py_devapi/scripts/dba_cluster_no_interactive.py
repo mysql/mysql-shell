@@ -33,6 +33,7 @@ validateMember(members, 'status');
 validateMember(members, 'help');
 validateMember(members, 'dissolve');
 validateMember(members, 'rescan');
+validateMember(members, 'force_quorum_using_partition_of');
 
 #@# Cluster: add_instance errors
 cluster.add_instance()

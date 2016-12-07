@@ -32,6 +32,7 @@ std::map<std::string, FunctionAvailability> AdminAPI_function_availability = {
   {"Dba.createCluster", {GRInstanceType::Standalone | GRInstanceType::GroupReplication, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
   {"Dba.getCluster", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
   {"Dba.dropMetadataSchema", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
+  {"Dba.rebootClusterFromCompleteOutage", {GRInstanceType::Any, ReplicationQuorum::State::Any, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
 
   // The Replicaset/Cluster functions
   {"Cluster.addInstance", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
@@ -42,7 +43,8 @@ std::map<std::string, FunctionAvailability> AdminAPI_function_availability = {
   {"Cluster.dissolve", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
   {"Cluster.checkInstanceState", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
   {"Cluster.rescan", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
-  {"ReplicaSet.status", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}}
+  {"ReplicaSet.status", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
+  {"Cluster.forceQuorumUsingPartitionOf", {GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}}
 };
 
 namespace ManagedInstance {
@@ -83,11 +85,11 @@ std::string describe(Status state) {
     case OK_PARTIAL:
       ret_val = "OK_PARTIAL";
       break;
-    case OK_NOTOLERANCE:
-      ret_val = "OK_NOTOLERANCE";
+    case OK_NO_TOLERANCE:
+      ret_val = "OK_NO_TOLERANCE";
       break;
-    case NOQUORUM:
-      ret_val = "NOQUORUM";
+    case NO_QUORUM:
+      ret_val = "NO_QUORUM";
       break;
     case UNKNOWN:
       ret_val = "UNKNOWN";

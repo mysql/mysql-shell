@@ -27,6 +27,7 @@ validateMember(members, 'status');
 validateMember(members, 'help');
 validateMember(members, 'dissolve');
 validateMember(members, 'rescan');
+validateMember(members, 'forceQuorumUsingPartitionOf');
 
 //@ Cluster: addInstance errors
 Cluster.addInstance()

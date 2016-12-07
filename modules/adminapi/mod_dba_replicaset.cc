@@ -142,6 +142,7 @@ void ReplicaSet::init() {
   add_varargs_method("disable", std::bind(&ReplicaSet::disable, this, _1));
   add_varargs_method("dissolve", std::bind(&ReplicaSet::dissolve, this, _1));
   add_varargs_method("checkInstanceState", std::bind(&ReplicaSet::check_instance_state, this, _1));
+  add_varargs_method("forceQuorumUsingPartitionOf", std::bind(&ReplicaSet::force_quorum_using_partition_of_, this, _1));
 }
 
 void ReplicaSet::adopt_from_gr() {
@@ -1243,6 +1244,21 @@ std::vector<std::string> ReplicaSet::get_instances_gr() {
   return instances_gr_array;
 }
 
+std::vector<std::string> ReplicaSet::get_online_instances() {
+  std::vector<std::string> online_instances_array;
+
+  auto online_instances = _metadata_storage->get_replicaset_online_instances(_id);
+
+  for (auto value : *online_instances.get()) {
+    auto row = value.as_object<mysqlsh::Row>();
+
+    std::string instance_host = row->get_member(3).as_string();
+    online_instances_array.push_back(instance_host);
+  }
+
+  return online_instances_array;
+}
+
 std::vector<std::string> ReplicaSet::get_instances_md() {
   // Get the list of instances registered on the Metadata
   shcore::sqlstring query("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances " \
@@ -1334,6 +1350,197 @@ std::vector<ReplicaSet::MissingInstanceInfo> ReplicaSet::get_unavailable_instanc
   }
 
   return ret;
+}
+
+#if DOXYGEN_CPP
+/**
+ * Use this function to restore a ReplicaSet from a Quorum loss scenario
+ * \param args : A list of values to be used to use the partition from
+ * an Instance to restore the ReplicaSet.
+ *
+ * This function returns an empty Value.
+ */
+#else
+/**
+* Forces the quorum on ReplicaSet with Quorum loss
+* \param name The name of the Instance to be used as partition to force the quorum on the ReplicaSet
+*/
+#if DOXYGEN_JS
+Undefined ReplicaSet::forceQuorumUsingPartitionOf(InstanceDef instance);
+#elif DOXYGEN_PY
+None ReplicaSet::force_quorum_using_partition_of(InstanceDef instance);
+#endif
+#endif  // DOXYGEN_CPP
+shcore::Value ReplicaSet::force_quorum_using_partition_of_(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  args.ensure_count(1, 2, get_function_name("forceQuorumUsingPartitionOf").c_str());
+
+  // Check if the ReplicaSet is empty
+  if (_metadata_storage->is_replicaset_empty(get_id()))
+    throw shcore::Exception::runtime_error("ReplicaSet not initialized.");
+
+  // Rejoin the Instance to the Default ReplicaSet
+  try {
+    ret_val = force_quorum_using_partition_of(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("forceQuorumUsingPartitionOf"));
+
+  return ret_val;
+}
+
+shcore::Value ReplicaSet::force_quorum_using_partition_of(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  std::string host;
+  int port = 0;
+  uint64_t rset_id = get_id();
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  mysqlsh::mysql::ClassicSession *classic;
+
+  auto options = get_instance_options_map(args);
+  shcore::Argument_map opt_map(*options);
+  opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+
+  if (!options->has_key("port"))
+    (*options)["port"] = shcore::Value(get_default_port());
+
+  port = options->get_int("port");
+  host = options->get_string("host");
+
+  std::string instance_address = host + ":" + std::to_string(port);
+
+  // Sets a default user if not specified
+  resolve_instance_credentials(options, nullptr);
+  std::string password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+
+  // TODO: test if there's already quorum and add a 'force' option to be used if so
+
+  // TODO: test if the instance if part of the current cluster, for the scenario of restoring
+  // a cluster quorum from another
+
+  // Check if the instance belongs to the ReplicaSet on the Metadata
+  if (!_metadata_storage->is_instance_on_replicaset(rset_id, instance_address)) {
+    std::string message = "The instance '" + instance_address + "'";
+
+    message.append(" does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+
+    throw shcore::Exception::runtime_error(message);
+  }
+
+  // Get the instance state
+  ReplicationGroupState state;
+
+  try {
+    log_info("Opening a new session to the partition instance %s",
+             instance_address.c_str());
+    shcore::Argument_list partition_instance_args;
+    partition_instance_args.push_back(shcore::Value(options));
+    session = mysqlsh::connect_session(partition_instance_args, mysqlsh::SessionType::Classic);
+    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+  } catch (std::exception &e) {
+    log_error("Could not open connection to '%s': %s", instance_address.c_str(),
+              e.what());
+    throw;
+  }
+
+  auto instance_type = get_gr_instance_type(classic->connection());
+
+  if (instance_type != GRInstanceType::Standalone) {
+    state = get_replication_group_state(classic->connection(), instance_type);
+
+    if (state.source_state != ManagedInstance::OnlineRW &&
+        state.source_state != ManagedInstance::OnlineRO) {
+      std::string message = "The instance '" + instance_address + "'";
+      message.append(" cannot be used to restore the cluster as it is on a ");
+      message.append(ManagedInstance::describe(static_cast<ManagedInstance::State>(state.source_state)));
+      message.append(" state, and should be ONLINE");
+
+      throw shcore::Exception::runtime_error(message);
+    }
+  } else {
+    std::string message = "The instance '" + instance_address + "'";
+    message.append(" cannot be used to restore the cluster as it is not an active member of replication group.");
+    throw shcore::Exception::runtime_error(message);
+  }
+
+  session->close(shcore::Argument_list());
+
+  // Get the online instances of the ReplicaSet to user as group_peers
+  auto online_instances = _metadata_storage->get_replicaset_online_instances(rset_id);
+
+  if (!online_instances)
+    throw shcore::Exception::logic_error("No online instances are visible from the given one.");
+
+  std::string group_peers;
+
+  for (auto value : *online_instances.get()) {
+    auto row = value.as_object<mysqlsh::Row>();
+
+    std::string instance_host = row->get_member(3).as_string();
+
+    shcore::Argument_list session_args;
+    Value::Map_type_ref group_peer_options(new shcore::Value::Map_type);
+
+    std::string delimiter = ":";
+    std::string group_peer_host = instance_host.substr(0, instance_host.find(delimiter));
+    std::string group_peer_port = instance_host.substr(instance_host.find(delimiter) + 1, instance_host.length());
+
+    (*group_peer_options)["host"] = shcore::Value(group_peer_host);
+    (*group_peer_options)["port"] = shcore::Value(atoi(group_peer_port.c_str()));
+    // We assume the root password is the same on all instances
+    (*group_peer_options)["password"] = shcore::Value(password);
+    (*group_peer_options)["user"] = shcore::Value("root");
+    session_args.push_back(shcore::Value(group_peer_options));
+
+    try {
+      log_info("Opening a new session to a group_peer instance to obtain the XCOM address %s",
+               instance_host.c_str());
+      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    } catch (std::exception &e) {
+      log_error("Could not open connection to %s: %s", instance_address.c_str(),
+                e.what());
+      throw;
+    }
+
+    std::string group_peer_instance_xcom_address;
+
+    // Get @@group_replication_local_address
+    get_server_variable(classic->connection(), "group_replication_local_address", group_peer_instance_xcom_address);
+
+    group_peers.append(group_peer_instance_xcom_address);
+    group_peers.append(",");
+  }
+
+  session->close(shcore::Argument_list());
+
+  // Force the reconfiguration of the GR group
+  {
+    try {
+      log_info("Opening a new session to the partition instance %s",
+               instance_address.c_str());
+      shcore::Argument_list partition_instance_args;
+      partition_instance_args.push_back(shcore::Value(options));
+      session = mysqlsh::connect_session(partition_instance_args, mysqlsh::SessionType::Classic);
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    } catch (std::exception &e) {
+      log_error("Could not open connection to '%s': %s", instance_address.c_str(),
+                e.what());
+      throw;
+    }
+
+    // Remove the trailing comma of group_peers
+    if (group_peers.back() == ',')
+      group_peers.pop_back();
+
+    log_info("Setting the group_replication_force_members at instance %s",
+              instance_address.c_str());
+
+    set_global_variable(classic->connection(), "group_replication_force_members", group_peers);
+
+    session->close(shcore::Argument_list());
+  }
+
+  return ret_val;
 }
 
 ReplicationGroupState ReplicaSet::check_preconditions(const std::string& function_name) const {
@@ -1446,12 +1653,12 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
   std::string active_session_address = host + ":" + port;
 
   if (state.quorum == ReplicationQuorum::Quorumless) {
-    rs_status = ReplicaSetStatus::NOQUORUM;
+    rs_status = ReplicaSetStatus::NO_QUORUM;
     desc_status = "Cluster has no quorum as visible from '" +
                   active_session_address + "' and cannot process write transactions.";
   } else {
     if (number_of_failures == 0) {
-      rs_status = ReplicaSetStatus::OK_NOTOLERANCE;
+      rs_status = ReplicaSetStatus::OK_NO_TOLERANCE;
 
       desc_status = "Cluster is NOT tolerant to any failures.";
     } else {

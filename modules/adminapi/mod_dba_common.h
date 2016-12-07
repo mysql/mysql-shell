@@ -85,8 +85,8 @@ namespace ReplicaSetStatus {
 enum Status {
   OK,
   OK_PARTIAL,
-  OK_NOTOLERANCE,
-  NOQUORUM,
+  OK_NO_TOLERANCE,
+  NO_QUORUM,
   UNKNOWN
 };
 

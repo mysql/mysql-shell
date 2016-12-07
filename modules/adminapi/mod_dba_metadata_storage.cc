@@ -746,6 +746,25 @@ std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_insta
   return instances;
 }
 
+std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_online_instances(uint64_t rs_id) {
+  shcore::sqlstring query;
+
+  query = shcore::sqlstring("SELECT mysql_server_uuid, instance_name, role,"
+                            " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
+                            " FROM performance_schema.replication_group_members g"
+                            " JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid"
+                            " WHERE g.member_state = 'ONLINE'"
+                            " AND replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
+
+  auto result = execute_sql(query);
+  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
+  auto instances = raw_instances.as_array();
+
+  return instances;
+}
+
 void MetadataStorage::create_repl_account(const std::string &username,
                                           const std::string &password) {
   Transaction tx(shared_from_this());
