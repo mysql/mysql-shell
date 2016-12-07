@@ -76,7 +76,9 @@ public:
   }
 
   shcore::Value add_seed_instance(const shcore::Argument_list &args,
-                                  bool multi_master, bool is_adopted);
+                                  bool multi_master, bool is_adopted,
+                                  const std::string &replication_user,
+                                  const std::string &replication_pwd);
 
 public:
   shcore::Value add_instance(const shcore::Argument_list &args);

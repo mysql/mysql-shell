@@ -72,7 +72,7 @@ public:
   std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(uint64_t rs_id);
   std::shared_ptr<shcore::Value::Array_type> get_replicaset_online_instances(uint64_t rs_id);
 
-  void create_repl_account(const std::string &username, const std::string &password);
+  void create_repl_account(std::string &username, std::string &password);
 
   Dba* get_dba() { return _dba; };
 

@@ -70,8 +70,6 @@ char const *ReplicaSet::kTopologyMultiMaster = "mm";
 
 static const std::string kSandboxDatadir = "sandboxdata";
 
-static std::string generate_password(int password_lenght);
-
 ReplicaSet::ReplicaSet(const std::string &name, const std::string &topology_type,
                        std::shared_ptr<MetadataStorage> metadata_storage) :
   _name(name), _topology_type(topology_type), _metadata_storage(metadata_storage) {
@@ -219,7 +217,7 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args) {
  * Basically, a local address can only be used if it's a sandbox.
  */
 static bool check_if_local_host(const std::string &hostname) {
-  if (is_local_host(hostname, false)){
+  if (is_local_host(hostname, false)) {
     return true;
   } else {
     struct hostent *he;
@@ -262,7 +260,8 @@ void ReplicaSet::validate_instance_address(std::shared_ptr<mysqlsh::mysql::Class
       log_info("'%s' (%s) detected as local sandbox", hostname.c_str(), datadir.c_str());
     }
   } else {
-    auto row = session->execute_sql("select @@report_host, @@hostname")->fetch_one();
+    auto result = session->execute_sql("select @@report_host, @@hostname");
+    auto row = result->fetch_one();
     // host is not set explicitly by the user, so GR will pick hostname by default
     // now we check if this is a loopback address
     if (!row->get_value(0)) {
@@ -274,7 +273,9 @@ void ReplicaSet::validate_instance_address(std::shared_ptr<mysqlsh::mysql::Class
   }
 }
 
-shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
+shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
+                                       const std::string existing_replication_user,
+                                       const std::string existing_replication_password) {
   shcore::Value ret_val;
 
   bool seed_instance = false;
@@ -342,24 +343,16 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
       // If the instance is not on GR, we must add it
     case GRInstanceType::Standalone:
     {
-      // generate a replication user account + password for this instance
-      // This account will be replicated to all instances in the replicaset, so that
-      // the newly joining instance can connect to any of them for recovery.
-      std::string replication_user;
-      std::string replication_user_password = generate_password(PASSWORD_LENGTH);
-
       log_debug("Instance '%s' is not yet in the cluster", instance_address.c_str());
 
-      MySQL_timer timer;
-      std::string tstamp = std::to_string(timer.get_time());
-      std::string base_user = "mysql_innodb_cluster_rplusr";
-      replication_user = base_user.substr(0, 32 - tstamp.size()) + tstamp;
-      // TODO: Replication accounts should be created with grants for the joining instance only
-      // However, we don't have a reliable way of getting the external IP and/or fully qualified domain name
-      replication_user.append("@'%'");
+      std::string replication_user(existing_replication_user);
+      std::string replication_user_password(existing_replication_password);
 
-      log_debug("Creating replication user '%s'", replication_user.c_str());
-      _metadata_storage->create_repl_account(replication_user, replication_user_password);
+      // Creates the replication user ONLY if not already given
+      if (replication_user.empty()) {
+        _metadata_storage->create_repl_account(replication_user, replication_user_password);
+        log_debug("Created replication user '%s'", replication_user.c_str());
+      }
 
       // Call the gadget to bootstrap the group with this instance
       if (seed_instance) {
@@ -1036,18 +1029,6 @@ std::string ReplicaSet::get_peer_instance() {
     }
   }
   return result.front();
-}
-
-static std::string generate_password(int password_lenght) {
-  std::random_device rd;
-  std::string pwd;
-  static const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~@#%$^&*()-_=+]}[{|;:.>,</?";
-  std::uniform_int_distribution<int> dist(0, strlen(alphabet) - 1);
-
-  for (int i = 0; i < password_lenght; i++)
-    pwd += alphabet[dist(rd)];
-
-  return pwd;
 }
 
 shcore::Value ReplicaSet::check_instance_state(const shcore::Argument_list &args) {

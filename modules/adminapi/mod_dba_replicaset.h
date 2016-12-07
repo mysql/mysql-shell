@@ -108,7 +108,9 @@ public:
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
-  shcore::Value add_instance(const shcore::Argument_list &args);
+  shcore::Value add_instance(const shcore::Argument_list &args,
+                             const std::string existing_replication_user = "",
+                             const std::string existing_replication_password = "");
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);

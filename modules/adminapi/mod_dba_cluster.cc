@@ -157,7 +157,9 @@ None add_seed_instance(Document doc) {}
 #endif
 #endif
 shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
-    bool multi_master, bool is_adopted) {
+                                         bool multi_master, bool is_adopted,
+                                         const std::string &replication_user,
+                                         const std::string &replication_pwd) {
   shcore::Value ret_val;
 
   MetadataStorage::Transaction tx(_metadata_storage);
@@ -184,8 +186,8 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
     // Update the Cluster table with the Default ReplicaSet on the Metadata
     _metadata_storage->insert_replica_set(_default_replica_set, true, is_adopted);
   }
-  // Add the Instance to the Default ReplicaSet
-  ret_val = _default_replica_set->add_instance(args);
+  // Add the Instance to the Default ReplicaSet passing already created replication user
+  ret_val = _default_replica_set->add_instance(args, replication_user, replication_pwd);
 
   std::string group_replication_group_name = _metadata_storage->get_replicaset_group_name();
   _metadata_storage->set_replicaset_group_name(_default_replica_set, group_replication_group_name);

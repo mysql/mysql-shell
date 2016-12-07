@@ -296,6 +296,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   bool ssl;
   std::string ssl_ca, ssl_cert, ssl_key;
 
+  std::string replication_user;
+  std::string replication_pwd;
+
   try {
     std::string cluster_name = args.string_at(0);
 
@@ -360,6 +363,10 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();
 
+    // Creates the replication account to for the primary instance
+    _metadata_storage->create_repl_account(replication_user, replication_pwd);
+    log_debug("Created replication user '%s'", replication_user.c_str());
+
     MetadataStorage::Transaction tx(_metadata_storage);
 
     std::shared_ptr<Cluster> cluster(new Cluster(cluster_name, _metadata_storage));
@@ -411,7 +418,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     if (multi_master && !(force || adopt_from_gr)) {
       throw shcore::Exception::argument_error("Use of multiMaster mode is not recommended unless you understand the limitations. Please use the 'force' option if you understand and accept them.");
     }
-    cluster->add_seed_instance(args, multi_master, adopt_from_gr);
+
+    cluster->add_seed_instance(args, multi_master, adopt_from_gr, replication_user, replication_pwd);
 
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
@@ -420,8 +428,19 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       cluster->get_default_replicaset()->adopt_from_gr();
 
     tx.commit();
+    // We catch whatever to do final processing before bubbling up the exception
+  } catch (...) {
+    try {
+      if (!replication_user.empty()) {
+        log_debug("Removing replication user '%s'", replication_user.c_str());
+        _metadata_storage->execute_sql("DROP USER IF EXISTS " + replication_user);
+      }
+
+      throw;
+    }
+    CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+
   return ret_val;
 }
 
