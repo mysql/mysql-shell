@@ -163,17 +163,15 @@ if __sandbox_dir:
 else:
   dba.kill_sandbox_instance(__mysql_sandbox_port3)
 
-# XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
-# But won't be available for the GA release. So we need a sleep here
-time.sleep(10)
+# Since the cluster has quorum, the instance will be kicked off the
+# Cluster going OFFLINE->UNREACHABLE->(MISSING)
+wait_slave_state(cluster, uri3, "(MISSING)")
 
 #@# Dba: start instance 3
 if __sandbox_dir:
   dba.start_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir": __sandbox_dir})
 else:
   dba.start_sandbox_instance(__mysql_sandbox_port3)
-
-wait_slave_state(cluster, uri3, "OFFLINE");
 
 #@# Cluster: rejoin_instance errors
 cluster.rejoin_instance()

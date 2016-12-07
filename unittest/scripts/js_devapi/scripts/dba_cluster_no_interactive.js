@@ -69,8 +69,8 @@ if (__have_ssl)
 else
   Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false}, "root");
 
-wait_slave_state(Cluster, uri1, uri2, "ONLINE");
-wait_slave_state(Cluster, uri1, uri3, "ONLINE");
+wait_slave_state(Cluster, uri2, "ONLINE");
+wait_slave_state(Cluster, uri3, "ONLINE");
 
 //@<OUT> Cluster: describe cluster with instance
 Cluster.describe()
@@ -160,7 +160,9 @@ if (__sandbox_dir)
 else
   dba.killSandboxInstance(__mysql_sandbox_port3)
 
-  wait_slave_state(Cluster, uri3, ["UNREACHABLE", "OFFLINE"]);
+// Since the cluster has quorum, the instance will be kicked off the
+// Cluster going OFFLINE->UNREACHABLE->(MISSING)
+wait_slave_state(Cluster, uri3, "(MISSING)")
 
 //@# Dba: start instance 3
 if (__sandbox_dir)

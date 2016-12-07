@@ -154,6 +154,7 @@ protected:
   shcore::Value _returned_value;
 
   shcore::Interpreter_delegate deleg;
+  bool test_debug;
 
 private:
   std::map<shcore::Object_bridge_ref, std::string > _open_sessions;

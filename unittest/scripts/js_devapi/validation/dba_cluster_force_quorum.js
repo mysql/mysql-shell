@@ -48,14 +48,14 @@
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "{{OFFLINE|UNREACHABLE}}"
+                "status": "(MISSING)"
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
-                "status": "{{OFFLINE|UNREACHABLE}}"
+                "status": "UNREACHABLE"
             }
         }
     }

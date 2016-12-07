@@ -173,7 +173,7 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         _custom_context += "[" + validations[valindex].code + "]";
         execute(validations[valindex].code);
         _custom_context = backup;
-        
+
         original_std_err = output_handler.std_err;
         original_std_out = output_handler.std_out;
 
@@ -447,12 +447,19 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
       load_source_chunks(stream);
       for (size_t index = 0; index < _chunk_order.size(); index++) {
+        if (test_debug) {
+          std::string chunk_log = "CHUNK: " + _chunk_order[index];
+          std::string splitter(chunk_log.length(), '-');
+          std::cout << splitter << std::endl;
+          std::cout << "CHUNK: " << _chunk_order[index] << std::endl;
+          std::cout << splitter << std::endl;
+        }
         // Executes the file line by line
         for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]].size(); chunk_item++) {
           std::string line((_chunks[_chunk_order[index]])[chunk_item]);
 
           // Execution context is at line level
-          _custom_context = path + "@["+_chunk_order[index] + "][" + line + "]";
+          _custom_context = path + "@[" + _chunk_order[index] + "][" + line + "]";
 
           // There's chance to do preprocessing
           pre_process_line(path, line);
@@ -464,7 +471,7 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         execute("");
 
         // Validation contexts is at chunk level
-        _custom_context = path + "@["+_chunk_order[index] + " validation]";
+        _custom_context = path + "@[" + _chunk_order[index] + " validation]";
         validate(path, _chunk_order[index]);
       }
     } else {

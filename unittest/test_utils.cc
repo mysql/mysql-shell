@@ -145,6 +145,8 @@ void Shell_core_test_wrapper::SetUp() {
   // Allows derived classes configuring specific options
   set_options();
 
+  test_debug = g_test_debug;
+
   const char *uri = getenv("MYSQL_URI");
   if (uri) {
     // Creates connection data and recreates URI, this will fix URI if no password is defined

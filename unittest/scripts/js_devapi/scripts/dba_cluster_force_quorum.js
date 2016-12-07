@@ -40,8 +40,9 @@ if (__sandbox_dir)
 else
   dba.killSandboxInstance(__mysql_sandbox_port2);
 
-// Waiting for the second added instance to become unreachable
-wait_slave_state(cluster, uri2, "UNREACHABLE");
+// Since the cluster has quorum, the instance will be kicked off the
+// Cluster going OFFLINE->UNREACHABLE->(MISSING)
+wait_slave_state(cluster, uri2, "(MISSING)");
 
 // Kill instance 3
 if (__sandbox_dir)
@@ -50,6 +51,7 @@ else
   dba.killSandboxInstance(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable
+// Will remain unreachable since there's no quorum to kick it off
 wait_slave_state(cluster, uri3, "UNREACHABLE");
 
 // Start instance 2
