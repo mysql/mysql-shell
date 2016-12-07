@@ -28,6 +28,7 @@
 namespace shcore {
 class Shell_py_dba_tests : public Shell_py_script_tester {
 protected:
+  bool _have_ssl;
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
     Shell_py_script_tester::SetUp();
@@ -49,6 +50,7 @@ protected:
     std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
     mysqlsh::mysql::ClassicSession *classic;
     std::string have_ssl;
+    _have_ssl = false;
 
     if (_port.empty())
       _port = "33060";
@@ -60,14 +62,26 @@ protected:
       mysql_uri.append(_mysql_port);
     }
     session_args.push_back(Value(mysql_uri));
-    session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
-    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-    mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
-                                      have_ssl);
-    std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
-    _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
-    shcore::Argument_list args;
-    classic->close(args);
+    try {
+      output_handler.debug_print("Connecting to the base server...");
+      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      output_handler.debug_print("Connection succeeded...");
+      
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+      mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
+                                        have_ssl);
+      std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
+      _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
+      shcore::Argument_list args;
+      classic->close(args);
+      
+    } catch(shcore::Exception &e){
+      std::string error ("Connection to the base server failed: ");
+      error.append(e.what());
+      output_handler.debug_print(error);
+      output_handler.debug_print("Unable to determine if SSL is available, disabling it by default");
+      output_handler.flush_debug_log();
+    }
 
     std::string code = "__user = '" + user + "';";
     exec_and_out_equals(code);

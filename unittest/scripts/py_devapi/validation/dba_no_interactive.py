@@ -155,7 +155,7 @@
 
 #@<OUT> Dba: config_local_instance report fixed 3
 {
-    "status": "ok"
+    "status": "osk"
 }
 
 #@# Dba: get_cluster errors
