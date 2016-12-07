@@ -90,6 +90,7 @@ void Dba::init() {
   add_method("deleteSandboxInstance", std::bind(&Dba::delete_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killSandboxInstance", std::bind(&Dba::kill_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("configLocalInstance", std::bind(&Dba::config_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_varargs_method("rebootClusterFromCompleteOutage", std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
@@ -1237,6 +1238,64 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
       (*ret_val)["restart_required"] = shcore::Value(restart_required);
     }
   }
+
+  return ret_val;
+}
+
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF, "Reboots a cluster from complete outage.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM, "@param name Optional The name of the cluster to be rebooted.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN, "@return The rebooted cluster object.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL, "This function reboots a cluster from complete outage, "\
+  "It picks the instance the MySQL Shell is connected to as new seed instance and recovers the cluster "\
+  "based on the existent Metadata of that instance.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1, "On success, the restored cluster object is returned by the function.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2, "The current session must be connected to a former instance of the cluster.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3, "If name is not specified, the default cluster will be returned.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4, "EXAMPLE:");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5, "shell.connect('root@localhost:3310');");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6, "var cluster = dba.rebootClusterFromCompleteOutage():");
+
+/**
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
+*/
+#if DOXYGEN_JS
+Undefined Dba::rebootClusterFromCompleteOutage(Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::reboot_cluster_from_complete_outage(dict options) {}
+#endif
+
+shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_list &args) {
+  args.ensure_count(0, 1, get_function_name("rebootClusterFromCompleteOutage").c_str());
+
+  shcore::Value ret_val;
+
+  throw Exception::logic_error("Function not available yet.");
+
+  if (args.size() == 0) {
+    // Use the default cluster
+  } else {
+    std::string cluster_name = args.string_at(0);
+
+    if (cluster_name.empty())
+      throw Exception::argument_error("The Cluster name cannot be empty.");
+
+    if (!shcore::is_valid_identifier(cluster_name))
+      throw Exception::argument_error("The Cluster name must be a valid identifier.");
+  }
+
+  // Do not forget to check if @@group_replication_group_name changes after the reboot and
+  // if so, update the metadata accordingly
 
   return ret_val;
 }
