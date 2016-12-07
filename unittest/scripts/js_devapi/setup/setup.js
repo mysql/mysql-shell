@@ -68,10 +68,13 @@ function getSchemaFromList(schemas, name){
 
 function wait(timeout, wait_interval, condition){
   waiting = 0;
-  while(!condition() && waiting < timeout) {
+  res = condition();
+  while(!res && waiting < timeout) {
     os.sleep(wait_interval);
     waiting = waiting + 1;
+    res = condition();
   }
+  return res;
 }
 
 
@@ -142,12 +145,18 @@ function reset_or_deploy_sandbox(port) {
   try {dba.killSandboxInstance(port, options);} catch (err) {}
 
   var started = false;
-  try {
-    print('Starting sandbox at: ' + port);
-    dba.startSandboxInstance(port, options);
-    started = true;
-    println('succeeded');
-  } catch (err) {println('failed: ' + err.message);}
+  print('Starting sandbox at: ' + port);
+  started = wait(10, 1, function() {
+    try {
+      dba.startSandboxInstance(port, options);
+
+      println('succeeded');
+      return true;
+    } catch (err) {
+      println('failed: ' + err.message);
+      return false;
+    }
+  });
 
   if (started) {
     var connected = false;

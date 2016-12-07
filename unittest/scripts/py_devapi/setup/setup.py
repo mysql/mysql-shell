@@ -62,9 +62,12 @@ def getSchemaFromList(schemas, name):
 import time
 def wait(timeout, wait_interval, condition):
   waiting = 0
-  while not condition() and waiting < timeout:
+  res = condition()
+  while not res and waiting < timeout:
     time.sleep(wait_interval)
     waiting = waiting + 1
+    res = condition()
+  return res
 
 
 ro_session = None;
@@ -144,13 +147,18 @@ def reset_or_deploy_sandbox(port):
     pass
 
   started = False
-  try:
-    print 'Starting sandbox at: %s' % port
-    dba.start_sandbox_instance(port, options)
+  print 'Starting sandbox at: %s' % port
+  def try_start():
+    try:
+      dba.start_sandbox_instance(port, options)
+      return True
+    except Exception, err:
+      print "failed: %s" % str(err)
+      return False
+
+  if wait(10, 1, try_start):
     started = True
     print 'succeeded'
-  except Exception, err:
-    print 'failed: %s' % str(err)
 
   if started:
     connected = False
