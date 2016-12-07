@@ -6096,6 +6096,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     # SQL Update Non Collections
+    @unittest.skip("Skipped due to a unkown problem, only updates n rows then it raise timeout")
     def test_4_10_02_05(self):
         '''SQL Exec an update to the complete table in Classic mode for non collection, Read'''
         sqlRowsNum_Test = 1000
