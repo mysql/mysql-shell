@@ -647,9 +647,9 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4, "The password may be 
 * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
 */
 #if DOXYGEN_JS
-Undefined Cluster::forceQuorumUsingPartitionOf() {}
+Undefined Cluster::forceQuorumUsingPartitionOf(InstanceDef instance, String password) {}
 #elif DOXYGEN_PY
-None Cluster::force_quorum_using_partition_of() {}
+None Cluster::force_quorum_using_partition_of(InstanceDef instance, str password) {}
 #endif
 
 shcore::Value Cluster::force_quorum_using_partition_of(const shcore::Argument_list &args) {

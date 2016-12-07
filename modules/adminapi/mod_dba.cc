@@ -1262,7 +1262,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
 }
 
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF, "Reboots a cluster from complete outage.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM, "@param name Optional The name of the cluster to be rebooted.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM, "@param clusterName Optional The name of the cluster to be rebooted.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN, "@return The rebooted cluster object.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL, "This function reboots a cluster from complete outage, "\
   "It picks the instance the MySQL Shell is connected to as new seed instance and recovers the cluster "\
@@ -1285,13 +1285,13 @@ REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6, "var cluster = dba.re
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5)
+* shell.connect('root\@localhost:3310');
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
 */
 #if DOXYGEN_JS
-Undefined Dba::rebootClusterFromCompleteOutage(Dictionary options) {}
+Undefined Dba::rebootClusterFromCompleteOutage(String clusterName) {}
 #elif DOXYGEN_PY
-None Dba::reboot_cluster_from_complete_outage(dict options) {}
+None Dba::reboot_cluster_from_complete_outage(str clusterName) {}
 #endif
 
 shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_list &args) {

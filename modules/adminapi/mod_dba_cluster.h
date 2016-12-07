@@ -107,7 +107,7 @@ public:
   String status();
   Undefined dissolve(Dictionary options);
   Undefined rescan();
-  Undefined forceQuorumUsingPartitionOf(InstanceDef instance);
+  Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
 #elif DOXYGEN_PY
   str name; //!< $(CLUSTER_NAME_BRIEF)
   std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)
@@ -121,7 +121,7 @@ public:
   str status();
   None dissolve(Dictionary options);
   None rescan();
-  None force_quorum_using_partition_of(InstanceDef instance);
+  None force_quorum_using_partition_of(InstanceDef instance, str password);
 #endif
 
 protected:

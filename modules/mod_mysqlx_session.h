@@ -80,6 +80,8 @@ public:
   Result dropCollection(String schema, String name);
   Result dropView(String schema, String name);
   Bool isOpen();
+
+private:
 #elif DOXYGEN_PY
   str uri; //!< Same as get_uri()
   Schema default_schema; //!< Same as get_default_schema()
@@ -99,6 +101,7 @@ public:
   Result drop_collection(str schema, str name);
   Result drop_view(str schema, str name);
   Bool is_open();
+private:
 #endif
 
   BaseSession();

@@ -90,7 +90,7 @@ public:
   Undefined stopSandboxInstance(Integer port, Dictionary options);
   Undefined checkInstanceConfig(InstanceDef instance, Dictionary options);
   Instance configLocalInstance(InstanceDef instance, Dictionary options);
-  Undefined rebootClusterFromCompleteOutage();
+  Undefined rebootClusterFromCompleteOutage(String clusterName);
 #elif DOXYGEN_PY
   int verbose;
   Cluster create_cluster(str name, dict options);
@@ -105,7 +105,7 @@ public:
   None stop_sandbox_instance(int port, dict options);
   None check_instance_config(InstanceDef instance, dict options);
   JSON config_local_instance(InstanceDef instance, dict options);
-  None reboot_cluster_from_complete_outage();
+  None reboot_cluster_from_complete_outage(str clusterName);
 #endif
 
   static std::shared_ptr<mysqlsh::mysql::ClassicSession> get_session(const shcore::Argument_list& args);

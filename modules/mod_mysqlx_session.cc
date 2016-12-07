@@ -389,7 +389,8 @@ shcore::Value BaseSession::rollback(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-Value BaseSession::execute_sql(const std::string& statement, const Argument_list &args) const {
+/* Sql Execution Function */
+shcore::Value BaseSession::execute_sql(const std::string& statement, const shcore::Argument_list &args) const {
   return executeStmt("sql", statement, true, args);
 }
 
