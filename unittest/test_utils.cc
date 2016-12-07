@@ -22,7 +22,6 @@
 
 using namespace shcore;
 
-static bool g_test_debug = getenv("TEST_DEBUG") != nullptr;
 static bool g_test_sessions = getenv("TEST_SESSIONS") != nullptr;
 
 Shell_test_output_handler::Shell_test_output_handler() {
@@ -31,23 +30,23 @@ Shell_test_output_handler::Shell_test_output_handler() {
   deleg.print_error = &Shell_test_output_handler::deleg_print_error;
   deleg.prompt = &Shell_test_output_handler::deleg_prompt;
   deleg.password = &Shell_test_output_handler::deleg_password;
+  
+  full_output.clear();
 }
 
 void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
 
-  if (g_test_debug)
-    std::cout << text << std::endl;
-
+  target->full_output << text << std::endl;
+  
   target->std_out.append(text);
 }
 
 void Shell_test_output_handler::deleg_print_error(void *user_data, const char *text) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
 
-  if (g_test_debug)
-    std::cerr << text << std::endl;
-
+  target->full_output << text << std::endl;
+  
   target->std_err.append(text);
 }
 
@@ -55,6 +54,7 @@ bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
   std::string answer;
 
+  target->full_output << prompt;
   target->std_out.append(prompt);
 
   bool ret_val = false;
@@ -73,6 +73,7 @@ bool Shell_test_output_handler::deleg_password(void *user_data, const char *prom
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
   std::string answer;
 
+  target->full_output << prompt;
   target->std_out.append(prompt);
 
   bool ret_val = false;
@@ -121,6 +122,25 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
   }
 }
 
+void Shell_test_output_handler::debug_print(const std::string& line) {
+  full_output << line.c_str() << std::endl;
+}
+
+void Shell_test_output_handler::debug_print_header(const std::string& line) {
+  std::string splitter(line.length(), '-');
+  
+  full_output << splitter.c_str() << std::endl;
+  full_output << line.c_str() << std::endl;
+  full_output << splitter.c_str() << std::endl;
+}
+
+void Shell_test_output_handler::flush_debug_log() {
+  full_output.flush();
+  std::cerr << full_output.str();
+  full_output.clear();
+}
+
+
 std::string Shell_core_test_wrapper::context_identifier() {
   std::string ret_val;
 
@@ -139,13 +159,13 @@ std::string Shell_core_test_wrapper::context_identifier() {
 }
 
 void Shell_core_test_wrapper::SetUp() {
+  output_handler.debug_print_header(context_identifier());
+  
   // Initializes the options member
   reset_options();
 
   // Allows derived classes configuring specific options
   set_options();
-
-  test_debug = g_test_debug;
 
   const char *uri = getenv("MYSQL_URI");
   if (uri) {

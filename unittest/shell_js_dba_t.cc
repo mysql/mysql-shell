@@ -28,6 +28,7 @@
 namespace shcore {
 class Shell_js_dba_tests : public Shell_js_script_tester {
 protected:
+  bool _have_ssl;
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
     Shell_js_script_tester::SetUp();
@@ -49,6 +50,7 @@ protected:
     std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
     mysqlsh::mysql::ClassicSession *classic;
     std::string have_ssl;
+    _have_ssl = false;
 
     if (_port.empty())
       _port = "33060";
@@ -60,6 +62,7 @@ protected:
       mysql_uri.append(_mysql_port);
     }
     session_args.push_back(Value(mysql_uri));
+    try {
     session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
     classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
@@ -68,6 +71,13 @@ protected:
     _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
     shcore::Argument_list args;
     classic->close(args);
+    } catch(shcore::Exception &e) {
+      std::string error ("Connection to the base server failed: ");
+      error.append(e.what());
+      output_handler.debug_print(error);
+      output_handler.debug_print("Unable to determine if SSL is available, disabling it by default");
+      output_handler.flush_debug_log();
+    }
 
     std::string code = "var __user = '" + user + "';";
     exec_and_out_equals(code);

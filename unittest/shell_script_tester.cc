@@ -118,7 +118,8 @@ bool Shell_script_tester::multi_value_compare(const std::string& expected, const
   return ret_val;
 }
 
-void Shell_script_tester::validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual) {
+bool Shell_script_tester::validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual) {
+  bool ret_val = true;
   auto expected_lines = shcore::split_string(expected, "\n");
   auto actual_lines = shcore::split_string(actual, "\n");
 
@@ -145,13 +146,17 @@ void Shell_script_tester::validate_line_by_line(const std::string& context, cons
 
         SCOPED_TRACE(stream + " inconsistent: " + shcore::join_strings(expected_lines, "\n"));
         ADD_FAILURE();
+        ret_val = false;
         break;
       }
     }
   }
+  
+  return ret_val;
 }
 
-void Shell_script_tester::validate(const std::string& context, const std::string &chunk_id) {
+bool Shell_script_tester::validate(const std::string& context, const std::string &chunk_id) {
+  bool ret_val = true;
   if (_chunk_validations.count(chunk_id)) {
     Validation_t validations = _chunk_validations[chunk_id];
 
@@ -163,6 +168,7 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       if (!validations[valindex].code.empty()) {
         // Before cleaning up, prints any error found on the script execution
         if (valindex == 0 && !original_std_err.empty()) {
+          ret_val = false;
           SCOPED_TRACE("File: " + context);
           SCOPED_TRACE("Unexpected Error: " + original_std_err);
           ADD_FAILURE();
@@ -183,6 +189,7 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       // Validates unexpected error
       if (validations[valindex].expected_error.empty() &&
           !original_std_err.empty()) {
+        ret_val = false;
         SCOPED_TRACE("File: " + context);
         SCOPED_TRACE("Executing: " + chunk_id);
         SCOPED_TRACE("Unexpected Error: " + original_std_err);
@@ -201,10 +208,12 @@ void Shell_script_tester::validate(const std::string& context, const std::string
             SCOPED_TRACE("Executing: " + chunk_id);
             SCOPED_TRACE("STDOUT missing: " + out);
             SCOPED_TRACE("STDOUT actual: " + original_std_out);
-            if (original_std_out.find(out) == std::string::npos)
+            if (original_std_out.find(out) == std::string::npos) {
+              ret_val = false;
               ADD_FAILURE();
+            }
           } else {
-            validate_line_by_line(context, chunk_id, "STDOUT", out, original_std_out);
+            ret_val = validate_line_by_line(context, chunk_id, "STDOUT", out, original_std_out);
           }
         }
       }
@@ -219,8 +228,10 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         SCOPED_TRACE("Executing: " + chunk_id);
         SCOPED_TRACE("STDOUT unexpected: " + out);
         SCOPED_TRACE("STDOUT actual: " + original_std_out);
-        if (original_std_out.find(out) != std::string::npos)
+        if (original_std_out.find(out) != std::string::npos) {
+          ret_val = false;
           ADD_FAILURE();
+        }
       }
 
       // Validates expected error if any
@@ -235,10 +246,12 @@ void Shell_script_tester::validate(const std::string& context, const std::string
             SCOPED_TRACE("Executing: " + chunk_id);
             SCOPED_TRACE("STDERR missing: " + error);
             SCOPED_TRACE("STDERR actual: " + original_std_err);
-            if (original_std_err.find(error) == std::string::npos)
+            if (original_std_err.find(error) == std::string::npos) {
+              ret_val = false;
               ADD_FAILURE();
+            }
           } else {
-            validate_line_by_line(context, chunk_id, "STDERR", error, original_std_out);
+            ret_val = validate_line_by_line(context, chunk_id, "STDERR", error, original_std_out);
           }
         }
       }
@@ -252,9 +265,12 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       SCOPED_TRACE("Executing: " + chunk_id);
       SCOPED_TRACE("MISSING VALIDATIONS!!!");
       ADD_FAILURE();
+      ret_val = false;
     } else
       output_handler.wipe_all();
   }
+  
+  return ret_val;
 }
 
 void Shell_script_tester::validate_interactive(const std::string& script) {
@@ -447,13 +463,14 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
       load_source_chunks(stream);
       for (size_t index = 0; index < _chunk_order.size(); index++) {
-        if (test_debug) {
-          std::string chunk_log = "CHUNK: " + _chunk_order[index];
-          std::string splitter(chunk_log.length(), '-');
-          std::cout << splitter << std::endl;
-          std::cout << "CHUNK: " << _chunk_order[index] << std::endl;
-          std::cout << splitter << std::endl;
-        }
+        
+        // Prints debugging information
+        std::string chunk_log = "CHUNK: " + _chunk_order[index];
+        std::string splitter(chunk_log.length(), '-');
+        output_handler.debug_print(splitter);
+        output_handler.debug_print(chunk_log);
+        output_handler.debug_print(splitter);
+        
         // Executes the file line by line
         for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]].size(); chunk_item++) {
           std::string line((_chunks[_chunk_order[index]])[chunk_item]);
@@ -472,7 +489,13 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
 
         // Validation contexts is at chunk level
         _custom_context = path + "@[" + _chunk_order[index] + " validation]";
-        validate(path, _chunk_order[index]);
+        if (!validate(path, _chunk_order[index])) {
+          std::cerr << "---------- Failure Log ----------" << std::endl;
+          output_handler.flush_debug_log();
+          std::cerr << "---------------------------------" << std::endl;
+        }
+        else
+          output_handler.whipe_debug_log();
       }
     } else {
       (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
@@ -494,7 +517,13 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       } else {
         // If processing a tets script, performs the validations over it
         (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
-        validate(script);
+        if (!validate(script)) {
+          std::cerr << "---------- Failure Log ----------" << std::endl;
+          output_handler.flush_debug_log();
+          std::cerr << "---------------------------------" << std::endl;
+        }
+        else
+          output_handler.whipe_debug_log();
       }
     }
 

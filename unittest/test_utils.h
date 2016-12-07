@@ -72,10 +72,16 @@ public:
   shcore::Interpreter_delegate deleg;
   std::string std_err;
   std::string std_out;
+  std::stringstream full_output;
 
   void validate_stdout_content(const std::string& content, bool expected);
   void validate_stderr_content(const std::string& content, bool expected);
-
+  
+  void debug_print(const std::string& line);
+  void debug_print_header(const std::string& line);
+  void flush_debug_log();
+  void whipe_debug_log() {full_output.clear();}
+  
   std::list<std::string> prompts;
   std::list<std::string> passwords;
 };
@@ -149,12 +155,10 @@ protected:
   std::string _mysql_uri;
   std::string _mysql_uri_nopasswd;
   std::string _sandbox_dir;
-  bool _have_ssl;
 
   shcore::Value _returned_value;
 
   shcore::Interpreter_delegate deleg;
-  bool test_debug;
 
 private:
   std::map<shcore::Object_bridge_ref, std::string > _open_sessions;
