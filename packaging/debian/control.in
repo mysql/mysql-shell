@@ -5,9 +5,9 @@ Maintainer: Oracle MySQL Product Engineering Team <mysql-build@oss.oracle.com>
 Standards-Version: 3.9.2
 Build-Depends: debhelper (>= 8.9.4), cmake (>= 2.8.5),
  @DEB_BUILD_DEPS@
-Homepage: http://dev.mysql.com/downloads/mysql-shell
-#Vcs-Git: git://git.debian.org/collab-maint/mysql-shell.git
-#Vcs-Browser: http://git.debian.org/?p=collab-maint/mysql-shell.git;a=summary
+Homepage: http://dev.mysql.com/downloads/shell
+Vcs-Git: https://github.com/mysql/mysql-shell.git
+Vcs-Browser: https://github.com/mysql/mysql-shell
 
 Package: mysql-shell@PRODUCT_SUFFIX@
 Section: database
