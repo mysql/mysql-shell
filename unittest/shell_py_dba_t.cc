@@ -113,10 +113,27 @@ protected:
       exec_and_out_equals(code);
       code = "__mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
       exec_and_out_equals(code);
+      code = "uri1 = 'localhost:" + _mysql_sandbox_port1 + "'";
+      exec_and_out_equals(code);
+      code = "uri2 = 'localhost:" + _mysql_sandbox_port2 + "'";
+      exec_and_out_equals(code);
+      code = "uri3 = 'localhost:" + _mysql_sandbox_port3 + "'";
+      exec_and_out_equals(code);
     }
     std::string str_have_ssl = _have_ssl ? "True" : "False";
     code = "__have_ssl = " + str_have_ssl + ";";
     exec_and_out_equals(code);
+
+    code = "localhost = 'localhost'";
+    exec_and_out_equals(code);
+    code = "add_instance_options = {'host':localhost, 'port': 0000, 'password':'root'};";
+    exec_and_out_equals(code);
+
+    if (!_have_ssl) {
+      code = "add_instance_options['memberSsl'] = False;";
+      exec_and_out_equals(code);
+    }
+
 
 #ifdef _WIN32
     code = "__path_splitter = '\\\\';";

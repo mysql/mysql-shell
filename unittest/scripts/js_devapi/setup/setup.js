@@ -1,9 +1,3 @@
-// Global variables required by the tests
-localhost = "localhost"
-uri1 = localhost + ":" + __mysql_sandbox_port1
-uri2 = localhost + ":" + __mysql_sandbox_port2
-uri3 = localhost + ":" + __mysql_sandbox_port3
-
 function validate_crud_functions(crud, expected)
 {
     var actual = dir(crud);
@@ -218,15 +212,6 @@ function cleanup_sandboxes(deployed_here) {
   }
 }
 
-// Setups the options to be used on all the instance operations
-// Performing an addInstance operation alone would require the port
-// to be updated
-var add_instance_options = {host:localhost, port: __mysql_sandbox_port1, password:'root'};
-
-if (!__have_ssl)
-  add_instance_options['memberSsl'] = false;
-  
-  
   // Operation that retries adding an instance to a cluster
   // 3 retries are done on each case, expectation is that the addition
   // is done on the first attempt, however, we have detected some OS

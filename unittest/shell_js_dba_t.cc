@@ -109,10 +109,25 @@ protected:
       exec_and_out_equals(code);
       code = "var __mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
       exec_and_out_equals(code);
+      code = "var uri1 = 'localhost:" + _mysql_sandbox_port1 + "';";
+      exec_and_out_equals(code);
+      code = "var uri2 = 'localhost:" + _mysql_sandbox_port2 + "';";
+      exec_and_out_equals(code);
+      code = "var uri3 = 'localhost:" + _mysql_sandbox_port3 + "';";
+      exec_and_out_equals(code);
     }
     std::string str_have_ssl = _have_ssl ? "true" : "false";
     code = "var __have_ssl = " + str_have_ssl + ";";
     exec_and_out_equals(code);
+    code = "localhost = 'localhost'";
+    exec_and_out_equals(code);
+    code = "add_instance_options = {host:localhost, port: 0000, password:'root'};";
+    exec_and_out_equals(code);
+
+    if (!_have_ssl) {
+      code = "add_instance_options[memberSsl] = false;";
+      exec_and_out_equals(code);
+    }
 
 #ifdef _WIN32
     code = "var __path_splitter = '\\\\';";
