@@ -125,7 +125,7 @@ protected:
     exec_and_out_equals(code);
 
     if (!_have_ssl) {
-      code = "add_instance_options[memberSsl] = false;";
+      code = "add_instance_options['memberSsl'] = false;";
       exec_and_out_equals(code);
     }
 
