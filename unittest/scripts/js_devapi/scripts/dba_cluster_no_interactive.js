@@ -47,27 +47,16 @@ Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_por
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslCa: " "}, "root");
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslCert: " "}, "root");
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslKey: " "}, "root");
-if (__have_ssl)
-  Cluster.addInstance({host: "localhost", port:__mysql_sandbox_port1}, "root");
-else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port1, memberSsl: false}, "root");
 
-var uri1 = localhost + ":" + __mysql_sandbox_port1;
-var uri2 = localhost + ":" + __mysql_sandbox_port2;
-var uri3 = localhost + ":" + __mysql_sandbox_port3;
+add_instance_options['port'] = __mysql_sandbox_port1;
+Cluster.addInstance(add_instance_options);
 
 //@ Cluster: addInstance 2
-if (__have_ssl)
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
-else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false}, "root");
+add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
 
 // Third instance will be added while the second is still on RECOVERY
 //@ Cluster: addInstance 3
-if (__have_ssl)
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
-else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false}, "root");
+add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 
 wait_slave_state(Cluster, uri2, "ONLINE");
 wait_slave_state(Cluster, uri3, "ONLINE");
@@ -96,11 +85,7 @@ Cluster.describe()
 Cluster.status()
 
 //@ Cluster: addInstance read only back
-var uri = "root@localhost:" + __mysql_sandbox_port2;
-if (__have_ssl)
-  Cluster.addInstance(uri, "root");
-else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false}, "root");
+add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
 
 wait_slave_state(Cluster, uri2, "ONLINE");
 
@@ -123,11 +108,7 @@ dba.resetSession(customSession);
 var Cluster = dba.getCluster();
 
 // Add back uri3
-var uri = "root@localhost:" + __mysql_sandbox_port3;
-if (__have_ssl)
-  Cluster.addInstance(uri, "root");
-else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false}, "root");
+add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 
 wait_slave_state(Cluster, uri3, "ONLINE");
 
@@ -138,11 +119,7 @@ Cluster.describe()
 Cluster.status()
 
 //@ Cluster: addInstance adding old master as read only
-var uri = "root@localhost:" + __mysql_sandbox_port1;
-if (__have_ssl)
-  Cluster.addInstance(uri, "root");
-else
-  Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port1, memberSsl: false}, "root");
+add_instance_to_cluster(Cluster, __mysql_sandbox_port1);
 
 wait_slave_state(Cluster, uri1, "ONLINE");
 

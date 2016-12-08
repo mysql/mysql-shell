@@ -1,3 +1,9 @@
+# Global variables required by the tests
+localhost = "localhost"
+uri1 = "%s:%s" % (localhost, __mysql_sandbox_port1)
+uri2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
+uri3 = "%s:%s" % (localhost, __mysql_sandbox_port3)
+
 def validate_crud_functions(crud, expected):
 	actual = crud.__members__
 
@@ -213,3 +219,37 @@ def cleanup_sandboxes(deployed_here):
     cleanup_sandbox(__mysql_sandbox_port1)
     cleanup_sandbox(__mysql_sandbox_port2)
     cleanup_sandbox(__mysql_sandbox_port3)
+
+
+# Setups the options to be used on all the instance operations
+# Performing an addInstance operation alone would require the port
+# to be updated
+add_instance_options = {'host':localhost, 'port': __mysql_sandbox_port1, 'password':'root'}
+
+if not __have_ssl:
+  add_instance_options['memberSsl'] = False
+
+
+# Operation that retries adding an instance to a cluster
+# 3 retries are done on each case, expectation is that the addition
+# is done on the first attempt, however, we have detected some OS
+# delays that cause it to fail, that's why the retry logic
+def add_instance_to_cluster(cluster, port):
+  global add_instance_options
+  add_instance_options['port'] = port
+  attempt = 0
+  success = False
+  while attempt < 3 and not success:
+    try:
+      cluster.add_instance(add_instance_options)
+      print "Instance added successfully..."
+      success = True
+    except Exception, err:
+      attempt = attempt + 1
+      print "Failed adding instance on attempt %s" % attempt
+      print str(err)
+      print "Waiting 5 seconds for next attempt"
+      time.sleep(5)
+
+  if not success:
+    raise Exception('Failed adding instance : %s' % add_instance_options)

@@ -291,21 +291,6 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
 TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
-  //@# Cluster: add_instance with interaction, error
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance 3 with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 3
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 4
-  output_handler.passwords.push_back("root");
-
   //@# Cluster: rejoin_instance with interaction, error
   output_handler.passwords.push_back("n");
 
@@ -331,24 +316,6 @@ TEST_F(Shell_py_dba_tests, DISABLED_interactive_classic_global_cluster_multimast
 
   //@<OUT> Dba: createCluster multiMaster with interaction, ok
   output_handler.prompts.push_back("yes");
-
-  //@# Cluster: add_instance with interaction, error
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance 3 with interaction, ok
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 2
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 3
-  output_handler.passwords.push_back("root");
-
-  //@<OUT> Cluster: add_instance with interaction, ok 4
-  output_handler.passwords.push_back("root");
 
   //@# Cluster: rejoin_instance with interaction, error
   output_handler.passwords.push_back("n");

@@ -1,10 +1,6 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-var localhost = "localhost";
 var deployed_here = reset_or_deploy_sandboxes();
-var uri1 = localhost + ":" + __mysql_sandbox_port1;
-var uri2 = localhost + ":" + __mysql_sandbox_port2;
-var uri3 = localhost + ":" + __mysql_sandbox_port3;
 
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
@@ -17,19 +13,13 @@ else
 cluster.status();
 
 //@ Add instance 2
-if (__have_ssl)
-  cluster.addInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
-else
-  cluster.addInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', memberSsl:false});
+add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
 // Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE");
 
 //@ Add instance 3
-if (__have_ssl)
-  cluster.addInstance({host:localhost, port: __mysql_sandbox_port3, password:'root'});
-else
-  cluster.addInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', memberSsl:false});
+add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 
 // Waiting for the third added instance to become online
 wait_slave_state(cluster, uri3, "ONLINE");

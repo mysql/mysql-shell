@@ -1,11 +1,6 @@
 # Assumptions: smart deployment rountines available
 #@ Initialization
-localhost = "localhost"
 deployed_here = reset_or_deploy_sandboxes()
-uri1 = "%s:%s" % (localhost, __mysql_sandbox_port1)
-uri2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
-uri3 = "%s:%s" % (localhost, __mysql_sandbox_port3)
-
 
 #@<OUT> Standalone Instance : check instance config
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
@@ -41,10 +36,7 @@ session.close()
 #@ Read Only Instance : get cluster
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
-if __have_ssl:
-  cluster.add_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
-else:
-  cluster.add_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'memberSsl':False})
+add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
 # Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE")

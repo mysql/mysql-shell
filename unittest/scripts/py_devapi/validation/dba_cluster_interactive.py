@@ -41,7 +41,7 @@
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Adding instance to the cluster ...
+Adding instance to the cluster ...
 
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
@@ -49,7 +49,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Adding instance to the cluster ...
+Adding instance to the cluster ...
 
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
@@ -209,7 +209,7 @@ The following replicasets are currently registered:
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Adding instance to the cluster ...
+Adding instance to the cluster ...
 
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
@@ -217,7 +217,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Adding instance to the cluster ...
+Adding instance to the cluster ...
 
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 

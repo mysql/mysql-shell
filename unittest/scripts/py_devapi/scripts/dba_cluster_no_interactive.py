@@ -1,8 +1,8 @@
-import time
-
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
+
+import time
 
 #@ Cluster: validating members
 cluster = dba.get_cluster('devCluster')
@@ -52,27 +52,20 @@ cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sand
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "memberSsl": True, "memberSslCa": " "}, "root")
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "memberSsl": True, "memberSslCert": " "}, "root")
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "memberSsl": True, "memberSslKey": " "}, "root")
-if __have_ssl:
-  cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1}, 'root')
-else:
-  cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port1, "memberSsl": False}, "root")
+
+add_instance_options['port'] = __mysql_sandbox_port1
+cluster.add_instance(add_instance_options)
 
 uri1 = "%s:%s" % (localhost, __mysql_sandbox_port1)
 uri2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
 uri3 = "%s:%s" % (localhost, __mysql_sandbox_port3)
 
 #@ Cluster: add_instance 2
-if __have_ssl:
-  cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2}, "root")
-else:
-  cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "memberSsl": False}, "root")
+add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
 # Third instance will be added while the second is still on RECOVERY
 #@ Cluster: add_instance 3
-if __have_ssl:
-  cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, "root")
-else:
-  cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "memberSsl": False}, "root")
+add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 
 wait_slave_state(cluster, uri2, "ONLINE");
 wait_slave_state(cluster, uri3, "ONLINE");
@@ -101,10 +94,7 @@ cluster.describe()
 cluster.status()
 
 #@ Cluster: addInstance read only back
-if __have_ssl:
-  cluster.add_instance("root@localhost:%s" % __mysql_sandbox_port2, "root")
-else:
-  cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "memberSsl": False}, "root")
+add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
 wait_slave_state(cluster, uri2, "ONLINE");
 
@@ -127,10 +117,7 @@ dba.reset_session(customSession)
 cluster = dba.get_cluster()
 
 # Add back uri3
-if __have_ssl:
-  cluster.add_instance("root@localhost:%s" % __mysql_sandbox_port3, "root")
-else:
-  cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "memberSsl": False}, "root")
+add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 
 wait_slave_state(cluster, uri3, "ONLINE")
 

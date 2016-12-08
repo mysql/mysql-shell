@@ -9,23 +9,13 @@ else:
 
 cluster = dba.get_cluster('devCluster');
 
-uri1 = "%s:%s" % ("localhost", __mysql_sandbox_port1)
-uri2 = "%s:%s" % ("localhost", __mysql_sandbox_port2)
-uri3 = "%s:%s" % ("localhost", __mysql_sandbox_port3)
-
 #@ Cluster: add_instance 2
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2}, 'root');
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2, 'memberSsl': False}, 'root');
+add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
 check_slave_online_multimaster(Cluster, uri2);
 
 #@ Cluster: add_instance 3
-if __have_ssl:
-  cluster.add_instance({'dbUser': "root", 'host': "localhost", 'port': __mysql_sandbox_port3}, 'root');
-else:
-  cluster.add_instance({'dbUser': "root", 'host': "localhost", 'port': __mysql_sandbox_port3, 'memberSsl': False}, 'root');
+add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
 check_slave_online_multimaster(cluster, uri3);
 
@@ -57,24 +47,17 @@ cluster.describe()
 cluster.status()
 
 #@ Cluster: add_instance 1
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port' :__mysql_sandbox_port1}, 'root');
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port' :__mysql_sandbox_port1, 'memberSsl': False}, 'root');
+add_instance_to_cluster(cluster, __mysql_sandbox_port1)
+
+check_slave_online_multimaster(cluster, uri1);
 
 #@ Cluster: add_instance 2
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2}, 'root');
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2, 'memberSsl': False}, 'root');
+add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
 check_slave_online_multimaster(cluster, uri2);
 
 #@ Cluster: add_instance 3
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3}, 'root');
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'memberSsl': False}, 'root');
+add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
 check_slave_online_multimaster(cluster, uri3);
 

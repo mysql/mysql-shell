@@ -1,3 +1,9 @@
+// Global variables required by the tests
+localhost = "localhost"
+uri1 = localhost + ":" + __mysql_sandbox_port1
+uri2 = localhost + ":" + __mysql_sandbox_port2
+uri3 = localhost + ":" + __mysql_sandbox_port3
+
 function validate_crud_functions(crud, expected)
 {
     var actual = dir(crud);
@@ -211,3 +217,38 @@ function cleanup_sandboxes(deployed_here) {
     cleanup_sandbox(__mysql_sandbox_port3);
   }
 }
+
+// Setups the options to be used on all the instance operations
+// Performing an addInstance operation alone would require the port
+// to be updated
+var add_instance_options = {host:localhost, port: __mysql_sandbox_port1, password:'root'};
+
+if (!__have_ssl)
+  add_instance_options['memberSsl'] = false;
+  
+  
+  // Operation that retries adding an instance to a cluster
+  // 3 retries are done on each case, expectation is that the addition
+  // is done on the first attempt, however, we have detected some OS
+  // delays that cause it to fail, that's why the retry logic
+function add_instance_to_cluster(cluster, port) {
+  add_instance_options['port'] = port;
+  attempt = 0;
+  success = false;
+  while (attempt < 3 && !success) {
+    try {
+      cluster.addInstance(add_instance_options);
+      println("Instance added successfully...")
+      success = true;
+    } catch (err) {
+      attempt = attempt + 1;
+      println("Failed adding instance on attempt " + attempt);
+      println(err);
+      println("Waiting 5 seconds for next attempt");
+      os.sleep(5)
+    }
+  }
+    
+  if (!success)
+    throw ('Failed adding instance : ' + add_instance_options);
+}      

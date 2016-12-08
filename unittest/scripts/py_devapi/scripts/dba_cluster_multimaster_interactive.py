@@ -12,29 +12,20 @@ else:
 
 cluster = dba.get_cluster('devCluster');
 
-uri1 = "%s:%s" % ("localhost", __mysql_sandbox_port1)
-uri2 = "%s:%s" % ("localhost", __mysql_sandbox_port2)
-uri3 = "%s:%s" % ("localhost", __mysql_sandbox_port3)
-
 #@ Cluster: add_instance with interaction, error
-if __have_ssl:
-  cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1});
-else:
-  cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1, 'memberSsl': False});
+add_instance_options['port'] = __mysql_sandbox_port1
+
+cluster.add_instance(add_instance_options)
+
+check_slave_online_multimaster(cluster, uri1);
 
 #@<OUT> Cluster: add_instance with interaction, ok
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2});
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2, 'memberSsl': False});
+add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
 check_slave_online_multimaster(cluster, uri2);
 
 #@<OUT> Cluster: add_instance 3 with interaction, ok
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'memberSsl': False});
+add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
 check_slave_online_multimaster(cluster, uri3);
 
@@ -66,24 +57,17 @@ cluster.describe()
 cluster.status()
 
 #@<OUT> Cluster: add_instance with interaction, ok 2
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port1});
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port1, 'memberSsl': False});
+add_instance_to_cluster(cluster, __mysql_sandbox_port1)
+
+wait_slave_state(cluster, uri1, "ONLINE");
 
 #@<OUT> Cluster: add_instance with interaction, ok 3
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2});
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port2, 'memberSsl': False});
+add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
 wait_slave_state(cluster, uri2, "ONLINE");
 
 #@<OUT> Cluster: add_instance with interaction, ok 4
-if __have_ssl:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3});
-else:
-  cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'memberSsl': False});
+add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
 wait_slave_state(cluster, uri3, "ONLINE");
 
