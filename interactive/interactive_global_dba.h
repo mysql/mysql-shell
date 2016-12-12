@@ -48,7 +48,7 @@ public:
 
 private:
   mysqlsh::dba::ReplicationGroupState check_preconditions(const std::string& function_name) const;
-  shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args, bool deploy);
+  shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args, const std::string& function_name);
   shcore::Value perform_instance_operation(const shcore::Argument_list &args, const std::string &fname, const std::string& progressive, const std::string& past);
   void dump_table(const std::vector<std::string>& column_names, const std::vector<std::string>& column_labels, shcore::Value::Array_type_ref documents);
   void print_validation_results(const shcore::Value::Map_type_ref& result);

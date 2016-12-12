@@ -558,6 +558,7 @@ if __name__ == "__main__":
 
     # add option to read passwords from stdin
     options.add_stdin_password_option(sub_parser_sandbox_create)
+    options.add_stdin_password_option(sub_parser_sandbox_stop)
 
     # Parse provided arguments
     args = _PARSER.parse_args()
@@ -625,6 +626,11 @@ if __name__ == "__main__":
             # Read extra password for root user of the sandbox
             sandbox_pw = options.read_extra_password(
                 "Enter a password to be set for the root user of the MySQL "
+                "sandbox (root@localhost): ", read_from_stdin=args.stdin_pw)
+        if args.sandbox_cmd == SANDBOX_STOP:
+            # Read extra password for root user of the sandbox
+            sandbox_pw = options.read_extra_password(
+                "Enter the password for the root user of the MySQL "
                 "sandbox (root@localhost): ", read_from_stdin=args.stdin_pw)
 
     _LOGGER.debug("Setting options for command: %s", command)
@@ -727,7 +733,7 @@ if __name__ == "__main__":
         for key, val in list(cmd_options.items()):
             if val is None:
                 del cmd_options[key]
-        # set root password for start cmd.
+        # set root password for create and stop cmd.
         cmd_options["passwd"] = sandbox_pw
     else:
         raise _PARSER.error("The given command '{0}' was not recognized, "

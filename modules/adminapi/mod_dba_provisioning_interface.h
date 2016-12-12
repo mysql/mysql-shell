@@ -53,6 +53,7 @@ public:
   int kill_sandbox(int port, const std::string &sandbox_dir,
                    shcore::Value::Array_type_ref &errors);
   int stop_sandbox(int port, const std::string &sandbox_dir,
+                   const std::string &password,
                    shcore::Value::Array_type_ref &errors);
   int start_sandbox(int port, const std::string &sandbox_dir,
                    shcore::Value::Array_type_ref &errors);

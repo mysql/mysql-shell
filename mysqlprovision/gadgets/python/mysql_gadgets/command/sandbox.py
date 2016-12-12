@@ -1009,6 +1009,8 @@ def stop_sandbox(**kwargs):
     except KeyError:
         raise exceptions.GadgetError("It is mandatory to specify a port.")
 
+    password = kwargs.get("passwd")
+
     # Get default values for optional variables
     timeout = kwargs.get("timeout", SANDBOX_TIMEOUT)
     _, sandbox_dir = _get_sandbox_dirs(**kwargs)
@@ -1029,11 +1031,25 @@ def stop_sandbox(**kwargs):
                 pid = int(f.readline().strip())
                 _LOGGER.debug("Got pid '%i' from pid file '%s'", pid,
                               pidf_path)
-            _LOGGER.debug("Sending terminate signal to process '%i'", pid)
-
-            # Stop process
-            tools.stop_process_with_pid(pid, force=False)
-
+            _LOGGER.debug("Executing SHUTDOWN SQL command on server with "
+                          "PID '%i'", pid)
+            # Send shutdown signal
+            conn_dict = {"user": "root",
+                         "host": "localhost",
+                         "port": port,
+                         "passwd": password}
+            s = server.Server({"conn_info": conn_dict})
+            try:
+                s.connect()
+            except exceptions.GadgetServerError as err:
+                raise exceptions.GadgetError(
+                    "Unable to connect to MySQL sandbox {0} to send the "
+                    "SHUTDOWN request: '{1}'".format(str(s), str(err)))
+            try:
+                s.exec_query("SHUTDOWN")
+            except exceptions.GadgetQueryError:
+                # ignore query timeout or connection lost errors.
+                pass
             # Wait for server to stop (listening on port).
             i = 0
             _LOGGER.debug("Waiting for MySQL sandbox on port '%i' to stop.",

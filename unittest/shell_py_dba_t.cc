@@ -66,7 +66,7 @@ protected:
       output_handler.debug_print("Connecting to the base server...");
       session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
       output_handler.debug_print("Connection succeeded...");
-      
+
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
       mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
                                         have_ssl);
@@ -74,7 +74,7 @@ protected:
       _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
       shcore::Argument_list args;
       classic->close(args);
-      
+
     } catch(shcore::Exception &e){
       std::string error ("Connection to the base server failed: ");
       error.append(e.what());
@@ -176,35 +176,6 @@ protected:
     code = "import os";
   }
 
-  void clean_and_deploy() {
-    if (_sandbox_dir.empty()) {
-      execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ");");
-      execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ");");
-      execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ");");
-      execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port3 + ");");
-    } else {
-      execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-      execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-      execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-      execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-      execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-      execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port3 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    }
-
-    std::string deploy_options = "{'password': 'root', 'allowRootFrom': '%'";
-    if (!_sandbox_dir.empty())
-      deploy_options.append(", 'sandboxDir': '" + _sandbox_dir + "'");
-    deploy_options.append("}");
-
-    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port1 + ", "
-            + deploy_options + ")");
-    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port2 + ", "
-              + deploy_options + ")");
-    execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port3 + ", "
-              + deploy_options + ")");
-  }
 };
 
 TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
@@ -224,6 +195,13 @@ TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
               + deploy_options + ")");
   execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port3 + ", "
               + deploy_options + ")");
+
+  if (!output_handler.std_err.empty()) {
+    std::cerr << "---------- Failure Log ----------" << std::endl;
+    output_handler.flush_debug_log();
+    std::cerr << "---------------------------------" << std::endl;
+    ADD_FAILURE();
+  }
 }
 
 TEST_F(Shell_py_dba_tests, no_interactive_classic_global_dba) {
@@ -397,22 +375,26 @@ TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
 
 TEST_F(Shell_py_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
+  std::string stop_options = "{'password': 'root'";
+  std::string delete_options;
+  if (!_sandbox_dir.empty())
+    stop_options.append(", 'sandboxDir': '" + _sandbox_dir + "'");
+    delete_options = "{'sandboxDir': '" + _sandbox_dir + "'}";
+  stop_options.append("}");
   reset_shell();
 
-  if (_sandbox_dir.empty()) {
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ");");
-    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port3 + ");");
-  } else {
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
-    execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port3 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", " + stop_options + ")");
+  execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port1 + ", " + delete_options + ")");
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", " + stop_options + ")");
+  execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port2 + ", " + delete_options + ")");
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ", " + stop_options + ")");
+  execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port3 + ", " + delete_options + ")");
+
+  if (!output_handler.std_err.empty()) {
+    std::cerr << "---------- Failure Log ----------" << std::endl;
+    output_handler.flush_debug_log();
+    std::cerr << "---------------------------------" << std::endl;
+    ADD_FAILURE();
   }
 }
 }

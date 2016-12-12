@@ -331,7 +331,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   }
 
   // Inserts the indicated password
-  if (op == "create") {
+  if (op == "create" || op == "stop") {
     pwd += "\n";
     passwords.push_back(pwd);
   }
@@ -380,8 +380,9 @@ int ProvisioningInterface::kill_sandbox(int port, const std::string &sandbox_dir
 }
 
 int ProvisioningInterface::stop_sandbox(int port, const std::string &sandbox_dir,
+                                        const std::string &password,
                                         shcore::Value::Array_type_ref &errors) {
-  return exec_sandbox_op("stop", port, 0, sandbox_dir, "",
+  return exec_sandbox_op("stop", port, 0, sandbox_dir, password,
                          std::vector<std::string>(), errors);
 }
 

@@ -47,6 +47,7 @@ using namespace shcore;
 #define PASSWORD_LENGHT 16
 
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom", "ignoreSslError"};
+std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password", "dbPassword"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey"};
 
@@ -618,7 +619,15 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
         password = opt_map.string_at("dbPassword");
       else
         throw shcore::Exception::argument_error("Missing root password for the deployed instance");
-    } else {
+    } else if (function == "stop") {
+      opt_map.ensure_keys({}, _stop_instance_opts, "the instance data");
+      if (opt_map.has_key("password"))
+        password = opt_map.string_at("password");
+      else if (opt_map.has_key("dbPassword"))
+        password = opt_map.string_at("dbPassword");
+      else
+        throw shcore::Exception::argument_error("Missing root password for the instance");
+    }else {
       opt_map.ensure_keys({}, _default_local_instance_opts, "the instance data");
     }
 
@@ -664,7 +673,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   else if (function == "kill")
     rc = _provisioning_interface->kill_sandbox(port, sandbox_dir, errors);
   else if (function == "stop")
-    rc = _provisioning_interface->stop_sandbox(port, sandbox_dir, errors);
+    rc = _provisioning_interface->stop_sandbox(port, sandbox_dir, password, errors);
   else if (function == "start")
     rc = _provisioning_interface->start_sandbox(port, sandbox_dir, errors);
 
@@ -699,7 +708,7 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5, "@li ignoreSslError: Ignore err
     "instance, by default: true.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6, "If the portx option is not specified, it will be automatically calculated "\
 "as 10 times the value of the provided MySQL port.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "The password or dbPassword options are mandatory to specify the MySQL root "\
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "The password or dbPassword options specify the MySQL root "\
 "password on the new instance.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "The sandboxDir must be an existing folder where the new instance will be "\
 "deployed. If not specified the new instance will be deployed at:");
@@ -816,13 +825,6 @@ REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL4, "If the instance is not located
 * $(DBA_DELETESANDBOXINSTANCE_DETAIL3)
 *
 * $(DBA_DELETESANDBOXINSTANCE_DETAIL4)
-*
-* $(DBA_DELETESANDBOXINSTANCE_DETAIL5)
-*
-* $(DBA_DELETESANDBOXINSTANCE_DETAIL6)
-*
-* $(DBA_DELETESANDBOXINSTANCE_DETAIL7)
-*
 */
 #if DOXYGEN_JS
 Undefined Dba::deleteSandboxInstance(Integer port, Dictionary options) {}
@@ -865,12 +867,6 @@ REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL4, "If the instance is not located o
 * $(DBA_KILLSANDBOXINSTANCE_DETAIL3)
 *
 * $(DBA_KILLSANDBOXINSTANCE_DETAIL4)
-*
-* $(DBA_KILLSANDBOXINSTANCE_DETAIL5)
-*
-* $(DBA_KILLSANDBOXINSTANCE_DETAIL6)
-*
-* $(DBA_KILLSANDBOXINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
 Undefined Dba::killSandboxInstance(Integer port, Dictionary options) {}
@@ -896,9 +892,10 @@ REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM1, "@param options Optional dictionar
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL, "This function will gracefully stop a running MySQL Server instance "\
 "on the local host. The next options affect the result:");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4, "If the instance is not located on the used path an error will occur.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL2, "@li password: password for the MySQL root user on the instance.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL3, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL5, "If the instance is not located on the used path an error will occur.");
 
 /**
 * $(DBA_STOPSANDBOXINSTANCE_BRIEF)
@@ -915,10 +912,6 @@ REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4, "If the instance is not located o
 * $(DBA_STOPSANDBOXINSTANCE_DETAIL4)
 *
 * $(DBA_STOPSANDBOXINSTANCE_DETAIL5)
-*
-* $(DBA_STOPSANDBOXINSTANCE_DETAIL6)
-*
-* $(DBA_STOPSANDBOXINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
 Undefined Dba::stopSandboxInstance(Integer port, Dictionary options) {}
@@ -929,7 +922,6 @@ shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   args.ensure_count(1, 2, get_function_name("stopSandboxInstance").c_str());
-
   try {
     ret_val = exec_instance_op("stop", args);
   }
@@ -961,12 +953,6 @@ REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL4, "If the instance is not located 
 * $(DBA_STARTSANDBOXINSTANCE_DETAIL3)
 *
 * $(DBA_STARTSANDBOXINSTANCE_DETAIL4)
-*
-* $(DBA_STARTSANDBOXINSTANCE_DETAIL5)
-*
-* $(DBA_STARTSANDBOXINSTANCE_DETAIL6)
-*
-* $(DBA_STARTSANDBOXINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
 Undefined Dba::startSandboxInstance(Integer port, Dictionary options) {}

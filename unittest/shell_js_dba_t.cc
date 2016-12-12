@@ -171,35 +171,6 @@ protected:
     exec_and_out_equals(code);
   }
 
-  void clean_and_deploy() {
-    if (_sandbox_dir.empty()) {
-      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ");");
-      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ");");
-      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ");");
-      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ");");
-    } else {
-      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-      execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-      execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    }
-
-    std::string deploy_options = "{password: \"root\", allowRootFrom: '%'";
-    if (!_sandbox_dir.empty())
-      deploy_options.append(", sandboxDir: \"" + _sandbox_dir + "\"");
-    deploy_options.append("}");
-
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port1 + ", "
-            + deploy_options + ");");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port2 + ", "
-            + deploy_options + ");");
-    execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
-            + deploy_options + ");");
-  }
 };
 
 TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
@@ -220,6 +191,13 @@ TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
               + deploy_options + ");");
   execute("dba.deploySandboxInstance(" + _mysql_sandbox_port3 + ", "
               + deploy_options + ");");
+
+  if (!output_handler.std_err.empty()) {
+    std::cerr << "---------- Failure Log ----------" << std::endl;
+    output_handler.flush_debug_log();
+    std::cerr << "---------------------------------" << std::endl;
+    ADD_FAILURE();
+  }
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_classic_global_dba) {
@@ -393,22 +371,27 @@ TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {
 
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
+  std::string stop_options = "{password: 'root'";
+  std::string delete_options;
+  if (!_sandbox_dir.empty()) {
+    stop_options.append(", sandboxDir: '" + _sandbox_dir + "'");
+    delete_options = "{sandboxDir: '" + _sandbox_dir + "'}";
+  }
+  stop_options.append("}");
   reset_shell();
 
-  if (_sandbox_dir.empty()) {
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ");");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ");");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ");");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ");");
-  } else {
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-    execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", " + stop_options + ")");
+  execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", " + delete_options + ")");
+  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", " + stop_options + ")");
+  execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", " + delete_options + ")");
+  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", " + stop_options + ")");
+  execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", " + delete_options + ")");
+
+  if (!output_handler.std_err.empty()) {
+    std::cerr << "---------- Failure Log ----------" << std::endl;
+    output_handler.flush_debug_log();
+    std::cerr << "---------------------------------" << std::endl;
+    ADD_FAILURE();
   }
 }
 }

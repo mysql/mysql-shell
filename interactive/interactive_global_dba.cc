@@ -53,7 +53,7 @@ mysqlsh::dba::ReplicationGroupState Global_dba::check_preconditions(const std::s
 }
 
 shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argument_list &args,
-                                                           bool deploy) {
+                                                           const std::string& function_name) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
@@ -61,7 +61,8 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
 
   std::string answer;
   bool proceed = true;
-  std::string sandboxDir;
+  // Initialize sandboxDir with the default sandboxValue
+  std::string sandboxDir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
 
   int port = args.int_at(0);
   new_args.push_back(args[0]);
@@ -72,24 +73,28 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
 
     shcore::Argument_map opt_map(*options);
 
-    if (deploy == true) {
+    if (function_name == "deploySandboxInstance") {
       opt_map.ensure_keys({}, mysqlsh::dba::Dba::_deploy_instance_opts, "the instance definition");
-    } else {
+    } else if (function_name == "stopSandboxInstance"){
+      opt_map.ensure_keys({}, mysqlsh::dba::Dba::_stop_instance_opts, "the instance definition");
+    }
+    else{
       opt_map.ensure_keys({}, mysqlsh::dba::Dba::_default_local_instance_opts, "the instance definition");
     }
 
     if (opt_map.has_key("sandboxDir")) {
       sandboxDir = opt_map.string_at("sandboxDir");
-
       // When the user specifies the sandbox dir we validate it
       if (!shcore::is_folder(sandboxDir))
         throw shcore::Exception::argument_error("The sandboxDir path '" + sandboxDir + "' is not valid");
     }
+    // Store sandboxDir value
+    (*options)["sandboxDir"] = shcore::Value(sandboxDir);
   } else {
     options.reset(new shcore::Value::Map_type());
+    (*options)["sandboxDir"] = shcore::Value(sandboxDir);
     new_args.push_back(shcore::Value(options));
   }
-
   return new_args;
 }
 
@@ -104,19 +109,11 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
     // Verifies and sets default args
     // After this there is port and options
     // options at least contains sandboxDir
-    valid_args = check_instance_op_params(args, deploying);
+    valid_args = check_instance_op_params(args, fname);
     port = valid_args.int_at(0);
-
-    std::string sandbox_dir;
-
     auto options = valid_args.map_at(1);
 
-    if (options && options->has_key("sandboxDir")) {
-      sandbox_dir = options->get_string("sandboxDir");
-    } else {
-      // we get the default value
-      sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
-    }
+    std::string sandbox_dir {options->get_string("sandboxDir")};
 
     bool prompt_password = !options->has_key("password") && !options->has_key("dbPassword");
 
@@ -174,20 +171,32 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
   args.ensure_count(1, 2, get_function_name(fname).c_str());
 
   try {
-    // Not used for deploy, only for other sandbox instance operation.
-    valid_args = check_instance_op_params(args, false);
+    valid_args = check_instance_op_params(args, fname);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
 
   int port = valid_args.int_at(0);
-  std::string sandboxDir = valid_args.map_at(1)->get_string("sandboxDir");
+  auto options = valid_args.map_at(1);
 
+  std::string sandboxDir {options->get_string("sandboxDir")};
   std::string message = "The MySQL sandbox instance on this host in \n"\
-    "" + sandboxDir + "/" + std::to_string(port) + " will be " + past;
+    "" + sandboxDir + "/" + std::to_string(port) + " will be " + past + "\n";
 
   println(message);
-  println();
 
+  if (fname == "stopSandboxInstance"){
+    bool prompt_password = !options->has_key("password") && !options->has_key("dbPassword");
+
+    if (prompt_password) {
+      std::string message = "Please enter the MySQL root password for the instance 'localhost:" + std::to_string(port) + "': ";
+
+      std::string answer;
+      if (password(message, answer))
+        (*options)["password"] = shcore::Value(answer);
+    }
+  }
+
+  println();
   println(progressive + " MySQL instance...");
 
   shcore::Value ret_val = call_target(fname, valid_args);
