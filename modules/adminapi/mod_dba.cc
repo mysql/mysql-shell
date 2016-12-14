@@ -231,8 +231,8 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that in
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the multiMaster option must be applied.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value that indicates that the cluster shall be created empty and adopt the topology from an existing Group Replication group.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li memberSsl: boolean, indicates if SSL "\
-    "is used for the instance to start the cluster, by default: true. Set this "\
-    "option to false to not use SSL.");
+    "is used for the instance to start the cluster, by default: false. Set this "\
+    "option to true to use SSL.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li memberSslCa: Path of file that "\
     "contains list of trusted SSL CAs to set for the instance.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li memberSslCert: Path of file that "\

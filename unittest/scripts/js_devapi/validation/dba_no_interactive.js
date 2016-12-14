@@ -21,6 +21,9 @@
 ||Dba.createCluster: The Cluster name cannot be empty
 ||Argument #2 is expected to be a map
 ||Invalid values in the options: another, invalid
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.

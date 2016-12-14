@@ -124,8 +124,8 @@ protected:
     code = "add_instance_options = {host:localhost, port: 0000, password:'root'};";
     exec_and_out_equals(code);
 
-    if (!_have_ssl) {
-      code = "add_instance_options['memberSsl'] = false;";
+    if (_have_ssl) {
+      code = "add_instance_options['memberSsl'] = true;";
       exec_and_out_equals(code);
     }
 

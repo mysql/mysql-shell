@@ -24,6 +24,9 @@
 ||Cluster.add_instance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.add_instance: Invalid values in instance definition: authMethod, schema
 ||Cluster.add_instance: Missing values in instance definition: host
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
@@ -347,6 +350,9 @@
 ||Cluster.rejoin_instance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.rejoin_instance: Invalid values in instance definition: authMethod, schema
 ||Cluster.rejoin_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
+||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) without setting memberSsl to true.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.
 ||Cannot use other member SSL options (memberSslCa, memberSslCert, memberSslKey) if memberSsl is set to false.

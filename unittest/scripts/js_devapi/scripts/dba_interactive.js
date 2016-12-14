@@ -27,6 +27,9 @@ var c1 = dba.createCluster(1,2,3,4);
 var c1 = dba.createCluster(5);
 var c1 = dba.createCluster('');
 var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
+var c1 = dba.createCluster('devCluster', {memberSslCa: "ca"});
+var c1 = dba.createCluster('devCluster', {memberSslCert: "cert"});
+var c1 = dba.createCluster('devCluster', {memberSslKey: "key"});
 var c1 = dba.createCluster('devCluster', {memberSsl: false, memberSslCa: "ca"});
 var c1 = dba.createCluster('devCluster', {memberSsl: false, memberSslCert: "cert"});
 var c1 = dba.createCluster('devCluster', {memberSsl: false, memberSslKey: "key"});
@@ -43,9 +46,9 @@ var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslKey: "key"
 
 //@<OUT> Dba: createCluster with interaction
 if (__have_ssl)
-  var c1 = dba.createCluster('devCluster')
+  var c1 = dba.createCluster('devCluster', {memberSsl: true})
 else
-  var c1 = dba.createCluster('devCluster', {memberSsl: false})
+  var c1 = dba.createCluster('devCluster')
 
 // TODO: add multi-master unit-tests
 
