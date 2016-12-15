@@ -181,9 +181,6 @@ function reset_or_deploy_sandbox(port) {
     options['password'] = 'root';
     options['allowRootFrom'] = '%';
 
-    if (!__have_ssl)
-      options['ignoreSslError'] = true;
-
     dba.deploySandboxInstance(port, options);
     deployed_here = true;
   }
