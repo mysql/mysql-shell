@@ -109,7 +109,7 @@ namespace mysqlx
     void pop_local_notice_handler();
 
     void connect(const std::string &uri, const std::string &pass, const bool cap_expired_password = false); //XXX capabilities flags
-    void connect(const std::string &host, int port);
+    void connect(const std::string &host, int port, const bool cap_expired_password = false);
 
     void close();
     void set_closed();
@@ -167,6 +167,7 @@ namespace mysqlx
 
     void set_trace_protocol(bool flag) { m_trace_packets = flag; }
 
+    bool expired_account() { return m_account_expired; }
     std::shared_ptr<Result> new_empty_result();
   private:
     void perform_close();
@@ -185,6 +186,7 @@ namespace mysqlx
     Mysqlx_sync_connection m_sync_connection;
     boost::asio::deadline_timer m_deadline;
     uint64_t m_client_id;
+    bool m_account_expired;
     bool m_trace_packets;
     bool m_closed;
     const bool m_dont_wait_for_disconnect;

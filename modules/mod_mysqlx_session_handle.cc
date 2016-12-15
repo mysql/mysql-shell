@@ -28,6 +28,9 @@ using namespace mysqlsh;
 using namespace shcore;
 using namespace mysqlsh::mysqlx;
 
+SessionHandle::SessionHandle() :
+_case_sensitive_table_names(false), _connection_id(0), _expired_account(false) {}
+
 void SessionHandle::open(const std::string &host, int port, const std::string &schema,
                           const std::string &user, const std::string &pass,
                           const std::string &ssl_ca, const std::string &ssl_cert,
@@ -52,7 +55,12 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
 
   // TODO: Define a proper timeout for the session creation
   try {
-    _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 60000, auth_method, true);
+    _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, true, timeout, auth_method, true);
+
+    // If the account is not expired, retrieves additional session information
+    _expired_account = _session->connection()->expired_account();
+    if (!_expired_account)
+      load_session_info();
   } catch (const ::mysqlx::Error& error) {
     if (error.error() == CR_MALFORMED_PACKET &&
       !strcmp(error.what(), "Unknown message received from server 10")) {
@@ -104,6 +112,16 @@ std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_statement(const std::s
 
     // Calls wait so any error is properly triggered at execution time
     _last_result->wait();
+
+    // This is the pipeline for statement execution
+    // In the case the account was expired, all the statements would fail
+    // except for the ones to reset the password.
+    // If we are here and the statement succeeded, it means the password was reset
+    // So we can load the missing session information and turn off the expired flag
+    if (_expired_account) {
+      _expired_account = false;
+      load_session_info();
+    }
 
     ret_val = _last_result;
   }
@@ -228,4 +246,25 @@ uint64_t SessionHandle::get_client_id() {
     return _session->connection()->client_id();
   } else
     return 0;
+}
+
+void SessionHandle::load_session_info() const {
+  try {
+    if (is_connected()) {
+      // TODO: update this logic properly
+      std::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select @@lower_case_table_names, connection_id()");
+      result->wait();
+
+      std::shared_ptr< ::mysqlx::Row>row = result->next();
+
+      auto case_sensitive_table_names = (int)row->uInt64Field(0);
+      _case_sensitive_table_names = (case_sensitive_table_names == 0);
+
+      if (!row->isNullField(0))
+        _connection_id = row->uInt64Field(0);
+
+      result->flush();
+    }
+  }
+  CATCH_AND_TRANSLATE();
 }

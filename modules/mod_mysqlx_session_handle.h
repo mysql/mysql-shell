@@ -32,6 +32,7 @@ namespace mysqlx {
 // and the different operations available through it.
 class SHCORE_PUBLIC SessionHandle {
 public:
+  SessionHandle();
   bool is_connected() const { return _session ? true : false; }
   std::shared_ptr< ::mysqlx::Session> get() const { return _session; }
   void open(const std::string &host, int port, const std::string &schema,
@@ -51,11 +52,18 @@ public:
   std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
 
   shcore::Value get_capability(const std::string& name);
+
+  bool expired_account() { return _expired_account; }
+  void load_session_info() const;
+
   uint64_t get_client_id();
 
 private:
   mutable std::shared_ptr< ::mysqlx::Result> _last_result;
   std::shared_ptr< ::mysqlx::Session> _session;
+  mutable bool _case_sensitive_table_names;
+  mutable uint64_t _connection_id;
+  mutable bool _expired_account;
 
   ::mysqlx::ArgumentValue get_argument_value(shcore::Value source) const;
 };

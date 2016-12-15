@@ -111,7 +111,10 @@ Value ClassicSession::connect(const Argument_list &args) {
     // Performs the connection
     _conn.reset(new Connection(_host, _port, _sock, _user, _password, _schema, _ssl_info));
 
-    _default_schema = _retrieve_current_schema();
+    _default_schema = _schema;
+
+    if (!_default_schema.empty())
+      update_schema_cache(_default_schema, true);
   }
   CATCH_AND_TRANSLATE();
 

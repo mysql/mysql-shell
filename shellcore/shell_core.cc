@@ -207,7 +207,7 @@ bool Shell_core::prompt(const std::string &s, std::string &ret_val) {
   if (format.find("json") != std::string::npos)
     prompt = format_json_output(prompt, "prompt");
 
-  return _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(), ret_val);
+    return _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(), ret_val);
 }
 
 std::string Shell_core::preprocess_input_line(const std::string &s) {
@@ -447,9 +447,7 @@ std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::connect_dev_sessio
 std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session) {
   _global_dev_session = session;
 
-  shcore::Value currentSchema;
-  // Non X Sessions can have currentSchema so we set on db that one
-  currentSchema = _global_dev_session->get_member("currentSchema");
+  shcore::Value currentSchema = session->get_cached_schema(session->get_default_schema());
 
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set

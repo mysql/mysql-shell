@@ -156,9 +156,9 @@ bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {
   boost::trim(file);
 
   // Adds support for quoted files in case there are spaces in the path
-  if ((file[0] == '\'' && file[file.size()-1] == '\'') ||
-      (file[0] == '"' && file[file.size()-1] == '"'))
-    file = file.substr(1, file.size()-2);
+  if ((file[0] == '\'' && file[file.size() - 1] == '\'') ||
+      (file[0] == '"' && file[file.size() - 1] == '"'))
+    file = file.substr(1, file.size() - 2);
 
   std::vector<std::string> args(params);
 
@@ -320,8 +320,6 @@ shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mys
       new_session->call("setCurrentSchema", schema_arg);
   }
 
-  _shell->set_dev_session(new_session);
-
   if (_options.interactive) {
     if (old_session && old_session.unique() && old_session->is_connected()) {
       if (_options.interactive)
@@ -344,10 +342,8 @@ shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mys
 
     shcore::Value default_schema;
 
-    if (!session_type.compare("XSession"))
-       default_schema = new_session->get_member("defaultSchema");
-    else
-       default_schema = new_session->get_member("currentSchema");
+    // Any session could have a default schema after connection is done
+    default_schema = new_session->get_cached_schema(new_session->get_default_schema());
 
     if (default_schema) {
       if (session_type == "ClassicSession")

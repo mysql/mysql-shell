@@ -390,3 +390,14 @@ void ShellDevelopmentSession::rollback() {
   if (_tx_deep == 0)
     execute_sql("rollback", shcore::Argument_list());
 }
+
+// Returns a schema from the cache if found
+shcore::Value ShellDevelopmentSession::get_cached_schema(const std::string &name) {
+  shcore::Value ret_val;
+
+  if (_schemas->find(name) != _schemas->end()) {
+    ret_val = (*_schemas)[name];
+  }
+
+  return ret_val;
+}

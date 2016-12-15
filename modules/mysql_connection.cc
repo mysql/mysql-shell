@@ -201,7 +201,7 @@ std::string Row::get_value_as_string(int index) {
 void Connection::throw_on_connection_fail() {
   std::string local_error(mysql_error(_mysql));
   auto local_errno = mysql_errno(_mysql);
-  std::string local_sqlstate = mysql_sqlstate(_mysql);
+  std::string local_sqlstate(mysql_sqlstate(_mysql));
   close();
   throw shcore::Exception::mysql_error_with_code_and_state(local_error, local_errno, local_sqlstate.c_str());
 }
@@ -218,7 +218,7 @@ Connection::Connection(const std::string &uri_, const char *password)
   std::string ssl_ca;
   std::string ssl_cert;
   std::string ssl_key;
-  long flags = CLIENT_MULTI_RESULTS;
+  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
   int pwd_found;
 
   _mysql = mysql_init(NULL);
@@ -242,7 +242,7 @@ Connection::Connection(const std::string &uri_, const char *password)
 Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
   const struct shcore::SslInfo& ssl_info)
 : _mysql(NULL) {
-  long flags = CLIENT_MULTI_RESULTS;
+  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
 
   _mysql = mysql_init(NULL);
 

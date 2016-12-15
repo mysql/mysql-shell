@@ -147,7 +147,6 @@ protected:
   shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
   virtual std::shared_ptr<BaseSession> _get_shared_this() const = 0;
   std::string _retrieve_current_schema();
-  void _retrieve_session_info(std::string &current_schema, int &case_sensitive_table_names);
 
   virtual int get_default_port() { return 33060; };
 
@@ -156,7 +155,6 @@ protected:
   bool _case_sensitive_table_names;
   void init();
   uint64_t _connection_id;
-  void set_connection_id();
 private:
   void reset_session();
 };

@@ -113,10 +113,13 @@ public:
   virtual shcore::Value get_schemas(const shcore::Argument_list &args) const = 0;
   virtual shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const = 0;
 
+  // retrieves a schema from the cache
+  shcore::Value get_cached_schema(const std::string &name);
+
   void start_transaction();
   void commit();
   void rollback();
-
+  std::string get_default_schema() { return _default_schema; }
 protected:
   std::string _default_schema;
   mutable std::shared_ptr<shcore::Value::Map_type> _schemas;

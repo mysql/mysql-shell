@@ -147,36 +147,17 @@ Value BaseSession::connect(const Argument_list &args) {
     // Retrieves the connection data, whatever the source is
     load_connection_data(args);
 
-    _session.open(_host, _port, _schema, _user, _password, _ssl_info.ca, 
-      _ssl_info.cert, _ssl_info.key, _ssl_info.capath, _ssl_info.crl, _ssl_info.crlpath, 
-      _ssl_info.tls_version, _ssl_info.mode, 10000, _auth_method, true);
+    _session.open(_host, _port, _schema, _user, _password, _ssl_info.ca,
+      _ssl_info.cert, _ssl_info.key, _ssl_info.capath, _ssl_info.crl, _ssl_info.crlpath,
+      _ssl_info.tls_version, _ssl_info.mode, 60000, _auth_method, true);
 
-    int case_sesitive_table_names = 0;
-    _retrieve_session_info(_default_schema, case_sesitive_table_names);
-
-    _case_sensitive_table_names = (case_sesitive_table_names == 0);
-
-    set_connection_id();
+    _default_schema = _schema;
+    if (!_default_schema.empty())
+      update_schema_cache(_default_schema, true);
   }
   CATCH_AND_TRANSLATE();
 
   return Value::Null();
-}
-
-void BaseSession::set_connection_id() {
-  try {
-    if (_session.is_connected()) {
-      // the client id from xprotocol is not the same as the connection id so it is gathered here.
-      std::shared_ptr< ::mysqlx::Result> result = execute_sql("select connection_id();");
-      std::shared_ptr< ::mysqlx::Row> row = result->next();
-      if (row) {
-        if (!row->isNullField(0))
-          _connection_id = row->uInt64Field(0);
-      }
-      result->flush();
-    }
-  }
-  CATCH_AND_TRANSLATE();
 }
 
 void BaseSession::set_option(const char *option, int value) {
@@ -503,24 +484,6 @@ std::string BaseSession::_retrieve_current_schema() {
   CATCH_AND_TRANSLATE();
 
   return name;
-}
-
-void BaseSession::_retrieve_session_info(std::string &current_schema,
-                                         int &case_sensitive_table_names) {
-  try {
-    if (_session.is_connected()) {
-      // TODO: update this logic properly
-      std::shared_ptr< ::mysqlx::Result> result = execute_sql("select schema(), @@lower_case_table_names");
-      std::shared_ptr< ::mysqlx::Row>row = result->next();
-
-      if (!row->isNullField(0))
-        current_schema = row->stringField(0);
-      case_sensitive_table_names = (int)row->uInt64Field(1);
-
-      result->flush();
-    }
-  }
-  CATCH_AND_TRANSLATE();
 }
 
 // Documentation of getSchema function
@@ -947,7 +910,7 @@ Value NodeSession::get_member(const std::string &prop) const {
     } else
       ret_val = Value::Null();
   } else
-    ret_val = BaseSession::get_member(prop);
+  ret_val = BaseSession::get_member(prop);
 
   return ret_val;
 }
@@ -1008,7 +971,7 @@ shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
     std::shared_ptr< ::mysqlx::Result> result = execute_sql(sqlstring("use !", 0) << name);
     result->flush();
   } else
-    throw Exception::runtime_error(class_name() + " not connected");
+  throw Exception::runtime_error(class_name() + " not connected");
 
   return get_member("currentSchema");
 }

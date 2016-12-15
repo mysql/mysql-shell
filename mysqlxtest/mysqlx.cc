@@ -197,13 +197,14 @@ std::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std::
 }
 
 std::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, const std::string &schema,
-                                               const std::string &user, const std::string &pass,
-                                               const mysqlx::Ssl_config &ssl_config, const std::size_t timeout,
-                                               const std::string &auth_method,
-                                               const bool get_caps)
+                                             const std::string &user, const std::string &pass,
+                                             const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password,
+                                             const std::size_t timeout,
+                                             const std::string &auth_method,
+                                             const bool get_caps)
 {
   std::shared_ptr<Session> session(new Session(ssl_config, timeout));
-  session->connection()->connect(host, port);
+  session->connection()->connect(host, port, cap_expired_password);
   if (get_caps)
     session->connection()->fetch_capabilities();
   if (auth_method.empty())
@@ -224,9 +225,10 @@ Connection::Connection(const Ssl_config &ssl_config, const std::size_t timeout, 
   : m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path,
                     ssl_config.cert, ssl_config.cipher, ssl_config.crl, ssl_config.crl_path, 
                     ssl_config.tls_version, ssl_config.mode, timeout),
-  m_deadline(m_ios), m_client_id(0),
-  m_trace_packets(false), m_closed(true),
-  m_dont_wait_for_disconnect(dont_wait_for_disconnect)
+    m_account_expired(false),
+    m_deadline(m_ios), m_client_id(0),
+    m_trace_packets(false), m_closed(true),
+    m_dont_wait_for_disconnect(dont_wait_for_disconnect)
 {
   if (getenv("MYSQLX_TRACE_CONNECTION"))
     m_trace_packets = true;
@@ -268,7 +270,7 @@ void Connection::connect(const std::string &uri, const std::string &pass, const 
   authenticate(user, pass.empty() ? password : pass, schema);
 }
 
-void Connection::connect(const std::string &host, int port)
+void Connection::connect(const std::string &host, int port, const bool cap_expired_password)
 {
   tcp::resolver resolver(m_ios);
   char ports[8];
@@ -292,6 +294,10 @@ void Connection::connect(const std::string &host, int port)
 
   if (error)
     throw Error(CR_CONNECTION_ERROR, error.message() + " connecting to " + host + ":" + ports);
+  
+  if (cap_expired_password)
+    setup_capability("client.pwd_expire_ok", true);
+  
 
   m_closed = false;
 }
@@ -712,6 +718,7 @@ void Connection::dispatch_notice(Mysqlx::Notice::Frame *frame)
         {
           if (change.param() == Mysqlx::Notice::SessionStateChanged::ACCOUNT_EXPIRED)
           {
+            m_account_expired = true;
             std::cout << "NOTICE: Account password expired\n";
             return;
           }
