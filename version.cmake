@@ -15,7 +15,7 @@
 
 SET(MYSH_MAJOR 1)
 SET(MYSH_MINOR 0)
-SET(MYSH_PATCH 6)
+SET(MYSH_PATCH 7)
 SET(MYSH_SPRINT 0)# Merge/Sprint Number (QA Tracking): 0 on Release
 SET(MYSH_LEVEL "-labs") # Strings like "-m1" and "-labs"
 
