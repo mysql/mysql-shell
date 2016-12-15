@@ -6,9 +6,9 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 
 //@<OUT> create cluster
 if (__have_ssl)
-  var cluster = dba.createCluster('dev');
+  var cluster = dba.createCluster('dev', {memberSsl:true});
 else
-  var cluster = dba.createCluster('dev', {memberSsl:false});
+  var cluster = dba.createCluster('dev');
 
 cluster.status();
 
@@ -68,27 +68,27 @@ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2
 
 //@ Cluster.forceQuorumUsingPartitionOf success
 if (__have_ssl)
-  cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root'});
+  cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', memberSsl:true});
 else
-  cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', memberSsl:false});
+  cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root'});
 
 //@<OUT> Cluster status after force quorum
 cluster.status();
 
 //@ Rejoin instance 2
 if (__have_ssl)
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', memberSsl:true});
 else
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', memberSsl:false});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
 
 // Waiting for the second rejoined instance to become online
 wait_slave_state(cluster, uri2, "ONLINE");
 
 //@ Rejoin instance 3
 if (__have_ssl)
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root'});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', memberSsl:true});
 else
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', memberSsl:false});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root'});
 
 // Waiting for the third rejoined instance to become online
 wait_slave_state(cluster, uri3, "ONLINE");

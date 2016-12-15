@@ -279,7 +279,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   shcore::Value ret_val;
 
   bool seed_instance = false;
-  bool ssl = true;  //SSL used by default
+  bool ssl = false;  //SSL not used by default
   std::string ssl_ca, ssl_cert, ssl_key = "";
 
   // NOTE: This function is called from either the add_instance_ on this class
@@ -477,7 +477,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string host;
   int port = 0;
-  bool ssl = true;  //SSL used by default
+  bool ssl = false;  //SSL not used by default
   std::string ssl_ca, ssl_cert, ssl_key = "";
 
   auto options = get_instance_options_map(args);

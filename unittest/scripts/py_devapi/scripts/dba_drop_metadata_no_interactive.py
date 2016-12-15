@@ -13,9 +13,9 @@ dba.drop_metadata_schema()
 
 #@# create cluster
 if __have_ssl:
-  dba.create_cluster("tempCluster")
+  dba.create_cluster("tempCluster", {'memberSsl': True})
 else:
-  dba.create_cluster("tempCluster", {'memberSsl': False})
+  dba.create_cluster("tempCluster")
 
 session.get_schema('mysql_innodb_cluster_metadata')
 

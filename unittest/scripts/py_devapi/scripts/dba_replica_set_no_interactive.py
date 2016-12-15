@@ -6,9 +6,9 @@ dba.drop_metadata_schema({'force':True})
 
 #@ Cluster: validating members
 if __have_ssl:
-  cluster = dba.create_cluster('devCluster')
+  cluster = dba.create_cluster('devCluster', {'memberSsl': True})
 else:
-  cluster = dba.create_cluster('devCluster', {'memberSsl': False})
+  cluster = dba.create_cluster('devCluster')
 
 rset = cluster.get_replica_set()
 

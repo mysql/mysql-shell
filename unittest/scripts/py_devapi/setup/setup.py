@@ -182,9 +182,6 @@ def reset_or_deploy_sandbox(port):
     options['password'] = 'root'
     options['allowRootFrom'] = '%'
 
-    if not __have_ssl:
-      options['ignoreSslError'] = True
-
     dba.deploy_sandbox_instance(port, options)
     deployed_here = True
 

@@ -308,6 +308,12 @@ void validate_ssl_instance_options(shcore::Value::Map_type_ref &options) {
           "Cannot use other member SSL options (memberSslCa, "
               "memberSslCert, memberSslKey) if memberSsl is set to false.");
   }
+  // If memberSsl is not specified, it is assumed to be false by default.
+  if (!opt_map.has_key("memberSsl") && (opt_map.has_key("memberSslCa") ||
+        opt_map.has_key("memberSslCert") || opt_map.has_key("memberSslKey")))
+    throw shcore::Exception::argument_error(
+        "Cannot use other member SSL options (memberSslCa, "
+            "memberSslCert, memberSslKey) without setting memberSsl to true.");
   if (opt_map.has_key("memberSslCa")) {
     std::string ssl_ca = options->get_string("memberSslCa");
     boost::trim(ssl_ca);

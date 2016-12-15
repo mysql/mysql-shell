@@ -231,8 +231,8 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that in
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the multiMaster option must be applied.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value that indicates that the cluster shall be created empty and adopt the topology from an existing Group Replication group.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li memberSsl: boolean, indicates if SSL "\
-    "is used for the instance to start the cluster, by default: true. Set this "\
-    "option to false to not use SSL.");
+    "is used for the instance to start the cluster, by default: false. Set this "\
+    "option to true to use SSL.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li memberSslCa: Path of file that "\
     "contains list of trusted SSL CAs to set for the instance.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li memberSslCert: Path of file that "\
@@ -594,7 +594,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   int portx = 0;
   std::string password;
   std::string sandbox_dir;
-  bool ignore_ssl_error = false;  // SSL is used by default and errors reported.
+  bool ignore_ssl_error = true;  // SSL errors are ignored by default.
 
   if (args.size() == 2) {
     options = args.map_at(1);
@@ -696,7 +696,7 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the new instance.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4, "@li allowRootFrom: create remote root account, restricted to the given address pattern (eg %).");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5, "@li ignoreSslError: Ignore errors when adding SSL support for the new "\
-    "instance, by default: false.");
+    "instance, by default: true.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6, "If the portx option is not specified, it will be automatically calculated "\
 "as 10 times the value of the provided MySQL port.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "The password or dbPassword options are mandatory to specify the MySQL root "\
@@ -705,9 +705,9 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "The sandboxDir must be an exis
 "deployed. If not specified the new instance will be deployed at:");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL10, "SSL support is added by "\
-    "default if not already available for the new instance. If it fails to be "\
-    "added set the ignoreSslError option to true to allow the new instance to "\
-    "be deployed without SSL support.");
+    "default if not already available for the new instance, but if it fails to be "\
+    "added then the error is ignored. Set the ignoreSslError option to false to ensure the new instance is "\
+    "deployed with SSL support.");
 
 /**
 * $(DBA_DEPLOYSANDBOXINSTANCE_BRIEF)

@@ -37,6 +37,9 @@ Cluster.addInstance('', 5)
 Cluster.addInstance( 5)
 Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
 Cluster.addInstance({port: __mysql_sandbox_port1});
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSslCa: "ca"}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSslCert: "cert"}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSslKey: "key"}, "root");
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false, memberSslCa: "ca"}, "root");
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false, memberSslCert: "cert"}, "root");
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: false, memberSslKey: "key"}, "root");
@@ -135,6 +138,9 @@ Cluster.rejoinInstance(1);
 Cluster.rejoinInstance({host: "localhost"});
 Cluster.rejoinInstance({host: "localhost", schema: "abs", authMethod:56});
 Cluster.rejoinInstance("somehost:3306");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSslCa: "ca"}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSslCert: "cert"}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSslKey: "key"}, "root");
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false, memberSslCa: "ca"}, "root");
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false, memberSslCert: "cert"}, "root");
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: false, memberSslKey: "key"}, "root");
@@ -147,9 +153,9 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
 if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3});
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, memberSsl: true});
 else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, memberSsl: false});
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3});
 
 wait_slave_state(Cluster, uri3, "ONLINE");
 

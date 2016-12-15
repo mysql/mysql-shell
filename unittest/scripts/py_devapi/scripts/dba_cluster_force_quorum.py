@@ -6,9 +6,9 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root',
 
 #@<OUT> create cluster
 if __have_ssl:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSsl':True})
 else:
-  cluster = dba.create_cluster('dev', {'memberSsl':False})
+  cluster = dba.create_cluster('dev')
 
 cluster.status();
 
@@ -68,9 +68,9 @@ cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandb
 
 #@ Cluster.force_quorum_using_partition_of success
 if __have_ssl:
-  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1, 'password':'root'});
+  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1, 'password':'root', 'memberSsl':True})
 else:
-  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1, 'password':'root', 'memberSsl':False});
+  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1, 'password':'root'})
 
 
 #@<OUT> Cluster status after force quorum
@@ -78,18 +78,18 @@ cluster.status();
 
 #@ Rejoin instance 2
 if __have_ssl:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'memberSsl':True})
 else:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'memberSsl':False})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
 
 # Waiting for the second rejoined instance to become online
 wait_slave_state(cluster, uri2, "ONLINE");
 
 #@ Rejoin instance 3
 if __have_ssl:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root', 'memberSsl':True})
 else:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root', 'memberSsl':False})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
 
 # Waiting for the third rejoined instance to become online
 wait_slave_state(cluster, uri3, "ONLINE");

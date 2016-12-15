@@ -129,8 +129,8 @@ protected:
     code = "add_instance_options = {'host':localhost, 'port': 0000, 'password':'root'};";
     exec_and_out_equals(code);
 
-    if (!_have_ssl) {
-      code = "add_instance_options['memberSsl'] = False;";
+    if (_have_ssl) {
+      code = "add_instance_options['memberSsl'] = True;";
       exec_and_out_equals(code);
     }
 
@@ -196,8 +196,6 @@ protected:
     std::string deploy_options = "{'password': 'root', 'allowRootFrom': '%'";
     if (!_sandbox_dir.empty())
       deploy_options.append(", 'sandboxDir': '" + _sandbox_dir + "'");
-    if (!_have_ssl)
-      deploy_options.append(", 'ignoreSslError': True");
     deploy_options.append("}");
 
     execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port1 + ", "
@@ -218,8 +216,6 @@ TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
   std::string deploy_options = "{'password': 'root', 'allowRootFrom': '%'";
   if (!_sandbox_dir.empty())
     deploy_options.append(", 'sandboxDir': '" + _sandbox_dir + "'");
-  if (!_have_ssl)
-    deploy_options.append(", 'ignoreSslError': True");
   deploy_options.append("}");
 
   execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port1 + ", "
