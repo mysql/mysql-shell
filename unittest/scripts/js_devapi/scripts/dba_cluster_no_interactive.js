@@ -104,9 +104,9 @@ dba.resetSession(customSession);
 var Cluster = dba.getCluster();
 
 // Add back uri3
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
+add_named_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 
 //@<OUT> Cluster: describe on new master
 Cluster.describe()
@@ -115,9 +115,9 @@ Cluster.describe()
 Cluster.status()
 
 //@ Cluster: addInstance adding old master as read only
-add_instance_to_cluster(Cluster, __mysql_sandbox_port1);
+add_named_instance_to_cluster(Cluster, __mysql_sandbox_port1, 'first_sandbox');
 
-wait_slave_state(Cluster, uri1, "ONLINE");
+wait_slave_state(Cluster, 'first_sandbox', "ONLINE");
 
 //@<OUT> Cluster: describe on new master with slave
 Cluster.describe()
@@ -135,7 +135,7 @@ else
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
-wait_slave_state(Cluster, uri3, "(MISSING)")
+wait_slave_state(Cluster, 'third_sandbox', "(MISSING)")
 
 //@# Dba: start instance 3
 if (__sandbox_dir)
@@ -157,11 +157,11 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 
 //@#: Dba: rejoin instance 3 ok
 if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "REQUIRED", "password": "root"});
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"});
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, "password":"root"});
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 
 // Verify if the cluster is OK
 
@@ -176,8 +176,7 @@ Cluster.dissolve("")
 Cluster.dissolve({foobar: true})
 Cluster.dissolve({force: "whatever"})
 
-//Cluster.dissolve({force: true})
+//@<OUT> Cluster: final dissolve
+Cluster.dissolve({force: true})
 
 customSession.close();
-
-reset_or_deploy_sandboxes();

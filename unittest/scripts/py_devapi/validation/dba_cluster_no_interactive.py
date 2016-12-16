@@ -234,7 +234,7 @@
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "third_sandbox",
                 "role": "HA"
             }
         ],
@@ -258,7 +258,7 @@
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+            "third_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
@@ -284,12 +284,12 @@
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "third_sandbox",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "first_sandbox",
                 "role": "HA"
             }
         ],
@@ -306,7 +306,7 @@
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+            "first_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},
@@ -320,7 +320,7 @@
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+            "third_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
@@ -360,7 +360,7 @@
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+            "first_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/O",
                 "readReplicas": {},
@@ -374,7 +374,7 @@
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+            "third_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
@@ -392,6 +392,6 @@
 ||Cluster.dissolve: Invalid values in dissolve options: foobar
 ||Cluster.dissolve: Argument 'force' is expected to be a bool
 
-#The cluster 'devCluster' no longer exists.
+#@ Cluster: final dissolve
+||
 
-#The cluster 'devCluster' no longer exists.

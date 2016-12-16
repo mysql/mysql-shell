@@ -113,9 +113,9 @@ dba.reset_session(customSession)
 cluster = dba.get_cluster()
 
 # Add back uri3
-add_instance_to_cluster(cluster, __mysql_sandbox_port3);
+add_named_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox');
 
-wait_slave_state(cluster, uri3, "ONLINE")
+wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 
 #@<OUT> Cluster: describe on new master
 cluster.describe()
@@ -124,9 +124,10 @@ cluster.describe()
 cluster.status()
 
 #@ Cluster: addInstance adding old master as read only
-add_instance_to_cluster(cluster, __mysql_sandbox_port1);
+add_instance_to_cluster(cluster, __mysql_sandbox_port1, 'first_sandbox');
 
-wait_slave_state(cluster, uri1, "ONLINE");
+wait_slave_state(cluster, 'first_sandbox', "ONLINE")
+
 
 #@<OUT> Cluster: describe on new master with slave
 cluster.describe()
@@ -144,7 +145,7 @@ else:
 
 # Since the cluster has quorum, the instance will be kicked off the
 # Cluster going OFFLINE->UNREACHABLE->(MISSING)
-wait_slave_state(cluster, uri3, "(MISSING)")
+wait_slave_state(cluster, 'third_sandbox', "(MISSING)")
 
 #@# Dba: start instance 3
 if __sandbox_dir:
@@ -166,11 +167,11 @@ cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_s
 
 #@#: Dba: rejoin instance 3 ok
 if __have_ssl:
-  cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, {"memberSslMode": "REQUIRED", "password":  "root"})
+  cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, {"memberSslMode": "AUTO", "password":  "root"})
 else:
-  cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "password": "root"})
+  cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, {"password": "root"})
 
-wait_slave_state(cluster, uri3, "ONLINE");
+wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 
 # Verify if the cluster is OK
 
@@ -185,8 +186,9 @@ cluster.dissolve("")
 cluster.dissolve({'foobar': True})
 cluster.dissolve({'force': "whatever"})
 
-#cluster.dissolve({force: true})
+
+#@ Cluster: final dissolve
+cluster.dissolve({'force': True})
 
 customSession.close()
 
-reset_or_deploy_sandboxes()

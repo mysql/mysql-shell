@@ -231,14 +231,14 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+            "second_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+            "third_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
@@ -296,14 +296,14 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoi
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+            "second_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+            "third_sandbox": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
@@ -313,3 +313,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoi
         }
     }
 }
+
+//@<OUT> Cluster: final dissolve
+|The cluster was successfully dissolved.|
+|Replication was disabled but user data was left intact.|

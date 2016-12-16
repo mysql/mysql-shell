@@ -95,15 +95,14 @@ function check_super_read_only_done(connection) {
 }
 
 var recov_cluster;
-var recov_master_uri;
-var recov_slave_uri;
+var recov_slave_name;
 var recov_state_list;
 
 function _check_slave_state() {
   var full_status = recov_cluster.status();
-  var slave_status = full_status.defaultReplicaSet.topology[recov_slave_uri].status;
+  var slave_status = full_status.defaultReplicaSet.topology[recov_slave_name].status;
 
-  println("--->" + recov_slave_uri + ": " + slave_status);
+  println("--->" + recov_slave_name + ": " + slave_status);
 
   ret_val = false
   for(state in recov_state_list){
@@ -119,7 +118,7 @@ function _check_slave_state() {
 
 function wait_slave_state(cluster, slave_uri, states) {
   recov_cluster = cluster;
-  recov_slave_uri = slave_uri;
+  recov_slave_name = slave_uri;
 
   if (type(states) == "Array")
     recov_state_list = states;

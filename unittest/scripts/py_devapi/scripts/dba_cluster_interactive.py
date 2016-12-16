@@ -97,14 +97,14 @@ cluster.dissolve({'force': 'sample'})
 cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port3})
 
 #@<OUT> Cluster: add_instance with interaction, ok 3
-add_instance_to_cluster(cluster, __mysql_sandbox_port2)
+add_named_instance_to_cluster(cluster, __mysql_sandbox_port2, 'second_sandbox')
 
-wait_slave_state(cluster, uri2, "ONLINE");
+wait_slave_state(cluster, 'second_sandbox', "ONLINE");
 
 #@<OUT> Cluster: add_instance with interaction, ok 4
-add_instance_to_cluster(cluster, __mysql_sandbox_port3)
+add_named_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox')
 
-wait_slave_state(cluster, uri3, "ONLINE");
+wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 
 #@<OUT> Cluster: status: success
 cluster.status()
@@ -117,7 +117,7 @@ if __sandbox_dir:
 else:
   dba.kill_sandbox_instance(__mysql_sandbox_port3)
 
-wait_slave_state(cluster, uri3, ["UNREACHABLE", "OFFLINE"])
+wait_slave_state(cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"])
 
 #@# Dba: start instance 3
 if __sandbox_dir:
@@ -139,18 +139,18 @@ cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_s
 
 #@<OUT> Cluster: rejoin_instance with interaction, ok
 if __have_ssl:
-  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3}, {'memberSslMode': 'REQUIRED'})
+  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3}, {'memberSslMode': 'AUTO', 'password': 'root'})
 else:
-  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3})
+  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3}, {'password': 'root'})
 
-wait_slave_state(cluster, uri3, "ONLINE");
+wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 
 # Verify if the cluster is OK
 
 #@<OUT> Cluster: status for rejoin: success
 cluster.status()
 
-#cluster.dissolve({'force': True})
 
-reset_or_deploy_sandboxes()
+#@<OUT> Cluster: final dissolve
+cluster.dissolve({'force': True})
 

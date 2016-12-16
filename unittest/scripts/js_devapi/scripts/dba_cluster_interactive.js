@@ -93,14 +93,14 @@ Cluster.dissolve({force: 'sample'})
 Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3})
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
+add__instance_to_cluster(Cluster, __mysql_sandbox_port2, 'second_sandbox');
 
-wait_slave_state(Cluster, uri2, "ONLINE");
+wait_slave_state(Cluster, 'second_sandbox', "ONLINE");
 
 //@<OUT> Cluster: addInstance with interaction, ok 4
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
+add_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 
 //@<OUT> Cluster: status: success
 Cluster.status()
@@ -113,7 +113,7 @@ if (__sandbox_dir)
 else
   dba.killSandboxInstance(__mysql_sandbox_port3);
 
-wait_slave_state(Cluster, uri3, ["UNREACHABLE", "OFFLINE"]);
+wait_slave_state(Cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"]);
 
 //@# Dba: start instance 3
 if (__sandbox_dir)
@@ -121,7 +121,7 @@ if (__sandbox_dir)
 else
   dba.startSandboxInstance(__mysql_sandbox_port3)
 
-wait_slave_state(Cluster, uri3, ["OFFLINE", "(MISSING)"]);
+wait_slave_state(Cluster, 'third_sandbox', ["OFFLINE", "(MISSING)"]);
 
 //@: Cluster: rejoinInstance errors
 Cluster.rejoinInstance();
@@ -137,17 +137,18 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
 if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: "REQUIRED"});
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: "AUTO", password: 'root'});
 else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3});
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {password: 'root'});
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 
 // Verify if the cluster is OK
 
 //@<OUT> Cluster: status for rejoin: success
 Cluster.status()
 
-//Cluster.dissolve({force: true})
+//@<OUT> Cluster: final dissolve
+Cluster.dissolve({force: true})
 
-reset_or_deploy_sandboxes();
+
