@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
         ret_val = shell.process_stream(stream, "(command line)", {});
       } else if (!options.execute_dba_statement.empty()) {
         if (options.initial_mode != shcore::IShell_core::Mode::JScript) {
-          shell.print_error("The --dba option cannot be used with --python or --sql options\n");
+          shell.print_error("The --dba option can only be used in JavaScript mode\n");
           ret_val = 1;
         } else
           ret_val = execute_dba_command(shell, options.execute_dba_statement);
