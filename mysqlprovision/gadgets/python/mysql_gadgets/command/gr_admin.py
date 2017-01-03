@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,6 +37,8 @@ from mysql_gadgets.common.group_replication import (
     GR_GROUP_SEEDS,
     GR_SINGLE_PRIMARY_MODE,
     HAVE_SSL,
+    GR_SSL_DISABLED,
+    GR_SSL_REQUIRED,
     OPTION_PARSER,
     persist_gr_config,
     REP_CONN_STATUS_TABLE,
@@ -48,22 +50,13 @@ from mysql_gadgets.common.group_replication import (
     setup_gr_config,
     GR_IP_WHITELIST)
 from mysql_gadgets.common.connection_parser import clean_IPv6
-from mysql_gadgets.common.group_replication import (do_change_master,
-                                                    check_server_requirements,
-                                                    get_gr_config_vars,
-                                                    get_gr_variable_from_peer,
-                                                    get_member_state,
-                                                    get_req_dict,
-                                                    get_req_dict_for_opt_file,
-                                                    get_req_dict_user_check,
-                                                    get_rpl_usr,
-                                                    get_group_uuid_name,
-                                                    is_active_member,
-                                                    is_member_of_group,
-                                                    set_bootstrap,
-                                                    start_gr_plugin,
-                                                    stop_gr_plugin,
-                                                    unset_bootstrap,)
+from mysql_gadgets.common.group_replication import (
+    do_change_master, check_peer_ssl_compatibility,
+    check_server_requirements, get_gr_config_vars, get_gr_variable_from_peer,
+    get_member_state, get_req_dict, get_req_dict_for_opt_file,
+    get_req_dict_user_check, get_rpl_usr, get_group_uuid_name,
+    is_active_member, is_member_of_group, set_bootstrap, start_gr_plugin,
+    stop_gr_plugin, unset_bootstrap,)
 from mysql_gadgets.common.tools import is_listening
 
 logging.setLoggerClass(CustomLevelLogger)
@@ -97,8 +90,9 @@ _ERROR_NOT_A_MEMBER = ("The server {0} is not a member of a Group Replication"
                        " group.")
 
 _ERROR_NO_HAVE_SSL = ("MySQL Instance {0} has SSL support disabled. "
-                      "Use the option to skip SSL if you want to proceed "
-                      "with the configuration without SSL support.")
+                      "Use the memberSslMode:{1} if you want to proceed "
+                      "with the configuration without SSL support."
+                      .format("{0}", GR_SSL_DISABLED))
 
 _ERROR_NO_SERVER = "No server was given."
 
@@ -333,6 +327,7 @@ def start(server_info, **kwargs):
                         skip_backup: if True, skip the creation of a backup
                                      file when modifying the options file.
                         skip_schema_checks: Skip schema validation.
+                        ssl_mode: SSL mode to be used with group replication.
     :type kwargs:       dict
 
     :raise GadgetError:         If server_info is None.
@@ -360,12 +355,11 @@ def start(server_info, **kwargs):
 
     _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Checking Group Replication "
                                       "prerequisites.")
-
     try:
-        # Throw an error in case server doesn't support SSL and the --skip-ssl
-        # option has not been used
+        # Throw an error in case server doesn't support SSL and the ssl_mode
+        # option was provided a value other than DISABLED
         if server.select_variable(HAVE_SSL) != 'YES' and \
-           not kwargs.get("skip_ssl", False):
+                kwargs["ssl_mode"] != GR_SSL_DISABLED:
             raise GadgetError(_ERROR_NO_HAVE_SSL.format(server))
 
         rpl_user_dict = get_rpl_usr(kwargs)
@@ -669,6 +663,11 @@ def join(server_info, peer_server_info, **kwargs):
                                      configuration.
                         skip_backup: if True, skip the creation of a backup
                                      file when modifying the options file.
+                        ssl_mode: SSL mode to be used with group replication.
+                                  (Note server GR SSL modes need
+                                  to be consistent with the SSL GR modes on the
+                                  peer-server otherwise an error will be
+                                  thrown).
     :type kwargs:   dict
 
     :raise GadgetError:         If server_info or peer_server_info is None.
@@ -687,6 +686,8 @@ def join(server_info, peer_server_info, **kwargs):
     gr_host = kwargs.get("gr_host", None)
     option_file = kwargs.get("option_file", None)
     skip_backup = kwargs.get("skip_backup", False)
+    # Default is value for ssl_mode is REQUIRED
+    ssl_mode = kwargs.get("ssl_mode", GR_SSL_REQUIRED)
 
     # Connect to the server
     server = get_server(server_info=server_info)
@@ -723,11 +724,16 @@ def join(server_info, peer_server_info, **kwargs):
                               "be 'ONLINE'.".format(server, peer_server,
                                                     peer_server_state))
 
-        # Throw an error in case server doesn't support SSL and the --skip-ssl
-        # option has not been used
+        # Throw an error in case server doesn't support SSL and the ssl_mode
+        # option was provided a value other than DISABLED
         if server.select_variable(HAVE_SSL) != 'YES' and \
-           not kwargs.get("skip_ssl", False):
+           ssl_mode != GR_SSL_DISABLED:
             raise GadgetError(_ERROR_NO_HAVE_SSL.format(server))
+
+        # Throw an error in case there is any SSL incompatibilities are found
+        # on the peer server or if the peer-server is incompatible with the
+        # value of the ssl_mode option.
+        check_peer_ssl_compatibility(peer_server, ssl_mode)
 
         rpl_user_dict = get_rpl_usr(kwargs)
 

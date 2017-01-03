@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -94,6 +94,11 @@ GR_RECOVERY_USE_SSL = "group_replication_recovery_use_ssl"
 GR_SINGLE_PRIMARY_MODE = "group_replication_single_primary_mode"
 GR_START_ON_BOOT = "group_replication_start_on_boot"
 GR_SSL_MODE = "group_replication_ssl_mode"
+# GR SSL modes
+GR_SSL_REQUIRED = "REQUIRED"
+GR_SSL_DISABLED = "DISABLED"
+GR_SSL_VERIFY_CA = "VERIFY_CA"
+GR_SSL_VERIFY_IDENTITY = "VERIFY_IDENTITY"
 # Deprecated variables
 GR_PEER_ADDRESSES = "group_replication_peer_addresses"
 GR_RECOVERY_USER = "group_replication_recovery_user"
@@ -266,8 +271,7 @@ ERROR_PEERS_VARIABLE = ("The value '{0}' in variable '{1}' differs from the "
                         "value '{2}' in the peer server {3} and it must be "
                         "equals on all the members of the group.")
 
-PEER_VARIABLES = (TRANSACTION_WRITE_SET_EXTRACTION,
-                  HAVE_SSL)
+PEER_VARIABLES = (TRANSACTION_WRITE_SET_EXTRACTION, )
 
 INNODB_RQD_MSG = ("Group Replication requires tables to use InnoDB and "
                   "have a PRIMARY key. Tables that do not follow these "
@@ -897,7 +901,7 @@ def check_peer_variables(req_checker, error_msgs=None, verbose=False):
         if res_table:
             _LOGGER.info(res_table)
     else:
-        _LOGGER.info("Some options need to be change.")
+        _LOGGER.info("Some options need to be changed.")
 
     # Update variables to be check in the options file
     if OPTION_PARSER in req_dict.keys():
@@ -998,7 +1002,8 @@ def check_user_privileges(req_checker, rpl_settings, dry_run=False,
     replication_host = rpl_settings["host"]
     recovery_user = rpl_settings["recovery_user"]
     rep_user_passwd = rpl_settings["rep_user_passwd"]
-    require_ssl = not rpl_settings.get("skip_ssl", False)
+    require_ssl = rpl_settings.get("ssl_mode", GR_SSL_REQUIRED) != \
+        GR_SSL_DISABLED
 
     req_dict = req_checker.req_dict
     server = req_checker.server
@@ -1360,6 +1365,94 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
     return server_var_res
 
 
+def check_peer_ssl_compatibility(peer_server, ssl_mode):
+    """Run ssl compatibility checks for join operation.
+
+    Knowing the ssl_mode we want to enable on the instance, this method runs
+    SSL compatibility checks against the peer server to check if there is any
+    SSL misconfiguration/incompatibility that prevents the instance to be added
+    to the group of the peer server.
+
+    :param peer_server:   Server that already belongs to a group.
+    :type peer_server:    Server instance.
+    :param ssl_mode:      GR SSL mode we want to enable on the MySQL Instance.
+                          It is used to check for compatibility issues with
+                          the peer server since we want to add the instance to
+                          the group where the peer-server already belongs to.
+    :type ssl_mode:     str
+    :raise GadgetError: If there is any misconfiguration or incompatibility
+                        that prevents adding the the instance to the group of
+                        the peer server.
+    :raise ValueError: If an unexpected ssl_mode value is provided.
+    """
+    # Checking SSL compatibility:
+    # Get GR ssl modes from peer
+    peer_gr_recovery_ssl = None
+    peer_gr_ssl_mode = None
+
+    try:
+        peer_gr_recovery_ssl = peer_server.select_variable(GR_RECOVERY_USE_SSL)
+    except GadgetQueryError:
+        # variable does not exist, GR SSL is not enabled
+        pass
+    try:
+        peer_gr_ssl_mode = peer_server.select_variable(GR_SSL_MODE)
+    except GadgetQueryError:
+        # variable does not exist, GR SSL is not enabled
+        pass
+
+    # group_replication_ssl_mode values other than "DISABLED" or "REQUIRED"
+    # are not supported.
+    if peer_gr_ssl_mode and peer_gr_ssl_mode.upper() not in \
+            (GR_SSL_DISABLED, GR_SSL_REQUIRED):
+        raise GadgetError("Cluster member {0} group_replication_ssl_mode {1} "
+                          "is not supported. The supported modes are either "
+                          "{2} and {3}".format(str(peer_server),
+                                               peer_gr_ssl_mode,
+                                               GR_SSL_DISABLED,
+                                               GR_SSL_REQUIRED))
+
+    # Transform peer_gr_recovery_ssl and peer_gr_ssl_modes into booleans
+    # to ease comparisons between their values.
+    bool_peer_gr_recovery_ssl = peer_gr_recovery_ssl and \
+        peer_gr_recovery_ssl.upper() in ("1", "ON")
+    bool_peer_gr_ssl_mode = peer_gr_ssl_mode and \
+        peer_gr_ssl_mode.upper() == GR_SSL_REQUIRED
+
+    # Both group_replication_ssl_mode and group_replication_recovery_ssl need
+    # to be enabled or disabled on the peer server, otherwise it is not
+    # supported.
+    if bool_peer_gr_recovery_ssl != bool_peer_gr_ssl_mode:
+        raise GadgetError("Cluster member {0} configuration for "
+                          "group_replication_ssl_mode and "
+                          "group_replication_recovery_use_ssl is not "
+                          "supported. If group_replication_ssl_mode is "
+                          "{1} then group_replication_recovery_ssl "
+                          "needs to be ON. Otherwise if "
+                          "group_replication_ssl_mode is {2} then "
+                          "group_replication_recovery_ssl needs to be OFF."
+                          "".format(str(peer_server), GR_SSL_REQUIRED,
+                                    GR_SSL_DISABLED))
+
+    # Raise an error if GR SSL is enabled on the peer server but
+    # ssl-mode=DISABLED was used. Use shell option name on the error message.
+    if bool_peer_gr_ssl_mode and ssl_mode == GR_SSL_DISABLED:
+        raise GadgetError("Cannot use memberSslMode:{0} because "
+                          "Group Replication SSL support is enabled on the "
+                          "Cluster. Use memberSslMode:AUTO or "
+                          "memberSslMode:{1}.".format(GR_SSL_DISABLED,
+                                                      GR_SSL_REQUIRED))
+
+    # Raise and error if GR SSL is disabled on the peer-server but
+    # ssl-mode=REQUIRED was used. Use shell option name on the error message.
+    if not bool_peer_gr_ssl_mode and ssl_mode == GR_SSL_REQUIRED:
+        raise GadgetError("Cannot use memberSslMode:{0} because "
+                          "Group Replication SSL support is disabled on "
+                          "the Cluster. Use memberSslMode:AUTO or "
+                          "memberSslMode:{1}.".format(GR_SSL_REQUIRED,
+                                                      GR_SSL_DISABLED))
+
+
 def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                               dry_run=False, skip_schema_checks=False,
                               update=True, skip_backup=False,
@@ -1371,7 +1464,7 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
     :param req_dict:      Dictionary with the requirements to check.
     :type req_dict:       dict.
     :param rpl_settings:  Replication settings; replication user, user pw,
-                          recovery user.
+                          recovery user, ssl_mode.
     :type rpl_settings:   dict.
     :param verbose:       If the output should be verbose.
     :type verbose:        bool.
@@ -1715,7 +1808,7 @@ def get_rpl_usr(options=None):
         "recovery_user": recovery_user,
         "rep_user_passwd": rep_user_passwd,
         "host": host,
-        "skip_ssl": options.get("skip_ssl", False)
+        "ssl_mode": options.get("ssl_mode", GR_SSL_REQUIRED)
     }
 
     rpl_user_dict_hidden_pw = rpl_user_dict.copy()
@@ -1784,21 +1877,26 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
            gr_config_vars[option_name] is not None:
             pickable_options.remove(option_name)
 
-    # If not skip_ssl, add the SSL configuration
-    if not options.get("skip_ssl", False):
+    # If not ssl_mode, add the SSL configuration
+    # By default ssl_mode is REQUIRED
+    ssl_mode = options.get("ssl_mode", GR_SSL_REQUIRED)
+    if ssl_mode == GR_SSL_REQUIRED:
         ssl_config = {
             GR_RECOVERY_USE_SSL: "ON",
-            GR_SSL_MODE: "REQUIRED",
+            GR_SSL_MODE: GR_SSL_REQUIRED,
         }
-
         if options.get("ssl_ca", None) is not None:
             ssl_config[GR_RECOVERY_SSL_CA] = options.get("ssl_ca")
         if options.get("ssl_cert", None) is not None:
             ssl_config[GR_RECOVERY_SSL_CERT] = options.get("ssl_cert")
         if options.get("ssl_key", None) is not None:
             ssl_config[GR_RECOVERY_SSL_KEY] = options.get("ssl_key")
-
-        gr_config_vars.update(ssl_config)
+    elif ssl_mode == GR_SSL_DISABLED:
+        ssl_config = {
+            GR_RECOVERY_USE_SSL: "OFF",
+            GR_SSL_MODE: GR_SSL_DISABLED,
+        }
+    gr_config_vars.update(ssl_config)
 
     # Set GR group seeds with the value from the peer local_address.
     if gr_config_vars[GR_GROUP_SEEDS] is None:

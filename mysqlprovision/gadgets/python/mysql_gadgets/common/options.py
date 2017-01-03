@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@ import sys
 from mysql_gadgets import LICENSE_FRM, VERSION_FRM
 from mysql_gadgets.common.connection_parser import parse_connection
 from mysql_gadgets.common.group_replication import REX_UUID
+from mysql_gadgets.common.group_replication import (GR_SSL_DISABLED,
+                                                    GR_SSL_REQUIRED)
 from mysql_gadgets.exceptions import GadgetCnxFormatError
 
 _STORE_PASSWORD_LIST = "store_password_list"
@@ -622,8 +624,11 @@ def add_ssl_options(parser, check_file_exist=False):
         parser.add_argument(opt_name, dest=dest, help=help_txt,
                             action=action)
 
-    skip_ssl_help = ("Specifies if SSL configuration should be skipped "
-                     "to configure the instance. By default, SSL is used.")
+    ssl_mode_help = ("Specifies the SSL mode that should be used "
+                     "to configure the instance. By default: {0}"
+                     "".format(GR_SSL_REQUIRED))
 
-    parser.add_argument("--skip-ssl", dest="skip_ssl", help=skip_ssl_help,
-                        action="store_true", required=False)
+    parser.add_argument("--ssl-mode", dest="ssl_mode", help=ssl_mode_help,
+                        action="store", type=str.upper,
+                        default=GR_SSL_REQUIRED,
+                        choices=[GR_SSL_REQUIRED, GR_SSL_DISABLED])

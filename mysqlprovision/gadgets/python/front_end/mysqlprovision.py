@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ import sys
 
 from mysql_gadgets.common import options, logger
 from mysql_gadgets.common.group_replication import \
-    OPT_SKIP_CHECK_GR_SCHEMA_COMPLIANCE
+    OPT_SKIP_CHECK_GR_SCHEMA_COMPLIANCE, GR_SSL_DISABLED
 from mysql_gadgets.command.gr_admin import check, CHECK, join, health, \
     HEALTH, leave, STATUS, start
 from mysql_gadgets.command.clone import clone_server
@@ -238,8 +238,8 @@ _ERROR_OPTIONS_REQ = ("At least one of {0} options is required for the {1} "
                       "command.")
 
 _ERROR_OPTIONS_SSL_SKIP_ALONG = ("The --ssl-ca, --ssl-ca or --ssl-key option "
-                                 "cannot be used together with the --skip-ssl"
-                                 " option.")
+                                 "cannot be used together with --ssl-mode="
+                                 "{0}.".format(GR_SSL_DISABLED))
 
 _ERROR_INVALID_PORT = ("Port '{port}' is not a valid for {listener} or "
                        "is restricted. Please use a port number >= 1024 and "
@@ -688,7 +688,8 @@ if __name__ == "__main__":
                 "rep_user_passwd": args.replication_user["passwd"],
             })
 
-        if (args.ssl_ca or args.ssl_cert or args.ssl_key) and args.skip_ssl:
+        if (args.ssl_ca or args.ssl_cert or args.ssl_key) and \
+                args.ssl_mode == GR_SSL_DISABLED:
             raise _PARSER.error(_ERROR_OPTIONS_SSL_SKIP_ALONG)
 
         # Fill the options
@@ -699,7 +700,7 @@ if __name__ == "__main__":
             "gr_address": args.gr_address,
             "group_seeds": args.group_seeds,
             "skip_backup": args.skip_backup,
-            "skip_ssl": args.skip_ssl,
+            "ssl_mode": args.ssl_mode,
             "ssl_ca": args.ssl_ca,
             "ssl_cert": args.ssl_cert,
             "ssl_key": args.ssl_key,
@@ -723,7 +724,8 @@ if __name__ == "__main__":
                 "rep_user_passwd": args.replication_user["passwd"],
             })
 
-        if (args.ssl_ca or args.ssl_cert or args.ssl_key) and args.skip_ssl:
+        if (args.ssl_ca or args.ssl_cert or args.ssl_key) and \
+                args.ssl_mode == GR_SSL_DISABLED:
             raise _PARSER.error(_ERROR_OPTIONS_SSL_SKIP_ALONG)
 
         # Fill the options
@@ -737,7 +739,7 @@ if __name__ == "__main__":
             "skip_backup": args.skip_backup,
             "single_primary": args.single_primary,
             "skip_schema_checks": args.skip_schema_checks,
-            "skip_ssl": args.skip_ssl,
+            "ssl_mode": args.ssl_mode,
             "ssl_ca": args.ssl_ca,
             "ssl_cert": args.ssl_cert,
             "ssl_key": args.ssl_key,

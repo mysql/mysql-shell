@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,7 +35,9 @@ from mysql_gadgets.common.group_replication import (check_server_requirements,
                                                     GR_PLUGIN_NAME,
                                                     GR_RECOVERY_USE_SSL,
                                                     GR_SINGLE_PRIMARY_MODE,
-                                                    GR_SSL_MODE)
+                                                    GR_SSL_MODE,
+                                                    GR_SSL_DISABLED,
+                                                    GR_SSL_REQUIRED)
 
 
 class TestGRPlugin(GadgetsTestCase):
@@ -90,20 +92,20 @@ class TestGRPlugin(GadgetsTestCase):
             'recovery_user': 'rpl_user',
             'rep_user_passwd': 'rpl_pass',
             'replication_user': "rpl_user@'%'",
-            'skip_ssl': False,
+            'ssl_mode': GR_SSL_REQUIRED,
         }
         self.assertDictEqual(get_rpl_usr(options), rpl_user_dict)
         options = {
             "rep_user_passwd": "my_password",
             "replication_user": "replicator@oracle.com",
-            'skip_ssl': True,
+            'ssl_mode': GR_SSL_DISABLED,
         }
         rpl_user_dict = {
             'host': 'oracle.com',
             "recovery_user": "replicator",
             'rep_user_passwd': 'my_password',
             'replication_user': "replicator@'oracle.com'",
-            'skip_ssl': True,
+            'ssl_mode': GR_SSL_DISABLED,
         }
         self.assertDictEqual(get_rpl_usr(options), rpl_user_dict)
 
