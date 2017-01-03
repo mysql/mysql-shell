@@ -11,6 +11,12 @@ import json
 import xmlrunner
 import shutil
 
+from testFunctions import read_line
+from testFunctions import read_til_getShell
+from testFunctions import kill_process
+from testFunctions import exec_xshell_commands
+
+
 def timeout(timeout):
     def deco(func):
         @functools.wraps(func)
@@ -215,7 +221,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_MYS_855_checkInstanceState_UC1(self):
       '''MYS-855 [MYAA] cluster.checkInstanceState()'''
       instance = "3312"
-      kill_process(instance)
+      kill_process(instance,cluster_Path, MYSQL_SHELL)
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
       x_cmds = [("dba.deploySandboxInstance(" + instance + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
@@ -241,7 +247,7 @@ class XShell_TestCases(unittest.TestCase):
                 (LOCALHOST.password + '\n', "is valid for the cluster."),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
-      kill_process(instance)
+      kill_process(instance,cluster_Path, MYSQL_SHELL)
       self.assertEqual(results, 'PASS')
 
 

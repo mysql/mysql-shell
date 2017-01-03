@@ -86,7 +86,7 @@ def read_til_getShell(proc, fd, text):
             break
     return "".join(data)
 
-def kill_process(instance):
+def kill_process(instance, cluster_Path, MYSQL_SHELL):
     results="PASS"
     home = os.path.expanduser("~")
     try:
