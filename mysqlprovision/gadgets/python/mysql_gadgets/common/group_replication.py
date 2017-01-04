@@ -1002,8 +1002,11 @@ def check_user_privileges(req_checker, rpl_settings, dry_run=False,
     replication_host = rpl_settings["host"]
     recovery_user = rpl_settings["recovery_user"]
     rep_user_passwd = rpl_settings["rep_user_passwd"]
-    require_ssl = rpl_settings.get("ssl_mode", GR_SSL_REQUIRED) != \
-        GR_SSL_DISABLED
+
+    # Always create a user without REQUIRED SSL. To change it later if needed,
+    # set the require_ssl variable based on the proper condition, for example:
+    # = rpl_settings.get("ssl_mode", GR_SSL_REQUIRED) != GR_SSL_DISABLED
+    require_ssl = False
 
     req_dict = req_checker.req_dict
     server = req_checker.server

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -177,7 +177,7 @@ class User(object):
             'fetch': False
         }
 
-    def create(self, new_user=None, passwd=None, ssl=True,
+    def create(self, new_user=None, passwd=None, ssl=False,
                disable_binlog=False):
         """Create the user
 
