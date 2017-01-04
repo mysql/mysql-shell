@@ -304,7 +304,8 @@ class _SSLStore(argparse.Action):
 
 
 def add_store_connection_option(parser, option_name_list, dest, help_txt=None,
-                                required=True, ask_pass=True):
+                                required=True, ask_pass=True,
+                                add_ssl_opts=True):
     """Adds a connection option to the parser passed as parameter.
     The added option provides a similar behavior to the default store action,
     however it also parses and validates the connection string it receives and
@@ -327,6 +328,9 @@ def add_store_connection_option(parser, option_name_list, dest, help_txt=None,
     :param ask_pass: If True, we will add this connection to the list of
                      connections to which passwords need to be asked.
     :type ask_pass: bool
+    :param add_ssl_opts: If set to True, add the options to store the SSL
+                         certificates for the connection. By Default True.
+    :type add_ssl_opts: bool
     """
     if help_txt is None:
         help_txt = ("Connection information in the form: <user>@<host>"
@@ -334,6 +338,12 @@ def add_store_connection_option(parser, option_name_list, dest, help_txt=None,
     parser.add_argument(*option_name_list, dest=dest, help=help_txt,
                         action=_ConnectionInfoStore, required=required,
                         ask_pass=ask_pass)
+
+    if add_ssl_opts:
+        help_suffix = (" Used to connect to the server given on {0} option."
+                       "".format(option_name_list[0]))
+        _add_ssl_connection_options(parser, option_name_list[0], dest,
+                                    help_suffix=help_suffix)
 
 
 def add_append_connection_option(parser, option_name_list, dest,
@@ -632,3 +642,52 @@ def add_ssl_options(parser, check_file_exist=False):
                         action="store", type=str.upper,
                         default=GR_SSL_REQUIRED,
                         choices=[GR_SSL_REQUIRED, GR_SSL_DISABLED])
+
+
+def _add_ssl_connection_options(parser, opt_prefix="instance",
+                                var_prefix="instance", help_suffix="",
+                                check_file_exist=False):
+    """Add ssl-ca, ssl-cert and ssl-key options to the given parser.
+
+    This adds the ssl options for set the certificates to configure Group
+    Replication.
+
+    :param parser: instance of ArgumentParser to which we want to add the
+                   SSL options
+    :type parser:  argparse.ArgumentParser
+    :param opt_prefix: the option prefix to use for naming options. By default
+                       'instance'.
+    :type opt_prefix:  string
+    :param var_prefix: value that will be used as the prefix for the SSL
+                       attributes of the object that is returned by
+                       ArgumentParser.parse_args.
+    :type var_prefix: string
+    :param help_suffix: Extra text that will added to the end of the help text
+                        of each SSL option.
+    :type help_suffix: string
+    :param check_file_exist: determines if the check to verify if files
+                             specified for the SSL options exist will be
+                             performed or not. By default, False, meaning that
+                             the file existence check will not be performed.
+    :type check_file_exist:  bool
+    """
+    if len(help_suffix) > 0 and not help_suffix.startswith(" "):
+        help_suffix = " {0}".format(help_suffix)
+
+    ssl_opts = [("{0}-ssl-ca".format(opt_prefix),
+                 "{0}_ssl_ca".format(var_prefix),
+                 "Path of file that contains list of trusted SSL CAs."
+                 "{0}".format(help_suffix)),
+                ("{0}-ssl-cert".format(opt_prefix),
+                 "{0}_ssl_cert".format(var_prefix),
+                 "Path of file that contains X509 certificate in PEM format."
+                 "{0}".format(help_suffix)),
+                ("{0}-ssl-key".format(opt_prefix),
+                 "{0}_ssl_key".format(var_prefix),
+                 "Path of file that contains X509 key in PEM format."
+                 "{0}".format(help_suffix))]
+
+    action = _SSLStore if check_file_exist else 'store'
+    for opt_name, dest, help_txt in ssl_opts:
+        parser.add_argument(opt_name, dest=dest, help=help_txt,
+                            action=action)

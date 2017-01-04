@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@ class TestParsingOptions(unittest.TestCase):
             parsed,
             argparse.Namespace(
                 source={"host": "localhost", "user": "root", "port": 3306},
+                source_ssl_ca=None, source_ssl_cert=None, source_ssl_key=None,
                 store_password_list=[('source', 'root@localhost')]))
 
         # but you can also specify a port or a socket
@@ -74,6 +75,7 @@ class TestParsingOptions(unittest.TestCase):
             parsed,
             argparse.Namespace(
                 source={"host": "localhost", "user": "root", "port": 13001},
+                source_ssl_ca=None, source_ssl_cert=None, source_ssl_key=None,
                 store_password_list=[('source', 'root@localhost:13001')]))
 
         parsed = self.parser.parse_args(
@@ -84,6 +86,8 @@ class TestParsingOptions(unittest.TestCase):
                 parsed,
                 argparse.Namespace(
                     source={"host": "localhost", "user": "root", 'port': 3306},
+                    source_ssl_ca=None, source_ssl_cert=None,
+                    source_ssl_key=None,
                     store_password_list=[('source',
                                           'root@localhost:path_to_socket')]))
         else:
@@ -92,6 +96,8 @@ class TestParsingOptions(unittest.TestCase):
                 argparse.Namespace(
                     source={"host": "localhost", "user": "root",
                             "unix_socket": "path_to_socket", "port": None},
+                    source_ssl_ca=None, source_ssl_cert=None,
+                    source_ssl_key=None,
                     store_password_list=[('source',
                                           'root@localhost:path_to_socket')]))
 
@@ -107,7 +113,9 @@ class TestParsingOptions(unittest.TestCase):
             "".split())
         self.assertEqual(parsed, argparse.Namespace(
             source={"host": "localhost", "user": "root", "port": 13002},
-            destination=None,
+            source_ssl_ca=None, source_ssl_cert=None, source_ssl_key=None,
+            destination=None, destination_ssl_ca=None,
+            destination_ssl_cert=None, destination_ssl_key=None,
             store_password_list=[('source', 'root@localhost:13002')]))
 
         # Since the ask_pass value for the destination option is False, the
@@ -118,7 +126,10 @@ class TestParsingOptions(unittest.TestCase):
             "".split())
         self.assertEqual(parsed, argparse.Namespace(
             source={"host": "localhost", "user": "root", "port": 13002},
+            source_ssl_ca=None, source_ssl_cert=None, source_ssl_key=None,
             destination={"host": "127.0.0.1", "user": "user1", "port": 13003},
+            destination_ssl_ca=None, destination_ssl_cert=None,
+            destination_ssl_key=None,
             store_password_list=[('source', 'root@localhost:13002')]))
 
     def test_add_append_connection_option(self):
@@ -270,7 +281,8 @@ class TestParsingOptions(unittest.TestCase):
                                ('user', 'root'))]),
             append_password_list=[('store', 'root@localhost')],
             source={'passwd': 'store_pass', 'host': 'localhost',
-                    'user': 'root', 'port': 13001},
+                    'user': 'root', 'port': 13001}, source_ssl_ca=None,
+            source_ssl_cert=None, source_ssl_key=None,
             stdin_pw=True,
             store=[{'passwd': 'source_pass', 'host': 'localhost',
                     'user': 'root', 'port': 3306}],

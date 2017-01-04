@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -443,6 +443,22 @@ class Server(object):
             # Add --protocol=tcp if we are using a port
             if "port" in param_dict:
                 param_dict["protocol"] = "tcp"
+
+            # On windows scape the \
+            if os.name == 'nt':
+                if "ssl_ca" in param_dict:
+                    param_dict["ssl_ca"] = param_dict["ssl_ca"].replace(
+                        "\\", "\\\\")
+                if "ssl_cert" in param_dict:
+                    param_dict["ssl_cert"] = param_dict["ssl_cert"].replace(
+                        "\\", "\\\\")
+                if "ssl_key" in param_dict:
+                    param_dict["ssl_key"] = param_dict["ssl_key"].replace(
+                        "\\", "\\\\")
+            # This ssl parameter is used internally on the server class
+            # and is not required in a configuration file.
+            if "ssl" in param_dict:
+                param_dict.pop("ssl")
             return create_option_file({section_name: param_dict},
                                       prefix_dir=prefix_dir)
         else:

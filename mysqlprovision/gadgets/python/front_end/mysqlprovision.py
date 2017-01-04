@@ -628,6 +628,31 @@ if __name__ == "__main__":
     # ask for passwords
     options.read_passwords(args)
 
+    # SSL connection information
+    if hasattr(args, "server") and isinstance(args.server, dict):
+        ssl_server_conn_dict = {}
+        if args.server_ssl_ca:
+            ssl_server_conn_dict["ssl_ca"] = args.server_ssl_ca
+        if args.server_ssl_cert:
+            ssl_server_conn_dict["ssl_cert"] = args.server_ssl_cert
+        if args.server_ssl_key:
+            ssl_server_conn_dict["ssl_key"] = args.server_ssl_key
+        if ssl_server_conn_dict:
+            ssl_server_conn_dict["ssl"] = True
+        args.server.update(ssl_server_conn_dict)
+
+    if hasattr(args, "peer_server") and isinstance(args.peer_server, dict):
+        ssl_peer_conn_dict = {}
+        if args.peer_server_ssl_ca:
+            ssl_peer_conn_dict["ssl_ca"] = args.peer_server_ssl_ca
+        if args.peer_server_ssl_cert:
+            ssl_peer_conn_dict["ssl_cert"] = args.peer_server_ssl_cert
+        if args.peer_server_ssl_key:
+            ssl_peer_conn_dict["ssl_key"] = args.peer_server_ssl_key
+        if ssl_peer_conn_dict:
+            ssl_peer_conn_dict["ssl"] = True
+        args.peer_server.update(ssl_peer_conn_dict)
+
     if command == SANDBOX:
         sandbox_pw = None
         # Check that port number is valid
