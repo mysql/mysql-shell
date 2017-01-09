@@ -10,16 +10,14 @@ import unittest
 import json
 import xmlrunner
 import shutil
+#sys.path.append('/home/guidev/Descargas/AdminAPI_Scripts/testsFiles/')
+#sys.path.append('../')
+from testFunctions import read_line
+from testFunctions import read_til_getShell
+from testFunctions import kill_process
+from testFunctions import exec_xshell_commands
 import logging
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-fh = logging.FileHandler('AdminAPI_Log_Execution.txt', mode='w')
-fh.setLevel(logging.DEBUG)
-fh.setFormatter(formatter)
-logger.addHandler(fh)
 
 ############   Retrieve variables from configuration file    ##########################
 class LOCALHOST:
@@ -44,15 +42,13 @@ if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfil
     cluster_Path = os.environ['CLUSTER_PATH']
     XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
     XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/adminapi_qa_test.xml"
-    testFilesPath = os.environ['testFilesPath']
 else:
     # **** LOCAL EXECUTION ****
-    config = json.load(open('config_local.json'))
+    config=json.load(open('config_local.json'))
     MYSQL_SHELL = str(config["general"]["xshell_path"])
     Exec_files_location = str(config["general"]["aux_files_path"])
     cluster_Path = str(config["general"]["cluster_path"])
     XMLReportFilePath = "adminapi_qa_test.xml"
-    testFilesPath = "./adminapi_testfiles"
 
 #########################################################################
 
@@ -74,17 +70,40 @@ class globalvar:
     last_found=""
     last_search=""
 
-  # ----------------------------------------------------------------------
+###########################################################################################
 
-logger.debug("------------ AdminAPI Test Start... ---------- ")
+class XShell_TestCases(unittest.TestCase):
+
+
+  def test_036_MYS_756_killSandboxInstance(self):
+      '''MYS-756 [MYAA] dba.killLocalInstance(port[, options])'''
+      logger.debug("--------- " + str(self._testMethodName) + " ---------")
+      instance1 = "3314"
+      instance2 = "3323"
+      instance3 = "3324"
+      results = ''
+      init_command =  [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
+      x_cmds = [("dba.killSandboxInstance(" + instance1 + ", { sandboxDir: \""+cluster_Path+"\"});\n",
+                 "successfully killed."),
+                ("dba.deleteSandboxInstance(" + instance1 + ", { sandboxDir: \""+cluster_Path+"\"});\n",
+                 'successfully deleted.'),
+                ("dba.killSandboxInstance(" + instance2 + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 "successfully killed."),
+                ("dba.deleteSandboxInstance(" + instance2 + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'successfully deleted.'),
+                ("dba.killSandboxInstance(" + instance3 + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 "successfully killed."),
+                ("dba.deleteSandboxInstance(" + instance3 + ", { sandboxDir: \"" + cluster_Path + "\"});\n",
+                 'successfully deleted.')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  # ----------------------------------------------------------------------
+#
+# if __name__ == '__main__':
+#     unittest.main()
+
 if __name__ == '__main__':
-  suite = unittest.TestSuite()
-  suite.addTest(unittest.TestLoader().discover(testFilesPath, pattern="test_MYS_setup.py"))
-  sortedtestfileNames = sorted(os.listdir(testFilesPath))
-  for Testfilename in sortedtestfileNames:
-      if os.path.splitext(Testfilename)[1] == ".py":
-          suite.addTests(unittest.TestLoader().discover(testFilesPath, pattern=Testfilename))
-  logger.debug("------------ Number of Test Cases To Be Executed: " + str(suite.countTestCases()) + " ---------- ")
-  testRunner = xmlrunner.XMLTestRunner(file(XMLReportFilePath, "w"))
-  testRunner.verbosity=3
-  testRunner.run(suite)
+  unittest.main( testRunner=xmlrunner.XMLTestRunner(file(XMLReportFilePath,"w")))

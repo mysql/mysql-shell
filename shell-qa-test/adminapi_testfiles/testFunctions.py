@@ -10,6 +10,8 @@ import unittest
 import json
 import xmlrunner
 import shutil
+import logging
+logger = logging.getLogger()
 
 def timeout(timeout):
     def deco(func):
@@ -75,6 +77,7 @@ def read_til_getShell(proc, fd, text):
     #while line.find(text,0,len(line))< 0  and proc.poll() == None:
         try:
             line = read_line(proc, fd, text)
+            logger.debug(line)
             globalvar.last_found = globalvar.last_found + line
             if line:
                 data.append(line)
@@ -123,7 +126,8 @@ def exec_xshell_commands(init_cmdLine, commandList):
         expectbefore = "mysql-js>"
     else:
         expectbefore = "mysql-js>"
-    p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         stdin=subprocess.PIPE, bufsize=-1)
     for command, lookup in commandList:
         # p.stdin.write(bytearray(command + "\n", 'ascii'))
         p.stdin.write(bytearray(command , 'ascii'))
@@ -132,10 +136,15 @@ def exec_xshell_commands(init_cmdLine, commandList):
         #found = read_til_getShell(p, p.stdout, lookup)
         found = read_til_getShell(p, p.stdout, expectbefore)
         if found.find(expectbefore, 0, len(found)) == -1:
-            stdin,stdout = p.communicate()
+            stdout,stderror = p.communicate()
             # return "FAIL \n\r"+stdin.decode("ascii") +stdout.decode("ascii")
             RESULTS="FAILED"
-            return "FAIL: " + stdin.decode("ascii") + stdout.decode("ascii")
+            logger.debug("exec_xshell_command: return FAILURE, found= " + str(found) +
+                         "FAIL:  " + str(stdout))
+            try:
+                return "FAIL: " + stdout.decode("ascii") + stderror.decode("ascii")
+            except Exception as ex:
+                return "FAIL:  " + str(stdout) + str(stderror)
             break
         expectbefore = lookup
         commandbefore =command
@@ -143,16 +152,27 @@ def exec_xshell_commands(init_cmdLine, commandList):
     p.stdin.write(bytearray('', 'ascii'))
     p.stdin.flush()
     #p.stdout.reset()
-    stdin,stdout = p.communicate()
-    found = stdout.find(bytearray(expectbefore,"ascii"), 0, len(stdout))
-    if found == -1 and commandList.__len__() != 0 :
-            found = stdin.find(bytearray(expectbefore,"ascii"), 0, len(stdin))
-            if found == -1 :
-                return "FAIL:  " + stdin.decode("ascii") + stdout.decode("ascii")
-            else :
+    stdout, stderror = p.communicate()
+    try:
+        found = stderror.find(bytearray(expectbefore, "ascii"), 0, len(stdout))
+        if found == -1 and commandList.__len__() != 0:
+            found = stdout.find(bytearray(expectbefore, "ascii"), 0, len(stdout))
+            if found == -1:
+                logger.debug("exec_xshell_command: return FAILURE, found= " + str(found))
+                return "FAIL:  " + stdout.decode("ascii") + stderror.decode("ascii")
+            else:
+                logger.debug("exec_xshell_command: return PASS")
                 return "PASS"
-    else:
-        return "PASS"
+        else:
+            logger.debug("exec_xshell_command: return PASS")
+            return "PASS"
+    except Exception as ex:
+        if found == -1:
+            logger.debug("exec_xshell_command: handled exception return: " + "FAIL:  " + str(stdout) + str(stderror))
+            return "FAIL:  " + str(stdout) + str(stderror)
+        else:
+            logger.debug("exec_xshell_command: return PASS")
+            return "PASS"
 
 
 
