@@ -319,13 +319,13 @@ if __name__ == '__main__':
   #suite.addTests(sorted(unittest.TestLoader().discover('./testsFiles', pattern="test_MYS_*.py")),)
   #######################################################3
   suite = unittest.TestSuite()
-  suite.addTest(unittest.TestLoader().discover('./testsFiles', pattern="test_MYS_setup.py"))
-  sortedtestfileNames = sorted(os.listdir('./testsFiles'))
+  suite.addTest(unittest.TestLoader().discover('./adminapi_testfiles', pattern="test_MYS_setup.py"))
+  sortedtestfileNames = sorted(os.listdir('./adminapi_testfiles'))
   for Testfilename in sortedtestfileNames:
       if os.path.splitext(Testfilename)[1]== ".py":
-          suite.addTests(unittest.TestLoader().discover('./testsFiles', pattern=Testfilename))
+          suite.addTests(unittest.TestLoader().discover('./adminapi_testfiles', pattern=Testfilename))
 
-  #suite = unittest.TestLoader().discover('./testsFiles', pattern="test_MYS_6*.py")
+  #suite = unittest.TestLoader().discover('./adminapi_testfiles', pattern="test_MYS_6*.py")
   testRunner = xmlrunner.XMLTestRunner(file(XMLReportFilePath, "w"))
   testRunner.verbosity=3
   testRunner.run(suite)
