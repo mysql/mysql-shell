@@ -280,6 +280,9 @@ void Connection::close() {
   // This should be logged, for now commenting to
   // avoid having unneeded output on the script mode
   // shcore::print("disconnect\n");
+  if (_prev_result)
+    _prev_result.reset();
+
   if (_mysql)
     mysql_close(_mysql);
   _mysql = NULL;
