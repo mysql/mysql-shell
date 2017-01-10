@@ -1,0 +1,15 @@
+[group1]
+option1 = 500
+option2 = 1000
+option3 = 0
+
+[group2]
+option1 = 10
+option2 = 20
+option3 = 3
+
+[group3]
+option3 = 3
+
+[mysql]
+user = dam

@@ -1,0 +1,15 @@
+# Use the !includedir directive
+[group1]
+option1 = 11
+
+[group2]
+option1 = 21
+option2 = 22
+
+[group3]
+option3 = 33
+
+!includedir ./include_files
+
+[mysql]
+user = myuser

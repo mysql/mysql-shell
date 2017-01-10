@@ -1,0 +1,97 @@
+MySQL Orchestrator Development Documentation (DevDocs)
+======================================================
+
+The MySQL Orchestrator DevDocs are written using Sphinx, therefore you will
+need to install Sphinx in order to build the documentation. 
+
+Install Sphinx
+--------------
+
+Requirement: Python
+
+You can simply use PyPI to install Sphinx:
+shell> pip install --user Sphinx
+
+Or in alternative use your distribution specific installation tool in case it
+ships with a recent enough version of Sphinx:
+
+# Ubuntu, Debian
+shell> apt-get install python-sphinx
+
+# OpenSuSE
+shell> yast install python-Sphinx 
+
+# Fedora
+shell> yum install python-sphinx 
+
+
+NOTE: If you don't have enough privileges 'sudo' might be required to install
+      it (to run the command as a root).
+
+More information: http://sphinx-doc.org/install.html
+
+Install PlantUML
+----------------
+
+PlantUML is used to generate UML graphs from text notations in the
+Sphinx documentations, and it is required to build those graphs correctly.
+
+Requirements: 
+- Java Runtime Environment (JRE)
+- Graphviz (http://www.graphviz.org/Download.php)
+
+1 - First, install PlantUML dependencies (JRE and Graphviz), for example using
+their packages for Linux distributions:
+
+# Ubuntu, Debian
+shell> apt-get install graphviz default-jre-headless 
+
+2 - Download the latest version of plantuml from:
+http://sourceforge.net/projects/plantuml/files/plantuml.jar/download
+
+3- Place it anywhere you like (e.g., your $HOME) and create a wrapper script
+for it (assuming ~/bin/ is in your $PATH and exists already):
+
+shell> cat <<EOF > ~/bin/plantuml
+#!/bin/sh -e
+java -jar ~/plantuml.jar "$@"
+EOF
+
+shell> chmod u+x ~/bin/plantuml
+
+4 - Verify if plantUML is working, for example checking its version:
+
+shell> plantuml -version
+PlantUML version 8040beta0 (Fri Apr 22 17:24:28 WEST 2016)
+(GPL source distribution)
+Java(TM) SE Runtime Environment
+Java HotSpot(TM) 64-Bit Server VM
+1.8.0_92-b14
+Linux
+
+The environment variable GRAPHVIZ_DOT has not been set
+Dot executable is /usr/bin/dot
+Dot version: dot - graphviz version 2.36.0 (20140111.2315)
+Installation seems OK. File generation OK
+
+5 - Setup PlantUML with Sphinx.
+    Install the plantuml extension for sphinx from PyPI with:
+
+shell> pip install --user sphinxcontrib-plantuml
+
+More information:
+ - http://plantuml.com/
+  - https://pypi.python.org/pypi/sphinxcontrib-plantuml
+
+
+Build DevDocs
+-------------
+
+After installing all required packages and dependencies you should be able
+to build the documentation (if needed).
+
+To build the documentation and generate 'HTML' output, run:
+shell> make html
+
+The documentation will be build in the '_build' folder, then you just need to
+open the _build/html/index.html file with our browser to read it.
