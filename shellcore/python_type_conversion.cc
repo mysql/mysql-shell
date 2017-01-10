@@ -93,7 +93,12 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(py, &pos, &key, &value)) {
-      (*map)[PyString_AsString(key)] = pyobj_to_shcore_value(value);
+      // The key may be anything (not necesarily a string)
+      // so we get the string representation of whatever it is
+      PyObject* key_repr = PyObject_Str(key);
+      (*map)[PyString_AsString(key_repr)] = pyobj_to_shcore_value(value);
+      
+      Py_DECREF(key_repr);
     }
 
     return Value(map);

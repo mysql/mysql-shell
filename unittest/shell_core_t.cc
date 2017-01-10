@@ -171,6 +171,25 @@ TEST_F(Shell_core_test, test_process_py_file_with_params) {
   wipe_all();
 }
 
+TEST_F(Shell_core_test, python_dictionary_key_handling) {
+  _options->interactive = true;
+  reset_shell();
+
+  _interactive_shell->process_line("\\py");
+  
+  // Tests a string key is correctly retrieved
+  _interactive_shell->process_line("{'type':'sample'}");
+  MY_EXPECT_STDOUT_CONTAINS("\"type\": \"sample\"");
+  wipe_all();
+  
+  // Tests an object key retrieves it's string representation
+  _interactive_shell->process_line("{type:'sample'}");
+  MY_EXPECT_STDOUT_CONTAINS("\"<type 'type'>\": \"sample\"");
+  wipe_all();
+  wipe_all();
+}
+
+
 TEST_F(Shell_core_test, regression_prompt_on_override_session) {
   connect();
 
