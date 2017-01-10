@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -116,11 +116,12 @@ void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, sh
   }
 }
 
-shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, bool get_password_from_options) {
+shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args,
+                                                     bool get_password_from_options) {
   shcore::Value::Map_type_ref options;
 
   // This validation will be added here but should not be needed if the function is used properly
-  // callers are resposible for validating the number of arguments is correct
+  // callers are responsible for validating if the number of arguments is correct
   args.ensure_at_least(1, "get_instance_options_map");
 
   // Attempts getting an instance object
@@ -144,7 +145,7 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
   if (options->size() == 0)
     throw shcore::Exception::argument_error("Connection definition is empty");
 
-  // Overrides the options password if given appart
+  // Overrides the options password if given apart
   if (args.size() == 2) {
     bool override_pwd = false;
     std::string new_password;
@@ -178,7 +179,7 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
   return options;
 }
 
-std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors) {
+std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> str_errors;
 
   for (auto error : *errors) {
@@ -334,6 +335,22 @@ void validate_ssl_instance_options(shcore::Value::Map_type_ref &options) {
     if (ssl_key.empty())
       throw shcore::Exception::argument_error(
           "Invalid value for memberSslKey, string value cannot be empty.");
+  }
+}
+
+void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options) {
+  // Validate the value of the ipWhitelist option an issue an exception
+  // if invalid.
+  shcore::Argument_map opt_map(*options);
+  // Just a very simple validation is enough since the GCS layer on top of
+  // which group replication runs has proper validation for the values provided
+  // to the ipWhitelist option.
+  if (opt_map.has_key("ipWhitelist")) {
+    std::string ip_whitelist = options->get_string("ipWhitelist");
+    boost::trim(ip_whitelist);
+    if (ip_whitelist.empty())
+      throw shcore::Exception::argument_error(
+          "Invalid value for ipWhitelist, string value cannot be empty.");
   }
 }
 

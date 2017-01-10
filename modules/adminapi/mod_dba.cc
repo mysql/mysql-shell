@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -49,7 +49,9 @@ using namespace shcore;
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom", "ignoreSslError"};
 std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password", "dbPassword"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
-std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey"};
+std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force",
+                                                   "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey",
+                                                   "ipWhitelist"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL X AdminAPI.");
@@ -240,6 +242,10 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li memberSslCert: Path of file that "
     "contains X509 certificate in PEM format to set for the instance.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "@li memberSslKey: Path of file that "\
     "contains X509 key in PEM format to set for the instance.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9, "@li ipWhitelist: The list of hosts allowed to connect to the instance for "\
+    "Group Replication. Specify a custom IP whitelist using comma separated list of IP addresses or subnet CIDR "\
+    "notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
+    "from the instance private network to be automatically set for the whitelist.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -258,6 +264,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "@li memberSslKey: Path of file that "\
  * $(DBA_CREATECLUSTER_DETAIL6)
  * $(DBA_CREATECLUSTER_DETAIL7)
  * $(DBA_CREATECLUSTER_DETAIL8)
+ * $(DBA_CREATECLUSTER_DETAIL9)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -299,6 +306,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
   std::string replication_user;
   std::string replication_pwd;
+  std::string ip_whitelist;
 
   try {
     std::string cluster_name = args.string_at(0);
@@ -320,6 +328,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
       // Validate SSL options for the cluster instance
       validate_ssl_instance_options(options);
+
+      //Validate ip whitelist option
+      validate_ip_whitelist_option(options);
 
       if (opt_map.has_key("clusterAdminType"))
         cluster_admin_type = opt_map.string_at("clusterAdminType");
@@ -355,6 +366,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       if (opt_map.has_key("memberSslKey")) {
         has_ssl_key = true;
         ssl_key = opt_map.string_at("memberSslKey");
+      }
+      if (opt_map.has_key("ipWhitelist")) {
+        // if the ipWhitelist option was provided, we know it is a valid value
+        // since we've already done the validation above.
+        ip_whitelist = opt_map.string_at("ipWhitelist");
       }
     }
 
@@ -411,6 +427,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       (*options)["memberSslCert"] = Value(ssl_cert);
     if (has_ssl_key)
       (*options)["memberSslKey"] = Value(ssl_key);
+
+    // Set IP whitelist
+    if (!ip_whitelist.empty())
+      (*options)["ipWhitelist"] = Value(ip_whitelist);
+
     args.push_back(shcore::Value(options));
 
     // args.push_back(shcore::Value(session->uri()));

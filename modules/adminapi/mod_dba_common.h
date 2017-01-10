@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -99,6 +99,7 @@ std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref&
 ReplicationGroupState check_function_preconditions(const std::string& class_name, const std::string& base_function_name, const std::string &function_name, const std::shared_ptr<MetadataStorage>& metadata);
 
 void validate_ssl_instance_options(shcore::Value::Map_type_ref &options);
+void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options);
 }
 }
 #endif

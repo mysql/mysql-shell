@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -393,15 +393,18 @@ int ProvisioningInterface::start_sandbox(int port, const std::string &sandbox_di
 }
 
 int ProvisioningInterface::start_replicaset(const std::string &instance_url, const std::string &repl_user,
-                                      const std::string &super_user_password, const std::string &repl_user_password,
-                                      bool multi_master, bool ssl, const std::string &ssl_ca,
-                                      const std::string &ssl_cert, const std::string &ssl_key,
-                                      shcore::Value::Array_type_ref &errors) {
+                                            const std::string &super_user_password,
+                                            const std::string &repl_user_password,
+                                            bool multi_master, bool ssl, const std::string &ssl_ca,
+                                            const std::string &ssl_cert, const std::string &ssl_key,
+                                            const std::string &ip_whitelist,
+                                            shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
   std::string repl_user_pwd = repl_user_password;
   std::string ssl_ca_opt, ssl_cert_opt, ssl_key_opt;
+  std::string ip_whitelist_opt;
 
   instance_args = "--instance=" + instance_url;
   repl_user_args = "--replication-user=" + repl_user;
@@ -434,22 +437,28 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
       args.push_back(ssl_key_opt.c_str());
     }
   }
+  if (!ip_whitelist.empty()) {
+    ip_whitelist_opt = "--ip-whitelist=" + ip_whitelist;
+    args.push_back(ip_whitelist_opt.c_str());
+  }
   args.push_back("--stdin");
 
   return execute_mysqlprovision("start-replicaset", args, passwords, errors, _verbose);
 }
 
 int ProvisioningInterface::join_replicaset(const std::string &instance_url, const std::string &repl_user,
-                                      const std::string &peer_instance_url, const std::string &super_user_password,
-                                      const std::string &repl_user_password,
-                                      bool multi_master, bool ssl, const std::string &ssl_ca,
-                                      const std::string &ssl_cert, const std::string &ssl_key,
-                                      shcore::Value::Array_type_ref &errors) {
+                                           const std::string &peer_instance_url, const std::string &super_user_password,
+                                           const std::string &repl_user_password,
+                                           bool multi_master, bool ssl, const std::string &ssl_ca,
+                                           const std::string &ssl_cert, const std::string &ssl_key,
+                                           const std::string &ip_whitelist,
+                                           shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
   std::string repl_user_pwd = repl_user_password;
   std::string ssl_ca_opt, ssl_cert_opt, ssl_key_opt;
+  std::string ip_whitelist_opt;
 
   instance_args = "--instance=" + instance_url;
   repl_user_args = "--replication-user=" + repl_user;
@@ -487,6 +496,10 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
       ssl_key_opt = "--ssl-key=" + ssl_key;
       args.push_back(ssl_key_opt.c_str());
     }
+  }
+  if (!ip_whitelist.empty()) {
+    ip_whitelist_opt = "--ip-whitelist=" + ip_whitelist;
+    args.push_back(ip_whitelist_opt.c_str());
   }
   args.push_back("--stdin");
 

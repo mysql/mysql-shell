@@ -30,6 +30,7 @@ from mysql_gadgets.common.group_replication import (check_server_requirements,
                                                     get_rpl_usr,
                                                     GR_GROUP_NAME,
                                                     GR_GROUP_SEEDS,
+                                                    GR_IP_WHITELIST,
                                                     GR_LOCAL_ADDRESS,
                                                     GR_PLUGIN_NAME,
                                                     GR_RECOVERY_USE_SSL,
@@ -117,6 +118,7 @@ class TestGRPlugin(GadgetsTestCase):
             GR_SINGLE_PRIMARY_MODE: None,
             GR_GROUP_NAME: None,
             GR_GROUP_SEEDS: None,
+            GR_IP_WHITELIST: None,
             GR_RECOVERY_USE_SSL: "'ON'",
             GR_SSL_MODE: "'REQUIRED'"
         }
@@ -132,6 +134,7 @@ class TestGRPlugin(GadgetsTestCase):
             GR_LOCAL_ADDRESS: "'{0}'".format(local_address),
             GR_SINGLE_PRIMARY_MODE: None,
             GR_GROUP_SEEDS: None,
+            GR_IP_WHITELIST: None,
             GR_RECOVERY_USE_SSL: "'ON'",
             GR_SSL_MODE: "'REQUIRED'"
         }

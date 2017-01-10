@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -158,7 +158,7 @@ private:
       const std::string &super_user_password,
       const std::string &repl_user, const std::string &repl_user_password,
       bool ssl, const std::string &ssl_ca, const std::string &ssl_cert,
-      const std::string &ssl_key);
+      const std::string &ssl_key, const std::string &ip_whitelist);
 
   std::string get_peer_instance();
 

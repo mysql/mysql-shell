@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -38,7 +38,7 @@ public:
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
-  shcore::Value check_instace_state(const shcore::Argument_list &args);
+  shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of(const shcore::Argument_list &args);
 

@@ -37,6 +37,7 @@
 ||Invalid value for memberSslCert, string value cannot be empty.
 ||Invalid value for memberSslKey, string value cannot be empty.
 ||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'
+||Invalid value for ipWhitelist, string value cannot be empty.
 
 //@ Cluster: addInstance 2
 ||
@@ -362,6 +363,7 @@
 ||Invalid value for memberSslCa, string value cannot be empty.
 ||Invalid value for memberSslCert, string value cannot be empty.
 ||Invalid value for memberSslKey, string value cannot be empty.
+||Invalid value for ipWhitelist, string value cannot be empty.
 
 //@#: Dba: rejoin instance 3 ok
 ||

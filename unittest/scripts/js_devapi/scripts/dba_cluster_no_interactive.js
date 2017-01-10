@@ -50,6 +50,7 @@ Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_por
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslCa: " "}, "root");
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslCert: " "}, "root");
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, memberSsl: true, memberSslKey: " "}, "root");
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2, ipWhitelist: " "}, "root");
 
 add_instance_options['port'] = __mysql_sandbox_port1;
 Cluster.addInstance(add_instance_options);
@@ -169,6 +170,7 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslCa: " "}, "root");
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslCert: " "}, "root");
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true, memberSslKey: " "}, "root");
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, ipWhitelist: " "}, "root");
 
 //@#: Dba: rejoin instance 3 ok
 if (__have_ssl)

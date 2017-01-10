@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,7 +36,7 @@ void Interactive_dba_cluster::init() {
   add_method("rejoinInstance", std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&Interactive_dba_cluster::remove_instance, this, _1), "data");
   add_varargs_method("dissolve", std::bind(&Interactive_dba_cluster::dissolve, this, _1));
-  add_varargs_method("checkInstanceState", std::bind(&Interactive_dba_cluster::check_instace_state, this, _1));
+  add_varargs_method("checkInstanceState", std::bind(&Interactive_dba_cluster::check_instance_state, this, _1));
   add_varargs_method("rescan", std::bind(&Interactive_dba_cluster::rescan, this, _1));
   add_varargs_method("forceQuorumUsingPartitionOf", std::bind(&Interactive_dba_cluster::force_quorum_using_partition_of, this, _1));
 }
@@ -119,6 +119,9 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
       // Validate SSL options for the cluster instance
       mysqlsh::dba::validate_ssl_instance_options(options);
 
+      //Validate ip whitelist option
+      mysqlsh::dba::validate_ip_whitelist_option(options);
+
       mysqlsh::dba::resolve_instance_credentials(options, _delegate);
     }
   }
@@ -156,6 +159,9 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
 
     // Validate SSL options for the cluster instance
     mysqlsh::dba::validate_ssl_instance_options(options);
+
+    //Validate ip whitelist option
+    mysqlsh::dba::validate_ip_whitelist_option(options);
 
     std::string message = "Rejoining the instance to the InnoDB cluster. Depending on the original\n"
                         "problem that made the instance unavailable, the rejoin operation might not be\n"
@@ -284,7 +290,7 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
   return ret_val;
 }
 
-shcore::Value Interactive_dba_cluster::check_instace_state(const shcore::Argument_list &args) {
+shcore::Value Interactive_dba_cluster::check_instance_state(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("checkInstanceState").c_str());
 
   check_preconditions("checkInstanceState");
@@ -460,11 +466,14 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(const shc
     shcore::Argument_map opt_map(*options);
     opt_map.ensure_keys({"host"},
                         {"name", "host", "port", "user", "dbUser", "password",
-                         "dbPassword", "socket", "memberSslCa", "memberSslCert", "memberSslKey", "memberSsl"},
-                        "instance definition");
+                         "dbPassword", "socket", "memberSslCa", "memberSslCert", "memberSslKey", "memberSsl",
+                         "ipWhitelist"}, "instance definition");
 
     // Validate SSL options for the cluster instance
     mysqlsh::dba::validate_ssl_instance_options(options);
+
+    //Validate ip whitelist option
+    mysqlsh::dba::validate_ip_whitelist_option(options);
 
     std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replica_set;
     auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);

@@ -75,6 +75,14 @@ _COMMAND_HELP = ("The command to perform. {0}".format(_AVAILABLE_COMMANDS))
 
 _DRY_RUN_HELP = "Run the command without actually making changes."
 
+_IP_WHITELIST_HELP = ("The list of hosts allowed to connect to the instance "
+                      "for Group Replication. Specify a custom IP whitelist "
+                      "using comma separated list of IP addresses or subnet "
+                      "CIDR notation, for example: 192.168.1.0/24,10.0.0.1. "
+                      "By default the value is set to AUTOMATIC, allowing "
+                      "addresses from the instance private network to be "
+                      "automatically set for the whitelist.")
+
 _LOG_FILE_HELP = ("Specifies if the output should be logged to a file and "
                   "the name of this file with no argument it will log to "
                   "'{0}.log'".format(_SCRIPT_NAME))
@@ -365,6 +373,10 @@ if __name__ == "__main__":
                                  help=_SKIP_BACKUP_HELP, action="store_true",
                                  required=False)
 
+    # add ip-whitelist option
+    sub_parser_join.add_argument("--ip-whitelist", dest="ip_whitelist",
+                                 help=_IP_WHITELIST_HELP, required=False)
+
     # create parser for leave command
     sub_parser_leave = subparsers.add_parser(
         LEAVE, help=commands_desc[LEAVE],
@@ -425,6 +437,10 @@ if __name__ == "__main__":
                                   dest="skip_schema_checks",
                                   action="store_true", required=False,
                                   help=_SKIP_CHECK_SCHEMA_HELP)
+
+    # add ip-whitelist option
+    sub_parser_start.add_argument("--ip-whitelist", dest="ip_whitelist",
+                                  help=_IP_WHITELIST_HELP, required=False)
 
     # create parser for sandbox command
     sub_parser_sandbox = subparsers.add_parser(
@@ -679,6 +695,7 @@ if __name__ == "__main__":
         cmd_options.update({
             "dry_run": args.dry_run,
             "option_file": args.option_file,
+            "ip_whitelist": args.ip_whitelist,
             "gr_address": args.gr_address,
             "group_seeds": args.group_seeds,
             "skip_backup": args.skip_backup,
@@ -715,6 +732,7 @@ if __name__ == "__main__":
             "group_name": args.group_name,
             "gr_address": args.gr_address,
             "group_seeds": args.group_seeds,
+            "ip_whitelist": args.ip_whitelist,
             "option_file": args.option_file,
             "skip_backup": args.skip_backup,
             "single_primary": args.single_primary,

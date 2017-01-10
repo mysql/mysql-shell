@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -62,7 +62,10 @@ using namespace shcore;
 
 #define PASSWORD_LENGTH 16
 
-std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey"};
+std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password",
+                                                        "dbPassword", "socket", "sslCa", "sslCert", "sslKey",
+                                                        "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey",
+                                                        "ipWhitelist"};
 std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port", "socket", "sslCa", "sslCert", "sslKey"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
@@ -281,6 +284,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   bool seed_instance = false;
   bool ssl = false;  //SSL not used by default
   std::string ssl_ca, ssl_cert, ssl_key = "";
+  std::string ip_whitelist;
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Cluster class, hence this just throws exceptions
@@ -297,6 +301,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   // Validate SSL options for the cluster instance
   validate_ssl_instance_options(options);
 
+  //Validate ip whitelist option
+  validate_ip_whitelist_option(options);
+
   if (!options->has_key("port"))
     (*options)["port"] = shcore::Value(get_default_port());
 
@@ -308,6 +315,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
     ssl_cert = options->get_string("memberSslCert");
   if (options->has_key("memberSslKey"))
     ssl_key = options->get_string("memberSslKey");
+
+  if (options->has_key("ipWhitelist"))
+    ip_whitelist = options->get_string("ipWhitelist");
 
   // Sets a default user if not specified
   resolve_instance_credentials(options, nullptr);
@@ -364,7 +374,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                            "",
                            super_user_password,
                            replication_user, replication_user_password,
-                           ssl, ssl_ca, ssl_cert, ssl_key);
+                           ssl, ssl_ca, ssl_cert, ssl_key, ip_whitelist);
       } else {
         // We need to retrieve a peer instance, so let's use the Seed one
         std::string peer_instance = get_peer_instance();
@@ -376,7 +386,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                            user + "@" + peer_instance,
                            super_user_password,
                            replication_user, replication_user_password,
-                           ssl, ssl_ca, ssl_cert, ssl_key);
+                           ssl, ssl_ca, ssl_cert, ssl_key, ip_whitelist);
       }
     }
     break;
@@ -401,7 +411,8 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                                     const std::string &repl_user_password,
                                     bool ssl, const std::string &ssl_ca,
                                     const std::string &ssl_cert,
-                                    const std::string &ssl_key) {
+                                    const std::string &ssl_key,
+                                    const std::string &ip_whitelist) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -415,14 +426,14 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                 repl_user, super_user_password,
                 repl_user_password,
                 _topology_type == kTopologyMultiMaster,
-                ssl, ssl_ca, ssl_cert, ssl_key,
+                ssl, ssl_ca, ssl_cert, ssl_key, ip_whitelist,
                 errors);
   } else {
     exit_code = _cluster->get_provisioning_interface()->join_replicaset(instance_url,
                 repl_user, peer_instance_url,
                 super_user_password, repl_user_password,
                 _topology_type == kTopologyMultiMaster,
-                ssl, ssl_ca, ssl_cert, ssl_key,
+                ssl, ssl_ca, ssl_cert, ssl_key, ip_whitelist,
                 errors);
   }
 
@@ -479,6 +490,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   int port = 0;
   bool ssl = false;  //SSL not used by default
   std::string ssl_ca, ssl_cert, ssl_key = "";
+  std::string ip_whitelist;
 
   auto options = get_instance_options_map(args);
   shcore::Argument_map opt_map(*options);
@@ -486,6 +498,9 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
   // Validate SSL options for the cluster instance
   validate_ssl_instance_options(options);
+
+  //Validate ip whitelist option
+  validate_ip_whitelist_option(options);
 
   if (!options->has_key("port"))
     (*options)["port"] = shcore::Value(get_default_port());
@@ -503,6 +518,9 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     ssl_cert = options->get_string("sslCert");
   if (options->has_key("memberSslKey"))
     ssl_key = options->get_string("memberSslKey");
+
+  if (options->has_key("ipWhitelist"))
+    ip_whitelist = options->get_string("ipWhitelist");
 
   // Check if the instance is part of the Metadata
   if (!_metadata_storage->is_instance_on_replicaset(get_id(), instance_address)) {
@@ -634,6 +652,13 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
     set_global_variable(classic->connection(), "group_replication_local_address", local_address);
 
+    // Set Ip whitelist
+    if (!ip_whitelist.empty()) {
+      log_info("Setting the group_replication_ip_whitelist at instance %s",
+               instance_address.c_str());
+      set_global_variable(classic->connection(),
+                          "group_replication_ip_whitelist", ip_whitelist);
+    }
     // Set SSL option
     if (ssl) {
       std::string use_ssl = "ON";

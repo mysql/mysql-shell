@@ -37,6 +37,7 @@
 ||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
 ||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
 ||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
+||Invalid value for ipWhitelist, string value cannot be empty.
 
 //@<OUT> Dba: createCluster with interaction
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.

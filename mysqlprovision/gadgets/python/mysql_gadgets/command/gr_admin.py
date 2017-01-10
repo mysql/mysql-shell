@@ -46,7 +46,7 @@ from mysql_gadgets.common.group_replication import (
     get_gr_local_address_from,
     get_gr_name_from_peer,
     setup_gr_config,
-)
+    GR_IP_WHITELIST)
 from mysql_gadgets.common.connection_parser import clean_IPv6
 from mysql_gadgets.common.group_replication import (do_change_master,
                                                     check_server_requirements,
@@ -396,6 +396,11 @@ def start(server_info, **kwargs):
 
         if gr_config_vars[GR_GROUP_SEEDS] is None:
             gr_config_vars.pop(GR_GROUP_SEEDS)
+
+        # Remove IP whitelist variable if not set (by user or from the option
+        # file) to use the default server value and not set it with None.
+        if gr_config_vars[GR_IP_WHITELIST] is None:
+            gr_config_vars.pop(GR_IP_WHITELIST)
 
         if gr_config_vars[GR_GROUP_NAME] is None:
             new_uuid = get_group_uuid_name(server)
@@ -810,6 +815,11 @@ def join(server_info, peer_server_info, **kwargs):
         if gr_config_vars[GR_GROUP_SEEDS] is None:
             raise GadgetError(
                 _ERROR_UNABLE_TO_GET.format("peer addresses", peer_server))
+
+        # Remove IP whitelist variable if not set (by user or from the option
+        # file) to use the default server value and not set it with None.
+        if gr_config_vars[GR_IP_WHITELIST] is None:
+            gr_config_vars.pop(GR_IP_WHITELIST)
 
         setup_gr_config(server, gr_config_vars, dry_run=dry_run)
 

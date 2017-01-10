@@ -43,6 +43,7 @@ var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSsl: true});
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslCa: "ca"});
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslCert: "cert"});
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslKey: "key"});
+var c1 = dba.createCluster('devCluster', {ipWhitelist: " "});
 
 //@# Dba: createCluster succeed
 if (__have_ssl)

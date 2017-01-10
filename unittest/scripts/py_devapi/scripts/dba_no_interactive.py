@@ -50,6 +50,8 @@ c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSsl": True})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslCa": "ca"})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslCert": "cert"})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslKey": "key"})
+c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslKey": "key"})
+c1 = dba.create_cluster('devCluster', {"ipWhitelist": " "})
 
 #@# Dba: create_cluster succeed
 if __have_ssl:

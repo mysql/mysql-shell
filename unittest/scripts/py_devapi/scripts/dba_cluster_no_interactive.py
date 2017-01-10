@@ -55,6 +55,7 @@ cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sand
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "memberSsl": True, "memberSslCa": " "}, "root")
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "memberSsl": True, "memberSslCert": " "}, "root")
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "memberSsl": True, "memberSslKey": " "}, "root")
+cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2, "ipWhitelist": " "}, "root")
 
 add_instance_options['port'] = __mysql_sandbox_port1
 cluster.add_instance(add_instance_options)
@@ -182,6 +183,7 @@ cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_s
 cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "memberSsl": True, "memberSslCa": " "}, "root")
 cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "memberSsl": True, "memberSslCert": " "}, "root")
 cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "memberSsl": True, "memberSslKey": " "}, "root")
+cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3, "ipWhitelist": " "}, "root")
 
 #@#: Dba: rejoin instance 3 ok
 if __have_ssl:

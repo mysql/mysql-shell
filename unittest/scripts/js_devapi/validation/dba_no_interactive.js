@@ -37,6 +37,7 @@
 ||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
 ||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
 ||Cannot use member SSL options (memberSsl, memberSslCa, memberSslCert, memberSslKey) if adoptFromGR is set to true.
+||Invalid value for ipWhitelist, string value cannot be empty.
 
 //@# Dba: createCluster succeed
 |<Cluster:devCluster>|

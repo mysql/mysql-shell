@@ -74,6 +74,7 @@ GR_COMPONENTS_STOP_TIMEOUT = "group_replication_components_stop_timeout"
 GR_GCS_ENGINE = "group_replication_gcs_engine"
 GR_GROUP_NAME = "group_replication_group_name"
 GR_GROUP_SEEDS = "group_replication_group_seeds"
+GR_IP_WHITELIST = "group_replication_ip_whitelist"
 GR_LOCAL_ADDRESS = "group_replication_local_address"
 GR_PIPELINE_TYPE_VAR = "group_replication_pipeline_type_var"
 GR_RECOVERY_COMPLETE_AT = "group_replication_recovery_complete_at"
@@ -157,7 +158,8 @@ LOOSE_PREFIX = "loose_{0}"
 APPEND_VALUE_OPTIONS = [GR_GROUP_SEEDS]
 
 # a set of GR options to read from the defaults file and setup in the server.
-DEFAULTS_FILE_OPTIONS = frozenset({GR_GROUP_NAME,
+DEFAULTS_FILE_OPTIONS = frozenset({GR_IP_WHITELIST,
+                                   GR_GROUP_NAME,
                                    GR_GROUP_SEEDS,
                                    GR_LOCAL_ADDRESS,
                                    GR_SINGLE_PRIMARY_MODE})
@@ -1735,6 +1737,14 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
                             optional only for the bootstrap command.
         single_primary:     Indicates the gr_single_primary_mode; ON or OFF,
                             by default ON.
+        group_seeds:        The list of peer address (servers part of the
+                            group). A comma separated list with the format:
+                            <host>:<port>[,<host>:<port>].
+        ip_whitelist:       The list of hosts allowed to connect. A comma
+                            separated list of IP addresses or CIDR notation,
+                            for example: 192.168.1.0/24,10.0.0.1.
+                            By default: AUTOMATIC (private network addresses
+                            automatically allowed).
     :param options_parser: Option file parser used to read the values in the
                            options file if available.
     :type options_parser: MySQLOptionsParser
@@ -1763,6 +1773,7 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         GR_LOCAL_ADDRESS: local_address,
         GR_SINGLE_PRIMARY_MODE: options.get("single_primary", None),
         GR_GROUP_SEEDS: options.get("group_seeds", None),
+        GR_IP_WHITELIST: options.get("ip_whitelist", None)
     }
 
     # Use the value passed as an argument and not the value from

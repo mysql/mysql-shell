@@ -36,6 +36,7 @@
 ||Invalid value for memberSslCa, string value cannot be empty.
 ||Invalid value for memberSslCert, string value cannot be empty.
 ||Invalid value for memberSslKey, string value cannot be empty.
+||Invalid value for ipWhitelist, string value cannot be empty.
 
 #@ Cluster: add_instance with interaction, error
 ||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'.
@@ -283,6 +284,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Invalid value for memberSslCa, string value cannot be empty.
 ||Invalid value for memberSslCert, string value cannot be empty.
 ||Invalid value for memberSslKey, string value cannot be empty.
+||Invalid value for ipWhitelist, string value cannot be empty.
 
 #@<OUT> Cluster: rejoin_instance with interaction, ok
 The instance will try rejoining the InnoDB cluster. Depending on the original

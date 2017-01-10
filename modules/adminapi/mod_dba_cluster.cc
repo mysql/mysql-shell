@@ -209,6 +209,10 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4, "@li Connection data dictionary.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "The password may be contained on the instance parameter or can be "\
 "specified on the password parameter. When both are specified the password parameter "\
 "is used instead of the one in the instance data.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7, "@li ipWhitelist: The list of hosts allowed to connect to the instance for "\
+    "Group Replication. Specify a custom IP whitelist using comma separated list of IP addresses or subnet CIDR "\
+    "notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
+    "from the instance private network to be automatically set for the whitelist.");
 
 /**
 * $(CLUSTER_ADDINSTANCE_BRIEF)
@@ -225,6 +229,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "The password may be contained on the
 * $(CLUSTER_ADDINSTANCE_DETAIL4)
 *
 * $(CLUSTER_ADDINSTANCE_DETAIL6)
+* $(CLUSTER_ADDINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
 Undefined Cluster::addInstance(InstanceDef instance, String password) {}
@@ -261,6 +266,10 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li Connection data dictionary.")
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on the connectionData parameter or can be "\
 "specified on the password parameter. When both are specified the password parameter "\
 "is used instead of the one in the instance data.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6, "@li ipWhitelist: The list of hosts allowed to connect to the instance "\
+    "for Group Replication. Specify a custom IP whitelist using comma separated list of IP addresses or subnet CIDR "\
+    "notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
+    "from the instance private network to be automatically set for the whitelist.");
 
 /**
 * $(CLUSTER_REJOININSTANCE_BRIEF)
@@ -277,6 +286,7 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on 
 * $(CLUSTER_REJOININSTANCE_DETAIL4)
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL5)
+* $(CLUSTER_REJOININSTANCE_DETAIL6)
 */
 #if DOXYGEN_JS
 Undefined Cluster::rejoinInstance(InstanceDef instance) {}
