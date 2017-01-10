@@ -117,6 +117,72 @@ TEST_F(Interactive_global_session_js_test, resolve_method_call_to_node) {
   _interactive_shell->process_line("session.close()");
 }
 
+TEST_F(Interactive_global_session_js_test, leading_spaces_in_first_option) {
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<Undefined>");
+  output_handler.wipe_all();
+
+  output_handler.prompts.push_back("  1");  // Session type 1) Node
+  output_handler.prompts.push_back(_uri_nopasswd); // Connection data
+  output_handler.passwords.push_back(_pwd);
+  _interactive_shell->process_line("println(session.getUri());");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
+  MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
+  MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
+  MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session.close()");
+}
+
+TEST_F(Interactive_global_session_js_test, trailing_spaces_in_first_option) {
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<Undefined>");
+  output_handler.wipe_all();
+
+  output_handler.prompts.push_back("1  ");  // Session type 1) Node
+  output_handler.prompts.push_back(_uri_nopasswd); // Connection data
+  output_handler.passwords.push_back(_pwd);
+  _interactive_shell->process_line("println(session.getUri());");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
+  MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
+  MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
+  MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session.close()");
+}
+
+TEST_F(Interactive_global_session_js_test, leading_and_trailing_spaces_in_first_option) {
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<Undefined>");
+  output_handler.wipe_all();
+
+  output_handler.prompts.push_back("  1   ");  // Session type 1) Node
+  output_handler.prompts.push_back(_uri_nopasswd); // Connection data
+  output_handler.passwords.push_back(_pwd);
+  _interactive_shell->process_line("println(session.getUri());");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
+  MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
+  MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
+  MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session.close()");
+}
+
 TEST_F(Interactive_global_session_js_test, resolve_property_access_to_classic) {
   _interactive_shell->process_line("session");
   MY_EXPECT_STDOUT_CONTAINS("<Undefined>");
@@ -154,6 +220,72 @@ TEST_F(Interactive_global_session_js_test, resolve_method_call_to_classic) {
   MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
   MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
   MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _mysql_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session.close()");
+}
+
+TEST_F(Interactive_global_session_js_test, leading_spaces_in_second_option) {
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<Undefined>");
+  output_handler.wipe_all();
+
+  output_handler.prompts.push_back("   2");  // Session type 1) Classic
+  output_handler.prompts.push_back(_mysql_uri_nopasswd); // Connection data
+  output_handler.passwords.push_back(_pwd);
+  _interactive_shell->process_line("println(session.getUri());");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
+  MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
+  MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
+  MY_EXPECT_STDOUT_CONTAINS(_mysql_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session.close()");
+}
+
+TEST_F(Interactive_global_session_js_test, trailing_spaces_in_second_option) {
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<Undefined>");
+  output_handler.wipe_all();
+
+  output_handler.prompts.push_back("2    ");  // Session type 1) Classic
+  output_handler.prompts.push_back(_mysql_uri_nopasswd); // Connection data
+  output_handler.passwords.push_back(_pwd);
+  _interactive_shell->process_line("println(session.getUri());");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
+  MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
+  MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
+  MY_EXPECT_STDOUT_CONTAINS(_mysql_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  output_handler.wipe_all();
+
+  _interactive_shell->process_line("session.close()");
+}
+
+TEST_F(Interactive_global_session_js_test, leading_trailing_spaces_in_second_option) {
+  _interactive_shell->process_line("session");
+  MY_EXPECT_STDOUT_CONTAINS("<Undefined>");
+  output_handler.wipe_all();
+
+  output_handler.prompts.push_back("   2        ");  // Session type 1) Classic
+  output_handler.prompts.push_back(_mysql_uri_nopasswd); // Connection data
+  output_handler.passwords.push_back(_pwd);
+  _interactive_shell->process_line("println(session.getUri());");
+  MY_EXPECT_STDOUT_CONTAINS(no_session_message);
+  MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
+  MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
+  MY_EXPECT_STDOUT_CONTAINS(_mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");

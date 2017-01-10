@@ -40,7 +40,6 @@ void Global_session::resolve() const {
   "Please select the session type or ENTER to cancel: ";
   
   if (prompt(message, answer)) {
-    boost::trim(answer);
     if (!answer.empty() && answer.length() == 1) {
       mysqlsh::SessionType type;
       std::string options = "12";

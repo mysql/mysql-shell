@@ -18,6 +18,8 @@
  */
 
 #include "shellcore/interactive_object_wrapper.h"
+#include <boost/algorithm/string.hpp>
+
 using namespace shcore;
 
 Interactive_object_wrapper::Interactive_object_wrapper(const std::string& alias, shcore::Shell_core& core) : _alias(alias), _shell_core(core), _delegate(core.get_delegate()) {};
@@ -183,8 +185,11 @@ void Interactive_object_wrapper::print_value(const shcore::Value& value, const s
   _shell_core.print_value(value, tag);
 }
 
-bool Interactive_object_wrapper::prompt(const std::string& prompt, std::string &ret_val) const {
-  return _shell_core.prompt(prompt, ret_val);
+bool Interactive_object_wrapper::prompt(const std::string& prompt, std::string &ret_val, bool trim_answer) const {
+  bool ret = _shell_core.prompt(prompt, ret_val);
+  if (trim_answer)
+    boost::trim(ret_val);
+  return ret;
 }
 
 bool Interactive_object_wrapper::password(const std::string& prompt, std::string &ret_val) const {
