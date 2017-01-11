@@ -80,15 +80,13 @@ class XShell_TestCases(unittest.TestCase):
   def test_028_MYS_850(self):
       '''[MYS-850] Cluster.status output is mixed up, kind of nested and not easily readable'''
       logger.debug("--------- " + str(self._testMethodName) + " ---------")
-      instance1="3312"
-      instance2="3313"
-      instance3="3314"
-      instance4="3322"
+      instance4 = "3322"
+      instance5 = "3323"
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P ' + instance2, '--classic']
+                      '-h' + LOCALHOST.host, '-P ' + instance5, '--classic']
       x_cmds = [("dba.verbose=2\n","2"),
-                ("cluster = dba.getCluster('Cluster1');\n", "<Cluster:Cluster1>"),
+                ("cluster = dba.getCluster('Cluster2');\n", "<Cluster:Cluster2>"),
                 ("cluster.addInstance(\"{0}:{1}@{2}:".format(LOCALHOST.user, LOCALHOST.password,
                                                              LOCALHOST.host) + instance4 + "\");\n",
                  "was successfully added to the cluster")]
@@ -97,53 +95,40 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
       time.sleep(5)
       # cluster.status() display recovering for some added instances, require some time to set it to ONLINE
-      x_cmds = [("cluster = dba.getCluster('Cluster1');\n", "<Cluster:Cluster1>"),
+      x_cmds = [("cluster = dba.getCluster('Cluster2');\n", "<Cluster:Cluster2>"),
                 ("cluster.status()\n",
                  "{" + os.linesep +
-                 "    \"clusterName\": \"Cluster1\", " + os.linesep +
+                 "    \"clusterName\": \"Cluster2\", " + os.linesep +
                  "    \"defaultReplicaSet\": {" + os.linesep +
                  "        \"name\": \"default\", " + os.linesep +
-                 "        \"status\": \"Cluster tolerant to up to ONE failure.\", " + os.linesep +
+                 "        \"primary\": \"localhost:3323\", " + os.linesep +
+                 "        \"status\": \"OK\", " + os.linesep +
+                 "        \"statusText\": \"Cluster is ONLINE and can tolerate up to ONE failure.\", " + os.linesep +
                  "        \"topology\": {" + os.linesep +
-                 "            \"localhost:3313\": {" + os.linesep +
-                 "                \"address\": \"localhost:3313\", " + os.linesep +
-                 "                \"leaves\": {" + os.linesep +
-                 "                    \"localhost:3312\": {" + os.linesep +
-                 "                        \"address\": \"localhost:3313\", " + os.linesep +
-                 "                        \"leaves\": {}, " + os.linesep +
-                 "                        \"mode\": \"R/O\", " + os.linesep +
-                 "                        \"role\": \"HA\", " + os.linesep +
-                 "                        \"status\": \"ONLINE\"" + os.linesep +
-                 "                    }, " + os.linesep +
-                 "                    \"localhost:3313\": {" + os.linesep +
-                 "                        \"address\": \"localhost:3313\", " + os.linesep +
-                 "                        \"leaves\": {}, " + os.linesep +
-                 "                        \"mode\": \"R/O\", " + os.linesep +
-                 "                        \"role\": \"HA\", " + os.linesep +
-                 "                        \"status\": \"ONLINE\"" + os.linesep +
-                 "                    }, " + os.linesep +
-                 "                    \"localhost:3314\": {" + os.linesep +
-                 "                        \"address\": \"localhost:3314\", " + os.linesep +
-                 "                        \"leaves\": {}, " + os.linesep +
-                 "                        \"mode\": \"R/O\", " + os.linesep +
-                 "                        \"role\": \"HA\", " + os.linesep +
-                 "                        \"status\": \"ONLINE\"" + os.linesep +
-                 "                    }" + os.linesep +
-                 "                    \"localhost:3322\": {" + os.linesep +
-                 "                        \"address\": \"localhost:3322\", " + os.linesep +
-                 "                        \"leaves\": {}, " + os.linesep +
-                 "                        \"mode\": \"R/O\", " + os.linesep +
-                 "                        \"role\": \"HA\", " + os.linesep +
-                 "                        \"status\": \"ONLINE\"" + os.linesep +
-                 "                    }, " + os.linesep +
-                 "                }, " + os.linesep +
+                 "            \"localhost:3322\": {" + os.linesep +
+                 "                \"address\": \"localhost:3322\", " + os.linesep +
+                 "                \"mode\": \"R/O\", " + os.linesep +
+                 "                \"readReplicas\": {}, " + os.linesep +
+                 "                \"role\": \"HA\", " + os.linesep +
+                 "                \"status\": \"ONLINE\"" + os.linesep +
+                 "            }, " + os.linesep +
+                 "            \"localhost:3323\": {" + os.linesep +
+                 "                \"address\": \"localhost:3323\", " + os.linesep +
                  "                \"mode\": \"R/W\", " + os.linesep +
+                 "                \"readReplicas\": {}, " + os.linesep +
+                 "                \"role\": \"HA\", " + os.linesep +
+                 "                \"status\": \"ONLINE\"" + os.linesep +
+                 "            }, " + os.linesep +
+                 "            \"localhost:3324\": {" + os.linesep +
+                 "                \"address\": \"localhost:3324\", " + os.linesep +
+                 "                \"mode\": \"R/O\", " + os.linesep +
+                 "                \"readReplicas\": {}, " + os.linesep +
                  "                \"role\": \"HA\", " + os.linesep +
                  "                \"status\": \"ONLINE\"" + os.linesep +
                  "            }" + os.linesep +
                  "        }" + os.linesep +
                  "    }" + os.linesep +
-                 "}")]
+                 "}" + os.linesep )]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 

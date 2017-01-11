@@ -80,10 +80,14 @@ class XShell_TestCases(unittest.TestCase):
   def test_034_MYS_755_deleteSandboxInstance(self):
       '''MYS-755 [MYAA] dba.deleteLocalInstance(port[, options])'''
       logger.debug("--------- " + str(self._testMethodName) + " ---------")
-      instance="3322"
+      instance = "3322"
+      instance2 = "3323"
       results = ''
-      init_command =  [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-      x_cmds = [("dba.stopSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+"\"});\n",'successfully stopped.'),
+      init_command =  [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin', '-u' + LOCALHOST.user,
+                       '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P ' + instance2, '--classic']
+      x_cmds = [("c = dba.getCluster('Cluster2')\n",'<Cluster:Cluster2>'),
+                ("c.removeInstance('localhost:3322')\n", 'was successfully removed from the cluster'),
+                ("dba.stopSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+"\"});\n",'successfully stopped.'),
                 ("dba.deleteSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+"\"});\n",'successfully deleted.')]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
