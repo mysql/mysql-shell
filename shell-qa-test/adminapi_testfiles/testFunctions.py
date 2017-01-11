@@ -153,8 +153,11 @@ def exec_xshell_commands(init_cmdLine, commandList):
     p.stdin.flush()
     #p.stdout.reset()
     stdout, stderror = p.communicate()
+    logger.debug(stdout)
     try:
-        found = stderror.find(bytearray(expectbefore, "ascii"), 0, len(stdout))
+        #stderror return nonetype because is redirected to stdout therefore this found is not used
+        #found = stderror.find(bytearray(expectbefore, "ascii"), 0, len(stdout))
+        found = -1
         if found == -1 and commandList.__len__() != 0:
             found = stdout.find(bytearray(expectbefore, "ascii"), 0, len(stdout))
             if found == -1:

@@ -87,12 +87,12 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("\connect root:" + LOCALHOST.password + "@localhost:" + instance1 + "\n",
                  'Classic Session successfully established. No default schema selected.'),
                 ("cluster = dba.getCluster();\n", "<Cluster:Cluster1>"),
-                ("myCluster.removeInstance('localhost:" + instance1 + "')\n",
+                ("cluster.removeInstance('localhost:" + instance1 + "')\n",
                  "The instance 'localhost:" + instance1 + "' was successfully removed from the cluster"),
                 ("\connect root:" + LOCALHOST.password + "@localhost:" + instance2 + "\n",
                  'Classic Session successfully established. No default schema selected.'),
-                ("myCluster.status()\n",
-                 "root@localhost:" + instance1 + "")
+                ("cluster.status()\n",
+                 "root@localhost:" + instance2 + "")
                 ]
       try:
           results = exec_xshell_commands(init_command, x_cmds)
