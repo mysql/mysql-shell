@@ -38,6 +38,7 @@ BuildRequires:  boost-devel
 %endif
 %if 0%{!?with_protobuf:1}
 BuildRequires:  protobuf-devel
+BuildRequires:  protobuf-compiler
 %endif
 #BuildRequires:  libedit-devel  FIXME only if -DWITH_EDITLINE=system
 BuildRequires:  python-devel

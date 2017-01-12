@@ -122,6 +122,7 @@ if(WITH_PROTOBUF)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_PROTOBUF=${WITH_PROTOBUF}")
 else()
   list(APPEND DEB_BUILD_DEPS "libprotobuf-dev")
+  list(APPEND DEB_BUILD_DEPS "protobuf-compiler")
 endif()
 
 if(V8_INCLUDE_DIR)
