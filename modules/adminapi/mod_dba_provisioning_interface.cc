@@ -262,8 +262,40 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   return exit_code;
 }
 
+
+void ProvisioningInterface::set_ssl_args(const std::string &prefix,
+                                         const shcore::Value::Map_type_ref &instance_ssl,
+                                         std::vector<const char *> &args){
+  std::string ssl_ca, ssl_cert, ssl_key;
+
+#ifdef _WIN32
+  if (instance_ssl->has_key("sslCa"))
+      ssl_ca = "--" + prefix + "-ssl-ca=\"" + instance_ssl->get_string("sslCa") + "\"";
+    if (instance_ssl->has_key("sslCert"))
+      ssl_cert = "--" + prefix + "-ssl-cert=\"" + instance_ssl->get_string("sslCert") + "\"";
+    if (instance_ssl->has_key("sslKey"))
+      ssl_key = "--" + prefix + "-ssl-key=\"" + instance_ssl->get_string("sslKey") + "\"";
+#else
+  if (instance_ssl->has_key("sslCa"))
+    ssl_ca = "--" + prefix + "-ssl-ca=" + instance_ssl->get_string("sslCa");
+  if (instance_ssl->has_key("sslCert"))
+    ssl_cert = "--" + prefix + "-ssl-cert=" + instance_ssl->get_string("sslCert");
+  if (instance_ssl->has_key("sslKey"))
+    ssl_key = "--" + prefix + "-ssl-key=" + instance_ssl->get_string("sslKey");
+#endif
+
+  if (!ssl_ca.empty())
+    args.push_back(strdup(ssl_ca.c_str()));
+  if (!ssl_cert.empty())
+    args.push_back(strdup(ssl_cert.c_str()));
+  if (!ssl_key.empty())
+    args.push_back(strdup(ssl_key.c_str()));
+}
+
 int ProvisioningInterface::check(const std::string &user, const std::string &host, int port,
-                                 const std::string &password, const std::string &cnfpath, bool update,
+                                 const std::string &password,
+                                 const shcore::Value::Map_type_ref &instance_ssl,
+                                 const std::string &cnfpath, bool update,
                                  shcore::Value::Array_type_ref &errors) {
   std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
   std::vector<std::string> passwords;
@@ -274,6 +306,7 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
 
   std::vector<const char *> args;
   args.push_back(instance_param.c_str());
+  set_ssl_args("instance", instance_ssl, args);
 
   if (!cnfpath.empty()) {
     args.push_back("--defaults-file");
@@ -392,7 +425,9 @@ int ProvisioningInterface::start_sandbox(int port, const std::string &sandbox_di
                          std::vector<std::string>(), errors);
 }
 
-int ProvisioningInterface::start_replicaset(const std::string &instance_url, const std::string &repl_user,
+int ProvisioningInterface::start_replicaset(const std::string &instance_url,
+                                      const shcore::Value::Map_type_ref &instance_ssl,
+                                      const std::string &repl_user,
                                       const std::string &super_user_password, const std::string &repl_user_password,
                                       bool multi_master, const std::string &ssl_mode,
                                       const std::string &ip_whitelist,
@@ -415,6 +450,7 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
+  set_ssl_args("instance", instance_ssl, args);
   if (!repl_user.empty())
     args.push_back(repl_user_args.c_str());
   if (multi_master)
@@ -432,32 +468,18 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
   return execute_mysqlprovision("start-replicaset", args, passwords, errors, _verbose);
 }
 
-/*
- * Function that wraps the mysqlprovision call join-replicaset.
- *  It takes the following parameters:
- * @param instance_url Url of the server that is to be added to the cluster.
- * @param repl_user Name of the replication user that is to be created for recovery purposes.
- * @param peer_instance_url Url of the peer server that already belongs to the cluster.
- * @param super_user_password Password of the super user
- * @param ssl_mode SSL mode to be used with group replication.
- *                (Note server GR SSL modes need to be consistent with the SSL GR modes on the
- *                peer-server otherwise an error will be thrown).
- * @param ip_whitelist String with the comma separated list of hosts allowed to connect to the instance for Group
- *                     Replication using simple IP addresses or subnet CIDR notation,
- *                     for example: 192.168.1.0/24,10.0.0.1.
- * @param gr_group_seeds String with the comma separated list of addresses of the group seeds (the servers that are
- *                       part of the group), in the form (host:port)[,(host:port)].
- * @param skip_rpl_user If True, skip the creation of the replication user on the instance.
- * @param errors Reference to array where any errors/warnings thrown by the mysqlprovision tool call are stored.
- * @return The return code of the mysqlprovision tool execution.
- */
-int ProvisioningInterface::join_replicaset(const std::string &instance_url, const std::string &repl_user,
-                                           const std::string &peer_instance_url, const std::string &super_user_password,
-                                           const std::string &repl_user_password,
-                                           const std::string &ssl_mode, const std::string &ip_whitelist,
-                                           const std::string &gr_group_seeds,
-                                           bool skip_rpl_user,
-                                           shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::join_replicaset(const std::string &instance_url,
+                                      const shcore::Value::Map_type_ref &instance_ssl,
+                                      const std::string &repl_user,
+                                      const std::string &peer_instance_url,
+                                      const shcore::Value::Map_type_ref &peer_instance_ssl,
+                                      const std::string &super_user_password,
+                                      const std::string &repl_user_password,
+                                      const std::string &ssl_mode,
+                                      const std::string &ip_whitelist,
+                                      const std::string &gr_group_seeds,
+                                      bool skip_rpl_user,                                      
+                                      shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -484,9 +506,11 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
+  set_ssl_args("instance", instance_ssl, args);
   if (!repl_user.empty())
     args.push_back(repl_user_args.c_str());
   args.push_back(peer_instance_args.c_str());
+  set_ssl_args("peer-instance", peer_instance_ssl, args);
   if (!ssl_mode.empty()) {
     ssl_mode_opt = "--ssl-mode=" + ssl_mode;
     args.push_back(ssl_mode_opt.c_str());
@@ -509,7 +533,9 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
   return execute_mysqlprovision("join-replicaset", args, passwords, errors, _verbose);
 }
 
-int ProvisioningInterface::leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
+int ProvisioningInterface::leave_replicaset(const std::string &instance_url,
+                                            const shcore::Value::Map_type_ref &instance_ssl,
+                                            const std::string &super_user_password,
                                             shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
@@ -522,6 +548,7 @@ int ProvisioningInterface::leave_replicaset(const std::string &instance_url, con
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
+  set_ssl_args("instance", instance_ssl, args);
 
   args.push_back("--stdin");
 

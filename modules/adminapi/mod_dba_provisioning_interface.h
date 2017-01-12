@@ -41,6 +41,7 @@ public:
   ~ProvisioningInterface();
 
   int check(const std::string &user, const std::string &host, int port, const std::string &password,
+            const shcore::Value::Map_type_ref &instance_ssl,
             const std::string &cnfpath, bool update, shcore::Value::Array_type_ref &errors);
 
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
@@ -57,19 +58,27 @@ public:
                    shcore::Value::Array_type_ref &errors);
   int start_sandbox(int port, const std::string &sandbox_dir,
                    shcore::Value::Array_type_ref &errors);
-  int start_replicaset(const std::string &instance_url, const std::string &repl_user,
+  int start_replicaset(const std::string &instance_url,
+                 const shcore::Value::Map_type_ref &instance_ssl,
+                 const std::string &repl_user,
                  const std::string &super_user_password, const std::string &repl_user_password,
                  bool multi_master, const std::string &ssl_mode, const std::string &ip_whitelist,
                  shcore::Value::Array_type_ref &errors);
-  int join_replicaset(const std::string &instance_url, const std::string &repl_user,
-                      const std::string &peer_instance_url, const std::string &super_user_password,
-                      const std::string &repl_user_password,
-                      const std::string &ssl_mode, const std::string &ip_whitelist,
-                      const std::string &gr_group_seeds,
-                      bool skip_rpl_user,
-                      shcore::Value::Array_type_ref &errors);
+  int join_replicaset(const std::string &instance_url,
+                 const shcore::Value::Map_type_ref &instance_ssl,
+                 const std::string &repl_user,
+                 const std::string &peer_instance_url, 
+                 const shcore::Value::Map_type_ref &peer_instance_ssl,
+                 const std::string &super_user_password,
+                 const std::string &repl_user_password,
+                 const std::string &ssl_mode, const std::string &ip_whitelist,
+                 const std::string &gr_group_seeds,
+                 bool skip_rpl_user,
+                 shcore::Value::Array_type_ref &errors);
 
-  int leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
+  int leave_replicaset(const std::string &instance_url,
+                       const shcore::Value::Map_type_ref &instance_ssl,
+                       const std::string &super_user_password,
                        shcore::Value::Array_type_ref &errors);
 
   void set_verbose(int verbose) { _verbose = verbose; }
@@ -87,6 +96,9 @@ private:
                      const std::string &password,
                      const std::vector<std::string> &extra_args,
                       shcore::Value::Array_type_ref &errors);
+  void set_ssl_args(const std::string &prefix,
+                    const shcore::Value::Map_type_ref &instance_ssl,
+                    std::vector<const char *> &args);
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

@@ -425,6 +425,15 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
         log_debug("Created replication user '%s'", replication_user.c_str());
       }
 
+      // Get SSL values to connect to instance
+      Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
+      if (instance_def->has_key("sslCa"))
+        (*instance_ssl_opts)["sslCa"] = Value(instance_def->get_string("sslCa"));
+      if (instance_def->has_key("sslCert"))
+        (*instance_ssl_opts)["sslCert"] = Value(instance_def->get_string("sslCert"));
+      if (instance_def->has_key("sslKey"))
+        (*instance_ssl_opts)["sslKey"] = Value(instance_def->get_string("sslKey"));
+
       // Call the gadget to bootstrap the group with this instance
       if (seed_instance) {
         log_info("Joining '%s' to group using account %s@%s",
@@ -432,19 +441,37 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
             user.c_str(), instance_address.c_str());
         // Call mysqlprovision to bootstrap the group using "start"
         do_join_replicaset(user + "@" + instance_address,
+                           instance_ssl_opts,
                            "",
+                           nullptr,
                            super_user_password,
                            replication_user, replication_user_password,
                            ssl_mode, ip_whitelist);
       } else {
         // We need to retrieve a peer instance, so let's use the Seed one
         std::string peer_instance = get_peer_instance();
+
+        //Get SSL values to connect to peer instance
+        Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
+        auto peer_session = _metadata_storage->get_dba()->get_active_session();
+        std::string peer_ssl_ca = peer_session->get_ssl_ca();
+        std::string peer_ssl_cert = peer_session->get_ssl_cert();
+        std::string peer_ssl_key = peer_session->get_ssl_key();
+        if (!peer_ssl_ca.empty())
+          (*peer_instance_ssl_opts)["sslCa"] = Value(peer_ssl_ca);
+        if (!peer_ssl_cert.empty())
+          (*peer_instance_ssl_opts)["sslCert"] = Value(peer_ssl_cert);
+        if (!peer_ssl_key.empty())
+          (*peer_instance_ssl_opts)["sslKey"] = Value(peer_ssl_key);
+
         log_info("Joining '%s' to group using account %s@%s to peer '%s'",
             instance_address.c_str(),
             user.c_str(), instance_address.c_str(), peer_instance.c_str());
         // Call mysqlprovision to do the work
         do_join_replicaset(user + "@" + instance_address,
+                           instance_ssl_opts,
                            user + "@" + peer_instance,
+                           peer_instance_ssl_opts,
                            super_user_password,
                            replication_user, replication_user_password,
                            ssl_mode, ip_whitelist);
@@ -466,7 +493,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 }
 
 bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
+                                    const shcore::Value::Map_type_ref &instance_ssl,
                                     const std::string &peer_instance_url,
+                                    const shcore::Value::Map_type_ref &peer_instance_ssl,
                                     const std::string &super_user_password,
                                     const std::string &repl_user,
                                     const std::string &repl_user_password,
@@ -482,6 +511,7 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
 
   if (is_seed_instance) {
     exit_code = _cluster->get_provisioning_interface()->start_replicaset(instance_url,
+                instance_ssl,
                 repl_user, super_user_password,
                 repl_user_password,
                 _topology_type == kTopologyMultiMaster,
@@ -489,7 +519,8 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                 errors);
   } else {
     exit_code = _cluster->get_provisioning_interface()->join_replicaset(instance_url,
-                repl_user, peer_instance_url,
+                instance_ssl,
+                repl_user, peer_instance_url, peer_instance_ssl,
                 super_user_password, repl_user_password,
                 ssl_mode, ip_whitelist, "", false,
                 errors);
@@ -669,11 +700,25 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       throw;
     }
 
-    // Resolve the SSL Mode to use to configure the instance.
     boost::to_upper(ssl_mode);
+    
+    auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
+      _metadata_storage->get_dba()->get_active_session().get());
+    
+    //Get SSL values to connect to peer instance
+    Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
+    std::string peer_ssl_ca = peer_session->get_ssl_ca();
+    std::string peer_ssl_cert = peer_session->get_ssl_cert();
+    std::string peer_ssl_key = peer_session->get_ssl_key();
+    if (!peer_ssl_ca.empty())
+      (*peer_instance_ssl_opts)["sslCa"] = Value(peer_ssl_ca);
+    if (!peer_ssl_cert.empty())
+      (*peer_instance_ssl_opts)["sslCert"] = Value(peer_ssl_cert);
+    if (!peer_ssl_key.empty())
+      (*peer_instance_ssl_opts)["sslKey"] = Value(peer_ssl_key);
+    
+    // Resolve the SSL Mode to use to configure the instance.
     if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
-      auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
-          _metadata_storage->get_dba()->get_active_session().get());
       ssl_mode = resolve_ssl_mode(classic, peer_session);
       log_debug("SSL mode used to configure instance: '%s'", ssl_mode.c_str());
     }
@@ -684,10 +729,23 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     temp_args.clear();
     temp_args.push_back(shcore::Value("STOP GROUP_REPLICATION"));
     classic->run_sql(temp_args);
+    
+    // Get SSL values to connect to instance
+    Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
+    if (instance_def->has_key("sslCa"))
+      (*instance_ssl_opts)["sslCa"] = Value(instance_def->get_string("sslCa"));
+    if (instance_def->has_key("sslCert"))
+      (*instance_ssl_opts)["sslCert"] = Value(instance_def->get_string("sslCert"));
+    if (instance_def->has_key("sslKey"))
+      (*instance_ssl_opts)["sslKey"] = Value(instance_def->get_string("sslKey"));
+    
 
     // use mysqlprovision to rejoin the cluster.
-    exit_code = _cluster->get_provisioning_interface()->join_replicaset(user + "@" + instance_address, "",
+    exit_code = _cluster->get_provisioning_interface()->join_replicaset(user + "@" + instance_address, 
+                                                                        instance_ssl_opts,
+                                                                        "",
                                                                         user+ "@" + peer_instance,
+                                                                        peer_instance_ssl_opts,
                                                                         password, "",
                                                                         ssl_mode, ip_whitelist,
                                                                         peer_instance_xcom_address, true,
@@ -825,7 +883,19 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     instance_url.append(host);
     instance_url.append(":" + port);
 
-    exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url, instance_admin_user_password, errors);
+    // Get SSL values to connect to instance
+    Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
+    if (instance_def->has_key("sslCa"))
+      (*instance_ssl_opts)["sslCa"] = Value(instance_def->get_string("sslCa"));
+    if (instance_def->has_key("sslCert"))
+      (*instance_ssl_opts)["sslCert"] = Value(instance_def->get_string("sslCert"));
+    if (instance_def->has_key("sslKey"))
+      (*instance_ssl_opts)["sslKey"] = Value(instance_def->get_string("sslKey"));
+
+    exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
+                                                                         instance_ssl_opts,
+                                                                         instance_admin_user_password,
+                                                                         errors);
 
     if (exit_code != 0)
       throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
@@ -902,6 +972,22 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
     }
   }
 
+  //Get SSL values to connect to the instances
+  //NOTE: It is assumed that the same SSL settings (CA, Cert and Key) are used
+  //      to connect to all the cluster instances. Therefore, the SSL settings
+  //      can be obtained from the active session (connected to the cluster).
+  Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
+  auto active_session = _metadata_storage->get_dba()->get_active_session();
+  std::string ssl_ca = active_session->get_ssl_ca();
+  std::string ssl_cert = active_session->get_ssl_cert();
+  std::string ssl_key = active_session->get_ssl_key();
+  if (!ssl_ca.empty())
+    (*instance_ssl_opts)["sslCa"] = Value(ssl_ca);
+  if (!ssl_cert.empty())
+    (*instance_ssl_opts)["sslCert"] = Value(ssl_cert);
+  if (!ssl_key.empty())
+    (*instance_ssl_opts)["sslKey"] = Value(ssl_key);
+
   for (auto value : *instances.get()) {
     auto row = value.as_object<mysqlsh::Row>();
 
@@ -920,6 +1006,7 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
 
       // Leave the replicaset
       exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
+                                                                           instance_ssl_opts,
                                                                            instance_admin_user_password,
                                                                            errors);
       if (exit_code != 0)
@@ -941,6 +1028,7 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
 
     // Leave the replicaset
     exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
+                                                                         instance_ssl_opts,
                                                                          instance_admin_user_password,
                                                                          errors);
     if (exit_code != 0)

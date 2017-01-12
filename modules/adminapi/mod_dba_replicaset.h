@@ -154,7 +154,9 @@ private:
   void init();
 
   bool do_join_replicaset(const std::string &instance_url,
+      const shcore::Value::Map_type_ref &instance_ssl,
       const std::string &peer_instance_url,
+      const shcore::Value::Map_type_ref &peer_instance_ssl,
       const std::string &super_user_password,
       const std::string &repl_user, const std::string &repl_user_password,
       const std::string &ssl_mode, const std::string &ip_whitelist);

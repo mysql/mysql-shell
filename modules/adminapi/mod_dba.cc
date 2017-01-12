@@ -423,6 +423,16 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     shcore::Argument_list new_args;
     instance_def = get_connection_data(session->uri(), false);
 
+    std::string cnx_ssl_ca = session->get_ssl_ca();
+    std::string cnx_ssl_cert = session->get_ssl_cert();
+    std::string cnx_ssl_key = session->get_ssl_key();
+    if (!cnx_ssl_ca.empty())
+      (*instance_def)["sslCa"] = Value(cnx_ssl_ca);
+    if (!cnx_ssl_cert.empty())
+      (*instance_def)["sslCert"] = Value(cnx_ssl_cert);
+    if (!cnx_ssl_key.empty())
+      (*instance_def)["sslKey"] = Value(cnx_ssl_key);
+
     new_args.push_back(shcore::Value(instance_def));
 
     // Only set SSL option if available from createCluster options (not empty).
@@ -1136,9 +1146,18 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
     user = instance_def->get_string(instance_def->has_key("user") ? "user" : "dbUser");
     password = instance_def->get_string(instance_def->has_key("password") ? "password" : "dbPassword");
 
+    // Get SSL values to connect to instance
+    Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
+    if (instance_def->has_key("sslCa"))
+      (*instance_ssl_opts)["sslCa"] = Value(instance_def->get_string("sslCa"));
+    if (instance_def->has_key("sslCert"))
+      (*instance_ssl_opts)["sslCert"] = Value(instance_def->get_string("sslCert"));
+    if (instance_def->has_key("sslKey"))
+      (*instance_ssl_opts)["sslKey"] = Value(instance_def->get_string("sslKey"));
+
     // Verbose is mandatory for checkInstanceConfig
     shcore::Value::Array_type_ref mp_errors;
-    if (_provisioning_interface->check(user, host, port, password, cnfpath, allow_update, mp_errors) == 0)
+    if (_provisioning_interface->check(user, host, port, password, instance_ssl_opts, cnfpath, allow_update, mp_errors) == 0)
       (*ret_val)["status"] = shcore::Value("ok");
     else {
       shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());

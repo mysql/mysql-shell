@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -65,6 +65,10 @@ public:
   virtual void reconnect();
 
   virtual int get_default_port() = 0;
+
+  std::string get_ssl_ca() { return _ssl_ca; }
+  std::string get_ssl_key() { return _ssl_key; }
+  std::string get_ssl_cert() { return _ssl_cert; }
 
 protected:
   std::string get_quoted_name(const std::string& name);
