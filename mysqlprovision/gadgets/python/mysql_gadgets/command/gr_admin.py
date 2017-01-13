@@ -90,7 +90,7 @@ _ERROR_NOT_A_MEMBER = ("The server {0} is not a member of a Group Replication"
                        " group.")
 
 _ERROR_NO_HAVE_SSL = ("MySQL Instance {0} has SSL support disabled. "
-                      "Use the memberSslMode:{1} if you want to proceed "
+                      "Use the memberSslMode:'{1}' if you want to proceed "
                       "with the configuration without SSL support."
                       .format("{0}", GR_SSL_DISABLED))
 
@@ -180,8 +180,9 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
     if not port_found:
         raise GadgetError("Unable to find an available port on which the "
                           "member will expose itself to be contacted by the "
-                          "other members of the group. Please specify a free "
-                          "port with the --gr-bind-address option")
+                          "other members of the group. Please try again to "
+                          "attempt to use another random port or free port "
+                          "{0}.".format(str(int(server_port) + 10000)))
 
     return gr_host, local_port
 

@@ -773,52 +773,66 @@ if __name__ == "__main__":
         _LOGGER.debug("Command options: %s", cmd_options_hidden_pw)
 
     # Perform command
+    command_error_msg = "executing operation"
     try:
         if command == CHECK:
+            command_error_msg = "checking instance"
             check(**cmd_options)
 
         elif command == CLONE:
+            command_error_msg = "cloning instance"
             clone_server(connection_dict, adapter_name)
 
         elif command == HEALTH:
+            command_error_msg = "checking cluster health"
             health(args.server, detailed=True, **cmd_options)
 
         elif command == STATUS:
+            command_error_msg = "checking cluster status"
             health(args.server, **cmd_options)
 
         elif command == JOIN:
+            command_error_msg = "joining instance to cluster"
             if join(args.server, args.peer_server, **cmd_options):
+                command_error_msg = "checking cluster health"
                 health(args.server, **cmd_options)
 
         elif command == LEAVE:
+            command_error_msg = "leaving cluster"
             leave(args.server, **cmd_options)
 
         elif command == START:
+            command_error_msg = "starting cluster"
             if start(args.server, **cmd_options):
+                command_error_msg = "checking cluster health"
                 health(args.server, **cmd_options)
         elif command == SANDBOX:
             sandbox_cmd = cmd_options["sandbox_cmd"]
             command = '{0} {1}'.format(command, sandbox_cmd)
+            command_error_msg = "executing sandbox operation"
             if sandbox_cmd == SANDBOX_START:
+                command_error_msg = "starting sandbox"
                 start_sandbox(**cmd_options)
             elif sandbox_cmd == SANDBOX_CREATE:
+                command_error_msg = "creating sandbox"
                 create_sandbox(**cmd_options)
             elif sandbox_cmd == SANDBOX_STOP:
+                command_error_msg = "stopping sandbox"
                 stop_sandbox(**cmd_options)
             elif sandbox_cmd == SANDBOX_KILL:
+                command_error_msg = "killing sandbox"
                 kill_sandbox(**cmd_options)
             elif sandbox_cmd == SANDBOX_DELETE:
+                command_error_msg = "deleting sandbox"
                 delete_sandbox(**cmd_options)
 
     except GadgetError:
         _, err, _ = sys.exc_info()
-        _LOGGER.error("Error executing the '%s' command: %s", command,
-                      str(err))
+        _LOGGER.error("Error %s: %s", command_error_msg, str(err))
         sys.exit(1)
     except Exception:  # pylint: disable=broad-except
         _, err, _ = sys.exc_info()
-        _LOGGER.error("Unexpected error executing the '%s' command: %s",
-                      command, str(err))
+        _LOGGER.error("Unexpected error %s: %s", command_error_msg, str(err))
         sys.exit(1)
 
     # Operation completed with success.

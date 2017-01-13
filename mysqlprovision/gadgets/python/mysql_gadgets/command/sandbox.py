@@ -386,9 +386,9 @@ def create_sandbox(**kwargs):
     if (mysqlx_port < 1024 or mysqlx_port > 65535) and \
        "mysqlx_port" not in kwargs.keys():
         raise exceptions.GadgetError(
-            "Invalid mysqlx port '{0}', it must be >= 1024 and <= 65535. "
-            "Use a lower value for --port to generate a valid mysqlx port "
-            "(by default, mysqlx port = port * 10), or use the --mysqlx-port "
+            "Invalid X port '{0}', it must be >= 1024 and <= 65535. "
+            "Use a lower value for 'port' to generate a valid X port "
+            "(by default, portx = port * 10), or use the 'portx' "
             "option to specify a custom value.".format(mysqlx_port))
 
     _, sandbox_dir = _get_sandbox_dirs(**kwargs)

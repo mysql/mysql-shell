@@ -1265,7 +1265,7 @@ def check_options_file(req_checker, error_msgs=None, update=True,
         else:
             msg = ("Some of the configuration values on your options file "
                    "need to be changed prior to setting up Group Replication"
-                   ".\nPlease re-run the utility with the --update option.")
+                   ".\nPlease update your options file and try again.")
             # append error message
             error_msgs.append(msg)
             # Return False, file requires changes.
@@ -1440,20 +1440,20 @@ def check_peer_ssl_compatibility(peer_server, ssl_mode):
     # Raise an error if GR SSL is enabled on the peer server but
     # ssl-mode=DISABLED was used. Use shell option name on the error message.
     if bool_peer_gr_ssl_mode and ssl_mode == GR_SSL_DISABLED:
-        raise GadgetError("Cannot use memberSslMode:{0} because "
+        raise GadgetError("Cannot use memberSslMode:'{0}' because "
                           "Group Replication SSL support is enabled on the "
-                          "Cluster. Use memberSslMode:AUTO or "
-                          "memberSslMode:{1}.".format(GR_SSL_DISABLED,
-                                                      GR_SSL_REQUIRED))
+                          "Cluster. Use memberSslMode:'AUTO' or "
+                          "memberSslMode:'{1}'.".format(GR_SSL_DISABLED,
+                                                        GR_SSL_REQUIRED))
 
     # Raise and error if GR SSL is disabled on the peer-server but
     # ssl-mode=REQUIRED was used. Use shell option name on the error message.
     if not bool_peer_gr_ssl_mode and ssl_mode == GR_SSL_REQUIRED:
-        raise GadgetError("Cannot use memberSslMode:{0} because "
+        raise GadgetError("Cannot use memberSslMode:'{0}' because "
                           "Group Replication SSL support is disabled on "
-                          "the Cluster. Use memberSslMode:AUTO or "
-                          "memberSslMode:{1}.".format(GR_SSL_REQUIRED,
-                                                      GR_SSL_DISABLED))
+                          "the Cluster. Use memberSslMode:'AUTO' or "
+                          "memberSslMode:'{1}'.".format(GR_SSL_REQUIRED,
+                                                        GR_SSL_DISABLED))
 
 
 def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
