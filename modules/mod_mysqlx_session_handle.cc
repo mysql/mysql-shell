@@ -47,7 +47,7 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
 
   // TODO: Define a proper timeout for the session creation
   try {
-    _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 10000, auth_method, true);
+    _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 60000, auth_method, true);
   } catch (const ::mysqlx::Error& error) {
     if (error.error() == CR_MALFORMED_PACKET &&
       !strcmp(error.what(), "Unknown message received from server 10")) {
