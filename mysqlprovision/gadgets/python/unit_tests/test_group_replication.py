@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -330,10 +330,11 @@ class TestGroupReplication(GadgetsTestCase):
                                       verbose=True, dry_run=True,
                                       update=False, skip_backup=True)
         exception = test_raises.exception
-        self.assertTrue("are incompatible with Group Replication."
-                        in exception.errmsg,
-                        "The exception message was not the expected. {0}"
-                        "".format(exception.errmsg))
+        self.assertIn("on server {0} are incompatible with Group "
+                      "Replication.".format(self.server),
+                      exception.errmsg,
+                      "The exception message was not the expected. {0}"
+                      "".format(exception.errmsg))
 
         # Test server version
         req_dict[SERVER_VERSION] = "99.9.9"

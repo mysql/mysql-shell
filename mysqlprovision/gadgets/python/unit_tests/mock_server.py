@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -114,6 +114,14 @@ class MockServer(object):
         else:
             return self.server.select_variable(var_name, var_type)
 
+    def __str__(self):
+        """mocked string representation of the class Server
+
+        :return: representation the server with information of the host
+                 and port.
+        :rtype:  string
+        """
+        return self.server.__str__()
 
 def mock_get_server(server_info, ssl_dict=None, connect=True):
     """The insider method to mock Server.get_server method"""

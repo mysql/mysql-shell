@@ -1313,7 +1313,7 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
     else:
         restart_msg = _ERROR_RESTART_SERVER.format(req_checker.server)
         msg = ("Some active options on server {0} are incompatible with "
-               "Group Replication.\n{0}").format(restart_msg)
+               "Group Replication.\n{1}").format(server, restart_msg)
         if update:
             var_res = server_var_res
             for var_name in list(var_res.keys()):
