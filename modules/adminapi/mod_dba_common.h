@@ -98,7 +98,11 @@ void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, sh
 std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);
 ReplicationGroupState check_function_preconditions(const std::string& class_name, const std::string& base_function_name, const std::string &function_name, const std::shared_ptr<MetadataStorage>& metadata);
 
-void validate_ssl_instance_options(shcore::Value::Map_type_ref &options);
+extern const char *kMemberSSLModeAuto;
+extern const char *kMemberSSLModeRequired;
+extern const char *kMemberSSLModeDisabled;
+extern const std::set<std::string> kMemberSSLModeValues;
+void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
 void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options);
 }
 }

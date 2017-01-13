@@ -17,6 +17,8 @@
  * 02110-1301  USA
  */
 
+#include <boost/algorithm/string.hpp>
+
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 //#include "modules/adminapi/mod_dba_instance.h"
@@ -62,10 +64,7 @@ using namespace shcore;
 
 #define PASSWORD_LENGTH 16
 
-std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password",
-                                                        "dbPassword", "socket", "sslCa", "sslCert", "sslKey",
-                                                        "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey",
-                                                        "ipWhitelist"};
+std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "memberSslMode", "ipWhitelist"};
 std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port", "socket", "sslCa", "sslCert", "sslKey"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
@@ -276,14 +275,75 @@ void ReplicaSet::validate_instance_address(std::shared_ptr<mysqlsh::mysql::Class
   }
 }
 
+/**
+ * Determines the value to use for the SSL mode based on the settings of
+ * the instance (SSL support available) or the settings used by the peer
+ * instance, when the SSL mode is set to AUTO.
+ *
+ * The function also validates if the determined SSL mode can be set for the
+ * instance and raise an error otherwise.
+ *
+ * No peer_session should be specified (nullptr) when used to create the
+ * cluster. The peer_session should be specified for join and rejoin.
+ */
+std::string ReplicaSet::resolve_ssl_mode(mysqlsh::mysql::ClassicSession *session,
+                                         mysqlsh::mysql::ClassicSession *peer_session) {
+  if (peer_session == nullptr) {
+    // No peer_session specified (create cluster) then the SSL mode is
+    // determined based on the instance SSL support.
+    std::string have_ssl;
+    get_server_variable(session->connection(), "global.have_ssl",
+                        have_ssl);
+    if (have_ssl.compare("YES") == 0) {
+      return dba::kMemberSSLModeRequired;
+    } else {
+      std::string msg = "Instance does not have SSL enabled. Cluster will not "
+          "use SSL (encryption).";
+      log_warning("%s", msg.c_str());
+      return dba::kMemberSSLModeDisabled;
+    }
+  } else {
+    // peer_session specified (join/rejoin instance) then the SSL mode is
+    // determined based on the SSL mode of the peer (it must be the same).
+    std::string gr_ssl_mode;
+    get_server_variable(peer_session->connection(),
+                        "global.group_replication_ssl_mode",
+                        gr_ssl_mode);
+    if (gr_ssl_mode.compare("REQUIRED") == 0) {
+      std::string have_ssl;
+      get_server_variable(session->connection(), "global.have_ssl",
+                          have_ssl);
+      if (have_ssl.compare("YES") != 0) {
+        // Instance is not able to enable SSL (not supported).
+        throw shcore::Exception::runtime_error(
+            "Instance does not support SSL and cannot join a cluster with SSL "
+                "(encryption) enabled. Enable SSL support on the instance and "
+                "try again, otherwise it can only be added to a cluster with "
+                "SSL disabled."
+        );
+      }
+      return dba::kMemberSSLModeRequired;
+    } else if (gr_ssl_mode.compare("DISABLED") == 0) {
+      return dba::kMemberSSLModeDisabled;
+    } else {
+      // Only GR SSL mode "REQUIRED" and "DISABLED" are currently supported.
+      throw shcore::Exception::runtime_error(
+          "Unsupported Group Replication SSL Mode for the cluster: "
+              + gr_ssl_mode + ". If the cluster was created using "
+              "adoptFromGR:true make sure the group_replication_ssl_mode "
+              "variable is set with a supported value (DISABLED or REQUIRED) "
+              "for all cluster members.");
+    }
+  }
+}
+
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                                        const std::string existing_replication_user,
                                        const std::string existing_replication_password) {
   shcore::Value ret_val;
 
   bool seed_instance = false;
-  bool ssl = false;  //SSL not used by default
-  std::string ssl_ca, ssl_cert, ssl_key = "";
+  std::string ssl_mode = dba::kMemberSSLModeAuto; //SSL Mode AUTO by default
   std::string ip_whitelist;
 
   // NOTE: This function is called from either the add_instance_ on this class
@@ -307,31 +367,30 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   if (!options->has_key("port"))
     (*options)["port"] = shcore::Value(get_default_port());
 
-  if (options->has_key("memberSsl"))
-    ssl = options->get_bool("memberSsl");
-  if (options->has_key("memberSslCa"))
-    ssl_ca = options->get_string("memberSslCa");
-  if (options->has_key("memberSslCert"))
-    ssl_cert = options->get_string("memberSslCert");
-  if (options->has_key("memberSslKey"))
-    ssl_key = options->get_string("memberSslKey");
+  if (options->has_key("memberSslMode"))
+    ssl_mode = options->get_string("memberSslMode");
 
   if (options->has_key("ipWhitelist"))
     ip_whitelist = options->get_string("ipWhitelist");
 
   // Sets a default user if not specified
   resolve_instance_credentials(options, nullptr);
-  std::string user = options->get_string(options->has_key("user") ? "user" : "dbUser");
-  std::string super_user_password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+  std::string
+      user = options->get_string(options->has_key("user") ? "user" : "dbUser");
+  std::string super_user_password =
+      options->get_string(options->has_key("password") ? "password"
+                                                       : "dbPassword");
   std::string joiner_host = options->get_string("host");
 
   // Check if the instance was already added
-  std::string instance_address = joiner_host + ":" + std::to_string(options->get_int("port"));
+  std::string instance_address =
+      joiner_host + ":" + std::to_string(options->get_int("port"));
 
-  bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
+  bool is_instance_on_md =
+      _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
   log_debug("RS %lu: Adding instance '%s' to replicaset%s",
-      static_cast<unsigned long>(_id), instance_address.c_str(),
-      is_instance_on_md ? " (already in MD)" : "");
+            static_cast<unsigned long>(_id), instance_address.c_str(),
+            is_instance_on_md ? " (already in MD)" : "");
 
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(options));
@@ -339,6 +398,19 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
   // Check whether the address being used is not in a known not-good case
   validate_instance_address(session, joiner_host, options->get_int("port"));
+
+  // Resolve the SSL Mode to use to configure the instance.
+  boost::to_upper(ssl_mode);
+  if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
+    if (seed_instance) {
+      ssl_mode = resolve_ssl_mode(session.get(), nullptr);
+    } else {
+      auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
+          _metadata_storage->get_dba()->get_active_session().get());
+      ssl_mode = resolve_ssl_mode(session.get(), peer_session);
+    }
+    log_debug("SSL mode used to configure instance: '%s'", ssl_mode.c_str());
+  }
 
   GRInstanceType type = get_gr_instance_type(session->connection());
 
@@ -374,7 +446,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                            "",
                            super_user_password,
                            replication_user, replication_user_password,
-                           ssl, ssl_ca, ssl_cert, ssl_key, ip_whitelist);
+                           ssl_mode, ip_whitelist);
       } else {
         // We need to retrieve a peer instance, so let's use the Seed one
         std::string peer_instance = get_peer_instance();
@@ -386,7 +458,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                            user + "@" + peer_instance,
                            super_user_password,
                            replication_user, replication_user_password,
-                           ssl, ssl_ca, ssl_cert, ssl_key, ip_whitelist);
+                           ssl_mode, ip_whitelist);
       }
     }
     break;
@@ -409,9 +481,7 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                                     const std::string &super_user_password,
                                     const std::string &repl_user,
                                     const std::string &repl_user_password,
-                                    bool ssl, const std::string &ssl_ca,
-                                    const std::string &ssl_cert,
-                                    const std::string &ssl_key,
+                                    const std::string &ssl_mode,
                                     const std::string &ip_whitelist) {
   shcore::Value ret_val;
   int exit_code = -1;
@@ -426,14 +496,14 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                 repl_user, super_user_password,
                 repl_user_password,
                 _topology_type == kTopologyMultiMaster,
-                ssl, ssl_ca, ssl_cert, ssl_key, ip_whitelist,
+                ssl_mode, ip_whitelist,
                 errors);
   } else {
     exit_code = _cluster->get_provisioning_interface()->join_replicaset(instance_url,
                 repl_user, peer_instance_url,
                 super_user_password, repl_user_password,
                 _topology_type == kTopologyMultiMaster,
-                ssl, ssl_ca, ssl_cert, ssl_key, ip_whitelist,
+                ssl_mode, ip_whitelist,
                 errors);
   }
 
@@ -488,8 +558,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string host;
   int port = 0;
-  bool ssl = false;  //SSL not used by default
-  std::string ssl_ca, ssl_cert, ssl_key = "";
+  std::string ssl_mode = mysqlsh::dba::kMemberSSLModeAuto; //SSL Mode AUTO by default
   std::string ip_whitelist;
 
   auto options = get_instance_options_map(args);
@@ -510,14 +579,8 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
   std::string instance_address = host + ":" + std::to_string(port);
 
-  if (options->has_key("memberSsl"))
-    ssl = options->get_bool("memberSsl");
-  if (options->has_key("memberSslCa"))
-    ssl_ca = options->get_string("memberSslCa");
-  if (options->has_key("memberSslCert"))
-    ssl_cert = options->get_string("sslCert");
-  if (options->has_key("memberSslKey"))
-    ssl_key = options->get_string("memberSslKey");
+  if (options->has_key("memberSslMode"))
+    ssl_mode = options->get_string("memberSslMode");
 
   if (options->has_key("ipWhitelist"))
     ip_whitelist = options->get_string("ipWhitelist");
@@ -616,6 +679,15 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       throw;
     }
 
+    // Resolve the SSL Mode to use to configure the instance.
+    boost::to_upper(ssl_mode);
+    if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
+      auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
+          _metadata_storage->get_dba()->get_active_session().get());
+      ssl_mode = resolve_ssl_mode(classic, peer_session);
+      log_debug("SSL mode used to configure instance: '%s'", ssl_mode.c_str());
+    }
+
     // Stop group-replication
     log_info("Stopping group-replication at instance %s",
              instance_address.c_str());
@@ -659,37 +731,25 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       set_global_variable(classic->connection(),
                           "group_replication_ip_whitelist", ip_whitelist);
     }
+
     // Set SSL option
-    if (ssl) {
-      std::string use_ssl = "ON";
-      std::string ssl_mode = "REQUIRED";
-      log_info("Setting the group_replication_recovery_use_ssl at instance %s",
-               instance_address.c_str());
-      set_global_variable(classic->connection(),
-                          "group_replication_recovery_use_ssl", use_ssl);
-      log_info("Setting the group_replication_ssl_mode at instance %s",
-               instance_address.c_str());
-      set_global_variable(classic->connection(),
-                          "group_replication_ssl_mode", ssl_mode);
-      if (!ssl_ca.empty()) {
-        log_info("Setting the group_replication_recovery_ssl_ca at instance %s",
-                 instance_address.c_str());
-        set_global_variable(classic->connection(),
-                            "group_replication_recovery_ssl_ca", ssl_ca);
-      }
-      if (!ssl_cert.empty()) {
-        log_info("Setting the group_replication_recovery_ssl_cert at instance %s",
-                 instance_address.c_str());
-        set_global_variable(classic->connection(),
-                            "group_replication_recovery_ssl_cert", ssl_cert);
-      }
-      if (!ssl_key.empty()) {
-        log_info("Setting the group_replication_recovery_ssl_key at instance %s",
-                 instance_address.c_str());
-        set_global_variable(classic->connection(),
-                            "group_replication_recovery_ssl_key", ssl_key);
-      }
+    std::string gr_use_ssl;
+    std::string gr_ssl_mode;
+    if (ssl_mode == dba::kMemberSSLModeRequired) {
+      gr_use_ssl = "ON";
+      gr_ssl_mode = "REQUIRED";
+    } else {
+      gr_use_ssl = "OFF";
+      gr_ssl_mode = "DISABLED";
     }
+    log_info("Setting the group_replication_recovery_use_ssl at instance %s",
+             instance_address.c_str());
+    set_global_variable(classic->connection(),
+                        "group_replication_recovery_use_ssl", gr_use_ssl);
+    log_info("Setting the group_replication_ssl_mode at instance %s",
+             instance_address.c_str());
+    set_global_variable(classic->connection(),
+                        "group_replication_ssl_mode", gr_ssl_mode);
 
     // If multiMaster is being used, we must set group_replication_single_primary_mode to OFF
     if (_topology_type == kTopologyMultiMaster) {

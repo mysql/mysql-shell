@@ -6,7 +6,7 @@ deployed_here = reset_or_deploy_sandbox(__mysql_sandbox_port1)
 shell.connect({'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port1});
 
 if __have_ssl:
-  dba.create_cluster("tempCluster", {'memberSsl': True})
+  dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED"})
 else:
   dba.create_cluster("tempCluster")
 
@@ -33,7 +33,7 @@ reset_or_deploy_sandbox(__mysql_sandbox_port1)
 shell.connect({'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port1});
 
 if __have_ssl:
-  dba.create_cluster("tempCluster", {'memberSsl': True})
+  dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED"})
 else:
   dba.create_cluster("tempCluster")
 

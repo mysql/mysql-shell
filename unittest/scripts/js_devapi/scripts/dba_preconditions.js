@@ -11,7 +11,7 @@ dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:
 
 //@<OUT> Standalone Instance: create cluster
 if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSsl: true});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
 else
   var cluster = dba.createCluster('dev');
 
@@ -118,7 +118,7 @@ reset_or_deploy_sandbox(__mysql_sandbox_port2);
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 if (__have_ssl)
-  var cluster = dba.createCluster('temporal', {memberSsl: true});
+  var cluster = dba.createCluster('temporal', {memberSslMode: 'REQUIRED'});
 else
   var cluster = dba.createCluster('temporal');
 

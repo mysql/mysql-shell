@@ -6,7 +6,7 @@ dba.createCluster('devCluster', {multiMaster: true});
 
 //@<OUT> Dba: createCluster multiMaster with interaction, ok
 if (__have_ssl)
-  dba.createCluster('devCluster', {multiMaster: true, memberSsl: true});
+  dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'REQUIRED'});
 else
   dba.createCluster('devCluster', {multiMaster: true});
 
@@ -100,7 +100,7 @@ Cluster.rejoinInstance("somehost:3306");
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
 if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, memberSsl: true});
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, memberSslMode: 'REQUIRED'});
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3});
 

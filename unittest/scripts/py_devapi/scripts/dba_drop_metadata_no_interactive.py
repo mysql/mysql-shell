@@ -13,7 +13,7 @@ dba.drop_metadata_schema()
 
 #@# create cluster
 if __have_ssl:
-  dba.create_cluster("tempCluster", {'memberSsl': True})
+  dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED"})
 else:
   dba.create_cluster("tempCluster")
 

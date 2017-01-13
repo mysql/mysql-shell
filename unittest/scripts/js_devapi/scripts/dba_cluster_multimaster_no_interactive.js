@@ -3,7 +3,7 @@
 
 //@ Dba: createCluster multiMaster, ok
 if (__have_ssl)
-  dba.createCluster('devCluster', {multiMaster: true, force: true, memberSsl: true});
+  dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED'});
 else
   dba.createCluster('devCluster', {multiMaster: true,force: true});
 
@@ -93,7 +93,7 @@ Cluster.rejoinInstance("somehost:3306");
 
 //@#: Dba: rejoin instance 3 ok
 if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSsl: true}, "root");
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, memberSslMode: 'REQUIRED'}, "root");
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, "root");
 

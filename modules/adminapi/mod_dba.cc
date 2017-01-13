@@ -49,9 +49,7 @@ using namespace shcore;
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom", "ignoreSslError"};
 std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password", "dbPassword"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
-std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force",
-                                                   "memberSsl", "memberSslCa", "memberSslCert", "memberSslKey",
-                                                   "ipWhitelist"};
+std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "memberSslMode", "ipWhitelist"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL X AdminAPI.");
@@ -233,16 +231,14 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that in
 "If not specified false is assigned.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the multiMaster option must be applied.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value that indicates that the cluster shall be created empty and adopt the topology from an existing Group Replication group.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li memberSsl: boolean, indicates if SSL "\
-    "is used for the instance to start the cluster, by default: false. Set this "\
-    "option to true to use SSL.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li memberSslCa: Path of file that "\
-    "contains list of trusted SSL CAs to set for the instance.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li memberSslCert: Path of file that "\
-    "contains X509 certificate in PEM format to set for the instance.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "@li memberSslKey: Path of file that "\
-    "contains X509 key in PEM format to set for the instance.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9, "@li ipWhitelist: The list of hosts allowed to connect to the instance for "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li memberSslMode: string indicating "\
+    "the SSL mode used to configure the cluster instance, by default: AUTO. "\
+    "Allowed values: AUTO, DISABLED, REQUIRED.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "Note: When using memberSslMode:'AUTO' "\
+    "SSL (encryption) is automatically enabled (memberSslMode:'REQUIRED') or "\
+    "disabled (memberSslMode:'DISABLED') depending if the instance supports "\
+    "SSL or not.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li ipWhitelist: The list of hosts allowed to connect to the instance for "\
     "Group Replication. Specify a custom IP whitelist using comma separated list of IP addresses or subnet CIDR "\
     "notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
     "from the instance private network to be automatically set for the whitelist.");
@@ -261,10 +257,9 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9, "@li ipWhitelist: The list of hosts all
  * $(DBA_CREATECLUSTER_DETAIL3)
  * $(DBA_CREATECLUSTER_DETAIL4)
  * $(DBA_CREATECLUSTER_DETAIL5)
+ *
  * $(DBA_CREATECLUSTER_DETAIL6)
  * $(DBA_CREATECLUSTER_DETAIL7)
- * $(DBA_CREATECLUSTER_DETAIL8)
- * $(DBA_CREATECLUSTER_DETAIL9)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -299,10 +294,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   bool adopt_from_gr = false;
   bool force = false;
   // SSL values are only set if available from args.
-  bool has_ssl = false;
-  bool has_ssl_ca = false, has_ssl_cert = false, has_ssl_key = false;
-  bool ssl;
-  std::string ssl_ca, ssl_cert, ssl_key;
+  std::string ssl_mode;
 
   std::string replication_user;
   std::string replication_pwd;
@@ -351,21 +343,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       if (opt_map.has_key("adoptFromGR"))
         adopt_from_gr = opt_map.bool_at("adoptFromGR");
 
-      if (opt_map.has_key("memberSsl")) {
-        has_ssl = true;
-        ssl = opt_map.bool_at("memberSsl");
-      }
-      if (opt_map.has_key("memberSslCa")) {
-        has_ssl_ca = true;
-        ssl_ca = opt_map.string_at("memberSslCa");
-      }
-      if (opt_map.has_key("memberSslCert")) {
-        has_ssl_cert = true;
-        ssl_cert = opt_map.string_at("memberSslCert");
-      }
-      if (opt_map.has_key("memberSslKey")) {
-        has_ssl_key = true;
-        ssl_key = opt_map.string_at("memberSslKey");
+      if (opt_map.has_key("memberSslMode")) {
+        ssl_mode = opt_map.string_at("memberSslMode");
       }
       if (opt_map.has_key("ipWhitelist")) {
         // if the ipWhitelist option was provided, we know it is a valid value
@@ -417,16 +396,10 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list args;
     options = get_connection_data(session->uri(), false);
-    // Only set SSL option if available from createCluster options. Do not set
-    // default values to avoid validation issues for addInstance.
-    if (has_ssl)
-      (*options)["memberSsl"] = Value(ssl);
-    if (has_ssl_ca)
-      (*options)["memberSslCa"] = Value(ssl_ca);
-    if (has_ssl_cert)
-      (*options)["memberSslCert"] = Value(ssl_cert);
-    if (has_ssl_key)
-      (*options)["memberSslKey"] = Value(ssl_key);
+    // Only set SSL option if available from createCluster options (not empty).
+    // Do not set default values to avoid validation issues for addInstance.
+    if (!ssl_mode.empty())
+      (*options)["memberSslMode"] = Value(ssl_mode);
 
     // Set IP whitelist
     if (!ip_whitelist.empty())

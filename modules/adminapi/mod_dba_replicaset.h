@@ -157,13 +157,15 @@ private:
       const std::string &peer_instance_url,
       const std::string &super_user_password,
       const std::string &repl_user, const std::string &repl_user_password,
-      bool ssl, const std::string &ssl_ca, const std::string &ssl_cert,
-      const std::string &ssl_key, const std::string &ip_whitelist);
+      const std::string &ssl_mode, const std::string &ip_whitelist);
+
 
   std::string get_peer_instance();
 
   void validate_instance_address(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
                                  const std::string &hostname, int port);
+  std::string resolve_ssl_mode(mysqlsh::mysql::ClassicSession *session,
+                               mysqlsh::mysql::ClassicSession *peer_session);
 
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
 

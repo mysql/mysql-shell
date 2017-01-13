@@ -13,7 +13,7 @@ dba.dropMetadataSchema()
 
 //@# create cluster
 if (__have_ssl)
-  dba.createCluster("tempCluster", {memberSsl: true})
+  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED"})
 else
   dba.createCluster("tempCluster")
 

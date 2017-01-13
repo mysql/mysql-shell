@@ -6,7 +6,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 
 //@<OUT> create cluster
 if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSsl:true});
+  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
 else
   var cluster = dba.createCluster('dev');
 
@@ -68,7 +68,7 @@ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2
 
 //@ Cluster.forceQuorumUsingPartitionOf success
 if (__have_ssl)
-  cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', memberSsl:true});
+  cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', memberSslMode: 'REQUIRED'});
 else
   cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root'});
 
@@ -77,7 +77,7 @@ cluster.status();
 
 //@ Rejoin instance 2
 if (__have_ssl)
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', memberSsl:true});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', memberSslMode: 'REQUIRED'});
 else
   cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
 
@@ -86,7 +86,7 @@ wait_slave_state(cluster, uri2, "ONLINE");
 
 //@ Rejoin instance 3
 if (__have_ssl)
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', memberSsl:true});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', memberSslMode: 'REQUIRED'});
 else
   cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root'});
 

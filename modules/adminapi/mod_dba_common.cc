@@ -286,55 +286,33 @@ ReplicationGroupState check_function_preconditions(const std::string &class_name
   return state;
 }
 
-void validate_ssl_instance_options(shcore::Value::Map_type_ref &options) {
+const char *kMemberSSLModeAuto = "AUTO";
+const char *kMemberSSLModeRequired = "REQUIRED";
+const char *kMemberSSLModeDisabled = "DISABLED";
+const std::set<std::string> kMemberSSLModeValues = {kMemberSSLModeAuto,
+                                                    kMemberSSLModeDisabled,
+                                                    kMemberSSLModeRequired};
+
+void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options) {
   // Validate use of SSL options for the cluster instance and issue an
   // exception if invalid.
   shcore::Argument_map opt_map(*options);
   if (opt_map.has_key("adoptFromGR")){
     bool adopt_from_gr = opt_map.bool_at("adoptFromGR");
-    if (adopt_from_gr && (opt_map.has_key("memberSsl") ||
-        opt_map.has_key("memberSslCa") ||
-        opt_map.has_key("memberSslCert") ||
-        opt_map.has_key("memberSslKey")))
+    if (adopt_from_gr && (opt_map.has_key("memberSslMode")))
       throw shcore::Exception::argument_error(
-          "Cannot use member SSL options (memberSsl, memberSslCa, "
-              "memberSslCert, memberSslKey) if adoptFromGR is set to true.");
+          "Cannot use memberSslMode option if adoptFromGR is set to true.");
   }
-  if (opt_map.has_key("memberSsl")) {
-    bool use_ssl = opt_map.bool_at("memberSsl");
-    if (!use_ssl && (opt_map.has_key("memberSslCa") ||
-        opt_map.has_key("memberSslCert") ||
-        opt_map.has_key("memberSslKey")))
+
+  if (opt_map.has_key("memberSslMode")) {
+    std::string ssl_mode = opt_map.string_at("memberSslMode");
+    boost::to_upper(ssl_mode);
+    if (kMemberSSLModeValues.count(ssl_mode) == 0) {
+      std::string valid_values = boost::join(kMemberSSLModeValues, ",");
       throw shcore::Exception::argument_error(
-          "Cannot use other member SSL options (memberSslCa, "
-              "memberSslCert, memberSslKey) if memberSsl is set to false.");
-  }
-  // If memberSsl is not specified, it is assumed to be false by default.
-  if (!opt_map.has_key("memberSsl") && (opt_map.has_key("memberSslCa") ||
-        opt_map.has_key("memberSslCert") || opt_map.has_key("memberSslKey")))
-    throw shcore::Exception::argument_error(
-        "Cannot use other member SSL options (memberSslCa, "
-            "memberSslCert, memberSslKey) without setting memberSsl to true.");
-  if (opt_map.has_key("memberSslCa")) {
-    std::string ssl_ca = options->get_string("memberSslCa");
-    boost::trim(ssl_ca);
-    if (ssl_ca.empty())
-      throw shcore::Exception::argument_error(
-          "Invalid value for memberSslCa, string value cannot be empty.");
-  }
-  if (opt_map.has_key("memberSslCert")) {
-    std::string ssl_cert = options->get_string("memberSslCert");
-    boost::trim(ssl_cert);
-    if (ssl_cert.empty())
-      throw shcore::Exception::argument_error(
-          "Invalid value for memberSslCert, string value cannot be empty.");
-  }
-  if (opt_map.has_key("memberSslKey")) {
-    std::string ssl_key = options->get_string("memberSslKey");
-    boost::trim(ssl_key);
-    if (ssl_key.empty())
-      throw shcore::Exception::argument_error(
-          "Invalid value for memberSslKey, string value cannot be empty.");
+          "Invalid value for memberSslMode option. "
+              "Supported values: " + valid_values + ".");
+    }
   }
 }
 

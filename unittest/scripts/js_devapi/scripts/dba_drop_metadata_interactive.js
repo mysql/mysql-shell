@@ -7,7 +7,7 @@ shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_san
 
 // Assumptions: reset_or_deploy_sandboxes available
 if (__have_ssl)
-  dba.createCluster("tempCluster", {memberSsl: true});
+  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED"});
 else
   dba.createCluster("tempCluster");
 
@@ -32,7 +32,7 @@ session.close();
 reset_or_deploy_sandbox(__mysql_sandbox_port1);
 shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
 if (__have_ssl)
-  dba.createCluster("tempCluster", {memberSsl: true})
+  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED"})
 else
   dba.createCluster("tempCluster")
 

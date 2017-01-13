@@ -6,7 +6,7 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root',
 
 #@<OUT> create cluster
 if __have_ssl:
-  cluster = dba.create_cluster('dev', {'memberSsl':True})
+  cluster = dba.create_cluster('dev', {'memberSslMode': 'REQUIRED'})
 else:
   cluster = dba.create_cluster('dev')
 
@@ -67,13 +67,13 @@ cluster.force_quorum_using_partition_of(1, "");
 
 #@ Cluster.force_quorum_using_partition_of error interactive
 if __have_ssl:
-  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port2, 'memberSsl':True})
+  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port2, 'memberSslMode': 'REQUIRED'})
 else:
   cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port2})
 
 #@<OUT> Cluster.force_quorum_using_partition_of success
 if __have_ssl:
-  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1, 'memberSsl':True})
+  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1, 'memberSslMode': 'REQUIRED'})
 else:
   cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1})
 
@@ -82,7 +82,7 @@ cluster.status();
 
 #@ Rejoin instance 2
 if __have_ssl:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'memberSsl':True})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'memberSslMode': 'REQUIRED'})
 else:
   cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
 
@@ -91,7 +91,7 @@ wait_slave_state(cluster, uri2, "ONLINE");
 
 #@ Rejoin instance 3
 if __have_ssl:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root', 'memberSsl':True})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root', 'memberSslMode': 'REQUIRED'})
 else:
   cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
 

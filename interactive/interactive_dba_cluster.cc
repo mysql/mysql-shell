@@ -465,9 +465,8 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(const shc
 
     shcore::Argument_map opt_map(*options);
     opt_map.ensure_keys({"host"},
-                        {"name", "host", "port", "user", "dbUser", "password",
-                         "dbPassword", "socket", "memberSslCa", "memberSslCert", "memberSslKey", "memberSsl",
-                         "ipWhitelist"}, "instance definition");
+                        mysqlsh::dba::ReplicaSet::_add_instance_opts,
+                        "instance definition");
 
     // Validate SSL options for the cluster instance
     mysqlsh::dba::validate_ssl_instance_options(options);

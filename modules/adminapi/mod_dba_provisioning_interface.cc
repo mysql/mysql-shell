@@ -393,17 +393,15 @@ int ProvisioningInterface::start_sandbox(int port, const std::string &sandbox_di
 }
 
 int ProvisioningInterface::start_replicaset(const std::string &instance_url, const std::string &repl_user,
-                                            const std::string &super_user_password,
-                                            const std::string &repl_user_password,
-                                            bool multi_master, bool ssl, const std::string &ssl_ca,
-                                            const std::string &ssl_cert, const std::string &ssl_key,
-                                            const std::string &ip_whitelist,
-                                            shcore::Value::Array_type_ref &errors) {
+                                      const std::string &super_user_password, const std::string &repl_user_password,
+                                      bool multi_master, const std::string &ssl_mode,
+                                      const std::string &ip_whitelist,
+                                      shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
   std::string repl_user_pwd = repl_user_password;
-  std::string ssl_ca_opt, ssl_cert_opt, ssl_key_opt;
+  std::string ssl_mode_opt;
   std::string ip_whitelist_opt;
 
   instance_args = "--instance=" + instance_url;
@@ -421,21 +419,9 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
     args.push_back(repl_user_args.c_str());
   if (multi_master)
     args.push_back("--single-primary=OFF");
-  if (!ssl) {
-    args.push_back("--skip-ssl");
-  } else {
-    if (!ssl_ca.empty()) {
-      ssl_ca_opt = "--ssl-ca=" + ssl_ca;
-      args.push_back(ssl_ca_opt.c_str());
-    }
-    if (!ssl_cert.empty()) {
-      ssl_cert_opt = "--ssl-cert=" + ssl_cert;
-      args.push_back(ssl_cert_opt.c_str());
-    }
-    if (!ssl_key.empty()) {
-      ssl_key_opt = "--ssl-key=" + ssl_key;
-      args.push_back(ssl_key_opt.c_str());
-    }
+  if (!ssl_mode.empty()) {
+    ssl_mode_opt = "--ssl-mode=" + ssl_mode;
+    args.push_back(ssl_mode_opt.c_str());
   }
   if (!ip_whitelist.empty()) {
     ip_whitelist_opt = "--ip-whitelist=" + ip_whitelist;
@@ -447,17 +433,16 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
 }
 
 int ProvisioningInterface::join_replicaset(const std::string &instance_url, const std::string &repl_user,
-                                           const std::string &peer_instance_url, const std::string &super_user_password,
-                                           const std::string &repl_user_password,
-                                           bool multi_master, bool ssl, const std::string &ssl_ca,
-                                           const std::string &ssl_cert, const std::string &ssl_key,
-                                           const std::string &ip_whitelist,
-                                           shcore::Value::Array_type_ref &errors) {
+                                      const std::string &peer_instance_url, const std::string &super_user_password,
+                                      const std::string &repl_user_password,
+                                      bool multi_master, const std::string &ssl_mode,
+                                      const std::string &ip_whitelist,
+                                      shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
   std::string repl_user_pwd = repl_user_password;
-  std::string ssl_ca_opt, ssl_cert_opt, ssl_key_opt;
+  std::string ssl_mode_opt;
   std::string ip_whitelist_opt;
 
   instance_args = "--instance=" + instance_url;
@@ -481,21 +466,9 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
   if (!repl_user.empty())
     args.push_back(repl_user_args.c_str());
   args.push_back(peer_instance_args.c_str());
-  if (!ssl) {
-    args.push_back("--skip-ssl");
-  } else {
-    if (!ssl_ca.empty()) {
-      ssl_ca_opt = "--ssl-ca=" + ssl_ca;
-      args.push_back(ssl_ca_opt.c_str());
-    }
-    if (!ssl_cert.empty()) {
-      ssl_cert_opt = "--ssl-cert=" + ssl_cert;
-      args.push_back(ssl_cert_opt.c_str());
-    }
-    if (!ssl_key.empty()) {
-      ssl_key_opt = "--ssl-key=" + ssl_key;
-      args.push_back(ssl_key_opt.c_str());
-    }
+  if (!ssl_mode.empty()) {
+    ssl_mode_opt = "--ssl-mode=" + ssl_mode;
+    args.push_back(ssl_mode_opt.c_str());
   }
   if (!ip_whitelist.empty()) {
     ip_whitelist_opt = "--ip-whitelist=" + ip_whitelist;

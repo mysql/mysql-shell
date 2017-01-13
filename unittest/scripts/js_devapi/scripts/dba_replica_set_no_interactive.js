@@ -5,7 +5,7 @@ dba.dropMetadataSchema({force:true});
 
 //@ ReplicaSet: validating members
 if (__have_ssl)
-  var Cluster = dba.createCluster('devCluster', {memberSsl: true})
+  var Cluster = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'})
 else
   var Cluster = dba.createCluster('devCluster')
 

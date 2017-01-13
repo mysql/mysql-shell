@@ -3,7 +3,7 @@
 
 #@ Dba: create_cluster multiMaster, ok
 if __have_ssl:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSsl': True})
+  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'REQUIRED'})
 else:
   dba.create_cluster('devCluster', {'multiMaster': True, 'force': True})
 
@@ -93,7 +93,7 @@ cluster.rejoin_instance("somehost:3306");
 
 #@#: Dba: rejoin instance 3 ok
 if __have_ssl:
-  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'memberSsl': True}, 'root');
+  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'memberSslMode': 'REQUIRED'}, 'root');
 else:
   cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3}, 'root');
 
