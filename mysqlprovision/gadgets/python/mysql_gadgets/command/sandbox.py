@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1164,6 +1164,29 @@ def delete_sandbox(**kwargs):
                                           DEFAULT_SANDBOX_DIR.
     :type kwargs:       dict
     """
+
+    # Callback function to ignore the file not found errors
+    # On when rmtree is called
+    def on_delete_sandbox_error(func, path, exc_info):
+        # It will ignore file not found errors on delete operations
+        type_, value, traceback = exc_info
+
+        # if it is not a non existing file/folder (errno= 2) re raise exception
+        if value.errno != 2:
+            if value is not None:
+                exc = type_(value)
+            else:
+                exc = type_
+            if sys.version_info[0] == 3:
+                if exc.__traceback__ is not traceback:
+                    raise exc.with_traceback(traceback)
+            raise exc
+        else:
+            # Log ignored exception raised when attempting to delete
+            # non existing file/folder
+            _LOGGER.debug("Ignored exception raised when trying to "
+                          "delete non-existing file/folder: '%s'", path)
+
     # get mandatory values
     try:
         port = int(kwargs["port"])
@@ -1200,7 +1223,7 @@ def delete_sandbox(**kwargs):
             err = None
             for i in range(1, _MAX_RMTREE_RETRIES + 1):
                 try:
-                    shutil.rmtree(sandbox_dir)
+                    shutil.rmtree(sandbox_dir, onerror=on_delete_sandbox_error)
                     break
                 except OSError as err:
                     _LOGGER.warning("Unable to delete MySQL sandbox folder "
@@ -1217,7 +1240,7 @@ def delete_sandbox(**kwargs):
     else:
         # no pid file was found so we can safely delete
         try:
-            shutil.rmtree(sandbox_dir)
+            shutil.rmtree(sandbox_dir, onerror=on_delete_sandbox_error)
         except Exception as err:
             raise exceptions.GadgetError(
                 "Unable to delete MySQL sandbox folder '{0}': '{1}'"

@@ -136,7 +136,8 @@ void Shell_test_output_handler::debug_print_header(const std::string& line) {
 
 void Shell_test_output_handler::flush_debug_log() {
   full_output.flush();
-  std::cerr << full_output.str();
+  std::cerr << full_output.str();;
+  full_output.str(std::string());
   full_output.clear();
 }
 

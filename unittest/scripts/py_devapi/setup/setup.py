@@ -195,15 +195,12 @@ def reset_or_deploy_sandboxes():
   return deploy1 or deploy2 or deploy3
 
 def cleanup_sandbox(port):
-  try:
-    dba.kill_sandbox_instance(port)
-  except Exception, err:
-    pass
+  options = {}
+  if __sandbox_dir != '':
+    options['sandboxDir'] = __sandbox_dir
 
-  try:
-    dba.delete_sandbox_instance(port)
-  except Exception, err:
-    pass
+  dba.kill_sandbox_instance(port, options)
+  dba.delete_sandbox_instance(port, options)
 
 def cleanup_sandboxes(deployed_here):
   if deployed_here:

@@ -197,8 +197,12 @@ function reset_or_deploy_sandboxes() {
 }
 
 function cleanup_sandbox(port) {
-  try {dba.killSandboxInstance(port);} catch (err) {}
-  try { dba.deleteSandboxInstance(port);} catch (err) {}
+  options = {}
+  if (__sandbox_dir != '')
+    options['sandboxDir'] = __sandbox_dir;
+
+  dba.killSandboxInstance(port, options);
+  dba.deleteSandboxInstance(port, options);
 }
 
 function cleanup_sandboxes(deployed_here) {

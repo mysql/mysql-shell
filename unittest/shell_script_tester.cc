@@ -490,9 +490,9 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         // Validation contexts is at chunk level
         _custom_context = path + "@[" + _chunk_order[index] + " validation]";
         if (!validate(path, _chunk_order[index])) {
-          std::cerr << "---------- Failure Log ----------" << std::endl;
+          std::cerr << "---------- Failure Log Begin ----------" << std::endl;
           output_handler.flush_debug_log();
-          std::cerr << "---------------------------------" << std::endl;
+          std::cerr << "---------- Failure Log End ------------" << std::endl;
         }
         else
           output_handler.whipe_debug_log();
