@@ -27,7 +27,7 @@
 ||Cluster.addInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
-||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'
+||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 ||Invalid value for ipWhitelist, string value cannot be empty.
 
 //@ Cluster: addInstance 2

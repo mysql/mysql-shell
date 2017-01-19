@@ -15,4 +15,4 @@
 ||ReplicaSet.addInstance: Invalid connection options, expected either a URI or a Dictionary
 ||ReplicaSet.addInstance: Unexpected instance options: authMethod, schema
 ||ReplicaSet.addInstance: Missing instance options: host, password
-||already belongs to the ReplicaSet: 'default'
+||is already part of this InnoDB cluster

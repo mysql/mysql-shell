@@ -201,7 +201,31 @@ std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::strin
   return status;
 }
 
-bool get_server_variable(mysqlsh::mysql::Connection *connection, std::string name,
+// This function verifies if a server with the given UUID is part
+// Of the replication group members using connection
+bool is_server_on_replication_group(mysqlsh::mysql::Connection* connection, const std::string &uuid) {
+  bool ret_val = false;
+
+  std::string query;
+  query = shcore::sqlstring("select count(*) from performance_schema.replication_group_members where member_id = ?", 0) << uuid;
+
+  // Any error will bubble up right away
+  auto result = connection->run_sql(query);
+
+  // Selects the PLUGIN_STATUS value
+  auto row = result->fetch_one();
+
+  int count;
+  if (row)
+    count = row->get_value(0).as_int();
+  else
+    throw shcore::Exception::runtime_error("Unable to verify Group Replicatin membership");
+
+  return count == 1;
+}
+
+
+bool get_server_variable(mysqlsh::mysql::Connection *connection, const std::string& name,
                          std::string &value, bool throw_on_error) {
   bool ret_val = true;
   std::string query = "SELECT @@" + name;

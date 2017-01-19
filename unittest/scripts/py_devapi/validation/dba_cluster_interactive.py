@@ -30,7 +30,7 @@
 ||Invalid value for ipWhitelist, string value cannot be empty.
 
 #@ Cluster: add_instance with interaction, error
-||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'.
+||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 
 #@<OUT> Cluster: add_instance with interaction, ok
 A new instance will be added to the InnoDB cluster. Depending on the amount of

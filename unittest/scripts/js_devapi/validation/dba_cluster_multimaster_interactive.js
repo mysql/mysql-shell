@@ -30,7 +30,7 @@ one server failure.
 <Cluster:devCluster>
 
 //@ Cluster: addInstance with interaction, error
-||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'.
+||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 
 //@<OUT> Cluster: addInstance with interaction, ok
 A new instance will be added to the InnoDB cluster. Depending on the amount of

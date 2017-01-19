@@ -6,7 +6,7 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root',
 
 #@<OUT> create cluster
 if __have_ssl:
-  cluster = dba.create_cluster('dev', {'memberSsl':True})
+  cluster = dba.create_cluster('dev', {'memberSslMode':'REQUIRED'})
 else:
   cluster = dba.create_cluster('dev')
 

@@ -6,7 +6,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 
 //@<OUT> create cluster
 if (__have_ssl)
-  var cluster = dba.createCluster('dev', {memberSsl:true});
+  var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED'});
 else
   var cluster = dba.createCluster('dev');
 

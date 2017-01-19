@@ -379,16 +379,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                                                        : "dbPassword");
   std::string joiner_host = instance_def->get_string("host");
 
-  // Check if the instance was already added
-  std::string instance_address =
-      joiner_host + ":" + std::to_string(instance_def->get_int("port"));
-
-  bool is_instance_on_md =
-      _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
-  log_debug("RS %lu: Adding instance '%s' to replicaset%s",
-            static_cast<unsigned long>(_id), instance_address.c_str(),
-            is_instance_on_md ? " (already in MD)" : "");
-
+  std::string instance_address = joiner_host + ":" + std::to_string(instance_def->get_int("port"));
+  bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(instance_def));
   auto session = Dba::get_session(new_args);
@@ -411,27 +403,50 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
   GRInstanceType type = get_gr_instance_type(session->connection());
 
-  session->close(shcore::Argument_list());
+  if (type != GRInstanceType::Standalone) {
+    // Rethieves the new instance UUID
+    std::string uuid;
+    get_server_variable(session->connection(), "server_uuid", uuid);
+    session->close(shcore::Argument_list());
 
-  // If type is GRInstanceType::InnoDBCluster it means that is on GR and MD
-  switch (type) {
-    case GRInstanceType::InnoDBCluster:
-      log_debug("Instance '%s' already managed by InnoDB cluster", instance_address.c_str());
-      throw shcore::Exception::runtime_error("The instance '" + instance_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+    // Verifies if the instance is part of the cluster replication group
+    auto cluster_session = _metadata_storage->get_dba()->get_active_session();
+    auto cluster_classic_session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(cluster_session);
 
-      // If the instance is not on GR, we must add it
-    case GRInstanceType::Standalone:
-    {
-      log_debug("Instance '%s' is not yet in the cluster", instance_address.c_str());
-
-      std::string replication_user(existing_replication_user);
-      std::string replication_user_password(existing_replication_password);
-
-      // Creates the replication user ONLY if not already given
-      if (replication_user.empty()) {
-        _metadata_storage->create_repl_account(replication_user, replication_user_password);
-        log_debug("Created replication user '%s'", replication_user.c_str());
+    // Verifies if this UUID is part of the current replication group
+    if (is_server_on_replication_group(cluster_classic_session->connection(), uuid)) {
+      if (type == GRInstanceType::InnoDBCluster) {
+        log_debug("Instance '%s' already managed by InnoDB cluster", instance_address.c_str());
+        throw shcore::Exception::runtime_error("The instance '" + instance_address + "' is already part of this InnoDB cluster");
       }
+      else
+        log_debug("Instance '%s' is already part of a Replication Group, but not managed", instance_address.c_str());
+    }
+    else {
+      if (type == GRInstanceType::InnoDBCluster)
+        throw shcore::Exception::runtime_error("The instance '" + instance_address + "' is already part of another InnoDB cluster");
+      else
+        throw shcore::Exception::runtime_error("The instance '" + instance_address + "' is already part of another Replication Group");
+    }
+  } else {
+    session->close(shcore::Argument_list());
+  }
+
+  log_debug("RS %lu: Adding instance '%s' to replicaset%s",
+            static_cast<unsigned long>(_id), instance_address.c_str(),
+            is_instance_on_md ? " (already in MD)" : "");
+
+  if (type == GRInstanceType::Standalone) {
+    log_debug("Instance '%s' is not yet in the cluster", instance_address.c_str());
+
+    std::string replication_user(existing_replication_user);
+    std::string replication_user_password(existing_replication_password);
+
+    // Creates the replication user ONLY if not already given
+    if (replication_user.empty()) {
+      _metadata_storage->create_repl_account(replication_user, replication_user_password);
+      log_debug("Created replication user '%s'", replication_user.c_str());
+    }
 
       // Get SSL values to connect to instance
       Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
@@ -442,22 +457,22 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
       if (instance_def->has_key("sslKey"))
         (*instance_ssl_opts)["sslKey"] = Value(instance_def->get_string("sslKey"));
 
-      // Call the gadget to bootstrap the group with this instance
-      if (seed_instance) {
-        log_info("Joining '%s' to group using account %s@%s",
-            instance_address.c_str(),
-            user.c_str(), instance_address.c_str());
-        // Call mysqlprovision to bootstrap the group using "start"
-        do_join_replicaset(user + "@" + instance_address,
+    // Call the gadget to bootstrap the group with this instance
+    if (seed_instance) {
+      log_info("Joining '%s' to group using account %s@%s",
+          instance_address.c_str(),
+          user.c_str(), instance_address.c_str());
+      // Call mysqlprovision to bootstrap the group using "start"
+      do_join_replicaset(user + "@" + instance_address,
                            instance_ssl_opts,
-                           "",
+                          "",
                            nullptr,
-                           super_user_password,
-                           replication_user, replication_user_password,
+                          super_user_password,
+                          replication_user, replication_user_password,
                            ssl_mode, ip_whitelist);
-      } else {
-        // We need to retrieve a peer instance, so let's use the Seed one
-        std::string peer_instance = get_peer_instance();
+    } else {
+      // We need to retrieve a peer instance, so let's use the Seed one
+      std::string peer_instance = get_peer_instance();
 
         //Get SSL values to connect to peer instance
         Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
@@ -472,29 +487,24 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
         if (!peer_ssl_key.empty())
           (*peer_instance_ssl_opts)["sslKey"] = Value(peer_ssl_key);
 
-        log_info("Joining '%s' to group using account %s@%s to peer '%s'",
-            instance_address.c_str(),
-            user.c_str(), instance_address.c_str(), peer_instance.c_str());
-        // Call mysqlprovision to do the work
-        do_join_replicaset(user + "@" + instance_address,
+      log_info("Joining '%s' to group using account %s@%s to peer '%s'",
+          instance_address.c_str(),
+          user.c_str(), instance_address.c_str(), peer_instance.c_str());
+      // Call mysqlprovision to do the work
+      do_join_replicaset(user + "@" + instance_address,
                            instance_ssl_opts,
-                           user + "@" + peer_instance,
+                          user + "@" + peer_instance,
                            peer_instance_ssl_opts,
-                           super_user_password,
-                           replication_user, replication_user_password,
+                          super_user_password,
+                          replication_user, replication_user_password,
                            ssl_mode, ip_whitelist);
-      }
     }
-    break;
-    case GRInstanceType::GroupReplication:
-      log_debug("Instance '%s' is already part of GR, but not managed", instance_address.c_str());
-      break;
   }
 
   // If the instance is not on the Metadata, we must add it
-  if (!is_instance_on_md) {
+  if (!is_instance_on_md)
     add_instance_metadata(instance_def, instance_label);
-  }
+
   log_debug("Instance add finished");
 
   return ret_val;
