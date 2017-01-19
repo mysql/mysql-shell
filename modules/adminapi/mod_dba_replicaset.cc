@@ -816,12 +816,39 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   port = std::to_string(instance_def->get_int("port"));
 
+  // The instance definition received may or may not contain user/password
+  // If provided then those are used, if not, we use the defaults from the active session
+  bool get_default_user = false;
+  bool get_default_password = false;
+  std::string instance_admin_user;
+  std::string instance_admin_user_password;
+
+  if (options->has_key("user"))
+    instance_admin_user = options->get_string("user");
+  else if (options->has_key("dbUser"))
+    instance_admin_user = options->get_string("dbUser");
+  else
+    get_default_user = true;
+
+  if (options->has_key("password"))
+    instance_admin_user = options->get_string("password");
+  else if (options->has_key("dbPassword"))
+    instance_admin_user = options->get_string("dbPassword");
+  else
+    get_default_password = true;
+
   // get instance admin and user information from the current active session of the shell
   // Note: when separate metadata session vs active session is supported, this should
   // be changed to use the active shell session
-  auto instance_session(_metadata_storage->get_dba()->get_active_session());
-  std::string instance_admin_user = instance_session->get_user();
-  std::string instance_admin_user_password = instance_session->get_password();
+  if (get_default_user || get_default_password) {
+    auto instance_session(_metadata_storage->get_dba()->get_active_session());
+
+    if (get_default_user)
+      instance_admin_user = instance_session->get_user();
+
+    if (get_default_password)
+      instance_admin_user_password = instance_session->get_password();
+  }
 
   std::string host = instance_def->get_string("host");
 
@@ -829,11 +856,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   std::string instance_address = host + ":" + port;
 
   bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
-
-  auto session = _metadata_storage->get_dba()->get_active_session();
-  mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-
-  GRInstanceType type = get_gr_instance_type(classic->connection());
 
   // Check if the instance exists on the ReplicaSet
   //std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
@@ -844,6 +866,11 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
     throw shcore::Exception::runtime_error(message);
   }
+
+  auto session = _metadata_storage->get_dba()->get_active_session();
+  mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+
+  GRInstanceType type = get_gr_instance_type(classic->connection());
 
   // If the instance is not on GR, we can remove it from the MD
 
@@ -869,7 +896,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   // Remove it from the MD
   if (is_instance_on_md)
-    remove_instance_metadata(args);
+    remove_instance_metadata(options);
 
   tx.commit();
 
@@ -1295,11 +1322,7 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
   tx.commit();
 }
 
-void ReplicaSet::remove_instance_metadata(const shcore::Argument_list &args) {
-
-  // Getting the connection data, password is not needed here
-  auto instance_def = get_instance_options_map(args, PasswordFormat::NONE);
-
+void ReplicaSet::remove_instance_metadata(const shcore::Value::Map_type_ref& instance_def) {
   std::string port = std::to_string(instance_def->get_int("port"));
 
   std::string host = instance_def->get_string("host");

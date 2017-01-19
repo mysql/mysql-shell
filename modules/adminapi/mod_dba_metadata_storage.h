@@ -50,7 +50,7 @@ public:
   void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset, bool is_default, bool is_adopted);
   uint32_t insert_host(const shcore::Value::Map_type_ref &options);
   void insert_instance(const shcore::Value::Map_type_ref& options, uint64_t host_id, uint64_t rs_id);
-  void remove_instance(const std::string &instance_name);
+  void remove_instance(const std::string &instance_address);
   void drop_cluster(const std::string &cluster_name);
   bool cluster_has_default_replicaset_only(const std::string &cluster_name);
   bool is_cluster_empty(uint64_t cluster_id);

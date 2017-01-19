@@ -47,13 +47,13 @@ add_instance_options['port'] = __mysql_sandbox_port1;
 Cluster.addInstance(add_instance_options, add_instance_extra_opts);
 
 //@ Cluster: addInstance 2
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
+add_instance_to_cluster(Cluster, __mysql_sandbox_port2, 'second');
 
 // Third instance will be added while the second is still on RECOVERY
 //@ Cluster: addInstance 3
 add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 
-wait_slave_state(Cluster, uri2, "ONLINE");
+wait_slave_state(Cluster, 'second', "ONLINE");
 wait_slave_state(Cluster, uri3, "ONLINE");
 
 //@<OUT> Cluster: describe cluster with instance
@@ -69,6 +69,7 @@ Cluster.removeInstance(1);
 Cluster.removeInstance({host: "localhost"});
 Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
 Cluster.removeInstance("somehost:3306");
+Cluster.removeInstance("second");
 
 //@ Cluster: removeInstance read only
 Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2})

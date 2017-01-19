@@ -431,7 +431,6 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
         std::string answer;
         if (prompt("Would you like to remove it from the cluster metadata? [Y|n]: ", answer)) {
           if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
-            shcore::Argument_list args;
 
             std::string full_host = instance_map->get_string("host");
 
@@ -443,7 +442,6 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
 
             (*options)["host"] = shcore::Value(host);
             (*options)["port"] = shcore::Value(atoi(port.c_str()));
-            args.push_back(shcore::Value(options));
 
             println("Removing instance from the cluster metadata...");
             println();
@@ -452,7 +450,7 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
 
             object = cluster->get_default_replicaset();
 
-            object->remove_instance_metadata(args);
+            object->remove_instance_metadata(options);
 
             println("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster metadata.");
             println();

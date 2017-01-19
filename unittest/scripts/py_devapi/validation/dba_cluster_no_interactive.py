@@ -48,7 +48,7 @@
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "name": "second",
                 "role": "HA"
             },
             {
@@ -77,15 +77,15 @@
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+            "second": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -101,6 +101,7 @@
 ||Cluster.remove_instance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.remove_instance: Invalid values in instance definition: authMethod, schema
 ||Cluster.remove_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
+||Cluster.remove_instance: The instance 'second:3306' does not belong to the ReplicaSet: 'default'
 
 #@ Cluster: remove_instance read only
 ||

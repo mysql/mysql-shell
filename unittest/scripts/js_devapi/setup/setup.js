@@ -217,8 +217,15 @@ function cleanup_sandboxes(deployed_here) {
   // 3 retries are done on each case, expectation is that the addition
   // is done on the first attempt, however, we have detected some OS
   // delays that cause it to fail, that's why the retry logic
-function add_instance_to_cluster(cluster, port) {
+function add_instance_to_cluster(cluster, port, name) {
   add_instance_options['port'] = port;
+
+  var named = false;
+  if (typeof name != 'undefined') {
+    add_instance_options['name'] = name;
+    named = true;
+  }
+
   attempt = 0;
   success = false;
   while (attempt < 3 && !success) {
@@ -234,6 +241,9 @@ function add_instance_to_cluster(cluster, port) {
       os.sleep(5)
     }
   }
+
+  if (named)
+    delete add_instance_options['name'];
     
   if (!success)
     throw ('Failed adding instance : ' + add_instance_options);

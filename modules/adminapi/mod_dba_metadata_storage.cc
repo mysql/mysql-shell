@@ -354,12 +354,12 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   execute_sql(query);
 }
 
-void MetadataStorage::remove_instance(const std::string &instance_name) {
+void MetadataStorage::remove_instance(const std::string &instance_address) {
   shcore::sqlstring query;
 
   // Remove the instance
-  query = shcore::sqlstring("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = ?", 0);
-  query << instance_name;
+  query = shcore::sqlstring("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE addresses->\"$.mysqlClassic\" = ?", 0);
+  query << instance_address;
   query.done();
 
   execute_sql(query);
