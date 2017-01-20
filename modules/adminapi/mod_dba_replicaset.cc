@@ -388,6 +388,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   // Check whether the address being used is not in a known not-good case
   validate_instance_address(session, joiner_host, instance_def->get_int("port"));
 
+  // Check replication filters before creating the Metadata.
+  validate_replication_filters(session.get());
+  
   // Resolve the SSL Mode to use to configure the instance.
   boost::to_upper(ssl_mode);
   if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
@@ -717,6 +720,9 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
                 e.what());
       throw;
     }
+
+    // Check replication filters before creating the Metadata.
+    validate_replication_filters(classic);
 
     boost::to_upper(ssl_mode);
     

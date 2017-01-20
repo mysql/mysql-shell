@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -594,4 +594,34 @@ void Shell_py_script_tester::set_defaults() {
   _interactive_shell->process_line("\\py");
 
   output_handler.wipe_all();
+}
+
+void Shell_script_tester::execute_setup(){
+  const std::vector<std::string> argv;
+  _interactive_shell->process_file(_setup_script, argv);
+}
+
+// Append option to the end of the given config file.
+void Shell_script_tester::add_to_cfg_file(const std::string &cfgfile_path,
+                                          const std::string &option) {
+  std::ofstream cfgfile(cfgfile_path, std::ios_base::app);
+  cfgfile << option << std::endl;
+  cfgfile.close();
+}
+
+// Delete lines with the option from the given config file.
+void Shell_script_tester::remove_from_cfg_file(const std::string &cfgfile_path,
+                                               const std::string &option) {
+  std::string new_cfgfile_path = cfgfile_path + ".new";
+  std::ofstream new_cfgfile(new_cfgfile_path);
+  std::ifstream cfgfile(cfgfile_path);
+  std::string line;
+  while(std::getline(cfgfile, line)) {
+    if (line.find(option) != 0)
+      new_cfgfile << line << std::endl;
+  }
+  cfgfile.close();
+  new_cfgfile.close();
+  std::remove(cfgfile_path.c_str());
+  std::rename(new_cfgfile_path.c_str(), cfgfile_path.c_str());
 }

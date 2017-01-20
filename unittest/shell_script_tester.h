@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -86,6 +86,10 @@ protected:
 
   std::string _extension;
   bool _new_format;
+
+  void execute_setup();
+  void add_to_cfg_file(const std::string &cfgfile_path, const std::string &option);
+  void remove_from_cfg_file(const std::string &cfgfile_path, const std::string &option);
 
 private:
   // Chunks of code will be stored here

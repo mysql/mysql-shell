@@ -379,6 +379,66 @@ TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
   validate_interactive("dba_drop_metadata_interactive.py");
 }
 
+TEST_F(Shell_py_dba_tests, no_interactive_rpl_filter_check) {
+  _options->wizards = false;
+  reset_shell();
+
+  // Execute setup script to be able to use smart deployment functions.
+  execute_setup();
+
+  // Smart deployment of sandbox instances.
+  execute("deployed1 = reset_or_deploy_sandbox(" + _mysql_sandbox_port1 + ")");
+  execute("deployed2 = reset_or_deploy_sandbox(" + _mysql_sandbox_port2 + ")");
+  execute("deployed3 = reset_or_deploy_sandbox(" + _mysql_sandbox_port3 + ")");
+
+#ifdef _WIN32
+  std::string path_splitter = "\\";
+#else
+  std::string path_splitter = "/";
+#endif
+
+  // Restart sandbox instances with specific binlog filtering option.
+  std::string stop_options = "{'password': 'root'";
+  if (!_sandbox_dir.empty()) {
+    stop_options.append(", 'sandboxDir': '" + _sandbox_dir + "'");
+  }
+  stop_options.append("}");
+  std::string cfgpath1 = _sandbox_dir + path_splitter + _mysql_sandbox_port1
+      + path_splitter + "my.cnf";
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", " + stop_options + ")");
+  add_to_cfg_file(cfgpath1, "binlog-do-db=db1,mysql_innodb_cluster_metadata,db2");
+  execute("try_restart_sandbox(" + _mysql_sandbox_port1 + ")");
+  std::string cfgpath2 = _sandbox_dir + path_splitter + _mysql_sandbox_port2
+      + path_splitter + "my.cnf";
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", " + stop_options + ")");
+  add_to_cfg_file(cfgpath2, "binlog-do-db=db1,db2");
+  execute("try_restart_sandbox(" + _mysql_sandbox_port2 + ")");
+  std::string cfgpath3 = _sandbox_dir + path_splitter + _mysql_sandbox_port3
+      + path_splitter + "my.cnf";
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ", " + stop_options + ")");
+  add_to_cfg_file(cfgpath3, "binlog-ignore-db=db1,mysql_innodb_cluster_metadata,db2");
+  execute("try_restart_sandbox(" + _mysql_sandbox_port3 + ")");
+
+  // Validate test script.
+  validate_interactive("dba_rpl_filter_check_no_interactive.py");
+
+  // Restart sandbox instances without specific binlog filtering option.
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", " + stop_options + ")");
+  remove_from_cfg_file(cfgpath1, "binlog-do-db");
+  execute("try_restart_sandbox(" + _mysql_sandbox_port1 + ")");
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", " + stop_options + ")");
+  remove_from_cfg_file(cfgpath2, "binlog-do-db");
+  execute("try_restart_sandbox(" + _mysql_sandbox_port2 + ")");
+  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ", " + stop_options + ")");
+  remove_from_cfg_file(cfgpath3, "binlog-ignore-db");
+  execute("try_restart_sandbox(" + _mysql_sandbox_port3 + ")");
+
+  // Clean deployed sandbox.
+  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port1 + ", deployed1)");
+  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port2 + ", deployed2)");
+  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port3 + ", deployed3)");
+}
+
 TEST_F(Shell_py_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
   std::string stop_options = "{'password': 'root'";

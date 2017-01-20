@@ -381,6 +381,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
       throw Exception::argument_error("Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
 
+    auto session = get_active_session();
+
+    // Check replication filters before creating the Metadata.
+    auto classic = std::static_pointer_cast<mysql::ClassicSession>(session);
+    validate_replication_filters(classic.get());
+
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();
 
@@ -404,11 +410,10 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     // Insert Cluster on the Metadata Schema
     _metadata_storage->insert_cluster(cluster);
 
-    auto session = get_active_session();
+
 
     if (adopt_from_gr) { // TODO: move this to a GR specific class
       // check whether single_primary_mode is on
-      auto classic = std::static_pointer_cast<mysql::ClassicSession>(session);
       auto result = classic->execute_sql("select @@group_replication_single_primary_mode");
       auto row = result->fetch_one();
       if (row) {

@@ -343,5 +343,32 @@ void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options) {
   }
 }
 
+/*
+ * Check the existence of replication filters that do not exclude the
+ * metadata from being replicated.
+ * Raise an exception if invalid replication filters are found.
+ */
+void validate_replication_filters(mysqlsh::mysql::ClassicSession *session){
+  shcore::Value status = get_master_status(session->connection());
+  auto status_map = status.as_map();
+
+  std::string binlog_do_db = status_map->get_string("BINLOG_DO_DB");
+
+  if (!binlog_do_db.empty() &&
+      binlog_do_db.find("mysql_innodb_cluster_metadata") == std::string::npos)
+    throw shcore::Exception::runtime_error(
+        "Invalid 'binlog-do-db' settings, metadata cannot be excluded. Remove "
+            "binlog filters or include the 'mysql_innodb_cluster_metadata' "
+            "database in the 'binlog-do-db' option.");
+
+  std::string binlog_ignore_db = status_map->get_string("BINLOG_IGNORE_DB");
+
+  if (binlog_ignore_db.find("mysql_innodb_cluster_metadata") != std::string::npos)
+    throw shcore::Exception::runtime_error(
+        "Invalid 'binlog-ignore-db' settings, metadata cannot be excluded. "
+            "Remove binlog filters or the 'mysql_innodb_cluster_metadata' "
+            "database from the 'binlog-ignore-db' option.");
+}
+
 } // dba
 } // mysqlsh

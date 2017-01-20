@@ -300,7 +300,43 @@ function add_instance_to_cluster(cluster, port, label) {
 
   if (labeled)
     delete add_instance_extra_opts['label'];
-    
+
   if (!success)
     throw ('Failed adding instance : ' + add_instance_options + ',' + add_instance_extra_opts);
-}      
+}
+
+// Function to cleanup (if deployed) or reset the sandbox.
+function cleanup_or_reset_sandbox(port, deployed) {
+  if (deployed) {
+      cleanup_sandbox(port);
+  } else {
+      reset_or_deploy_sandbox(port);
+  }
+}
+
+// Function to restart the server (after being stopped).
+function try_restart_sandbox(port) {
+  var started = false;
+
+  options = {}
+  if (__sandbox_dir != '')
+    options['sandboxDir'] = __sandbox_dir;
+
+  print('Try starting sandbox at: ' + port);
+  started = wait(10, 1, function() {
+      try {
+          dba.startSandboxInstance(port, options);
+
+          println(' succeeded');
+          return true;
+      } catch (err) {
+          println(' failed: ' + err.message);
+          return false;
+      }
+  });
+  if (started) {
+    println('Restart succeeded at: ' + port);
+  } else {
+    println('Restart failed at: ' + port);
+  }
+}

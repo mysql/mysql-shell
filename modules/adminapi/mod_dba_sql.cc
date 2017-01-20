@@ -292,5 +292,30 @@ bool is_gtid_subset(mysqlsh::mysql::Connection *connection, const std::string &s
 
   return (ret_val == 1);
 }
+
+/*
+ * Get the master status information of the server and return a Map with the
+ * retrieved information:
+ * - FILE
+ * - POSITION
+ * - BINLOG_DO_DB
+ * - BINLOG_IGNORE_DB
+ * - EXECUTED_GTID_SET
+ */
+shcore::Value get_master_status(mysqlsh::mysql::Connection *connection) {
+  shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
+  std::string query = "SHOW MASTER STATUS";
+  auto result = connection->run_sql(query);
+  auto row = result->fetch_one();
+
+  if (row) {
+    (*status)["FILE"] = row->get_value(0);
+    (*status)["POSITION"] = row->get_value(1);
+    (*status)["BINLOG_DO_DB"] = row->get_value(2);
+    (*status)["BINLOG_IGNORE_DB"] = row->get_value(3);
+    (*status)["EXECUTED_GTID_SET"] = row->get_value(4);
+  }
+  return shcore::Value(status);
+}
 } // namespace dba
 } // namespace mysh

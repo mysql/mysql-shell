@@ -283,3 +283,34 @@ def add_instance_to_cluster(cluster, port, label = None):
 
   if not success:
     raise Exception('Failed adding instance : %s, %s' % add_instance_options, add_instance_extra_opts)
+
+
+# Function to cleanup (if deployed) or reset the sandbox.
+def cleanup_or_reset_sandbox(port, deployed):
+    if deployed:
+        cleanup_sandbox(port)
+    else:
+        reset_or_deploy_sandbox(port)
+
+
+# Function to restart the server (after being stopped).
+def try_restart_sandbox(port):
+    options = {}
+    if __sandbox_dir != '':
+        options['sandboxDir'] = __sandbox_dir
+
+    # Restart sandbox instance to use the new option.
+    print 'Try starting sandbox at: %s' % port
+    def try_start():
+        try:
+            dba.start_sandbox_instance(port, options)
+            print "succeeded"
+            return True
+        except Exception, err:
+            print "failed: %s" % str(err)
+            return False
+
+    if wait(10, 1, try_start):
+        print 'Restart succeeded at: %s' % port
+    else:
+        print 'Restart failed at: %s' % port

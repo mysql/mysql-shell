@@ -22,6 +22,7 @@
 
 #include "shellcore/types.h"
 #include "shellcore/lang_base.h"
+#include "modules/mod_mysql_session.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 
 namespace mysqlsh {
@@ -114,6 +115,7 @@ extern const char *kMemberSSLModeDisabled;
 extern const std::set<std::string> kMemberSSLModeValues;
 void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
 void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options);
+void validate_replication_filters(mysqlsh::mysql::ClassicSession *session);
 }
 }
 #endif

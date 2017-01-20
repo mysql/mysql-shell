@@ -39,6 +39,7 @@ void set_global_variable(mysqlsh::mysql::Connection *connection, const std::stri
 bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
                          std::string &value, bool throw_on_error = true);
 bool is_gtid_subset(mysqlsh::mysql::Connection *connection, const std::string &subset, const std::string &set);
+shcore::Value get_master_status(mysqlsh::mysql::Connection *connection);
 }
 }
 
