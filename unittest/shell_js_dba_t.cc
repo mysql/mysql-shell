@@ -259,15 +259,15 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   //@<OUT> Dba: checkInstanceConfiguration report with errors
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: configLocalInstance error 2
+  //@<OUT> Dba: configureLocalInstance error 2
   output_handler.passwords.push_back(_pwd);
   output_handler.prompts.push_back("");
 
-  //@<OUT> Dba: configLocalInstance error 3
+  //@<OUT> Dba: configureLocalInstance error 3
   output_handler.passwords.push_back("root");
   output_handler.prompts.push_back("mybad.cnf");
 
-  //@<OUT> Dba: configLocalInstance updating config file
+  //@<OUT> Dba: configureLocalInstance updating config file
   output_handler.passwords.push_back("root");
 
   // Validates error conditions on create, get and drop cluster

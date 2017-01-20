@@ -90,7 +90,7 @@ void Dba::init() {
   add_method("stopSandboxInstance", std::bind(&Dba::stop_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteSandboxInstance", std::bind(&Dba::delete_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killSandboxInstance", std::bind(&Dba::kill_sandbox_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("configLocalInstance", std::bind(&Dba::config_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("configureLocalInstance", std::bind(&Dba::configure_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("rebootClusterFromCompleteOutage", std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
@@ -1002,53 +1002,53 @@ shcore::Value Dba::start_sandbox_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_BRIEF, "Validates and configures an instance for cluster usage.");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_PARAM1, "@param options Additional options for the operation.");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_RETURN, "@returns A JSON object with the status.");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_BRIEF, "Validates and configures an instance for cluster usage.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM, "@param instance An instance definition.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM1, "@param options Additional options for the operation.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_RETURN, "@returns A JSON object with the status.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
 "for usage in group replication and cluster. A JSON object is returned containing the result of the operation.");
 
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL1, "The instance definition can be any of:");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL2, "@li URI string.");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2, "@li URI string.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL3, "@li Connection data dictionary.");
 
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL4, "The options parameter may include:");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL5, "@li mycnfPath: The path to the MySQL configuration file of the instance.");
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL6, "@li password: The password to be used on the connection.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL4, "The options parameter may include:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL5, "@li mycnfPath: The path to the MySQL configuration file of the instance.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL6, "@li password: The password to be used on the connection.");
 
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL7, "The password may be contained on the instance definition, however, it can be overwritten "\
 "if it is specified on the options.");
 
 
 /**
-* $(DBA_CONFIGLOCALINSTANCE_BRIEF)
+* $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
 *
-* $(DBA_CONFIGLOCALINSTANCE_PARAM)
-* $(DBA_CONFIGLOCALINSTANCE_PARAM1)
+* $(DBA_CONFIGURELOCALINSTANCE_PARAM)
+* $(DBA_CONFIGURELOCALINSTANCE_PARAM1)
 *
-* $(DBA_CONFIGLOCALINSTANCE_RETURN)
+* $(DBA_CONFIGURELOCALINSTANCE_RETURN)
 *
-* $(DBA_CONFIGLOCALINSTANCE_DETAIL)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL)
 *
-* $(DBA_CONFIGLOCALINSTANCE_DETAIL1)
-* $(DBA_CONFIGLOCALINSTANCE_DETAIL2)
-* $(DBA_CONFIGLOCALINSTANCE_DETAIL3)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL1)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL2)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL3)
 *
-* $(DBA_CONFIGLOCALINSTANCE_DETAIL4)
-* $(DBA_CONFIGLOCALINSTANCE_DETAIL5)
-* $(DBA_CONFIGLOCALINSTANCE_DETAIL6)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL5)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL6)
 *
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
-Instance Dba::configLocalInstance(InstanceDef instance, Dictionary options) {}
+Instance Dba::configureLocalInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-Instance Dba::config_local_instance(InstanceDef instance, dict options) {}
+Instance Dba::configure_local_instance(InstanceDef instance, dict options) {}
 #endif
-shcore::Value Dba::config_local_instance(const shcore::Argument_list &args) {
+shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
-  args.ensure_count(1, 2, get_function_name("configLocalInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("configureLocalInstance").c_str());
 
   try {
     auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
@@ -1060,7 +1060,7 @@ shcore::Value Dba::config_local_instance(const shcore::Argument_list &args) {
     } else
       throw shcore::Exception::runtime_error("This function only works with local instances");
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("configLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("configureLocalInstance"));
 
   return ret_val;
 }

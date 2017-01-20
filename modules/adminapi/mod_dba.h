@@ -64,7 +64,7 @@ public:
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
-  shcore::Value config_local_instance(const shcore::Argument_list &args);
+  shcore::Value configure_local_instance(const shcore::Argument_list &args);
 
   shcore::Value clone_instance(const shcore::Argument_list &args);
   shcore::Value reset_instance(const shcore::Argument_list &args);
@@ -98,7 +98,7 @@ public:
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
   Undefined checkInstanceConfiguration(InstanceDef instance, Dictionary options);
-  Instance configLocalInstance(InstanceDef instance, Dictionary options);
+  Instance configureLocalInstance(InstanceDef instance, Dictionary options);
   Undefined rebootClusterFromCompleteOutage(String clusterName, Dictionary options);
 #elif DOXYGEN_PY
   int verbose;
@@ -113,7 +113,7 @@ public:
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
   None check_instance_configuration(InstanceDef instance, dict options);
-  JSON config_local_instance(InstanceDef instance, dict options);
+  JSON configure_local_instance(InstanceDef instance, dict options);
   None reboot_cluster_from_complete_outage(str clusterName, dict options);
 #endif
 

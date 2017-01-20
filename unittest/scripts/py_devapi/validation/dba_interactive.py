@@ -11,7 +11,7 @@
 |check_instance_configuration: OK|
 |stop_sandbox_instance: OK|
 |drop_metadata_schema: OK|
-|config_local_instance: OK|
+|configure_local_instance: OK|
 |verbose: OK|
 |reboot_cluster_from_complete_outage: OK|
 
@@ -85,24 +85,24 @@ The following issues were encountered:
 
 Please fix these issues and try again.
 
-#@ Dba: config_local_instance error 1
-||Dba.config_local_instance: This function only works with local instances
+#@ Dba: configure_local_instance error 1
+||Dba.configure_local_instance: This function only works with local instances
 
-#@<OUT> Dba: config_local_instance error 2
+#@<OUT> Dba: configure_local_instance error 2
 Please provide the password for 'root@localhost:<<<__mysql_port>>>': Please specify the path to the MySQL configuration file:
 The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
 
-#@<OUT> Dba: config_local_instance error 3
+#@<OUT> Dba: configure_local_instance error 3
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':
 Detected as sandbox instance.
 
 Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Validating instance...
 
-#@<ERR> Dba: config_local_instance error 3
-RuntimeError: Dba.config_local_instance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+#@<ERR> Dba: configure_local_instance error 3
+RuntimeError: Dba.configure_local_instance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
-#@<OUT> Dba: config_local_instance updating config file
+#@<OUT> Dba: configure_local_instance updating config file
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage

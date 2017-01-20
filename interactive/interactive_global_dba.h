@@ -45,7 +45,7 @@ public:
   shcore::Value get_cluster(const shcore::Argument_list &args);
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);
-  shcore::Value config_local_instance(const shcore::Argument_list &args);
+  shcore::Value configure_local_instance(const shcore::Argument_list &args);
 
 private:
   mysqlsh::dba::ReplicationGroupState check_preconditions(const std::string& function_name) const;

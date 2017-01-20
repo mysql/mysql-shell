@@ -7,7 +7,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, password:'root'});
 
 //@<OUT> Standalone Instance : config local instance
-dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:'root'}, {mycnfPath:'mybad.cnf'});
+dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:'root'}, {mycnfPath:'mybad.cnf'});
 
 //@<OUT> Standalone Instance: create cluster
 if (__have_ssl)
@@ -50,7 +50,7 @@ var cluster = dba.getCluster()
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port3, password:'root'});
 
 //@<OUT> Read Only Instance : config local instance
-dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port3, password:'root'}, {mycnfPath:'mybad.cnf'});
+dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port3, password:'root'}, {mycnfPath:'mybad.cnf'});
 
 //@<OUT> Read Only Instance : check instance state
 cluster.checkInstanceState({host: localhost, port: __mysql_sandbox_port3, password: 'root'});
@@ -102,7 +102,7 @@ var cluster = dba.getCluster();
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port3, password:'root'});
 
 //@<OUT> Quorumless Cluster : config local instance
-dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port3, password:'root'}, {mycnfPath:'mybad.cnf'});
+dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port3, password:'root'}, {mycnfPath:'mybad.cnf'});
 
 //@<OUT> Quorumless Cluster : describe
 cluster.describe();

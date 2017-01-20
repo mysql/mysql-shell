@@ -11,7 +11,7 @@
 |checkInstanceConfiguration: OK|
 |stopSandboxInstance: OK|
 |dropMetadataSchema: OK|
-|configLocalInstance: OK|
+|configureLocalInstance: OK|
 |verbose: OK|
 |rebootClusterFromCompleteOutage: OK|
 
@@ -85,24 +85,24 @@ The following issues were encountered:
 
 Please fix these issues and try again.
 
-//@ Dba: configLocalInstance error 1
-||Dba.configLocalInstance: This function only works with local instances
+//@ Dba: configureLocalInstance error 1
+||Dba.configureLocalInstance: This function only works with local instances
 
-//@<OUT> Dba: configLocalInstance error 2
+//@<OUT> Dba: configureLocalInstance error 2
 Please provide the password for 'root@localhost:<<<__mysql_port>>>': Please specify the path to the MySQL configuration file:
 The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
 
-//@<OUT> Dba: configLocalInstance error 3
+//@<OUT> Dba: configureLocalInstance error 3
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':
 Detected as sandbox instance.
 
 Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Validating instance...
 
-//@<ERR> Dba: configLocalInstance error 3
-Dba.configLocalInstance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+//@<ERR> Dba: configureLocalInstance error 3
+Dba.configureLocalInstance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
-//@<OUT> Dba: configLocalInstance updating config file
+//@<OUT> Dba: configureLocalInstance updating config file
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage

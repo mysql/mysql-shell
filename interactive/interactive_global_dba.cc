@@ -44,7 +44,7 @@ void Global_dba::init() {
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("checkInstanceConfiguration", std::bind(&Global_dba::check_instance_configuration, this, _1), "data", shcore::Map, NULL);
-  add_method("configLocalInstance", std::bind(&Global_dba::config_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("configureLocalInstance", std::bind(&Global_dba::configure_local_instance, this, _1), "data", shcore::Map, NULL);
 }
 
 mysqlsh::dba::ReplicationGroupState Global_dba::check_preconditions(const std::string& function_name) const {
@@ -759,8 +759,8 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args, 
   return !cnfPath.empty();
 }
 
-shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("configLocalInstance").c_str());
+shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &args) {
+  args.ensure_count(1, 2, get_function_name("configureLocalInstance").c_str());
 
   std::string uri, answer, user;
   shcore::Value::Map_type_ref instance_def;
@@ -806,14 +806,14 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
       }
     }
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("configLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("configureLocalInstance"));
 
   println("Validating instance...");
   println();
 
   // Algorithm Step 2: Call mp on the provided MySQL URI with the validate option
   // Algorithm Step 3: IF GR is already active on the remote server, stop and tell user that the server is already part of a group and return
-  shcore::Value validation_report = call_target("configLocalInstance", target_args);
+  shcore::Value validation_report = call_target("configureLocalInstance", target_args);
 
   auto result = validation_report.as_map();
 

@@ -7,7 +7,7 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root',
 dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'})
 
 #@<OUT> Standalone Instance : config local instance
-dba.config_local_instance({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
+dba.configure_local_instance({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
 
 #@<OUT> Standalone Instance: create cluster
 if __have_ssl:
@@ -49,7 +49,7 @@ cluster = dba.get_cluster()
 dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
 
 #@<OUT> Read Only Instance : config local instance
-dba.config_local_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
+dba.configure_local_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
 
 #@<OUT> Read Only Instance : check instance state
 cluster.check_instance_state({'host': localhost, 'port': __mysql_sandbox_port3, 'password': 'root'})
@@ -101,7 +101,7 @@ cluster = dba.get_cluster()
 dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
 
 #@<OUT> Quorumless Cluster : config local instance
-dba.config_local_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
+dba.configure_local_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
 
 #@<OUT> Quorumless Cluster : describe
 cluster.describe()
