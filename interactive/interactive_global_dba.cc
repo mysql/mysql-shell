@@ -43,7 +43,7 @@ void Global_dba::init() {
 
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
-  add_method("checkInstanceConfig", std::bind(&Global_dba::check_instance_config, this, _1), "data", shcore::Map, NULL);
+  add_method("checkInstanceConfiguration", std::bind(&Global_dba::check_instance_configuration, this, _1), "data", shcore::Map, NULL);
   add_method("configLocalInstance", std::bind(&Global_dba::config_local_instance, this, _1), "data", shcore::Map, NULL);
 }
 
@@ -642,11 +642,11 @@ void Global_dba::print_validation_results(const shcore::Value::Map_type_ref& res
   }
 }
 
-shcore::Value Global_dba::check_instance_config(const shcore::Argument_list &args) {
+shcore::Value Global_dba::check_instance_configuration(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
-  args.ensure_count(1, 2, get_function_name("checkInstanceConfig").c_str());
+  args.ensure_count(1, 2, get_function_name("checkInstanceConfiguration").c_str());
 
   std::string uri, user;
 
@@ -674,7 +674,7 @@ shcore::Value Global_dba::check_instance_config(const shcore::Argument_list &arg
   println("Validating instance...");
   println();
 
-  ret_val = call_target("checkInstanceConfig", new_args);
+  ret_val = call_target("checkInstanceConfiguration", new_args);
 
   if (format.find("json") != std::string::npos)
     print_value(ret_val, "");

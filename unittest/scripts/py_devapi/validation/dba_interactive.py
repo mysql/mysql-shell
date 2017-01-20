@@ -8,7 +8,7 @@
 |kill_sandbox_instance: OK|
 |reset_session: OK|
 |start_sandbox_instance: OK|
-|check_instance_config: OK|
+|check_instance_configuration: OK|
 |stop_sandbox_instance: OK|
 |drop_metadata_schema: OK|
 |config_local_instance: OK|
@@ -38,10 +38,10 @@ Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
-#@ Dba: check_instance_config error
-|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.check_instance_config: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+#@ Dba: check_instance_configuration error
+|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.check_instance_configuration: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
-#@<OUT> Dba: check_instance_config ok 1
+#@<OUT> Dba: check_instance_configuration ok 1
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
@@ -49,7 +49,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
     "status": "ok"
 }
 
-#@<OUT> Dba: check_instance_config ok 2
+#@<OUT> Dba: check_instance_configuration ok 2
 Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
@@ -58,7 +58,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
 }
 
 
-#@<OUT> Dba: check_instance_config report with errors
+#@<OUT> Dba: check_instance_configuration report with errors
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is not valid for Cluster usage.

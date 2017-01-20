@@ -4,7 +4,7 @@ var deployed_here = reset_or_deploy_sandboxes();
 
 //@<OUT> Standalone Instance : check instance config
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-dba.checkInstanceConfig({host: localhost, port: __mysql_sandbox_port1, password:'root'});
+dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, password:'root'});
 
 //@<OUT> Standalone Instance : config local instance
 dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:'root'}, {mycnfPath:'mybad.cnf'});
@@ -47,7 +47,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port2, user: 'root', passw
 var cluster = dba.getCluster()
 
 //@<OUT> Read Only Instance : check instance config
-dba.checkInstanceConfig({host: localhost, port: __mysql_sandbox_port3, password:'root'});
+dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port3, password:'root'});
 
 //@<OUT> Read Only Instance : config local instance
 dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port3, password:'root'}, {mycnfPath:'mybad.cnf'});
@@ -99,7 +99,7 @@ cluster.rescan();
 var cluster = dba.getCluster();
 
 //@<OUT> Quorumless Cluster : check instance config
-dba.checkInstanceConfig({host: localhost, port: __mysql_sandbox_port3, password:'root'});
+dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port3, password:'root'});
 
 //@<OUT> Quorumless Cluster : config local instance
 dba.configLocalInstance({host: localhost, port: __mysql_sandbox_port3, password:'root'}, {mycnfPath:'mybad.cnf'});

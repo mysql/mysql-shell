@@ -8,7 +8,7 @@
 |kill_sandbox_instance: OK|
 |reset_session: OK|
 |start_sandbox_instance: OK|
-|check_instance_config: OK|
+|check_instance_configuration: OK|
 |stop_sandbox_instance: OK|
 |drop_metadata_schema: OK|
 |config_local_instance: OK|
@@ -34,21 +34,21 @@
 #@# Dba: create_cluster already exist
 ||Dba.create_cluster: Cluster is already initialized. Use Dba.get_cluster() to access it
 
-#@# Dba: check_instance_config errors
-||Dba.check_instance_config: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
-||Dba.check_instance_config: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
-||Dba.check_instance_config: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+#@# Dba: check_instance_configuration errors
+||Dba.check_instance_configuration: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.check_instance_configuration: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
+||Dba.check_instance_configuration: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
-#@ Dba: check_instance_config ok1
+#@ Dba: check_instance_configuration ok1
 |ok|
 
-#@ Dba: check_instance_config ok2
+#@ Dba: check_instance_configuration ok2
 |ok|
 
-#@ Dba: check_instance_config ok3
+#@ Dba: check_instance_configuration ok3
 |ok|
 
-#@<OUT> Dba: check_instance_config report with errors
+#@<OUT> Dba: check_instance_configuration report with errors
 {
     "config_errors": [
         {

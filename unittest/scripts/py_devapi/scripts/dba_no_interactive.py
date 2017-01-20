@@ -22,7 +22,7 @@ validateMember(members, 'help');
 validateMember(members, 'kill_sandbox_instance');
 validateMember(members, 'reset_session');
 validateMember(members, 'start_sandbox_instance');
-validateMember(members, 'check_instance_config');
+validateMember(members, 'check_instance_configuration');
 validateMember(members, 'stop_sandbox_instance');
 validateMember(members, 'config_local_instance');
 validateMember(members, 'verbose');
@@ -55,26 +55,26 @@ print c1
 #@# Dba: create_cluster already exist
 c1 = dba.create_cluster('devCluster');
 
-#@# Dba: check_instance_config errors
-dba.check_instance_config('localhost:' + str(__mysql_sandbox_port1));
-dba.check_instance_config('sample@localhost:' + str(__mysql_sandbox_port1));
-result = dba.check_instance_config('root:root@localhost:' + str(__mysql_sandbox_port1));
+#@# Dba: check_instance_configuration errors
+dba.check_instance_configuration('localhost:' + str(__mysql_sandbox_port1));
+dba.check_instance_configuration('sample@localhost:' + str(__mysql_sandbox_port1));
+result = dba.check_instance_configuration('root:root@localhost:' + str(__mysql_sandbox_port1));
 
-#@ Dba: check_instance_config ok1
+#@ Dba: check_instance_configuration ok1
 uri2 = 'root:root@localhost:' + str(__mysql_sandbox_port2);
-result = dba.check_instance_config(uri2);
+result = dba.check_instance_configuration(uri2);
 print (result.status)
 
-#@ Dba: check_instance_config ok2
-result = dba.check_instance_config('root@localhost:' + str(__mysql_sandbox_port2), {'password':'root'});
+#@ Dba: check_instance_configuration ok2
+result = dba.check_instance_configuration('root@localhost:' + str(__mysql_sandbox_port2), {'password':'root'});
 print (result.status)
 
-#@ Dba: check_instance_config ok3
-result = dba.check_instance_config('root@localhost:' + str(__mysql_sandbox_port2), {'dbPassword':'root'});
+#@ Dba: check_instance_configuration ok3
+result = dba.check_instance_configuration('root@localhost:' + str(__mysql_sandbox_port2), {'dbPassword':'root'});
 print (result.status)
 
-#@<OUT> Dba: check_instance_config report with errors
-dba.check_instance_config(uri2, {'mycnfPath':'mybad.cnf'});
+#@<OUT> Dba: check_instance_configuration report with errors
+dba.check_instance_configuration(uri2, {'mycnfPath':'mybad.cnf'});
 
 #@# Dba: config_local_instance errors
 dba.config_local_instance('someotherhost:' + str(__mysql_sandbox_port1));

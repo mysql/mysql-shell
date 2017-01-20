@@ -44,7 +44,7 @@ public:
   shcore::Value create_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster(const shcore::Argument_list &args);
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
-  shcore::Value check_instance_config(const shcore::Argument_list &args);
+  shcore::Value check_instance_configuration(const shcore::Argument_list &args);
   shcore::Value config_local_instance(const shcore::Argument_list &args);
 
 private:

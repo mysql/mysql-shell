@@ -84,7 +84,7 @@ void Dba::init() {
   add_method("createCluster", std::bind(&Dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("getCluster", std::bind(&Dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
-  add_method("checkInstanceConfig", std::bind(&Dba::check_instance_config, this, _1), "data", shcore::Map, NULL);
+  add_method("checkInstanceConfiguration", std::bind(&Dba::check_instance_configuration, this, _1), "data", shcore::Map, NULL);
   add_method("deploySandboxInstance", std::bind(&Dba::deploy_sandbox_instance, this, _1, "deploySandboxInstance"), "data", shcore::Map, NULL);
   add_method("startSandboxInstance", std::bind(&Dba::start_sandbox_instance, this, _1), "data", shcore::Map, NULL);
   add_method("stopSandboxInstance", std::bind(&Dba::stop_sandbox_instance, this, _1), "data", shcore::Map, NULL);
@@ -598,19 +598,19 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL7, "The password may be contained on
 * $(DBA_CHECKINSTANCECONFIG_DETAIL7)
 */
 #if DOXYGEN_JS
-Undefined Dba::checkInstanceConfig(InstanceDef instance, Dictionary options) {}
+Undefined Dba::checkInstanceConfiguration(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::check_instance_config(InstanceDef instance, dict options) {}
+None Dba::check_instance_configuration(InstanceDef instance, dict options) {}
 #endif
-shcore::Value Dba::check_instance_config(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("checkInstanceConfig").c_str());
+shcore::Value Dba::check_instance_configuration(const shcore::Argument_list &args) {
+  args.ensure_count(1, 2, get_function_name("checkInstanceConfiguration").c_str());
 
   shcore::Value ret_val;
 
   try {
-    ret_val = shcore::Value(_check_instance_config(args, false));
+    ret_val = shcore::Value(_check_instance_configuration(args, false));
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("checkInstanceConfig"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("checkInstanceConfiguration"));
 
   return ret_val;
 }
@@ -1056,7 +1056,7 @@ shcore::Value Dba::config_local_instance(const shcore::Argument_list &args) {
     shcore::Argument_map opt_map(*instance_def);
 
     if (shcore::is_local_host(opt_map.string_at("host"), true)) {
-      ret_val = shcore::Value(_check_instance_config(args, true));
+      ret_val = shcore::Value(_check_instance_configuration(args, true));
     } else
       throw shcore::Exception::runtime_error("This function only works with local instances");
   }
@@ -1088,7 +1088,7 @@ std::shared_ptr<mysqlsh::mysql::ClassicSession> Dba::get_session(const shcore::A
   return ret_val;
 }
 
-shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_list &args, bool allow_update) {
+shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Argument_list &args, bool allow_update) {
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
 
   // Validates the connection options
@@ -1155,7 +1155,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
     if (instance_def->has_key("sslKey"))
       (*instance_ssl_opts)["sslKey"] = Value(instance_def->get_string("sslKey"));
 
-    // Verbose is mandatory for checkInstanceConfig
+    // Verbose is mandatory for checkInstanceConfiguration
     shcore::Value::Array_type_ref mp_errors;
     if (_provisioning_interface->check(user, host, port, password, instance_ssl_opts, cnfpath, allow_update, mp_errors) == 0)
       (*ret_val)["status"] = shcore::Value("ok");

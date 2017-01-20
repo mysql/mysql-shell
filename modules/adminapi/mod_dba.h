@@ -58,7 +58,7 @@ public:
   virtual int get_default_port() { return 33060; };
   int get_default_instance_port() { return 3306; }
 
-  shcore::Value check_instance_config(const shcore::Argument_list &args);
+  shcore::Value check_instance_configuration(const shcore::Argument_list &args);
   shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args, const std::string &fname); // create and start
   shcore::Value stop_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
@@ -97,7 +97,7 @@ public:
   Undefined resetSession(Session session);
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
-  Undefined checkInstanceConfig(InstanceDef instance, Dictionary options);
+  Undefined checkInstanceConfiguration(InstanceDef instance, Dictionary options);
   Instance configLocalInstance(InstanceDef instance, Dictionary options);
   Undefined rebootClusterFromCompleteOutage(String clusterName, Dictionary options);
 #elif DOXYGEN_PY
@@ -112,7 +112,7 @@ public:
   None reset_session(Session session);
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
-  None check_instance_config(InstanceDef instance, dict options);
+  None check_instance_configuration(InstanceDef instance, dict options);
   JSON config_local_instance(InstanceDef instance, dict options);
   None reboot_cluster_from_complete_outage(str clusterName, dict options);
 #endif
@@ -131,7 +131,7 @@ private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
   shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
-  shcore::Value::Map_type_ref _check_instance_config(const shcore::Argument_list &args, bool allow_update);
+  shcore::Value::Map_type_ref _check_instance_configuration(const shcore::Argument_list &args, bool allow_update);
 
   static std::map <std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession> > _session_cache;
 };

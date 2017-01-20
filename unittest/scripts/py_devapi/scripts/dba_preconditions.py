@@ -4,7 +4,7 @@ deployed_here = reset_or_deploy_sandboxes()
 
 #@<OUT> Standalone Instance : check instance config
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
-dba.check_instance_config({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'})
+dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'})
 
 #@<OUT> Standalone Instance : config local instance
 dba.config_local_instance({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
@@ -46,7 +46,7 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root',
 cluster = dba.get_cluster()
 
 #@<OUT> Read Only Instance : check instance config
-dba.check_instance_config({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
+dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
 
 #@<OUT> Read Only Instance : config local instance
 dba.config_local_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})
@@ -98,7 +98,7 @@ cluster.rescan()
 cluster = dba.get_cluster()
 
 #@<OUT> Quorumless Cluster : check instance config
-dba.check_instance_config({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
+dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
 
 #@<OUT> Quorumless Cluster : config local instance
 dba.config_local_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password':'root'}, {'mycnfPath': 'mybad.cnf'})

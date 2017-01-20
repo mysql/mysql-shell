@@ -250,13 +250,13 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
 
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
-  //@# Dba: checkInstanceConfig error
+  //@# Dba: checkInstanceConfiguration error
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: checkInstanceConfig ok 1
+  //@<OUT> Dba: checkInstanceConfiguration ok 1
   output_handler.passwords.push_back("root");
 
-  //@<OUT> Dba: checkInstanceConfig report with errors
+  //@<OUT> Dba: checkInstanceConfiguration report with errors
   output_handler.passwords.push_back("root");
 
   //@<OUT> Dba: configLocalInstance error 2

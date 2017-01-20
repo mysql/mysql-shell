@@ -15,7 +15,7 @@ validateMember(members, 'help');
 validateMember(members, 'killSandboxInstance');
 validateMember(members, 'resetSession');
 validateMember(members, 'startSandboxInstance');
-validateMember(members, 'checkInstanceConfig');
+validateMember(members, 'checkInstanceConfiguration');
 validateMember(members, 'stopSandboxInstance');
 validateMember(members, 'configLocalInstance');
 validateMember(members, 'verbose');
@@ -42,18 +42,18 @@ else
 
 // TODO: add multi-master unit-tests
 
-//@ Dba: checkInstanceConfig error
-dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port1);
+//@ Dba: checkInstanceConfiguration error
+dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port1);
 
-//@<OUT> Dba: checkInstanceConfig ok 1
-dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port2);
+//@<OUT> Dba: checkInstanceConfiguration ok 1
+dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port2);
 
-//@<OUT> Dba: checkInstanceConfig ok 2
-dba.checkInstanceConfig('localhost:' + __mysql_sandbox_port2, {password:'root'});
+//@<OUT> Dba: checkInstanceConfiguration ok 2
+dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port2, {password:'root'});
 
-//@<OUT> Dba: checkInstanceConfig report with errors
+//@<OUT> Dba: checkInstanceConfiguration report with errors
 var uri2 = 'localhost:' + __mysql_sandbox_port2;
-var res = dba.checkInstanceConfig(uri2, {mycnfPath:'mybad.cnf'});
+var res = dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 
 //@ Dba: configLocalInstance error 1
 dba.configLocalInstance('someotherhost:' + __mysql_sandbox_port1);
