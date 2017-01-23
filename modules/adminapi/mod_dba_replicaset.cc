@@ -230,10 +230,10 @@ void ReplicaSet::validate_instance_address(std::shared_ptr<mysqlsh::mysql::Class
     // if the address is local (localhost or 127.0.0.1), we know it's local and so
     // can be used with sandboxes only
     std::string datadir = session->execute_sql("SELECT @@datadir")->fetch_one()->get_value_as_string(0);
-    if (datadir[datadir.size() - 1] == '/' || datadir[datadir.size() - 1] == '\\')
+    if (!datadir.empty() && (datadir[datadir.size() - 1] == '/' || datadir[datadir.size() - 1] == '\\'))
       datadir.pop_back();
-    if (datadir.compare(datadir.length() - kSandboxDatadir.length(), kSandboxDatadir.length(),
-                        kSandboxDatadir) != 0) {
+    if (datadir.length() < kSandboxDatadir.length() ||
+        datadir.compare(datadir.length() - kSandboxDatadir.length(), kSandboxDatadir.length(), kSandboxDatadir) != 0) {
       log_info("'%s' is a local address but not in a sandbox (datadir %s)",
                hostname.c_str(), datadir.c_str());
       throw shcore::Exception::runtime_error(
