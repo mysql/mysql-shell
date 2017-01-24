@@ -669,6 +669,7 @@ def join(server_info, peer_server_info, **kwargs):
                                   to be consistent with the SSL GR modes on the
                                   peer-server otherwise an error will be
                                   thrown).
+                        skip_rpl_user: If True, skip the creation of the replication user.
     :type kwargs:   dict
 
     :raise GadgetError:         If server_info or peer_server_info is None.
@@ -689,6 +690,7 @@ def join(server_info, peer_server_info, **kwargs):
     skip_backup = kwargs.get("skip_backup", False)
     # Default is value for ssl_mode is REQUIRED
     ssl_mode = kwargs.get("ssl_mode", GR_SSL_REQUIRED)
+    skip_rpl_user = kwargs.get("skip_rpl_user", False)
 
     # Connect to the server
     server = get_server(server_info=server_info)
@@ -736,10 +738,16 @@ def join(server_info, peer_server_info, **kwargs):
         # value of the ssl_mode option.
         check_peer_ssl_compatibility(peer_server, ssl_mode)
 
-        rpl_user_dict = get_rpl_usr(kwargs)
+        if not skip_rpl_user:
+            rpl_user_dict = get_rpl_usr(kwargs)
 
-        req_dict = get_req_dict(server, rpl_user_dict["replication_user"],
-                                peer_server, option_file=option_file)
+            req_dict = get_req_dict(server, rpl_user_dict["replication_user"],
+                                    peer_server, option_file=option_file)
+        else:
+            # if replication user is to be skipped, no need to add the replication user to the requirements list
+            req_dict = get_req_dict(server, None, peer_server,
+                                    option_file=option_file)
+            rpl_user_dict = None
 
         check_server_requirements(server, req_dict, rpl_user_dict, verbose,
                                   dry_run, skip_backup=skip_backup)
@@ -779,20 +787,25 @@ def join(server_info, peer_server_info, **kwargs):
         gr_config_vars = get_gr_config_vars(local_address, kwargs,
                                             option_parser, peer_local_address)
 
-        # The replication user for be check/create on the peer server.
-        # NOTE: rpl_user_dict["host"] has the FQDN resolved from the host
-        # provided by the user.
-        replication_user = "{0}@'{1}'".format(rpl_user_dict["recovery_user"],
-                                              rpl_user_dict["host"])
-        rpl_user_dict["replication_user"] = replication_user
+        # Do several replication user related tasks if the skip-replication-user option was not provided
+        if not skip_rpl_user:
+            # The replication user for be check/create on the peer server.
+            # NOTE: rpl_user_dict["host"] has the FQDN resolved from the host
+            # provided by the user
+            replication_user = "{0}@'{1}'".format(
+                rpl_user_dict["recovery_user"], rpl_user_dict["host"])
+            rpl_user_dict["replication_user"] = replication_user
 
-        # Check the given replication user exists on peer
-        req_dict_user = get_req_dict_user_check(peer_server, replication_user)
+            # Check the given replication user exists on peer
+            req_dict_user = get_req_dict_user_check(peer_server,
+                                                    replication_user)
 
-        # Check and create the given replication user on peer server.
-        # NOTE: No other checks will be performed, only the replication user.
-        check_server_requirements(peer_server, req_dict_user, rpl_user_dict,
-                                  verbose, dry_run, skip_schema_checks=True)
+            # Check and create the given replication user on peer server.
+            # NOTE: No other checks will be performed, only the replication
+            # user.
+            check_server_requirements(peer_server, req_dict_user,
+                                      rpl_user_dict, verbose, dry_run,
+                                      skip_schema_checks=True)
 
         # IF the group name is not set, try to acquire it from a peer server.
         if gr_config_vars[GR_GROUP_NAME] is None:
@@ -830,9 +843,11 @@ def join(server_info, peer_server_info, **kwargs):
 
         setup_gr_config(server, gr_config_vars, dry_run=dry_run)
 
-        # Run the change master to store MySQL replication user name or
-        # password information in the master info repository
-        do_change_master(server, rpl_user_dict, dry_run=dry_run)
+        if not skip_rpl_user:
+            # if the skip replication user option was not specified,
+            # run the change master to store MySQL replication user name or
+            # password information in the master info repository
+            do_change_master(server, rpl_user_dict, dry_run=dry_run)
 
         _LOGGER.log(STEP_LOG_LEVEL_VALUE,
                     "Attempting to join to Group Replication group...")

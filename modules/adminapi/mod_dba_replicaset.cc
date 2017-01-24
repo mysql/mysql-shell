@@ -475,7 +475,7 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   shcore::Value ret_val;
   int exit_code = -1;
 
-  bool is_seed_instance = peer_instance_url.empty() ? true : false;
+  bool is_seed_instance = peer_instance_url.empty();
 
   std::string command;
   shcore::Value::Array_type_ref errors;
@@ -491,8 +491,7 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
     exit_code = _cluster->get_provisioning_interface()->join_replicaset(instance_url,
                 repl_user, peer_instance_url,
                 super_user_password, repl_user_password,
-                _topology_type == kTopologyMultiMaster,
-                ssl_mode, ip_whitelist,
+                ssl_mode, ip_whitelist, "", false,
                 errors);
   }
 
@@ -546,7 +545,7 @@ shcore::Value ReplicaSet::rejoin_instance_(const shcore::Argument_list &args) {
 shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string host;
-  int port = 0;
+  int port = 0, exit_code;
   std::string ssl_mode = mysqlsh::dba::kMemberSSLModeAuto; //SSL Mode AUTO by default
   std::string ip_whitelist;
 
@@ -603,6 +602,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   // Sets a default user if not specified
   resolve_instance_credentials(instance_def, nullptr);
   std::string password = instance_def->get_string(instance_def->has_key("password") ? "password" : "dbPassword");
+  std::string user = instance_def->get_string(instance_def->has_key("user") ? "user" : "dbUser");
 
   std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
   mysqlsh::mysql::ClassicSession *classic;
@@ -648,19 +648,13 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     }
   }
 
-  // To rejoin an instance we must set the seeds list at: group_replication_group_seeds
-  // And to start group replication
-
-  std::string peer_instance_xcom_address, peer_instance_group_name;
+  std::string peer_instance_xcom_address;
+  shcore::Value::Array_type_ref errors;
 
   // Get @@group_replication_local_address
   get_server_variable(classic->connection(), "group_replication_local_address", peer_instance_xcom_address);
 
-  // Get @@group_replication_group_name
-  get_server_variable(classic->connection(), "group_replication_group_name", peer_instance_group_name);
-
-  // Set group_replication_group_seeds, group_replication_group_name,
-  // group_replication_local_address, and restart group_replication
+  // join Instance to cluster
   {
     try {
       log_info("Opening a new session to the rejoining instance %s",
@@ -691,78 +685,17 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     temp_args.push_back(shcore::Value("STOP GROUP_REPLICATION"));
     classic->run_sql(temp_args);
 
-    // Set the group_seeds
-    log_info("Setting the group_replication_group_seeds at instance %s",
-             instance_address.c_str());
-
-    set_global_variable(classic->connection(), "group_replication_group_seeds", peer_instance_xcom_address);
-
-    // Set the group_name
-    log_info("Setting the group_replication_group_name at instance %s",
-             instance_address.c_str());
-
-    set_global_variable(classic->connection(), "group_replication_group_name", peer_instance_group_name);
-
-    // Set the local_address
-    int local_address_port = port + 10000;
-
-    // if port is >= 65535 generate a random number
-    if (port >= 65535) {
-      std::random_device rd;
-      std::mt19937 eng(rd());
-      std::uniform_int_distribution<> distr(10000, 65535); // define the range
-      local_address_port = distr(eng);
-    }
-    // TODO: shall we verify if the assigned port is in use?
-
-    std::string local_address_host = host;
-    std::string local_address = local_address_host + ":" + std::to_string(local_address_port);
-
-    set_global_variable(classic->connection(), "group_replication_local_address", local_address);
-
-    // Set Ip whitelist
-    if (!ip_whitelist.empty()) {
-      log_info("Setting the group_replication_ip_whitelist at instance %s",
-               instance_address.c_str());
-      set_global_variable(classic->connection(),
-                          "group_replication_ip_whitelist", ip_whitelist);
-    }
-
-    // Set SSL option
-    std::string gr_use_ssl;
-    std::string gr_ssl_mode;
-    if (ssl_mode == dba::kMemberSSLModeRequired) {
-      gr_use_ssl = "ON";
-      gr_ssl_mode = "REQUIRED";
-    } else {
-      gr_use_ssl = "OFF";
-      gr_ssl_mode = "DISABLED";
-    }
-    log_info("Setting the group_replication_recovery_use_ssl at instance %s",
-             instance_address.c_str());
-    set_global_variable(classic->connection(),
-                        "group_replication_recovery_use_ssl", gr_use_ssl);
-    log_info("Setting the group_replication_ssl_mode at instance %s",
-             instance_address.c_str());
-    set_global_variable(classic->connection(),
-                        "group_replication_ssl_mode", gr_ssl_mode);
-
-    // If multiMaster is being used, we must set group_replication_single_primary_mode to OFF
-    if (_topology_type == kTopologyMultiMaster) {
-      log_info("Setting the group_replication_single_primary_mode at instance %s",
-                instance_address.c_str());
-
-      set_global_variable(classic->connection(), "group_replication_single_primary_mode", "OFF");
-    }
-
-    // Start group-replication
-    log_info("Starting group-replication at instance %s",
-             instance_address.c_str());
-    temp_args.clear();
-    temp_args.push_back(shcore::Value("START GROUP_REPLICATION"));
-    classic->run_sql(temp_args);
-
-    // TODO: do we check if 'start group_replication' was successful?
+    // use mysqlprovision to rejoin the cluster.
+    exit_code = _cluster->get_provisioning_interface()->join_replicaset(user + "@" + instance_address, "",
+                                                                        user+ "@" + peer_instance,
+                                                                        password, "",
+                                                                        ssl_mode, ip_whitelist,
+                                                                        peer_instance_xcom_address, true,
+                                                                        errors);
+    if (exit_code == 0) {
+        ret_val = shcore::Value("The instance '" + instance_address + "' was successfully added to the MySQL Cluster.");
+    } else
+      throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
   }
   return ret_val;
 }

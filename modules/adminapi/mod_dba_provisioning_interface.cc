@@ -432,18 +432,39 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
   return execute_mysqlprovision("start-replicaset", args, passwords, errors, _verbose);
 }
 
+/*
+ * Function that wraps the mysqlprovision call join-replicaset.
+ *  It takes the following parameters:
+ * @param instance_url Url of the server that is to be added to the cluster.
+ * @param repl_user Name of the replication user that is to be created for recovery purposes.
+ * @param peer_instance_url Url of the peer server that already belongs to the cluster.
+ * @param super_user_password Password of the super user
+ * @param ssl_mode SSL mode to be used with group replication.
+ *                (Note server GR SSL modes need to be consistent with the SSL GR modes on the
+ *                peer-server otherwise an error will be thrown).
+ * @param ip_whitelist String with the comma separated list of hosts allowed to connect to the instance for Group
+ *                     Replication using simple IP addresses or subnet CIDR notation,
+ *                     for example: 192.168.1.0/24,10.0.0.1.
+ * @param gr_group_seeds String with the comma separated list of addresses of the group seeds (the servers that are
+ *                       part of the group), in the form (host:port)[,(host:port)].
+ * @param skip_rpl_user If True, skip the creation of the replication user on the instance.
+ * @param errors Reference to array where any errors/warnings thrown by the mysqlprovision tool call are stored.
+ * @return The return code of the mysqlprovision tool execution.
+ */
 int ProvisioningInterface::join_replicaset(const std::string &instance_url, const std::string &repl_user,
-                                      const std::string &peer_instance_url, const std::string &super_user_password,
-                                      const std::string &repl_user_password,
-                                      bool multi_master, const std::string &ssl_mode,
-                                      const std::string &ip_whitelist,
-                                      shcore::Value::Array_type_ref &errors) {
+                                           const std::string &peer_instance_url, const std::string &super_user_password,
+                                           const std::string &repl_user_password,
+                                           const std::string &ssl_mode, const std::string &ip_whitelist,
+                                           const std::string &gr_group_seeds,
+                                           bool skip_rpl_user,
+                                           shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
   std::string repl_user_pwd = repl_user_password;
   std::string ssl_mode_opt;
   std::string ip_whitelist_opt;
+  std::string gr_group_seeds_opt;
 
   instance_args = "--instance=" + instance_url;
   repl_user_args = "--replication-user=" + repl_user;
@@ -474,6 +495,15 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
     ip_whitelist_opt = "--ip-whitelist=" + ip_whitelist;
     args.push_back(ip_whitelist_opt.c_str());
   }
+
+  if (!gr_group_seeds.empty()) {
+    gr_group_seeds_opt = "--group-seeds=" + gr_group_seeds;
+    args.push_back(gr_group_seeds_opt.c_str());
+  }
+
+  if (skip_rpl_user)
+    args.push_back("--skip-replication-user");
+
   args.push_back("--stdin");
 
   return execute_mysqlprovision("join-replicaset", args, passwords, errors, _verbose);

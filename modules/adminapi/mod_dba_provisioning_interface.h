@@ -59,13 +59,15 @@ public:
                    shcore::Value::Array_type_ref &errors);
   int start_replicaset(const std::string &instance_url, const std::string &repl_user,
                  const std::string &super_user_password, const std::string &repl_user_password,
-                 bool multi_master, const std::string &ssl_mode, const std::string &ip_whitelist, 
-                 shcore::Value::Array_type_ref &errors);
-  int join_replicaset(const std::string &instance_url, const std::string &repl_user,
-                 const std::string &peer_instance_url, const std::string &super_user_password,
-                 const std::string &repl_user_password,
                  bool multi_master, const std::string &ssl_mode, const std::string &ip_whitelist,
                  shcore::Value::Array_type_ref &errors);
+  int join_replicaset(const std::string &instance_url, const std::string &repl_user,
+                      const std::string &peer_instance_url, const std::string &super_user_password,
+                      const std::string &repl_user_password,
+                      const std::string &ssl_mode, const std::string &ip_whitelist,
+                      const std::string &gr_group_seeds,
+                      bool skip_rpl_user,
+                      shcore::Value::Array_type_ref &errors);
 
   int leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
                        shcore::Value::Array_type_ref &errors);

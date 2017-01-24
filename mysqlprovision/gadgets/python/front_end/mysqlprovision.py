@@ -134,6 +134,8 @@ _SKIP_BACKUP_HELP = ("By default when the options file is updated, a backup "
                      "option to override the default behavior and avoid "
                      "creating backup files.")
 
+_SKIP_RPL_USER_HELP = "Skip the creation of the replication user."
+
 _SKIP_CHECK_SCHEMA_HELP = ("Skip validation of existing tables for "
                            "compatibility with Group Replication. Tables that"
                            " do not use the InnoDB storage engine or do not "
@@ -240,6 +242,9 @@ _ERROR_OPTIONS_REQ = ("At least one of {0} options is required for the {1} "
 _ERROR_OPTIONS_SSL_SKIP_ALONG = ("The --ssl-ca, --ssl-ca or --ssl-key option "
                                  "cannot be used together with --ssl-mode="
                                  "{0}.".format(GR_SSL_DISABLED))
+
+_ERROR_OPTIONS_RPL_USER = ("The --replication-user option cannot be used "
+                           "together with the --skip-replication-user option.")
 
 _ERROR_INVALID_PORT = ("Port '{port}' is not a valid for {listener} or "
                        "is restricted. Please use a port number >= 1024 and "
@@ -355,7 +360,7 @@ if __name__ == "__main__":
     # Add replication-user option
     options.add_store_user_option(sub_parser_join, ["--replication-user"],
                                   dest="replication_user",
-                                  def_user_name={"user": "rpl_user"},
+                                  def_user_name=None,
                                   help_txt=_REPLIC_USER_HELP, required=False)
     # Add config-file option
     sub_parser_join.add_argument("--defaults-file", dest="option_file",
@@ -371,6 +376,11 @@ if __name__ == "__main__":
     # add skip backup option
     sub_parser_join.add_argument("--skip-backup", dest="skip_backup",
                                  help=_SKIP_BACKUP_HELP, action="store_true",
+                                 required=False)
+    # add skip rpl_user option
+    sub_parser_join.add_argument("--skip-replication-user",
+                                 dest="skip_rpl_user",
+                                 help=_SKIP_RPL_USER_HELP, action="store_true",
                                  required=False)
 
     # add ip-whitelist option
@@ -605,10 +615,16 @@ if __name__ == "__main__":
     command = args.command
     # Add replication user password prompt if the --replication-user option
     # was not provided.
-    if command == START or command == JOIN:
+
+    if command == START:
         options.force_read_password(args, "replication_user",
                                     args.replication_user["user"])
-
+    if command == JOIN:
+        if not args.skip_rpl_user and args.replication_user is None:
+            # set default value for replication_user
+            args.replication_user = {"user": "rpl_user"}
+            options.force_read_password(args, "replication_user",
+                                        args.replication_user["user"])
     # ask for passwords
     options.read_passwords(args)
 
@@ -682,15 +698,19 @@ if __name__ == "__main__":
 
     elif command == JOIN:
         cmd_options = {}
+
+        if (args.ssl_ca or args.ssl_cert or args.ssl_key) and \
+                args.ssl_mode == GR_SSL_DISABLED:
+            raise _PARSER.error(_ERROR_OPTIONS_SSL_SKIP_ALONG)
+
+        if args.replication_user and args.skip_rpl_user:
+            raise _PARSER.error(_ERROR_OPTIONS_RPL_USER)
+
         if args.replication_user is not None:
             cmd_options.update({
                 "replication_user": args.replication_user["user"],
                 "rep_user_passwd": args.replication_user["passwd"],
             })
-
-        if (args.ssl_ca or args.ssl_cert or args.ssl_key) and \
-                args.ssl_mode == GR_SSL_DISABLED:
-            raise _PARSER.error(_ERROR_OPTIONS_SSL_SKIP_ALONG)
 
         # Fill the options
         cmd_options.update({
@@ -705,6 +725,7 @@ if __name__ == "__main__":
             "ssl_cert": args.ssl_cert,
             "ssl_key": args.ssl_key,
             "verbose": args.verbose,
+            "skip_rpl_user": args.skip_rpl_user,
         })
 
     elif command == LEAVE:

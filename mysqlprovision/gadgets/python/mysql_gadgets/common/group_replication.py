@@ -1688,7 +1688,7 @@ def get_req_dict(server, replication_user, peer_server=None, option_file=None):
                         the server.
     :type option_file:  string
 
-    :return: A dictionary whit the options and required values to check on the
+    :return: A dictionary with the options and required values to check on the
              server.
     :rtype: dict
     """
