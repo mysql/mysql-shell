@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ import sys
 from mysql_gadgets.exceptions import GadgetError, GadgetVersionError
 
 # Major, Minor, Patch, Status
-VERSION = (1, 0, 1, '', 0)
+VERSION = (2, 0, 0, '', 0)
 # Future versions will have to include only the X, Y (no Z).
 
 VERSION_STRING = "%s.%s.%s" % VERSION[0:3]
