@@ -27,7 +27,7 @@
 #include "common/process_launcher/process_launcher.h"
 #include "utils/utils_file.h"
 
-static const char *kRequiredMySQLProvisionInterfaceVersion = "1.0";
+static const char *kRequiredMySQLProvisionInterfaceVersion = "2.0";
 
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
