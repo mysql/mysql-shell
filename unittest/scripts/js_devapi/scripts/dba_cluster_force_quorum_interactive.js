@@ -69,7 +69,6 @@ cluster.forceQuorumUsingPartitionOf(1, "");
 cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2});
 
 //@<OUT> Cluster.forceQuorumUsingPartitionOf success
-if (__have_ssl)
 cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1});
 
 //@<OUT> Cluster status after force quorum
