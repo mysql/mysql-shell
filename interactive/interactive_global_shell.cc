@@ -34,11 +34,11 @@ void Global_shell::init() {
 shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("connect").c_str());
 
-  shcore::Value::Map_type_ref options;
+  shcore::Value::Map_type_ref instance_def;
   try {
-    options = mysqlsh::dba::get_instance_options_map(args);
+    instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
 
-    mysqlsh::dba::resolve_instance_credentials(options, _delegate);
+    mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
 
@@ -46,8 +46,8 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   std::string stype;
 
-  if (options->has_key("scheme")) {
-    if (options->get_string("scheme") == "mysqlx")
+  if (instance_def->has_key("scheme")) {
+    if (instance_def->get_string("scheme") == "mysqlx")
       stype = "a Node";
     else
       stype = "a Classic";
@@ -58,11 +58,11 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   // Messages prior to the connection
   std::string message;
-  message += "Creating " + stype + " Session to '" + shcore::build_connection_string(options, false) + "'";
+  message += "Creating " + stype + " Session to '" + shcore::build_connection_string(instance_def, false) + "'";
   println(message);
 
   shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(options));
+  new_args.push_back(shcore::Value(instance_def));
 
   shcore::Value ret_val = call_target("connect", new_args);
 

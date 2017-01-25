@@ -47,6 +47,8 @@ std::map<std::string, FunctionAvailability> AdminAPI_function_availability = {
   {"Cluster.forceQuorumUsingPartitionOf", {GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}}
 };
 
+const std::set<std::string> _instance_options {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
+
 namespace ManagedInstance {
 std::string describe(State state) {
   std::string ret_val;
@@ -116,8 +118,10 @@ void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, sh
   }
 }
 
+// Parses the argument list to retrieve an instance definition from it
+// It handles loading the pass
 shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args,
-                                                     bool get_password_from_options) {
+                                                     PasswordFormat::Format format) {
   shcore::Value::Map_type_ref options;
 
   // This validation will be added here but should not be needed if the function is used properly
@@ -145,27 +149,26 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
   if (options->size() == 0)
     throw shcore::Exception::argument_error("Connection definition is empty");
 
-  // Overrides the options password if given apart
-  if (args.size() == 2) {
+  // If password override is allowed then we review the second
+  // argument if any
+  if (format != PasswordFormat::NONE && args.size() > 1) {
     bool override_pwd = false;
     std::string new_password;
 
-    if (get_password_from_options) {
-      if (args[1].type == shcore::Map) {
-        auto other_options = args.map_at(1);
-        shcore::Argument_map other_args(*other_options);
+    if (format == PasswordFormat::OPTIONS) {
+      auto other_options = args.map_at(1);
+      shcore::Argument_map other_args(*other_options);
 
-        if (other_args.has_key("password")) {
-          new_password = other_args.string_at("password");
-          override_pwd = true;
-        } else if (other_args.has_key("dbPassword")) {
-          new_password = other_args.string_at("dbPassword");
-          override_pwd = true;
-        }
+      if (other_args.has_key("password")) {
+        new_password = other_args.string_at("password");
+        override_pwd = true;
+      } else if (other_args.has_key("dbPassword")) {
+        new_password = other_args.string_at("dbPassword");
+        override_pwd = true;
       }
-    } else if (args[1].type == shcore::String) {
-      override_pwd = true;
+    } else if (format == PasswordFormat::STRING) {
       new_password = args.string_at(1);
+      override_pwd = true;
     }
 
     if (override_pwd) {

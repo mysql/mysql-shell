@@ -223,7 +223,7 @@ function add_instance_to_cluster(cluster, port) {
   success = false;
   while (attempt < 3 && !success) {
     try {
-      cluster.addInstance(add_instance_options);
+      cluster.addInstance(add_instance_options, add_instance_extra_opts);
       println("Instance added successfully...")
       success = true;
     } catch (err) {

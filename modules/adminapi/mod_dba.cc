@@ -224,24 +224,35 @@ REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
 REGISTER_HELP(DBA_CREATECLUSTER_PARAM, "@param name The name of the cluster object to be created.");
 REGISTER_HELP(DBA_CREATECLUSTER_PARAM1, "@param options Optional dictionary with options that modify the behavior of this function.");
 REGISTER_HELP(DBA_CREATECLUSTER_RETURN, "@return The created cluster object.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL, "The options dictionary can contain the next values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1, "@li clusterAdminType: determines the type of management to be done on the cluster instances. "\
-"Valid values include: local, manual, guided or ssh. At the moment only local is supported and used as default value if not specified.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that indicates whether the group has a single master instance or multiple master instances. "\
-"If not specified false is assigned.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that the multiMaster option must be applied.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value that indicates that the cluster shall be created empty and adopt the topology from an existing Group Replication group.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li memberSslMode: string indicating "\
-    "the SSL mode used to configure the cluster instance, by default: AUTO. "\
-    "Allowed values: AUTO, DISABLED, REQUIRED.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "Note: When using memberSslMode:'AUTO' "\
-    "SSL (encryption) is automatically enabled (memberSslMode:'REQUIRED') or "\
-    "disabled (memberSslMode:'DISABLED') depending if the instance supports "\
-    "SSL or not.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li ipWhitelist: The list of hosts allowed to connect to the instance for "\
-    "Group Replication. Specify a custom IP whitelist using comma separated list of IP addresses or subnet CIDR "\
-    "notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
-    "from the instance private network to be automatically set for the whitelist.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL, "Creates a MySQL InnoDB cluster taking as seed instance the active global session.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1, "The options dictionary can contain the next values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li clusterAdminType: defines the type of management to be done on the cluster instances.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li multiMaster: boolean value used to define an InnoDB cluster with multiple writable instances.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li force: boolean, confirms that the multiMaster option must be applied.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li adoptFromGR: boolean value used to create the InnoDB cluster based on existing replication group.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li memberSslMode: SSL mode used to configure the members of the cluster.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li ipWhitelist: The list of hosts allowed to connect to the instance for group replication.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "The values for clusterAdminType options include: local, manual, guided or ssh, however, at the moment only "\
+"local is supported and is used as default value if this attribute is not specified.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9, "A InnoDB cluster may be setup in two ways:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10, "@li Single Master: One member of the cluster allows write operations while the rest are in read only mode.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11, "@li Multi Master: All the members in the cluster support both read and write operations.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "By default this function create a Single Master cluster, use the multiMaster option set to true "\
+"if a Multi Master cluster is required.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13, "The memberSslMode option supports these values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14, "@li REQUIRED: if used, SSL (encryption) will be enabled for the instances to communicate with other members of the cluster");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15, "@li DISABLED: if used, SSL (encryption) will be disabled");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16, "@li AUTO: if used, SSL (encryption) will be enabled if supported by the instance, otherwise disabled");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17, "If memberSslMode is not specified AUTO will be used by default.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18, "The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR "\
+"notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
+"from the instance private network to be automatically set for the whitelist.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -257,9 +268,23 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li ipWhitelist: The list of hosts all
  * $(DBA_CREATECLUSTER_DETAIL3)
  * $(DBA_CREATECLUSTER_DETAIL4)
  * $(DBA_CREATECLUSTER_DETAIL5)
- *
  * $(DBA_CREATECLUSTER_DETAIL6)
  * $(DBA_CREATECLUSTER_DETAIL7)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL8)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL9)
+ * $(DBA_CREATECLUSTER_DETAIL10)
+ * $(DBA_CREATECLUSTER_DETAIL11)
+ * $(DBA_CREATECLUSTER_DETAIL12)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL13)
+ * $(DBA_CREATECLUSTER_DETAIL14)
+ * $(DBA_CREATECLUSTER_DETAIL15)
+ * $(DBA_CREATECLUSTER_DETAIL16)
+ * $(DBA_CREATECLUSTER_DETAIL17)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL18)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -393,9 +418,13 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       }
     }
 
+    Value::Map_type_ref instance_def(new shcore::Value::Map_type);
     Value::Map_type_ref options(new shcore::Value::Map_type);
-    shcore::Argument_list args;
-    options = get_connection_data(session->uri(), false);
+    shcore::Argument_list new_args;
+    instance_def = get_connection_data(session->uri(), false);
+
+    new_args.push_back(shcore::Value(instance_def));
+
     // Only set SSL option if available from createCluster options (not empty).
     // Do not set default values to avoid validation issues for addInstance.
     if (!ssl_mode.empty())
@@ -405,16 +434,14 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     if (!ip_whitelist.empty())
       (*options)["ipWhitelist"] = Value(ip_whitelist);
 
-    args.push_back(shcore::Value(options));
-
-    // args.push_back(shcore::Value(session->uri()));
-    args.push_back(shcore::Value(session->get_password()));
+    (*options)["password"] = Value(session->get_password());
+    new_args.push_back(shcore::Value(options));
 
     if (multi_master && !(force || adopt_from_gr)) {
       throw shcore::Exception::argument_error("Use of multiMaster mode is not recommended unless you understand the limitations. Please use the 'force' option if you understand and accept them.");
     }
 
-    cluster->add_seed_instance(args, multi_master, adopt_from_gr, replication_user, replication_pwd);
+    cluster->add_seed_instance(new_args, multi_master, adopt_from_gr, replication_user, replication_pwd);
 
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
@@ -539,9 +566,8 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL3, "@li Connection data dictionary."
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL4, "The options parameter can be any of:");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL5, "@li mycnfPath: The path of the MySQL configuration file for the instance.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL6, "@li password: The password to get connected to the instance.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL7, "The password may be contained on the connectionData parameter or can be "\
-"specified on options parameter. When both are specified the one in the options parameter "\
-"overrides the one provided in connectionData");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL7, "The password may be contained on the instance definition, however, it can be overwritten "\
+"if it is specified on the options.");
 
 /**
 * $(DBA_CHECKINSTANCECONFIG_BRIEF)
@@ -972,12 +998,18 @@ REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_PARAM1, "@param options Additional options
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_RETURN, "@returns A JSON object with the status.");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
 "for usage in group replication and cluster. A JSON object is returned containing the result of the operation.");
+
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL1, "The instance definition can be any of:");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL2, "@li URI string.");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL3, "@li Connection data dictionary.");
+
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL4, "The options parameter may include:");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL5, "@li mycnfPath: The path to the MySQL configuration file of the instance.");
 REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL6, "@li password: The password to be used on the connection.");
+
+REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL7, "The password may be contained on the instance definition, however, it can be overwritten "\
+"if it is specified on the options.");
+
 
 /**
 * $(DBA_CONFIGLOCALINSTANCE_BRIEF)
@@ -997,6 +1029,7 @@ REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL6, "@li password: The password to be
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL5)
 * $(DBA_CONFIGLOCALINSTANCE_DETAIL6)
 *
+* $(DBA_CONFIGLOCALINSTANCE_DETAIL7)
 */
 #if DOXYGEN_JS
 Instance Dba::configLocalInstance(InstanceDef instance, Dictionary options) {}
@@ -1008,9 +1041,9 @@ shcore::Value Dba::config_local_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("configLocalInstance").c_str());
 
   try {
-    auto options = get_instance_options_map(args, true);
+    auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
 
-    shcore::Argument_map opt_map(*options);
+    shcore::Argument_map opt_map(*instance_def);
 
     if (shcore::is_local_host(opt_map.string_at("host"), true)) {
       ret_val = shcore::Value(_check_instance_config(args, true));
@@ -1049,17 +1082,15 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
 
   // Validates the connection options
-  shcore::Value::Map_type_ref options = get_instance_options_map(args, true);
+  shcore::Value::Map_type_ref instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
 
   // Resolves user and validates password
-  resolve_instance_credentials(options);
+  resolve_instance_credentials(instance_def);
 
-  shcore::Argument_map opt_map(*options);
+  shcore::Argument_map opt_map(*instance_def);
   shcore::Argument_map validate_opt_map;
 
-  std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
-
-  opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
+  opt_map.ensure_keys({"host", "port"}, _instance_options, "instance definition");
 
   shcore::Value::Map_type_ref validate_options;
 
@@ -1083,7 +1114,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
 
   // Now validates the instance GR status itself
   shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(options));
+  new_args.push_back(shcore::Value(instance_def));
   auto session = Dba::get_session(new_args);
 
   auto uri = session->uri();
@@ -1099,11 +1130,11 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
   else if (type == GRInstanceType::Standalone) {
     std::string user;
     std::string password;
-    std::string host = options->get_string("host");
-    int port = options->get_int("port");
+    std::string host = instance_def->get_string("host");
+    int port = instance_def->get_int("port");
 
-    user = options->get_string(options->has_key("user") ? "user" : "dbUser");
-    password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+    user = instance_def->get_string(instance_def->has_key("user") ? "user" : "dbUser");
+    password = instance_def->get_string(instance_def->has_key("password") ? "password" : "dbPassword");
 
     // Verbose is mandatory for checkInstanceConfig
     shcore::Value::Array_type_ref mp_errors;

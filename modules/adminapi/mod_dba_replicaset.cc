@@ -64,8 +64,7 @@ using namespace shcore;
 
 #define PASSWORD_LENGTH 16
 
-std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey", "memberSslMode", "ipWhitelist"};
-std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port", "socket", "sslCa", "sslCert", "sslKey"};
+std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "password", "dbPassword", "memberSslMode", "ipWhitelist"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
@@ -170,32 +169,14 @@ void ReplicaSet::adopt_from_gr() {
   }
 }
 
-#if DOXYGEN_CPP
-/**
- * Use this function to add a Instance to the ReplicaSet object
- * \param args : A list of values to be used to add a Instance to the ReplicaSet.
- *
- * This function returns an empty Value.
- */
-#else
 /**
 * Adds a Instance to the ReplicaSet
 * \param conn The Connection String or URI of the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::addInstance(String conn) {}
+Undefined ReplicaSet::addInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-None ReplicaSet::add_instance(str conn) {}
-#endif
-/**
-* Adds a Instance to the ReplicaSet
-* \param doc The Document representing the Instance to be added
-*/
-#if DOXYGEN_JS
-Undefined ReplicaSet::addInstance(Document doc) {}
-#elif DOXYGEN_PY
-None ReplicaSet::add_instance(Document doc) {}
-#endif
+None ReplicaSet::add_instance(InstanceDef instance, doptions) {}
 #endif
 shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args) {
   shcore::Value ret_val;
@@ -353,38 +334,46 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   // Check if we're on a addSeedInstance or not
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
-  auto options = get_instance_options_map(args);
+  // Retrieves the instance definition
+  auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
+  shcore::Argument_map instance_map(*instance_def);
+  instance_map.ensure_keys({"host"}, _instance_options, "instance definition");
 
-  shcore::Argument_map opt_map(*options);
-  opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+  // Retrieves the add options
+  if (args.size() == 2 ) {
+    auto add_options = args.map_at(1);
+    shcore::Argument_map add_instance_map(*add_options);
+    add_instance_map.ensure_keys({}, _add_instance_opts, " options");
 
-  // Validate SSL options for the cluster instance
-  validate_ssl_instance_options(options);
+    // Validate SSL options for the cluster instance
+    validate_ssl_instance_options(add_options);
 
-  //Validate ip whitelist option
-  validate_ip_whitelist_option(options);
+    //Validate ip whitelist option
+    validate_ip_whitelist_option(add_options);
 
-  if (!options->has_key("port"))
-    (*options)["port"] = shcore::Value(get_default_port());
+    if (add_options->has_key("memberSslMode"))
+      ssl_mode = add_options->get_string("memberSslMode");
 
-  if (options->has_key("memberSslMode"))
-    ssl_mode = options->get_string("memberSslMode");
+    if (add_options->has_key("ipWhitelist"))
+      ip_whitelist = add_options->get_string("ipWhitelist");
+  }
 
-  if (options->has_key("ipWhitelist"))
-    ip_whitelist = options->get_string("ipWhitelist");
+
+  if (!instance_def->has_key("port"))
+    (*instance_def)["port"] = shcore::Value(get_default_port());
 
   // Sets a default user if not specified
-  resolve_instance_credentials(options, nullptr);
+  resolve_instance_credentials(instance_def, nullptr);
   std::string
-      user = options->get_string(options->has_key("user") ? "user" : "dbUser");
+      user = instance_def->get_string(instance_def->has_key("user") ? "user" : "dbUser");
   std::string super_user_password =
-      options->get_string(options->has_key("password") ? "password"
+      instance_def->get_string(instance_def->has_key("password") ? "password"
                                                        : "dbPassword");
-  std::string joiner_host = options->get_string("host");
+  std::string joiner_host = instance_def->get_string("host");
 
   // Check if the instance was already added
   std::string instance_address =
-      joiner_host + ":" + std::to_string(options->get_int("port"));
+      joiner_host + ":" + std::to_string(instance_def->get_int("port"));
 
   bool is_instance_on_md =
       _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
@@ -393,11 +382,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
             is_instance_on_md ? " (already in MD)" : "");
 
   shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(options));
+  new_args.push_back(shcore::Value(instance_def));
   auto session = Dba::get_session(new_args);
 
   // Check whether the address being used is not in a known not-good case
-  validate_instance_address(session, joiner_host, options->get_int("port"));
+  validate_instance_address(session, joiner_host, instance_def->get_int("port"));
 
   // Resolve the SSL Mode to use to configure the instance.
   boost::to_upper(ssl_mode);
@@ -469,7 +458,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
   // If the instance is not on the Metadata, we must add it
   if (!is_instance_on_md) {
-    add_instance_metadata(options);
+    add_instance_metadata(instance_def);
   }
   log_debug("Instance add finished");
 
@@ -561,29 +550,36 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   std::string ssl_mode = mysqlsh::dba::kMemberSSLModeAuto; //SSL Mode AUTO by default
   std::string ip_whitelist;
 
-  auto options = get_instance_options_map(args);
-  shcore::Argument_map opt_map(*options);
-  opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+  auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
+  shcore::Argument_map instance_map(*instance_def);
+  instance_map.ensure_keys({"host"}, _instance_options, "instance definition");
 
-  // Validate SSL options for the cluster instance
-  validate_ssl_instance_options(options);
+  // Retrieves the add options
+  if (args.size() == 2 ) {
+    auto rejoin_options = args.map_at(1);
+    shcore::Argument_map rejoin_instance_map(*rejoin_options);
+    rejoin_instance_map.ensure_keys({}, _add_instance_opts, " options");
 
-  //Validate ip whitelist option
-  validate_ip_whitelist_option(options);
+    // Validate SSL options for the cluster instance
+    validate_ssl_instance_options(rejoin_options);
 
-  if (!options->has_key("port"))
-    (*options)["port"] = shcore::Value(get_default_port());
+    //Validate ip whitelist option
+    validate_ip_whitelist_option(rejoin_options);
 
-  port = options->get_int("port");
-  host = options->get_string("host");
+    if (rejoin_options->has_key("memberSslMode"))
+      ssl_mode = rejoin_options->get_string("memberSslMode");
+
+    if (rejoin_options->has_key("ipWhitelist"))
+      ip_whitelist = rejoin_options->get_string("ipWhitelist");
+  }
+
+  if (!instance_def->has_key("port"))
+    (*instance_def)["port"] = shcore::Value(get_default_port());
+
+  port = instance_def->get_int("port");
+  host = instance_def->get_string("host");
 
   std::string instance_address = host + ":" + std::to_string(port);
-
-  if (options->has_key("memberSslMode"))
-    ssl_mode = options->get_string("memberSslMode");
-
-  if (options->has_key("ipWhitelist"))
-    ip_whitelist = options->get_string("ipWhitelist");
 
   // Check if the instance is part of the Metadata
   if (!_metadata_storage->is_instance_on_replicaset(get_id(), instance_address)) {
@@ -605,8 +601,8 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   // otherwise we may end up hanging the system
 
   // Sets a default user if not specified
-  resolve_instance_credentials(options, nullptr);
-  std::string password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+  resolve_instance_credentials(instance_def, nullptr);
+  std::string password = instance_def->get_string(instance_def->has_key("password") ? "password" : "dbPassword");
 
   std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
   mysqlsh::mysql::ClassicSession *classic;
@@ -670,7 +666,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       log_info("Opening a new session to the rejoining instance %s",
                instance_address.c_str());
       shcore::Argument_list slave_args;
-      slave_args.push_back(shcore::Value(options));
+      slave_args.push_back(shcore::Value(instance_def));
       session = mysqlsh::connect_session(slave_args, mysqlsh::SessionType::Classic);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     } catch (std::exception &e) {
@@ -814,20 +810,20 @@ shcore::Value ReplicaSet::remove_instance_(const shcore::Argument_list &args) {
 }
 
 shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("removeInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
   std::string uri, name, port;
 
-  auto options = get_instance_options_map(args);
+  auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
 
   // No required options set before refactoring
-  shcore::Argument_map opt_map(*options);
-  opt_map.ensure_keys({}, _remove_instance_opts, "instance definition");
+  shcore::Argument_map opt_map(*instance_def);
+  opt_map.ensure_keys({}, _instance_options, "instance definition");
 
-  if (!options->has_key("port"))
-    (*options)["port"] = shcore::Value(get_default_port());
+  if (!instance_def->has_key("port"))
+    (*instance_def)["port"] = shcore::Value(get_default_port());
 
-  port = std::to_string(options->get_int("port"));
+  port = std::to_string(instance_def->get_int("port"));
 
   // get instance admin and user information from the current active session of the shell
   // Note: when separate metadata session vs active session is supported, this should
@@ -836,7 +832,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   std::string instance_admin_user = instance_session->get_user();
   std::string instance_admin_user_password = instance_session->get_password();
 
-  std::string host = options->get_string("host");
+  std::string host = instance_def->get_string("host");
 
   // Check if the instance was already added
   std::string instance_address = host + ":" + port;
@@ -1130,19 +1126,19 @@ shcore::Value ReplicaSet::check_instance_state(const shcore::Argument_list &args
 }
 
 shcore::Value ReplicaSet::retrieve_instance_state(const shcore::Argument_list &args) {
-  auto options = get_instance_options_map(args);
+  auto instance_def = get_instance_options_map(args, PasswordFormat::STRING);
 
-  shcore::Argument_map opt_map(*options);
-  opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+  shcore::Argument_map opt_map(*instance_def);
+  opt_map.ensure_keys({"host"}, _instance_options, "instance definition");
 
-  if (!options->has_key("port"))
-    (*options)["port"] = shcore::Value(get_default_port());
+  if (!instance_def->has_key("port"))
+    (*instance_def)["port"] = shcore::Value(get_default_port());
 
   // Sets a default user if not specified
-  resolve_instance_credentials(options, nullptr);
+  resolve_instance_credentials(instance_def, nullptr);
 
   shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(options));
+  new_args.push_back(shcore::Value(instance_def));
   auto instance_session = Dba::get_session(new_args);
 
   // We will work with the current global session
@@ -1279,11 +1275,13 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
 }
 
 void ReplicaSet::remove_instance_metadata(const shcore::Argument_list &args) {
-  auto options = get_instance_options_map(args, true);
 
-  std::string port = std::to_string(options->get_int("port"));
+  // Getting the connection data, password is not needed here
+  auto instance_def = get_instance_options_map(args, PasswordFormat::NONE);
 
-  std::string host = options->get_string("host");
+  std::string port = std::to_string(instance_def->get_int("port"));
+
+  std::string host = instance_def->get_string("host");
 
   // Check if the instance was already added
   std::string instance_address = host + ":" + port;
@@ -1462,21 +1460,21 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(const shcore::Argument
   std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
   mysqlsh::mysql::ClassicSession *classic;
 
-  auto options = get_instance_options_map(args);
-  shcore::Argument_map opt_map(*options);
-  opt_map.ensure_keys({"host"}, _add_instance_opts, "instance definition");
+  auto instance_def = get_instance_options_map(args, PasswordFormat::STRING);
+  shcore::Argument_map opt_map(*instance_def);
+  opt_map.ensure_keys({"host"}, _instance_options, "instance definition");
 
-  if (!options->has_key("port"))
-    (*options)["port"] = shcore::Value(get_default_port());
+  if (!instance_def->has_key("port"))
+    (*instance_def)["port"] = shcore::Value(get_default_port());
 
-  port = options->get_int("port");
-  host = options->get_string("host");
+  port = instance_def->get_int("port");
+  host = instance_def->get_string("host");
 
   std::string instance_address = host + ":" + std::to_string(port);
 
   // Sets a default user if not specified
-  resolve_instance_credentials(options, nullptr);
-  std::string password = options->get_string(options->has_key("password") ? "password" : "dbPassword");
+  resolve_instance_credentials(instance_def, nullptr);
+  std::string password = instance_def->get_string(instance_def->has_key("password") ? "password" : "dbPassword");
 
   // TODO: test if there's already quorum and add a 'force' option to be used if so
 
@@ -1499,7 +1497,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(const shcore::Argument
     log_info("Opening a new session to the partition instance %s",
              instance_address.c_str());
     shcore::Argument_list partition_instance_args;
-    partition_instance_args.push_back(shcore::Value(options));
+    partition_instance_args.push_back(shcore::Value(instance_def));
     session = mysqlsh::connect_session(partition_instance_args, mysqlsh::SessionType::Classic);
     classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
   } catch (std::exception &e) {
@@ -1585,7 +1583,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(const shcore::Argument
       log_info("Opening a new session to the partition instance %s",
                instance_address.c_str());
       shcore::Argument_list partition_instance_args;
-      partition_instance_args.push_back(shcore::Value(options));
+      partition_instance_args.push_back(shcore::Value(instance_def));
       session = mysqlsh::connect_session(partition_instance_args, mysqlsh::SessionType::Classic);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     } catch (std::exception &e) {

@@ -373,10 +373,10 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
     }
   } else {
     try {
-      auto options = mysqlsh::dba::get_instance_options_map(args, true);
+      auto options = args.map_at(0);
       shcore::Argument_map opt_map(*options);
       opt_map.ensure_keys({}, {"force"}, "drop options");
-      force = options->get_bool("force");
+      force = opt_map.bool_at("force");
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
   }
@@ -471,13 +471,11 @@ shcore::Value Global_dba::check_instance_config(const shcore::Argument_list &arg
 
   std::string uri, user;
 
-  auto options = mysqlsh::dba::get_instance_options_map(args, true);
+  auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
 
-  shcore::Argument_map opt_map(*options);
+  shcore::Argument_map opt_map(*instance_def);
 
-  std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
-
-  opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
+  opt_map.ensure_keys({"host", "port"}, mysqlsh::dba::_instance_options, "instance definition");
 
   if (args.size() == 2) {
     shcore::Argument_map extra_opts(*args.map_at(1));
@@ -485,10 +483,10 @@ shcore::Value Global_dba::check_instance_config(const shcore::Argument_list &arg
   }
 
   // Gather username and password if missing
-  mysqlsh::dba::resolve_instance_credentials(options, _delegate);
+  mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
 
   shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(options));
+  new_args.push_back(shcore::Value(instance_def));
 
   if (args.size() == 2)
     new_args.push_back(args[1]);
@@ -586,21 +584,19 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
   args.ensure_count(1, 2, get_function_name("configLocalInstance").c_str());
 
   std::string uri, answer, user;
-  shcore::Value::Map_type_ref options;
+  shcore::Value::Map_type_ref instance_def;
   shcore::Argument_list target_args;
 
   try {
-    options = mysqlsh::dba::get_instance_options_map(args, true);
-
-    shcore::Argument_map opt_map(*options);
-    std::set<std::string> check_instance_config_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
-    opt_map.ensure_keys({"host", "port"}, check_instance_config_opts, "instance definition");
+    instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
+    shcore::Argument_map opt_map(*instance_def);
+    opt_map.ensure_keys({"host", "port"}, mysqlsh::dba::_instance_options, "instance definition");
 
     if (!shcore::is_local_host(opt_map.string_at("host"), true))
       throw shcore::Exception::runtime_error("This function only works with local instances");
 
     // Gather username and password if missing
-    mysqlsh::dba::resolve_instance_credentials(options, _delegate);
+    mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
 
     shcore::Value::Map_type_ref extra_options;
     if (args.size() == 2) {
@@ -613,12 +609,12 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
 
     // Target args contain the args received on the interactive layer
     // including the resolved user and password
-    target_args.push_back(shcore::Value(options));
+    target_args.push_back(shcore::Value(instance_def));
     target_args.push_back(shcore::Value(extra_options));
 
     // Session args holds all the connection data, including the resolved user/password
     shcore::Argument_list session_args;
-    session_args.push_back(shcore::Value(options));
+    session_args.push_back(shcore::Value(instance_def));
 
     // Attempts to resolve the configuration file path
     if (!extra_options->has_key("mycnfPath")) {
@@ -644,7 +640,7 @@ shcore::Value Global_dba::config_local_instance(const shcore::Argument_list &arg
 
   // Algorithm Step 4: IF instance is ready for GR, stop and return
   if (result->get_string("status") == "ok") {
-    println("The instance '" + options->get_string("host") + ":" + std::to_string(options->get_int("port")) + "' is valid for Cluster usage");
+    println("The instance '" + instance_def->get_string("host") + ":" + std::to_string(instance_def->get_int("port")) + "' is valid for Cluster usage");
     println("You can now add it to an InnoDB Cluster with the <Cluster>." + get_member_name("addInstance", naming_style) + "() function.");
     println();
   } else {

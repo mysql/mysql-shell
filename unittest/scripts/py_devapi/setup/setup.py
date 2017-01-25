@@ -219,7 +219,7 @@ def add_instance_to_cluster(cluster, port):
   success = False
   while attempt < 3 and not success:
     try:
-      cluster.add_instance(add_instance_options)
+      cluster.add_instance(add_instance_options, add_instance_extra_opts)
       print "Instance added successfully..."
       success = True
     except Exception, err:

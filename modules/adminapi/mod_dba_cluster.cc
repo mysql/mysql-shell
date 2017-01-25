@@ -199,18 +199,29 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_BRIEF, "Adds an Instance to the cluster.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL, "This function adds an Instance to the cluster. ");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1, "The Instance is added to the Default ReplicaSet of the cluster.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "The instance definition can be any of:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3, "@li URI string.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4, "@li Connection data dictionary.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM1, "@param options Optional dictionary with options for the operation.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL, "This function adds an Instance to the default replica set of the cluster.");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "@li URI string.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3, "@li Connection data dictionary.");
 //REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "@li An Instance object.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "The password may be contained on the instance parameter or can be "\
-"specified on the password parameter. When both are specified the password parameter "\
-"is used instead of the one in the instance data.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7, "@li ipWhitelist: The list of hosts allowed to connect to the instance for "\
-    "Group Replication. Specify a custom IP whitelist using comma separated list of IP addresses or subnet CIDR "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4, "The options dictionary may contain the next attributes:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "@li name: an identifier for the instance being added");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "@li password: the instance connection password");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7, "@li memberSslMode: SSL mode used on the instance");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL8, "@li ipWhitelist: The list of hosts allowed to connect to the instance for group replication");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL9, "The password may be contained on the instance definition, however, it can be overwritten "\
+"if it is specified on the options.");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10, "The memberSslMode option supports these values:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11, "@li REQUIRED: if used, SSL (encryption) will be enabled for the instance to communicate with other members of the cluster");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12, "@li DISABLED: if used, SSL (encryption) will be disabled");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13, "@li AUTO: if used, SSL (encryption) will be automatically enabled or disabled based on the cluster configuration");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14, "If memberSslMode is not specified AUTO will be used by default.");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15, "The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR "\
     "notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
     "from the instance private network to be automatically set for the whitelist.");
 
@@ -223,18 +234,29 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7, "@li ipWhitelist: The list of hosts a
 * $(CLUSTER_ADDINSTANCE_DETAIL)
 *
 * $(CLUSTER_ADDINSTANCE_DETAIL1)
-*
 * $(CLUSTER_ADDINSTANCE_DETAIL2)
 * $(CLUSTER_ADDINSTANCE_DETAIL3)
-* $(CLUSTER_ADDINSTANCE_DETAIL4)
 *
+* $(CLUSTER_ADDINSTANCE_DETAIL4)
+* $(CLUSTER_ADDINSTANCE_DETAIL5)
 * $(CLUSTER_ADDINSTANCE_DETAIL6)
 * $(CLUSTER_ADDINSTANCE_DETAIL7)
+* $(CLUSTER_ADDINSTANCE_DETAIL8)
+*
+* $(CLUSTER_ADDINSTANCE_DETAIL9)
+*
+* $(CLUSTER_ADDINSTANCE_DETAIL10)
+* $(CLUSTER_ADDINSTANCE_DETAIL11)
+* $(CLUSTER_ADDINSTANCE_DETAIL12)
+* $(CLUSTER_ADDINSTANCE_DETAIL13)
+* $(CLUSTER_ADDINSTANCE_DETAIL14)
+*
+* $(CLUSTER_ADDINSTANCE_DETAIL15)
 */
 #if DOXYGEN_JS
-Undefined Cluster::addInstance(InstanceDef instance, String password) {}
+Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-None Cluster::add_instance(InstanceDef instance, str password) {}
+None Cluster::add_instance(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
@@ -257,17 +279,30 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_BRIEF, "Rejoins an Instance to the cluster.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL, "This function rejoins an Instance to the cluster. ");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "The instance definition can be any of:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3, "@li URI string.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li Connection data dictionary.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1, "@param options Optional dictionary with options for the operation.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL, "This function rejoins an Instance to the cluster.");
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "@li URI string.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3, "@li Connection data dictionary.");
 //REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li An Instance object.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on the connectionData parameter or can be "\
-"specified on the password parameter. When both are specified the password parameter "\
-"is used instead of the one in the instance data.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6, "@li ipWhitelist: The list of hosts allowed to connect to the instance "\
-    "for Group Replication. Specify a custom IP whitelist using comma separated list of IP addresses or subnet CIDR "\
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "The options dictionary may contain the next attributes:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "@li name: an identifier for the instance being added");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6, "@li password: the instance connection password");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL7, "@li memberSslMode: SSL mode used to be used on the instance");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8, "@li ipWhitelist: The list of hosts allowed to connect to the instance for group replication");
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9, "The password may be contained on the instance definition, however, it can be overwritten "\
+"if it is specified on the options.");
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10, "The memberSslMode option supports these values:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11, "@li REQUIRED: if used, SSL (encryption) will be enabled for the instance to communicate with other members of the cluster");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12, "@li DISABLED: if used, SSL (encryption) will be disabled");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL13, "@li AUTO: if used, SSL (encryption) will be automatically enabled or disabled based on the cluster configuration");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14, "If memberSslMode is not specified AUTO will be used by default.");
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL15, "The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR "\
     "notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
     "from the instance private network to be automatically set for the whitelist.");
 
@@ -275,23 +310,34 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6, "@li ipWhitelist: The list of host
 * $(CLUSTER_REJOININSTANCE_BRIEF)
 *
 * $(CLUSTER_REJOININSTANCE_PARAM)
-* $(CLUSTER_REJOININSTANCE_PARAM2)
+* $(CLUSTER_REJOININSTANCE_PARAM1)
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL)
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL1)
-*
 * $(CLUSTER_REJOININSTANCE_DETAIL2)
 * $(CLUSTER_REJOININSTANCE_DETAIL3)
-* $(CLUSTER_REJOININSTANCE_DETAIL4)
 *
+* $(CLUSTER_REJOININSTANCE_DETAIL4)
 * $(CLUSTER_REJOININSTANCE_DETAIL5)
 * $(CLUSTER_REJOININSTANCE_DETAIL6)
+* $(CLUSTER_REJOININSTANCE_DETAIL7)
+* $(CLUSTER_REJOININSTANCE_DETAIL8)
+*
+* $(CLUSTER_REJOININSTANCE_DETAIL9)
+*
+* $(CLUSTER_REJOININSTANCE_DETAIL10)
+* $(CLUSTER_REJOININSTANCE_DETAIL11)
+* $(CLUSTER_REJOININSTANCE_DETAIL12)
+* $(CLUSTER_REJOININSTANCE_DETAIL13)
+* $(CLUSTER_REJOININSTANCE_DETAIL14)
+*
+* $(CLUSTER_REJOININSTANCE_DETAIL15)
 */
 #if DOXYGEN_JS
-Undefined Cluster::rejoinInstance(InstanceDef instance) {}
+Undefined Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-None Cluster::rejoin_instance(InstanceDef instance) {}
+None Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 #endif
 
 shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
@@ -316,35 +362,41 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_BRIEF, "Removes an Instance from the cluster.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL, "This function removes an Instance from the cluster.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1, "The Instance is removed from the Default ReplicaSet of the cluster.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "The instance parameter can be any of:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3, "@li The name of the Instance to be removed.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "@li Connection data Dictionary of the Instance to be removed.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM1, "@param password Optional Instance connection password.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL, "This function removes an Instance from the default replicaSet of the cluster.");
+
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "@li The name of the Instance to be removed.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3, "@li Connection data dictionary of the Instance to be removed.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "The password may be contained on the instance definition, however, it can be overwritten "\
+"if it is specified as second parameter.");
+
 //REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5, "@li An Instance object.");
 
 /**
 * $(CLUSTER_REMOVEINSTANCE_BRIEF)
 *
 * $(CLUSTER_REMOVEINSTANCE_PARAM)
+* $(CLUSTER_REMOVEINSTANCE_PARAM1)
+*
 * $(CLUSTER_REMOVEINSTANCE_PARAMALT)
 *
 * $(CLUSTER_REMOVEINSTANCE_DETAIL)
 *
 * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
-*
 * $(CLUSTER_REMOVEINSTANCE_DETAIL2)
 * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
+*
 * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
 */
 #if DOXYGEN_JS
-Undefined Cluster::removeInstance(InstanceDef instance) {}
+Undefined Cluster::removeInstance(InstanceDef instance, String password) {}
 #elif DOXYGEN_PY
-None Cluster::remove_instance(InstanceDef instance) {}
+None Cluster::remove_instance(InstanceDef instance, str password) {}
 #endif
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("removeInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
   check_preconditions("removeInstance");
 
@@ -629,19 +681,25 @@ shcore::Value::Map_type_ref Cluster::_rescan(const shcore::Argument_list &args) 
 }
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF, "Restores the cluster from quorum loss.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM, "@param instance The instance to derive the forced group from. "\
-"All members that are ONLINE from the point of view of this instance will be added to the group.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM, "@param instance An instance definition to derive the forced group from.");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1, "@param password Optional string with the password for the connection.");
+
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL, "This function restores the cluster's default replicaset back into operational status from a loss of quorum scenario. "\
-"Such a scenario can occur if a group is partitioned or more crashes than tolerable occur. "\
-"Note that this operation is DANGEROUS as it can create a split-brain if incorrectly used and should be considered a last resort. "\
-"Make absolutely sure that there are no partitions of this group that are still operating somewhere in the network, but not accessible from your location.");
+"Such a scenario can occur if a group is partitioned or more crashes than tolerable occur.");
+
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1, "The instance definition can be any of:");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2, "@li URI string.");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3, "@li Connection data dictionary.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4, "The password may be contained on the connectionData parameter or can be "\
-"specified on the password parameter. When both are specified the password parameter "\
-"is used instead of the one in the instance data.");
+
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4, "The password may be contained on the instance definition, however, it can be overwritten "\
+"if it is specified as a second parameter.");
+
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5, "Note that this operation is DANGEROUS as it can create a split-brain if incorrectly used and should be considered a last resort. "\
+"Make absolutely sure that there are no partitions of this group that are still operating somewhere in the network, but not accessible from your location.");
+
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6, "When this function is used, all the members that are ONLINE from the point of view "\
+"of the given instance definition will be added to the group.");
+
 
 /**
 * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF)
@@ -654,7 +712,12 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4, "The password may be 
 * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
 * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2)
 * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3)
+*
 * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
+*
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5)
+*
+* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6)
 */
 #if DOXYGEN_JS
 Undefined Cluster::forceQuorumUsingPartitionOf(InstanceDef instance, String password) {}
@@ -703,9 +766,8 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL1, "The instance definition can b
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2, "@li URI string.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3, "@li Connection data dictionary.");
 //REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5, "@li An Instance object.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4, "The password may be contained on the instance parameter or can be "\
-"specified on the password parameter. When both are specified the password parameter "\
-"is used instead of the one in the instance data.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4, "The password may be contained on the instance definition, however, it can be overwritten "\
+"if it is specified as a second parameter.");
 
 /**
  * $(CLUSTER_CHECKINSTANCESTATE_BRIEF)
@@ -716,7 +778,6 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4, "The password may be contained
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL1)
- *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL2)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL3)
  *

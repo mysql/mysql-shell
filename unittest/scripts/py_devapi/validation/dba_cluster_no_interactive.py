@@ -22,8 +22,9 @@
 ||Cluster.add_instance: Connection definition is empty
 ||Cluster.add_instance: Invalid and missing values in instance definition (invalid: weird), (missing: host)
 ||Cluster.add_instance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.add_instance: Invalid values in instance definition: authMethod, schema
+||Cluster.add_instance: Invalid values in instance definition: authMethod, ipWhitelist, memberSslMode, schema
 ||Cluster.add_instance: Missing values in instance definition: host
+||Cluster.add_instance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to the ReplicaSet: 'default'
@@ -95,10 +96,10 @@
 }
 
 #@ Cluster: remove_instance errors
-||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 0
-||Invalid number of arguments in Cluster.remove_instance, expected 1 but got 2
+||Invalid number of arguments in Cluster.remove_instance, expected 1 to 2 but got 0
+||Invalid number of arguments in Cluster.remove_instance, expected 1 to 2 but got 3
 ||Cluster.remove_instance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.remove_instance: Invalid values in instance definition: authMethod, schema, user
+||Cluster.remove_instance: Invalid values in instance definition: authMethod, schema
 ||Cluster.remove_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 #@ Cluster: remove_instance read only
@@ -339,8 +340,9 @@
 ||Invalid number of arguments in Cluster.rejoin_instance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.rejoin_instance, expected 1 to 2 but got 3
 ||Cluster.rejoin_instance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.rejoin_instance: Invalid values in instance definition: authMethod, schema
+||Cluster.rejoin_instance: Invalid values in instance definition: authMethod, ipWhitelist, memberSslMode, schema
 ||Cluster.rejoin_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
+||Cluster.rejoin_instance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist, string value cannot be empty.

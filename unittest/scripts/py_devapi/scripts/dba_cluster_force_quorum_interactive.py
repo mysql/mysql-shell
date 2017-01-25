@@ -66,23 +66,17 @@ cluster.force_quorum_using_partition_of("");
 cluster.force_quorum_using_partition_of(1, "");
 
 #@ Cluster.force_quorum_using_partition_of error interactive
-if __have_ssl:
-  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port2, 'memberSslMode': 'REQUIRED'})
-else:
-  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port2})
+cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port2})
 
 #@<OUT> Cluster.force_quorum_using_partition_of success
-if __have_ssl:
-  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1, 'memberSslMode': 'REQUIRED'})
-else:
-  cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1})
+cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1})
 
 #@<OUT> Cluster status after force quorum
 cluster.status();
 
 #@ Rejoin instance 2
 if __have_ssl:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root', 'memberSslMode': 'REQUIRED'})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'}, {'memberSslMode': 'REQUIRED'})
 else:
   cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
 
@@ -91,7 +85,7 @@ wait_slave_state(cluster, uri2, "ONLINE");
 
 #@ Rejoin instance 3
 if __have_ssl:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root', 'memberSslMode': 'REQUIRED'})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root'}, {'memberSslMode': 'REQUIRED'})
 else:
   cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port3, 'password':'root'})
 

@@ -93,7 +93,17 @@ enum Status {
 std::string describe(Status state);
 };
 
-shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, bool get_password_from_options = false);
+namespace PasswordFormat {
+enum Format {
+  NONE,
+  STRING,
+  OPTIONS,
+};
+}
+
+extern const std::set<std::string> _instance_options;
+
+shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, PasswordFormat::Format format);
 void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate = nullptr);
 std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);
 ReplicationGroupState check_function_preconditions(const std::string& class_name, const std::string& base_function_name, const std::string &function_name, const std::shared_ptr<MetadataStorage>& metadata);

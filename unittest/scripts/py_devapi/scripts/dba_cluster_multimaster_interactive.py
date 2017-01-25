@@ -15,7 +15,7 @@ cluster = dba.get_cluster('devCluster');
 #@ Cluster: add_instance with interaction, error
 add_instance_options['port'] = __mysql_sandbox_port1
 
-cluster.add_instance(add_instance_options)
+cluster.add_instance(add_instance_options, add_instance_extra_opts)
 
 check_slave_online_multimaster(cluster, uri1);
 

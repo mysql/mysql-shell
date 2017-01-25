@@ -281,7 +281,7 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("connect").c_str());
 
   try {
-    auto options = mysqlsh::dba::get_instance_options_map(args);
+    auto options = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
     mysqlsh::dba::resolve_instance_credentials(options);
 
     SessionType type = SessionType::Auto;

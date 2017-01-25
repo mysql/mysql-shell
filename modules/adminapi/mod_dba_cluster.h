@@ -99,9 +99,9 @@ public:
   String adminType; //!< $(CLUSTER_ADMINTYPE_BRIEF)
   String getName();
   String getAdminType();
-  Undefined addInstance(InstanceDef instance, String password);
-  Undefined rejoinInstance(InstanceDef instance);
-  Undefined removeInstance(InstanceDef instance);
+  Undefined addInstance(InstanceDef instance, Dictionary options);
+  Undefined rejoinInstance(InstanceDef instance, Dictionary options);
+  Undefined removeInstance(InstanceDef instance, String password);
   Dictionary checkInstanceState(InstanceDef instance, String password);
   String describe();
   String status();
@@ -113,9 +113,9 @@ public:
   std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)
   str get_name();
   str get_admin_type();
-  None add_instance(InstanceDef instance, str password);
-  None rejoin_instance(InstanceDef instance);
-  None remove_instance(InstanceDef instance);
+  None add_instance(InstanceDef instance, dict options);
+  None rejoin_instance(InstanceDef instance, dict options);
+  None remove_instance(InstanceDef instance, str password);
   dict check_instance_state(InstanceDef instance, str password);
   str describe();
   str status();

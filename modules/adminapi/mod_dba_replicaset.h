@@ -52,7 +52,7 @@ public:
             std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~ReplicaSet();
 
-  static std::set<std::string> _add_instance_opts, _remove_instance_opts;
+  static std::set<std::string> _add_instance_opts;
 
   virtual std::string class_name() const { return "ReplicaSet"; }
   virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
@@ -84,27 +84,27 @@ public:
 
 #if DOXYGEN_JS
   String getName();
-  Undefined addInstance(InstanceDef instance, String password);
-  Undefined rejoinInstance(IndtanceDef instance);
-  Undefined removeInstance(InstanceDef instance);
+  Undefined addInstance(InstanceDef instance, Dictionary options);
+  Undefined rejoinInstance(IndtanceDef instance, Dictionary options);
+  Undefined removeInstance(InstanceDef instance, String password);
   Undefined dissolve(Dictionary options);
   Undefined disable();
   Undefined rescan();
   String describe();
   String status();
-  Undefined forceQuorumUsingPartitionOf(InstanceDef instance);
+  Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
 
 #elif DOXYGEN_PY
   str get_name();
-  None add_instance(InstanceDef instance, str password);
-  None rejoin_instance(InstanceDef instance);
-  None remove_instance(InstanceDef instance);
+  None add_instance(InstanceDef instance, dict options);
+  None rejoin_instance(InstanceDef instance, dict options);
+  None remove_instance(InstanceDef instance, str password);
   None dissolve(Dictionary options);
   None disable();
   None rescan();
   str describe();
   str status();
-  None force_quorum_using_partition_of(InstanceDef instance);
+  None force_quorum_using_partition_of(InstanceDef instance, str password);
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);

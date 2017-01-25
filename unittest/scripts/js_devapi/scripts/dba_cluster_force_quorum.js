@@ -67,17 +67,14 @@ cluster.forceQuorumUsingPartitionOf(1, "");
 cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2, password:'root'});
 
 //@ Cluster.forceQuorumUsingPartitionOf success
-if (__have_ssl)
-  cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', memberSslMode: 'REQUIRED'});
-else
-  cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root'});
+cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root'});
 
 //@<OUT> Cluster status after force quorum
 cluster.status();
 
 //@ Rejoin instance 2
 if (__have_ssl)
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', memberSslMode: 'REQUIRED'});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'}, {memberSslMode: 'REQUIRED'});
 else
   cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
 
@@ -86,7 +83,7 @@ wait_slave_state(cluster, uri2, "ONLINE");
 
 //@ Rejoin instance 3
 if (__have_ssl)
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', memberSslMode: 'REQUIRED'});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root'}, {memberSslMode: 'REQUIRED'});
 else
   cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root'});
 

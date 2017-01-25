@@ -129,10 +129,12 @@ protected:
     code = "add_instance_options = {'host':localhost, 'port': 0000, 'password':'root'};";
     exec_and_out_equals(code);
 
-    if (_have_ssl) {
-      code = "add_instance_options['memberSslMode'] = 'REQUIRED';";
-      exec_and_out_equals(code);
-    }
+    if (_have_ssl)
+      code = "add_instance_extra_opts = {'memberSslMode': 'REQUIRED'}";
+    else
+      code = "add_instance_extra_opts = {'memberSslMode': 'AUTO'}";
+
+    exec_and_out_equals(code);
 
 
 #ifdef _WIN32
