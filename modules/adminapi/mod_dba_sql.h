@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,6 +37,7 @@ bool SHCORE_PUBLIC get_server_variable(mysqlsh::mysql::Connection *connection, s
 void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name, const std::string &value);
 bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
                          std::string &value, bool throw_on_error = true);
+bool is_gtid_subset(mysqlsh::mysql::Connection *connection, const std::string &subset, const std::string &set);
 }
 }
 

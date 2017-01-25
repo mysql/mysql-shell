@@ -344,6 +344,21 @@ TEST_F(Shell_py_dba_tests, force_quorum_interactive) {
   validate_interactive("dba_cluster_force_quorum_interactive.py");
 }
 
+TEST_F(Shell_py_dba_tests, reboot_cluster) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_reboot_cluster.py");
+}
+
+TEST_F(Shell_py_dba_tests, reboot_cluster_interactive) {
+  //@ Dba.rebootClusterFromCompleteOutage success
+  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back("y");
+
+  validate_interactive("dba_reboot_cluster_interactive.py");
+}
+
 TEST_F(Shell_py_dba_tests, function_preconditions) {
   _options->wizards = false;
   reset_shell();

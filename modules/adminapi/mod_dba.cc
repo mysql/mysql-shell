@@ -1293,21 +1293,27 @@ shcore::Value::Map_type_ref Dba::_check_instance_config(const shcore::Argument_l
 
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF, "Reboots a cluster from complete outage.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM, "@param clusterName Optional The name of the cluster to be rebooted.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1, "@param options dictionary with options that modify the behavior of this function.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN, "@return The rebooted cluster object.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL, "This function reboots a cluster from complete outage. "\
-  "It picks the instance the MySQL Shell is connected to as new seed instance and recovers the cluster "\
-  "based on the existent Metadata of that instance.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1, "On success, the restored cluster object is returned by the function.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2, "The current session must be connected to a former instance of the cluster.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3, "If name is not specified, the default cluster will be returned.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4, "EXAMPLE:");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5, "shell.connect('root@localhost:3310');");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6, "var cluster = dba.rebootClusterFromCompleteOutage():");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL, "The options dictionary can contain the next values:");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1, "@li password: The password used for the instances sessions required operations.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2, "@li removeInstances: The list of instances to be removed from the cluster.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3, "@li rejoinInstances: The list of instances to be rejoined on the cluster.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4, "This function reboots a cluster from complete outage. "\
+  "It picks the instance the MySQL Shell is connected to as new seed instance and recovers the cluster. "\
+  "Optionally it also updates the cluster configuration based on user provided options.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5, "On success, the restored cluster object is returned by the function.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6, "The current session must be connected to a former instance of the cluster.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7, "If name is not specified, the default cluster will be returned.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8, "EXAMPLE:");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL9, "shell.connect('root@localhost:3310');");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL10, "var cluster = dba.rebootClusterFromCompleteOutage():");
 
 /**
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF)
 *
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN)
 *
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL)
@@ -1316,6 +1322,10 @@ REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6, "var cluster = dba.re
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL9)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL10)
 */
 #if DOXYGEN_JS
 Undefined Dba::rebootClusterFromCompleteOutage(String clusterName) {}
@@ -1324,30 +1334,566 @@ None Dba::reboot_cluster_from_complete_outage(str clusterName) {}
 #endif
 
 shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_list &args) {
-  args.ensure_count(0, 1, get_function_name("rebootClusterFromCompleteOutage").c_str());
+  args.ensure_count(0, 2, get_function_name("rebootClusterFromCompleteOutage").c_str());
 
   shcore::Value ret_val;
+  bool default_cluster = false;
+  std::string cluster_name, password, user, group_replication_group_name, port, host, active_session_address;
+  shcore::Value::Map_type_ref options;
+  std::shared_ptr<mysqlsh::dba::Cluster> cluster;
+  std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
+  std::vector<std::string> remove_instances_list, rejoin_instances_list;
+  std::shared_ptr<shcore::Value::Array_type> online_instances;
 
-  throw Exception::logic_error("Function not available yet.");
+  check_preconditions("rebootClusterFromCompleteOutage");
 
-  if (args.size() == 0) {
-    // Use the default cluster
-  } else {
-    std::string cluster_name = args.string_at(0);
+  try {
+    if (args.size() == 0) {
+      default_cluster = true;
+    } else if (args.size() == 1) {
+      cluster_name = args.string_at(0);
+    } else {
+      cluster_name = args.string_at(0);
+      options = args.map_at(1);
+    }
 
-    if (cluster_name.empty())
-      throw Exception::argument_error("The Cluster name cannot be empty.");
+    // get the current session information
+    auto instance_session(_metadata_storage->get_dba()->get_active_session());
 
-    if (!shcore::is_valid_identifier(cluster_name))
-      throw Exception::argument_error("The Cluster name must be a valid identifier.");
+    Value::Map_type_ref current_session_options = get_connection_data(instance_session->uri(), false);
+
+    if (options) {
+      shcore::Argument_map opt_map(*options);
+
+      if (opt_map.has_key("removeInstances"))
+        remove_instances_ref = opt_map.array_at("removeInstances");
+
+      if (opt_map.has_key("rejoinInstances"))
+        rejoin_instances_ref = opt_map.array_at("rejoinInstances");
+
+      // Check if the password is specified on the options and if not prompt it
+      if (opt_map.has_key("password"))
+        password = opt_map.string_at("password");
+      else if (opt_map.has_key("dbPassword"))
+        password = opt_map.string_at("dbPassword");
+      else
+        password = instance_session->get_password();
+
+      // check if the user is specified on the options and it not prompt it
+      if (opt_map.has_key("user"))
+        user = opt_map.string_at("user");
+      else if (opt_map.has_key("dbUser"))
+        user = opt_map.string_at("dbUser");
+      else
+        user = instance_session->get_user();
+
+    } else {
+      user = instance_session->get_user();
+      password = instance_session->get_password();
+    }
+
+    // Check if removeInstances and/or rejoinInstances are specified
+    // And if so add them to simple vectors so the check for types is done
+    // before moving on in the function logic
+    if (remove_instances_ref) {
+      for (auto value : *remove_instances_ref.get())
+        remove_instances_list.push_back(value.as_string());
+    }
+
+    if (rejoin_instances_ref) {
+      for (auto value : *rejoin_instances_ref.get())
+        rejoin_instances_list.push_back(value.as_string());
+    }
+
+    // Getting the cluster from the metadata already complies with:
+    // 1. Ensure that a Metadata Schema exists on the current session instance.
+    // 2. Ensure that the current session instance exists on the Metadata Schema
+    // 3. Ensure that the provided cluster identifier exists on the Metadata Schema
+    if (default_cluster) {
+      cluster = _metadata_storage->get_default_cluster();
+    } else {
+      if (cluster_name.empty())
+        throw Exception::argument_error("The cluster name cannot be empty.");
+
+      if (!shcore::is_valid_identifier(cluster_name))
+        throw Exception::argument_error("The cluster name must be a valid identifier.");
+
+      cluster = _metadata_storage->get_cluster(cluster_name);
+    }
+
+    if (cluster) {
+      // Set the provision interface pointer
+      cluster->set_provisioning_interface(_provisioning_interface);
+
+      // Set the cluster as return value
+      ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
+
+      // Get the default replicaset
+      default_replicaset = cluster->get_default_replicaset();
+    } else {
+      std::string message;
+      if (default_cluster)
+        message = "No default cluster is configured.";
+      else
+        message = "The cluster '" + cluster_name + "' is not configured.";
+
+      throw shcore::Exception::logic_error(message);
+    }
+
+    // Check if the cluster is empty
+    if (_metadata_storage->is_cluster_empty(cluster->get_id()))
+      throw Exception::runtime_error("The cluster is empty.");
+
+    // 4. Verify the status of all instances of the cluster:
+    // 4.1 None of the instances can belong to a GR Group
+    // 4.2 If any of the instances belongs to a GR group or is already managed by the
+    // InnoDB Cluster, so include that information on the error message
+    validate_instances_status_reboot_cluster(args);
+
+    // 5. Verify which of the online instances has the GTID superset.
+    // 5.1 Skip the verification on the list of instances to be removed: "removeInstances"
+    // 5.2 If the current session instance doesn't have the GTID superset, error out
+    // with that information and including on the message the instance with the GTID superset
+    validate_instances_gtid_reboot_cluster(&cluster_name, options, instance_session);
+
+    // Get the group_replication_group_name
+    group_replication_group_name = _metadata_storage->get_replicaset_group_name();
+
+    // 6. Set the current session instance as the seed instance of the Cluster
+    {
+      shcore::Argument_list new_args;
+      std::string replication_user, replication_user_password;
+
+      (*current_session_options)["user"] = Value(user);
+      (*current_session_options)["password"] = Value(password);
+
+      new_args.push_back(shcore::Value(current_session_options));
+
+      // A new replication user and password must be created
+      // so we pass an empty string to the MP call
+      replication_user = "";
+      replication_user_password = "";
+
+      default_replicaset->add_instance(new_args, replication_user, replication_user_password, true);
+    }
+
+    // 7. Update the Metadata Schema information
+    // 7.1 Remove the list of instances of "removeInstances" from the Metadata
+    default_replicaset->remove_instances(remove_instances_list);
+
+    // 8. Rejoin the list of instances of "rejoinInstances"
+    default_replicaset->rejoin_instances(rejoin_instances_list, options);
+
+    // check if @@group_replication_group_name changes after the reboot and
+    // if so, update the metadata accordingly
+    {
+      std::string current_group_replication_group_name = _metadata_storage->get_replicaset_group_name();
+
+      if (current_group_replication_group_name != group_replication_group_name)
+        _metadata_storage->set_replicaset_group_name(default_replicaset, current_group_replication_group_name);
+    }
   }
-
-  // Do not forget to check if @@group_replication_group_name changes after the reboot and
-  // if so, update the metadata accordingly
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rebootClusterFromCompleteOutage"));
 
   return ret_val;
 }
 
 ReplicationGroupState Dba::check_preconditions(const std::string& function_name) const {
   return check_function_preconditions(class_name(), function_name, get_function_name(function_name), _metadata_storage);
+}
+
+/*
+ * get_replicaset_instances_status:
+ *
+ * Given a cluster id, this function verifies the connectivity status of all the instances
+ * of the default replicaSet of the cluster. It returns a list of pairs <instance_id, status>,
+ * on which 'status' is empty if the instance is reachable, or if not reachable contains the
+ * connection failure error message
+ */
+std::vector<std::pair<std::string, std::string>> Dba::get_replicaset_instances_status(std::string *out_cluster_name,
+          const shcore::Value::Map_type_ref &options) {
+  std::vector<std::pair<std::string, std::string>> instances_status;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  std::string user, password, host, port, active_session_address, instance_address, conn_status;
+
+  if (out_cluster_name->empty())
+    *out_cluster_name = _metadata_storage->get_default_cluster()->get_name();
+
+  std::shared_ptr<Cluster> cluster = _metadata_storage->get_cluster(*out_cluster_name);
+  uint64_t rs_id = cluster->get_default_replicaset()->get_id();
+  std::shared_ptr<shcore::Value::Array_type> instances = _metadata_storage->get_replicaset_instances(rs_id);
+
+  // get the current session information
+  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+
+  Value::Map_type_ref current_session_options = get_connection_data(instance_session->uri(), false);
+
+  // Get the current session instance address
+  port = std::to_string(current_session_options->get_int("port"));
+  host = current_session_options->get_string("host");
+  active_session_address = host + ":" + port;
+
+  if (options) {
+    shcore::Argument_map opt_map(*options);
+
+    // Check if the password is specified on the options and if not prompt it
+    if (opt_map.has_key("password"))
+      password = opt_map.string_at("password");
+    else if (opt_map.has_key("dbPassword"))
+      password = opt_map.string_at("dbPassword");
+    else
+      password = instance_session->get_password();
+
+    // check if the user is specified on the options and it not prompt it
+    if (opt_map.has_key("user"))
+      user = opt_map.string_at("user");
+    else if (opt_map.has_key("dbUser"))
+      user = opt_map.string_at("dbUser");
+    else
+      user = instance_session->get_user();
+
+  } else {
+    user = instance_session->get_user();
+    password = instance_session->get_password();
+  }
+
+  // Iterate on all instances from the metadata
+  for (auto it = instances->begin(); it != instances->end(); ++it) {
+    auto row = it->as_object<mysqlsh::Row>();
+    instance_address = row->get_member("host").as_string();
+    conn_status.clear();
+    session = NULL;
+
+    // Skip the current session instance
+    if (instance_address == active_session_address) {
+      continue;
+    }
+
+    shcore::Argument_list session_args;
+    Value::Map_type_ref instance_options(new shcore::Value::Map_type);
+
+    shcore::Value::Map_type_ref connection_data = shcore::get_connection_data(instance_address);
+
+    int instance_port = connection_data->get_int("port");
+    std::string instance_host = connection_data->get_string("host");
+
+    (*instance_options)["host"] = shcore::Value(instance_host);
+    (*instance_options)["port"] = shcore::Value(instance_port);
+    // We assume the root password is the same on all instances
+    (*instance_options)["password"] = shcore::Value(password);
+    (*instance_options)["user"] = shcore::Value(user);
+    session_args.push_back(shcore::Value(instance_options));
+
+    try {
+      log_info("Opening a new session to the instance to determine its status: %s",
+                instance_address.c_str());
+      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      session->close(shcore::Argument_list());
+    } catch (std::exception &e) {
+      conn_status = e.what();
+      log_warning("Could not open connection to %s: %s.", instance_address.c_str(), e.what());
+    }
+
+    // Add the <instance, connection_status> pair to the list
+    instances_status.emplace_back(instance_address, conn_status);
+  }
+
+  return instances_status;
+}
+
+/*
+ * validate_instances_status_reboot_cluster:
+ *
+ * This function is an auxiliary function to be used for the reboot_cluster operation.
+ * It verifies the status of all the instances of the cluster referent to the arguments list.
+ * Firstly, it verifies the status of the current session instance to determine if it belongs
+ * to a GR group or is already managed by the InnoDB Cluster.cluster_name
+ * If not, does the same validation for the remaining reachable instances of the cluster.
+ */
+void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &args) {
+  std::string cluster_name, user, password, port, host, active_session_address;
+  shcore::Value::Map_type_ref options;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  mysqlsh::mysql::ClassicSession *classic_current;
+
+  if (args.size() == 1)
+    cluster_name = args.string_at(0);
+  if (args.size() > 1) {
+    cluster_name = args.string_at(0);
+    options = args.map_at(1);
+  }
+
+  // get the current session information
+  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  classic_current = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
+
+  Value::Map_type_ref current_session_options = get_connection_data(instance_session->uri(), false);
+
+  // Get the current session instance address
+  port = std::to_string(current_session_options->get_int("port"));
+  host = current_session_options->get_string("host");
+  active_session_address = host + ":" + port;
+
+  if (options) {
+    shcore::Argument_map opt_map(*options);
+
+    // Check if the password is specified on the options and if not prompt it
+    if (opt_map.has_key("password"))
+      password = opt_map.string_at("password");
+    else if (opt_map.has_key("dbPassword"))
+      password = opt_map.string_at("dbPassword");
+    else
+      password = instance_session->get_password();
+
+    // check if the user is specified on the options and it not prompt it
+    if (opt_map.has_key("user"))
+      user = opt_map.string_at("user");
+    else if (opt_map.has_key("dbUser"))
+      user = opt_map.string_at("dbUser");
+    else
+      user = instance_session->get_user();
+
+  } else {
+    user = instance_session->get_user();
+    password = instance_session->get_password();
+  }
+
+  GRInstanceType type = get_gr_instance_type(classic_current->connection());
+
+  switch (type) {
+    case GRInstanceType::InnoDBCluster:
+      throw Exception::runtime_error("The cluster's instance '" + active_session_address + "' belongs "
+                                       "to an InnoDB Cluster and is reachable. Please use " +
+                                       get_member_name("forceQuorumUsingPartitionOf", naming_style) +
+                                       "() to restore the quorum loss.");
+
+    case GRInstanceType::GroupReplication:
+      throw Exception::runtime_error("The cluster's instance '" + active_session_address + "' belongs "
+                                     "to an unmanaged GR group. ");
+
+    case Standalone:
+      // We only want to check whether the status if InnoDBCluster or GroupReplication to stop and thrown
+      // an exception
+      break;
+  }
+
+  // Verify all the remaining online instances for their status
+  std::vector<std::pair<std::string, std::string>> instances_status =
+          get_replicaset_instances_status(&cluster_name, options);
+
+  for (auto &value : instances_status) {
+    mysqlsh::mysql::ClassicSession *classic;
+
+    std::string instance_address = value.first;
+    std::string instance_status = value.second;
+
+    // if the status is not empty it means the connection failed
+    // so we skip this instance
+    if (!instance_status.empty())
+      continue;
+
+    shcore::Argument_list session_args;
+    Value::Map_type_ref instance_options(new shcore::Value::Map_type);
+
+    shcore::Value::Map_type_ref connection_data = shcore::get_connection_data(instance_address);
+
+    int instance_port = connection_data->get_int("port");
+    std::string instance_host = connection_data->get_string("host");
+
+    (*instance_options)["host"] = shcore::Value(instance_host);
+    (*instance_options)["port"] = shcore::Value(instance_port);
+    // We assume the root password is the same on all instances
+    (*instance_options)["password"] = shcore::Value(password);
+    (*instance_options)["user"] = shcore::Value(user);
+    session_args.push_back(shcore::Value(instance_options));
+
+    try {
+      log_info("Opening a new session to the instance: %s",
+                instance_address.c_str());
+      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    } catch (std::exception &e) {
+      throw Exception::runtime_error("Could not open connection to " + instance_address + "");
+    }
+
+    GRInstanceType type = get_gr_instance_type(classic->connection());
+
+    // Close the session
+    session->close(shcore::Argument_list());
+
+    switch (type) {
+      case GRInstanceType::InnoDBCluster:
+        throw Exception::runtime_error("The cluster's instance '" + instance_address + "' belongs "
+                                       "to an InnoDB Cluster and is reachable. Please use " +
+                                       get_member_name("forceQuorumUsingPartitionOf", naming_style) +
+                                       "() to restore the quorum loss.");
+
+      case GRInstanceType::GroupReplication:
+        throw Exception::runtime_error("The cluster's instance '" + instance_address + "' belongs "
+                                       "to an unmanaged GR group. ");
+
+      case Standalone:
+        // We only want to check whether the status if InnoDBCluster or GroupReplication to stop and thrown
+        // an exception
+        break;
+    }
+  }
+}
+
+/*
+ * validate_instances_gtid_reboot_cluster:
+ *
+ * This function is an auxiliary function to be used for the reboot_cluster operation.
+ * It verifies which of the online instances of the cluster has the GTID superset.
+ * If the current session instance doesn't have the GTID superset, it errors out with that information
+ * and includes on the error message the instance with the GTID superset
+ */
+void Dba::validate_instances_gtid_reboot_cluster(std::string *out_cluster_name,
+                                                 const shcore::Value::Map_type_ref &options,
+                                                 const std::shared_ptr<ShellDevelopmentSession> &instance_session) {
+  /* GTID verification is done by verifying which instance has the GTID superset.the
+   * In order to do so, a union of the global gtid executed and the received transaction
+   * set must be done using:
+   *
+   * CREATE FUNCTION GTID_UNION(g1 TEXT, g2 TEXT)
+   *  RETURNS TEXT DETERMINISTIC
+   *  RETURN CONCAT(g1,',',g2);
+   *
+   * Instance 1:
+   *
+   * A: select @@GLOBAL.GTID_EXECUTED
+   * B: SELECT RECEIVED_TRANSACTION_SET FROM
+   *    performance_schema.replication_connection_status where CHANNEL_NAME="group_replication_applier";
+   *
+   * Total = A + B (union)
+   *
+   * SELECT GTID_SUBSET("Total_instance1", "Total_instance2")
+   */
+
+  std::pair<std::string, std::string> most_updated_instance;
+  mysqlsh::mysql::ClassicSession *classic_current;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  std::string host, port, active_session_address, user, password;
+
+  // get the current session information
+  classic_current = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
+
+  Value::Map_type_ref current_session_options = get_connection_data(instance_session->uri(), false);
+
+  // Get the current session instance address
+  port = std::to_string(current_session_options->get_int("port"));
+  host = current_session_options->get_string("host");
+  active_session_address = host + ":" + port;
+
+  if (options) {
+    shcore::Argument_map opt_map(*options);
+
+    if (opt_map.has_key("password"))
+      password = opt_map.string_at("password");
+    else if (opt_map.has_key("dbPassword"))
+      password = opt_map.string_at("dbPassword");
+    else
+      password = instance_session->get_password();
+
+    if (opt_map.has_key("user"))
+      user = opt_map.string_at("user");
+    else if (opt_map.has_key("dbUser"))
+      user = opt_map.string_at("dbUser");
+    else
+      user = instance_session->get_user();
+
+  } else {
+    user = instance_session->get_user();
+    password = instance_session->get_password();
+  }
+
+  // Get the cluster instances and their status
+  std::vector<std::pair<std::string, std::string>> instances_status =
+        get_replicaset_instances_status(out_cluster_name, options);
+
+  // Get @@GLOBAL.GTID_EXECUTED
+  std::string gtid_executed_current;
+  get_server_variable(classic_current->connection(), "GLOBAL.GTID_EXECUTED", gtid_executed_current);
+
+  std::string msg = "The current session instance GLOBAL.GTID_EXECUTED is: " + gtid_executed_current;
+  log_info("%s", msg.c_str());
+
+  // Create a pair vector to store all the GTID_EXECUTED
+  std::vector<std::pair<std::string, std::string>> gtids;
+
+  // Insert the current session info
+  gtids.emplace_back(active_session_address, gtid_executed_current);
+
+  // Update most_updated_instance with the current session instance value
+  most_updated_instance = std::make_pair(active_session_address, gtid_executed_current);
+
+  for (auto &value : instances_status) {
+    mysqlsh::mysql::ClassicSession *classic;
+    std::string instance_address = value.first;
+    std::string instance_status = value.second;
+
+    // if the status is not empty it means the connection failed
+    // so we skip this instance
+    if (!instance_status.empty())
+      continue;
+
+    shcore::Argument_list session_args;
+    Value::Map_type_ref instance_options(new shcore::Value::Map_type);
+
+    shcore::Value::Map_type_ref connection_data = shcore::get_connection_data(instance_address);
+
+    int instance_port = connection_data->get_int("port");
+    std::string instance_host = connection_data->get_string("host");
+
+    (*instance_options)["host"] = shcore::Value(instance_host);
+    (*instance_options)["port"] = shcore::Value(instance_port);
+    // We assume the root password is the same on all instances
+    (*instance_options)["password"] = shcore::Value(password);
+    (*instance_options)["user"] = shcore::Value(user);
+    session_args.push_back(shcore::Value(instance_options));
+
+    // Connect to the instance to obtain the GLOBAL.GTID_EXECUTED
+    try {
+      log_info("Opening a new session to the instance for gtid validations %s",
+                instance_address.c_str());
+      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    } catch (std::exception &e) {
+      throw Exception::runtime_error("Could not open a connection to " +
+                                      instance_address + ": " + e.what() +
+                                      ".");
+    }
+
+    std::string gtid_executed;
+
+    // Get @@GLOBAL.GTID_EXECUTED
+    get_server_variable(classic->connection(), "GLOBAL.GTID_EXECUTED", gtid_executed);
+
+    // Close the session
+    session->close(shcore::Argument_list());
+
+    std::string msg = "The instance: '" + instance_address + "' GLOBAL.GTID_EXECUTED is: " + gtid_executed;
+    log_info("%s", msg.c_str());
+
+    // Add to the pair vector of gtids
+    gtids.emplace_back(instance_address, gtid_executed);
+  }
+
+  // Calculate the most up-to-date instance
+  // TODO: calculate the Total GTID executed. See comment above
+  for (auto &value : gtids) {
+    // Compare the gtid's: SELECT GTID_SUBSET("Total_instance1", "Total_instance2")
+    if (!is_gtid_subset(classic_current->connection(), value.second, most_updated_instance.second))
+      most_updated_instance = value;
+  }
+
+  // Check if the most updated instance is not the current session instance
+  if (!(most_updated_instance.first == active_session_address)) {
+    throw Exception::runtime_error("The active session instance isn't the most updated "
+                                   "in comparison with the ONLINE instances of the Cluster's "
+                                   "metadata. Please use the most up to date instance: '" +
+                                   most_updated_instance.first + "'.");
+  }
 }

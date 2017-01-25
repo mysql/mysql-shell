@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -78,6 +78,14 @@ public:
 
   shcore::IShell_core* get_owner() { return _shell_core; }
 
+  std::vector<std::pair<std::string, std::string>> get_replicaset_instances_status(std::string *out_cluster_name,
+          const shcore::Value::Map_type_ref &options);
+
+  void validate_instances_status_reboot_cluster(const shcore::Argument_list &args);
+  void validate_instances_gtid_reboot_cluster(std::string *out_cluster_name,
+                                              const shcore::Value::Map_type_ref &options,
+                                              const std::shared_ptr<ShellDevelopmentSession> &instance_session);
+
 #if DOXYGEN_JS
   Integer verbose;
   Cluster createCluster(String name, Dictionary options);
@@ -91,7 +99,7 @@ public:
   Undefined stopSandboxInstance(Integer port, Dictionary options);
   Undefined checkInstanceConfig(InstanceDef instance, Dictionary options);
   Instance configLocalInstance(InstanceDef instance, Dictionary options);
-  Undefined rebootClusterFromCompleteOutage(String clusterName);
+  Undefined rebootClusterFromCompleteOutage(String clusterName, Dictionary options);
 #elif DOXYGEN_PY
   int verbose;
   Cluster create_cluster(str name, dict options);
@@ -106,7 +114,7 @@ public:
   None stop_sandbox_instance(int port, dict options);
   None check_instance_config(InstanceDef instance, dict options);
   JSON config_local_instance(InstanceDef instance, dict options);
-  None reboot_cluster_from_complete_outage(str clusterName);
+  None reboot_cluster_from_complete_outage(str clusterName, dict options);
 #endif
 
   static std::shared_ptr<mysqlsh::mysql::ClassicSession> get_session(const shcore::Argument_list& args);

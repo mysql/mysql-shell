@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -251,5 +251,22 @@ bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::stri
 
   return ret_val;
 }
+
+bool is_gtid_subset(mysqlsh::mysql::Connection *connection, const std::string &subset, const std::string &set) {
+  int ret_val = 0;
+  std::string query = shcore::sqlstring("SELECT GTID_SUBSET(?, ?)", 0) << subset << set;
+
+  try {
+    auto result = connection->run_sql(query);
+    auto row = result->fetch_one();
+
+    if (row)
+      ret_val = row->get_value(0).as_int();
+  } catch (shcore::Exception& error) {
+      throw;
+  }
+
+  return (ret_val == 1);
 }
-}
+} // namespace dba
+} // namespace mysh

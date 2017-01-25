@@ -109,8 +109,9 @@ public:
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
   shcore::Value add_instance(const shcore::Argument_list &args,
-                             const std::string existing_replication_user = "",
-                             const std::string existing_replication_password = "");
+                             const std::string &existing_replication_user = "",
+                             const std::string &existing_replication_password = "",
+                             bool overwrite_seed=false);
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
@@ -125,6 +126,9 @@ public:
 
   void remove_instances_from_gr(const shcore::Value::Array_type_ref &instances);
   ReplicationGroupState check_preconditions(const std::string& function_name) const;
+  void remove_instances(const std::vector<std::string> &remove_instances);
+  void rejoin_instances(const std::vector<std::string> &rejoin_instances,
+                        const shcore::Value::Map_type_ref &options);
 private:
   //TODO these should go to a GroupReplication file
   friend Cluster;

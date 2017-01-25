@@ -319,8 +319,9 @@ std::string ReplicaSet::resolve_ssl_mode(mysqlsh::mysql::ClassicSession *session
 }
 
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
-                                       const std::string existing_replication_user,
-                                       const std::string existing_replication_password) {
+                                       const std::string &existing_replication_user,
+                                       const std::string &existing_replication_password,
+                                       bool overwrite_seed) {
   shcore::Value ret_val;
 
   bool seed_instance = false;
@@ -334,6 +335,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
   // Check if we're on a addSeedInstance or not
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
+
+  // Check if we need to overwrite the seed instance
+  if (overwrite_seed) seed_instance = true;
 
   // Retrieves the instance definition
   auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
@@ -1311,6 +1315,10 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
 }
 
 void ReplicaSet::remove_instance_metadata(const shcore::Value::Map_type_ref& instance_def) {
+  log_debug("Removing instance from metadata");
+
+  MetadataStorage::Transaction tx(_metadata_storage);
+
   std::string port = std::to_string(instance_def->get_int("port"));
 
   std::string host = instance_def->get_string("host");
@@ -1319,6 +1327,8 @@ void ReplicaSet::remove_instance_metadata(const shcore::Value::Map_type_ref& ins
   std::string instance_address = host + ":" + port;
 
   _metadata_storage->remove_instance(instance_address);
+
+  tx.commit();
 }
 
 std::vector<std::string> ReplicaSet::get_instances_gr() {
@@ -1815,4 +1825,102 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
   }
 
   return ret_val;
+}
+
+void ReplicaSet::remove_instances(const std::vector<std::string> &remove_instances) {
+  if (!remove_instances.empty()) {
+
+    for (auto instance : remove_instances) {
+      // verify if the instance is on the metadata
+      if (_metadata_storage->is_instance_on_replicaset(_id, instance)) {
+        Value::Map_type_ref options(new shcore::Value::Map_type);
+
+        shcore::Value::Map_type_ref connection_data = shcore::get_connection_data(instance);
+
+        int instance_port = connection_data->get_int("port");
+        std::string instance_host = connection_data->get_string("host");
+
+        (*options)["host"] = shcore::Value(instance_host);
+        (*options)["port"] = shcore::Value(instance_port);
+
+        remove_instance_metadata(options);
+      } else {
+        std::string message = "The instance '" + instance + "'";
+        message.append(" does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+        message.append("Skipping removal.");
+        log_warning("%s", message.c_str());
+      }
+    }
+  }
+}
+
+void ReplicaSet::rejoin_instances(const std::vector<std::string> &rejoin_instances,
+                                  const shcore::Value::Map_type_ref &options) {
+  std::string user, password;
+  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+
+  if (!rejoin_instances.empty()) {
+    // Get the user and password from the options
+    // or from the instance session
+    if (options) {
+      shcore::Argument_map opt_map(*options);
+
+      // Check if the password is specified on the options and if not prompt it
+      if (opt_map.has_key("password"))
+        password = opt_map.string_at("password");
+      else if (opt_map.has_key("dbPassword"))
+        password = opt_map.string_at("dbPassword");
+      else
+        password = instance_session->get_password();
+
+      // check if the user is specified on the options and it not prompt it
+      if (opt_map.has_key("user"))
+        user = opt_map.string_at("user");
+      else if (opt_map.has_key("dbUser"))
+        user = opt_map.string_at("dbUser");
+      else
+        user = instance_session->get_user();
+
+    } else {
+      user = instance_session->get_user();
+      password = instance_session->get_password();
+    }
+
+    for (auto instance : rejoin_instances) {
+      // verify if the instance is on the metadata
+      if (_metadata_storage->is_instance_on_replicaset(_id, instance)) {
+        shcore::Argument_list args;
+        shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
+
+        std::pair<std::string, int> instance_uri;
+
+        shcore::Value::Map_type_ref connection_data = shcore::get_connection_data(instance);
+
+        int instance_port = connection_data->get_int("port");
+        std::string instance_host = connection_data->get_string("host");
+
+        (*options)["user"] = shcore::Value(user);
+        (*options)["password"] = shcore::Value(password);
+        (*options)["host"] = shcore::Value(instance_host);
+        (*options)["port"] = shcore::Value(instance_port);
+
+        args.push_back(shcore::Value(options));
+
+        // If rejoinInstance fails we don't want to stop the execution of the
+        // function, but to log the error.
+        try {
+          std::string msg = "Rejoining the instance '" + instance + "' to the "
+                            "cluster's default replicaset.";
+          log_warning("%s", msg.c_str());
+          rejoin_instance(args);
+        } catch (shcore::Exception &e) {
+          log_error("Failed to rejoin instance: %s", e.what());
+        }
+      } else {
+        std::string msg = "The instance '" + instance + "' does not "
+                          "belong to the cluster. Skipping rejoin to the Cluster.";
+        log_warning("%s", msg.c_str());
+      }
+    }
+  }
 }

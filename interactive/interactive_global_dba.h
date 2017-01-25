@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,6 +39,7 @@ public:
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
+  shcore::Value reboot_cluster_from_complete_outage(const shcore::Argument_list &args);
 
   shcore::Value create_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster(const shcore::Argument_list &args);
@@ -48,6 +49,9 @@ public:
 
 private:
   mysqlsh::dba::ReplicationGroupState check_preconditions(const std::string& function_name) const;
+  std::vector<std::pair<std::string, std::string>> get_replicaset_instances_status(std::string *out_cluster_name,
+          const shcore::Value::Map_type_ref &options) const;
+  void validate_instances_status_reboot_cluster(const shcore::Argument_list &args) const;
   shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args, const std::string& function_name);
   shcore::Value perform_instance_operation(const shcore::Argument_list &args, const std::string &fname, const std::string& progressive, const std::string& past);
   void dump_table(const std::vector<std::string>& column_names, const std::vector<std::string>& column_labels, shcore::Value::Array_type_ref documents);
