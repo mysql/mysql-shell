@@ -212,14 +212,14 @@ def cleanup_sandboxes(deployed_here):
 # 3 retries are done on each case, expectation is that the addition
 # is done on the first attempt, however, we have detected some OS
 # delays that cause it to fail, that's why the retry logic
-def add_instance_to_cluster(cluster, port, name = None):
+def add_instance_to_cluster(cluster, port, label = None):
   global add_instance_options
   add_instance_options['port'] = port
   
-  named = False
-  if not name is None:
-    add_instance_options['name'] = name
-    named = True
+  labeled = False
+  if not label is None:
+    add_instance_extra_opts['label'] = label
+    labeled = True
   
   attempt = 0
   success = False
@@ -235,8 +235,8 @@ def add_instance_to_cluster(cluster, port, name = None):
       print "Waiting 5 seconds for next attempt"
       time.sleep(5)
   
-  if named:
-    del add_instance_options['name']
+  if labeled:
+    del add_instance_extra_opts['label']
 
   if not success:
-    raise Exception('Failed adding instance : %s' % add_instance_options)
+    raise Exception('Failed adding instance : %s, %s' % add_instance_options, add_instance_extra_opts)

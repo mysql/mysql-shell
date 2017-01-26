@@ -6,7 +6,7 @@
 cluster = dba.get_cluster('devCluster');
 
 desc = cluster.describe();
-localhost = desc.defaultReplicaSet.instances[0].name.split(':')[0];
+localhost = desc.defaultReplicaSet.instances[0].label.split(':')[0];
 
 
 all_members = dir(cluster)

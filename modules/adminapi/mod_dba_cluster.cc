@@ -366,8 +366,8 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM1, "@param password Optional Instance 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL, "This function removes an Instance from the default replicaSet of the cluster.");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1, "The instance definition can be any of:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3, "@li URI string.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "@li Connection data dictionary.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "@li URI string.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3, "@li Connection data dictionary.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "The password may be contained on the instance definition, however, it can be overwritten "\
 "if it is specified as second parameter.");
 

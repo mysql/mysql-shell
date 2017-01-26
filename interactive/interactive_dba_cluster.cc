@@ -232,7 +232,15 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
   // Identify the type of connection data (String or Document)
   if (args[0].type == String) {
     uri = args.string_at(0);
-    options = get_connection_data(uri, false);
+
+    try {
+      options = get_connection_data(uri, false);
+    }
+    catch (std::exception &e) {
+      std::string error(e.what());
+      throw shcore::Exception::argument_error("Invalid instance definition, expected a URI. "
+                                              "Error: " + error);
+    }
   }
 
   // TODO: what if args[0] is a String containing the name of the instance?

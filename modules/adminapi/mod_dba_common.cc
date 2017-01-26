@@ -137,8 +137,16 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
 
   // Not an instance, tries as URI string
   //else
-  if (args[0].type == shcore::String)
-    options = shcore::get_connection_data(args.string_at(0), false);
+  if (args[0].type == shcore::String) {
+    try {
+      options = shcore::get_connection_data(args.string_at(0), false);
+    }
+    catch (std::exception &e) {
+      std::string error(e.what());
+      throw shcore::Exception::argument_error("Invalid instance definition, expected a URI. "
+                                              "Error: " + error);
+    }
+  }
 
   // Finally as a dictionary
   else if (args[0].type == shcore::Map)

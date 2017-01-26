@@ -55,17 +55,17 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -124,12 +124,12 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -176,12 +176,12 @@ The following replicasets are currently registered:
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],

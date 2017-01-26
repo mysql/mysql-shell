@@ -43,17 +43,17 @@
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "name": "second",
+                "label": "second",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -113,12 +113,12 @@
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -163,17 +163,17 @@
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
         ],
@@ -229,12 +229,12 @@
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
         ],
@@ -279,17 +279,17 @@
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             }
         ],

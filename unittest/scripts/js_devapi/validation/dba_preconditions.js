@@ -75,12 +75,12 @@
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
         ],
@@ -155,12 +155,12 @@
         "instances": [
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
                 "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "name": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
         ],

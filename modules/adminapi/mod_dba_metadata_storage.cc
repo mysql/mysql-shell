@@ -301,7 +301,7 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   std::string uri;
 
   std::string mysql_server_uuid;
-  std::string instance_name;
+  std::string instance_label;
   std::string role;
   float weight;
   shcore::Value::Map_type_ref attributes;
@@ -315,7 +315,7 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   std::shared_ptr< ::mysqlx::Row> row;
 
   mysql_server_uuid = (*options)["mysql_server_uuid"].as_string();
-  instance_name = (*options)["name"].as_string();
+  instance_label = (*options)["label"].as_string();
 
   if (options->has_key("role"))
     role = (*options)["role"].as_string();
@@ -345,7 +345,7 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   query << host_id;
   query << rs_id;
   query << mysql_server_uuid;
-  query << instance_name;
+  query << instance_label;
   query << role;
   query << endpoint;
   query << xendpoint;

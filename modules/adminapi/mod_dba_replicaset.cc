@@ -64,7 +64,7 @@ using namespace shcore;
 
 #define PASSWORD_LENGTH 16
 
-std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "password", "dbPassword", "memberSslMode", "ipWhitelist"};
+std::set<std::string> ReplicaSet::_add_instance_opts = {"label", "password", "dbPassword", "memberSslMode", "ipWhitelist"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
@@ -326,6 +326,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   bool seed_instance = false;
   std::string ssl_mode = dba::kMemberSSLModeAuto; //SSL Mode AUTO by default
   std::string ip_whitelist;
+  std::string instance_label;
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Cluster class, hence this just throws exceptions
@@ -356,6 +357,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
     if (add_options->has_key("ipWhitelist"))
       ip_whitelist = add_options->get_string("ipWhitelist");
+    
+    if (add_options->has_key("label"))
+      instance_label = add_options->get_string("label");
   }
 
 
@@ -485,7 +489,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
   // If the instance is not on the Metadata, we must add it
   if (!is_instance_on_md) {
-    add_instance_metadata(instance_def);
+    add_instance_metadata(instance_def, instance_label);
   }
   log_debug("Instance add finished");
 
@@ -803,7 +807,7 @@ shcore::Value ReplicaSet::remove_instance_(const shcore::Argument_list &args) {
 shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
-  std::string uri, name, port;
+  std::string port;
 
   auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
 
@@ -823,17 +827,17 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   std::string instance_admin_user;
   std::string instance_admin_user_password;
 
-  if (options->has_key("user"))
-    instance_admin_user = options->get_string("user");
-  else if (options->has_key("dbUser"))
-    instance_admin_user = options->get_string("dbUser");
+  if (instance_def->has_key("user"))
+    instance_admin_user = instance_def->get_string("user");
+  else if (instance_def->has_key("dbUser"))
+    instance_admin_user = instance_def->get_string("dbUser");
   else
     get_default_user = true;
 
-  if (options->has_key("password"))
-    instance_admin_user = options->get_string("password");
-  else if (options->has_key("dbPassword"))
-    instance_admin_user = options->get_string("dbPassword");
+  if (instance_def->has_key("password"))
+    instance_admin_user = instance_def->get_string("password");
+  else if (instance_def->has_key("dbPassword"))
+    instance_admin_user = instance_def->get_string("dbPassword");
   else
     get_default_password = true;
 
@@ -877,7 +881,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   // TODO: do we remove the host? we check if is the last instance of that host and them remove?
   // auto result = _metadata_storage->remove_host(args);
 
-  // TODO: the instance_name can be actually a name, check TODO above
+  // TODO: the instance_label can be actually a name, check TODO above
   // NOTE: When applicable, removal of the replication user and the instance metadata must be done
   //       before leaving the replicaset, doing it after lets the next inconsistencies:
   //       - both changes are applied on an instance that is no longer in a cluster
@@ -896,7 +900,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   // Remove it from the MD
   if (is_instance_on_md)
-    remove_instance_metadata(options);
+    remove_instance_metadata(instance_def);
 
   tx.commit();
 
@@ -994,7 +998,7 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
     for (auto value : *instances.get()) {
       auto row = value.as_object<mysqlsh::Row>();
       if (row->get_member(0).as_string() == master_uuid) {
-        master_instance = row->get_member(1).as_string();
+        master_instance = row->get_member("host").as_string();
       }
     }
   }
@@ -1018,17 +1022,10 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
   for (auto value : *instances.get()) {
     auto row = value.as_object<mysqlsh::Row>();
 
-    std::string instance_name = row->get_member(1).as_string();
+    std::string instance = row->get_member("host").as_string();
 
-    if (instance_name != master_instance) {
-      shcore::Value::Map_type_ref data = shcore::get_connection_data(instance_name,
-                                                                     false);
-
-      if (data->has_key("host")) {
-        auto host = data->get_string("host");
-      }
-
-      std::string instance_url = instance_admin_user + "@" + instance_name;
+    if (instance != master_instance) {
+      std::string instance_url = instance_admin_user + "@" + instance;
       shcore::Value::Array_type_ref errors;
 
       // Leave the replicaset
@@ -1043,13 +1040,6 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
 
   // Remove the master instance
   if (!master_uuid.empty()) {
-    shcore::Value::Map_type_ref data = shcore::get_connection_data(master_instance,
-                                                                   false);
-
-    if (data->has_key("host")) {
-      auto host = data->get_string("host");
-    }
-
     std::string instance_url = instance_admin_user + "@" + master_instance;
     shcore::Value::Array_type_ref errors;
 
@@ -1133,7 +1123,7 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
   for (auto &instance : unavailable_instances_list) {
     shcore::Value::Map_type_ref unavailable_instance(new shcore::Value::Map_type());
     (*unavailable_instance)["member_id"] = shcore::Value(instance.id);
-    (*unavailable_instance)["name"] = shcore::Value(instance.name);
+    (*unavailable_instance)["label"] = shcore::Value(instance.label);
     (*unavailable_instance)["host"] = shcore::Value(instance.host);
 
     unavailable_instances->push_back(shcore::Value(unavailable_instance));
@@ -1146,14 +1136,13 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
 
 std::string ReplicaSet::get_peer_instance() {
   std::vector<std::string> result;
-  auto session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(_metadata_storage->get_dba()->get_active_session().get());
 
   // We need to retrieve a peer instance, so let's use the Seed one
   auto instances = _metadata_storage->get_replicaset_instances(get_id());
   if (instances) {
     for (auto value : *instances) {
       auto row = value.as_object<mysqlsh::Row>();
-      std::string peer_instance = row->get_member("instance_name").as_string();
+      std::string peer_instance = row->get_member("host").as_string();
       result.push_back(peer_instance);
     }
   }
@@ -1235,7 +1224,7 @@ shcore::Value ReplicaSet::retrieve_instance_state(const shcore::Argument_list &a
   return shcore::Value(ret_val);
 }
 
-void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instance_definition) {
+void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instance_definition, const std::string& label) {
   log_debug("Adding instance to metadata");
 
   MetadataStorage::Transaction tx(_metadata_storage);
@@ -1310,8 +1299,7 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
   (*instance_definition)["xendpoint"] = shcore::Value(instance_xaddress);
   (*instance_definition)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
 
-  if (!instance_definition->has_key("name"))
-    (*instance_definition)["name"] = shcore::Value(instance_address);
+  (*instance_definition)["label"] = shcore::Value(label.empty() ? instance_address : label);
 
   // update the metadata with the host
   uint32_t host_id = _metadata_storage->insert_host(instance_definition);
@@ -1452,7 +1440,7 @@ std::vector<ReplicaSet::MissingInstanceInfo> ReplicaSet::get_unavailable_instanc
     auto row = result->fetch_one();
     MissingInstanceInfo info;
     info.id = row->get_value(0).as_string();
-    info.name = row->get_value(1).as_string();
+    info.label = row->get_value(1).as_string();
     info.host = row->get_value(2).as_string();
     ret.push_back(info);
   }
@@ -1683,7 +1671,7 @@ shcore::Value ReplicaSet::get_description() const {
     auto instance = shcore::Value::new_map();
     auto instance_obj = instance.as_map();
 
-    (*instance_obj)["name"] = row->get_member(1);
+    (*instance_obj)["label"] = row->get_member(1);
     (*instance_obj)["host"] = row->get_member(3);
     (*instance_obj)["role"] = row->get_member(2);
 
@@ -1807,9 +1795,9 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
     // Gets each row
     auto row = value.as_object<mysqlsh::Row>();
 
-    auto instance_name = row->get_member(1).as_string();
-    (*instance_owner_node)[instance_name] = shcore::Value::new_map();
-    auto instance_node = instance_owner_node->get_map(instance_name);
+    auto instance_label = row->get_member(1).as_string();
+    (*instance_owner_node)[instance_label] = shcore::Value::new_map();
+    auto instance_node = instance_owner_node->get_map(instance_label);
 
     // check if it is the active session instance
     bool active_session_instance = false;
