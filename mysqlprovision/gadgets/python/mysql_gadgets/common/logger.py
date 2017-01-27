@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@ import logging
 import sys
 
 from mysql_gadgets.exceptions import GadgetLogError
+
+PY2 = int(sys.version[0]) == 2
 
 # Format of the log messages.
 DEFAULT_DATE_FORMAT = '%Y-%m-%d %H:%M:%S %p'
@@ -67,7 +69,7 @@ def _set_formatter(handler_type, output_fmt=TEXT_FORMAT_TYPE):
     if output_fmt in OUTPUT_FORMAT_TYPES:
         if output_fmt == JSON_FORMAT_TYPE:
             # Set JSON message format (same for terminal or file).
-            return logging.Formatter(JSON_MSG_FORMAT, DEFAULT_DATE_FORMAT)
+            return JsonFormatter(JSON_MSG_FORMAT, DEFAULT_DATE_FORMAT)
         else:
             if handler_type == _TERMINAL_HANDLER:
                 # Set default (TEXT) message format for terminal.
@@ -363,6 +365,54 @@ class MessageByLoggingLevelFormatter(logging.Formatter):
             return "WARNING: {0}".format(res_str)
         else:
             return res_str
+
+
+class JsonFormatter(logging.Formatter):
+    """JSON Formatter class.
+
+    This class is used to format JSON logging messages and handle special
+    characters.
+    """
+
+    def format(self, record):
+        """ Format the specified record for JSON support.
+
+        This function formats the logging record in JSON, handling some
+        control characters properly, like \" and \\.
+
+        Note: Use of other control character is not supported (ignored).
+
+        :param record:  Logging record to format.
+        :type record:   logging.LogRecord
+
+        :return: resulting formatted message.
+        :rtype:  string
+        """
+        # First check if the log record was already handled, to avoid changing
+        # it again if multiple logging handler are used.
+        handled = getattr(record, "custom_json_handling", False)
+        if not handled:
+            # Set custom attribute to control already handled records.
+            setattr(record, "custom_json_handling", True)
+            # Replace \ by \\ and " by \" for the log record string arguments.
+            replaced = False
+            new_args = ()
+            str_type = basestring if PY2 else str
+            for arg in record.args:
+                if isinstance(arg, str_type):
+                    arg = arg.replace('\\', '\\\\')  # \ -> \\
+                    arg = arg.replace('"', '\\"')  # " -> \"
+                    replaced = True
+                new_args += (arg,)
+            if replaced:
+                record.args = new_args
+            # Replace \ by \\ and " by \" for the log record message.
+            record.msg = record.msg.replace('\\', '\\\\')   # \ -> \\
+            record.msg = record.msg.replace('"', '\\"')  # " -> \"
+
+        # Call the original format() function from the base class and return
+        # the result.
+        return super(JsonFormatter, self).format(record)
 
 
 class CustomLevelLogger(logging.getLoggerClass()):

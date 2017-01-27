@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -74,6 +74,9 @@ def _check_log_msg(cls, msgtype, msg, logline, terminal=False,
         # Check each JSON element separately (order should not be important).
         unittest.TestCase.assertIn(cls, '"type": "{0}"'.format(msgtype),
                                    logline)
+        # Special characters (\ and ") are converted in JSON:
+        msg = msg.replace('\\', '\\\\')
+        msg = msg.replace('"', '\\"')
         unittest.TestCase.assertIn(cls, '"msg": "{0}"'.format(msg), logline)
         # Time is not deterministic, just check if JSON element is present.
         unittest.TestCase.assertIn(cls, '"time": "', logline)
@@ -116,6 +119,11 @@ def main_logging_test(cls, filename=None, terminal=False,
     log.error("error message")
     log.critical("critical message")
 
+    # Message with special characters
+    log.info('backslash \\, double quotes ", in args: %s.', '\\ and "')
+    log.info(u'unicode - backslash \\, double quotes ", in args: %s.',
+             u'\\ and "')
+
     # Reset logging.
     disable_logging()
 
@@ -135,6 +143,14 @@ def main_logging_test(cls, filename=None, terminal=False,
             _check_log_msg(cls, 'CRITICAL', 'critical message',
                            f_obj.readline(), terminal=False,
                            output_fmt=output_fmt)
+            _check_log_msg(cls, 'INFO',
+                           'backslash \\, double quotes ", in args: \\ and ".',
+                           f_obj.readline(),
+                           terminal=False, output_fmt=output_fmt)
+            _check_log_msg(
+                cls, 'INFO',
+                u'unicode - backslash \\, double quotes ", in args: \\ and ".',
+                f_obj.readline(), terminal=False, output_fmt=output_fmt)
 
     if terminal:
         # Test logged message to terminal , all messages logged.
@@ -147,6 +163,14 @@ def main_logging_test(cls, filename=None, terminal=False,
                            terminal=True, output_fmt=output_fmt)
             _check_log_msg(cls, 'WARNING', 'warning message', f_obj.readline(),
                            terminal=True, output_fmt=output_fmt)
+            _check_log_msg(cls, 'INFO',
+                           'backslash \\, double quotes ", in args: \\ and ".',
+                           f_obj.readline(),
+                           terminal=True, output_fmt=output_fmt)
+            _check_log_msg(
+                cls, 'INFO',
+                u'unicode - backslash \\, double quotes ", in args: \\ and ".',
+                f_obj.readline(), terminal=True, output_fmt=output_fmt)
         with open(_STDERR_FILENAME, 'r') as f_obj:
             _check_log_msg(cls, 'ERROR', 'error message', f_obj.readline(),
                            terminal=True, output_fmt=output_fmt)
