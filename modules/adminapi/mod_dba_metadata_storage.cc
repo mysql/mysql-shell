@@ -68,7 +68,7 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::st
         log_debug("%s", e.format().c_str());
         log_debug("DBA: The Metadata is inaccessible");
         throw Exception::metadata_error("The Metadata is inaccessible");
-      } else if (retry && e.code() == 1290) { // SUPER_READ_ONLY enabled
+      } else if (retry && retry_count > 0 && e.code() == 1290) { // SUPER_READ_ONLY enabled
         log_info("%s: retrying after 1s...\n", e.format().c_str());
 #ifdef HAVE_SLEEP
         sleep(1);

@@ -109,7 +109,7 @@ max_screen_width = get_max_display_width()
 # Define how much time wait before check for super_read_only to be unset
 WAIT_SECONDS = 1
 # Define for how long time wait super_read_only to be unset
-TIME_OUT = 300
+TIME_OUT = 15*60  # 15 minutes
 
 
 def resolve_gr_local_address(gr_host, server_host, server_port):
@@ -468,6 +468,11 @@ def start(server_info, **kwargs):
             super_read_only = server.select_variable("super_read_only",
                                                      'global')
             _LOGGER.debug("super_read_only: %s", super_read_only)
+
+        if (int(super_read_only)):
+            raise GadgetError("Timeout waiting for super_read_only to be "
+                              "unset after call to start Group Replication "
+                              "plugin.")
 
         _LOGGER.log(STEP_LOG_LEVEL_VALUE,
                     "Group Replication started for group: %s.",
