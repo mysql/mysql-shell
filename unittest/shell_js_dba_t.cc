@@ -24,6 +24,7 @@
 #include "modules/mod_mysql_session.h"
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
+#include "utils/utils_connection.h"
 
 namespace shcore {
 class Shell_js_dba_tests : public Shell_js_script_tester {
@@ -43,8 +44,9 @@ protected:
     Shell_js_script_tester::set_defaults();
 
     int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+    std::string protocol, user, password, host, sock, schema;
+    struct SslInfo ssl_info;
+    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_info);
     std::string mysql_uri = "mysql://";
     shcore::Argument_list session_args;
     std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
@@ -124,12 +126,14 @@ protected:
     code = "add_instance_options = {host:localhost, port: 0000, password:'root'};";
     exec_and_out_equals(code);
 
+
     if (_have_ssl)
       code = "add_instance_extra_opts = {memberSslMode: 'REQUIRED'};";
     else
       code = "add_instance_extra_opts = {memberSslMode: 'AUTO'};";
 
     exec_and_out_equals(code);
+    
 
 #ifdef _WIN32
     code = "var __path_splitter = '\\\\';";

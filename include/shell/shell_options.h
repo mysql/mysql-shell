@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "shellcore/ishell_core.h"
+#include "utils/utils_connection.h"
 
 namespace mysqlsh {
 struct SHCORE_PUBLIC Shell_options {
@@ -45,10 +46,7 @@ public:
   std::string protocol;
 
   // SSL connection parameters
-  std::string ssl_ca;
-  std::string ssl_cert;
-  std::string ssl_key;
-  int ssl;
+  struct shcore::SslInfo ssl_info;
 
   std::string uri;
 

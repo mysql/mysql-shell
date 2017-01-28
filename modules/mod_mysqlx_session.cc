@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -147,7 +147,9 @@ Value BaseSession::connect(const Argument_list &args) {
     // Retrieves the connection data, whatever the source is
     load_connection_data(args);
 
-    _session.open(_host, _port, _schema, _user, _password, _ssl_ca, _ssl_cert, _ssl_key, 10000, _auth_method, true);
+    _session.open(_host, _port, _schema, _user, _password, _ssl_info.ca, 
+      _ssl_info.cert, _ssl_info.key, _ssl_info.capath, _ssl_info.crl, _ssl_info.crlpath, 
+      _ssl_info.tls_version, _ssl_info.mode, 10000, _auth_method, true);
 
     int case_sesitive_table_names = 0;
     _retrieve_session_info(_default_schema, case_sesitive_table_names);

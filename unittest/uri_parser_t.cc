@@ -182,7 +182,7 @@ TEST(Uri_parser, parse_host_name) {
   //                0    5    0    5    0    5    0    5    0    5    0    5
   validate_bad_uri("mysqlx://user@mysql1%com", "Illegal character [%] found at position 20");
   validate_bad_uri("mysqlx://user@mysql1%cgcom", "Illegal character [%] found at position 20");
-  validate_bad_uri("mysqlx://user@mysql1%2ecom:65538", "Port is out of the valid range: 0 - 65536");
+  validate_bad_uri("mysqlx://user@mysql1%2ecom:65538", "Port is out of the valid range: 0 - 65535");
   validate_bad_uri("mysqlx://user@mysql1%2ecom:", "Missing port number");
   validate_bad_uri("mysqlx://user@mysql1%2ecom:2845f", "Illegal character [f] found at position 31");
   validate_bad_uri("mysqlx://user@mysql1%2ecom:invalid", "Illegal character [i] found at position 27");
@@ -202,7 +202,7 @@ TEST(Uri_parser, parse_host_ipv4) {
   validate_bad_uri("mysqlx://user@255.256.255.255", "Octect value out of bounds [256], valid range for IPv4 is 0 to 255 at position 18");
   validate_bad_uri("mysqlx://user@255.255.256.255", "Octect value out of bounds [256], valid range for IPv4 is 0 to 255 at position 22");
   validate_bad_uri("mysqlx://user@255.255.255.256", "Octect value out of bounds [256], valid range for IPv4 is 0 to 255 at position 26");
-  validate_bad_uri("mysqlx://user@10.150.123.45:68000", "Port is out of the valid range: 0 - 65536");
+  validate_bad_uri("mysqlx://user@10.150.123.45:68000", "Port is out of the valid range: 0 - 65535");
   validate_bad_uri("mysqlx://user@10.150.123.45:", "Missing port number");
   validate_bad_uri("mysqlx://user@10.150.123.45:2845f", "Illegal character [f] found at position 32");
   validate_bad_uri("mysqlx://user@10.150.123.45:invalid", "Illegal character [i] found at position 28");

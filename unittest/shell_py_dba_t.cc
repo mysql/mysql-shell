@@ -24,6 +24,7 @@
 #include "modules/mod_mysql_session.h"
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
+#include "utils/utils_connection.h"
 
 namespace shcore {
 class Shell_py_dba_tests : public Shell_py_script_tester {
@@ -43,8 +44,9 @@ protected:
     Shell_py_script_tester::set_defaults();
 
     int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+    std::string protocol, user, password, host, sock, schema;
+    struct SslInfo ssl_info;
+    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_info);
     std::string mysql_uri = "mysql://";
     shcore::Argument_list session_args;
     std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
@@ -128,6 +130,7 @@ protected:
     exec_and_out_equals(code);
     code = "add_instance_options = {'host':localhost, 'port': 0000, 'password':'root'};";
     exec_and_out_equals(code);
+
 
     if (_have_ssl)
       code = "add_instance_extra_opts = {'memberSslMode': 'REQUIRED'}";
@@ -448,6 +451,7 @@ TEST_F(Shell_py_dba_tests, no_interactive_delete_instances) {
     delete_options = "{'sandboxDir': '" + _sandbox_dir + "'}";
   stop_options.append("}");
   reset_shell();
+
 
   execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", " + stop_options + ")");
   execute("dba.delete_sandbox_instance(" + _mysql_sandbox_port1 + ", " + delete_options + ")");

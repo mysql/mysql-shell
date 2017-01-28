@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
 
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
+#include "utils/utils_connection.h"
 
 namespace shcore {
 class Shell_js_mysqlx_tests : public Shell_js_script_tester {
@@ -37,8 +38,9 @@ protected:
     Shell_js_script_tester::set_defaults();
 
     int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+    std::string protocol, user, password, host, sock, schema;
+    struct SslInfo ssl_info;
+    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_info);
 
     if (_port.empty())
       _port = "33060";

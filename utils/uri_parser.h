@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -67,6 +67,8 @@ public:
   std::string get_host();
   bool has_port() { return _has_port; }
   int get_port();
+  bool has_ssl_mode() { return _ssl_mode != 0; }
+  int get_ssl_mode();
 
   std::string get_pipe();
   std::string get_socket();
@@ -90,6 +92,7 @@ private:
   std::string _pipe;
   bool _has_port;
   int _port;
+  int _ssl_mode;
   std::string _db;
 
   std::map<std::string, std::vector< std::string > > _attributes;
@@ -129,6 +132,7 @@ private:
   std::string get_input_chunk(const std::pair<size_t, size_t>& range);
 
   bool input_contains(const std::string& what, size_t position = std::string::npos);
+  void normalize_ssl_mode();
 
   static std::string DELIMITERS;
   static std::string SUBDELIMITERS;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -220,8 +220,8 @@ bool Base_shell::connect(bool primary_session) {
                                      _options.user, _options.password,
                                      _options.host, _options.port,
                                      _options.sock, _options.schema,
-                                     _options.ssl != 0,
-                                     _options.ssl_ca, _options.ssl_cert, _options.ssl_key,
+                                     !_options.ssl_info.skip,
+                                     _options.ssl_info,
                                      _options.auth_method);
       if (_options.auth_method == "PLAIN")
         println("mysqlx: [Warning] PLAIN authentication method is NOT secure!");

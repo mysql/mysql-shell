@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,19 +31,24 @@ using namespace mysqlsh::mysqlx;
 void SessionHandle::open(const std::string &host, int port, const std::string &schema,
                           const std::string &user, const std::string &pass,
                           const std::string &ssl_ca, const std::string &ssl_cert,
-                          const std::string &ssl_key, const std::size_t timeout,
+                          const std::string &ssl_key, const std::string &ssl_ca_path,
+                          const std::string &ssl_crl, const std::string &ssl_crl_path,
+                          const std::string &ssl_tls_version, int ssl_mode,
+                          const std::size_t timeout,
                           const std::string &auth_method, const bool get_caps) {
   ::mysqlx::Ssl_config ssl;
   memset(&ssl, 0, sizeof(ssl));
 
   std::string my_ssl_ca(ssl_ca);
-  std::string my_ssl_ca_path;
-  shcore::normalize_sslca_args(my_ssl_ca, my_ssl_ca_path);
 
   ssl.ca = my_ssl_ca.c_str();
   ssl.cert = ssl_cert.c_str();
   ssl.key = ssl_key.c_str();
-  ssl.ca_path = my_ssl_ca_path.c_str();
+  ssl.ca_path = ssl_ca_path.c_str();
+  ssl.crl = ssl_crl.c_str();
+  ssl.crl_path = ssl_crl_path.c_str();
+  ssl.tls_version = ssl_tls_version.c_str();
+  ssl.mode = ssl_mode;
 
   // TODO: Define a proper timeout for the session creation
   try {

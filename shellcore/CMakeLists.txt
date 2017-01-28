@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -62,6 +62,8 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_general.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_connection.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_connection.cc"
     "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.h"
     "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.cc"
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.h"

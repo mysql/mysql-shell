@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
 
   // Helper code for DBA specific groups of tests;
   std::string flags = ::testing::GTEST_FLAG(filter);
-
+  //::testing::FLAGS_gtest_break_on_failure = true;
   if (!flags.empty()) {
     std::string new_flags;
 

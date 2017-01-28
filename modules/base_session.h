@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,6 +27,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
+#include "utils/utils_connection.h"
 
 namespace mysqlsh {
 #if DOXYGEN_CPP
@@ -66,9 +67,9 @@ public:
 
   virtual int get_default_port() = 0;
 
-  std::string get_ssl_ca() { return _ssl_ca; }
-  std::string get_ssl_key() { return _ssl_key; }
-  std::string get_ssl_cert() { return _ssl_cert; }
+  std::string get_ssl_ca() { return _ssl_info.ca; }
+  std::string get_ssl_key() { return _ssl_info.key; }
+  std::string get_ssl_cert() { return _ssl_info.cert; }
 
 protected:
   std::string get_quoted_name(const std::string& name);
@@ -81,11 +82,9 @@ protected:
   int _port;
   std::string _sock;
   std::string _schema;
-  std::string _ssl_ca;
-  std::string _ssl_cert;
-  std::string _ssl_key;
   std::string _auth_method;
   std::string _uri;
+  struct shcore::SslInfo _ssl_info;
 
   void load_connection_data(const shcore::Argument_list &args);
 private:

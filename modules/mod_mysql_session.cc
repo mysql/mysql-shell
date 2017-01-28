@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,6 +46,7 @@
 #include "mod_mysql_schema.h"
 #include "utils/utils_general.h"
 #include "utils/utils_help.h"
+#include "utils/utils_connection.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -108,7 +109,7 @@ Value ClassicSession::connect(const Argument_list &args) {
     load_connection_data(args);
 
     // Performs the connection
-    _conn.reset(new Connection(_host, _port, _sock, _user, _password, _schema, _ssl_ca, _ssl_cert, _ssl_key));
+    _conn.reset(new Connection(_host, _port, _sock, _user, _password, _schema, _ssl_info));
 
     _default_schema = _retrieve_current_schema();
   }

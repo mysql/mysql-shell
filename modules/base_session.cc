@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -117,7 +117,7 @@ _port(0) {
 
 ShellBaseSession::ShellBaseSession(const ShellBaseSession& s) :
 _user(s._user), _password(s._password), _host(s._host), _port(s._port), _sock(s._sock), _schema(s._schema),
-_ssl_ca(s._ssl_ca), _ssl_cert(s._ssl_cert), _ssl_key(s._ssl_key) {
+_ssl_info(s._ssl_info) {
   init();
 }
 
@@ -200,49 +200,76 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
   // STEP 2: Gets the individual connection parameters whatever the source is
   //-------------------------------------------------------------------------
   // Handles the case where an URI was received
+  //struct shcore::SslInfo ssl_info;
   if (!uri.empty()) {
     std::string protocol;
     int pwd_found;
-    parse_mysql_connstring(uri, protocol, _user, _password, _host, _port, _sock, _schema, pwd_found, _ssl_ca, _ssl_cert, _ssl_key);
+    parse_mysql_connstring(uri, protocol, _user, _password, _host, _port, _sock, _schema, pwd_found, _ssl_info);
   }
 
   // If the connection data came in a dictionary, the values in the dictionary override whatever
   // is already loaded: i.e. if the dictionary indicated a stored session, that info is already
   // loaded but will be overriden with whatever extra values exist on the dictionary
   if (options) {
-    if (options->has_key("host"))
-      _host = (*options)["host"].as_string();
+    if (options->has_key(kHost))
+      _host = (*options)[kHost].as_string();
 
-    if (options->has_key("port"))
-      _port = (*options)["port"].as_int();
+    if (options->has_key(kPort))
+      _port = (*options)[kPort].as_int();
 
-    if (options->has_key("socket"))
-      _sock = (*options)["socket"].as_string();
+    if (options->has_key(kSocket))
+      _sock = (*options)[kSocket].as_string();
 
-    if (options->has_key("schema"))
-      _schema = (*options)["schema"].as_string();
+    if (options->has_key(kSchema))
+      _schema = (*options)[kSchema].as_string();
 
-    if (options->has_key("dbUser"))
-      _user = (*options)["dbUser"].as_string();
-    else if (options->has_key("user"))
-      _user = (*options)["user"].as_string();
+    if (options->has_key(kDbUser))
+      _user = (*options)[kDbUser].as_string();
+    else if (options->has_key(kUser))
+      _user = (*options)[kUser].as_string();
 
-    if (options->has_key("dbPassword"))
-      _password = (*options)["dbPassword"].as_string();
-    else if (options->has_key("password"))
-      _password = (*options)["password"].as_string();
+    if (options->has_key(kDbPassword))
+      _password = (*options)[kDbPassword].as_string();
+    else if (options->has_key(kPassword))
+      _password = (*options)[kPassword].as_string();
 
-    if (options->has_key("sslCa"))
-      _ssl_ca = (*options)["sslCa"].as_string();
+    if (options->has_key(kSslCa))
+      _ssl_info.ca = (*options)[kSslCa].as_string();
 
-    if (options->has_key("sslCert"))
-      _ssl_cert = (*options)["sslCert"].as_string();
+    if (options->has_key(kSslCert))
+      _ssl_info.cert = (*options)[kSslCert].as_string();
 
-    if (options->has_key("sslKey"))
-      _ssl_key = (*options)["sslKey"].as_string();
+    if (options->has_key(kSslKey))
+      _ssl_info.key = (*options)[kSslKey].as_string();
 
-    if (options->has_key("authMethod"))
-      _auth_method = (*options)["authMethod"].as_string();
+    if (options->has_key(kSslCaPath))
+      _ssl_info.capath = (*options)[kSslCaPath].as_string();
+
+    if (options->has_key(kSslCrl))
+      _ssl_info.crl = (*options)[kSslCrl].as_string();
+
+    if (options->has_key(kSslCrlPath))
+      _ssl_info.crlpath = (*options)[kSslCrlPath].as_string();
+
+    if (options->has_key(kSslCiphers))
+      _ssl_info.ciphers = (*options)[kSslCiphers].as_string();
+
+    if (options->has_key(kSslTlsVersion))
+      _ssl_info.tls_version = (*options)[kSslTlsVersion].as_string();
+
+    if (options->has_key(kSslMode)) {
+      if ((*options)[kSslMode].type == Integer)
+        _ssl_info.mode = (*options)[kSslMode].as_int();
+      else if ((*options)[kSslMode].type == String) {
+        const std::string& s = (*options)[kSslMode].as_string();
+        MapSslModeNameToValue m;
+        int ssl_mode = m.get_value(s);
+        _ssl_info.mode = ssl_mode;
+      }
+    }
+
+    if (options->has_key(kAuthMethod))
+      _auth_method = (*options)[kAuthMethod].as_string();
   }
 
   // If password is received as parameter, then it overwrites

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,7 +19,11 @@
 
 #include <string>
 #include <stdexcept>
+#include <algorithm>
+#include <iterator>
 #include "openssl/ssl.h"
+#include "mysql_context_ssl.h"
+#include "utils/utils_connection.h"
 
 #if defined(HAVE_YASSL)
 using namespace yaSSL;
@@ -138,7 +142,8 @@ void set_context_cert(SSL_CTX *ctx, std::string cert_file, std::string key_file)
 void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &ssl_key,
     const std::string &ssl_cert,    const std::string &ssl_ca,
     const std::string &ssl_ca_path, const std::string &ssl_cipher,
-    const std::string &ssl_crl,     const std::string &ssl_crl_path)
+    const std::string &ssl_crl,     const std::string &ssl_crl_path, 
+    const std::string &ssl_tls_version, int ssl_mode)
 {
   //log_info("key_file: '%s'  cert_file: '%s'  ca_file: '%s'  ca_path: '%s'  "
   //         "cipher: '%s' crl_file: '%s' crl_path: '%s' ",
@@ -149,8 +154,46 @@ void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &
   //         not_empty_string(ssl_cipher).c_str(),
   //         not_empty_string(ssl_crl).c_str(),
   //         not_empty_string(ssl_crl_path).c_str());
+  
+  // Configure & Validate SSL mode accordingly
+  //if (ssl_mode == static_cast<int>(shcore::SslMode::VerifyCa) || ssl_mode == static_cast<int>(shcore::SslMode::VerifyIdentity)) {
+  //  if (ssl_ca.empty() && ssl_ca_path.empty()) {
+  //    throw std::runtime_error("Ssl mode of VERIFY_CA / VERIFY_IDENTITY needs either SSL CA or SSL CAPATH defined.");
+  //  }
+  //}
+  if (ssl_mode <= 1) return;
 
-  SSL_CTX_set_options(ssl_context, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+  if (!ssl_crl.empty() || !ssl_crl_path.empty()) {
+#ifdef HAVE_YASSL
+    throw std::runtime_error("Certificate revocation lists (CRL/CRLPATH) not supported in Yassl builds.");
+#else
+#endif
+  }
+  
+  int tls_version_flags = 0;
+  if (ssl_tls_version.empty()) {
+#ifdef HAVE_YASSL
+    tls_version_flags = static_cast<int>(TlsVersion::TLS_V11);
+#else
+    tls_version_flags = static_cast<int>(TlsVersion::TLS_V11);
+#endif
+  } else {
+    tls_version_flags = mysqld::parse_tls_version(ssl_tls_version);
+  }
+
+  long flags = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
+  if ((tls_version_flags & static_cast<int>(TlsVersion::TLS_V10)) == 0) {
+    flags |= SSL_OP_NO_TLSv1;
+  }
+#ifndef HAVE_YASSL
+  if ((tls_version_flags & static_cast<int>(TlsVersion::TLS_V11)) == 0) {
+    flags |= SSL_OP_NO_TLSv1_1;
+  }
+  if ((tls_version_flags & static_cast<int>(TlsVersion::TLS_V12)) == 0) {
+    flags |= SSL_OP_NO_TLSv1_2;
+  }
+#endif
+  SSL_CTX_set_options(ssl_context, flags);
 
   /*
     Set the ciphers that can be used
@@ -213,6 +256,25 @@ void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &
     SSL_CTX_set_verify(ssl_context, SSL_VERIFY_NONE, NULL);
   }
 
+  /*
+  Set the ciphers that can be used
+  NOTE: SSL_CTX_set_cipher_list will return 0 if
+  none of the provided ciphers could be selected
+  */
+  char cipher_list[SSL_CIPHER_LIST_SIZE] = { 0 };
+  strcat(cipher_list, tls_cipher_blocked);
+  if (!ssl_cipher.empty())
+    strcat(cipher_list, ssl_cipher.c_str());
+  else
+    strcat(cipher_list, tls_ciphers_list);
+
+  int ret_set_cipherlist = 0;
+  if (ret_set_cipherlist == SSL_CTX_set_cipher_list(ssl_context, cipher_list)) {
+    throw std::runtime_error("Cannot initialize SSL Cipher.");
+  }
+
+  
+
   /* DH stuff */
   DH *dh = get_dh2048();
 
@@ -234,6 +296,24 @@ void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &
   }
 
   SSL_CTX_set_verify(ssl_context, ssl_verify_mode, NULL);
+}
+
+int parse_tls_version(const std::string& tls_version)
+{
+  int result = 0;
+  std::string norm_tls_version;
+
+  std::transform(tls_version.begin(), tls_version.end(), std::back_inserter(norm_tls_version), ::toupper);
+  norm_tls_version.insert(0, ";");
+  norm_tls_version.append(";");
+  if (norm_tls_version.find(";TLSV1;") != std::string::npos)
+    result |= static_cast<int>(TlsVersion::TLS_V10);
+  if (norm_tls_version.find(";TLSV1.1;") != std::string::npos)
+    result |= static_cast<int>(TlsVersion::TLS_V11);
+  if (norm_tls_version.find(";TLSV1.2;") != std::string::npos)
+    result |= static_cast<int>(TlsVersion::TLS_V12);
+
+  return result;
 }
 
 } // namespace ngs

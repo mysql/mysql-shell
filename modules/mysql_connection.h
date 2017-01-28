@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,6 +26,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include "utils/utils_time.h"
+#include "utils/utils_connection.h"
 
 #if WIN32
 #  include <winsock2.h>
@@ -143,7 +144,8 @@ private:
 class SHCORE_PUBLIC Connection : public std::enable_shared_from_this<Connection> {
 public:
   Connection(const std::string &uri, const char *password = NULL);
-  Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema, const std::string &ssl_ca = "", const std::string &ssl_cert = "", const std::string &ssl_key = "");
+  Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema, 
+    const struct shcore::SslInfo& ssl_info);
   Connection(const Connection& conn) : Connection(conn._uri, NULL) {}
   ~Connection();
 
@@ -161,7 +163,7 @@ public:
   const char* get_ssl_cipher() { _prev_result.reset(); return mysql_get_ssl_cipher(_mysql); }
 
 private:
-  bool setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key);
+  bool setup_ssl(const struct shcore::SslInfo& ssl_info);
   void throw_on_connection_fail();
   std::string _uri;
   MYSQL *_mysql;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -90,13 +90,23 @@ public:
     else if (option == "sock")
       return options->sock;
     else if (option == "ssl-ca")
-      return options->ssl_ca;
+      return options->ssl_info.ca;
     else if (option == "ssl-cert")
-      return options->ssl_cert;
+      return options->ssl_info.cert;
     else if (option == "ssl-key")
-      return options->ssl_key;
+      return options->ssl_info.key;
+    else if (option == "ssl-capath")
+      return options->ssl_info.capath;
+    else if (option == "ssl-crl")
+      return options->ssl_info.crl;
+    else if (option == "ssl-crlpath")
+      return options->ssl_info.crlpath;
+    else if (option == "ssl-cipher")
+      return options->ssl_info.ciphers;
+    else if (option == "tls-version")
+      return options->ssl_info.tls_version;
     else if (option == "ssl")
-      return AS__STRING(options->ssl);
+      return AS__STRING(options->ssl_info.skip? 0 : 1);
     else if (option == "uri")
       return options->uri;
     else if (option == "output_format")
@@ -421,10 +431,15 @@ TEST(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.schema.empty());
   EXPECT_EQ(options.session_type, mysqlsh::SessionType::Auto);
   EXPECT_TRUE(options.sock.empty());
-  EXPECT_EQ(options.ssl, 0);
-  EXPECT_TRUE(options.ssl_ca.empty());
-  EXPECT_TRUE(options.ssl_cert.empty());
-  EXPECT_TRUE(options.ssl_key.empty());
+  EXPECT_EQ(options.ssl_info.skip, true);
+  EXPECT_TRUE(options.ssl_info.ca.empty());
+  EXPECT_TRUE(options.ssl_info.cert.empty());
+  EXPECT_TRUE(options.ssl_info.key.empty());
+  EXPECT_TRUE(options.ssl_info.capath.empty());
+  EXPECT_TRUE(options.ssl_info.crl.empty());
+  EXPECT_TRUE(options.ssl_info.crlpath.empty());
+  EXPECT_TRUE(options.ssl_info.ciphers.empty());
+  EXPECT_TRUE(options.ssl_info.tls_version.empty());
   EXPECT_FALSE(options.trace_protocol);
   EXPECT_TRUE(options.uri.empty());
   EXPECT_TRUE(options.user.empty());

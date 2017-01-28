@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -225,15 +225,20 @@ void Command_line_shell::print_cmd_line_helper() {
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
   println("  --log-level=value        The log level." + ngcommon::Logger::get_level_range_info());
   println("  --version                Prints the version of MySQL Shell.");
-  println("  --ssl                    Enable SSL for connection(automatically enabled with other flags)");
-  println("  --ssl-key=name           X509 key in PEM format");
-  println("  --ssl-cert=name          X509 cert in PEM format");
-  println("  --ssl-ca=name            CA file in PEM format (check OpenSSL docs)");
-  println("  --passwords-from-stdin   Read passwords from stdin instead of the tty");
-  println("  --auth-method=method     Authentication method to use");
-  println("  --show-warnings          Automatically display SQL warnings on SQL mode if available");
-  println("  --dba enableXProtocol    Enable the X Protocol in the server connected to. Must be used with --classic");
-  println("  --no-wizard              Disables wizard mode");
+  println("  --ssl                    Enable SSL for connection(automatically enabled with other flags).");
+  println("  --ssl-key=name           X509 key in PEM format.");
+  println("  --ssl-cert=name          X509 cert in PEM format.");
+  println("  --ssl-ca=name            CA file in PEM format.");
+  println("  --ssl-capath=dir         CA directory.");
+  println("  --ssl-cipher=name        SSL Cipher to use.");
+  println("  --ssl-crl=name           Certificate revocation list.");
+  println("  --ssl-crlpath=dir        Certificate revocation list path.");
+  println("  --tls-version=version    TLS version to use, permitted values are : TLSv1, TLSv1.1.");
+  println("  --passwords-from-stdin   Read passwords from stdin instead of the tty.");
+  println("  --auth-method=method     Authentication method to use.");
+  println("  --show-warnings          Automatically display SQL warnings on SQL mode if available.");
+  println("  --dba enableXProtocol    Enable the X Protocol in the server connected to. Must be used with --classic.");
+  println("  --no-wizard              Disables wizard mode.");
 
   println("");
   println("Usage examples:");

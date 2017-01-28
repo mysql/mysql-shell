@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -32,6 +32,7 @@
 #include <net/if.h>
 #include <netdb.h>
 #endif
+#include "utils_connection.h"
 
 #include <boost/format.hpp>
 
@@ -59,19 +60,19 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
 
   // If needed we construct the URi from the individual parameters
   if (data) {
-    if (data->has_key("dbUser"))
-      uri.append((*data)["dbUser"].as_string());
-    else if (data->has_key("user"))
-      uri.append((*data)["user"].as_string());
+    if (data->has_key(kDbUser))
+      uri.append((*data)[kDbUser].as_string());
+    else if (data->has_key(kUser))
+      uri.append((*data)[kUser].as_string());
 
     // Appends password definition, either if it is empty or not
     // only if a user was specified
     if (with_password && !uri.empty()) {
       uri.append(":");
-      if (data->has_key("dbPassword"))
-        uri.append((*data)["dbPassword"].as_string());
-      else if (data->has_key("password"))
-        uri.append((*data)["password"].as_string());
+      if (data->has_key(kDbPassword))
+        uri.append((*data)[kDbPassword].as_string());
+      else if (data->has_key(kPassword))
+        uri.append((*data)[kPassword].as_string());
     }
 
     // Appends the user@host separator, if a user has specified
@@ -79,72 +80,149 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
       uri.append("@");
 
     // Sets the socket
-    if (data->has_key("sock"))
-      uri.append((*data)["sock"].as_string());
+    if (data->has_key(kSocket))
+      uri.append((*data)[kSocket].as_string());
 
     else{ // the uri either has a socket, or an hostname and port
       // Sets the host
-      if (data->has_key("host"))
-        uri.append((*data)["host"].as_string());
+      if (data->has_key(kHost))
+        uri.append((*data)[kHost].as_string());
 
       // Sets the port
-      if (data->has_key("port")) {
+      if (data->has_key(kPort)) {
         uri.append(":");
-        uri.append((*data)["port"].descr(true));
+        uri.append((*data)[kPort].descr(true));
       }
     }
 
     // Sets the database
-    if (data->has_key("schema")) {
+    if (data->has_key(kSchema)) {
       uri.append("/");
-      uri.append((*data)["schema"].as_string());
+      uri.append((*data)[kSchema].as_string());
     }
 
-    if (data->has_key("sslCa") && data->has_key("sslCert") && data->has_key("sslKey"))
-      conn_str_cat_ssl_data(uri, (*data)["sslCa"].as_string(), (*data)["sslCert"].as_string(), (*data)["sslKey"].as_string());
+    bool has_ssl = false;
+    struct SslInfo ssl_info;
+
+    if (data->has_key(kSslCa)) {
+      ssl_info.ca = (*data)[kSslCa].as_string();
+      has_ssl = true;
+    }
+
+    if (data->has_key(kSslCert)) {
+      ssl_info.cert = (*data)[kSslCert].as_string();
+      has_ssl = true;
+    }
+
+    if (data->has_key(kSslKey)) {
+      ssl_info.key = (*data)[kSslKey].as_string();
+      has_ssl = true;
+    }
+
+    if (data->has_key(kSslCaPath)) {
+      ssl_info.capath = (*data)[kSslCaPath].as_string();
+      has_ssl = true;
+    }
+
+    if (data->has_key(kSslCrl)) {
+      ssl_info.crl = (*data)[kSslCrl].as_string();
+      has_ssl = true;
+    }
+
+    if (data->has_key(kSslCrlPath)) {
+      ssl_info.crlpath = (*data)[kSslCrlPath].as_string();
+      has_ssl = true;
+    }
+
+    if (data->has_key(kSslCiphers)) {
+      ssl_info.ciphers = (*data)[kSslCiphers].as_string();
+      has_ssl = true;
+    }
+
+    if (data->has_key(kSslTlsVersion)) {
+      ssl_info.tls_version = (*data)[kSslTlsVersion].as_string();
+      has_ssl = true;
+    }
+
+    if (data->has_key(kSslMode)) {
+      ssl_info.mode = (*data)[kSslMode].as_int();
+      has_ssl = true;
+    }
+
+    if (has_ssl)
+    {
+      conn_str_cat_ssl_data(uri, ssl_info);
+    }
   }
 
   return uri;
 }
 
-void conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key) {
-  if (!uri.empty() && (!ssl_ca.empty() || !ssl_cert.empty() || !ssl_key.empty())) {
-    bool first = false;
-    int cnt = 0;
-    if (!ssl_ca.empty()) ++cnt;
-    if (!ssl_cert.empty()) ++cnt;
-    if (!ssl_key.empty()) ++cnt;
+void conn_str_cat_ssl_data(std::string& uri, const SslInfo &ssl_info) {
 
-    if (!ssl_ca.empty() && uri.rfind("ssl_ca=") == std::string::npos) {
-      if (!first) {
-        first = true;
-        uri.append("?");
-      }
-      uri.append("ssl_ca=").append(ssl_ca);
-      if (--cnt) uri.append("&");
-    }
-    if (!ssl_cert.empty() && uri.rfind("ssl_cert=") == std::string::npos) {
-      if (!first) {
-        first = true;
-        uri.append("?");
-      }
-      uri.append("ssl_cert=").append(ssl_cert);
-      if (--cnt) uri.append("&");
-    }
-    if (!ssl_key.empty() && uri.rfind("ssl_key=") == std::string::npos) {
-      if (!first) {
-        first = true;
-        uri.append("?");
-      }
-      uri.append("ssl_key=").append(ssl_key);
-    }
+  std::string uri_tmp;
+  if (!ssl_info.ca.empty())
+    uri_tmp.append(kSslCa).append("=").append(ssl_info.ca);
+
+  if (!ssl_info.capath.empty()) {
+    if (!uri_tmp.empty())
+      uri_tmp.append("&");
+    uri_tmp.append(kSslCaPath).append("=").append(ssl_info.capath);
+  }
+    
+  if (!ssl_info.cert.empty()) {
+    if (!uri_tmp.empty())
+      uri_tmp.append("&");
+    uri_tmp.append(kSslCert).append("=").append(ssl_info.cert);
+  }
+    
+  if (!ssl_info.key.empty()) {
+    if (!uri_tmp.empty())
+      uri_tmp.append("&");
+    uri_tmp.append(kSslKey).append("=").append(ssl_info.key);
+  }
+   
+  if (!ssl_info.ciphers.empty()) {
+    if (!uri_tmp.empty())
+      uri_tmp.append("&");
+    uri_tmp.append(kSslCiphers).append("=").append(ssl_info.ciphers);
+  }
+    
+  if (!ssl_info.crl.empty()) {
+    if (!uri_tmp.empty())
+      uri_tmp.append("&");
+    uri_tmp.append(kSslCrl).append("=").append(ssl_info.crl);
+  }
+   
+  if (!ssl_info.crlpath.empty()) {
+    if (!uri_tmp.empty())
+      uri_tmp.append("&");
+    uri_tmp.append(kSslCrlPath).append("=").append(ssl_info.crlpath);
+  }
+   
+  if (!ssl_info.mode != 0) {
+    if (!uri_tmp.empty())
+      uri_tmp.append("&");
+    // TODO:
+    //uri_tmp.append(kSslMode).append("=").append(ssl_info.mode);
+  }
+
+  if (!ssl_info.tls_version.empty()) {
+    if (!uri_tmp.empty())
+      uri_tmp.append("&");
+    uri_tmp.append(kSslTlsVersion).append("=").append(ssl_info.tls_version);
+  }
+
+  if (!uri_tmp.empty())  {
+    uri.append("?");
+    uri.append(uri_tmp);
   }
 }
 
 void parse_mysql_connstring(const std::string &connstring,
                             std::string &scheme, std::string &user, std::string &password,
                             std::string &host, int &port, std::string &sock,
-                            std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key,
+                            std::string &db, int &pwd_found, struct SslInfo& ssl_info,
                             bool set_defaults) {
   try {
     uri::Uri_parser parser;
@@ -173,14 +251,50 @@ void parse_mysql_connstring(const std::string &connstring,
     if (pwd_found)
       password = data.get_password();
 
-    if (data.has_attribute("sslCa"))
-      ssl_ca = data.get_attribute("sslCa");
+    if (data.has_attribute(kSslCa))
+      ssl_info.ca = data.get_attribute(kSslCa);
+    else
+      ssl_info.ca = "";
 
-    if (data.has_attribute("sslCert"))
-      ssl_cert = data.get_attribute("sslCert");
+    if (data.has_attribute(kSslCert))
+      ssl_info.cert = data.get_attribute(kSslCert);
+    else
+      ssl_info.cert = "";
 
-    if (data.has_attribute("sslKey"))
-      ssl_key = data.get_attribute("sslKey");
+    if (data.has_attribute(kSslKey))
+      ssl_info.key = data.get_attribute(kSslKey);
+    else
+      ssl_info.key = "";
+
+    if (data.has_attribute(kSslCaPath))
+      ssl_info.capath = data.get_attribute(kSslCaPath);
+    else
+      ssl_info.capath = "";
+
+    if (data.has_attribute(kSslCrl))
+      ssl_info.crl = data.get_attribute(kSslCrl);
+    else
+      ssl_info.crl = "";
+
+    if (data.has_attribute(kSslCrlPath))
+      ssl_info.crlpath = data.get_attribute(kSslCrlPath);
+    else
+      ssl_info.crlpath = "";
+
+    if (data.has_attribute(kSslCiphers))
+      ssl_info.ciphers = data.get_attribute(kSslCiphers);
+    else
+      ssl_info.ciphers = "";
+
+    if (data.has_attribute(kSslTlsVersion))
+      ssl_info.tls_version = data.get_attribute(kSslTlsVersion);
+    else
+      ssl_info.tls_version = "";
+
+    if (data.has_ssl_mode())
+      ssl_info.mode = data.get_ssl_mode();
+    else
+      ssl_info.mode = static_cast<int>(shcore::SslMode::Preferred);
 
     if (set_defaults) {
       if (user.empty())
@@ -234,7 +348,7 @@ std::string strip_password(const std::string &connstring) {
   return connstring;
 }
 
-std::string strip_ssl_args(const std::string &connstring) {
+/*std::string strip_ssl_args(const std::string &connstring) {
   std::string result = connstring;
   std::string::size_type pos;
   if ((pos = result.find("ssl_ca=")) != std::string::npos) {
@@ -254,7 +368,7 @@ std::string strip_ssl_args(const std::string &connstring) {
   }
 
   return result;
-}
+}*/
 
 char *mysh_get_stdin_password(const char *prompt) {
   if (prompt) {
@@ -280,9 +394,7 @@ bool SHCORE_PUBLIC validate_uri(const std::string &uri) {
   int uri_port = 0;
   std::string uri_sock;
   std::string uri_database;
-  std::string uri_ssl_ca;
-  std::string uri_ssl_cert;
-  std::string uri_ssl_key;
+  struct SslInfo ssl_info;
   int pwd_found = 0;
 
   bool ret_val = false;
@@ -290,7 +402,7 @@ bool SHCORE_PUBLIC validate_uri(const std::string &uri) {
   if (!uri.empty()) {
     try {
       parse_mysql_connstring(uri, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
-                                       uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
+                                       ssl_info);
 
       ret_val = true;
     } catch (std::exception &e) {
@@ -311,9 +423,7 @@ Value::Map_type_ref get_connection_data(const std::string &uri, bool set_default
   int uri_port = 0;
   std::string uri_sock;
   std::string uri_database;
-  std::string uri_ssl_ca;
-  std::string uri_ssl_cert;
-  std::string uri_ssl_key;
+  struct SslInfo uri_ssl_info;
   int pwd_found = 0;
 
   // Creates the connection dictionary
@@ -322,37 +432,55 @@ Value::Map_type_ref get_connection_data(const std::string &uri, bool set_default
   // Parses the URI if provided
   if (!uri.empty()) {
     parse_mysql_connstring(uri, uri_scheme, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
-                           uri_ssl_ca, uri_ssl_cert, uri_ssl_key, set_defaults);
+                           uri_ssl_info, set_defaults);
 
     if (!uri_scheme.empty())
-      (*ret_val)["scheme"] = Value(uri_scheme);
+      (*ret_val)[kScheme] = Value(uri_scheme);
 
     if (!uri_user.empty())
-      (*ret_val)["dbUser"] = Value(uri_user);
+      (*ret_val)[kDbUser] = Value(uri_user);
 
     if (!uri_host.empty())
-      (*ret_val)["host"] = Value(uri_host);
+      (*ret_val)[kHost] = Value(uri_host);
 
     if (uri_port != 0)
-      (*ret_val)["port"] = Value(uri_port);
+      (*ret_val)[kPort] = Value(uri_port);
 
     if (pwd_found)
-      (*ret_val)["dbPassword"] = Value(uri_password);
+      (*ret_val)[kDbPassword] = Value(uri_password);
 
     if (!uri_database.empty())
-      (*ret_val)["schema"] = Value(uri_database);
+      (*ret_val)[kSchema] = Value(uri_database);
 
     if (!uri_sock.empty())
-      (*ret_val)["sock"] = Value(uri_sock);
+      (*ret_val)[kSocket] = Value(uri_sock);
 
-    if (!uri_ssl_ca.empty())
-      (*ret_val)["sslCa"] = Value(uri_ssl_ca);
+    if (!uri_ssl_info.ca.empty())
+      (*ret_val)[kSslCa] = Value(uri_ssl_info.ca);
 
-    if (!uri_ssl_cert.empty())
-      (*ret_val)["sslCert"] = Value(uri_ssl_cert);
+    if (!uri_ssl_info.cert.empty())
+      (*ret_val)[kSslCert] = Value(uri_ssl_info.cert);
 
-    if (!uri_ssl_key.empty())
-      (*ret_val)["sslKey"] = Value(uri_ssl_key);
+    if (!uri_ssl_info.key.empty())
+      (*ret_val)[kSslKey] = Value(uri_ssl_info.key);
+
+    if (!uri_ssl_info.capath.empty())
+      (*ret_val)[kSslCaPath] = Value(uri_ssl_info.capath);
+
+    if (!uri_ssl_info.crl.empty())
+      (*ret_val)[kSslCrl] = Value(uri_ssl_info.crl);
+
+    if (!uri_ssl_info.crlpath.empty())
+      (*ret_val)[kSslCrlPath] = Value(uri_ssl_info.crlpath);
+
+    if (!uri_ssl_info.ciphers.empty())
+      (*ret_val)[kSslCiphers] = Value(uri_ssl_info.ciphers);
+
+    if (!uri_ssl_info.tls_version.empty())
+      (*ret_val)[kSslTlsVersion] = Value(uri_ssl_info.tls_version);
+
+    if (!uri_ssl_info.mode != 0)
+      (*ret_val)[kSslMode] = Value(uri_ssl_info.mode);
   }
 
   // If needed we construct the URi from the individual parameters
@@ -364,57 +492,80 @@ void update_connection_data(Value::Map_type_ref data,
                             const std::string &user, const char *password,
                             const std::string &host, int &port, const std::string& sock,
                             const std::string &database,
-                            bool ssl, const std::string &ssl_ca,
-                            const std::string &ssl_cert, const std::string &ssl_key,
+                            bool ssl, const struct shcore::SslInfo& ssl_info,
                             const std::string &auth_method) {
   if (!user.empty())
-    (*data)["dbUser"] = Value(user);
+    (*data)[kDbUser] = Value(user);
 
   if (!host.empty())
-    (*data)["host"] = Value(host);
+    (*data)[kHost] = Value(host);
 
   if (port != 0)
-    (*data)["port"] = Value(port);
+    (*data)[kPort] = Value(port);
 
   if (password)
-    (*data)["dbPassword"] = Value(password);
+    (*data)[kDbPassword] = Value(password);
 
   if (!database.empty())
-    (*data)["schema"] = Value(database);
+    (*data)[kSchema] = Value(database);
 
   if (!sock.empty())
-    (*data)["sock"] = Value(sock);
+    (*data)[kSocket] = Value(sock);
 
   if (ssl) {
-    if (!ssl_ca.empty())
-      (*data)["sslCa"] = Value(ssl_ca);
+    if (!ssl_info.ca.empty())
+      (*data)[kSslCa] = Value(ssl_info.ca);
 
-    if (!ssl_cert.empty())
-      (*data)["sslCert"] = Value(ssl_cert);
+    if (!ssl_info.cert.empty())
+      (*data)[kSslCert] = Value(ssl_info.cert);
 
-    if (!ssl_key.empty())
-      (*data)["sslKey"] = Value(ssl_key);
+    if (!ssl_info.key.empty())
+      (*data)[kSslKey] = Value(ssl_info.key);
+
+    if (!ssl_info.capath.empty())
+      (*data)[kSslCaPath] = Value(ssl_info.capath);
+
+    if (!ssl_info.crl.empty())
+      (*data)[kSslCrl] = Value(ssl_info.crl);
+
+    if (!ssl_info.crlpath.empty())
+      (*data)[kSslCrlPath] = Value(ssl_info.crlpath);
+
+    if (!ssl_info.ciphers.empty())
+      (*data)[kSslCiphers] = Value(ssl_info.ciphers);
+
+    if (!ssl_info.tls_version.empty())
+      (*data)[kSslTlsVersion] = Value(ssl_info.tls_version);
+
+    if (!ssl_info.mode != 0)
+      (*data)[kSslMode] = Value(ssl_info.mode);
   } else {
-    data->erase("sslCa");
-    data->erase("sslCert");
-    data->erase("sslKey");
+    data->erase(kSslCa);
+    data->erase(kSslCert);
+    data->erase(kSslKey);
+    data->erase(kSslCaPath);
+    data->erase(kSslCrl);
+    data->erase(kSslCrlPath);
+    data->erase(kSslCiphers);
+    data->erase(kSslTlsVersion);
+    data->erase(kSslMode);
   }
 
   if (!auth_method.empty())
-    (*data)["authMethod"] = Value(auth_method);
+    (*data)[kAuthMethod] = Value(auth_method);
 }
 
 void set_default_connection_data(Value::Map_type_ref data) {
   // Default values
-  if (!data->has_key("dbUser")) {
+  if (!data->has_key(kDbUser)) {
     std::string username = get_system_user();
 
     if (!username.empty())
-      (*data)["dbUser"] = Value(username);
+      (*data)[kDbUser] = Value(username);
   }
 
-  if (!data->has_key("host") && !data->has_key("sock"))
-    (*data)["host"] = Value("localhost");
+  if (!data->has_key(kHost) && !data->has_key(kSocket))
+    (*data)[kHost] = Value("localhost");
 }
 
 std::string get_system_user() {
@@ -433,26 +584,6 @@ std::string get_system_user() {
 #endif
 
   return ret_val;
-}
-
-/* MySql SSL APIs require to have the ca & ca path in separete args, this function takes care of that normalization */
-void normalize_sslca_args(std::string &ssl_ca, std::string &ssl_ca_path) {
-  if (!ssl_ca_path.empty()) return;
-  std::string ca_path(ssl_ca);
-  std::string::size_type p;
-#ifdef WIN32
-  p = ca_path.rfind("\\");
-#else
-  p = ca_path.rfind("/");
-#endif
-  if (p != std::string::npos) {
-    // The function int SSL_CTX_load_verify_locations(SSL_CTX* ctx, const char* file, const char* path)
-    // requires the ssl_ca to also keep the path
-    ssl_ca_path = ca_path.substr(0, p);
-  } else {
-    ssl_ca_path = "";
-    ssl_ca = ca_path.c_str();
-  }
 }
 
 std::vector<std::string> split_string(const std::string& input, const std::string& separator, bool compress) {

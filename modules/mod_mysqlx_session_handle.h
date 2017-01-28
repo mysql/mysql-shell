@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,7 +37,10 @@ public:
   void open(const std::string &host, int port, const std::string &schema,
             const std::string &user, const std::string &pass,
             const std::string &ssl_ca, const std::string &ssl_cert,
-            const std::string &ssl_key, const std::size_t timeout,
+            const std::string &ssl_key, const std::string &ssl_ca_path,
+            const std::string &ssl_crl, const std::string &ssl_crl_path, 
+            const std::string &ssl_tls_version, int ssl_mode,
+            const std::size_t timeout,
             const std::string &auth_method = "", const bool get_caps = false);
 
   std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;

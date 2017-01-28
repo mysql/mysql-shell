@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,6 +20,7 @@
 #include "mysql_connection.h"
 #include "base_session.h"
 #include "utils/utils_general.h"
+#include "utils/utils_connection.h"
 
 #include "shellcore/obj_date.h"
 
@@ -222,14 +223,15 @@ Connection::Connection(const std::string &uri_, const char *password)
 
   _mysql = mysql_init(NULL);
 
-  shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key);
+  struct shcore::SslInfo ssl_info;
+  shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_info);
 
   if (password)
     pass.assign(password);
 
   _uri = shcore::strip_password(uri_);
 
-  setup_ssl(ssl_ca, ssl_cert, ssl_key);
+  setup_ssl(ssl_info);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags)) {
@@ -238,7 +240,7 @@ Connection::Connection(const std::string &uri_, const char *password)
 }
 
 Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
-  const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key)
+  const struct shcore::SslInfo& ssl_info)
 : _mysql(NULL) {
   long flags = CLIENT_MULTI_RESULTS;
 
@@ -248,13 +250,7 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   str << user << "@" << host << ":" << port;
   _uri = str.str();
 
-  if (!setup_ssl(ssl_ca, ssl_cert, ssl_key)) {
-    unsigned int ssl_mode = SSL_MODE_DISABLED;
-    mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &ssl_mode);
-  } else {
-    unsigned int ssl_mode = SSL_MODE_REQUIRED;
-    mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &ssl_mode);
-  }
+  setup_ssl(ssl_info);
 
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
@@ -263,16 +259,39 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   }
 }
 
-bool Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key) {
-  if (ssl_ca.empty() && ssl_cert.empty() && ssl_key.empty())
-    return false;
+bool Connection::setup_ssl(const struct shcore::SslInfo& ssl_info) {
+  unsigned int value;
 
-  std::string my_ssl_ca_path;
-  std::string my_ssl_ca(ssl_ca);
+  if (ssl_info.skip) return true;
 
-  shcore::normalize_sslca_args(my_ssl_ca, my_ssl_ca_path);
+  value = ssl_info.mode;
+  mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
 
-  mysql_ssl_set(_mysql, ssl_key.c_str(), ssl_cert.c_str(), my_ssl_ca.c_str(), my_ssl_ca_path.c_str(), NULL);
+  if (!ssl_info.ca.empty())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CA, ssl_info.ca.c_str());
+
+  if (!ssl_info.capath.empty())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH, ssl_info.capath.c_str());
+
+  if (!ssl_info.crl.empty())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CRL, ssl_info.crl.c_str());
+
+  if (!ssl_info.crlpath.empty())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH, ssl_info.crlpath.c_str());
+
+  if (!ssl_info.ciphers.empty())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER, ssl_info.ciphers.c_str());
+
+  if (!ssl_info.tls_version.empty())
+    mysql_options(_mysql, MYSQL_OPT_TLS_VERSION, ssl_info.tls_version.c_str());
+
+  if (!ssl_info.cert.empty())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CERT, ssl_info.cert.c_str());
+
+  if (!ssl_info.key.empty())
+    mysql_options(_mysql, MYSQL_OPT_SSL_KEY, ssl_info.key.c_str());
+
+
   return true;
 }
 

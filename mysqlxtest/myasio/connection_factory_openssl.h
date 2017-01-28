@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -51,6 +51,7 @@ public:
                              const std::string &ssl_cert,    const std::string &ssl_ca,
                              const std::string &ssl_ca_path, const std::string &ssl_cipher,
                              const std::string &ssl_crl,     const std::string &ssl_crl_path,
+                             const std::string &ssl_tls_version, int ssl_mode,
                              const bool is_client = false);
   ~Connection_openssl_factory();
 
@@ -58,6 +59,7 @@ public:
   virtual IOptions_context_ptr   create_ssl_context_options();
 
 private:
+  int get_tls_method(const std::string& tls_version, bool is_client = true) const;
   boost::asio::ssl::context *m_context;
   const bool m_is_client;
 };

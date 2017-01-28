@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -18,6 +18,7 @@
  */
 
 #include "uri_parser.h"
+#include "utils/utils_connection.h"
 #include <cctype>
 #include <boost/format.hpp>
 // Avoid warnings from protobuf and rapidjson
@@ -95,6 +96,11 @@ std::string Uri_data::get_host() {
 int Uri_data::get_port() {
   assert(_has_port);
   return _port;
+}
+
+int Uri_data::get_ssl_mode() {
+  assert(_ssl_mode != 0);
+  return _ssl_mode;
 }
 
 std::string Uri_data::get_pipe() {
@@ -195,7 +201,7 @@ void Uri_parser::parse_target() {
       }
 
       if (offset <= _chunks[URI_TARGET].second)
-        throw Parser_error("Unexpected data [" + get_input_chunk({offset, _chunks[URI_TARGET].second}) + "] at potision " + std::to_string(offset));
+        throw Parser_error("Unexpected data [" + get_input_chunk({offset, _chunks[URI_TARGET].second}) + "] at position " + std::to_string(offset));
     }
 
     // Windows pipe
@@ -206,7 +212,7 @@ void Uri_parser::parse_target() {
       _data->_pipe = parse_value({start, end}, offset, "");
 
       if (offset <= _chunks[URI_TARGET].second)
-        throw Parser_error("Unexpected data [" + get_input_chunk({offset, _chunks[URI_TARGET].second}) + "] at potision " + std::to_string(offset));
+        throw Parser_error("Unexpected data [" + get_input_chunk({offset, _chunks[URI_TARGET].second}) + "] at position " + std::to_string(offset));
     } else
       parse_host();
   }
@@ -378,8 +384,8 @@ void Uri_parser::parse_port(const std::pair<size_t, size_t> &range, size_t &offs
     offset += port.length();
     _data->_port = boost::lexical_cast<int>(port);
 
-    if (_data->_port < 0 || _data->_port > 65536)
-      throw Parser_error("Port is out of the valid range: 0 - 65536");
+    if (_data->_port < 0 || _data->_port > 65535)
+      throw Parser_error("Port is out of the valid range: 0 - 65535");
 
     _data->_has_port = true;
   } else
@@ -551,7 +557,11 @@ std::string Uri_parser::get_input_chunk(const std::pair<size_t, size_t>& range) 
 std::string Uri_parser::parse_unencoded_value(const std::pair<size_t, size_t>& range, size_t &offset, const std::string& finalizers) {
   _tokenizer.reset();
   _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
-  _tokenizer.set_complex_token("unreserved", UNRESERVED);
+#ifdef _WIN32
+  _tokenizer.set_complex_token("unreserved", UNRESERVED + "\\:");
+#else
+  _tokenizer.set_complex_token("unreserved", UNRESERVED + "/");
+#endif
   _tokenizer.set_complex_token("delims", DELIMITERS);
 
   if (!finalizers.empty())
@@ -702,7 +712,23 @@ Uri_data Uri_parser::parse(const std::string& input) {
   parse_path();
   parse_query();
 
+  normalize_ssl_mode();
+
   return data;
+}
+
+void Uri_parser::normalize_ssl_mode() {
+  if (_data->has_attribute(kSslMode)) {
+    int mode = shcore::MapSslModeNameToValue::get_value(_data->_attributes[kSslMode][0]);
+    if (mode != 0) {
+      _data->_ssl_mode = mode;
+    }
+    else {
+        throw Parser_error((boost::format(
+        "Invalid value for '%s' (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] ) ")
+        % "").str());
+    }
+  }
 }
 
 bool Uri_parser::input_contains(const std::string& what, size_t index) {

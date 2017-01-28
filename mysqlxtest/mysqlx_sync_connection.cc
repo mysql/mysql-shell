@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -187,10 +187,13 @@ typedef Memory_new<Callback_executor>::Unique_ptr Callback_executor_ptr;
 
 Mysqlx_sync_connection::Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key,
                                                const char *ssl_ca, const char *ssl_ca_path,
-                                               const char *ssl_cert, const char *ssl_cipher, const std::size_t timeout)
+                                               const char *ssl_cert, const char *ssl_cipher, 
+                                               const char *ssl_crl, const char *ssl_crl_path, 
+                                               const char *ssl_tls_version, int ssl_mode,
+                                               const std::size_t timeout)
 : m_service(service), m_timeout(timeout)
 {
-  m_async_factory    = get_async_connection_factory(ssl_key, ssl_ca, ssl_ca_path, ssl_cert, ssl_cipher);
+  m_async_factory    = get_async_connection_factory(ssl_key, ssl_ca, ssl_ca_path, ssl_cert, ssl_cipher, ssl_crl, ssl_crl_path, ssl_tls_version, ssl_mode);
 
   ngs::IConnection_unique_ptr async_connection = m_async_factory->create_connection(m_service);
 
@@ -198,11 +201,13 @@ Mysqlx_sync_connection::Mysqlx_sync_connection(boost::asio::io_service &service,
 }
 
 ngs::Connection_factory_ptr Mysqlx_sync_connection::get_async_connection_factory(const char *ssl_key, const char *ssl_ca,
-    const char *ssl_ca_path, const char *ssl_cert, const char *ssl_cipher)
+  const char *ssl_ca_path, const char *ssl_cert, const char *ssl_cipher, const char *ssl_crl, const char *ssl_crl_path, 
+  const char *ssl_tls_version, int ssl_mode)
 {
   const bool is_client = true;
-
-  if (is_set(ssl_key) || is_set(ssl_ca) || is_set(ssl_ca_path) || is_set(ssl_cert) || is_set(ssl_cipher))
+  // If mode it any of PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY
+  if (ssl_mode >= 2 && (is_set(ssl_key) || is_set(ssl_ca) || is_set(ssl_ca_path) || is_set(ssl_cert) || is_set(ssl_cipher) || 
+      is_set(ssl_crl) || is_set(ssl_crl_path) || is_set(ssl_tls_version)))
   {
 #if !defined(DISABLE_SSL_ON_XPLUGIN)
     ngs::Connection_factory_ptr factory;
@@ -212,15 +217,21 @@ ngs::Connection_factory_ptr Mysqlx_sync_connection::get_async_connection_factory
     ssl_ca_path  = ssl_ca_path  ? ssl_ca_path  : "";
     ssl_cert     = ssl_cert     ? ssl_cert     : "";
     ssl_cipher   = ssl_cipher   ? ssl_cipher   : "";
+    ssl_crl      = ssl_crl      ? ssl_crl      : "";
+    ssl_crl_path = ssl_crl_path ? ssl_crl_path : "";
+    if (!ssl_tls_version)
+      ssl_tls_version = "";
 
 
 #if !defined(HAVE_YASSL)
     factory = boost::make_shared<ngs::Connection_openssl_factory>(ssl_key, ssl_cert, ssl_ca, ssl_ca_path,
-                                                                  ssl_cipher, "", "", is_client);
+                                                                  ssl_cipher, ssl_crl, ssl_crl_path, 
+                                                                  ssl_tls_version, ssl_mode, is_client);
 
 #else
     factory = boost::make_shared<ngs::Connection_yassl_factory>(ssl_key, ssl_cert, ssl_ca, ssl_ca_path,
-                                                                ssl_cipher, "", "", is_client);
+                                                                ssl_cipher, ssl_crl, ssl_crl_path, 
+                                                                ssl_tls_version, ssl_mode, is_client);
 
 #endif // HAVE_YASSL
 

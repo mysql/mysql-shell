@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -222,7 +222,8 @@ std::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, 
 
 Connection::Connection(const Ssl_config &ssl_config, const std::size_t timeout, const bool dont_wait_for_disconnect)
   : m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path,
-                    ssl_config.cert, ssl_config.cipher, timeout),
+                    ssl_config.cert, ssl_config.cipher, ssl_config.crl, ssl_config.crl_path, 
+                    ssl_config.tls_version, ssl_config.mode, timeout),
   m_deadline(m_ios), m_client_id(0),
   m_trace_packets(false), m_closed(true),
   m_dont_wait_for_disconnect(dont_wait_for_disconnect)

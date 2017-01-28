@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
 
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
+#include "utils/utils_connection.h"
 #include <boost/lexical_cast.hpp>
 
 namespace shcore {
@@ -29,8 +30,9 @@ protected:
     Shell_py_script_tester::SetUp();
 
     int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+    std::string protocol, user, password, host, sock, schema;
+    struct SslInfo ssl_info;
+    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_info);
 
     // Setups some variables on the JS context, these will be used on some test cases
     if (_mysql_port.empty())

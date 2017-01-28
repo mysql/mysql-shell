@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -22,6 +22,7 @@
 #include "shellcore/ishell_core.h"
 #include "shell_cmdline_options.h"
 #include "utils/utils_general.h"
+#include "utils/utils_connection.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
@@ -161,22 +162,48 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     } else if (check_arg_with_value(argv, i, "--auth-method", NULL, value))
       _options.auth_method = value;
     else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value)) {
-      _options.ssl_ca = value;
-      _options.ssl = 1;
+      _options.ssl_info.ca = value;
+      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value)) {
-      _options.ssl_cert = value;
-      _options.ssl = 1;
+      _options.ssl_info.cert = value;
+      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value)) {
-      _options.ssl_key = value;
-      _options.ssl = 1;
+      _options.ssl_info.key = value;
+      _options.ssl_info.skip = false;
+    } else if (check_arg_with_value(argv, i, "--ssl-capath", NULL, value)) {
+      _options.ssl_info.capath = value;
+      _options.ssl_info.skip = false;
+    } else if (check_arg_with_value(argv, i, "--ssl-crl", NULL, value)) {
+      _options.ssl_info.crl = value;
+      _options.ssl_info.skip = false;
+    } else if (check_arg_with_value(argv, i, "--ssl-crlpath", NULL, value)) {
+      _options.ssl_info.crlpath = value;
+      _options.ssl_info.skip = false;
+    } else if (check_arg_with_value(argv, i, "--ssl-cipher", NULL, value)) {
+      _options.ssl_info.ciphers = value;
+      _options.ssl_info.skip = false;
+    } else if (check_arg_with_value(argv, i, "--tls-version", NULL, value)) {
+      _options.ssl_info.tls_version = value;
+_options.ssl_info.skip = false;
+    } else if (check_arg_with_value(argv, i, "--ssl-mode", NULL, value)) {
+      shcore::MapSslModeNameToValue m;
+      int mode = m.get_value(value);
+      if (mode == 0)
+      {
+        std::cerr << "must be any any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY]";
+        exit_code = 1;
+        break;
+      }
+      _options.ssl_info.mode = mode;
+      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl", NULL, value, true)) {
       if (!value)
-        _options.ssl = 1;
+        _options.ssl_info.skip = false;
       else {
         if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
-          _options.ssl = 1;
+          _options.ssl_info.skip = false;
         else if (boost::iequals(value, "no") || boost::iequals(value, "0"))
-          _options.ssl = 0;
+          _options.ssl_info.skip = true;
         else {
           std::cerr << "Value for --ssl must be any of 1|0|yes|no";
           exit_code = 1;

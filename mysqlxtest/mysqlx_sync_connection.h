@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,6 +39,8 @@ public:
   Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key = NULL, 
                          const char *ssl_ca = NULL, const char *ssl_ca_path = NULL, 
                          const char *ssl_cert = NULL, const char *ssl_cipher = NULL, 
+                         const char *ssl_crl = NULL, const char *ssl_crl_path = NULL,
+                         const char *ssl_tls_version = NULL, int ssl_mode = 0,
                          const std::size_t timeout = 0l);
 
   boost::system::error_code connect(const ngs::Endpoint &);
@@ -58,7 +60,9 @@ private:
 
   static bool is_set(const char *string);
   ngs::Connection_factory_ptr get_async_connection_factory(const char *ssl_key,  const char *ssl_ca, const char *ssl_ca_path,
-                                                           const char *ssl_cert, const char *ssl_cipher);
+                                                           const char *ssl_cert, const char *ssl_cipher, const char *ssl_crl, 
+                                                           const char *ssl_crl_path, const char *ssl_tls_version,
+                                                           int ssl_mode);
 
   boost::asio::io_service    &m_service;
   ngs::Connection_factory_ptr m_async_factory;

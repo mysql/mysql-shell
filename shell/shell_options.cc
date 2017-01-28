@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -48,21 +48,18 @@ Shell_options::Shell_options() {
   admin_mode = false;
 
   port = 0;
-  ssl = 0;
+
   exit_code = 0;
 }
 
 bool Shell_options::has_connection_data() {
   return !uri.empty() ||
-         !user.empty() ||
-         !host.empty() ||
-         !schema.empty() ||
-         port != 0 ||
-         password != NULL ||
-         prompt_password ||
-         ssl == 1 ||
-         !ssl_ca.empty() ||
-         !ssl_cert.empty() ||
-         !ssl_key.empty();
+    !user.empty() ||
+    !host.empty() ||
+    !schema.empty() ||
+    port != 0 ||
+    password != NULL ||
+    prompt_password ||
+    ssl_info.has_data();
 }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -79,6 +79,10 @@ namespace mysqlx
       ca_path = NULL;
       cert = NULL;
       cipher = NULL;
+      crl = NULL;
+      crl_path = NULL;
+      tls_version = NULL;
+      mode = 0;
     }
 
     const char *key;
@@ -86,6 +90,10 @@ namespace mysqlx
     const char *ca_path;
     const char *cert;
     const char *cipher;
+    const char *crl;
+    const char *crl_path;
+    const char *tls_version;
+    int mode;
   };
 
   class MYSQLXTEST_PUBLIC Connection : public std::enable_shared_from_this<Connection>
