@@ -132,23 +132,30 @@ function wait_slave_state(cluster, slave_uri, states) {
   recov_cluster = null;
 }
 
-// Smart deployment routines
-function reset_or_deploy_sandbox(port) {
-  var deployed_here = false;
+function connect_to_sandbox(port) {
+  var connected = false;
+  try {
+    shell.connect({user:'root', password:'root', host:'localhost', port:port})
+    connected = true;
+  } catch (err) {
+    println('failed connecting to sandbox at ' + port + ': ' + err.message);
+  }
+  
+  return connected;
+}
 
+function start_sandbox(port) {
+  var started = false;
+  
   options = {}
   if (__sandbox_dir != '')
     options['sandboxDir'] = __sandbox_dir;
-
-  println('Killing sandbox at: ' + port);
-  try {dba.killSandboxInstance(port, options);} catch (err) {}
-
-  var started = false;
+  
   print('Starting sandbox at: ' + port);
   started = wait(10, 1, function() {
     try {
       dba.startSandboxInstance(port, options);
-
+      
       println('succeeded');
       return true;
     } catch (err) {
@@ -156,32 +163,78 @@ function reset_or_deploy_sandbox(port) {
       return false;
     }
   });
+  
+  return started;
+}
 
-  if (started) {
-    var connected = false;
+// Smart deployment routines
+function reset_or_deploy_sandbox(port, retry) {
+  var deployed_here = false;
+  
+  if (typeof retry == 'undefined')
+    retry = true;
+  
+  //  Checks for the sandbox being already deployed
+  var connected = connect_to_sandbox(port);
+  
+  // If it is already part of a cluster, a reboot will be required
+  var reboot = false;
+  if (connected) {
     try {
-      print('Dropping metadata...');
-      shell.connect({host:localhost, port:port, password:'root'});
-      connected = true;
-      session.runSql('set sql_log_bin = 0');
-      session.runSql('drop schema mysql_innodb_cluster_metadata');
-      session.runSql('flush logs');
-      session.runSql('set sql_log_bin = 1');
-      println('succeeded');
-    } catch (err) {
-      println('failed: ' + err.message);
+      var c = dba.getCluster();
+      reboot = true;
+    } catch(err) {
+      println('unable to get cluster from sandbox at ' + port + ': ' + err.message);  
+      
+      // Reboot is required if it is not a standalone instance
+      if (err.message.indexOf("This function is not available through a session to a standalone instance") == -1)
+        reboot = true;
     }
-    if (connected) {
-      session.runSql('set sql_log_bin = 1');
-      session.close();
-    }
+  }
+
+  options = {}
+  if (__sandbox_dir != '')
+    options['sandboxDir'] = __sandbox_dir;
+  
+  if (reboot) {
+    connected = false;
+
+    println('Killing sandbox at: ' + port);
+    try {dba.killSandboxInstance(port, options);} catch (err) {}
+
+    var started = start_sandbox(port);
+    if (started) 
+      connected = connect_to_sandbox(port);
+  }
+
+  // No matter what, we get rid of the metadata schema
+  if (connected) {
+    print('Dropping metadata...');
+    session.runSql('set sql_log_bin = 0');
+    session.runSql('drop schema if exists mysql_innodb_cluster_metadata');
+    session.runSql('flush logs');
+    session.runSql('set sql_log_bin = 1');
+    session.close();
   } else {
     println('Deploying instance');
     options['password'] = 'root';
     options['allowRootFrom'] = '%';
 
-    dba.deploySandboxInstance(port, options);
-    deployed_here = true;
+    try {
+      dba.deploySandboxInstance(port, options);
+      deployed_here = true;
+    } catch(err) {
+      var non_empty_dir = err.message.indexOf("is not empty") != -1;
+      println ("Failure deploying!" + retry + non_empty_dir)
+      
+      if (retry && 
+        non_empty_dir &&
+          start_sandbox(port)) {
+        deployed_here = reset_or_deploy_sandbox(port, false);
+      } else {
+        throw err;
+      }
+    }
   }
 
   return deployed_here;
@@ -233,11 +286,15 @@ function add_instance_to_cluster(cluster, port, label) {
       println("Instance added successfully...")
       success = true;
     } catch (err) {
-      attempt = attempt + 1;
-      println("Failed adding instance on attempt " + attempt);
-      println(err);
-      println("Waiting 5 seconds for next attempt");
-      os.sleep(5)
+      if (err.message.indexOf("The server is not configured properly to be an active member of the group.") == -1) {
+        attempt = attempt + 1;
+        println("Failed adding instance on attempt " + attempt);
+        println(err);
+        println("Waiting 5 seconds for next attempt");
+        os.sleep(5)
+      }
+      else
+        throw(err);
     }
   }
 

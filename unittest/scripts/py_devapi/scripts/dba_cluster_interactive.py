@@ -97,12 +97,12 @@ cluster.dissolve({'force': 'sample'})
 cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port3})
 
 #@<OUT> Cluster: add_instance with interaction, ok 3
-add_named_instance_to_cluster(cluster, __mysql_sandbox_port2, 'second_sandbox')
+add_instance_to_cluster(cluster, __mysql_sandbox_port2, 'second_sandbox')
 
 wait_slave_state(cluster, 'second_sandbox', "ONLINE");
 
 #@<OUT> Cluster: add_instance with interaction, ok 4
-add_named_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox')
+add_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox')
 
 wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 

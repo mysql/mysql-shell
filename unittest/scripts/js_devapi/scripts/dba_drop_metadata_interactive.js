@@ -43,6 +43,4 @@ session.close();
 // Smart deployment cleanup
 if (deployed_here)
   cleanup_sandbox(__mysql_sandbox_port1);
-else
-  reset_or_deploy_sandbox(__mysql_sandbox_port1);
 

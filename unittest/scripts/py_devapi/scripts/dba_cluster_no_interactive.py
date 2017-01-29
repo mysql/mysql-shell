@@ -113,7 +113,7 @@ dba.reset_session(customSession)
 cluster = dba.get_cluster()
 
 # Add back uri3
-add_named_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox');
+add_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox');
 
 wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 

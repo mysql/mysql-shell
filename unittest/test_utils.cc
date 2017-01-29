@@ -23,6 +23,7 @@
 using namespace shcore;
 
 static bool g_test_sessions = getenv("TEST_SESSIONS") != nullptr;
+static bool g_test_debug = getenv("TEST_DEBUG") != nullptr;
 
 Shell_test_output_handler::Shell_test_output_handler() {
   deleg.user_data = this;
@@ -39,6 +40,9 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
 
   target->full_output << text << std::endl;
   
+  if (g_test_debug)
+    std::cout << text << std::endl;
+  
   target->std_out.append(text);
 }
 
@@ -46,6 +50,9 @@ void Shell_test_output_handler::deleg_print_error(void *user_data, const char *t
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
 
   target->full_output << text << std::endl;
+  
+  if (g_test_debug)
+    std::cerr << text << std::endl;
   
   target->std_err.append(text);
 }
@@ -288,6 +295,9 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
 
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
+  
+  if (g_test_debug)
+    std::cout << "---> " << code << std::endl;
 
   _interactive_shell->process_line(_code);
 

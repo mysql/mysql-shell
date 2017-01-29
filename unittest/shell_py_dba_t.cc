@@ -185,25 +185,8 @@ TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
   reset_shell();
 
   execute("dba.verbose = True");
-
-  std::string deploy_options = "{'password': 'root', 'allowRootFrom': '%'";
-  if (!_sandbox_dir.empty())
-    deploy_options.append(", 'sandboxDir': '" + _sandbox_dir + "'");
-  deploy_options.append("}");
-
-  execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port1 + ", "
-              + deploy_options + ")");
-  execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port2 + ", "
-              + deploy_options + ")");
-  execute("dba.deploy_sandbox_instance(" + _mysql_sandbox_port3 + ", "
-              + deploy_options + ")");
-
-  if (!output_handler.std_err.empty()) {
-    std::cerr << "---------- Failure Log ----------" << std::endl;
-    output_handler.flush_debug_log();
-    std::cerr << "---------------------------------" << std::endl;
-    ADD_FAILURE();
-  }
+  
+  validate_interactive("dba_reset_or_deploy.py");
 }
 
 TEST_F(Shell_py_dba_tests, no_interactive_classic_global_dba) {

@@ -90,5 +90,3 @@ cluster.status();
 // Will delete the sandboxes ONLY if this test was executed standalone
 if (deployed_here)
   cleanup_sandboxes(true);
-else
-  reset_or_deploy_sandboxes();

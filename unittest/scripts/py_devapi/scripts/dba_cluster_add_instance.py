@@ -56,5 +56,3 @@ session.close()
 # Will delete the sandboxes ONLY if this test was executed standalone
 if deployed_here:
   cleanup_sandboxes(True)
-else:
-  reset_or_deploy_sandboxes()

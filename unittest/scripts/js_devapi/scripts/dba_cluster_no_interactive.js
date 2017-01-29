@@ -104,7 +104,7 @@ dba.resetSession(customSession);
 var Cluster = dba.getCluster();
 
 // Add back uri3
-add_named_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
+add_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
 
 wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 
@@ -115,7 +115,7 @@ Cluster.describe()
 Cluster.status()
 
 //@ Cluster: addInstance adding old master as read only
-add_named_instance_to_cluster(Cluster, __mysql_sandbox_port1, 'first_sandbox');
+add_instance_to_cluster(Cluster, __mysql_sandbox_port1, 'first_sandbox');
 
 wait_slave_state(Cluster, 'first_sandbox', "ONLINE");
 

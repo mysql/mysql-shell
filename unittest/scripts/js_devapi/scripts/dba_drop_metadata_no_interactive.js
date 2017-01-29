@@ -30,5 +30,3 @@ ensure_schema_does_not_exist(session, 'mysql_innodb_cluster_metadata')
 // Smart deployment cleanup
 if (deployed_here)
   cleanup_sandbox(__mysql_sandbox_port1);
-else
-  reset_or_deploy_sandbox(__mysql_sandbox_port1);

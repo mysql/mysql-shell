@@ -132,21 +132,24 @@ def wait_slave_state(cluster, slave_uri, states):
   recov_cluster = None
 
 # Smart deployment routines
-def reset_or_deploy_sandbox(port):
-  deployed_here = False;
 
+def connect_to_sandbox(port):
+  connected = False
+  try:
+    shell.connect({'user':'root', 'password':'root', 'host':'localhost', 'port':port})
+    connected = True
+  except Exception, err:
+    print 'failed connecting to sandbox at %s : %s' % (port, err.message)
+  
+  return connected;
+
+def start_sandbox(port):
+  started = False
+  
   options = {}
   if __sandbox_dir != '':
     options['sandboxDir'] = __sandbox_dir
-
-  print 'Killing sandbox at: %s' % port
-
-  try:
-    dba.kill_sandbox_instance(port, options)
-  except Exception, err:
-    pass
-
-  started = False
+  
   print 'Starting sandbox at: %s' % port
   def try_start():
     try:
@@ -156,36 +159,76 @@ def reset_or_deploy_sandbox(port):
       print "failed: %s" % str(err)
       return False
 
-  if wait(10, 1, try_start):
-    started = True
-    print 'succeeded'
+  started = wait(10, 1, try_start)
+  
+  return started;
+    
+def reset_or_deploy_sandbox(port, retry = None):
+  deployed_here = False;
+  
+  if retry is None:
+    retry = True
+    
+  # Checks for the sandbox being already deployed
+  connected = connect_to_sandbox(port)
 
-  if started:
-    connected = False
+  # If it is already part of a cluster, a reboot will be required
+  reboot = False
+  if (connected):
     try:
-      print 'Dropping metadata...'
-      shell.connect({'host':localhost, 'port':port, 'password':'root'})
-      connected = True
-      session.run_sql('set sql_log_bin = 0')
-      session.run_sql('drop schema mysql_innodb_cluster_metadata')
-      session.run_sql('flush logs')
-      session.run_sql('set sql_log_bin = 1')
-      print 'succeeded'
+      c = dba.get_cluster()
+      reboot = True
     except Exception, err:
-      print 'failed: %s' % str(err)
+      print "unable to get cluster from sandbox at %s: %s" % (port, err.message)
+      
+      # Reboot is required if it is not a standalone instance
+      if err.message.find("This function is not available through a session to a standalone instance") == -1:
+        reboot = True
 
-    if connected:
-      session.run_sql('set sql_log_bin = 1')
-      session.close()
+  options = {}
+  if __sandbox_dir != '':
+    options['sandboxDir'] = __sandbox_dir
+
+  if reboot:
+    connected = False
+    
+    print 'Killing sandbox at: %s' % port
+
+    try:
+      dba.kill_sandbox_instance(port, options)
+    except Exception, err:
+      pass
+
+    started = start_sandbox(port)
+    
+    if started:
+      connected = connect_to_sandbox(port)
+
+  if connected:
+    print 'Dropping metadata...'
+    session.run_sql('set sql_log_bin = 0')
+    session.run_sql('drop schema if exists mysql_innodb_cluster_metadata')
+    session.run_sql('flush logs')
+    session.run_sql('set sql_log_bin = 1')
+    session.close()
   else:
     print 'Deploying instance'
     options['password'] = 'root'
     options['allowRootFrom'] = '%'
 
-    dba.deploy_sandbox_instance(port, options)
-    deployed_here = True
+    try:
+      dba.deploy_sandbox_instance(port, options)
+      deployed_here = True
+    except Exception, err:
+      non_empty_dir = err.message.find("is not empty") != -1;
+      print "Failure deploying! %s %s" % (retry, non_empty_dir)
+      
+      if retry and non_empty_dir and start_sandbox(port):
+        deployed_here = reset_or_deploy_sandbox(port, False)
+      else:
+        raise;
 
-  return deployed_here
+    return deployed_here
 
 def reset_or_deploy_sandboxes():
   deploy1 = reset_or_deploy_sandbox(__mysql_sandbox_port1)
@@ -212,17 +255,6 @@ def cleanup_sandboxes(deployed_here):
 # 3 retries are done on each case, expectation is that the addition
 # is done on the first attempt, however, we have detected some OS
 # delays that cause it to fail, that's why the retry logic
-def add_named_instance_to_cluster(cluster, port, name):
-  global add_instance_options
-  
-  add_instance_options['name'] = name
-  
-  try:
-    add_instance_to_cluster(cluster, port)
-  finally:
-    add_instance_options.pop('name')
-
-
 def add_instance_to_cluster(cluster, port, label = None):
   global add_instance_options
   add_instance_options['port'] = port
