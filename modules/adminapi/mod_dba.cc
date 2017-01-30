@@ -1310,9 +1310,6 @@ REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4, "This function reboot
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5, "On success, the restored cluster object is returned by the function.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6, "The current session must be connected to a former instance of the cluster.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7, "If name is not specified, the default cluster will be returned.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8, "EXAMPLE:");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL9, "shell.connect('root@localhost:3310');");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL10, "var cluster = dba.rebootClusterFromCompleteOutage():");
 
 /**
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF)
@@ -1328,14 +1325,11 @@ REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL10, "var cluster = dba.r
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL9)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL10)
 */
 #if DOXYGEN_JS
-Undefined Dba::rebootClusterFromCompleteOutage(String clusterName) {}
+Undefined Dba::rebootClusterFromCompleteOutage(String clusterName, Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::reboot_cluster_from_complete_outage(str clusterName) {}
+None Dba::reboot_cluster_from_complete_outage(str clusterName, dict options) {}
 #endif
 
 shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_list &args) {
