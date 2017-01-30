@@ -5373,6 +5373,50 @@ class XShell_TestCases(unittest.TestCase):
                    "classic_session : " + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + "/sakila" + os.linesep + "classic_session1"),
                   ]
 
+    def test_shell_prompt_function(self):
+        '''[] test for shell.prompt() function '''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full']
+        x_cmds = [("shell.prompt('prompttext:')\n", "prompttext:"),
+                    ("testinput\n", "testinput" + os.linesep + "mysql-js>"),
+                    ("\\py\n", "mysql-py>"),
+                    ("shell.prompt('prompttext:')\n", "prompttext:"),
+                    ("testinput\n", "testinput" + os.linesep + "mysql-py>"),
+                    ("\\js\n", "mysql-js>"),
+                    ("shell.prompt('hiddenprompttext:',{'type':'password'})\n", "hiddenprompttext:"),
+                    ("testinput\n", "testinput" + os.linesep + "mysql-js>"),
+                    ("\\py\n", "mysql-py>"),
+                    ("shell.prompt('hiddenprompttext:',{'type':'password'})\n", "hiddenprompttext:"),
+                    ("testinput\n", "testinput" + os.linesep + "mysql-py>"),
+                  ]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
+
+    def test_help_global_objects(self):
+        '''Check help text "global objects" section. without and with an active session'''
+
+        results = ''
+        help_text = "===== Global Objects =====" + os.linesep + \
+                    "dba        Allows performing DBA operations using the MySQL X AdminAPI." + os.linesep + \
+                    "mysql      Used to work with classic MySQL sessions using SQL." + os.linesep + \
+                    "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep + \
+                    "shell      Gives access to general purpose functions and properties." + os.linesep + \
+                    "sys        Gives access to system specific parameters." + os.linesep
+        help_text_session = "===== Global Objects =====" + os.linesep + \
+                    "dba        Allows performing DBA operations using the MySQL X AdminAPI." + os.linesep + \
+                    "mysql      Used to work with classic MySQL sessions using SQL." + os.linesep + \
+                    "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep + \
+                    "session    Represents the currently open MySQL session." + os.linesep + \
+                    "shell      Gives access to general purpose functions and properties." + os.linesep + \
+                    "sys        Gives access to system specific parameters." + os.linesep
+        init_command = [MYSQL_SHELL, '--interactive=full']
+        x_cmds = [("\\help\n", help_text),
+                  ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password,LOCALHOST.host,LOCALHOST.port),"mysql-js>"),
+                  ("\\help\n", help_text_session),
+                 ]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
+
     @unittest.skip("X sessions and Stored sessions removed for mysql-shell-1.0.6-release, therefore must be skipped")
     def test_examples_1_1(self):
         '''[2.0.07]:3 Connect local Server on PY mode: APP SESSION'''
@@ -7984,9 +8028,8 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
-    @unittest.skip("X sessions and Stored sessions removed for mysql-shell-1.0.6-release, therefore must be skipped")
     def test_MYS_451(self):
-        '''MYSQL SHELL HELP OUTPUT IS WRONG ABOUT MYSH'''
+        '''MYSQL SHELL HELP OUTPUT IS WRONG ABOUT MYSH; testing help outputs "global commands" section'''
         results = ''
         var = "===== Global Commands =====" + os.linesep + \
               "\\help       (\\?,\\h)    Print this help." + os.linesep + \
@@ -8000,10 +8043,10 @@ class XShell_TestCases(unittest.TestCase):
               "\\warnings   (\\W)       Show warnings after every statement." + os.linesep + \
               "\\nowarnings (\\w)       Don't show warnings after every statement." + os.linesep + \
               "\\status     (\\s)       Print information about the current global connection." + os.linesep + \
-              "\\use        (\\u)       Set the current schema for the global session." + os.linesep + \
-              "\\saveconn   (\\savec)   Store a session configuration." + os.linesep + \
-              "\\rmconn     (\\rmc)     Remove the stored session configuration." + os.linesep + \
-              "\\lsconn     (\\lsc)     List stored session configurations."
+              "\\use        (\\u)       Set the current schema for the global session." + os.linesep
+              # "\\saveconn   (\\savec)   Store a session configuration." + os.linesep + \
+              # "\\rmconn     (\\rmc)     Remove the stored session configuration." + os.linesep + \
+              # "\\lsconn     (\\lsc)     List stored session configurations."
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\help\n", var)
                   ]
