@@ -17,6 +17,7 @@
 """
 This module contains common operation to manage Group Replication
 """
+import collections
 import datetime
 import logging
 import os
@@ -229,6 +230,9 @@ GR_REQUIRED_OPTIONS = {
     "log_bin": {NOT_IN: ("OFF", "0", "<not set>"), DEFAULT: "<no value>"},
     "binlog_format": {ONE_OF: ("ROW",)},
     "binlog_checksum": {ONE_OF: ("NONE",)},
+
+    # options related to network
+    "bind-address": {ONE_OF: ("*", "<not set>"), DEFAULT: "*"},
 
     # Options related with GTids
     "gtid_mode": {ONE_OF: ("ON", "1")},
@@ -1980,7 +1984,7 @@ def persist_gr_config(defaults_path, config_values=None, set_on=True,
     :param defaults_path: The system path of the option file used to start
                           the server or the MySQLOptionsParser used to modify
                           the options file.
-    :type defaults_path: string | MySQLOptionsParser
+    :type defaults_path: string or MySQLOptionsParser
     :param config_values: the dictionary with the GR values to persist.
     :type config_values: dictionary
     :param set_on: Sets the value of 'group_replication_start_on_boot' to "ON"
@@ -2006,35 +2010,23 @@ def persist_gr_config(defaults_path, config_values=None, set_on=True,
 
     else:
         # Remove quotes
-        for option_name in config_values.keys():
-            if config_values[option_name][0] == \
-               config_values[option_name][-1] and \
-               config_values[option_name][0] in {'"', "'"}:
+        for option_name, value in config_values.items():
+            if (len(value) > 0 and value[0] == value[-1] and
+                    value[0] in {'"', "'"}):
                 config_values[option_name] = \
                     config_values[option_name][1:-1]
 
         # Configure aliases options.
         _LOGGER.debug("Configuring options to be persisted")
-        for option_name in [GR_GROUP_NAME, GR_LOCAL_ADDRESS, GR_GROUP_SEEDS]:
-            # Check if alias_option is in the config_values to save
-            if option_name in config_values.keys():
-                # Check if the prefixed "loose-" option exists already
-                if options_parser.has_option(
-                        'mysqld', LOOSE_PREFIX.format(option_name)):
-                    _LOGGER.debug("Option %s with loose prefix found", )
-                    # Save the value with "loose-" prefix.
-                    config_values[LOOSE_PREFIX.format(option_name)] = \
-                        config_values.pop(option_name)
-
-                elif options_parser.has_option('mysqld', option_name):
-                    # check option's value requires to be append to current
-                    if option_name in APPEND_VALUE_OPTIONS:
-                        # Get the current value.
-                        cur_value = options_parser.get('mysqld', option_name)
-
-                        config_values[option_name] = \
-                            "{0},{1}".format(config_values[option_name],
-                                             cur_value)
+        for option_name in config_values:
+            # Check if the prefixed "loose-" option exists already and if
+            # so replace its value
+            if options_parser.has_option(
+                    'mysqld', LOOSE_PREFIX.format(option_name)):
+                _LOGGER.debug("Option %s with loose prefix found", )
+                # Save the value with "loose-" prefix.
+                config_values[LOOSE_PREFIX.format(option_name)] = \
+                    config_values.pop(option_name)
 
                 # else: The option without the prefix is already set.
 
@@ -2104,3 +2096,18 @@ def check_gr_plugin_is_installed(server, option_file, dry_run=False):
             install_plugin(server, dry_run)
         else:
             raise GadgetError(_ERROR_GR_PLUGIN_DISABLED.format(server))
+
+
+def get_gr_configs_from_instance(server):
+    """Get a dict with the values of the Group Replication variables.
+
+    :param server: The MySQL instance to verify.
+    :type server:  Server
+    :return: Dictionary with the GR variable values
+    :rtype: OrderedDict
+    """
+    gr_configs = collections.OrderedDict()
+    gr_vars = server.exec_query("show variables like 'group_replication_%'")
+    for variable_name, value in gr_vars:
+        gr_configs[variable_name] = value
+    return gr_configs

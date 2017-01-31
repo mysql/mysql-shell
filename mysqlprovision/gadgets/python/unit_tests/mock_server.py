@@ -123,6 +123,7 @@ class MockServer(object):
         """
         return self.server.__str__()
 
+
 def mock_get_server(server_info, ssl_dict=None, connect=True):
     """The insider method to mock Server.get_server method"""
     if isinstance(server_info, MockServer):

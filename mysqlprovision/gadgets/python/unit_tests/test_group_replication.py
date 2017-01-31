@@ -20,6 +20,7 @@ Unit tests for mysql_gadgets.common.group_replication module.
 
 import os
 import shutil
+from collections import OrderedDict
 from unit_tests.utils import (GadgetsTestCase, SERVER_CNX_OPT,
                               skip_if_not_GR_approved,)
 
@@ -33,6 +34,7 @@ from mysql_gadgets.common.group_replication import (
     _print_check_server_version_results,
     CONFIG_SETTINGS,
     DYNAMIC_SERVER_VARS,
+    get_gr_configs_from_instance,
     get_gr_local_address_from,
     get_gr_members,
     get_gr_name_from_peer,
@@ -67,10 +69,13 @@ class TestGroupReplication(GadgetsTestCase):
         self.server1.connect()
         # default user
         self.server1.exec_query("drop user if exists 'rpl_user'")
-        qry_key = ("select MEMBER_HOST, MEMBER_PORT from {0}"
-                   "".format(REP_GROUP_MEMBERS_TABLE))
-
-        frozen_queries = {qry_key: [[self.server1.host, self.server1.port]]}
+        qry_key1 = ("select MEMBER_HOST, MEMBER_PORT from {0}"
+                    "".format(REP_GROUP_MEMBERS_TABLE))
+        qry_key2 = "show variables like 'group_replication_%'"
+        frozen_queries = {qry_key1: [[self.server1.host, self.server1.port]],
+                          qry_key2: [("group_replication_group_name", "name"),
+                                     ("group_replication_start_on_boot", "ON"),
+                                     ("group_replication_group_seeds", "")]}
         variables = {GR_LOCAL_ADDRESS: "localhost:3307"}
         self.server = get_mock_server(self.server1, queries=frozen_queries,
                                       variables=variables)
@@ -130,6 +135,14 @@ class TestGroupReplication(GadgetsTestCase):
 
         self.assertEqual(get_gr_local_address_from(self.server),
                          "'localhost:3307'")
+
+    def test_get_gr_configs_from_instance(self):
+        res = get_gr_configs_from_instance(self.server)
+        # check that result is as expected from the mock server
+        self.assertEqual(
+            res, OrderedDict([('group_replication_group_name', 'name'),
+                              ('group_replication_start_on_boot', 'ON'),
+                              ('group_replication_group_seeds', '')]))
 
     def test__print_check_variables_results(self):
         """Tests _print_check_variables_results method"""

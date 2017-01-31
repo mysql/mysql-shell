@@ -45,6 +45,7 @@ from mysql_gadgets.common.group_replication import (
     REP_GROUP_MEMBERS_TABLE,
     REP_MEMBER_STATS_TABLE,
     REP_APPLIER_STATUS_BY_WORKER,
+    get_gr_configs_from_instance,
     get_gr_local_address_from,
     get_gr_name_from_peer,
     setup_gr_config,
@@ -239,7 +240,7 @@ def _report_dict(result_dict, template, header=None, hder_template=None,
 
 # Operation methods
 def check(**kwargs):
-    """Start a group replication group with the given server information.
+    """Check and update instance configurations relative to Group Replication.
 
     :param kwargs:    Keyword arguments:
                         update:     Make changes to the options file.
@@ -281,28 +282,54 @@ def check(**kwargs):
     _LOGGER.log(STEP_LOG_LEVEL_VALUE, msg)
 
     try:
-        # The dictionary with the requirements to be verified.
-        if server is not None:
-            req_dict = get_req_dict(server, None, peer_server=None,
-                                    option_file=option_file)
-            skip_schema_checks = False
+        # if server belongs already belongs to a group and the update option
+        # was provided, dump its GR configurations to the option file
+        if is_member_of_group(server) and is_active_member(server):
+            gr_configs = get_gr_configs_from_instance(server)
+            if update:
+                # the variable comes from the server, no need to test for
+                # loose prefix variant.
+                if not gr_configs.get("group_replication_group_seeds", None):
+                    _LOGGER.warning(
+                        "group_replication_group_seeds is not defined on %s."
+                        " Option group_replication_group_seeds is mandatory to"
+                        " allow the server to automatically rejoin the cluster"
+                        " after reboot. Please manually update its value on "
+                        "option file '%s' to allow the server to automatically"
+                        " rejoin the cluster.", str(server), option_file)
+                _LOGGER.info("Updating option file '%s' with GR settings from "
+                             "%s", option_file, str(server))
+                persist_gr_config(option_file, gr_configs)
+                result = True
+            else:
+                result = False
+        # If the server doesn't belong to any group, check if it meets GR
+        # requirements, printing to stdout what needs to be changed and
+        # update the configuration file if provided
         else:
-            req_dict = get_req_dict_for_opt_file(option_file)
-            skip_schema_checks = True
+            # The dictionary with the requirements to be verified.
+            if server is not None:
+                req_dict = get_req_dict(server, None, peer_server=None,
+                                        option_file=option_file)
+                skip_schema_checks = False
+            else:
+                req_dict = get_req_dict_for_opt_file(option_file)
+                skip_schema_checks = True
 
-        _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Checking Group Replication "
-                    "prerequisites.")
+            _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Checking Group Replication "
+                        "prerequisites.")
 
-        # set dry_run to avoid changes on server as replication user creation.
-        result = check_server_requirements(
-            server, req_dict, None, verbose=verbose, dry_run=True,
-            skip_schema_checks=skip_schema_checks, update=update,
-            skip_backup=skip_backup)
+            # set dry_run to avoid changes on server as replication user
+            # creation.
+            result = check_server_requirements(
+                server, req_dict, None, verbose=verbose, dry_run=True,
+                skip_schema_checks=skip_schema_checks, update=update,
+                skip_backup=skip_backup)
 
-        # verify the group replication is installed and not disabled.
-        if server is not None:
-            check_gr_plugin_is_installed(server, option_file,
-                                         dry_run=(not update))
+            # verify the group replication is installed and not disabled.
+            if server is not None:
+                check_gr_plugin_is_installed(server, option_file,
+                                             dry_run=(not update))
 
     finally:
         # Disconnect the server prior to end method invocation.
@@ -669,7 +696,8 @@ def join(server_info, peer_server_info, **kwargs):
                                   to be consistent with the SSL GR modes on the
                                   peer-server otherwise an error will be
                                   thrown).
-                        skip_rpl_user: If True, skip the creation of the replication user.
+                        skip_rpl_user: If True, skip the creation of the
+                                       replication user.
     :type kwargs:   dict
 
     :raise GadgetError:         If server_info or peer_server_info is None.
@@ -744,7 +772,8 @@ def join(server_info, peer_server_info, **kwargs):
             req_dict = get_req_dict(server, rpl_user_dict["replication_user"],
                                     peer_server, option_file=option_file)
         else:
-            # if replication user is to be skipped, no need to add the replication user to the requirements list
+            # if replication user is to be skipped, no need to add the
+            # replication user to the requirements list
             req_dict = get_req_dict(server, None, peer_server,
                                     option_file=option_file)
             rpl_user_dict = None
@@ -787,7 +816,8 @@ def join(server_info, peer_server_info, **kwargs):
         gr_config_vars = get_gr_config_vars(local_address, kwargs,
                                             option_parser, peer_local_address)
 
-        # Do several replication user related tasks if the skip-replication-user option was not provided
+        # Do several replication user related tasks if the
+        # skip-replication-user option was not provided
         if not skip_rpl_user:
             # The replication user for be check/create on the peer server.
             # NOTE: rpl_user_dict["host"] has the FQDN resolved from the host
