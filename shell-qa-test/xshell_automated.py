@@ -5381,13 +5381,7 @@ class XShell_TestCases(unittest.TestCase):
                     ("testinput\n", "testinput" + os.linesep + "mysql-js>"),
                     ("\\py\n", "mysql-py>"),
                     ("shell.prompt('prompttext:')\n", "prompttext:"),
-                    ("testinput\n", "testinput" + os.linesep + "mysql-py>"),
-                    ("\\js\n", "mysql-js>"),
-                    ("shell.prompt('hiddenprompttext:',{'type':'password'})\n", "hiddenprompttext:"),
-                    ("testinput\n", "testinput" + os.linesep + "mysql-js>"),
-                    ("\\py\n", "mysql-py>"),
-                    ("shell.prompt('hiddenprompttext:',{'type':'password'})\n", "hiddenprompttext:"),
-                    ("testinput\n", "testinput" + os.linesep + "mysql-py>"),
+                    ("testinput\n", "testinput" + os.linesep + "mysql-py>")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
