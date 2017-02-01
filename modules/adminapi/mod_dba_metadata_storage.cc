@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -307,6 +307,7 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   shcore::Value::Map_type_ref attributes;
   std::string endpoint;
   std::string xendpoint;
+  std::string grendpoint;
   int version_token;
   std::string description;
 
@@ -329,6 +330,9 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   if (options->has_key("xendpoint"))
     xendpoint = (*options)["xendpoint"].as_string();
 
+  if (options->has_key("grendpoint"))
+    grendpoint = (*options)["grendpoint"].as_string();
+
   if (options->has_key("attributes"))
     attributes = (*options)["attributes"].as_map();
 
@@ -341,7 +345,7 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   // Insert the default ReplicaSet on the replicasets table
   query = shcore::sqlstring("INSERT INTO mysql_innodb_cluster_metadata.instances"
                     " (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses)"
-                    " VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, 'mysqlX', ?))", 0);
+                    " VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, 'mysqlX', ?, 'grLocal', ?))", 0);
   query << host_id;
   query << rs_id;
   query << mysql_server_uuid;
@@ -349,6 +353,7 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   query << role;
   query << endpoint;
   query << xendpoint;
+  query << grendpoint;
   query.done();
 
   execute_sql(query);

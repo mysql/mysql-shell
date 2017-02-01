@@ -282,7 +282,7 @@ def check(**kwargs):
     _LOGGER.log(STEP_LOG_LEVEL_VALUE, msg)
 
     try:
-        # if server belongs already belongs to a group and the update option
+        # if server already belongs to a group and the update option
         # was provided, dump its GR configurations to the option file
         if is_member_of_group(server) and is_active_member(server):
             gr_configs = get_gr_configs_from_instance(server)
@@ -291,13 +291,12 @@ def check(**kwargs):
                 # loose prefix variant.
                 if not gr_configs.get("group_replication_group_seeds", None):
                     _LOGGER.warning(
-                        "group_replication_group_seeds is not defined on %s."
-                        " Option group_replication_group_seeds is mandatory to"
-                        " allow the server to automatically rejoin the cluster"
-                        " after reboot. Please manually update its value on "
-                        "option file '%s' to allow the server to automatically"
-                        " rejoin the cluster.", str(server), option_file)
-                _LOGGER.info("Updating option file '%s' with GR settings from "
+                        "The 'group_replication_group_seeds' is not defined "
+                        "on %s. This option is mandatory to allow the server "
+                        "to automatically rejoin the cluster after reboot. "
+                        "Please manually update its value on option file "
+                        "'%s'.", str(server), option_file)
+                _LOGGER.info("Updating option file '%s' with Group Replication settings from "
                              "%s", option_file, str(server))
                 persist_gr_config(option_file, gr_configs)
                 result = True

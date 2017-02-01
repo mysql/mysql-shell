@@ -129,7 +129,6 @@
 ||Dba.configure_local_instance: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||Dba.configure_local_instance: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
 ||Dba.configure_local_instance: The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
-||Dba.configure_local_instance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
 #@<OUT> Dba: configure_local_instance updating config file
 {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "shellcore/shell_core_options.h"
 #include "shell/shell_resultset_dumper.h"
 #include "utils/utils_general.h"
+#include "utils/utils_file.h"
 #include "modules/base_session.h"
 
 using namespace shcore;
@@ -31,7 +32,7 @@ Shell_test_output_handler::Shell_test_output_handler() {
   deleg.print_error = &Shell_test_output_handler::deleg_print_error;
   deleg.prompt = &Shell_test_output_handler::deleg_prompt;
   deleg.password = &Shell_test_output_handler::deleg_password;
-  
+
   full_output.clear();
 }
 
@@ -39,10 +40,10 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
 
   target->full_output << text << std::endl;
-  
+
   if (g_test_debug)
     std::cout << text << std::endl;
-  
+
   target->std_out.append(text);
 }
 
@@ -50,10 +51,10 @@ void Shell_test_output_handler::deleg_print_error(void *user_data, const char *t
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
 
   target->full_output << text << std::endl;
-  
+
   if (g_test_debug)
     std::cerr << text << std::endl;
-  
+
   target->std_err.append(text);
 }
 
@@ -135,7 +136,7 @@ void Shell_test_output_handler::debug_print(const std::string& line) {
 
 void Shell_test_output_handler::debug_print_header(const std::string& line) {
   std::string splitter(line.length(), '-');
-  
+
   full_output << splitter.c_str() << std::endl;
   full_output << line.c_str() << std::endl;
   full_output << splitter.c_str() << std::endl;
@@ -168,7 +169,7 @@ std::string Shell_core_test_wrapper::context_identifier() {
 
 void Shell_core_test_wrapper::SetUp() {
   output_handler.debug_print_header(context_identifier());
-  
+
   // Initializes the options member
   reset_options();
 
@@ -241,8 +242,24 @@ void Shell_core_test_wrapper::SetUp() {
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
     _sandbox_dir = shcore::join_strings(tokens, "\\\\");
 #endif
-  } else
-    _sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+  } else {
+    // If not specified, the tests will create the sandboxes on the binary folder
+    _sandbox_dir = shcore::get_binary_folder();
+  }
+
+
+#ifdef _WIN32
+  std::string _path_splitter = "\\";
+#else
+  std::string _path_splitter = "/";
+#endif
+
+  std::vector<std::string> path_components = {_sandbox_dir, _mysql_sandbox_port1, "my.cnf"};
+  _sandbox_cnf_1 = shcore::join_strings(path_components, _path_splitter);
+  path_components[1] = _mysql_sandbox_port2;
+  _sandbox_cnf_2 = shcore::join_strings(path_components, _path_splitter);
+  path_components[1] = _mysql_sandbox_port3;
+  _sandbox_cnf_3 = shcore::join_strings(path_components, _path_splitter);
 
   // Initializes the interactive shell
   reset_shell();
@@ -295,7 +312,7 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
 
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
-  
+
   if (g_test_debug)
     std::cout << "---> " << code << std::endl;
 

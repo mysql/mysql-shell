@@ -81,7 +81,6 @@ dba.configure_local_instance('someotherhost:' + str(__mysql_sandbox_port1));
 dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port1));
 dba.configure_local_instance('sample@localhost:' + str(__mysql_sandbox_port1));
 dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port1), {'password':'root'});
-dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port1), {'password':'root', 'mycnfPath':'mybad.cnf'});
 
 #@<OUT> Dba: configure_local_instance updating config file
 dba.configure_local_instance(uri2, {'mycnfPath':'mybad.cnf'});

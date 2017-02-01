@@ -361,7 +361,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
     if (add_options->has_key("ipWhitelist"))
       ip_whitelist = add_options->get_string("ipWhitelist");
-    
+
     if (add_options->has_key("label"))
       instance_label = add_options->get_string("label");
   }
@@ -390,7 +390,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
   // Check replication filters before creating the Metadata.
   validate_replication_filters(session.get());
-  
+
   // Resolve the SSL Mode to use to configure the instance.
   boost::to_upper(ssl_mode);
   if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
@@ -725,10 +725,10 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     validate_replication_filters(classic);
 
     boost::to_upper(ssl_mode);
-    
+
     auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
       _metadata_storage->get_dba()->get_active_session().get());
-    
+
     //Get SSL values to connect to peer instance
     Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
     std::string peer_ssl_ca = peer_session->get_ssl_ca();
@@ -740,7 +740,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       (*peer_instance_ssl_opts)["sslCert"] = Value(peer_ssl_cert);
     if (!peer_ssl_key.empty())
       (*peer_instance_ssl_opts)["sslKey"] = Value(peer_ssl_key);
-    
+
     // Resolve the SSL Mode to use to configure the instance.
     if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
       ssl_mode = resolve_ssl_mode(classic, peer_session);
@@ -753,7 +753,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     temp_args.clear();
     temp_args.push_back(shcore::Value("STOP GROUP_REPLICATION"));
     classic->run_sql(temp_args);
-    
+
     // Get SSL values to connect to instance
     Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
     if (instance_def->has_key("sslCa"))
@@ -762,10 +762,10 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       (*instance_ssl_opts)["sslCert"] = Value(instance_def->get_string("sslCert"));
     if (instance_def->has_key("sslKey"))
       (*instance_ssl_opts)["sslKey"] = Value(instance_def->get_string("sslKey"));
-    
+
 
     // use mysqlprovision to rejoin the cluster.
-    exit_code = _cluster->get_provisioning_interface()->join_replicaset(user + "@" + instance_address, 
+    exit_code = _cluster->get_provisioning_interface()->join_replicaset(user + "@" + instance_address,
                                                                         instance_ssl_opts,
                                                                         "",
                                                                         user+ "@" + peer_instance,
@@ -1250,6 +1250,7 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
   MetadataStorage::Transaction tx(_metadata_storage);
 
   int xport = instance_definition->get_int("port") * 10;
+  std::string local_gr_address;
 
   std::string joiner_host = instance_definition->get_string("host");
 
@@ -1304,6 +1305,9 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
       log_info("Could not query xplugin port, using default value: %s", e.what());
     }
 
+    // Loads the local HR host data
+    get_server_variable(classic->connection(), "group_replication_local_address", local_gr_address, false);
+
     if (!mysql_server_address.empty() && mysql_server_address != joiner_host) {
       log_info("Normalized address of '%s' to '%s'", joiner_host.c_str(), mysql_server_address.c_str());
       instance_address = mysql_server_address + ":" + std::to_string(instance_definition->get_int("port"));
@@ -1317,6 +1321,7 @@ void ReplicaSet::add_instance_metadata(const shcore::Value::Map_type_ref &instan
   (*instance_definition)["role"] = shcore::Value("HA");
   (*instance_definition)["endpoint"] = shcore::Value(instance_address);
   (*instance_definition)["xendpoint"] = shcore::Value(instance_xaddress);
+  (*instance_definition)["grendpoint"] = shcore::Value(local_gr_address);
   (*instance_definition)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
 
   (*instance_definition)["label"] = shcore::Value(label.empty() ? instance_address : label);

@@ -219,7 +219,7 @@ bool is_server_on_replication_group(mysqlsh::mysql::Connection* connection, cons
   if (row)
     count = row->get_value(0).as_int();
   else
-    throw shcore::Exception::runtime_error("Unable to verify Group Replicatin membership");
+    throw shcore::Exception::runtime_error("Unable to verify Group Replication membership");
 
   return count == 1;
 }
@@ -241,7 +241,13 @@ bool get_server_variable(mysqlsh::mysql::Connection *connection, const std::stri
   } catch (shcore::Exception& error) {
     if (throw_on_error)
       throw;
+    else {
+      log_warning("Unable to read server variable '%s': %s", name.c_str(), error.what());
+      ret_val = false;
+    }
   }
+
+  return ret_val;
 }
 
 void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
@@ -316,6 +322,39 @@ shcore::Value get_master_status(mysqlsh::mysql::Connection *connection) {
     (*status)["EXECUTED_GTID_SET"] = row->get_value(4);
   }
   return shcore::Value(status);
+}
+
+/*
+ * Retrieves the list of group replication
+ * addresses of the peer instances of
+ * instance_host
+ */
+std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection, const std::string &instance_host) {
+  std::vector<std::string> ret_val;
+  shcore::sqlstring query = shcore::sqlstring("SELECT JSON_UNQUOTE(addresses->\"$.grLocal\") "\
+                                              "FROM mysql_innodb_cluster_metadata.instances "\
+                                              "WHERE addresses->\"$.mysqlClassic\" <> ? "\
+                                              "AND replicaset_id IN (SELECT replicaset_id "\
+                                                                    "FROM mysql_innodb_cluster_metadata.instances "\
+                                                                    "WHERE addresses->\"$.mysqlClassic\" = ?)", 0);
+
+  query << instance_host.c_str();
+  query << instance_host.c_str();
+  query.done();
+
+  try {
+    auto result = connection->run_sql(query);
+    auto row = result->fetch_one();
+
+    while(row) {
+      ret_val.push_back(row->get_value(0).as_string());
+      row = result->fetch_one();
+    }
+  } catch (shcore::Exception &error) {
+    log_warning("Unable to retrieve group seeds for instance '%s': %s", instance_host.c_str(), error.what());
+  }
+
+  return ret_val;
 }
 } // namespace dba
 } // namespace mysh

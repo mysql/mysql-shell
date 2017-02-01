@@ -18,7 +18,6 @@
 */
 
 #include <algorithm>
-
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/base_session.h"
 #include "modules/mod_mysql_session.h"
@@ -188,7 +187,7 @@ TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
   reset_shell();
 
   execute("dba.verbose = True");
-  
+
   validate_interactive("dba_reset_or_deploy.py");
 }
 
@@ -311,6 +310,23 @@ TEST_F(Shell_py_dba_tests, DISABLED_interactive_classic_global_cluster_multimast
   validate_interactive("dba_cluster_multimaster_interactive.py");
 
   execute("session.close();");
+}
+
+TEST_F(Shell_py_dba_tests, configure_local_instance) {
+  _options->wizards = false;
+  reset_shell();
+
+
+  // Ensures the three sandboxes contain no group group_replication
+  // configuration
+  remove_from_cfg_file(_sandbox_cnf_1, "group_replication");
+  remove_from_cfg_file(_sandbox_cnf_2, "group_replication");
+  remove_from_cfg_file(_sandbox_cnf_3, "group_replication");
+
+  validate_interactive("dba_configure_local_instance.py");
+
+  // Cleans up the cfg file for the third instance
+  remove_from_cfg_file(_sandbox_cnf_3, "group_replication");
 }
 
 TEST_F(Shell_py_dba_tests, force_quorum) {

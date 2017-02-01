@@ -18,7 +18,6 @@
 */
 
 #include <algorithm>
-
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/base_session.h"
 #include "modules/mod_mysql_session.h"
@@ -133,7 +132,7 @@ protected:
       code = "add_instance_extra_opts = {memberSslMode: 'AUTO'};";
 
     exec_and_out_equals(code);
-    
+
 
 #ifdef _WIN32
     code = "var __path_splitter = '\\\\';";
@@ -308,6 +307,25 @@ TEST_F(Shell_js_dba_tests, DISABLED_interactive_classic_global_cluster_multimast
 
   execute("session.close();");
 }
+
+TEST_F(Shell_js_dba_tests, configure_local_instance) {
+  _options->wizards = false;
+  reset_shell();
+
+
+  // Ensures the three sandboxes contain no group group_replication
+  // configuration
+  remove_from_cfg_file(_sandbox_cnf_1, "group_replication");
+  remove_from_cfg_file(_sandbox_cnf_2, "group_replication");
+  remove_from_cfg_file(_sandbox_cnf_3, "group_replication");
+
+  validate_interactive("dba_configure_local_instance.js");
+
+  // Cleans up the cfg file for the third instance
+  remove_from_cfg_file(_sandbox_cnf_3, "group_replication");
+}
+
+
 
 TEST_F(Shell_js_dba_tests, force_quorum) {
   _options->wizards = false;

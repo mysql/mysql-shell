@@ -1136,18 +1136,32 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
 
   GRInstanceType type = get_gr_instance_type(session->connection());
 
-  session->close(shcore::Argument_list());
 
-  if (type == GRInstanceType::GroupReplication)
+  if (type == GRInstanceType::GroupReplication) {
+    session->close(shcore::Argument_list());
     throw shcore::Exception::runtime_error("The instance '" + uri + "' is already part of a Replication Group");
-  else if (type == GRInstanceType::InnoDBCluster)
+  }
+  // configureLocalInstance is allowed even if the instance is part of the InnoDB cluster
+  // checkInstanceConfiguration is not
+  else if (type == GRInstanceType::InnoDBCluster && !allow_update) {
+    session->close(shcore::Argument_list());
     throw shcore::Exception::runtime_error("The instance '" + uri + "' is already part of an InnoDB Cluster");
-  else if (type == GRInstanceType::Standalone) {
-    std::string user;
-    std::string password;
+  }
+  else {
     std::string host = instance_def->get_string("host");
     int port = instance_def->get_int("port");
+    std::string endpoint = host + ":" + std::to_string(port);
 
+    if (type == GRInstanceType::InnoDBCluster) {
+      auto seeds = get_peer_seeds(session->connection(), endpoint);
+      auto peer_seeds = shcore::join_strings(seeds, ",");
+      set_global_variable(session->connection(), "group_replication_group_seeds", peer_seeds);
+    }
+
+    session->close(shcore::Argument_list());
+
+    std::string user;
+    std::string password;
     user = instance_def->get_string(instance_def->has_key("user") ? "user" : "dbUser");
     password = instance_def->get_string(instance_def->has_key("password") ? "password" : "dbPassword");
 

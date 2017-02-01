@@ -152,6 +152,13 @@ protected:
   std::string _mysql_sandbox_port1;
   std::string _mysql_sandbox_port2;
   std::string _mysql_sandbox_port3;
+
+  // Paths to the 3 commonly used sandboxes configuration files
+  std::string _sandbox_cnf_1;
+  std::string _sandbox_cnf_2;
+  std::string _sandbox_cnf_3;
+  std::string _path_splitter;
+
   std::string _mysql_uri;
   std::string _mysql_uri_nopasswd;
   std::string _sandbox_dir;
