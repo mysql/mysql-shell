@@ -3,7 +3,7 @@
 deployed_here = reset_or_deploy_sandboxes()
 
 #@ create first cluster
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
 if __have_ssl:
   single = dba.create_cluster('single', {'memberSslMode':'REQUIRED'})
@@ -19,7 +19,7 @@ wait_slave_state(single, uri2, "ONLINE")
 session.close()
 
 #@ create second cluster
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
 
 if __have_ssl:
   multi = dba.create_cluster('multi', {'memberSslMode':'REQUIRED', 'multiMaster':True, 'force':True})
@@ -29,19 +29,19 @@ else:
 session.close()
 
 #@ Failure adding instance from multi cluster into single
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 cluster = dba.get_cluster()
 add_instance_options['port'] = __mysql_sandbox_port3
 cluster.add_instance(add_instance_options)
 session.close()
 
 # Drops the metadata on the multi cluster letting a non managed replication group
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
 dba.drop_metadata_schema({'force':True})
 session.close()
 
 #@ Failure adding instance from an unmanaged replication group into single
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 cluster = dba.get_cluster()
 add_instance_options['port'] = __mysql_sandbox_port3
 cluster.add_instance(add_instance_options)

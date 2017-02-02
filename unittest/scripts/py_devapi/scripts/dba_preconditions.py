@@ -3,7 +3,7 @@
 deployed_here = reset_or_deploy_sandboxes()
 
 #@<OUT> Standalone Instance : check instance config
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'})
 
 #@<OUT> Standalone Instance : config local instance
@@ -19,7 +19,7 @@ cluster.status()
 session.close()
 
 #@ Standalone Instance: Failed preconditions
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
 
 dba.get_cluster()
 dba.drop_metadata_schema({'force':  True})
@@ -34,7 +34,7 @@ cluster.rescan()
 session.close()
 
 #@ Read Only Instance : get cluster
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
@@ -42,7 +42,7 @@ add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 wait_slave_state(cluster, uri2, "ONLINE")
 session.close()
 
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
 cluster = dba.get_cluster()
 
 #@<OUT> Read Only Instance : check instance config
@@ -73,7 +73,7 @@ cluster.rescan()
 session.close()
 
 #@ Preparation for quorumless cluster tests
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 cluster = dba.get_cluster()
 
 if __sandbox_dir:
@@ -114,7 +114,7 @@ session.close()
 reset_or_deploy_sandbox(__mysql_sandbox_port1)
 reset_or_deploy_sandbox(__mysql_sandbox_port2)
 
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
 if __have_ssl:
   cluster = dba.create_cluster('temporal', {'memberSslMode': 'REQUIRED'})
@@ -145,7 +145,7 @@ session.close()
 
 
 #@ XSession: Failed preconditions
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1*10, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1*10, 'user': 'root', 'password': 'root'})
 dba.create_cluster('failed')
 dba.get_cluster()
 dba.drop_metadata_schema({'force':  True})

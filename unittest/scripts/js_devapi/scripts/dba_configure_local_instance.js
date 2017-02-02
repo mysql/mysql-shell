@@ -2,7 +2,7 @@
 //@ Initialization
 var deployed_here = reset_or_deploy_sandboxes();
 
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ create cluster
 if (__have_ssl)

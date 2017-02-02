@@ -135,27 +135,27 @@ function wait_slave_state(cluster, slave_uri, states) {
 function connect_to_sandbox(port) {
   var connected = false;
   try {
-    shell.connect({user:'root', password:'root', host:'localhost', port:port})
+    shell.connect({scheme: 'mysql', user:'root', password:'root', host:'localhost', port:port})
     connected = true;
   } catch (err) {
     println('failed connecting to sandbox at ' + port + ': ' + err.message);
   }
-  
+
   return connected;
 }
 
 function start_sandbox(port) {
   var started = false;
-  
+
   options = {}
   if (__sandbox_dir != '')
     options['sandboxDir'] = __sandbox_dir;
-  
+
   print('Starting sandbox at: ' + port);
   started = wait(10, 1, function() {
     try {
       dba.startSandboxInstance(port, options);
-      
+
       println('succeeded');
       return true;
     } catch (err) {
@@ -163,20 +163,20 @@ function start_sandbox(port) {
       return false;
     }
   });
-  
+
   return started;
 }
 
 // Smart deployment routines
 function reset_or_deploy_sandbox(port, retry) {
   var deployed_here = false;
-  
+
   if (typeof retry == 'undefined')
     retry = true;
-  
+
   //  Checks for the sandbox being already deployed
   var connected = connect_to_sandbox(port);
-  
+
   // If it is already part of a cluster, a reboot will be required
   var reboot = false;
   if (connected) {
@@ -184,8 +184,8 @@ function reset_or_deploy_sandbox(port, retry) {
       var c = dba.getCluster();
       reboot = true;
     } catch(err) {
-      println('unable to get cluster from sandbox at ' + port + ': ' + err.message);  
-      
+      println('unable to get cluster from sandbox at ' + port + ': ' + err.message);
+
       // Reboot is required if it is not a standalone instance
       if (err.message.indexOf("This function is not available through a session to a standalone instance") == -1)
         reboot = true;
@@ -195,7 +195,7 @@ function reset_or_deploy_sandbox(port, retry) {
   options = {}
   if (__sandbox_dir != '')
     options['sandboxDir'] = __sandbox_dir;
-  
+
   if (reboot) {
     connected = false;
 
@@ -203,7 +203,7 @@ function reset_or_deploy_sandbox(port, retry) {
     try {dba.killSandboxInstance(port, options);} catch (err) {}
 
     var started = start_sandbox(port);
-    if (started) 
+    if (started)
       connected = connect_to_sandbox(port);
   }
 
@@ -226,8 +226,8 @@ function reset_or_deploy_sandbox(port, retry) {
     } catch(err) {
       var non_empty_dir = err.message.indexOf("is not empty") != -1;
       println ("Failure deploying!" + retry + non_empty_dir)
-      
-      if (retry && 
+
+      if (retry &&
         non_empty_dir &&
           start_sandbox(port)) {
         deployed_here = reset_or_deploy_sandbox(port, false);

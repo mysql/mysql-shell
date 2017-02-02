@@ -2,7 +2,7 @@
 #@ Initialization
 deployed_here = reset_or_deploy_sandboxes()
 
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
 #@<OUT> create cluster
 if __have_ssl:
@@ -70,7 +70,7 @@ else:
   dba.start_sandbox_instance(__mysql_sandbox_port1)
 
 # Re-establish the connection to instance 1
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
 #@ Dba.rebootClusterFromCompleteOutage success
 cluster = dba.reboot_cluster_from_complete_outage("dev")

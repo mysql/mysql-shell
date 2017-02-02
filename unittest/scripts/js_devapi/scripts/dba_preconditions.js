@@ -3,7 +3,7 @@
 var deployed_here = reset_or_deploy_sandboxes();
 
 //@<OUT> Standalone Instance : check instance config
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, password:'root'});
 
 //@<OUT> Standalone Instance : config local instance
@@ -19,7 +19,7 @@ cluster.status();
 session.close();
 
 //@ Standalone Instance: Failed preconditions
-shell.connect({host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 
 dba.getCluster();
 dba.dropMetadataSchema({force: true});
@@ -34,7 +34,7 @@ cluster.rescan();
 session.close();
 
 //@ Read Only Instance : get cluster
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
@@ -43,7 +43,7 @@ wait_slave_state(cluster, uri2, "ONLINE");
 
 session.close();
 
-shell.connect({host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 var cluster = dba.getCluster()
 
 //@<OUT> Read Only Instance : check instance config
@@ -74,7 +74,7 @@ cluster.rescan();
 session.close();
 
 //@ Preparation for quorumless cluster tests
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
 
 if (__sandbox_dir)
@@ -115,7 +115,7 @@ session.close();
 reset_or_deploy_sandbox(__mysql_sandbox_port1);
 reset_or_deploy_sandbox(__mysql_sandbox_port2);
 
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 if (__have_ssl)
   var cluster = dba.createCluster('temporal', {memberSslMode: 'REQUIRED'});
@@ -146,7 +146,7 @@ session.close();
 
 
 //@ XSession: Failed preconditions
-shell.connect({host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
 dba.createCluster('failed');
 dba.getCluster();
 dba.dropMetadataSchema({force: true});

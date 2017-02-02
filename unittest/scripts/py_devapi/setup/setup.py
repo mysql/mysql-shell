@@ -136,20 +136,20 @@ def wait_slave_state(cluster, slave_uri, states):
 def connect_to_sandbox(port):
   connected = False
   try:
-    shell.connect({'user':'root', 'password':'root', 'host':'localhost', 'port':port})
+    shell.connect({'scheme': 'mysql', 'user':'root', 'password':'root', 'host':'localhost', 'port':port})
     connected = True
   except Exception, err:
     print 'failed connecting to sandbox at %s : %s' % (port, err.message)
-  
+
   return connected;
 
 def start_sandbox(port):
   started = False
-  
+
   options = {}
   if __sandbox_dir != '':
     options['sandboxDir'] = __sandbox_dir
-  
+
   print 'Starting sandbox at: %s' % port
   def try_start():
     try:
@@ -160,15 +160,15 @@ def start_sandbox(port):
       return False
 
   started = wait(10, 1, try_start)
-  
+
   return started;
-    
+
 def reset_or_deploy_sandbox(port, retry = None):
   deployed_here = False;
-  
+
   if retry is None:
     retry = True
-    
+
   # Checks for the sandbox being already deployed
   connected = connect_to_sandbox(port)
 
@@ -180,7 +180,7 @@ def reset_or_deploy_sandbox(port, retry = None):
       reboot = True
     except Exception, err:
       print "unable to get cluster from sandbox at %s: %s" % (port, err.message)
-      
+
       # Reboot is required if it is not a standalone instance
       if err.message.find("This function is not available through a session to a standalone instance") == -1:
         reboot = True
@@ -191,7 +191,7 @@ def reset_or_deploy_sandbox(port, retry = None):
 
   if reboot:
     connected = False
-    
+
     print 'Killing sandbox at: %s' % port
 
     try:
@@ -200,7 +200,7 @@ def reset_or_deploy_sandbox(port, retry = None):
       pass
 
     started = start_sandbox(port)
-    
+
     if started:
       connected = connect_to_sandbox(port)
 
@@ -222,7 +222,7 @@ def reset_or_deploy_sandbox(port, retry = None):
     except Exception, err:
       non_empty_dir = err.message.find("is not empty") != -1;
       print "Failure deploying! %s %s" % (retry, non_empty_dir)
-      
+
       if retry and non_empty_dir and start_sandbox(port):
         deployed_here = reset_or_deploy_sandbox(port, False)
       else:
@@ -258,12 +258,12 @@ def cleanup_sandboxes(deployed_here):
 def add_instance_to_cluster(cluster, port, label = None):
   global add_instance_options
   add_instance_options['port'] = port
-  
+
   labeled = False
   if not label is None:
     add_instance_extra_opts['label'] = label
     labeled = True
-  
+
   attempt = 0
   success = False
   while attempt < 3 and not success:
@@ -277,7 +277,7 @@ def add_instance_to_cluster(cluster, port, label = None):
       print str(err)
       print "Waiting 5 seconds for next attempt"
       time.sleep(5)
-  
+
   if labeled:
     del add_instance_extra_opts['label']
 

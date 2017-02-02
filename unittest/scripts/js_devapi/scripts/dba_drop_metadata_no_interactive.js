@@ -3,7 +3,7 @@
 // Smart deployment
 var deployed_here = reset_or_deploy_sandbox(__mysql_sandbox_port1);
 
-shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
+shell.connect({scheme: 'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
 
 //@# Invalid dropMetadataSchema call
 dba.dropMetadataSchema(1,2,3,4,5);
