@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,7 +68,8 @@ def _add_basedir(search_paths, path_str):
 
 
 def get_tool_path(basedir, tool, fix_ext=True, required=True,
-                  defaults_paths=None, search_path=False, quote=False):
+                  defaults_paths=None, search_path=False, quote=False,
+                  check_tool_func=None):
     """Search for a MySQL tool and return the full path
 
     :param basedir:        The initial basedir (of a MySQL server) to search.
@@ -92,9 +93,20 @@ def get_tool_path(basedir, tool, fix_ext=True, required=True,
     :param quote:          if True then the resulting path is surrounded with
                            the OS quotes.
     :type quote:           boolean
+    :param check_tool_func Function to verify the validity of the found tool.
+                           This function must take the path of the tool as
+                           parameter and return True or False depending if the
+                           tool is valid or not (e.g., verify the version).
+                           If this check tool function is specified, it will
+                           continue searching for the tool in the provided
+                           default paths until a valid one is found. By
+                           default: None, meaning that it returns the first
+                           location found with the tool (without any check).
+    :type check_tool_func  function
 
-    :return: the full path to tool or None if not found and 'required' is set
-             to False.
+    :return: the full path to tool or a list of paths where the tool was found
+            if 'search_all' is set to True, or None if not found and 'required'
+             is set to False.
     :rtype:  string
 
     :raises GadgetError: if the tool cannot be found and 'required' is set to
@@ -124,10 +136,18 @@ def get_tool_path(basedir, tool, fix_ext=True, required=True,
         for path in defaults_paths:
             search_paths.append(path)
     else:
-        # Add default basedir paths to search paths
-        _add_basedir(search_paths, "/usr/local/mysql_utils/")
-        _add_basedir(search_paths, "/usr/sbin/")
-        _add_basedir(search_paths, "/usr/share/")
+        # Add default MySQL paths to search for tool
+        if os.name == "nt":
+            search_paths.append("C:/Program Files/MySQL/MySQL Server 5.7/bin")
+            search_paths.append("C:/Program Files/MySQL/MySQL Server 8.0/bin")
+        else:
+            search_paths.append("/usr/sbin/")
+            search_paths.append("/usr/local/mysql/bin/")
+            search_paths.append("/usr/bin/")
+            search_paths.append("/usr/local/bin/")
+            search_paths.append("/usr/local/sbin/")
+            search_paths.append("/opt/local/bin/")
+            search_paths.append("/opt/local/sbin/")
 
     if os.name == "nt" and fix_ext:
         tool = "{0}.exe".format(tool)
@@ -137,13 +157,17 @@ def get_tool_path(basedir, tool, fix_ext=True, required=True,
         if os.path.isdir(norm_path):
             toolpath = os.path.normpath(os.path.join(norm_path, tool))
             if os.path.isfile(toolpath):
-                return r"{0}{1}{0}".format(quote_char, toolpath)
+                if not check_tool_func or check_tool_func(toolpath):
+                    return r"{0}{1}{0}".format(quote_char, toolpath)
             else:
                 if tool == "mysqld.exe":
                     toolpath = os.path.normpath(
                         os.path.join(norm_path, "mysqld-nt.exe"))
                     if os.path.isfile(toolpath):
-                        return r"{0}{1}{0}".format(quote_char, toolpath)
+                        if not check_tool_func or check_tool_func(toolpath):
+                            return r"{0}{1}{0}".format(quote_char, toolpath)
+
+    # Tool not found, raise exception or return None.
     if required:
         raise GadgetError("Cannot find location of {0}.".format(tool))
 

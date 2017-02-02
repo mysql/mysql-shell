@@ -396,11 +396,13 @@ def create_sandbox(**kwargs):
     if os.path.isdir(sandbox_dir) and os.listdir(sandbox_dir):
         raise exceptions.GadgetError("The sandbox dir '{0}' is not empty."
                                      "".format(sandbox_dir))
-    # If no value is provided for mysqld, by default search value on PATH
+    # If no value is provided for mysqld, search value on PATH and default
+    # mysqld paths.
     mysqld_path = kwargs.get("mysqld_path",
-                             tools.get_tool_path(None, "mysqld",
-                                                 search_path=True,
-                                                 required=False))
+                             tools.get_tool_path(
+                                 None, "mysqld", search_path=True,
+                                 required=False,
+                                 check_tool_func=server.is_valid_mysqld))
     if not mysqld_path:
         raise exceptions.GadgetError(_ERROR_CANNOT_FIND_TOOL.format(
             exec_name="mysqld", path_var_name=PATH_ENV_VAR))
@@ -434,8 +436,8 @@ def create_sandbox(**kwargs):
         raise exceptions.GadgetError(
             "Provided mysqladmin '{0}' is not a valid executable."
             "".format(mysqladmin_path))
-    if not tools.is_executable(mysql_ssl_rsa_setup_path) and not \
-            ignore_ssl_error:
+    if not ignore_ssl_error and not \
+            tools.is_executable(mysql_ssl_rsa_setup_path):
         raise exceptions.GadgetError(
             "Provided mysql_ssl_rsa_setup '{0}' is not a valid executable."
             "".format(mysql_ssl_rsa_setup_path))
@@ -765,8 +767,9 @@ def start_sandbox(**kwargs):
         # On non non posix systems if no value is provided for mysqld, by
         # default search the $PATH.
         if not mysqld_path:
-            mysqld_path = tools.get_tool_path(None, "mysqld", search_path=True,
-                                              required=False)
+            mysqld_path = tools.get_tool_path(
+                None, "mysqld", search_path=True, required=False,
+                check_tool_func=server.is_valid_mysqld)
     else:
         # On posix systems, if no value is provided for mysqld, by default
         # search for the mysqld binary inside the sandbox dir. If not found
@@ -779,9 +782,9 @@ def start_sandbox(**kwargs):
                                 "fail if AppArmor or SELinux are blocking "
                                 "the mysqld access to the sandbox directory.",
                                 sandbox_dir)
-                mysqld_path = tools.get_tool_path(None, "mysqld",
-                                                  search_path=True,
-                                                  required=False)
+                mysqld_path = tools.get_tool_path(
+                    None, "mysqld", search_path=True, required=False,
+                    check_tool_func=server.is_valid_mysqld)
     if not mysqld_path:
         raise exceptions.GadgetError(_ERROR_CANNOT_FIND_TOOL.format(
             exec_name="mysqld", path_var_name=PATH_ENV_VAR))

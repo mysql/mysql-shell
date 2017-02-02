@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -67,6 +67,10 @@ class TestMySQLDumpAdapter(GadgetsTestCase):
         self.mysql_exec = get_tool_path(None, "mysql", search_path=True,
                                         required=False)
 
+        # Search for mysqldump only on path (ignore MySQL default paths).
+        self.mysqldump_exec_in_defaults = get_tool_path(
+            None, "mysqldump", search_path=False, required=False)
+
         # setup source server with a sample database and users
         data_sql_path = os.path.normpath(
             os.path.join(__file__, "..", "std_data", "basic_data.sql"))
@@ -130,19 +134,21 @@ class TestMySQLDumpAdapter(GadgetsTestCase):
         conn_dict = {MYSQL_SOURCE: self.options[SERVER_CNX_OPT][0],
                      MYSQL_DEST: self.options[SERVER_CNX_OPT][1]}
 
-        old_path = os.environ["PATH"]
-        # erase path and hide mysqldump
-        try:
-            os.environ["PATH"] = ""
-            # it must fail since it cannot find the tool
-            with self.assertRaises(exceptions.GadgetError) as cm:
-                mysql_gadgets.command.clone.clone_server(conn_dict,
-                                                         "MySQLDump")
-            self.assertIn("Could not find mysqldump executable",
-                          str(cm.exception))
-        finally:
-            # restore PATH
-            os.environ["PATH"] = old_path
+        # Only execute this test if mysqldump is not found in default paths.
+        if not self.mysqldump_exec_in_defaults:
+            old_path = os.environ["PATH"]
+            # erase path and hide mysqldump
+            try:
+                os.environ["PATH"] = ""
+                # it must fail since it cannot find the tool
+                with self.assertRaises(exceptions.GadgetError) as cm:
+                    mysql_gadgets.command.clone.clone_server(conn_dict,
+                                                             "MySQLDump")
+                self.assertIn("Could not find mysqldump executable",
+                              str(cm.exception))
+            finally:
+                # restore PATH
+                os.environ["PATH"] = old_path
 
         # Create connection dicts for users without permissions
         source_no_super = self.source.get_connection_values()
@@ -254,20 +260,23 @@ class TestMySQLDumpAdapter(GadgetsTestCase):
                      MYSQL_DEST: self.options[SERVER_CNX_OPT][1]}
 
         fpath = os.path.join(os.path.dirname(__file__), "image_file")
-        old_path = os.environ["PATH"]
 
-        # erase path and hide mysqldump
-        try:
-            os.environ["PATH"] = ""
-            # it must fail since it cannot find the tool
-            with self.assertRaises(exceptions.GadgetError) as cm:
-                mysql_gadgets.command.clone.clone_server(conn_dict,
-                                                         "MySQLDump", fpath)
-            self.assertIn("Could not find mysqldump executable",
-                          str(cm.exception))
-        finally:
-            # restore PATH
-            os.environ["PATH"] = old_path
+        # Only execute this test if mysqldump is not found in default paths.
+        old_path = os.environ["PATH"]
+        if not self.mysqldump_exec_in_defaults:
+            # erase path and hide mysqldump
+            try:
+                os.environ["PATH"] = ""
+                # it must fail since it cannot find the tool
+                with self.assertRaises(exceptions.GadgetError) as cm:
+                    mysql_gadgets.command.clone.clone_server(conn_dict,
+                                                             "MySQLDump",
+                                                             fpath)
+                self.assertIn("Could not find mysqldump executable",
+                              str(cm.exception))
+            finally:
+                # restore PATH
+                os.environ["PATH"] = old_path
 
         # Create connection dicts for users without permissions
         source_no_super = self.source.get_connection_values()

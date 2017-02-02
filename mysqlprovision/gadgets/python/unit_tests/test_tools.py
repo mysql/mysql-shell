@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -88,11 +88,37 @@ class TestTools(GadgetsTestCase):
                       "The 'mysqld' file is expected to be found in"
                       "defaults_paths.")
 
+        # Find 'mysqld' using a check tool function.
+        res = tools.get_tool_path(basedir, 'mysqld',
+                                  check_tool_func=server.is_valid_mysqld)
+        self.assertIn("mysqld", res,
+                      "The 'mysqld' file is expected to be found in basedir.")
+
+        # Find 'mysqld' using a check tool function and the default path list.
+        bindir = os.path.join(basedir, 'bin')
+        res = tools.get_tool_path('.', 'mysqld', defaults_paths=[bindir],
+                                  check_tool_func=server.is_valid_mysqld)
+        self.assertIn("mysqld", res,
+                      "The 'mysqld' file is expected to be found in"
+                      "defaults_paths.")
+
         # Find 'mysqld' using the PATH variable.
         path_var = os.environ['PATH']
         os.environ['PATH'] = bindir
         try:
             res = tools.get_tool_path('.', 'mysqld', search_path=True)
+        finally:
+            # Make sure the PATH variable is restored.
+            os.environ['PATH'] = path_var
+        self.assertIn("mysqld", res,
+                      "The 'mysqld' file is expected to be found in PATH.")
+
+        # Find 'mysqld' using a check tool function and the PATH variable.
+        path_var = os.environ['PATH']
+        os.environ['PATH'] = bindir
+        try:
+            res = tools.get_tool_path('.', 'mysqld', search_path=True,
+                                      check_tool_func=server.is_valid_mysqld)
         finally:
             # Make sure the PATH variable is restored.
             os.environ['PATH'] = path_var

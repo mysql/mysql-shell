@@ -37,6 +37,7 @@ from mysql.connector.constants import ClientFlag
 
 from mysql.connector.errorcode import (CR_SERVER_LOST,
                                        ER_OPTION_PREVENTS_STATEMENT)
+from mysql_gadgets import MIN_MYSQL_VERSION, MAX_MYSQL_VERSION
 from mysql_gadgets.exceptions import (GadgetCnxInfoError, GadgetCnxError,
                                       GadgetQueryError, GadgetServerError,
                                       GadgetError)
@@ -44,7 +45,7 @@ from mysql_gadgets.common.connection_parser import (parse_connection,
                                                     hostname_is_ip,
                                                     clean_IPv6,)
 from mysql_gadgets.common.tools import (create_option_file, get_abs_path,
-                                        run_subprocess)
+                                        is_executable, run_subprocess)
 
 _FOREIGN_KEY_SET = "SET foreign_key_checks = {0}"
 _AUTOCOMMIT_SET = "SET AUTOCOMMIT = {0}"
@@ -91,6 +92,33 @@ def get_mysqld_version(mysqld_path):
         raise GadgetError(
             "Unable to parse version output '{0}' from mysqld executable '{1}'"
             ".".format(output, mysqld_path))
+
+
+def is_valid_mysqld(mysqld_path):
+    """Check if the provided mysqld is valid.
+
+    Check the version of the given mysqld and return True if valid and
+    False otherwise.
+
+    :param mysqld_path: Path to mysqld to check.
+    :type mysqld_path: string
+
+    :return: True if the provided mysqld is valid, or False otherwise.
+    :rtype: bool
+    """
+    # Check if mysqld is executable and version is valid.
+    if is_executable(mysqld_path):
+        mysqld_ver, _ = get_mysqld_version(mysqld_path)
+        if MIN_MYSQL_VERSION <= mysqld_ver < MAX_MYSQL_VERSION:
+            _LOGGER.debug("Valid mysqld found with version %s: '%s'",
+                          ".".join(str(num) for num in mysqld_ver),
+                          mysqld_path)
+            return True
+
+    # mysqld is not valid.
+    _LOGGER.debug("Invalid mysqld version (or not executable): '%s'",
+                  mysqld_path)
+    return False
 
 
 class MySQLUtilsCursorRaw(mysql.connector.cursor.MySQLCursorRaw):
