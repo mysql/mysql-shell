@@ -60,6 +60,7 @@ def getSchemaFromList(schemas, name):
   return None
 
 import time
+
 def wait(timeout, wait_interval, condition):
   waiting = 0
   res = condition()
@@ -69,6 +70,22 @@ def wait(timeout, wait_interval, condition):
     res = condition()
   return res
 
+
+# cb_params is an array with whatever parameters required by the
+# called callback, this way we can pass params to that function
+# right from the caller of retry
+def retry(attempts, wait_interval, callback, cb_params = None):
+  attempt = 1
+
+  res = callback(cb_params)
+
+  while not res and attempt < attempts:
+    print "Attempt %s of %s failed, retrying..." % (attempt + 1, attempts)
+    time.sleep(wait_interval)
+    attempt = attempt + 1
+    res = callback(cb_params)
+
+  return res
 
 ro_session = None;
 from mysqlsh import mysql as ro_module;
@@ -133,48 +150,59 @@ def wait_slave_state(cluster, slave_uri, states):
 
 # Smart deployment routines
 
-def connect_to_sandbox(port):
+def connect_to_sandbox(params):
+  port = params[0]
   connected = False
   try:
     shell.connect({'scheme': 'mysql', 'user':'root', 'password':'root', 'host':'localhost', 'port':port})
+    print 'connected to sandbox at %s' % port
     connected = True
   except Exception, err:
     print 'failed connecting to sandbox at %s : %s' % (port, err.message)
 
   return connected;
 
-def start_sandbox(port):
+def start_sandbox(params):
+  port = params[0]
   started = False
 
   options = {}
   if __sandbox_dir != '':
     options['sandboxDir'] = __sandbox_dir
 
-  print 'Starting sandbox at: %s' % port
-  def try_start():
-    try:
-      dba.start_sandbox_instance(port, options)
-      return True
-    except Exception, err:
-      print "failed: %s" % str(err)
-      return False
+  try:
+    dba.start_sandbox_instance(port, options)
+    started = True
+    print 'started sandbox at %s' % port
+  except Exception, err:
+    started = False
+    print 'failed starting sandbox at %s : %s' % (port, err.message)
 
-  started = wait(10, 1, try_start)
+    if err.message.index("Cannot start MySQL sandbox for the given port because it does not exist.") != -1:
+      raise;
+
 
   return started;
 
-def reset_or_deploy_sandbox(port, retry = None):
+
+def reset_or_deploy_sandbox(port):
   deployed_here = False;
 
-  if retry is None:
-    retry = True
+  options = {}
+  if __sandbox_dir != '':
+    options['sandboxDir'] = __sandbox_dir
 
-  # Checks for the sandbox being already deployed
-  connected = connect_to_sandbox(port)
 
-  # If it is already part of a cluster, a reboot will be required
+  # Checks if the sandbox is up and running
+  connected = connect_to_sandbox([port])
+
+  start = False
+  start_attempts = 1
   reboot = False
+  delete = False
+
   if (connected):
+    # Verifies whether the sandbox requires to be rebooted (non standalone)
     try:
       c = dba.get_cluster()
       reboot = True
@@ -184,11 +212,11 @@ def reset_or_deploy_sandbox(port, retry = None):
       # Reboot is required if it is not a standalone instance
       if err.message.find("This function is not available through a session to a standalone instance") == -1:
         reboot = True
+  else:
+    start = True
 
-  options = {}
-  if __sandbox_dir != '':
-    options['sandboxDir'] = __sandbox_dir
 
+  # If reboot is needed, kills the sandbox first
   if reboot:
     connected = False
 
@@ -197,13 +225,45 @@ def reset_or_deploy_sandbox(port, retry = None):
     try:
       dba.kill_sandbox_instance(port, options)
     except Exception, err:
+      print err.message
       pass
 
-    started = start_sandbox(port)
+    start = True
+    start_attempts = 10
 
-    if started:
-      connected = connect_to_sandbox(port)
+  # Start attempt is done either for reboot or if
+  # connection was unsuccessful
+  if start:
+    print 'Starting sandbox at: %s' % port
 
+    try:
+      started = retry(start_attempts, 2, start_sandbox, [port]);
+
+      if started:
+        print 'Connecting to sandbox at: %s' % port
+        connected = retry(10, 2, connect_to_sandbox, [port])
+
+      if not connected:
+        delete = True
+    except Exception, err:
+      pass #NOOP, failed because the sandbox does not exist
+
+  # delete is needed if the start failed
+  if delete:
+    try:
+      dba.kill_sandbox_instance(port, options)
+    except Exception, err:
+      print err.message
+      pass
+
+    try:
+      dba.delete_sandbox_instance(port, options)
+    except Exception, err:
+      print err.message
+      pass
+
+
+  # If the instance is up and running, we just drop the metadata
   if connected:
     print 'Dropping metadata...'
     session.run_sql('set sql_log_bin = 0')
@@ -211,24 +271,17 @@ def reset_or_deploy_sandbox(port, retry = None):
     session.run_sql('flush logs')
     session.run_sql('set sql_log_bin = 1')
     session.close()
+
+  # Otherwise a full deployment is done
   else:
     print 'Deploying instance'
     options['password'] = 'root'
     options['allowRootFrom'] = '%'
 
-    try:
-      dba.deploy_sandbox_instance(port, options)
-      deployed_here = True
-    except Exception, err:
-      non_empty_dir = err.message.find("is not empty") != -1;
-      print "Failure deploying! %s %s" % (retry, non_empty_dir)
+    dba.deploy_sandbox_instance(port, options)
+    deployed_here = True
 
-      if retry and non_empty_dir and start_sandbox(port):
-        deployed_here = reset_or_deploy_sandbox(port, False)
-      else:
-        raise;
-
-    return deployed_here
+  return deployed_here
 
 def reset_or_deploy_sandboxes():
   deploy1 = reset_or_deploy_sandbox(__mysql_sandbox_port1)

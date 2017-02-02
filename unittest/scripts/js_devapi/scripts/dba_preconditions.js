@@ -146,7 +146,7 @@ session.close();
 
 
 //@ XSession: Failed preconditions
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
+shell.connect({scheme: 'mysqlx', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
 dba.createCluster('failed');
 dba.getCluster();
 dba.dropMetadataSchema({force: true});

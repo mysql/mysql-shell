@@ -145,7 +145,7 @@ session.close()
 
 
 #@ XSession: Failed preconditions
-shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1*10, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysqlx', 'host': localhost, 'port': __mysql_sandbox_port1*10, 'user': 'root', 'password': 'root'})
 dba.create_cluster('failed')
 dba.get_cluster()
 dba.drop_metadata_schema({'force':  True})

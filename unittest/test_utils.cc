@@ -103,6 +103,7 @@ void Shell_test_output_handler::validate_stdout_content(const std::string& conte
     std::string error = expected ? "Missing" : "Unexpected";
     error += " Output: " + content;
     SCOPED_TRACE("STDOUT Actual: " + std_out);
+    SCOPED_TRACE("STDERR Actual: " + std_err);
     SCOPED_TRACE(error);
     ADD_FAILURE();
   }
