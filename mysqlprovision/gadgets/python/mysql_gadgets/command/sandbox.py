@@ -26,6 +26,7 @@ import os
 import time
 import shutil
 import subprocess
+import sys
 
 from mysql_gadgets.common import tools, server
 from mysql_gadgets.common.constants import PATH_ENV_VAR, QUOTE_CHAR
