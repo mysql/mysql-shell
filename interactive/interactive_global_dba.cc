@@ -21,6 +21,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/mod_dba_sql.h"
 #include "interactive/interactive_dba_cluster.h"
 //#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/mysqlxtest_utils.h"
@@ -703,11 +704,22 @@ shcore::Value Global_dba::check_instance_configuration(const shcore::Argument_li
   return ret_val;
 }
 
-bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args, const shcore::Value::Map_type_ref& extra_options) {
+bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args,
+                                  const shcore::Value::Map_type_ref& extra_options) {
   // Path is not given, let's try to autodetect it
   int port = 0;
   std::string datadir;
   auto session = mysqlsh::dba::Dba::get_session(connection_args);
+
+  enum class OperatingSystem {
+    DEBIAN,
+    REDHAT,
+    LINUX,
+    WINDOWS,
+    MACOS
+  };
+
+  // If the instance is a sandbox, we can obtain directly the path from the datadir
   mysqlsh::dba::get_port_and_datadir(session->connection(), port, datadir);
 
   std::string path_separator = datadir.substr(datadir.size() - 1);
@@ -734,14 +746,136 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args, 
       println("Validating MySQL configuration file at: " + tmpPath);
       cnfPath = tmpPath;
     }
+  } else {
+    // It's not a sandbox, so let's try to locate the .cnf file path
+    // based on the OS and the default my.cnf path as configured
+    // by our official MySQL packages
+
+    // Detect the OS
+    OperatingSystem os;
+
+#ifdef WIN32
+    os = OperatingSystem::WINDOWS;
+#elif __APPLE__
+    os = OperatingSystem::MACOS;
+#else
+    os = OperatingSystem::LINUX;
+
+    // Detect the distribution
+    std::string distro_buffer, proc_version = "/proc/version";
+
+    if (shcore::file_exists(proc_version)) {
+      // Read the proc_version file
+      std::ifstream s(proc_version.c_str());
+
+      if (!s.fail())
+        std::getline(s, distro_buffer);
+      else
+        log_warning("Failed to read file: %s", proc_version.c_str());
+
+      // Transform all to lowercase
+      std::transform(distro_buffer.begin(), distro_buffer.end(),
+                     distro_buffer.begin(), ::tolower);
+
+      const std::vector<std::string> distros = {"ubuntu", "debian", "red hat"};
+
+      for (const auto &value : distros) {
+        if (distro_buffer.find(value) != std::string::npos) {
+          if (value == "ubuntu" || value == "debian") {
+            os = OperatingSystem::DEBIAN;
+            break;
+          } else if (value == "red hat") {
+            os = OperatingSystem::REDHAT;
+            break;
+          } else
+            continue;
+        }
+      }
+    } else {
+      log_warning("Failed to detect the Linux distribution. '%s' does not exist.", proc_version.c_str());
+    }
+#endif
+
+    println();
+    println("Detecting the configuration file...");
+
+    std::vector<std::string> default_paths;
+
+    switch (os) {
+      case OperatingSystem::DEBIAN:
+        default_paths.push_back("/etc/mysql/mysql.conf.d/mysqld.cnf");
+        break;
+      case OperatingSystem::REDHAT:
+        default_paths.push_back("/etc/my.cnf");
+        break;
+      case OperatingSystem::LINUX:
+        default_paths.push_back("/etc/my.cnf");
+        default_paths.push_back("/etc/mysql/my.cnf");
+        break;
+      case OperatingSystem::WINDOWS:
+        default_paths.push_back("C:\\ProgramData\\MySQL\\MySQL Server 5.7\\my.ini");
+        default_paths.push_back("C:\\ProgramData\\MySQL\\MySQL Server 8.0\\my.ini");
+        break;
+      case OperatingSystem::MACOS:
+        default_paths.push_back("/etc/my.cnf");
+        default_paths.push_back("/etc/mysql/my.cnf");
+        default_paths.push_back("/usr/local/mysql/etc/my.cnf");
+        break;
+      default:
+        // The non-handled OS case will keep default_paths and cnfPath empty
+        break;
+    }
+
+    // Iterate the default_paths to check if the files exist and if so, set cnfPath
+    for (const auto &value : default_paths) {
+      if (shcore::file_exists(value)) {
+        // Prompt the user to validate if shall use it or not
+        println("Found configuration file at standard location: " + value);
+
+        std::string answer;
+        if (prompt("Do you want to modify this file? [Y|n]: ", answer)) {
+          if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
+            cnfPath = value;
+            break;
+          }
+        }
+      }
+    }
+
+    // macOS does not create a default file so there might not be any configuration file
+    // on the default locations. We must create the file
+    if (cnfPath.empty() && (os == OperatingSystem::MACOS)) {
+      println("Default file not found at the standard locations.");
+
+      for (const auto &value : default_paths) {
+        std::string answer;
+
+        if (prompt("Do you want to create a file at: '" + value + "'? [Y|n]: ", answer)) {
+          if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
+            std::ofstream cnf(value.c_str());
+
+            if (!cnf.fail()) {
+              cnf << "[mysqld]\n";
+              cnf.close();
+              cnfPath = value;
+              break;
+            } else {
+              println("Failed to create file at: '" + value + "'");
+            }
+          }
+        }
+      }
+    }
   }
 
   if (cnfPath.empty()) {
+    println("Default file not found at the standard locations.");
+
     bool done = false;
     while (!done && prompt("Please specify the path to the MySQL configuration file: ", tmpPath)) {
-      if (tmpPath.empty())
+      if (tmpPath.empty()) {
         done = true;
-      else {
+      } else {
         if (shcore::file_exists(tmpPath)) {
           cnfPath = tmpPath;
           done = true;
@@ -753,6 +887,7 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args, 
     }
   }
 
+  // if the path was finally resolved
   if (!cnfPath.empty())
     (*extra_options)["mycnfPath"] = shcore::Value(cnfPath);
 
