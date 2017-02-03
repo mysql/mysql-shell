@@ -688,7 +688,7 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   _options->uri = _mysql_uri;
   _options->initial_mode = shcore::IShell_core::SQL;
   reset_shell();
-  
+
   // Setup an expired account for the test
   _interactive_shell->connect(true);
   output_handler.wipe_all();
@@ -703,31 +703,31 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   _interactive_shell->process_line("alter user expired@'%' password expire;");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
-  
+
   _interactive_shell->process_line("\\js");
   _interactive_shell->process_line("session.close()");
   _interactive_shell->process_line("\\sql");
-  
+
   // Connects with the expired account
-  _interactive_shell->process_line("\\c expired:sample@localhost:" + _mysql_port);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Session to 'expired@localhost:" + _mysql_port + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Classic Session successfully established. No default schema selected.");
+  _interactive_shell->process_line("\\c mysql://expired:sample@localhost:" + _mysql_port);
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to 'expired@localhost:" + _mysql_port + "'");
+  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
   output_handler.wipe_all();
-  
+
   // Tests unable to execute any statement with an expired account
   _interactive_shell->process_line("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDERR_CONTAINS("ERROR: 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.");
   output_handler.wipe_all();
-  
+
   // Tests allow reseting the password on an expired account
   _interactive_shell->process_line("set password = password('updated');");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
-  
+
   _interactive_shell->process_line("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDOUT_CONTAINS("1 row in set");
   output_handler.wipe_all();
-  
+
   _interactive_shell->process_line("\\js");
   _interactive_shell->process_line("session.close()");
   _interactive_shell->process_line("\\sql");
@@ -744,7 +744,7 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
   _options->uri = _uri;
   _options->initial_mode = shcore::IShell_core::SQL;
   reset_shell();
-  
+
   // Setup an expired account for the test
   _interactive_shell->connect(true);
   output_handler.wipe_all();
@@ -759,35 +759,35 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
   _interactive_shell->process_line("alter user expired@'%' password expire;");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
-  
+
   _interactive_shell->process_line("\\js");
   _interactive_shell->process_line("session.close()");
   _interactive_shell->process_line("\\sql");
-  
+
   // Connects with the expired account
-  _interactive_shell->process_line("\\c expired:sample@localhost:" + _port);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Session to 'expired@localhost:" + _port + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
+  _interactive_shell->process_line("\\c mysqlx://expired:sample@localhost:" + _port);
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to 'expired@localhost:" + _port + "'");
+  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
   output_handler.wipe_all();
-  
+
   // Tests unable to execute any statement with an expired account
   _interactive_shell->process_line("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDERR_CONTAINS("ERROR: 1820: You must reset your password using ALTER USER statement before executing this statement.");
   output_handler.wipe_all();
-  
+
   // Tests allow reseting the password on an expired account
   _interactive_shell->process_line("set password = password('updated');");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
-  
+
   _interactive_shell->process_line("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDOUT_CONTAINS("1 row in set");
   output_handler.wipe_all();
-  
+
   _interactive_shell->process_line("\\js");
   _interactive_shell->process_line("session.close()");
   _interactive_shell->process_line("\\sql");
-  
+
   _interactive_shell->process_line("\\c " + _uri);
   _interactive_shell->process_line("drop user if exists expired;");
   _interactive_shell->process_line("\\js ");
