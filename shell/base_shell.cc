@@ -42,10 +42,10 @@ Base_shell::Base_shell(const Shell_options &options, shcore::Interpreter_delegat
 _options(options) {
   std::string log_path = shcore::get_user_config_path();
   log_path += "mysqlsh.log";
-  
+
   // The logger is a singleton, we would initialize it ONLY
   // if it has not been already initialized
-  // If several instance should be allowed it requires refactoring 
+  // If several instance should be allowed it requires refactoring
   // on the logger  code
   try {
     _logger = ngcommon::Logger::singleton();
@@ -71,14 +71,12 @@ _options(options) {
   std::string cmd_help_connect =
     "SYNTAX:\n"
     "   \\connect [-<TYPE>] <URI>\n\n"
-    "   \\connect [-<TYPE >] $<SESSION_CFG_NAME>\n\n"
     "WHERE:\n"
     "   TYPE is an optional parameter to specify the session type. Accepts the next values:\n"
     "        n: to establish an Node session\n"
     "        c: to establish a Classic session\n"
     "        If the session type is not specified, an Node session will be established.\n"
-    "   URI is in the format of: [user[:password]@]hostname[:port]\n"
-    "   SESSION_CFG_NAME is the name of a stored session configuration\n\n"
+    "   URI is in the format of: [user[:password]@]hostname[:port]\n\n"
     "EXAMPLES:\n"
     "   \\connect root@localhost\n"
     "   \\connect -n $my_cfg_name";
@@ -190,8 +188,8 @@ void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::
   }
 
   std::string message;
-  if (!sessionid.empty())
-    message = "Using '" + sessionid + "' stored connection\n";
+  //if (!sessionid.empty())
+  //  message = "Using '" + sessionid + "' stored connection\n";
 
   message += "Creating " + stype + " Session to '" + uri + "'";
 
