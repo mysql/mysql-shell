@@ -48,7 +48,8 @@ protected:
   std::queue<Notification> _notifications;
 
   virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
-    _notifications.push({name, sender, data});
+    if (name != "SN_DEBUGGER")
+      _notifications.push({name, sender, data});
   }
 };
 

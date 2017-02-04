@@ -55,4 +55,11 @@ public:
 };
 };
 
+#define DEBUG_NOTIFICATION(X) {\
+                                 shcore::Value::Map_type_ref data (new shcore::Value::Map_type());\
+                                 (*data)["value"] = shcore::Value(X);\
+                                 shcore::ShellNotifications::get()->notify("SN_DEBUGGER", shcore::Object_bridge_ref(), data);\
+                              }
+
+
 #endif // _SHELLCORE_H_

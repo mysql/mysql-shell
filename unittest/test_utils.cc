@@ -34,6 +34,7 @@ Shell_test_output_handler::Shell_test_output_handler() {
   deleg.password = &Shell_test_output_handler::deleg_password;
 
   full_output.clear();
+  debug = false;
 }
 
 void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
@@ -41,7 +42,7 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
 
   target->full_output << text << std::endl;
 
-  if (g_test_debug)
+  if (target->debug || g_test_debug)
     std::cout << text << std::endl;
 
   target->std_out.append(text);
@@ -52,7 +53,7 @@ void Shell_test_output_handler::deleg_print_error(void *user_data, const char *t
 
   target->full_output << text << std::endl;
 
-  if (g_test_debug)
+  if (target->debug || g_test_debug)
     std::cerr << text << std::endl;
 
   target->std_err.append(text);
@@ -175,7 +176,9 @@ void Shell_core_test_wrapper::SetUp() {
   reset_options();
 
   // Allows derived classes configuring specific options
+  debug = false;
   set_options();
+  output_handler.debug = debug;
 
   const char *uri = getenv("MYSQL_URI");
   if (uri) {
@@ -268,12 +271,14 @@ void Shell_core_test_wrapper::SetUp() {
   observe_notification("SN_SESSION_CONNECTED");
   observe_notification("SN_SESSION_CONNECTION_LOST");
   observe_notification("SN_SESSION_CLOSED");
+  observe_notification("SN_DEBUGGER");
 }
 
 void Shell_core_test_wrapper::TearDown() {
   ignore_notification("SN_SESSION_CONNECTED");
   ignore_notification("SN_SESSION_CONNECTION_LOST");
   ignore_notification("SN_SESSION_CLOSED");
+  ignore_notification("SN_DEBUGGER");
 
   if (!_open_sessions.empty()) {
     for (auto entry : _open_sessions) {
@@ -309,12 +314,15 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
       std::cerr << "WARNING: Closing a session that was never opened at " << identifier << std::endl;
     }
   }
+  else if (name == "SN_DEBUGGER") {
+    std::cout << "DEBUG NOTIFICATION: " << data->get_string("value").c_str() << std::endl;
+  }
 }
 
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
 
-  if (g_test_debug)
+  if (debug || g_test_debug)
     std::cout << "---> " << code << std::endl;
 
   _interactive_shell->process_line(_code);

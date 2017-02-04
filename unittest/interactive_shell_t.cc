@@ -63,81 +63,81 @@ TEST_F(Interactive_shell_test, warning_insecure_password) {
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_node) {
-  _interactive_shell->process_line("\\connect -n " + _uri);
+  execute("\\connect -n " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
-  _interactive_shell->process_line("\\connect -n " + _uri + "/mysql");
+  execute("\\connect -n " + _uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema `mysql` accessible through db.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
-  _interactive_shell->process_line("\\connect -n mysql://" + _mysql_uri);
+  execute("\\connect -n mysql://" + _mysql_uri);
   MY_EXPECT_STDERR_CONTAINS("Invalid URI for Node session");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\connect -n " + _mysql_uri);
+  execute("\\connect -n " + _mysql_uri);
   MY_EXPECT_STDERR_CONTAINS("Requested session assumes MySQL X Protocol but '" + _host + ":" + _mysql_port + "' seems to speak the classic MySQL protocol");
   output_handler.wipe_all();
 
   // Invalid user/password
   output_handler.passwords.push_back("whatever");
-  _interactive_shell->process_line("\\connect -n " + _uri_nopasswd);
+  execute("\\connect -n " + _uri_nopasswd);
   MY_EXPECT_STDERR_CONTAINS("ERROR: 1045: Invalid user or password");
   output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_classic) {
-  _interactive_shell->process_line("\\connect -c " + _mysql_uri);
+  execute("\\connect -c " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
-  _interactive_shell->process_line("\\connect -c " + _mysql_uri + "/mysql");
+  execute("\\connect -c " + _mysql_uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema set to `mysql`.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   MY_EXPECT_STDOUT_CONTAINS("<ClassicSchema:mysql>");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
-  _interactive_shell->process_line("\\connect -c mysqlx://" + _uri);
+  execute("\\connect -c mysqlx://" + _uri);
   MY_EXPECT_STDERR_CONTAINS("Invalid URI for Classic session");
   output_handler.wipe_all();
 }
@@ -145,229 +145,231 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
 TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   // Session type determined from connection success
   {
-    _interactive_shell->process_line("\\connect " + _uri);
+    enable_debug();
+    execute("\\connect " + _uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session");
+    execute("session");
     MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session.close()");
+    execute("session.close()");
   }
 
   // Session type determined from connection success
   {
-    _interactive_shell->process_line("\\connect " + _mysql_uri);
+    execute("\\connect " + _mysql_uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Classic Session successfully established. No default schema selected.");
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session");
+    execute("session");
     MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session.close()");
+    execute("session.close()");
   }
 
   // Session type determined by the URI scheme
   {
-    _interactive_shell->process_line("\\connect mysql://" + _mysql_uri);
+    execute("\\connect mysql://" + _mysql_uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session");
+    execute("session");
     MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session.close()");
+    execute("session.close()");
   }
 
   // Session type determined by the URI scheme
   {
-    _interactive_shell->process_line("\\connect mysqlx://" + _uri);
+    execute("\\connect mysqlx://" + _uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session");
+    execute("session");
     MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session.close()");
+    execute("session.close()");
   }
 }
 
 TEST_F(Interactive_shell_test, shell_function_connect_node) {
-  _interactive_shell->process_line("shell.connect('mysqlx://" + _uri+"');");
+  execute("shell.connect('mysqlx://" + _uri+"');");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
-  _interactive_shell->process_line("shell.connect('mysqlx://" + _uri + "/mysql');");
+  execute("shell.connect('mysqlx://" + _uri + "/mysql');");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema `mysql` accessible through db.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 }
 
 TEST_F(Interactive_shell_test, shell_function_connect_classic) {
-  _interactive_shell->process_line("shell.connect('mysql://" + _mysql_uri + "');");
+  execute("shell.connect('mysql://" + _mysql_uri + "');");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
-  _interactive_shell->process_line("shell.connect('mysql://" + _mysql_uri + "/mysql');");
+  execute("shell.connect('mysql://" + _mysql_uri + "/mysql');");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema set to `mysql`.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   MY_EXPECT_STDOUT_CONTAINS("<ClassicSchema:mysql>");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 }
 
 TEST_F(Interactive_shell_test, shell_function_connect_auto) {
   // Session type determined from connection success
   {
-    _interactive_shell->process_line("shell.connect('" + _uri + "');");
+    enable_debug();
+    execute("shell.connect('" + _uri + "');");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session");
+    execute("session");
     MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session.close()");
+    execute("session.close()");
   }
 
   // Session type determined from connection success
   {
-    _interactive_shell->process_line("shell.connect('" + _mysql_uri + "');");
+    execute("shell.connect('" + _mysql_uri + "');");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Classic Session successfully established. No default schema selected.");
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session");
+    execute("session");
     MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
-    _interactive_shell->process_line("session.close()");
+    execute("session.close()");
   }
 }
 
 TEST_F(Interactive_shell_test, shell_command_use) {
-  _interactive_shell->process_line("\\use mysql");
+  execute("\\use mysql");
   MY_EXPECT_STDERR_CONTAINS("Not Connected.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\connect " + _uri);
+  execute("\\connect " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\use mysql");
+  execute("\\use mysql");
   MY_EXPECT_STDOUT_CONTAINS("Schema `mysql` accessible through db.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\use unexisting");
+  execute("\\use unexisting");
   MY_EXPECT_STDERR_CONTAINS("Unknown database 'unexisting'");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
-  _interactive_shell->process_line("\\connect -n " + _uri);
+  execute("\\connect -n " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\use mysql");
+  execute("\\use mysql");
   MY_EXPECT_STDOUT_CONTAINS("Schema `mysql` accessible through db.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
-  _interactive_shell->process_line("\\connect -c " + _mysql_uri);
+  execute("\\connect -c " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\use mysql");
+  execute("\\use mysql");
   MY_EXPECT_STDOUT_CONTAINS("Schema set to `mysql`.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   EXPECT_STREQ("<ClassicSchema:mysql>\n", output_handler.std_out.c_str());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 }
 
 TEST_F(Interactive_shell_test, shell_command_warnings) {
   _options->interactive = true;
   reset_shell();
-  _interactive_shell->process_line("\\warnings");
+  execute("\\warnings");
   MY_EXPECT_STDOUT_CONTAINS("Show warnings enabled.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\W");
+  execute("\\W");
   MY_EXPECT_STDOUT_CONTAINS("Show warnings enabled.");
   output_handler.wipe_all();
 }
@@ -375,18 +377,18 @@ TEST_F(Interactive_shell_test, shell_command_warnings) {
 TEST_F(Interactive_shell_test, shell_command_no_warnings) {
   _options->interactive = true;
   reset_shell();
-  _interactive_shell->process_line("\\nowarnings");
+  execute("\\nowarnings");
   MY_EXPECT_STDOUT_CONTAINS("Show warnings disabled.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\w");
+  execute("\\w");
   MY_EXPECT_STDOUT_CONTAINS("Show warnings disabled.");
   output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_help_js) {
   // Cleanup for the test
-  _interactive_shell->process_line("\\?");
+  execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Commands =====");
   MY_EXPECT_STDOUT_CONTAINS("\\help       (\\?,\\h)    Print this help.");
   MY_EXPECT_STDOUT_CONTAINS("\\sql                   Switch to SQL processing mode.");
@@ -402,24 +404,24 @@ TEST_F(Interactive_shell_test, shell_command_help_js) {
   MY_EXPECT_STDOUT_CONTAINS("\\use        (\\u)       Set the current schema for the global session.");
   MY_EXPECT_STDOUT_CONTAINS("For help on a specific command use the command as \\? <command>");
 
-  _interactive_shell->process_line("\\help \\source");
+  execute("\\help \\source");
   MY_EXPECT_STDOUT_CONTAINS("NOTE: Can execute files from the supported types: SQL, Javascript, or Python.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\help \\connect");
+  execute("\\help \\connect");
   MY_EXPECT_STDOUT_CONTAINS("If the session type is not specified, an Node session will be established.");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\help \\use");
+  execute("\\help \\use");
   MY_EXPECT_STDOUT_CONTAINS("The global db variable will be updated to hold the requested schema.");
   output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_help_global_objects_js) {
   // Cleanup for the test
-  _interactive_shell->process_line("\\js");
-  _interactive_shell->process_line("\\connect -n " + _uri + "/mysql");
-  _interactive_shell->process_line("\\?");
+  execute("\\js");
+  execute("\\connect -n " + _uri + "/mysql");
+  execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
   MY_EXPECT_STDOUT_CONTAINS("db         Used to work with database schema objects.");
   MY_EXPECT_STDOUT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
@@ -428,16 +430,16 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_js) {
   MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
   MY_EXPECT_STDOUT_CONTAINS("shell      Gives access to general purpose functions and properties.");
   MY_EXPECT_STDOUT_CONTAINS("sys        Gives access to system specific parameters.");
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
   output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_help_global_objects_py) {
   // Cleanup for the test
-  _interactive_shell->process_line("\\py");
-  _interactive_shell->process_line("\\connect -n " + _uri + "/mysql");
-  _interactive_shell->process_line("\\?");
+  execute("\\py");
+  execute("\\connect -n " + _uri + "/mysql");
+  execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
   MY_EXPECT_STDOUT_CONTAINS("db         Used to work with database schema objects.");
   MY_EXPECT_STDOUT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
@@ -446,16 +448,16 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_py) {
   MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
   MY_EXPECT_STDOUT_CONTAINS("shell      Gives access to general purpose functions and properties.");
   MY_EXPECT_STDOUT_NOT_CONTAINS("sys        Gives access to system specific parameters.");
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 
   output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_help_global_objects_sql) {
   // Cleanup for the test
-  _interactive_shell->process_line("\\sql");
-  _interactive_shell->process_line("\\connect -n " + _uri + "/mysql");
-  _interactive_shell->process_line("\\?");
+  execute("\\sql");
+  execute("\\connect -n " + _uri + "/mysql");
+  execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
   MY_EXPECT_STDOUT_NOT_CONTAINS("db         Used to work with database schema objects.");
   MY_EXPECT_STDOUT_NOT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
@@ -466,8 +468,8 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_sql) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("sys        Gives access to system specific parameters.");
 
   // We have to change to a scripting mode to close the session
-  _interactive_shell->process_line("\\js");
-  _interactive_shell->process_line("session.close()");
+  execute("\\js");
+  execute("session.close()");
 
   output_handler.wipe_all();
 }
@@ -476,15 +478,15 @@ TEST_F(Interactive_shell_test, js_db_usage_with_no_wizards) {
   _options->wizards = false;
   reset_shell();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   MY_EXPECT_STDERR_CONTAINS("ReferenceError: db is not defined");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db.getName()");
+  execute("db.getName()");
   MY_EXPECT_STDERR_CONTAINS("ReferenceError: db is not defined");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db.name");
+  execute("db.name");
   MY_EXPECT_STDERR_CONTAINS("ReferenceError: db is not defined");
   output_handler.wipe_all();
 
@@ -494,34 +496,34 @@ TEST_F(Interactive_shell_test, js_db_usage_with_no_wizards) {
   _interactive_shell->connect(true);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db");
+  execute("db");
   MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db.getName()");
+  execute("db.getName()");
   MY_EXPECT_STDOUT_CONTAINS("mysql");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("db.name");
+  execute("db.name");
   MY_EXPECT_STDOUT_CONTAINS("mysql");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 }
 
 TEST_F(Interactive_shell_test, js_session_usage_with_no_wizards) {
   _options->wizards = false;
   reset_shell();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_NOT_CONTAINS("ReferenceError: session is not defined");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.getUri()");
+  execute("session.getUri()");
   MY_EXPECT_STDOUT_NOT_CONTAINS("ReferenceError: session is not defined");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.uri");
+  execute("session.uri");
   MY_EXPECT_STDOUT_NOT_CONTAINS("ReferenceError: session is not defined");
   output_handler.wipe_all();
 
@@ -531,19 +533,19 @@ TEST_F(Interactive_shell_test, js_session_usage_with_no_wizards) {
   _interactive_shell->connect(true);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session");
+  execute("session");
   MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.getUri()");
+  execute("session.getUri()");
   MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.uri");
+  execute("session.uri");
   MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("session.close()");
+  execute("session.close()");
 }
 
 TEST_F(Interactive_shell_test, python_startup_scripts) {
@@ -583,14 +585,14 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
   reset_shell();
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("mysqlx");
+  execute("mysqlx");
   MY_EXPECT_STDOUT_CONTAINS("<module '__mysqlx__' (built-in)>");
   output_handler.wipe_all();
 
   EXPECT_EQ("---> ", _interactive_shell->prompt());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("the_variable");
+  execute("the_variable");
   MY_EXPECT_STDOUT_CONTAINS("Local Value");
   output_handler.wipe_all();
 
@@ -651,14 +653,14 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
   reset_shell();
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("dir(mysqlx)");
+  execute("dir(mysqlx)");
   MY_EXPECT_STDOUT_CONTAINS("getNodeSession");
   output_handler.wipe_all();
 
   EXPECT_EQ("---> ", _interactive_shell->prompt());
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("the_variable");
+  execute("the_variable");
   MY_EXPECT_STDOUT_CONTAINS("Local Value");
   output_handler.wipe_all();
 
@@ -692,50 +694,50 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   // Setup an expired account for the test
   _interactive_shell->connect(true);
   output_handler.wipe_all();
-  _interactive_shell->process_line("drop user if exists expired;");
+  execute("drop user if exists expired;");
   output_handler.wipe_all();
-  _interactive_shell->process_line("create user expired@'%' identified by 'sample';");
+  execute("create user expired@'%' identified by 'sample';");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
-  _interactive_shell->process_line("grant all on *.* to expired@'%';");
+  execute("grant all on *.* to expired@'%';");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
-  _interactive_shell->process_line("alter user expired@'%' password expire;");
+  execute("alter user expired@'%' password expire;");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\js");
-  _interactive_shell->process_line("session.close()");
-  _interactive_shell->process_line("\\sql");
+  execute("\\js");
+  execute("session.close()");
+  execute("\\sql");
 
   // Connects with the expired account
-  _interactive_shell->process_line("\\c mysql://expired:sample@localhost:" + _mysql_port);
+  execute("\\c mysql://expired:sample@localhost:" + _mysql_port);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to 'expired@localhost:" + _mysql_port + "'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
   output_handler.wipe_all();
 
   // Tests unable to execute any statement with an expired account
-  _interactive_shell->process_line("select host from mysql.user where user = 'expired';");
+  execute("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDERR_CONTAINS("ERROR: 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.");
   output_handler.wipe_all();
 
   // Tests allow reseting the password on an expired account
-  _interactive_shell->process_line("set password = password('updated');");
+  execute("set password = password('updated');");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("select host from mysql.user where user = 'expired';");
+  execute("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDOUT_CONTAINS("1 row in set");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\js");
-  _interactive_shell->process_line("session.close()");
-  _interactive_shell->process_line("\\sql");
+  execute("\\js");
+  execute("session.close()");
+  execute("\\sql");
 
-  _interactive_shell->process_line("\\c " + _mysql_uri);
-  _interactive_shell->process_line("drop user if exists expired;");
-  _interactive_shell->process_line("\\js ");
-  _interactive_shell->process_line("session.close()");
+  execute("\\c " + _mysql_uri);
+  execute("drop user if exists expired;");
+  execute("\\js ");
+  execute("session.close()");
   MY_EXPECT_STDOUT_CONTAINS("");
 }
 
@@ -748,50 +750,50 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
   // Setup an expired account for the test
   _interactive_shell->connect(true);
   output_handler.wipe_all();
-  _interactive_shell->process_line("drop user if exists expired;");
+  execute("drop user if exists expired;");
   output_handler.wipe_all();
-  _interactive_shell->process_line("create user expired@'%' identified by 'sample';");
+  execute("create user expired@'%' identified by 'sample';");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
-  _interactive_shell->process_line("grant all on *.* to expired@'%';");
+  execute("grant all on *.* to expired@'%';");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
-  _interactive_shell->process_line("alter user expired@'%' password expire;");
+  execute("alter user expired@'%' password expire;");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\js");
-  _interactive_shell->process_line("session.close()");
-  _interactive_shell->process_line("\\sql");
+  execute("\\js");
+  execute("session.close()");
+  execute("\\sql");
 
   // Connects with the expired account
-  _interactive_shell->process_line("\\c mysqlx://expired:sample@localhost:" + _port);
+  execute("\\c mysqlx://expired:sample@localhost:" + _port);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to 'expired@localhost:" + _port + "'");
   MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
   output_handler.wipe_all();
 
   // Tests unable to execute any statement with an expired account
-  _interactive_shell->process_line("select host from mysql.user where user = 'expired';");
+  execute("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDERR_CONTAINS("ERROR: 1820: You must reset your password using ALTER USER statement before executing this statement.");
   output_handler.wipe_all();
 
   // Tests allow reseting the password on an expired account
-  _interactive_shell->process_line("set password = password('updated');");
+  execute("set password = password('updated');");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("select host from mysql.user where user = 'expired';");
+  execute("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDOUT_CONTAINS("1 row in set");
   output_handler.wipe_all();
 
-  _interactive_shell->process_line("\\js");
-  _interactive_shell->process_line("session.close()");
-  _interactive_shell->process_line("\\sql");
+  execute("\\js");
+  execute("session.close()");
+  execute("\\sql");
 
-  _interactive_shell->process_line("\\c " + _uri);
-  _interactive_shell->process_line("drop user if exists expired;");
-  _interactive_shell->process_line("\\js ");
-  _interactive_shell->process_line("session.close()");
+  execute("\\c " + _uri);
+  execute("drop user if exists expired;");
+  execute("\\js ");
+  execute("session.close()");
   MY_EXPECT_STDOUT_CONTAINS("");
 }
 }

@@ -76,12 +76,14 @@ public:
 
   void validate_stdout_content(const std::string& content, bool expected);
   void validate_stderr_content(const std::string& content, bool expected);
-  
+
   void debug_print(const std::string& line);
   void debug_print_header(const std::string& line);
   void flush_debug_log();
   void whipe_debug_log() {full_output.clear();}
-  
+
+  bool debug;
+
   std::list<std::string> prompts;
   std::list<std::string> passwords;
 };
@@ -116,6 +118,8 @@ protected:
     _options.reset(new mysqlsh::Shell_options());
   }
 
+  bool debug;
+  void enable_debug() {debug = true; output_handler.debug= true;}
   virtual void set_options() {};
 
   void create_file(const std::string& name, const std::string& content) {
