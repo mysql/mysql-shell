@@ -205,8 +205,10 @@ std::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, 
 {
   std::shared_ptr<Session> session(new Session(ssl_config, timeout));
   session->connection()->connect(host, port, cap_expired_password);
+
   if (get_caps)
     session->connection()->fetch_capabilities();
+
   if (auth_method.empty())
     session->connection()->authenticate(user, pass, schema);
   else
@@ -223,7 +225,7 @@ std::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, 
 
 Connection::Connection(const Ssl_config &ssl_config, const std::size_t timeout, const bool dont_wait_for_disconnect)
   : m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path,
-                    ssl_config.cert, ssl_config.cipher, ssl_config.crl, ssl_config.crl_path, 
+                    ssl_config.cert, ssl_config.cipher, ssl_config.crl, ssl_config.crl_path,
                     ssl_config.tls_version, ssl_config.mode, timeout),
     m_account_expired(false),
     m_deadline(m_ios), m_client_id(0),
@@ -264,8 +266,19 @@ void Connection::connect(const std::string &uri, const std::string &pass, const 
 
   connect(host, port);
 
-  if (cap_expired_password)
-    setup_capability("client.pwd_expire_ok", true);
+  if (cap_expired_password) {
+    try {
+      setup_capability("client.pwd_expire_ok", true);
+    } catch (Error &e) {
+      // When the connection is to a classic port, the error may only appear
+      // Until the capability is being setup, we need to handle this case and
+      // emulate the error that indicated the connectoin was to a classic port
+      if (!strcmp(e.what(), "MySQL server has gone away"))
+        throw Error(CR_MALFORMED_PACKET, "Unknown message received from server 10");
+      else
+        throw;
+    }
+  }
 
   authenticate(user, pass.empty() ? password : pass, schema);
 }
@@ -294,10 +307,20 @@ void Connection::connect(const std::string &host, int port, const bool cap_expir
 
   if (error)
     throw Error(CR_CONNECTION_ERROR, error.message() + " connecting to " + host + ":" + ports);
-  
-  if (cap_expired_password)
-    setup_capability("client.pwd_expire_ok", true);
-  
+
+  if (cap_expired_password) {
+    try {
+      setup_capability("client.pwd_expire_ok", true);
+    } catch (Error &e) {
+      // When the connection is to a classic port, the error may only appear
+      // Until the capability is being setup, we need to handle this case and
+      // emulate the error that indicated the connectoin was to a classic port
+      if (!strcmp(e.what(), "MySQL server has gone away"))
+        throw Error(CR_MALFORMED_PACKET, "Unknown message received from server 10");
+      else
+        throw;
+    }
+  }
 
   m_closed = false;
 }
