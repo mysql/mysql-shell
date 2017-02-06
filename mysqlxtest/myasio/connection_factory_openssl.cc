@@ -64,11 +64,11 @@ int Connection_openssl_factory::get_tls_method(const std::string& tls_version, b
 {
   if (tls_version.empty()) {
     if (is_client)
-      return boost::asio::ssl::context::tlsv11_client;
+      return boost::asio::ssl::context::tlsv12_client;
     else
-      return boost::asio::ssl::context::tlsv11_server;
+      return boost::asio::ssl::context::tlsv12_server;
   }
-    
+
   int tls_version_flags = mysqld::parse_tls_version(tls_version);
   // latest TLS version has higher priority
   if (tls_version_flags & static_cast<int>(mysqld::TlsVersion::TLS_V12)) {

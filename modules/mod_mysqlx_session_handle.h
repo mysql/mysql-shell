@@ -39,10 +39,10 @@ public:
             const std::string &user, const std::string &pass,
             const std::string &ssl_ca, const std::string &ssl_cert,
             const std::string &ssl_key, const std::string &ssl_ca_path,
-            const std::string &ssl_crl, const std::string &ssl_crl_path, 
-            const std::string &ssl_tls_version, int ssl_mode,
+            const std::string &ssl_crl, const std::string &ssl_crl_path,
+            const std::string &ssl_tls_version, const std::string& ssl_ciphers, int ssl_mode,
             const std::size_t timeout,
-            const std::string &auth_method = "", const bool get_caps = false);
+            const std::string &auth_method = "MYSQL41", const bool get_caps = false);
 
   std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
   void enable_protocol_trace(bool value);

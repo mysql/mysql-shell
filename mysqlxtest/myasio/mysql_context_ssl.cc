@@ -175,7 +175,7 @@ void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &
 #ifdef HAVE_YASSL
     tls_version_flags = static_cast<int>(TlsVersion::TLS_V11);
 #else
-    tls_version_flags = static_cast<int>(TlsVersion::TLS_V11);
+    tls_version_flags = static_cast<int>(TlsVersion::TLS_V12);
 #endif
   } else {
     tls_version_flags = mysqld::parse_tls_version(ssl_tls_version);

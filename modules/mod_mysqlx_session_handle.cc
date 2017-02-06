@@ -36,7 +36,8 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
                           const std::string &ssl_ca, const std::string &ssl_cert,
                           const std::string &ssl_key, const std::string &ssl_ca_path,
                           const std::string &ssl_crl, const std::string &ssl_crl_path,
-                          const std::string &ssl_tls_version, int ssl_mode,
+
+                          const std::string &ssl_tls_version, const std::string& ssl_ciphers, int ssl_mode,
                           const std::size_t timeout,
                           const std::string &auth_method, const bool get_caps) {
   ::mysqlx::Ssl_config ssl;
@@ -51,6 +52,7 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
   ssl.crl = ssl_crl.c_str();
   ssl.crl_path = ssl_crl_path.c_str();
   ssl.tls_version = ssl_tls_version.c_str();
+  ssl.cipher = ssl_ciphers.c_str();
   ssl.mode = ssl_mode;
 
   // TODO: Define a proper timeout for the session creation

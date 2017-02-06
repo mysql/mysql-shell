@@ -186,8 +186,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       _options.ssl_info.tls_version = value;
 _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-mode", NULL, value)) {
-      shcore::MapSslModeNameToValue m;
-      int mode = m.get_value(value);
+      int mode = shcore::MapSslModeNameToValue::get_value(value);
       if (mode == 0)
       {
         std::cerr << "must be any any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY]";

@@ -233,39 +233,80 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
     else if (options->has_key(kPassword))
       _password = (*options)[kPassword].as_string();
 
-    if (options->has_key(kSslCa))
+
+    _ssl_info.skip = true;
+
+    if (options->has_key(kSslCa)) {
       _ssl_info.ca = (*options)[kSslCa].as_string();
+      _ssl_info.skip = false;
+    } else {
+      _ssl_info.ca = "";
+    }
 
-    if (options->has_key(kSslCert))
+    if (options->has_key(kSslCert)) {
       _ssl_info.cert = (*options)[kSslCert].as_string();
+      _ssl_info.skip = false;
+    } else {
+      _ssl_info.cert = "";
+    }
 
-    if (options->has_key(kSslKey))
+    if (options->has_key(kSslKey)) {
       _ssl_info.key = (*options)[kSslKey].as_string();
+      _ssl_info.skip = false;
+    } else {
+      _ssl_info.key = "";
+    }
 
-    if (options->has_key(kSslCaPath))
+    if (options->has_key(kSslCaPath)) {
       _ssl_info.capath = (*options)[kSslCaPath].as_string();
+      _ssl_info.skip = false;
+    } else {
+      _ssl_info.capath = "";
+    }
 
-    if (options->has_key(kSslCrl))
+    if (options->has_key(kSslCrl)) {
       _ssl_info.crl = (*options)[kSslCrl].as_string();
+      _ssl_info.skip = false;
+    } else {
+      _ssl_info.crl = "";
+    }
 
-    if (options->has_key(kSslCrlPath))
+    if (options->has_key(kSslCrlPath)) {
       _ssl_info.crlpath = (*options)[kSslCrlPath].as_string();
+      _ssl_info.skip = false;
+    } else {
+      _ssl_info.crlpath = "";
+    }
 
-    if (options->has_key(kSslCiphers))
+    if (options->has_key(kSslCiphers)) {
       _ssl_info.ciphers = (*options)[kSslCiphers].as_string();
+      _ssl_info.skip = false;
+    } else {
+      _ssl_info.ciphers = "";
+    }
 
-    if (options->has_key(kSslTlsVersion))
+    if (options->has_key(kSslTlsVersion)) {
       _ssl_info.tls_version = (*options)[kSslTlsVersion].as_string();
+      _ssl_info.skip = false;
+    } else {
+      _ssl_info.tls_version = "";
+    }
 
     if (options->has_key(kSslMode)) {
-      if ((*options)[kSslMode].type == Integer)
-        _ssl_info.mode = (*options)[kSslMode].as_int();
-      else if ((*options)[kSslMode].type == String) {
+      if ((*options)[kSslMode].type == String) {
         const std::string& s = (*options)[kSslMode].as_string();
-        MapSslModeNameToValue m;
-        int ssl_mode = m.get_value(s);
+        int ssl_mode = MapSslModeNameToValue::get_value(s);
+        if (ssl_mode == 0)
+          throw std::runtime_error(
+          "Invalid value for mode (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
         _ssl_info.mode = ssl_mode;
+        _ssl_info.skip = false;
+      } else {
+        throw std::runtime_error(
+          "Invalid value for mode (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
       }
+    } else {
+      _ssl_info.mode = SSL_MODE_PREFERRED;
     }
 
     if (options->has_key(kAuthMethod))

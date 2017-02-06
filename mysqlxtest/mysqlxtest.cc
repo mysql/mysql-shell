@@ -302,7 +302,7 @@ public:
     if (use_plain_auth)
       active_connection->authenticate_plain(user, pass, db);
     else
-    active_connection->authenticate(user, pass, db);
+      active_connection->authenticate(user, pass, db);
 
     std::stringstream s;
     s << active_connection->client_id();

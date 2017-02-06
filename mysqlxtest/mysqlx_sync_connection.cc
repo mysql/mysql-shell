@@ -29,6 +29,7 @@
 #include "myasio/connection_factory_yassl.h"
 #include "myasio/connection_factory_raw.h"
 #include "mysqlx_sync_connection.h"
+#include "mysql.h"
 
 namespace mysqlx
 {
@@ -187,8 +188,8 @@ typedef Memory_new<Callback_executor>::Unique_ptr Callback_executor_ptr;
 
 Mysqlx_sync_connection::Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key,
                                                const char *ssl_ca, const char *ssl_ca_path,
-                                               const char *ssl_cert, const char *ssl_cipher, 
-                                               const char *ssl_crl, const char *ssl_crl_path, 
+                                               const char *ssl_cert, const char *ssl_cipher,
+                                               const char *ssl_crl, const char *ssl_crl_path,
                                                const char *ssl_tls_version, int ssl_mode,
                                                const std::size_t timeout)
 : m_service(service), m_timeout(timeout)
@@ -201,14 +202,13 @@ Mysqlx_sync_connection::Mysqlx_sync_connection(boost::asio::io_service &service,
 }
 
 ngs::Connection_factory_ptr Mysqlx_sync_connection::get_async_connection_factory(const char *ssl_key, const char *ssl_ca,
-  const char *ssl_ca_path, const char *ssl_cert, const char *ssl_cipher, const char *ssl_crl, const char *ssl_crl_path, 
+  const char *ssl_ca_path, const char *ssl_cert, const char *ssl_cipher, const char *ssl_crl, const char *ssl_crl_path,
   const char *ssl_tls_version, int ssl_mode)
 {
   const bool is_client = true;
-  // If mode it any of PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY
-  if (ssl_mode >= 2 && (is_set(ssl_key) || is_set(ssl_ca) || is_set(ssl_ca_path) || is_set(ssl_cert) || is_set(ssl_cipher) || 
-      is_set(ssl_crl) || is_set(ssl_crl_path) || is_set(ssl_tls_version)))
-  {
+
+  // If mode is any of PREFERRED (default), REQUIRED, VERIFY_CA, VERIFY_IDENTITY
+  if (ssl_mode >= SSL_MODE_PREFERRED) {
 #if !defined(DISABLE_SSL_ON_XPLUGIN)
     ngs::Connection_factory_ptr factory;
 

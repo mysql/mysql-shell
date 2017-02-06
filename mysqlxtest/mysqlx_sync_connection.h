@@ -36,11 +36,11 @@ namespace mysqlx
 class Mysqlx_sync_connection
 {
 public:
-  Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key = NULL, 
-                         const char *ssl_ca = NULL, const char *ssl_ca_path = NULL, 
-                         const char *ssl_cert = NULL, const char *ssl_cipher = NULL, 
+  Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key = NULL,
+                         const char *ssl_ca = NULL, const char *ssl_ca_path = NULL,
+                         const char *ssl_cert = NULL, const char *ssl_cipher = NULL,
                          const char *ssl_crl = NULL, const char *ssl_crl_path = NULL,
-                         const char *ssl_tls_version = NULL, int ssl_mode = 0,
+                         const char *ssl_tls_version = NULL, int ssl_mode = 2 /*PREFERRED*/,
                          const std::size_t timeout = 0l);
 
   boost::system::error_code connect(const ngs::Endpoint &);

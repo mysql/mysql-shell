@@ -37,7 +37,7 @@ struct SHCORE_PUBLIC SslInfo
 {
   SslInfo() {
     skip = true;
-    mode = 0;
+    mode = 2; // Default: PREFERRED
     ca = "";
     cert = "";
     key = "";
@@ -61,7 +61,7 @@ struct SHCORE_PUBLIC SslInfo
   std::string key;
   bool has_data() {
     return skip == false ||
-      mode != 0 ||
+      mode != 2 ||
       !ca.empty() ||
       !capath.empty() ||
       !crl.empty() ||
@@ -91,40 +91,18 @@ enum class SslMode {
  * "VERIFY_IDENTITY" <-> 5
  */
 class SHCORE_PUBLIC MapSslModeNameToValue {
+private:
+  MapSslModeNameToValue() {}
 public:
-  MapSslModeNameToValue() {}  
 
-  static int get_value(const std::string& value) {
-    auto it = _maps._str_to_int.find(value);
-    if (it != _maps._str_to_int.end())
-      return it->second;
-    else
-      return 0;
-  }
+  static int get_value(const std::string& value);
+  static const std::string get_value(int value);
 
 private:
-  struct Maps {
-    struct Case_insensitive_comp {
-      bool operator() (const std::string& lhs, const std::string& rhs) const {
-        return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
-      }
-    };
-    
-    std::map<std::string, int, Case_insensitive_comp> _str_to_int;
-    
-    Maps() {
-      _str_to_int["DISABLED"] = 1;
-      _str_to_int["PREFERRED"] = 2;
-      _str_to_int["REQUIRED"] = 3;
-      _str_to_int["VERIFY_CA"] = 4;
-      _str_to_int["VERIFY_IDENTITY"] = 5;
-    }
-  };
-  static struct Maps _maps;
   static std::string _empty;
 };
 
-// common keys for dictionary connection data 
+// common keys for dictionary connection data
 const std::string kHost = "host";
 const std::string kPort = "port";
 const std::string kSocket = "socket";

@@ -233,7 +233,7 @@ namespace mysqlx
                          const std::string &user, const std::string &pass,
                          const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password, 
                          const std::size_t timeout,
-                         const std::string &auth_method = "", const bool get_caps = false);
+                         const std::string &auth_method = "MYSQL41", const bool get_caps = false);
 
   enum FieldType
   {

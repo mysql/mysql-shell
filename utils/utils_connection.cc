@@ -17,13 +17,43 @@
 * 02110-1301  USA
 */
 
+#include <algorithm>
+#include <cctype>
+
 #include "utils_connection.h"
 
 using namespace shcore;
 
-struct MapSslModeNameToValue::Maps MapSslModeNameToValue::_maps;
 std::string MapSslModeNameToValue::_empty = "";
 
+int MapSslModeNameToValue::get_value(const std::string& value) {
+  std::string my_value(value);
+  std::transform(my_value.begin(), my_value.end(), my_value.begin(), ::toupper);
+
+  if (my_value == "DISABLED")
+    return 1;
+  else if (my_value == "PREFERRED")
+    return 2;
+  else if (my_value == "REQUIRED")
+    return 3;
+  else if (my_value == "VERIFY_CA")
+    return 4;
+  else if (my_value == "VERIFY_IDENTITY")
+    return 5;
+  else
+    return 0;
+}
+
+const std::string MapSslModeNameToValue::get_value(int value) {
+  switch (value) {
+  case 0: return "";
+  case 1: return "DISABLED";
+  case 2: return "PREFERRED";
+  case 3: return "REQUIRED";
+  case 4: return "VERIFY_CA";
+  case 5: return "VERIFY_IDENTITY";
+  }
+}
 
 SslInfo::SslInfo(const SslInfo& s) : skip(s.skip), mode(s.mode), ca(s.ca), capath(s.capath),
     crl(s.crl), crlpath(s.crlpath), ciphers(s.ciphers), tls_version(s.tls_version),

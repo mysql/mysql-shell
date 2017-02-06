@@ -145,7 +145,7 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
     }
 
     if (data->has_key(kSslMode)) {
-      ssl_info.mode = (*data)[kSslMode].as_int();
+      ssl_info.mode = shcore::MapSslModeNameToValue::get_value((*data)[kSslMode].as_string());
       has_ssl = true;
     }
 
@@ -199,12 +199,11 @@ void conn_str_cat_ssl_data(std::string& uri, const SslInfo &ssl_info) {
       uri_tmp.append("&");
     uri_tmp.append(kSslCrlPath).append("=").append(ssl_info.crlpath);
   }
-   
-  if (!ssl_info.mode != 0) {
+
+  if (ssl_info.mode != 0) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
-    // TODO:
-    //uri_tmp.append(kSslMode).append("=").append(ssl_info.mode);
+    uri_tmp.append(kSslMode).append("=").append(shcore::MapSslModeNameToValue::get_value(ssl_info.mode));
   }
 
   if (!ssl_info.tls_version.empty()) {
@@ -251,6 +250,8 @@ void parse_mysql_connstring(const std::string &connstring,
     if (pwd_found)
       password = data.get_password();
 
+    ssl_info.skip = false;
+
     if (data.has_attribute(kSslCa))
       ssl_info.ca = data.get_attribute(kSslCa);
     else
@@ -291,9 +292,17 @@ void parse_mysql_connstring(const std::string &connstring,
     else
       ssl_info.tls_version = "";
 
-    if (data.has_ssl_mode())
-      ssl_info.mode = data.get_ssl_mode();
-    else
+    if (data.has_attribute(kSslMode)) {
+      int mode = shcore::MapSslModeNameToValue::get_value(data.get_attribute(kSslMode));
+      if (mode != 0) {
+        ssl_info.mode = mode;
+      }
+      else {
+        throw std::runtime_error((boost::format(
+          "Invalid value for '%s' (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] ) ")
+          % "").str());
+      }
+    } else
       ssl_info.mode = static_cast<int>(shcore::SslMode::Preferred);
 
     if (set_defaults) {
@@ -480,7 +489,7 @@ Value::Map_type_ref get_connection_data(const std::string &uri, bool set_default
       (*ret_val)[kSslTlsVersion] = Value(uri_ssl_info.tls_version);
 
     if (!uri_ssl_info.mode != 0)
-      (*ret_val)[kSslMode] = Value(uri_ssl_info.mode);
+      (*ret_val)[kSslMode] = Value(shcore::MapSslModeNameToValue::get_value(uri_ssl_info.mode));
   }
 
   // If needed we construct the URi from the individual parameters
@@ -537,8 +546,8 @@ void update_connection_data(Value::Map_type_ref data,
     if (!ssl_info.tls_version.empty())
       (*data)[kSslTlsVersion] = Value(ssl_info.tls_version);
 
-    if (!ssl_info.mode != 0)
-      (*data)[kSslMode] = Value(ssl_info.mode);
+    if (ssl_info.mode != 0)
+      (*data)[kSslMode] = Value(shcore::MapSslModeNameToValue::get_value(ssl_info.mode));
   } else {
     data->erase(kSslCa);
     data->erase(kSslCert);

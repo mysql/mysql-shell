@@ -264,9 +264,6 @@ bool Connection::setup_ssl(const struct shcore::SslInfo& ssl_info) {
 
   if (ssl_info.skip) return true;
 
-  value = ssl_info.mode;
-  mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
-
   if (!ssl_info.ca.empty())
     mysql_options(_mysql, MYSQL_OPT_SSL_CA, ssl_info.ca.c_str());
 
@@ -291,6 +288,8 @@ bool Connection::setup_ssl(const struct shcore::SslInfo& ssl_info) {
   if (!ssl_info.key.empty())
     mysql_options(_mysql, MYSQL_OPT_SSL_KEY, ssl_info.key.c_str());
 
+  value = ssl_info.mode;
+  mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
 
   return true;
 }

@@ -49,7 +49,7 @@ namespace mysqld
 
   // The following from vio/viosslfactories.c
 
-//#ifdef HAVE_YASSL
+#ifdef HAVE_YASSL
   static const char tls_ciphers_list[] = "DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:"
     "AES128-RMD:DES-CBC3-RMD:DHE-RSA-AES256-RMD:"
     "DHE-RSA-AES128-RMD:DHE-RSA-DES-CBC3-RMD:"
@@ -57,7 +57,7 @@ namespace mysqld
     "DES-CBC-SHA:EDH-RSA-DES-CBC3-SHA:"
     "EDH-RSA-DES-CBC-SHA:AES128-SHA:AES256-RMD";
   static const char tls_cipher_blocked[] = "!aNULL:!eNULL:!EXPORT:!LOW:!MD5:!DES:!RC2:!RC4:!PSK:";
-/*#else
+#else
   static const char tls_ciphers_list[] = "ECDHE-ECDSA-AES128-GCM-SHA256:"
     "ECDHE-ECDSA-AES256-GCM-SHA384:"
     "ECDHE-RSA-AES128-GCM-SHA256:"
@@ -98,7 +98,7 @@ namespace mysqld
     "!DHE-DSS-DES-CBC3-SHA:!DHE-RSA-DES-CBC3-SHA:"
     "!ECDH-RSA-DES-CBC3-SHA:!ECDH-ECDSA-DES-CBC3-SHA:"
     "!ECDHE-RSA-DES-CBC3-SHA:!ECDHE-ECDSA-DES-CBC3-SHA:";
-#endif*/
+#endif
 
   const int SSL_CIPHER_LIST_SIZE = 4096;
 }  // namespace mysqld

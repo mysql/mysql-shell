@@ -54,6 +54,7 @@
 
 #include "mysqlx_sync_connection.h"
 #include "mysqlx_common.h"
+#include "mysql.h"
 
 #define CR_UNKNOWN_ERROR        2000
 #define CR_CONNECTION_ERROR     2002
@@ -82,7 +83,7 @@ namespace mysqlx
       crl = NULL;
       crl_path = NULL;
       tls_version = NULL;
-      mode = 0;
+      mode = SSL_MODE_PREFERRED;
     }
 
     const char *key;
@@ -158,8 +159,10 @@ namespace mysqlx
 
     void fetch_capabilities();
     void setup_capability(const std::string &name, const bool value);
+    void setup_capability(const std::string &name, const bool value, int& out_error, std::string &out_error_msg, bool should_throw = false);
 
-    void authenticate(const std::string &user, const std::string &pass, const std::string &schema);
+    void authenticate(const std::string &user, const std::string &pass, const std::string &schema,
+      int ssl_mode = SSL_MODE_PREFERRED, const std::string& auth_method = "MYSQL41");
     void authenticate_plain(const std::string &user, const std::string &pass, const std::string &db);
     void authenticate_mysql41(const std::string &user, const std::string &pass, const std::string &db);
 

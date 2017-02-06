@@ -36,6 +36,7 @@
 #include "xpl_error.h"
 
 #include "my_config.h"
+#include "mysql.h"
 
 #include <boost/bind.hpp>
 
@@ -203,23 +204,13 @@ std::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, 
                                              const std::string &auth_method,
                                              const bool get_caps)
 {
+  const std::string my_auth_method = auth_method.empty() ? "MYSQL41" : auth_method;
   std::shared_ptr<Session> session(new Session(ssl_config, timeout));
   session->connection()->connect(host, port, cap_expired_password);
 
   if (get_caps)
     session->connection()->fetch_capabilities();
-
-  if (auth_method.empty())
-    session->connection()->authenticate(user, pass, schema);
-  else
-  {
-    if (auth_method == "PLAIN")
-      session->connection()->authenticate_plain(user, pass, schema);
-    else if (auth_method == "MYSQL41")
-      session->connection()->authenticate_mysql41(user, pass, schema);
-    else
-      throw Error(CR_INVALID_AUTH_METHOD, "Invalid authentication method " + auth_method);
-  }
+  session->connection()->authenticate(user, pass, schema, ssl_config.mode, my_auth_method);  
   return session;
 }
 
@@ -325,15 +316,27 @@ void Connection::connect(const std::string &host, int port, const bool cap_expir
   m_closed = false;
 }
 
-void Connection::authenticate(const std::string &user, const std::string &pass, const std::string &schema)
-{
-  if (m_sync_connection.supports_ssl())
-  {
-    setup_capability("tls", true);
 
+void Connection::authenticate(const std::string &user, const std::string &pass, const std::string &schema,
+  int ssl_mode, const std::string& auth_method)
+{
+  if (ssl_mode > SSL_MODE_DISABLED)
+  {
+    if (ssl_mode == SSL_MODE_PREFERRED) {
+      int error = 0;
+      std::string msg;
+      setup_capability("tls", true, error, msg, false);
+      if (error == 0)
+        enable_tls();
+      else if (error != 0 && error != 5001)
+        throw Error(error, msg);
+    } else {
+    setup_capability("tls", true);
     enable_tls();
-    authenticate_plain(user, pass, schema);
+    }
   }
+  if (auth_method == "PLAIN")
+    authenticate_plain(user, pass, schema);
   else
     authenticate_mysql41(user, pass, schema);
 }
@@ -351,7 +354,6 @@ void Connection::fetch_capabilities()
 void Connection::enable_tls()
 {
   boost::system::error_code ec = m_sync_connection.activate_tls();
-
   if (ec)
   {
     // If ssl activation failed then
@@ -514,7 +516,7 @@ std::shared_ptr<Result> Connection::execute_delete(const Mysqlx::Crud::Delete &m
   return new_result(false);
 }
 
-void Connection::setup_capability(const std::string &name, const bool value)
+void Connection::setup_capability(const std::string &name, const bool value, int& out_error, std::string &out_error_msg, bool should_throw /*= false*/)
 {
   Mysqlx::Connection::CapabilitiesSet capSet;
   Mysqlx::Connection::Capability     *cap = capSet.mutable_capabilities()->add_capabilities();
@@ -532,8 +534,21 @@ void Connection::setup_capability(const std::string &name, const bool value)
   int mid;
   boost::scoped_ptr<Message> msg(recv_raw(mid));
 
-  if (Mysqlx::ServerMessages::ERROR == mid)
+  if (Mysqlx::ServerMessages::ERROR == mid) {
+    if (should_throw) {
     throw_server_error(*(Mysqlx::Error*)msg.get());
+    } else {
+      out_error = ((Mysqlx::Error*)msg.get())->code();
+      out_error_msg = ((Mysqlx::Error*)msg.get())->msg();
+      if (getenv("MYSQLX_DEBUG"))
+      {
+        std::string out;
+        google::protobuf::TextFormat::PrintToString(*msg, &out);
+        std::cout << out << "\n";
+      }
+      return;
+    }
+  }
   if (Mysqlx::ServerMessages::OK != mid)
   {
     if (getenv("MYSQLX_DEBUG"))
@@ -544,6 +559,13 @@ void Connection::setup_capability(const std::string &name, const bool value)
     }
     throw Error(CR_MALFORMED_PACKET, "Unexpected message received from server during handshake");
   }
+}
+
+void Connection::setup_capability(const std::string &name, const bool value)
+{
+  int error;
+  std::string msg;
+  setup_capability(name, value, error, msg, true);
 }
 
 void Connection::authenticate_mysql41(const std::string &user, const std::string &pass, const std::string &db)

@@ -64,14 +64,14 @@ protected:
     }
     session_args.push_back(Value(mysql_uri));
     try {
-    session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
-    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-    mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
-                                      have_ssl);
-    std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
-    _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
-    shcore::Argument_list args;
-    classic->close(args);
+      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+      mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
+                                        have_ssl);
+      std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
+      _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
+      shcore::Argument_list args;
+      classic->close(args);
     } catch(shcore::Exception &e) {
       std::string error ("Connection to the base server failed: ");
       error.append(e.what());
