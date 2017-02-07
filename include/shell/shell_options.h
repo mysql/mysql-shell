@@ -62,6 +62,7 @@ public:
   bool prompt_password;
   bool recreate_database;
   bool trace_protocol;
+  bool log_to_stderr;
   std::string execute_statement;
   std::string execute_dba_statement;
   ngcommon::Logger::LOG_LEVEL log_level;

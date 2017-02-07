@@ -116,6 +116,12 @@ extern const std::set<std::string> kMemberSSLModeValues;
 void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
 void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options);
 void validate_replication_filters(mysqlsh::mysql::ClassicSession *session);
+std::pair<int,int> find_cluster_admin_accounts(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    const std::string &admin_user, std::vector<std::string> *out_hosts);
+bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    const std::string &admin_user, const std::string &admin_host);
+void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    const std::string &username, const std::string &password);
 }
 }
 #endif

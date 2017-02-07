@@ -64,6 +64,9 @@ std::string SHCORE_PUBLIC join_strings(const std::vector<std::string>& strings, 
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, const std::string& separator, bool compress = false);
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, std::vector<size_t> max_lengths);
 
+void SHCORE_PUBLIC split_account(const std::string& account, std::string *out_user, std::string *out_host);
+std::string SHCORE_PUBLIC make_account(const std::string& user, const std::string &host);
+
 std::string SHCORE_PUBLIC get_member_name(const std::string& name, shcore::NamingStyle style);
 std::string SHCORE_PUBLIC format_text(const std::vector<std::string>& lines, size_t width, size_t left_padding, bool paragraph_per_line);
 std::string SHCORE_PUBLIC format_markup_text(const std::vector<std::string>& lines, size_t width, size_t left_padding);

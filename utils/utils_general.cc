@@ -20,6 +20,7 @@
 #include "utils_general.h"
 #include "uri_parser.h"
 #include "utils_file.h"
+#include "utils_sqlstring.h"
 #include <locale>
 #ifdef WIN32
 #include <WinSock2.h>
@@ -33,6 +34,7 @@
 #include <netdb.h>
 #endif
 #include "utils_connection.h"
+#include <cctype>
 
 #include <boost/format.hpp>
 
@@ -169,31 +171,31 @@ void conn_str_cat_ssl_data(std::string& uri, const SslInfo &ssl_info) {
       uri_tmp.append("&");
     uri_tmp.append(kSslCaPath).append("=").append(ssl_info.capath);
   }
-    
+
   if (!ssl_info.cert.empty()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
     uri_tmp.append(kSslCert).append("=").append(ssl_info.cert);
   }
-    
+
   if (!ssl_info.key.empty()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
     uri_tmp.append(kSslKey).append("=").append(ssl_info.key);
   }
-   
+
   if (!ssl_info.ciphers.empty()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
     uri_tmp.append(kSslCiphers).append("=").append(ssl_info.ciphers);
   }
-    
+
   if (!ssl_info.crl.empty()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
     uri_tmp.append(kSslCrl).append("=").append(ssl_info.crl);
   }
-   
+
   if (!ssl_info.crlpath.empty()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
@@ -488,7 +490,7 @@ Value::Map_type_ref get_connection_data(const std::string &uri, bool set_default
     if (!uri_ssl_info.tls_version.empty())
       (*ret_val)[kSslTlsVersion] = Value(uri_ssl_info.tls_version);
 
-    if (!uri_ssl_info.mode != 0)
+    if (uri_ssl_info.mode != 0)
       (*ret_val)[kSslMode] = Value(shcore::MapSslModeNameToValue::get_value(uri_ssl_info.mode));
   }
 
@@ -906,4 +908,130 @@ bool is_local_host(const std::string &host, bool check_hostname) {
           host == "localhost" ||
           (host == get_my_hostname() && check_hostname));
 }
+
+
+static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
+      std::string *out_string) {
+
+  if (s.size() - p <= 0)
+    return p;
+
+  char quote = s[p];
+  if (quote != '\'' && quote != '"') {
+    // check if valid initial char
+    if (!std::isalpha(quote) && quote != '_' && quote != '$')
+      throw std::runtime_error("Invalid character in identifier");
+    quote = 0;
+  } else {
+    p++;
+  }
+
+  if (quote == 0) {
+    while (p < s.size()) {
+      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$')
+        break;
+      if (out_string) out_string->push_back(s[p]);
+      ++p;
+    }
+  } else {
+    int esc = 0;
+    bool done = false;
+    while (p < s.size() && !done) {
+      if (esc == quote && s[p] != esc) {
+        done = true;
+        break;
+      }
+      switch (s[p]) {
+        case '"':
+        case '\'':
+          if (quote == s[p]) {
+            if (esc == quote || esc == '\\') {
+              if (out_string) out_string->push_back(s[p]);
+              esc = 0;
+            } else {
+              esc = s[p];
+            }
+          } else {
+            if (out_string) out_string->push_back(s[p]);
+            esc = 0;
+          }
+          break;
+        case '\\':
+          if (esc == '\\') {
+            if (out_string) out_string->push_back(s[p]);
+            esc = 0;
+          } else if (esc == 0) {
+            esc = '\\';
+          } else {
+            done = true;
+          }
+          break;
+        case 'n':
+          if (esc == '\\') {
+            if (out_string) out_string->push_back('\n');
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string) out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+        case 't':
+          if (esc == '\\') {
+            if (out_string) out_string->push_back('\t');
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string) out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+        default:
+          if (esc == '\\') {
+            if (out_string) out_string->push_back(s[p]);
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string) out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+      }
+      ++p;
+    }
+    if (!done && esc == quote)
+      done = true;
+    else if (!done) {
+      throw std::runtime_error("Invalid syntax in identifier");
+    }
+  }
+  return p;
+}
+
+/** Split a MySQL account string (in the form user@host) into its username and
+ *  hostname components. The returned strings will be unquoted.
+ *
+ *  Includes correct handling for quotes (e.g. 'my@user'@'192.168.%')
+ */
+void split_account(const std::string& account, std::string *out_user, std::string *out_host) {
+  std::size_t pos = 0;
+  if (out_user) *out_user = "";
+  if (out_host) *out_host = "";
+
+  pos = span_quotable_identifier(account, 0, out_user);
+  if (account[pos] == '@') {
+    pos = span_quotable_identifier(account, pos+1, out_host);
+  }
+  if (pos < account.size())
+    throw std::runtime_error("Invalid syntax in account name '"+account+"'");
+}
+
+
+/** Join MySQL account components into a string suitable for use with GRANT
+ *  and similar
+ */
+std::string make_account(const std::string& user, const std::string &host) {
+  return shcore::sqlstring("?@?", 0) << user << host;
+}
+
 } // namespace

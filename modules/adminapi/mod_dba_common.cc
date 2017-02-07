@@ -17,9 +17,12 @@
  * 02110-1301  USA
  */
 #include <boost/algorithm/string.hpp>
+#include <string>
+#include <algorithm>
 
 #include "modules/adminapi/mod_dba_common.h"
 #include "utils/utils_general.h"
+#include "utils/utils_sqlstring.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
@@ -368,6 +371,218 @@ void validate_replication_filters(mysqlsh::mysql::ClassicSession *session){
         "Invalid 'binlog-ignore-db' settings, metadata cannot be excluded. "
             "Remove binlog filters or the 'mysql_innodb_cluster_metadata' "
             "database from the 'binlog-ignore-db' option.");
+}
+
+
+/** Count how many accounts there are with the given username, excluding localhost
+
+  This allows us to know whether there's a wildcarded account that the user may
+  have created previously which we can use for management or whether the user
+  has created multiple accounts, which would mean that they must know what they're
+  doing and also that we can't tell which of these accounts should be validated.
+
+  @return # of wildcarded accounts, # of other accounts
+  */
+std::pair<int,int> find_cluster_admin_accounts(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    const std::string &admin_user, std::vector<std::string> *out_hosts) {
+
+  shcore::sqlstring query;
+  // look up the hosts the account is allowed from
+  query = shcore::sqlstring(
+      "SELECT DISTINCT grantee"
+      " FROM information_schema.user_privileges"
+      " WHERE grantee like ?", 0) << ((shcore::sqlstring("?", 0) << admin_user).str()+"@%");
+
+  int local = 0;
+  int w = 0;
+  int nw = 0;
+  auto result = session->execute_sql(query);
+  if (result) {
+    auto row = result->fetch_one();
+    while (row) {
+      std::string account = row->get_value(0).as_string();
+      std::string user, host;
+      shcore::split_account(account, &user, &host);
+      assert(user == admin_user);
+
+      if (out_hosts)
+        out_hosts->push_back(host);
+      // ignore localhost accounts
+      if (host == "localhost" || host == "127.0.0.1") {
+        local++;
+      } else {
+        if (host.find('%') != std::string::npos) {
+          w++;
+        } else {
+          nw++;
+        }
+      }
+      row = result->fetch_one();
+    }
+  }
+  log_info("%s user has %i accounts with wildcard and %i without",
+           admin_user.c_str(), w, nw + local);
+
+  return std::make_pair(w, nw);
+}
+
+
+/*
+ * Validate if the user specified for being the cluster admin has all of the
+ * requirements:
+ * 1) has a host wildcard other than 'localhost' or '127.0.0.1' or the one specified
+ * 2) has the necessary privileges assigned
+ */
+
+// Global privs needed for managing cluster instances
+static const std::set<std::string> k_global_privileges{
+  "RELOAD", "SHUTDOWN", "PROCESS", "FILE",
+  "SUPER", "REPLICATION SLAVE", "REPLICATION CLIENT",
+  "CREATE USER"
+};
+
+// Schema privileges needed on the metadata schema
+static const std::set<std::string> k_metadata_schema_privileges{
+  "ALTER", "ALTER ROUTINE", "CREATE",
+  "CREATE ROUTINE", "CREATE TEMPORARY TABLES",
+  "CREATE VIEW", "DELETE", "DROP",
+  "EVENT", "EXECUTE", "INDEX", "INSERT", "LOCK TABLES",
+  "REFERENCES", "SELECT", "SHOW VIEW", "TRIGGER", "UPDATE"
+};
+
+// list of (schema, [privilege]) pairs, with the required privileges on each schema
+static const std::map<std::string, std::set<std::string>> k_schema_grants{
+  {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
+  {"performance_schema", {"SELECT"}},
+  {"mysql", {"SELECT", "INSERT", "UPDATE", "DELETE"}} // need for mysql.plugin, mysql.user others
+};
+
+/** Check that the provided account has privileges to manage a cluster.
+  */
+bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    const std::string &admin_user, const std::string &admin_host) {
+
+  shcore::sqlstring query;
+  log_info("Validating account %s@%s...", admin_user.c_str(), admin_host.c_str());
+
+  // check what global privileges we have
+  query = shcore::sqlstring("SELECT privilege_type, is_grantable"
+      " FROM information_schema.user_privileges"
+      " WHERE grantee = ?", 0) << shcore::make_account(admin_user, admin_host);
+
+  std::set<std::string> global_privs;
+
+  auto result = session->execute_sql(query);
+  if (result) {
+    auto row = result->fetch_one();
+    while (row) {
+      global_privs.insert(row->get_value(0).as_string());
+      if (row->get_value(1).as_string() == "NO") {
+        log_info(" Privilege %s for %s@%s is not grantable",
+                 row->get_value(0).as_string().c_str(),
+                 admin_user.c_str(), admin_host.c_str());
+        return false;
+      }
+      row = result->fetch_one();
+    }
+  }
+
+  if (!std::includes(global_privs.begin(), global_privs.end(),
+                    k_global_privileges.begin(), k_global_privileges.end())) {
+    std::vector<std::string> diff;
+    std::set_difference(k_global_privileges.begin(), k_global_privileges.end(),
+                        global_privs.begin(), global_privs.end(),
+                        std::inserter(diff, diff.begin()));
+    log_debug("  missing some global privs");
+    for (auto &i : diff)
+      log_debug("  - %s", i.c_str());
+    return false;
+  }
+  if (std::includes(global_privs.begin(), global_privs.end(),
+      k_metadata_schema_privileges.begin(), k_metadata_schema_privileges.end())) {
+    // if the account has global grants for all schema privs
+    return true;
+  }
+
+  // now check if there are grants for the individual schemas
+  query = shcore::sqlstring("SELECT table_schema, privilege_type, is_grantable"
+      " FROM information_schema.schema_privileges"
+      " WHERE grantee = ?", 0) << shcore::make_account(admin_user, admin_host);
+
+  auto required_privileges(k_schema_grants);
+  result = session->execute_sql(query);
+  if (result) {
+    auto row = result->fetch_one();
+    while (row) {
+      std::string schema = row->get_value(0).as_string();
+      std::string priv = row->get_value(1).as_string();
+
+      if (required_privileges.find(schema) != required_privileges.end()) {
+        auto &privs(required_privileges[schema]);
+        privs.erase(std::find(privs.begin(), privs.end(), priv));
+      }
+      if (row->get_value(2).as_string() == "NO") {
+        log_info(" %s on %s for %s@%s is not grantable",
+                 priv.c_str(), schema.c_str(), admin_user.c_str(), admin_host.c_str());
+        return false;
+      }
+      row = result->fetch_one();
+    }
+
+    bool ok = true;
+    for (auto &spriv : required_privileges) {
+      if (!spriv.second.empty()) {
+        log_info(" Account missing schema grants on %s:", spriv.first.c_str());
+        for (auto &priv : spriv.second) {
+          log_info("  - %s", priv.c_str());
+        }
+        ok = false;
+      }
+    }
+    return ok;
+  }
+  return false;
+}
+
+static const char *k_admin_user_grants[] = {
+  "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.*",
+  "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.*",
+  "GRANT SELECT ON performance_schema.*",
+  "GRANT SELECT, INSERT, UPDATE, DELETE ON mysql.*"
+};
+
+void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    const std::string &username, const std::string &password) {
+#ifndef NDEBUG
+  shcore::split_account(username, nullptr, nullptr);
+#endif
+
+  shcore::sqlstring query;
+
+  session->execute_sql("SET sql_log_bin = 0");
+  session->execute_sql("START TRANSACTION");
+  try {
+    log_info("Creating account %s", username.c_str());
+    // Create the user
+    {
+      query = shcore::sqlstring(("CREATE USER " + username + " IDENTIFIED BY ?").c_str(), 0);
+      query << password;
+      query.done();
+      session->execute_sql(query);
+    }
+
+    // Give the grants
+    for (int i = 0; i < sizeof(k_admin_user_grants) / sizeof(char*); i++) {
+      std::string grant(k_admin_user_grants[i]);
+      grant += " TO " + username + " WITH GRANT OPTION";
+      session->execute_sql(grant);
+    }
+    session->execute_sql("COMMIT");
+  } catch (...) {
+    session->execute_sql("ROLLBACk");
+    session->execute_sql("SET sql_log_bin = 1");
+    throw;
+  }
 }
 
 } // dba

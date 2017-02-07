@@ -46,6 +46,7 @@ Shell_options::Shell_options() {
   trace_protocol = false;
   wizards = true;
   admin_mode = false;
+  log_to_stderr = false;
 
   port = 0;
 

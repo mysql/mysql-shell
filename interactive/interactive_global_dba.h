@@ -57,6 +57,14 @@ private:
   void dump_table(const std::vector<std::string>& column_names, const std::vector<std::string>& column_labels, shcore::Value::Array_type_ref documents);
   void print_validation_results(const shcore::Value::Map_type_ref& result);
   bool resolve_cnf_path(const shcore::Argument_list& connection_args, const shcore::Value::Map_type_ref& extra_options);
+
+  bool ensure_admin_account_usable(
+      std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+      const std::string &user, const std::string &host,
+      std::string *out_create_account);
+
+  std::string prompt_confirmed_password();
+  int prompt_menu(const std::vector<std::string> &options, int defopt);
 };
 }
 

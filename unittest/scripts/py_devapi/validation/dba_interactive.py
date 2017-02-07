@@ -34,7 +34,7 @@ A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sand
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
-Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
@@ -106,7 +106,7 @@ RuntimeError: Dba.configure_local_instance: The instance 'root@localhost:<<<__my
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
-You can now add it to an InnoDB Cluster with the <Cluster>.add_instance() function.
+You can now use it in an InnoDB Cluster.
 
 #@# Dba: get_cluster errors
 ||ArgumentError: Dba.get_cluster: Invalid cluster name: Argument #1 is expected to be a string

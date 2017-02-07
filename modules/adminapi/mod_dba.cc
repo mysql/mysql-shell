@@ -1109,19 +1109,29 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
 
   shcore::Value::Map_type_ref validate_options;
 
-  std::string cnfpath;
+  std::string cnfpath, cluster_admin, cluster_admin_password;
+
   if (args.size() == 2) {
     validate_options = args.map_at(1);
     shcore::Argument_map tmp_map(*validate_options);
 
-    std::set<std::string> check_options = {"password", "dbPassword", "mycnfPath"};
+    std::set<std::string> check_options = {"password", "dbPassword", "mycnfPath",
+                                           "clusterAdmin", "clusterAdminPassword"};
 
     tmp_map.ensure_keys({}, check_options, "validation options");
     validate_opt_map = tmp_map;
 
-    // Retrieves the .cnf path if exists
+    // Retrieves the .cnf path if exists or leaves it empty so the default is set afterwards
     if (validate_opt_map.has_key("mycnfPath"))
       cnfpath = validate_opt_map.string_at("mycnfPath");
+
+    // Retrives the clusterAdmin if exists or leaves it empty so the default is set afterwards
+    if (validate_opt_map.has_key("clusterAdmin"))
+      cluster_admin = validate_opt_map.string_at("clusterAdmin");
+
+    // Retrieves the clusterAdminPassword if exists or leaves it empty so the default is set afterwards
+    if (validate_opt_map.has_key("clusterAdminPassword"))
+      cluster_admin_password = validate_opt_map.string_at("clusterAdminPassword");
   }
 
   if (cnfpath.empty() && allow_update)
@@ -1132,10 +1142,9 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
   new_args.push_back(shcore::Value(instance_def));
   auto session = Dba::get_session(new_args);
 
-  auto uri = session->uri();
+  std::string uri = session->uri();
 
   GRInstanceType type = get_gr_instance_type(session->connection());
-
 
   if (type == GRInstanceType::GroupReplication) {
     session->close(shcore::Argument_list());
@@ -1148,6 +1157,9 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
     throw shcore::Exception::runtime_error("The instance '" + uri + "' is already part of an InnoDB Cluster");
   }
   else {
+    if (!cluster_admin.empty() && allow_update)
+      create_cluster_admin_user(session, cluster_admin, cluster_admin_password);
+
     std::string host = instance_def->get_string("host");
     int port = instance_def->get_int("port");
     std::string endpoint = host + ":" + std::to_string(port);
@@ -1157,8 +1169,6 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
       auto peer_seeds = shcore::join_strings(seeds, ",");
       set_global_variable(session->connection(), "group_replication_group_seeds", peer_seeds);
     }
-
-    session->close(shcore::Argument_list());
 
     std::string user;
     std::string password;
@@ -1176,9 +1186,10 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
 
     // Verbose is mandatory for checkInstanceConfiguration
     shcore::Value::Array_type_ref mp_errors;
-    if (_provisioning_interface->check(user, host, port, password, instance_ssl_opts, cnfpath, allow_update, mp_errors) == 0)
+
+    if ((_provisioning_interface->check(user, host, port, password, instance_ssl_opts, cnfpath, allow_update, mp_errors) == 0)) {
       (*ret_val)["status"] = shcore::Value("ok");
-    else {
+    } else {
       shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
       bool restart_required = false;
 
@@ -1301,7 +1312,6 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
           }
         }
       }
-
       (*ret_val)["errors"] = shcore::Value(errors);
       (*ret_val)["restart_required"] = shcore::Value(restart_required);
     }

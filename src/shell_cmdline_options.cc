@@ -278,6 +278,10 @@ _options.ssl_info.skip = false;
       _options.passwords_from_stdin = true;
     else if (check_arg_with_value(argv, i, "--log-level", NULL, value)) {
       ngcommon::Logger::LOG_LEVEL nlog_level;
+      if (*value == '@') {
+        _options.log_to_stderr = true;
+        value++;
+      }
       nlog_level = ngcommon::Logger::get_log_level(value);
       if (nlog_level == ngcommon::Logger::LOG_NONE && !ngcommon::Logger::is_level_none(value)) {
         std::cerr << ngcommon::Logger::get_level_range_info() << std::endl;

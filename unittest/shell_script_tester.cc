@@ -151,7 +151,7 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context, cons
       }
     }
   }
-  
+
   return ret_val;
 }
 
@@ -269,7 +269,7 @@ bool Shell_script_tester::validate(const std::string& context, const std::string
     } else
       output_handler.wipe_all();
   }
-  
+
   return ret_val;
 }
 
@@ -463,14 +463,14 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
       load_source_chunks(stream);
       for (size_t index = 0; index < _chunk_order.size(); index++) {
-        
+
         // Prints debugging information
         std::string chunk_log = "CHUNK: " + _chunk_order[index];
         std::string splitter(chunk_log.length(), '-');
         output_handler.debug_print(splitter);
         output_handler.debug_print(chunk_log);
         output_handler.debug_print(splitter);
-        
+
         // Executes the file line by line
         for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]].size(); chunk_item++) {
           std::string line((_chunks[_chunk_order[index]])[chunk_item]);

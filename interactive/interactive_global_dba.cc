@@ -325,7 +325,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       std::string r;
       println("I have read the MySQL InnoDB cluster manual and I understand the requirements\n"
               "and limitations of advanced Multi-Master Mode.");
-      if (!(prompt("Confirm (Yes/No): ", r) && (r == "y" || r == "yes" || r == "Yes"))) {
+      if (!(prompt("Confirm [y|N]: ", r) && (r == "y" || r == "yes" || r == "Yes"))) {
         println("Cancelled");
         return shcore::Value();
       } else {
@@ -377,7 +377,7 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
   if (args.size() < 1) {
     std::string answer;
 
-    if (prompt((boost::format("Are you sure you want to remove the Metadata? [y/N]: ")).str().c_str(), answer)) {
+    if (prompt((boost::format("Are you sure you want to remove the Metadata? [y|N]: ")).str().c_str(), answer)) {
       if (!answer.compare("y") || !answer.compare("Y")) {
         Value::Map_type_ref options(new shcore::Value::Map_type);
 
@@ -894,14 +894,172 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args,
   return !cnfPath.empty();
 }
 
-shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("configureLocalInstance").c_str());
+std::string Global_dba::prompt_confirmed_password() {
+  std::string password1;
+  std::string password2;
+  for (;;) {
+    if (_delegate->password(_delegate->user_data, "Password for new account: ", password1)) {
+      if (_delegate->password(_delegate->user_data, "Confirm password: ", password2)) {
+        if (password1 != password2) {
+          println("Passwords don't match, please try again.");
+          continue;
+        }
+      }
+    }
+    break;
+  }
+  return password1;
+}
+
+int Global_dba::prompt_menu(const std::vector<std::string> &options, int defopt) {
+  int i = 0;
+  for (const auto &opt : options) {
+    println(std::to_string(++i)+") " + opt);
+  }
+  for (;;) {
+    std::string result;
+    if (defopt > 0) {
+      if (!prompt("Please select an option [" + std::to_string(defopt) + "]: ", result))
+        return 0;
+    } else {
+      if (!prompt("Please select an option: ", result))
+        return 0;
+    }
+    if (result.empty() && defopt > 0)
+      return defopt;
+    std::stringstream ss(result);
+    ss >> i;
+    if (!ss.str().empty() || i <= 0 || i > (int)options.size()) // garbage left in input
+      continue;
+    return i;
+  }
+}
+
+
+bool Global_dba::ensure_admin_account_usable(
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    const std::string &user, const std::string &host,
+    std::string *out_create_account) {
+
+  int n_wildcard_accounts, n_non_wildcard_accounts;
+  std::vector<std::string> hosts;
+  std::tie(n_wildcard_accounts, n_non_wildcard_accounts) =
+      mysqlsh::dba::find_cluster_admin_accounts(session, user, &hosts);
+
+  // there are multiple accounts defined with the same username
+  // we assume that the user knows what they're doing and skip the rest
+  if (n_wildcard_accounts + n_non_wildcard_accounts > 1) {
+    log_info("%i accounts named %s found. Skipping remaining checks",
+             n_wildcard_accounts + n_non_wildcard_accounts, user.c_str());
+    return true;
+  } else {
+    auto hiter = std::find_if(hosts.begin(), hosts.end(),
+      [](const std::string &a) {
+        return a.find('%') != std::string::npos;
+      });
+    // there is only one account with a wildcard, so validate it
+    if (n_wildcard_accounts == 1 && hiter != hosts.end()) {
+      std::string whost = *hiter;
+      if (mysqlsh::dba::validate_cluster_admin_user_privileges(session,
+          user, whost)) {
+        log_info("Account %s@%s has required privileges for cluster management",
+                  user.c_str(), whost.c_str());
+        // account accepted
+        return true;
+      } else {
+        log_info("Account %s@%s is missing privileges needed for cluster management",
+                  user.c_str(), whost.c_str());
+        std::string msg;
+        msg = "Account " + user + "@" + whost + " is missing privileges\n";
+        msg += "that may be needed for managing an InnoDB cluster.\n";
+        println(msg.c_str());
+      }
+    } else {
+      log_info("Account %s may not be accessible from all hosts of the cluster",
+               user.c_str());
+      std::string msg;
+      msg = "MySQL user '" + user + "' cannot be verified to have access to other hosts in the network.\n";
+      msg += "Enter y to create " + user + "@% with the necessary grants or e to edit a different name.";
+      println(msg);
+      int result;
+      result = prompt_menu({"Create "+user+"@%",
+          "Create account with different name",
+          "Continue without creating account",
+          "Cancel"}, 1);
+      switch (result) {
+        case 1:
+          if (out_create_account)
+            *out_create_account = "root@'%'";
+          return true;
+        case 2:
+          if (out_create_account)
+            *out_create_account = "";
+          return true;
+        case 3:
+          break;
+        case 4:
+        default:
+          println("Cancelling...");
+          return false;
+      }
+    }
+
+    std::string msg = "Please provide an account name (e.g: icroot@%) to have it created with the necessary\n";
+    msg += "privileges or leave empty and press Enter to cancel.";
+    println(msg.c_str());
+
+    std::string create_user;
+    bool cancelled = false;
+    for (;;) {
+      if (prompt("Account Name: ", create_user) && !create_user.empty()) {
+        try {
+          // normalize the account name
+          if (std::count(create_user.begin(), create_user.end(), '@') <= 1 &&
+              create_user.find(' ') == std::string::npos &&
+              create_user.find('\'') == std::string::npos &&
+              create_user.find('"') == std::string::npos &&
+              create_user.find('\\') == std::string::npos) {
+            auto p = create_user.find('@');
+            if (p == std::string::npos)
+              create_user = make_account(create_user, "%");
+            else
+              create_user = make_account(create_user.substr(0, p), create_user.substr(p+1));
+          }
+          // validate
+          shcore::split_account(create_user, nullptr, nullptr);
+
+          if (out_create_account)
+            *out_create_account = create_user;
+          break;
+        } catch (std::runtime_error&) {
+          println("`" + create_user + "` is not a valid account name. Must be user[@host] or 'user'[@'host']");
+        }
+      } else {
+        cancelled = true;
+        break;
+      }
+    }
+    if (cancelled) {
+      println("Cancelling...");
+      return false;
+    }
+    return true;
+  }
+}
+
+shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &_args) {
+  _args.ensure_count(0, 2, get_function_name("configureLocalInstance").c_str());
 
   std::string uri, answer, user;
   shcore::Value::Map_type_ref instance_def;
+  shcore::Argument_list args(_args);
   shcore::Argument_list target_args;
 
   try {
+    if (args.size() == 0) {
+      // default instance
+      args.push_back(Value("root@localhost:3306"));
+    }
     instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
     shcore::Argument_map opt_map(*instance_def);
     opt_map.ensure_keys({"host", "port"}, mysqlsh::dba::_instance_options, "instance definition");
@@ -916,7 +1074,8 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
     if (args.size() == 2) {
       extra_options = args.map_at(1);
       shcore::Argument_map extra_opts(*extra_options);
-      extra_opts.ensure_keys({}, {"password", "dbPassword", "mycnfPath"}, "validation options");
+      extra_opts.ensure_keys({}, {"password", "dbPassword", "mycnfPath",
+                                  "clusterAdmin", "clusterAdminPassword"}, "validation options");
     } else {
       extra_options.reset(new shcore::Value::Map_type());
     }
@@ -930,6 +1089,8 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
     shcore::Argument_list session_args;
     session_args.push_back(shcore::Value(instance_def));
 
+    user = instance_def->get_string(instance_def->has_key("user") ? "user" : "dbUser");
+
     // Attempts to resolve the configuration file path
     if (!extra_options->has_key("mycnfPath")) {
       bool resolved = resolve_cnf_path(session_args, extra_options);
@@ -938,6 +1099,49 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
         println();
         println("The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings");
         return shcore::Value();
+      }
+    }
+
+    // Validate whether the user to be used for cluster admin has the expected
+    // privileges and is not just a @localhost account
+    // (which can't be used to manage remote instances)
+    {
+      std::string admin_user = user;
+      std::string admin_user_host = "%";
+      std::string account;
+
+      // User passed clusterAdmin option, we ensure that account exists
+      if (extra_options->has_key("clusterAdmin")) {
+        account = extra_options->get_string("clusterAdmin");
+
+        try {
+          shcore::split_account(account, &admin_user, &admin_user_host);
+        } catch (...) {
+          throw shcore::Exception::runtime_error("Invalid account name syntax in "+account);
+        }
+        if (admin_user_host.empty())
+          admin_user_host = "%";
+
+        account = shcore::make_account(admin_user, admin_user_host);
+      } else {
+        // Validate the account being used
+        shcore::Argument_list new_args;
+        new_args.push_back(shcore::Value(instance_def));
+        auto session = mysqlsh::dba::Dba::get_session(new_args);
+
+        if (!ensure_admin_account_usable(session, admin_user, admin_user_host,
+              &account)) {
+          session->close(shcore::Argument_list());
+          return shcore::Value();
+        }
+      }
+      // set account creation options so that backend can do it later
+      if (!account.empty()) {
+        (*extra_options)["clusterAdmin"] = shcore::Value(account);
+        if (!extra_options->has_key("clusterAdminPassword")) {
+          std::string admin_password = prompt_confirmed_password();
+          (*extra_options)["clusterAdminPassword"] = shcore::Value(admin_password);
+        }
       }
     }
   }
@@ -955,7 +1159,7 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
   // Algorithm Step 4: IF instance is ready for GR, stop and return
   if (result->get_string("status") == "ok") {
     println("The instance '" + instance_def->get_string("host") + ":" + std::to_string(instance_def->get_int("port")) + "' is valid for Cluster usage");
-    println("You can now add it to an InnoDB Cluster with the <Cluster>." + get_member_name("addInstance", naming_style) + "() function.");
+    println("You can now use it in an InnoDB Cluster.");
     println();
   } else {
     auto errors = result->get_array("errors");

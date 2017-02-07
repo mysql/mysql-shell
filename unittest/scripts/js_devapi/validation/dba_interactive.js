@@ -106,7 +106,7 @@ Dba.configureLocalInstance: The instance 'root@localhost:<<<__mysql_sandbox_port
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
-You can now add it to an InnoDB Cluster with the <Cluster>.addInstance() function.
+You can now use it in an InnoDB Cluster.
 
 //@# Dba: getCluster errors
 ||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string

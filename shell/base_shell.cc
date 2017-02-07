@@ -50,7 +50,7 @@ _options(options) {
   try {
     _logger = ngcommon::Logger::singleton();
   } catch (std::logic_error &e) {
-    ngcommon::Logger::create_instance(log_path.c_str(), false, _options.log_level);
+    ngcommon::Logger::create_instance(log_path.c_str(), _options.log_to_stderr, _options.log_level);
     _logger = ngcommon::Logger::singleton();
   }
 
