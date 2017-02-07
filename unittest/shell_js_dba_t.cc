@@ -458,27 +458,13 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
 
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
-  std::string stop_options = "{password: 'root'";
-  std::string delete_options;
-  if (!_sandbox_dir.empty()) {
-    stop_options.append(", sandboxDir: '" + _sandbox_dir + "'");
-    delete_options = "{sandboxDir: '" + _sandbox_dir + "'}";
-  }
-  stop_options.append("}");
   reset_shell();
 
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", " + stop_options + ")");
-  execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port1 + ", " + delete_options + ")");
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", " + stop_options + ")");
-  execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port2 + ", " + delete_options + ")");
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", " + stop_options + ")");
-  execute("dba.deleteSandboxInstance(" + _mysql_sandbox_port3 + ", " + delete_options + ")");
+  enable_debug();
 
-  if (!output_handler.std_err.empty()) {
-    std::cerr << "---------- Failure Log ----------" << std::endl;
-    output_handler.flush_debug_log();
-    std::cerr << "---------------------------------" << std::endl;
-    ADD_FAILURE();
-  }
+  // Execute setup script to be able to use smart deployment functions.
+  execute_setup();
+
+  execute("cleanup_sandboxes(true);");
 }
 }
