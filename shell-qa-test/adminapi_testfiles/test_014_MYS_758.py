@@ -82,7 +82,8 @@ class XShell_TestCases(unittest.TestCase):
       instance="3313"
       results = ''
       init_command =  [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-      x_cmds = [("dba.stopSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+"\"});\n",'successfully stopped.')]
+      x_cmds = [("dba.stopSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+
+                 "\", password:\"" + LOCALHOST.password + "\"});\n",'successfully stopped.')]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 

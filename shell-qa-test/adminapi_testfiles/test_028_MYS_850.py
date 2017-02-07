@@ -90,10 +90,10 @@ class XShell_TestCases(unittest.TestCase):
                 ("cluster.addInstance(\"{0}:{1}@{2}:".format(LOCALHOST.user, LOCALHOST.password,
                                                              LOCALHOST.host) + instance4 + "\");\n",
                  "was successfully added to the cluster")]
-      time.sleep(5)
+      time.sleep(10)
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-      time.sleep(5)
+      time.sleep(10)
       # cluster.status() display recovering for some added instances, require some time to set it to ONLINE
       x_cmds = [("cluster = dba.getCluster('Cluster2');\n", "<Cluster:Cluster2>"),
                 ("cluster.status()\n",

@@ -10,7 +10,16 @@ import unittest
 import json
 import xmlrunner
 import shutil
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+fh = logging.FileHandler('AdminAPI_Log_Execution.txt', mode='w')
+fh.setLevel(logging.DEBUG)
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfile(os.environ['CONFIG_PATH']) and os.path.isfile(os.environ['MYSQLX_PATH']):
     # **** JENKINS EXECUTION ****

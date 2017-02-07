@@ -87,7 +87,8 @@ class XShell_TestCases(unittest.TestCase):
                        '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P ' + instance2, '--classic']
       x_cmds = [("c = dba.getCluster('Cluster2')\n",'<Cluster:Cluster2>'),
                 ("c.removeInstance('localhost:3322')\n", 'was successfully removed from the cluster'),
-                ("dba.stopSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+"\"});\n",'successfully stopped.'),
+                ("dba.stopSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+
+                 "\", password:\"" + LOCALHOST.password + "\"});\n",'successfully stopped.'),
                 ("dba.deleteSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+"\"});\n",'successfully deleted.')]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')

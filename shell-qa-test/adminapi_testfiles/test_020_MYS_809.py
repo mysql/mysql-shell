@@ -85,7 +85,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
       x_cmds = [("\connect root:" + LOCALHOST.password + "@localhost:" + instance1 + "\n",
                  'Classic Session successfully established. No default schema selected.'),
-                ("dba.configLocalInstance('{0}:{1}@{2}:".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host) + instance2 + "')\n",
+                ("dba.configureLocalInstance('{0}:{1}@{2}:".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host) + instance2 + "')\n",
                  "The instance '{0}@{1}:".format(LOCALHOST.user, LOCALHOST.host) + instance2 + "' is already part of an InnoDB Cluster")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
