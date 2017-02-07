@@ -34,7 +34,7 @@ A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sand
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
-Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
