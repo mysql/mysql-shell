@@ -137,6 +137,7 @@ class TestGroupReplication(GadgetsTestCase):
                          "'localhost:3307'")
 
     def test_get_gr_configs_from_instance(self):
+        """Tests the get_gr_configs_from_instance function"""
         res = get_gr_configs_from_instance(self.server)
         # check that result is as expected from the mock server
         self.assertEqual(

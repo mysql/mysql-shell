@@ -816,7 +816,13 @@ if __name__ == "__main__":
         if "rep_user_passwd" in cmd_options_hidden_pw:
             cmd_options_hidden_pw["rep_user_passwd"] = "******"
 
-        _LOGGER.debug("Command options: %s", cmd_options_hidden_pw)
+        # \ are converted to \\ internally (in dictionaries), and \\ will be
+        # printed instead of \ if we try to print the full dictionary.
+        # Therefore, the dictionary needs to be converted to string and the
+        # \\ converted to \, in order to be handled correctly by the logger.
+        dic_msg = str(cmd_options_hidden_pw)
+        dic_msg = dic_msg.replace("\\\\", "\\")
+        _LOGGER.debug("Command options: %s", dic_msg)
 
     # Perform command
     command_error_msg = "executing operation"

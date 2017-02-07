@@ -19,6 +19,7 @@
 Module to setup and manage logging feature for MySQL Orchestrator Gadgets.
 """
 
+import collections
 import logging
 import sys
 
@@ -381,6 +382,9 @@ class JsonFormatter(logging.Formatter):
         control characters properly, like \" and \\.
 
         Note: Use of other control character is not supported (ignored).
+              Also, the use of dictionary as argument for the log message
+              is not supported, i.e. no custom character substitution is
+              performed for the arguments in that case.
 
         :param record:  Logging record to format.
         :type record:   logging.LogRecord
@@ -398,14 +402,18 @@ class JsonFormatter(logging.Formatter):
             replaced = False
             new_args = ()
             str_type = basestring if PY2 else str
-            for arg in record.args:
-                if isinstance(arg, str_type):
-                    arg = arg.replace('\\', '\\\\')  # \ -> \\
-                    arg = arg.replace('"', '\\"')  # " -> \"
-                    replaced = True
-                new_args += (arg,)
-            if replaced:
-                record.args = new_args
+            # A mapping can be specified as a log message arg but it is
+            # handled in a different way internally, being assigned directly
+            # to record.args. In that case, the record args are not processed.
+            if not isinstance(record.args, collections.Mapping):
+                for arg in record.args:
+                    if isinstance(arg, str_type):
+                        arg = arg.replace('\\', '\\\\')  # \ -> \\
+                        arg = arg.replace('"', '\\"')  # " -> \"
+                        replaced = True
+                    new_args += (arg,)
+                if replaced:
+                    record.args = new_args
             # Replace \ by \\ and " by \" for the log record message.
             record.msg = record.msg.replace('\\', '\\\\')   # \ -> \\
             record.msg = record.msg.replace('"', '\\"')  # " -> \"

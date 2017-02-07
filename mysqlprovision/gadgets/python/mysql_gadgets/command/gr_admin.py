@@ -109,7 +109,7 @@ max_screen_width = get_max_display_width()
 # Define how much time wait before check for super_read_only to be unset
 WAIT_SECONDS = 1
 # Define for how long time wait super_read_only to be unset
-TIME_OUT = 15*60  # 15 minutes
+TIME_OUT = 15 * 60  # 15 minutes
 
 
 def resolve_gr_local_address(gr_host, server_host, server_port):
@@ -296,7 +296,8 @@ def check(**kwargs):
                         "to automatically rejoin the cluster after reboot. "
                         "Please manually update its value on option file "
                         "'%s'.", str(server), option_file)
-                _LOGGER.info("Updating option file '%s' with Group Replication settings from "
+                _LOGGER.info("Updating option file '%s' with Group "
+                             "Replication settings from "
                              "%s", option_file, str(server))
                 persist_gr_config(option_file, gr_configs)
                 result = True
@@ -469,7 +470,7 @@ def start(server_info, **kwargs):
                                                      'global')
             _LOGGER.debug("super_read_only: %s", super_read_only)
 
-        if (int(super_read_only)):
+        if int(super_read_only):
             raise GadgetError("Timeout waiting for super_read_only to be "
                               "unset after call to start Group Replication "
                               "plugin.")

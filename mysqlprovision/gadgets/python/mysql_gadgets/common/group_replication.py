@@ -814,7 +814,11 @@ def update_option_file(opt_parser, missing_values, update_values,
     :return: True in case the option file was updated, False if not.
     :rtype: boolean
     """
-    _LOGGER.debug("update_values %s", update_values)
+    # Dictionary should not be used as argument for logger, since it duplicates
+    # backslash. Convert to string and convert \\ back to \.
+    dic_msg = str(update_values)
+    dic_msg = dic_msg.replace("\\\\", "\\")
+    _LOGGER.debug("update_values %s", dic_msg)
     # Verify option parser can update file
     if not os.access(opt_parser.filename, os.W_OK):
         return False
@@ -1354,8 +1358,12 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                                   "%s instead of required %s.", var_name, has,
                                   needs_value)
 
+            # Dictionary should not be used as argument for logger, since it
+            # duplicates backslash. Convert to string and convert \\ back to \.
+            dic_msg = str(var_res)
+            dic_msg = dic_msg.replace("\\\\", "\\")
             _LOGGER.debug("The following variables are not compliant with "
-                          "GR requirements: '%s'.", var_res)
+                          "GR requirements: '%s'.", dic_msg)
 
             if var_res:
                 _LOGGER.info("Incompatible server configuration was found.")

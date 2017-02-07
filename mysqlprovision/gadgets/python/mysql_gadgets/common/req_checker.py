@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -288,7 +288,11 @@ class RequirementChecker(object):
                  True if all the variables match the required value.
         :rtype:  dict
         """
-        _LOGGER.debug('Option checking started: %s', var_values)
+        # Dictionary should not be used as argument for logger, since it
+        # duplicates backslash. Convert to string and convert \\ back to \.
+        dic_msg = str(var_values)
+        dic_msg = dic_msg.replace("\\\\", "\\")
+        _LOGGER.debug('Option checking started: %s', dic_msg)
         # Get the correct server to Validate
         server = self._get_server(alt_server=alt_server)
 
@@ -349,7 +353,11 @@ class RequirementChecker(object):
                  True if all the variables match the required value.
         :rtype:  dict
         """
-        _LOGGER.debug('Server config settings checking: %s', var_values)
+        # Dictionary should not be used as argument for logger, since it
+        # duplicates backslash. Convert to string and convert \\ back to \.
+        dic_msg = str(var_values)
+        dic_msg = dic_msg.replace("\\\\", "\\")
+        _LOGGER.debug('Server config settings checking: %s', dic_msg)
         # Get the correct server to Validate, for check the file the server
         # is optional.
         server = self._get_server(alt_server=alt_server, raise_error=False)

@@ -1169,9 +1169,9 @@ def delete_sandbox(**kwargs):
     :type kwargs:       dict
     """
 
-    # Callback function to ignore the file not found errors
-    # On when rmtree is called
-    def on_delete_sandbox_error(func, path, exc_info):
+    def on_delete_sandbox_error(_, path, exc_info):
+        """Callback function to ignore the file not found errors for rmtree.
+        """
         # It will ignore file not found errors on delete operations
         type_, value, traceback = exc_info
 
