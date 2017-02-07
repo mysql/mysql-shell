@@ -304,8 +304,7 @@ void parse_mysql_connstring(const std::string &connstring,
           "Invalid value for '%s' (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] ) ")
           % "").str());
       }
-    } else
-      ssl_info.mode = static_cast<int>(shcore::SslMode::Preferred);
+    }
 
     if (set_defaults) {
       if (user.empty())

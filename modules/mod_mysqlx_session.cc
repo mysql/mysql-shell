@@ -147,9 +147,19 @@ Value BaseSession::connect(const Argument_list &args) {
     // Retrieves the connection data, whatever the source is
     load_connection_data(args);
 
+    unsigned int ssl_mode;
+    if (_ssl_info.skip)
+      ssl_mode = static_cast<int>(shcore::SslMode::Disabled);
+    else {
+      if (_ssl_info.mode)
+        ssl_mode = _ssl_info.mode;
+      else
+        ssl_mode = static_cast<int>(shcore::SslMode::Preferred);
+    }
+
     _session.open(_host, _port, _schema, _user, _password, _ssl_info.ca,
       _ssl_info.cert, _ssl_info.key, _ssl_info.capath, _ssl_info.crl, _ssl_info.crlpath,
-      _ssl_info.tls_version, _ssl_info.ciphers, _ssl_info.skip? 1 : _ssl_info.mode, 60000, _auth_method, true);
+      _ssl_info.tls_version, _ssl_info.ciphers, ssl_mode, 60000, _auth_method, true);
 
     _default_schema = _schema;
     if (!_default_schema.empty())

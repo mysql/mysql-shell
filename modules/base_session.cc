@@ -305,8 +305,6 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
         throw std::runtime_error(
           "Invalid value for mode (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
       }
-    } else {
-      _ssl_info.mode = SSL_MODE_PREFERRED;
     }
 
     if (options->has_key(kAuthMethod))

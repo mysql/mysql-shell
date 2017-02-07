@@ -728,8 +728,7 @@ void Uri_parser::normalize_ssl_mode() {
         "Invalid value for '%s' (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] ) ")
         % "").str());
     }
-  } else
-    _data->_ssl_mode = static_cast<int>(shcore::SslMode::Preferred);
+  }
 }
 
 bool Uri_parser::input_contains(const std::string& what, size_t index) {

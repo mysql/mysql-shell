@@ -288,7 +288,11 @@ bool Connection::setup_ssl(const struct shcore::SslInfo& ssl_info) {
   if (!ssl_info.key.empty())
     mysql_options(_mysql, MYSQL_OPT_SSL_KEY, ssl_info.key.c_str());
 
-  value = ssl_info.mode;
+  if (ssl_info.mode)
+    value = ssl_info.mode;
+  else
+    value = static_cast<int>(shcore::SslMode::Preferred);
+
   mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
 
   return true;

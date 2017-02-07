@@ -37,7 +37,7 @@ struct SHCORE_PUBLIC SslInfo
 {
   SslInfo() {
     skip = true;
-    mode = 2; // Default: PREFERRED
+    mode = 0;
     ca = "";
     cert = "";
     key = "";
@@ -61,7 +61,7 @@ struct SHCORE_PUBLIC SslInfo
   std::string key;
   bool has_data() {
     return skip == false ||
-      mode != 2 ||
+      mode != 0 ||
       !ca.empty() ||
       !capath.empty() ||
       !crl.empty() ||
@@ -127,5 +127,5 @@ const std::string kAuthMethod = "authMethod";
 
 };
 
-#endif /* __mysh__utils_connection__ */ 
+#endif /* __mysh__utils_connection__ */
 
