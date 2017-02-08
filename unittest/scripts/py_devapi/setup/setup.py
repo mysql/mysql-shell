@@ -178,33 +178,52 @@ def start_sandbox(params):
     started = False
     print 'failed starting sandbox at %s : %s' % (port, err.message)
 
-    if err.message.index("Cannot start MySQL sandbox for the given port because it does not exist.") != -1:
+    if err.message.find("Cannot start MySQL sandbox for the given port because it does not exist.") != -1:
       raise;
 
 
   return started;
 
+def cleanup_sandbox(port):
+    print 'Stopping the sandbox at %s to delete it...' % port
+    try:
+      stop_options = {}
+      stop_options['password'] = 'root'
+      if __sandbox_dir != '':
+        stop_options['sandboxDir'] = __sandbox_dir
+
+      dba.stop_sandbox_instance(port, stop_options)
+    except Exception, err:
+      print err.message
+      pass
+
+    print 'Deleting the sandbox at %s' % port
+    try:
+      options = {}
+      if __sandbox_dir != '':
+        options['sandboxDir'] = __sandbox_dir
+
+      dba.delete_sandbox_instance(port, options)
+    except Exception, err:
+      print err.message
+      pass
 
 def reset_or_deploy_sandbox(port):
   deployed_here = False;
-
-  options = {}
-  if __sandbox_dir != '':
-    options['sandboxDir'] = __sandbox_dir
-
 
   # Checks if the sandbox is up and running
   connected = connect_to_sandbox([port])
 
   start = False
-  start_attempts = 1
   reboot = False
   delete = False
 
   if (connected):
     # Verifies whether the sandbox requires to be rebooted (non standalone)
     try:
+      print 'verifying for cluster existence...'
       c = dba.get_cluster()
+      print 'cluster found, reboot required...'
       reboot = True
     except Exception, err:
       print "unable to get cluster from sandbox at %s: %s" % (port, err.message)
@@ -220,16 +239,20 @@ def reset_or_deploy_sandbox(port):
   if reboot:
     connected = False
 
-    print 'Killing sandbox at: %s' % port
+    print 'Stopping sandbox at: %s' % port
 
     try:
-      dba.kill_sandbox_instance(port, options)
+      stop_options = {}
+      stop_options['password'] = 'root'
+      if __sandbox_dir != '':
+        stop_options['sandboxDir'] = __sandbox_dir
+
+      dba.stop_sandbox_instance(port, stop_options)
     except Exception, err:
       print err.message
       pass
 
     start = True
-    start_attempts = 10
 
   # Start attempt is done either for reboot or if
   # connection was unsuccessful
@@ -237,31 +260,21 @@ def reset_or_deploy_sandbox(port):
     print 'Starting sandbox at: %s' % port
 
     try:
-      started = retry(start_attempts, 2, start_sandbox, [port]);
+      started = retry(10, 2, start_sandbox, [port]);
 
       if started:
         print 'Connecting to sandbox at: %s' % port
         connected = retry(10, 2, connect_to_sandbox, [port])
-
-      if not connected:
-        delete = True
     except Exception, err:
-      pass #NOOP, failed because the sandbox does not exist
+      print err.message
+      pass
+
+    if not connected:
+      delete = True
 
   # delete is needed if the start failed
   if delete:
-    try:
-      dba.kill_sandbox_instance(port, options)
-    except Exception, err:
-      print err.message
-      pass
-
-    try:
-      dba.delete_sandbox_instance(port, options)
-    except Exception, err:
-      print err.message
-      pass
-
+    cleanup_sandbox(port)
 
   # If the instance is up and running, we just drop the metadata
   if connected:
@@ -275,6 +288,11 @@ def reset_or_deploy_sandbox(port):
   # Otherwise a full deployment is done
   else:
     print 'Deploying instance'
+
+    options = {}
+    if __sandbox_dir != '':
+      options['sandboxDir'] = __sandbox_dir
+
     options['password'] = 'root'
     options['allowRootFrom'] = '%'
 
@@ -289,14 +307,6 @@ def reset_or_deploy_sandboxes():
   deploy3 = reset_or_deploy_sandbox(__mysql_sandbox_port3)
 
   return deploy1 or deploy2 or deploy3
-
-def cleanup_sandbox(port):
-  options = {}
-  if __sandbox_dir != '':
-    options['sandboxDir'] = __sandbox_dir
-
-  dba.kill_sandbox_instance(port, options)
-  dba.delete_sandbox_instance(port, options)
 
 def cleanup_sandboxes(deployed_here):
   if deployed_here:

@@ -108,18 +108,22 @@ cluster.describe()
 
 #@<OUT> Quorumless Cluster : status
 cluster.status()
-session.close()
 
 #@ Preparation for unmanaged instance tests
-reset_or_deploy_sandbox(__mysql_sandbox_port1)
-reset_or_deploy_sandbox(__mysql_sandbox_port2)
+# Start instance 2
+if __sandbox_dir:
+  dba.start_sandbox_instance(__mysql_sandbox_port2, {'sandboxDir':__sandbox_dir})
+else:
+  dba.start_sandbox_instance(__mysql_sandbox_port2)
 
-shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandbox_port1, 'password':'root'})
 
 if __have_ssl:
-  cluster = dba.create_cluster('temporal', {'memberSslMode': 'REQUIRED'})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'}, {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('temporal')
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
+
+wait_slave_state(cluster, uri2, ["ONLINE"])
 
 dba.drop_metadata_schema({'force': True})
 

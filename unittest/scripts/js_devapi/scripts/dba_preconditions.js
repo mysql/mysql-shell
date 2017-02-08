@@ -109,18 +109,22 @@ cluster.describe();
 
 //@<OUT> Quorumless Cluster : status
 cluster.status();
-session.close();
 
 //@ Preparation for unmanaged instance tests
-reset_or_deploy_sandbox(__mysql_sandbox_port1);
-reset_or_deploy_sandbox(__mysql_sandbox_port2);
+// Start instance 2
+if (__sandbox_dir)
+  dba.startSandboxInstance(__mysql_sandbox_port2, {sandboxDir:__sandbox_dir});
+else
+  dba.startSandboxInstance(__mysql_sandbox_port2);
 
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root'});
 
 if (__have_ssl)
-  var cluster = dba.createCluster('temporal', {memberSslMode: 'REQUIRED'});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'}, {memberSslMode: 'REQUIRED'});
 else
-  var cluster = dba.createCluster('temporal');
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
+
+wait_slave_state(cluster, uri2, "ONLINE");
 
 dba.dropMetadataSchema({force:true});
 

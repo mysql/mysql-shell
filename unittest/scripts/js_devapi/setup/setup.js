@@ -187,28 +187,53 @@ function start_sandbox(params) {
   return started;
 }
 
+function cleanup_sandbox(port) {
+
+    println ('Stopping the sandbox at ' + port + ' to delete it...');
+    try {
+      stop_options = {}
+      stop_options['password'] = 'root';
+      if (__sandbox_dir != '')
+        stop_options['sandboxDir'] = __sandbox_dir;
+
+      dba.stopSandboxInstance(port, stop_options);
+    } catch (err) {
+      println(err.message);
+    }
+
+    println ('Deleting the sandbox at ' + port);
+    try {
+      options = {}
+      if (__sandbox_dir != '')
+        options['sandboxDir'] = __sandbox_dir;
+
+      dba.deleteSandboxInstance(port, options);
+    } catch (err) {
+      println(err.message);
+
+    }
+}
+
 // Smart deployment routines
 function reset_or_deploy_sandbox(port) {
   var deployed_here = false;
-
-  options = {}
-  if (__sandbox_dir != '')
-    options['sandboxDir'] = __sandbox_dir;
 
   //  Checks if the sandbox is up and running
   var connected = connect_to_sandbox([port]);
 
   // If it is already part of a cluster, a reboot will be required
   var start = false;
-  var start_attempts = 1;
   var reboot = false;
   var delete_sb = false;
 
   if (connected) {
     // Verifies whether the sandbox requires to be rebooted (non standalone)
     try {
+      println('verifying for cluster existence...');
       var c = dba.getCluster();
+      println('cluster found, reboot required...');
       reboot = true;
+
     } catch(err) {
       println('unable to get cluster from sandbox at ' + port + ': ' + err.message);
 
@@ -224,11 +249,19 @@ function reset_or_deploy_sandbox(port) {
   if (reboot) {
     connected = false;
 
-    println('Killing sandbox at: ' + port);
-    try {dba.killSandboxInstance(port, options);} catch (err) {println(err.message);}
+    println('Stopping sandbox at: ' + port);
+    try {
+      stop_options = {}
+      stop_options['password'] = 'root';
+      if (__sandbox_dir != '')
+        stop_options['sandboxDir'] = __sandbox_dir;
+
+      dba.stopSandboxInstance(port, stop_options);
+    } catch (err) {
+      println(err.message);
+    }
 
     start = true;
-    start_attempts = 10;
   }
 
   // Start attempt is done either for reboot or if
@@ -237,24 +270,22 @@ function reset_or_deploy_sandbox(port) {
     println('Starting sandbox at: ' + port);
 
     try {
-      var started = retry(start_attempts, 2, start_sandbox, [port]);
+      var started = retry(10, 2, start_sandbox, [port]);
       if (started) {
         println('Connecting to sandbox at: ' + port);
         connected = retry(10, 2, connect_to_sandbox, [port]);
       }
-
-      if (!connected)
-        delete_sb = true;
     } catch (err) {
-      // NOOP, failed to start because it does not exist
+      println(err.message);
     }
+
+    if (!connected)
+      delete_sb = true;
   }
 
   // delete is needed if the start failed
-  if (delete_sb) {
-    try {dba.killSandboxInstance(port, options);} catch (err) {println(err.message);}
-    try {dba.deleteSandboxInstance(port, options);} catch (err) {println(err.message);}
-  }
+  if (delete_sb)
+    cleanup_sandbox(port);
 
   // If the instance is up and running, we just drop the metadata
   if (connected) {
@@ -267,6 +298,10 @@ function reset_or_deploy_sandbox(port) {
   } else {
     // Otherwise a full deployment is done
     println('Deploying instance');
+    options = {}
+    if (__sandbox_dir != '')
+      options['sandboxDir'] = __sandbox_dir;
+
     options['password'] = 'root';
     options['allowRootFrom'] = '%';
 
@@ -283,15 +318,6 @@ function reset_or_deploy_sandboxes() {
   var deploy3 = reset_or_deploy_sandbox(__mysql_sandbox_port3);
 
   return deploy1 || deploy2 || deploy3;
-}
-
-function cleanup_sandbox(port) {
-  options = {}
-  if (__sandbox_dir != '')
-    options['sandboxDir'] = __sandbox_dir;
-
-  dba.killSandboxInstance(port, options);
-  dba.deleteSandboxInstance(port, options);
 }
 
 function cleanup_sandboxes(deployed_here) {

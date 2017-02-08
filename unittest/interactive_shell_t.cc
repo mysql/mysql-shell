@@ -145,7 +145,6 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
 TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   // Session type determined from connection success
   {
-    enable_debug();
     execute("\\connect " + _uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
@@ -266,7 +265,6 @@ TEST_F(Interactive_shell_test, shell_function_connect_classic) {
 TEST_F(Interactive_shell_test, shell_function_connect_auto) {
   // Session type determined from connection success
   {
-    enable_debug();
     execute("shell.connect('" + _uri + "');");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
