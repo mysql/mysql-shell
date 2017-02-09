@@ -322,8 +322,11 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
 
+  std::string executed_input = "mysql---> " + _code;
+  output_handler.debug_print(executed_input);
+
   if (debug || g_test_debug)
-    std::cout << "---> " << code << std::endl;
+    std::cout << executed_input << std::endl;
 
   _interactive_shell->process_line(_code);
 

@@ -431,7 +431,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
   args.ensure_count(0, 2, get_function_name("rebootClusterFromCompleteOutage").c_str());
 
   shcore::Value ret_val;
-  std::string cluster_name;
+  std::string cluster_name, password, user;
   shcore::Value::Map_type_ref options;
   bool confirm_rescan_rejoins = true, confirm_rescan_removes = true;
   shcore::Value::Array_type_ref confirmed_rescan_removes(new shcore::Value::Array_type());
@@ -456,11 +456,38 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
     if (options) {
       opt_map = *options;
 
+      opt_map.ensure_keys({}, mysqlsh::dba::Dba::_reboot_cluster_opts, "the options");
+
       if (opt_map.has_key("removeInstances"))
         confirm_rescan_removes = false;
 
       if (opt_map.has_key("rejoinInstances"))
         confirm_rescan_rejoins = false;
+
+      // Check if the password is specified on the options
+      if (opt_map.has_key("password"))
+        password = opt_map.string_at("password");
+      else if (opt_map.has_key("dbPassword"))
+        password = opt_map.string_at("dbPassword");
+
+      // check if the user is specified on the options and it not prompt it
+      if (opt_map.has_key("user"))
+        user = opt_map.string_at("user");
+      else if (opt_map.has_key("dbUser"))
+        user = opt_map.string_at("dbUser");
+    }
+
+    if (default_cluster) {
+      println("Reconfiguring the default cluster from complete outage...");
+    } else {
+      // Validate the cluster_name
+      if (cluster_name.empty())
+        throw Exception::argument_error("The cluster name cannot be empty.");
+
+      if (!shcore::is_valid_identifier(cluster_name))
+        throw Exception::argument_error("The cluster name must be a valid identifier.");
+
+      println("Reconfiguring the cluster '" + cluster_name + "' from complete outage...");
     }
 
     // Verify the status of the instances
@@ -470,6 +497,72 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
     std::vector<std::pair<std::string, std::string>> instances_status
         = get_replicaset_instances_status(&cluster_name, options);
 
+    // Validate the rejoinInstances list if provided
+    if (!confirm_rescan_rejoins) {
+      rejoin_instances_ref = opt_map.array_at("rejoinInstances");
+
+      for (auto value : *rejoin_instances_ref.get()) {
+        std::string instance = value.as_string();
+
+        shcore::Argument_list args;
+        args.push_back(shcore::Value(instance));
+
+        try {
+          auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::NONE);
+        }
+        catch (std::exception &e) {
+          std::string error(e.what());
+          throw shcore::Exception::argument_error("Invalid value '" + instance + "' for 'rejoinInstances': " +
+                                                  error);
+        }
+
+        auto it = std::find_if(instances_status.begin(), instances_status.end(),
+                  [&instance](const std::pair<std::string, std::string> &p)
+                  { return p.first == instance; });
+
+        if (it != instances_status.end()) {
+          if (!(it->second.empty())) {
+            throw Exception::runtime_error("The instance '" + instance + "' is not reachable");
+          }
+        } else {
+          throw Exception::runtime_error("The instance '" + instance + "' does not "
+                                         "belong to the cluster or is the seed instance.");
+        }
+      }
+    }
+
+    // Validate the removeInstances list if provided
+    if (!confirm_rescan_removes) {
+      remove_instances_ref = opt_map.array_at("removeInstances");
+
+      for (auto value : *remove_instances_ref.get()) {
+        std::string instance = value.as_string();
+
+        shcore::Argument_list args;
+        args.push_back(shcore::Value(instance));
+
+        try {
+          auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::NONE);
+        }
+        catch (std::exception &e) {
+          std::string error(e.what());
+          throw shcore::Exception::argument_error("Invalid value '" + instance + "' for 'removeInstances': " +
+                                                  error);
+        }
+
+        auto it = std::find_if(instances_status.begin(), instances_status.end(),
+                  [&instance](const std::pair<std::string, std::string> &p)
+                  { return p.first == instance; });
+
+        if (it == instances_status.end()) {
+          throw Exception::runtime_error("The instance '" + instance + "' does not "
+                                         "belong to the cluster or is the seed instance.");
+        }
+      }
+    }
+
+    // Only after a validation of the list (if provided)
+    // we can move forward to the interaction
     if (confirm_rescan_rejoins) {
       for (auto &value : instances_status) {
         std::string instance_address = value.first;
@@ -488,29 +581,9 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
         println("The instance '" + instance_address + "' was part of the cluster configuration.");
 
         std::string answer;
-        if (prompt("Would you like to rejoin it to the cluster? [Y|n]: ", answer)) {
-          if (!answer.compare("y") || !answer.compare("Y") || answer.empty())
+        if (prompt("Would you like to rejoin it to the cluster? [y|N]: ", answer)) {
+          if (!answer.compare("y") || !answer.compare("Y"))
             confirmed_rescan_rejoins->push_back(shcore::Value(instance_address));
-        }
-      }
-    } else {
-      // Validate the rejoinInstance list
-      rejoin_instances_ref = opt_map.array_at("rejoinInstances");
-
-      for (auto value : *rejoin_instances_ref.get()) {
-        std::string instance = value.as_string();
-
-        auto it = std::find_if(instances_status.begin(), instances_status.end(),
-                  [&instance](const std::pair<std::string, std::string> &p)
-                  { return p.first == instance; });
-
-        if (it != instances_status.end()) {
-          if (!(it->second.empty())) {
-            throw Exception::runtime_error("The instance '" + instance + "' is not reachable");
-          }
-        } else {
-          throw Exception::runtime_error("The instance '" + instance + "' does not "
-                                         "belong to the cluster.");
         }
       }
     }
@@ -529,35 +602,14 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
         println("Could not open a connection to '" + instance_address + "': '" + instance_status + "'");
 
         std::string answer;
-        if (prompt("Would you like to remove it from the cluster's metadata? [Y|n]: ", answer)) {
-          if (!answer.compare("y") || !answer.compare("Y") || answer.empty())
+        if (prompt("Would you like to remove it from the cluster's metadata? [y|N]: ", answer)) {
+          if (!answer.compare("y") || !answer.compare("Y"))
             confirmed_rescan_removes->push_back(shcore::Value(instance_address));
-        }
-      }
-    } else {
-      // Validate the removeInstances list
-      remove_instances_ref = opt_map.array_at("removeInstances");
-
-      for (auto value : *remove_instances_ref.get()) {
-        std::string instance = value.as_string();
-
-        auto it = std::find_if(instances_status.begin(), instances_status.end(),
-                  [&instance](const std::pair<std::string, std::string> &p)
-                  { return p.first == instance; });
-
-        if (it == instances_status.end()) {
-          throw Exception::runtime_error("The instance '" + instance + "' does not "
-                                         "belong to the cluster.");
         }
       }
     }
 
     println();
-
-    if (default_cluster)
-      println("Reconfiguring the default cluster from complete outage...");
-    else
-      println("Reconfiguring the cluster '" + cluster_name + "' from complete outage...");
 
     if (!confirmed_rescan_rejoins->empty() || !confirmed_rescan_removes->empty()) {
       shcore::Argument_list new_args;
@@ -576,6 +628,12 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
       if (!confirm_rescan_rejoins)
         (*options)["rejoinInstances"] = shcore::Value(opt_map.array_at("rejoinInstances"));
 
+      if (!user.empty())
+        (*options)["user"] = shcore::Value(user);
+
+      if (!password.empty())
+        (*options)["password"] = shcore::Value(password);
+
       new_args.push_back(shcore::Value(cluster_name));
       new_args.push_back(shcore::Value(options));
       ret_val = call_target("rebootClusterFromCompleteOutage", new_args);
@@ -589,7 +647,9 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rebootClusterFromCompleteOutage"));
 
-  return ret_val;
+  Interactive_dba_cluster *cluster = new Interactive_dba_cluster(this->_shell_core);
+  cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(ret_val.as_object()));
+  return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 }
 
 void Global_dba::print_validation_results(const shcore::Value::Map_type_ref& result) {

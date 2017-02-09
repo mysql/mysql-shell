@@ -50,6 +50,7 @@ std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "pass
 std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password", "dbPassword"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "memberSslMode", "ipWhitelist"};
+std::set<std::string> Dba::_reboot_cluster_opts = {"user", "dbUser", "password", "dbPassword", "removeInstances", "rejoinInstances"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL X AdminAPI.");
@@ -1321,8 +1322,8 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
 }
 
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF, "Reboots a cluster from complete outage.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM, "@param clusterName Optional The name of the cluster to be rebooted.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1, "@param options dictionary with options that modify the behavior of this function.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM, "@param name Optional The name of the cluster to be rebooted.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1, "@param options Optional dictionary with options that modify the behavior of this function.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN, "@return The rebooted cluster object.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL, "The options dictionary can contain the next values:");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1, "@li password: The password used for the instances sessions required operations.");
@@ -1361,13 +1362,15 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
 
   shcore::Value ret_val;
   bool default_cluster = false;
-  std::string cluster_name, password, user, group_replication_group_name, port, host, active_session_address;
+  std::string cluster_name, password, user, group_replication_group_name,
+              port, host, instance_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
   std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
   Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
-  std::vector<std::string> remove_instances_list, rejoin_instances_list;
+  std::vector<std::string> remove_instances_list, rejoin_instances_list,
+                           instances_lists_intersection;
   std::shared_ptr<shcore::Value::Array_type> online_instances;
 
   check_preconditions("rebootClusterFromCompleteOutage");
@@ -1386,6 +1389,11 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
     auto instance_session(_metadata_storage->get_dba()->get_active_session());
 
     Value::Map_type_ref current_session_options = get_connection_data(instance_session->uri(), false);
+
+    // Get the current session instance address
+    port = std::to_string(current_session_options->get_int("port"));
+    host = current_session_options->get_string("host");
+    instance_session_address = host + ":" + port;
 
     if (options) {
       shcore::Argument_map opt_map(*options);
@@ -1421,18 +1429,47 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
     // And if so add them to simple vectors so the check for types is done
     // before moving on in the function logic
     if (remove_instances_ref) {
-      for (auto value : *remove_instances_ref.get())
+      for (auto value : *remove_instances_ref.get()) {
+        // Check if seed instance is present on the list
+        if (value.as_string() == instance_session_address)
+          throw shcore::Exception::argument_error("The current session instance "
+                "cannot be used on the 'removeInstances' list.");
+
         remove_instances_list.push_back(value.as_string());
+      }
     }
 
     if (rejoin_instances_ref) {
-      for (auto value : *rejoin_instances_ref.get())
+      for (auto value : *rejoin_instances_ref.get()) {
+        // Check if seed instance is present on the list
+        if (value.as_string() == instance_session_address)
+          throw shcore::Exception::argument_error("The current session instance "
+                "cannot be used on the 'rejoinInstances' list.");
+
         rejoin_instances_list.push_back(value.as_string());
+      }
+    }
+
+    // Check if there is an intersection of the two lists.
+    // Sort the vectors because set_intersction works on sorted collections
+    std::sort(remove_instances_list.begin(), remove_instances_list.end());
+    std::sort(rejoin_instances_list.begin(), rejoin_instances_list.end());
+
+    std::set_intersection(remove_instances_list.begin(), remove_instances_list.end(),
+                          rejoin_instances_list.begin(), rejoin_instances_list.end(),
+                          std::back_inserter(instances_lists_intersection));
+
+    if (!instances_lists_intersection.empty()) {
+      std::string list;
+
+      list = shcore::join_strings(instances_lists_intersection, ", ");
+
+      throw shcore::Exception::argument_error("The following instances: '" + list +
+                "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
     }
 
     // Getting the cluster from the metadata already complies with:
     // 1. Ensure that a Metadata Schema exists on the current session instance.
-    // 2. Ensure that the current session instance exists on the Metadata Schema
     // 3. Ensure that the provided cluster identifier exists on the Metadata Schema
     if (default_cluster) {
       cluster = _metadata_storage->get_default_cluster();
@@ -1455,6 +1492,52 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
 
       // Get the default replicaset
       default_replicaset = cluster->get_default_replicaset();
+
+      // 2. Ensure that the current session instance exists on the Metadata Schema
+      if (!_metadata_storage->is_instance_on_replicaset(
+            default_replicaset->get_id(), instance_session_address))
+        throw Exception::runtime_error("The current session instance does not belong "
+                                       "to the cluster: '" + cluster->get_name() + "'.");
+
+      // Ensure that all of the instances specified on the 'removeInstances' list exist
+      // on the Metadata Schema and are valid
+      for (const auto &value : remove_instances_list) {
+        shcore::Argument_list args;
+        args.push_back(shcore::Value(value));
+
+        try {
+          auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::NONE);
+        }
+        catch (std::exception &e) {
+          std::string error(e.what());
+          throw shcore::Exception::argument_error("Invalid value '" + value + "' for 'removeInstances': " +
+                                                  error);
+        }
+
+        if (!_metadata_storage->is_instance_on_replicaset(default_replicaset->get_id(), value))
+          throw Exception::runtime_error("The instance '" + value + "' does not belong "
+                                         "to the cluster: '" + cluster->get_name() + "'.");
+      }
+
+      // Ensure that all of the instances specified on the 'rejoinInstances' list exist
+      // on the Metadata Schema and are valid
+      for (const auto &value : rejoin_instances_list) {
+        shcore::Argument_list args;
+        args.push_back(shcore::Value(value));
+
+        try {
+          auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::NONE);
+        }
+        catch (std::exception &e) {
+          std::string error(e.what());
+          throw shcore::Exception::argument_error("Invalid value '" + value + "' for 'rejoinInstances': " +
+                                                  error);
+        }
+
+        if (!_metadata_storage->is_instance_on_replicaset(default_replicaset->get_id(), value))
+          throw Exception::runtime_error("The instance '" + value + "' does not belong "
+                                         "to the cluster: '" + cluster->get_name() + "'.");
+      }
     } else {
       std::string message;
       if (default_cluster)
@@ -1662,6 +1745,8 @@ void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &
   if (options) {
     shcore::Argument_map opt_map(*options);
 
+    opt_map.ensure_keys({}, mysqlsh::dba::Dba::_reboot_cluster_opts, "the options");
+
     // Check if the password is specified on the options and if not prompt it
     if (opt_map.has_key("password"))
       password = opt_map.string_at("password");
@@ -1688,7 +1773,7 @@ void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &
   switch (type) {
     case GRInstanceType::InnoDBCluster:
       throw Exception::runtime_error("The cluster's instance '" + active_session_address + "' belongs "
-                                       "to an InnoDB Cluster and is reachable. Please use " +
+                                       "to an InnoDB Cluster and is reachable. Please use <Cluster>." +
                                        get_member_name("forceQuorumUsingPartitionOf", naming_style) +
                                        "() to restore the quorum loss.");
 

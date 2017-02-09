@@ -1850,8 +1850,12 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
 
 void ReplicaSet::remove_instances(const std::vector<std::string> &remove_instances) {
   if (!remove_instances.empty()) {
-
     for (auto instance : remove_instances) {
+      // Validate instance address
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(instance));
+      auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
+
       // verify if the instance is on the metadata
       if (_metadata_storage->is_instance_on_replicaset(_id, instance)) {
         Value::Map_type_ref options(new shcore::Value::Map_type);
@@ -1868,8 +1872,7 @@ void ReplicaSet::remove_instances(const std::vector<std::string> &remove_instanc
       } else {
         std::string message = "The instance '" + instance + "'";
         message.append(" does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
-        message.append("Skipping removal.");
-        log_warning("%s", message.c_str());
+        throw shcore::Exception::runtime_error(message);
       }
     }
   }
@@ -1908,6 +1911,11 @@ void ReplicaSet::rejoin_instances(const std::vector<std::string> &rejoin_instanc
     }
 
     for (auto instance : rejoin_instances) {
+      // Validate instance address
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(instance));
+      auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
+
       // verify if the instance is on the metadata
       if (_metadata_storage->is_instance_on_replicaset(_id, instance)) {
         shcore::Argument_list args;
@@ -1940,7 +1948,7 @@ void ReplicaSet::rejoin_instances(const std::vector<std::string> &rejoin_instanc
       } else {
         std::string msg = "The instance '" + instance + "' does not "
                           "belong to the cluster. Skipping rejoin to the Cluster.";
-        log_warning("%s", msg.c_str());
+        throw shcore::Exception::runtime_error(msg);
       }
     }
   }

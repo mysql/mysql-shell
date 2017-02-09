@@ -26,6 +26,7 @@ wait_slave_state(cluster, uri3, "ONLINE");
 
 //@ Dba.rebootClusterFromCompleteOutage errors
 dba.rebootClusterFromCompleteOutage("dev")
+dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"})
 
 // Kill all the instances
 

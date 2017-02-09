@@ -26,6 +26,7 @@ wait_slave_state(cluster, uri3, "ONLINE")
 
 #@ Dba.rebootClusterFromCompleteOutage errors
 dba.reboot_cluster_from_complete_outage("")
+dba.reboot_cluster_from_complete_outage("dev", {"invalidOpt": "foobar"})
 dba.reboot_cluster_from_complete_outage("dev2")
 dba.reboot_cluster_from_complete_outage("dev")
 

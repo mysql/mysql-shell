@@ -45,6 +45,7 @@ public:
   static std::set<std::string> _stop_instance_opts;
   static std::set<std::string> _default_local_instance_opts;
   static std::set<std::string> _create_cluster_opts;
+  static std::set<std::string> _reboot_cluster_opts;
 
   virtual std::string class_name() const { return "Dba"; };
 
