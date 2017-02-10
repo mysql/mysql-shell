@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -52,6 +52,7 @@ struct Help_register {
   Help_register(const std::string &token, const std::string &data);
 };
 
+std::vector<std::string> SHCORE_PUBLIC resolve_help_text(const std::vector<std::string>& prefixes, const std::string& suffix);
 std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string& token);
 std::string SHCORE_PUBLIC get_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname);
 std::string SHCORE_PUBLIC get_property_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname);

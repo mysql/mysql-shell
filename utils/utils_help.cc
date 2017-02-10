@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -49,6 +49,20 @@ Help_register::Help_register(const std::string &token, const std::string &data) 
   shcore::Shell_help::get()->add_help(token, data);
 };
 
+std::vector<std::string> resolve_help_text(const std::vector<std::string>& prefixes, const std::string& suffix) {
+
+  std::vector<std::string> help_text;
+
+  for(auto help_prefix: prefixes) {
+    help_text = get_help_text(help_prefix + suffix);
+    if (!help_text.empty())
+      break;
+  }
+
+  return help_text;
+}
+
+
 std::vector<std::string> get_help_text(const std::string& token) {
   std::string real_token;
   for (auto c : token)
@@ -72,7 +86,17 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
 
   std::string fname = shcore::get_member_name(bfname, style);
 
-  auto params = get_help_text(class_name + "_" + bfname + "_PARAM");
+  std::string parent_classes;
+  std::vector<std::string> parents = get_help_text(class_name + "_PARENTS");
+
+  if (!parents.empty())
+    parent_classes = parents[0];
+
+  std::vector<std::string> help_prefixes = shcore::split_string(parent_classes, ",");
+  help_prefixes.insert(help_prefixes.begin(), class_name);
+
+
+  auto params = resolve_help_text(help_prefixes, "_" + bfname + "_PARAM");
 
   if (!params.empty()) {
     std::vector<std::string> fpnames; // Parameter names as they will look in the signature
@@ -164,7 +188,7 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
     ret_val.append("\n");
   }
 
-  auto returns = get_help_text(class_name + "_" + bfname + "_RETURNS");
+  auto returns = resolve_help_text(help_prefixes, "_" + bfname + "_RETURNS");
   if (!returns.empty()) {
     ret_val.append("RETURNS\n\n");
     // Removes the @returns tag
@@ -172,7 +196,7 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
     ret_val.append(shcore::format_markup_text(returns, 80, 0) + "\n\n");
   }
 
-  auto details = get_help_text(class_name + "_" + bfname + "_DETAIL");
+  auto details = resolve_help_text(help_prefixes, "_" + bfname + "_DETAIL");
 
   if (!details.empty()) {
     ret_val.append("DESCRIPTION\n\n");
@@ -189,7 +213,17 @@ std::string get_property_help(shcore::NamingStyle style, const std::string& clas
 
   std::string fname = shcore::get_member_name(bpname, style);
 
-  auto details = get_help_text(class_name + "_" + bpname + "_DETAIL");
+  std::string parent_classes;
+  std::vector<std::string> parents = get_help_text(class_name + "_PARENTS");
+
+  if (!parents.empty())
+    parent_classes = parents[0];
+
+  std::vector<std::string> help_prefixes = shcore::split_string(parent_classes, ",");
+  help_prefixes.insert(help_prefixes.begin(), class_name);
+
+
+  auto details = resolve_help_text(help_prefixes, "_" + bpname + "_DETAIL");
 
   if (!details.empty()) {
     ret_val.append("DESCRIPTION\n\n");
@@ -200,6 +234,9 @@ std::string get_property_help(shcore::NamingStyle style, const std::string& clas
   return ret_val;
 };
 
+// Note: So far no chained functions are inherited, instead they belong to final parent_classes
+//       Being that the case, there is no need for help resolution in class hierarchy and for that
+//       reason the calls to get_help_text were not replaced by calls to resolve_help_text
 std::string get_chained_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname) {
   std::string ret_val;
 

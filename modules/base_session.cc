@@ -29,6 +29,7 @@
 
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
+#include "utils/utils_help.h"
 #include "mysqlxtest_utils.h"
 
 #include <boost/lexical_cast.hpp>
@@ -150,16 +151,9 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const {
   dumper.end_object();
 }
 
-#if DOXYGEN_CPP
-/**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
- *
- * \li uri: returns a String object with connection information in URI format.
- */
-#endif
+REGISTER_HELP(SHELLBASESESSION_URI_BRIEF, "Retrieves the URI for the current session.");
+REGISTER_HELP(SHELLBASESESSION_GETURI_BRIEF, "Retrieves the URI for the current session.");
+REGISTER_HELP(SHELLBASESESSION_GETURI_RETURN, "@return A string representing the connection data.");
 shcore::Value ShellBaseSession::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
@@ -345,6 +339,9 @@ std::string ShellBaseSession::get_quoted_name(const std::string& name) {
   return quoted_name;
 }
 
+REGISTER_HELP(SHELLBASESESSION_ISOPEN_BRIEF, "Verifies if the session is still open.");
+REGISTER_HELP(SHELLBASESESSION_ISOPEN_RETURNS, "@returns A boolean value indicating if the session is still open.");
+REGISTER_HELP(SHELLBASESESSION_ISOPEN_DETAIL, "Returns true if the session is still open and false otherwise.");
 shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("isOpen").c_str());
 

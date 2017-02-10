@@ -20,6 +20,9 @@ validateMember(sessionMembers, 'defaultSchema');
 validateMember(sessionMembers, 'uri');
 validateMember(sessionMembers, 'currentSchema');
 
+//@<OUT> Session: help
+classicSession.help()
+
 //@ ClassicSession: validate dynamic members for system schemas
 var sessionMembers = dir(classicSession)
 validateNotMember(sessionMembers, 'mysql');

@@ -11,9 +11,50 @@
 |uri: OK|
 |current_schema: OK|
 
+#@<OUT> Session: help
+Provides facilities to execute queries and retrieve database objects.
+
+The following properties are currently supported.
+
+ - uri            Retrieves the URI for the current session.
+ - default_schema Retrieves the ClassicSchema configured as default for the
+                  session.
+ - current_schema Retrieves the ClassicSchema that is active as current on the
+                  session.
+
+
+The following functions are currently supported.
+
+ - close              Closes the internal connection to the MySQL Server held
+                      on this session object.
+ - commit             Commits all the operations executed after a call to
+                      startTransaction().
+ - create_schema      Creates a schema on the database and returns the
+                      corresponding object.
+ - drop_schema        Drops the schema with the specified name.
+ - drop_table         Drops a table from the specified schema.
+ - drop_view          Drops a view from the specified schema.
+ - get_current_schema Retrieves the ClassicSchema that is active as current on
+                      the session.
+ - get_default_schema Retrieves the ClassicSchema configured as default for the
+                      session.
+ - get_schema         Retrieves a ClassicSchema object from the current session
+                      through it's name.
+ - get_schemas        Retrieves the Schemas available on the session.
+ - get_uri            Retrieves the URI for the current session.
+ - help               Provides help about this class and it's members
+ - is_open            Verifies if the session is still open.
+ - rollback           Discards all the operations executed after a call to
+                      startTransaction().
+ - run_sql            Executes a query and returns the corresponding
+                      ClassicResult object.
+ - set_current_schema Sets the selected schema for this session's connection.
+ - start_transaction  Starts a transaction context on the server.
+
+
 #@ ClassicSession: validate dynamic members for system schemas
 |mysql: OK|
-|information_schema: OK|		
+|information_schema: OK|
 
 #@ ClassicSession: accessing Schemas
 |<ClassicSchema:mysql>|

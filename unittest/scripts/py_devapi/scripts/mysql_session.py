@@ -27,6 +27,9 @@ validateMember(sessionMembers, 'default_schema')
 validateMember(sessionMembers, 'uri')
 validateMember(sessionMembers, 'current_schema')
 
+#@<OUT> Session: help
+classicSession.help()
+
 #@ ClassicSession: validate dynamic members for system schemas
 sessionMembers = dir(classicSession)
 validateNotMember(sessionMembers, 'mysql')

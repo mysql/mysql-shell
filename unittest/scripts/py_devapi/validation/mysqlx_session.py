@@ -11,7 +11,51 @@
 |sql: OK|
 |default_schema: OK|
 |uri: OK|
-|current_schema: OK|		
+|current_schema: OK|
+
+#@<OUT> NodeSession: help
+Enables interaction with an X Protocol enabled MySQL Server, this includes SQL
+Execution.
+
+The following properties are currently supported.
+
+ - uri            Retrieves the URI for the current session.
+ - default_schema Retrieves the Schema configured as default for the session.
+ - current_schema Retrieves the active schema on the session.
+
+
+The following functions are currently supported.
+
+ - close              Closes the session.
+ - commit             Commits all the operations executed after a call to
+                      startTransaction().
+ - create_schema      Creates a schema on the database and returns the
+                      corresponding object.
+ - drop_collection    Drops a collection from the specified schema.
+ - drop_schema        Drops the schema with the specified name.
+ - drop_table         Drops a table from the specified schema.
+ - drop_view          Drops a view from the specified schema.
+ - get_current_schema Retrieves the active schema on the session.
+ - get_default_schema Retrieves the Schema configured as default for the
+                      session.
+ - get_schema         Retrieves a Schema object from the current session
+                      through it's name.
+ - get_schemas        Retrieves the Schemas available on the session.
+ - get_uri            Retrieves the URI for the current session.
+ - help               Provides help about this class and it's members
+ - is_open            Verifies if the session is still open.
+ - quote_name         Escapes the passed identifier.
+ - rollback           Discards all the operations executed after a call to
+                      startTransaction().
+ - set_current_schema Sets the current schema for this session, and returns the
+                      schema object for it.
+ - set_fetch_warnings Enables or disables warning generation.
+ - sql                Creates a SqlExecute object to allow running the received
+                      SQL statement on the target MySQL Server.
+ - start_transaction  Starts a transaction context on the server.
+
+
+
 
 #@ NodeSession: accessing Schemas
 |<Schema:mysql>|

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -255,6 +255,14 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   std::string item;
 
   std::string prefix = class_name();
+  std::string parent_classes;
+  std::vector<std::string> parents = get_help_text(prefix + "_PARENTS");
+
+  if (!parents.empty())
+    parent_classes = parents[0];
+
+  std::vector<std::string> help_prefixes = shcore::split_string(parent_classes, ",");
+  help_prefixes.insert(help_prefixes.begin(), prefix);
 
   if (args.size() == 1)
   item = args.string_at(0);
@@ -262,7 +270,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   ret_val += "\n";
 
   if (!item.empty()) {
-    auto base_name = get_base_name(item);
+    std::string base_name = get_base_name(item);
 
     // Checks for an invalid member
     if (base_name.empty()) {
@@ -271,17 +279,16 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       throw shcore::Exception::argument_error(error);
     }
 
-    // The prefix is increased to include the function/property name
-    prefix.append("_" + base_name);
+    std::string suffix = "_" + base_name;
 
-    auto briefs = get_help_text(prefix + "_BRIEF");
+    auto briefs = resolve_help_text(help_prefixes,  suffix + "_BRIEF");
 
     if (!briefs.empty()) {
       ret_val += shcore::format_text(briefs, 80, 0, true);
       ret_val += "\n";  // Second \n
     }
 
-    auto chain_definition = get_help_text(prefix + "_CHAINED");
+    auto chain_definition = resolve_help_text(help_prefixes, suffix + "_CHAINED");
 
     std::string additional_help;
     if (chain_definition.empty()) {
@@ -322,11 +329,11 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         std::string pname = property->name(shcore::NamingStyle::LowerCamelCase);
 
         // Assuming briefs are one liners for now
-        auto help_text = get_help_text(prefix + "_" + pname + "_BRIEF");
+        auto help_text = resolve_help_text(help_prefixes, "_" + pname + "_BRIEF");
 
         std::string text = " - " + name;
 
-        std::string first_space(text_col - (pname.size() + 3), ' ');
+        std::string first_space(text_col - (name.size() + 3), ' ');
 
         if (!help_text.empty())
           text += first_space + shcore::format_text(help_text, 80, text_col, true);
@@ -361,14 +368,9 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
         std::string fname = function.second->_name[shcore::NamingStyle::LowerCamelCase];
 
-        std::string member_prefix = prefix + "_" + fname;
+        std::string member_suffix = "_" + fname;
 
-        // Uses the replacement prefix if one is defined
-        auto new_prefix = get_help_text(member_prefix);
-        if (new_prefix.size())
-          member_prefix = new_prefix[0];
-
-        auto help_text = get_help_text(member_prefix + "_BRIEF");
+        auto help_text = resolve_help_text(help_prefixes, member_suffix + "_BRIEF");
 
         std::string text = " - " + name;
 
