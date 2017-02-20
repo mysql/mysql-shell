@@ -146,8 +146,10 @@ c2 = dba.get_cluster()
 c2 = dba.get_cluster(5)
 c2 = dba.get_cluster('', 5)
 c2 = dba.get_cluster('')
+c2 = dba.get_cluster('#')
+c2 = dba.get_cluster('over40chars_12345678901234567890123456789')
 c2 = dba.get_cluster('devCluster')
-c2 = dba.get_cluster('devCluster');
+c2 = dba.get_cluster('devCluster')
 
 #@ Dba: get_cluster
 print c2

@@ -27,6 +27,7 @@
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Invalid value for ipWhitelist, string value cannot be empty.
+||Dba.createCluster: The Cluster name can only start with an alphabetic or the '_' character.
 
 //@<OUT> Dba: createCluster with interaction
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
@@ -128,7 +129,10 @@ You can now use it in an InnoDB Cluster.
 
 //@# Dba: getCluster errors
 ||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string
-||Dba.getCluster: The Cluster name cannot be empty
+||Invalid number of arguments in Dba.getCluster, expected 0 to 1 but got 2
+||Dba.getCluster: The Cluster name cannot be empty.
+||Dba.getCluster: The Cluster name can only start with an alphabetic or the '_' character.
+||Dba.getCluster: The Cluster name can not be greater than 40 characters.
 
 //@<OUT> Dba: getCluster with interaction
 <Cluster:devCluster>
