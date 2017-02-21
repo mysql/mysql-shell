@@ -116,7 +116,7 @@
 }
 
 //@ Read Only: Failed preconditions
-||Dba.createCluster: Cluster is already initialized. Use Dba.getCluster() to access it (RuntimeError)
+||Dba.createCluster: Unable to create cluster. The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' already belongs to an InnoDB cluster. Use <Dba>.getCluster() to access it. (RuntimeError)
 ||Dba.dropMetadataSchema: This function is not available through a session to a read only instance (RuntimeError)
 ||Cluster.addInstance: This function is not available through a session to a read only instance (RuntimeError)
 ||Cluster.removeInstance: This function is not available through a session to a read only instance (RuntimeError)
@@ -127,7 +127,7 @@
 ||
 
 //@ Quorumless Cluster: Failed preconditions
-||Dba.createCluster: Cluster is already initialized. Use Dba.getCluster() to access it (RuntimeError)
+||Dba.createCluster: Unable to create cluster. The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use <Dba>.getCluster() to access it. (RuntimeError)
 ||Dba.dropMetadataSchema: There is no quorum to perform the operation
 ||Cluster.addInstance: There is no quorum to perform the operation
 ||Cluster.rejoinInstance: There is no quorum to perform the operation

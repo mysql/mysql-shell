@@ -254,8 +254,14 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       * We must check if there's already a Default Cluster assigned, and if so thrown an exception.
       * And we must check if there's already one Cluster on the MD and if so assign it to Default
       */
-      std::string nice_error = get_function_name("createCluster") + ": Cluster is already initialized. "\
-        "Use " + get_function_name("getCluster") + "() to access it";
+
+      // Get current active session
+      auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
+      auto session = dba->get_active_session();
+
+      std::string nice_error = get_function_name("createCluster") + ": Unable to create cluster. " \
+                               "The instance '"+ session->address() +"' already belongs to an InnoDB cluster. Use " \
+                               "<Dba>." + get_function_name("getCluster", false) + "() to access it.";
       throw Exception::runtime_error(nice_error);
     } else throw;
   }
