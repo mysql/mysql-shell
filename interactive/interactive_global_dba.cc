@@ -985,11 +985,12 @@ int Global_dba::prompt_menu(const std::vector<std::string> &options, int defopt)
       if (!prompt("Please select an option: ", result))
         return 0;
     }
+    // Note that menu options start at 1, not 0 since that's what users will input
     if (result.empty() && defopt > 0)
       return defopt;
     std::stringstream ss(result);
     ss >> i;
-    if (!ss.str().empty() || i <= 0 || i > (int)options.size()) // garbage left in input
+    if (i <= 0 || i > (int)options.size())
       continue;
     return i;
   }
@@ -1039,10 +1040,9 @@ bool Global_dba::ensure_admin_account_usable(
                user.c_str());
       std::string msg;
       msg = "MySQL user '" + user + "' cannot be verified to have access to other hosts in the network.\n";
-      msg += "Enter y to create " + user + "@% with the necessary grants or e to edit a different name.";
       println(msg);
       int result;
-      result = prompt_menu({"Create "+user+"@%",
+      result = prompt_menu({"Create "+user+"@% with necessary grants",
           "Create account with different name",
           "Continue without creating account",
           "Cancel"}, 1);
@@ -1052,12 +1052,12 @@ bool Global_dba::ensure_admin_account_usable(
             *out_create_account = "root@'%'";
           return true;
         case 2:
+          break;
+        case 3:
           if (out_create_account)
             *out_create_account = "";
           return true;
-        case 3:
-          break;
-        case 4:
+            case 4:
         default:
           println("Cancelling...");
           return false;
