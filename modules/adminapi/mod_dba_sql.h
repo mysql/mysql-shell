@@ -35,6 +35,8 @@ bool is_server_on_replication_group(mysqlsh::mysql::Connection* connection, cons
 std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::string plugin_name);
 bool SHCORE_PUBLIC get_server_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
                          std::string &value, bool throw_on_error = true);
+bool SHCORE_PUBLIC get_server_variable(mysqlsh::mysql::Connection *connection, const std::string& name,
+                         int &value, bool throw_on_error = true);
 void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name, const std::string &value);
 bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
                          std::string &value, bool throw_on_error = true);

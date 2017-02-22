@@ -123,6 +123,7 @@ public:
   shcore::Value rescan(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of_(const shcore::Argument_list &args);
+  shcore::Value get_status(const mysqlsh::dba::ReplicationGroupState &state) const;
 
   void remove_instances_from_gr(const shcore::Value::Array_type_ref &instances);
   ReplicationGroupState check_preconditions(const std::string& function_name) const;
@@ -145,8 +146,8 @@ private:
   std::vector<NewInstanceInfo> get_newly_discovered_instances();
   std::vector<MissingInstanceInfo> get_unavailable_instances();
 
-  shcore::Value get_status(const mysqlsh::dba::ReplicationGroupState &state) const;
   shcore::Value get_description() const;
+  void verify_topology_type_change() const;
 
 protected:
   uint64_t _id;

@@ -456,6 +456,13 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
   execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port3 + ", deployed3);");
 }
 
+TEST_F(Shell_js_dba_tests, dba_cluster_change_topology_type) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_cluster_change_topology_type.js");
+}
+
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
   reset_shell();

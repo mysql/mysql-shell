@@ -144,6 +144,35 @@ void ReplicaSet::init() {
   add_varargs_method("forceQuorumUsingPartitionOf", std::bind(&ReplicaSet::force_quorum_using_partition_of_, this, _1));
 }
 
+/*
+ * Verify if the topology type changed and issue an error if needed.
+ */
+void ReplicaSet::verify_topology_type_change() const {
+  // Get GR single primary mode value.
+  int gr_primary_mode;
+  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
+  get_server_variable(classic->connection(),
+                      "group_replication_single_primary_mode", gr_primary_mode);
+
+  // Check if the topology type matches the real settings used by the
+  // cluster instance, otherwise an error is issued.
+  // NOTE: The GR primary mode is guaranteed (by GR) to be the same for all
+  // instance of the same group.
+  if (gr_primary_mode == 1 && _topology_type == kTopologyMultiMaster)
+    throw shcore::Exception::runtime_error(
+        "The InnoDB Cluster topology type (Multi-Master) does not match the "
+            "current Group Replication configuration (Single-Master). Please "
+            "use <cluster>.rescan() or change the Group Replication "
+            "configuration accordingly.");
+  else if (gr_primary_mode == 0 && _topology_type == kTopologyPrimaryMaster)
+    throw shcore::Exception::runtime_error(
+        "The InnoDB Cluster topology type (Single-Master) does not match the "
+            "current Group Replication configuration (Multi-Master). Please "
+            "use <cluster>.rescan() or change the Group Replication "
+            "configuration accordingly.");
+}
+
 void ReplicaSet::adopt_from_gr() {
   shcore::Value ret_val;
 
@@ -1715,6 +1744,10 @@ shcore::Value ReplicaSet::get_description() const {
 shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &state) const {
   shcore::Value ret_val = shcore::Value::new_map();
   auto status = ret_val.as_map();
+
+  // First, check if the topology type matchs the current state in order to
+  // retrieve the status correctly, otherwise issue an error.
+  this->verify_topology_type_change();
 
   bool single_primary_mode = _topology_type == kTopologyPrimaryMaster;
 

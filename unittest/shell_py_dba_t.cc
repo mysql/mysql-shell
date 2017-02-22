@@ -399,6 +399,13 @@ TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
   validate_interactive("dba_drop_metadata_interactive.py");
 }
 
+TEST_F(Shell_py_dba_tests, dba_cluster_change_topology_type) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_cluster_change_topology_type.py");
+}
+
 TEST_F(Shell_py_dba_tests, no_interactive_rpl_filter_check) {
   _options->wizards = false;
   reset_shell();

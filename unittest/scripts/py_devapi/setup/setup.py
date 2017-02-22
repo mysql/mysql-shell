@@ -377,3 +377,31 @@ def try_restart_sandbox(port):
         print 'Restart succeeded at: %s' % port
     else:
         print 'Restart failed at: %s' % port
+
+
+# Function to clean all trx and binary logs on the sandbox server.
+def reset_server_trx(port):
+    #Connect to the sandbox server
+    connected = connect_to_sandbox([port])
+
+    if (connected):
+        # Clean transactions and binary logs (must stop Group Replication first).
+        # NOTE: Group Replication is not started again after clean-up.
+        try:
+            print 'Stopping Group Replication...'
+            session.run_sql('STOP GROUP_REPLICATION')
+
+        except Exception, err:
+            print 'Error stopping Group Replication at %s: %s' % (port, err.message)
+        try:
+            print 'Remove binary logs and clean GTIDs sets (RESET MASTER)...'
+            session.run_sql('RESET MASTER')
+        except Exception, err:
+            print 'Error executing RESET MASTER at %s: %s' % (port, err.message)
+
+
+# Function to clean all trx and binary logs on all sandbox servers.
+def reset_all_servers_trx():
+    reset_server_trx(__mysql_sandbox_port1)
+    reset_server_trx(__mysql_sandbox_port2)
+    reset_server_trx(__mysql_sandbox_port3)
