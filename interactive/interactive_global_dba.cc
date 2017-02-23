@@ -1049,7 +1049,7 @@ bool Global_dba::ensure_admin_account_usable(
       switch (result) {
         case 1:
           if (out_create_account)
-            *out_create_account = "root@'%'";
+            *out_create_account = user+"@'%'";
           return true;
         case 2:
           break;
