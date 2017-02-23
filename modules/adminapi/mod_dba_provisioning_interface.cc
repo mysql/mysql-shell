@@ -308,9 +308,15 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
   args.push_back(instance_param.c_str());
   set_ssl_args("instance", instance_ssl, args);
 
-  if (!cnfpath.empty()) {
+  std::string path(cnfpath);
+
+  if (!path.empty()) {
     args.push_back("--defaults-file");
-    args.push_back(cnfpath.c_str());
+
+#ifdef _WIN32
+    path = "\"" + path + "\"";
+#endif
+    args.push_back(path.c_str());
   }
 
   if (update)

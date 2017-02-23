@@ -1022,10 +1022,11 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL3, "@li Connection data dictionar
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL4, "The options parameter may include:");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL5, "@li mycnfPath: The path to the MySQL configuration file of the instance.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL6, "@li password: The password to be used on the connection.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7, "@li clusterAdmin: The name of the InnoDB cluster administrator user to be created.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8, "@li clusterAdminPassword: The password for the InnoDB cluster administrator account.");
 
-REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL7, "The password may be contained on the instance definition, however, it can be overwritten "\
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9, "The connection password may be contained on the instance definition, however, it can be overwritten "\
 "if it is specified on the options.");
-
 
 /**
 * $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
@@ -1044,8 +1045,10 @@ REGISTER_HELP(DBA_CONFIGLOCALINSTANCE_DETAIL7, "The password may be contained on
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL5)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL6)
-*
-* $(DBA_CONFIGLOCALINSTANCE_DETAIL7)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL7)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL8)
+
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL9)
 */
 #if DOXYGEN_JS
 Instance Dba::configureLocalInstance(InstanceDef instance, Dictionary options) {}
