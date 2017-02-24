@@ -154,3 +154,17 @@ cluster.status()
 #@<OUT> Cluster: final dissolve
 cluster.dissolve({'force': True})
 
+#@ Cluster: no operations can be done on a dissolved cluster errors
+cluster.name
+cluster.admin_type
+cluster.add_instance()
+cluster.check_instance_state()
+cluster.describe()
+cluster.dissolve()
+cluster.force_quorum_using_partition_of()
+cluster.get_admin_type()
+cluster.get_name()
+cluster.rejoin_instance()
+cluster.remove_instance()
+cluster.rescan()
+cluster.status()
