@@ -60,7 +60,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
           // Required replacement when --uri=<value>
           if (arg_format == 3)
             nopwd_uri = "--uri=" + nopwd_uri;
-           strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()).c_str());
+
+          strcpy(argv[i], nopwd_uri.substr(0, nopwd_uri.length()).c_str());
         }
       } else {
         std::cerr << "Invalid value specified in --uri parameter.\n";
