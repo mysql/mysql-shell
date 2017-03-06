@@ -82,17 +82,22 @@ def get_mysqld_version(mysqld_path):
     :return: tuple with with major, minor and release number and version string
     :rtype tuple((int, int, int), str)
     """
-    version_proc = run_subprocess(
-        "{exec_path} --version".format(exec_path=shell_quote(mysqld_path)),
-        stdout=subprocess.PIPE, shell=False, universal_newlines=True)
-    output, _ = version_proc.communicate()
+    cmd = "{0} --version".format(shell_quote(mysqld_path))
+    version_proc = run_subprocess(cmd,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, shell=False,
+                                  universal_newlines=True)
+    output, error = version_proc.communicate()
     match = re.match(r'^.*mysqld.*?\s+(Ver\s+(\d+\.\d+(?:\.\d+)*).*)', output)
     if match:
         return tuple(int(n) for n in match.group(2).split('.')), match.group(1)
     else:
+        error_msg = ''
+        if error:
+            error_msg = " Error executing '{0}': {1}".format(cmd, error)
         raise GadgetError(
             "Unable to parse version output '{0}' from mysqld executable '{1}'"
-            ".".format(output, mysqld_path))
+            ".{2}".format(output, mysqld_path, error_msg))
 
 
 def is_valid_mysqld(mysqld_path):
