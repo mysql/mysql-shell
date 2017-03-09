@@ -94,8 +94,11 @@ class XShell_TestCases(unittest.TestCase):
                  "Instance localhost:" + instance3 + " successfully deployed and started."),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
-      if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
-          self.assertEqual(results, 'PASS')
+      try:
+          if results.find(bytearray("FAIL", "ascii"), 0, len(results)) > -1:
+              self.assertEqual(results, 'PASS')
+      except Exception as ex:
+              self.assertEqual('FAIL', 'PASS')
       #################################### createCluster  #################################################
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
