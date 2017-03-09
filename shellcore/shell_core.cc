@@ -821,7 +821,7 @@ bool Shell_command_handler::process(const std::string& command_line) {
 
     // Srearch on the registered command list and processes it if it exists
     Command_registry::iterator item = _command_dict.find(command);
-    if (item != _command_dict.end()) {
+    if (item != _command_dict.end() && item->second->function) {
       // Parses the command
       tokens = split_command_line(command_line);
 
