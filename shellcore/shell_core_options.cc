@@ -65,8 +65,9 @@ void Shell_core_options::set_member(const std::string &prop, Value value) {
   if (_options->has_key(prop)) {
     if (prop == SHCORE_OUTPUT_FORMAT) {
       std::string format = value.as_string();
-      if (format != "table" && format != "json" && format != "json/raw")
-        throw shcore::Exception::value_error((boost::format("The option %s must be one of: table, json or json/raw.") % prop).str());
+      if (format != "table" && format != "json" && format != "json/raw" && format != "vertical")
+        throw shcore::Exception::value_error((boost::format(
+            "The option %s must be one of: table, vertical, json or json/raw.") % prop).str());
     } else if (prop == SHCORE_INTERACTIVE || prop == SHCORE_BATCH_CONTINUE_ON_ERROR)
       throw shcore::Exception::value_error((boost::format("The option %s is read only.") % prop).str());
 

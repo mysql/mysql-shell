@@ -146,7 +146,7 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
   // Prompt changes to multiline
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
+  EXPECT_EQ("show\ndatabases\n;", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
@@ -188,7 +188,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
   // Prompt changes to multiline
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("show\ndatabases%%%", env.shell_sql->get_handled_input());
+  EXPECT_EQ("show\ndatabases\n%%%", env.shell_sql->get_handled_input());
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 
   query = "delimiter ;";

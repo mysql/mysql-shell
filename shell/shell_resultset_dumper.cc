@@ -228,6 +228,40 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
   }
 }
 
+void ResultsetDumper::dump_vertical(shcore::Value::Array_type_ref records) {
+  std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
+  auto field_count = metadata->size();
+  std::string star_separator(27, '*');
+
+  // Calculate length of a longest column description, used to right align
+  // column descriptions
+  std::size_t max_col_len = 0;
+  for (int col_index = 0; col_index < metadata->size(); col_index++) {
+    std::shared_ptr<mysqlsh::Column> column =
+        std::static_pointer_cast<mysqlsh::Column>(metadata->at(col_index).as_object());
+    max_col_len = std::max(max_col_len,  column->get_column_label().length());
+  }
+
+  for (int row_index = 0; row_index < records->size(); row_index++) {
+    std::string row_header = star_separator + " " + std::to_string(row_index + 1) +
+      ". row " + star_separator + "\n";
+
+    _output_handler->print(_output_handler->user_data, row_header.c_str());
+
+    for (int col_index = 0; col_index < metadata->size(); col_index++) {
+      std::shared_ptr<mysqlsh::Column> column =
+          std::static_pointer_cast<mysqlsh::Column>(metadata->at(col_index).as_object());
+
+      std::shared_ptr<mysqlsh::Row> row = records->at(row_index).as_object<mysqlsh::Row>();
+      std::string padding(max_col_len - column->get_column_label().size(), ' ');
+      std::string value_row = padding + column->get_column_label() + ": " +
+          row->get_member(col_index).descr() + "\n";
+
+      _output_handler->print(_output_handler->user_data, value_row.c_str());
+    }
+  }
+}
+
 void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
   std::vector<uint64_t> max_lengths;
@@ -348,7 +382,9 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
 
   if (array_records->size()) {
     // print rows from result, with stats etc
-    if (_interactive || _format == "table")
+    if (_format == "vertical")
+      dump_vertical(array_records);
+    else if (_interactive || _format == "table")
       dump_table(array_records);
     else
       dump_tabbed(array_records);
