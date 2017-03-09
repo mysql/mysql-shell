@@ -1733,11 +1733,11 @@ class XShell_TestCases(unittest.TestCase):
                         '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node',
                         '--file=' + Exec_files_location + 'CreateTable.js']
-        x_cmds = []
-        results = exec_xshell_commands(init_command, x_cmds)
-        results2 = str(results)
-        if results2.find(bytearray("FAIL", "ascii"), 0, len(results2)) > -1:
-            self.assertEqual(results2, 'PASS')
+
+        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        if stdout.find(bytearray("FAIL", "ascii"), 0, len(stdout)) > -1:
+            self.assertEqual(stdout, 'PASS')
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
