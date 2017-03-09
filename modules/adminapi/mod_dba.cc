@@ -571,37 +571,41 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
   return Value();
 }
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_BRIEF, "Validates an instance for usage in Group Replication.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_PARAM1, "@param options Optional data for the operation.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_BRIEF, "Validates an instance for usage in Group Replication.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM, "@param instance An instance definition.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM1, "@param options Optional data for the operation.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
 "for usage in group replication.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL1, "The instance definition can be any of:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL2, "@li URI string.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL3, "@li Connection data dictionary.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL4, "The options parameter can be any of:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL5, "@li mycnfPath: The path of the MySQL configuration file for the instance.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL6, "@li password: The password to get connected to the instance.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIG_DETAIL7, "The password may be contained on the instance definition, however, it can be overwritten "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2, "@li URI string.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4, "The options dictionary may contain the next options:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5, "@li mycnfPath: The path of the MySQL configuration file for the instance.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL6, "@li password: The password to get connected to the instance.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7, "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8, "@li clusterAdminPassword: The password for the InnoDB cluster administrator account.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9, "The password may be contained on the instance definition, however, it can be overwritten "\
 "if it is specified on the options.");
 
 /**
-* $(DBA_CHECKINSTANCECONFIG_BRIEF)
+* $(DBA_CHECKINSTANCECONFIGURATION_BRIEF)
 *
-* $(DBA_CHECKINSTANCECONFIG_PARAM)
-* $(DBA_CHECKINSTANCECONFIG_PARAM1)
+* $(DBA_CHECKINSTANCECONFIGURATION_PARAM)
+* $(DBA_CHECKINSTANCECONFIGURATION_PARAM1)
 *
-* $(DBA_CHECKINSTANCECONFIG_DETAIL)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL)
 *
-* $(DBA_CHECKINSTANCECONFIG_DETAIL1)
-* $(DBA_CHECKINSTANCECONFIG_DETAIL2)
-* $(DBA_CHECKINSTANCECONFIG_DETAIL3)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL1)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL2)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL3)
 *
-* $(DBA_CHECKINSTANCECONFIG_DETAIL4)
-* $(DBA_CHECKINSTANCECONFIG_DETAIL5)
-* $(DBA_CHECKINSTANCECONFIG_DETAIL6)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL4)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL5)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL6)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL7)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL8)
 *
-* $(DBA_CHECKINSTANCECONFIG_DETAIL7)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL9)
 */
 #if DOXYGEN_JS
 Undefined Dba::checkInstanceConfiguration(InstanceDef instance, Dictionary options) {}
@@ -1324,7 +1328,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
   return ret_val;
 }
 
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF, "Reboots a cluster from complete outage.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF, "Brings a cluster back ONLINE when all members are OFFLINE.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM, "@param clusterName Optional The name of the cluster to be rebooted.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1, "@param options Optional dictionary with options that modify the behavior of this function.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN, "@return The rebooted cluster object.");

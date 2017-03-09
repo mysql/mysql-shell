@@ -182,6 +182,10 @@ protected:
 
 };
 
+TEST_F(Shell_py_dba_tests, dba_help) {
+  validate_interactive("dba_help.py");
+}
+
 TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
   _options->wizards = false;
   reset_shell();
