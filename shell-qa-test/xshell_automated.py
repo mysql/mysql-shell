@@ -3078,19 +3078,18 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("issues MYS320 , delimiter in js is not recongnized ")
     def test_4_3_30_2(self):
         '''[4.3.030]:2 PY Update alter stored procedure using session object: NODE SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
-                                                                               LOCALHOST.host), "mysql-py>"),
+        x_cmds = [("\\c -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "Session successfully established."),
                   ("session.sql(\'use sakila;\').execute()\n", "Query OK"),
                   ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute()\n", "Query OK"),
-                  ("session.sql(\"delimiter \\\\\").execute()\n", "mysql-py>"),
+                  ("session.sql(\"delimiter \\\\\").execute()\n",  "Query OK"),
                   ("session.sql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
                    "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\").execute()\n", "mysql-py>"),
-                  ("delimiter ;\n", "mysql-py>"),
+                  ("session.sql(\"delimiter ;\").execute()\n", "mysql-py>"),
                   ("session.sql(\"select name from mysql.proc;\").execute()\n", "my_automated_procedure")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
