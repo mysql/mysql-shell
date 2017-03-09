@@ -26,6 +26,8 @@
 #include <cstring>
 #include <stdexcept>
 
+#include "shellcore/common.h"
+
 namespace shcore {
 
 /** Convert a copy of an ASCII string to uppercase and return */
@@ -105,20 +107,20 @@ inline std::pair<std::string, std::string> str_partition(const std::string &s, c
 }
 
 /** Strip a string out of blank chars */
-std::string str_strip(const std::string &s, const std::string &chars = " \r\n\t");
-std::string str_lstrip(const std::string &s, const std::string &chars = " \r\n\t");
-std::string str_rstrip(const std::string &s, const std::string &chars = " \r\n\t");
+std::string SHCORE_PUBLIC str_strip(const std::string &s, const std::string &chars = " \r\n\t");
+std::string SHCORE_PUBLIC str_lstrip(const std::string &s, const std::string &chars = " \r\n\t");
+std::string SHCORE_PUBLIC str_rstrip(const std::string &s, const std::string &chars = " \r\n\t");
 
 /** Return a formatted a string
 
   Throws invalid_argument on encoding error
 */
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
-std::string str_format(const char* formats, ...) __attribute__((__format__(__printf__, 1, 2)));
+std::string SHCORE_PUBLIC str_format(const char* formats, ...) __attribute__((__format__(__printf__, 1, 2)));
 #elif _MSC_VER
-std::string str_format(_In_z_ _Printf_format_string_ const char* format, ...);
+std::string SHCORE_PUBLIC str_format(_In_z_ _Printf_format_string_ const char* format, ...);
 #else
-std::string str_format(const char* formats, ...);
+std::string SHCORE_PUBLIC str_format(const char* formats, ...);
 #endif
 
 }
