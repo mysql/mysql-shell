@@ -249,6 +249,28 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 }
 
+TEST_F(Shell_sql_test, multiple_statements_and_continued) {
+  Input_state state;
+  std::string query = "show databases; select 1;show";
+  handle_input(query, state);
+
+  // The first statement will be handled but the second will be hold
+  // until the delimiter is found.
+  // Prompt changes to multiline
+  // query will be updated to only keep what has not been executed
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
+  //EXPECT_EQ("show", query);
+  EXPECT_EQ("show databases;\nselect 1;", env.shell_sql->get_handled_input());
+  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+
+  query = "databases;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+}
+
 TEST_F(Shell_sql_test, multiline_comment) {
   Input_state state;
   std::string query = "/*";
