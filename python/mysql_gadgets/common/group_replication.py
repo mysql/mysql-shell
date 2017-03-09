@@ -925,7 +925,11 @@ def check_peer_variables(req_checker, error_msgs=None, verbose=False):
             exp_val = missing[var_name]
             new_vars[var_name] = {ONE_OF: (exp_val,)}
         # Update required config options in options file
-        _LOGGER.debug("Updating required options %s", new_vars)
+        # NOTE: Dictionary should not be used as argument for logger, since it
+        # duplicates backslash. Convert to string and convert \\ back to \.
+        dic_msg = str(new_vars)
+        dic_msg = dic_msg.replace("\\\\", "\\")
+        _LOGGER.debug("Updating required options %s", dic_msg)
         req_dict[CONFIG_SETTINGS].update(new_vars)
 
     if not server_var_res["pass"]:
@@ -1035,8 +1039,12 @@ def check_user_privileges(req_checker, rpl_settings, dry_run=False,
 
         # in case it passes we are done, rpl user exist and privileges are OK
         if user_priv_res["pass"]:
+            # Dictionary should not be used as argument for logger, since it
+            # duplicates backslash. Convert to string and convert \\ back to \.
+            dic_msg = str(user_priv_res)
+            dic_msg = dic_msg.replace("\\\\", "\\")
             _LOGGER.debug("The replication_user exists and has the required "
-                          "privileges: %s.", user_priv_res)
+                          "privileges: %s.", dic_msg)
             test_result = "PASS"
 
         # check if usr can be created
@@ -1126,7 +1134,11 @@ def check_user_privileges(req_checker, rpl_settings, dry_run=False,
                            "".format(server.user))
                 error_msgs.append(err_msg)
 
-        _LOGGER.debug("check user privileges result: %s.", user_priv_res)
+        # Dictionary should not be used as argument for logger, since it
+        # duplicates backslash. Convert to string and convert \\ back to \.
+        dic_msg = str(user_priv_res)
+        dic_msg = dic_msg.replace("\\\\", "\\")
+        _LOGGER.debug("check user privileges result: %s.", dic_msg)
 
         # Super is required for run the Change Master command
         if "SUPER" in user_priv_res[server_user]:
@@ -1262,12 +1274,12 @@ def check_options_file(req_checker, error_msgs=None, update=True,
                 # Return True, file updated with required changes.
                 return True, options_result
             else:
-                _LOGGER.info("Unable to update options file: %s",
-                             option_parser.filename)
+                _LOGGER.error("Unable to update options file: %s",
+                              option_parser.filename)
                 # append error message
                 error_msgs.append(_ERROR_UPDATE_AND_RESTART)
-                error_msgs.append("Unable to update options file: %s",
-                                  option_parser.filename)
+                error_msgs.append("Unable to update options file: {0}".format(
+                    option_parser.filename))
                 # Return False, could not update file.
                 return False, options_result
         else:
@@ -1843,7 +1855,11 @@ def get_rpl_usr(options=None):
 
     rpl_user_dict_hidden_pw = rpl_user_dict.copy()
     rpl_user_dict_hidden_pw["rep_user_passwd"] = "******"
-    _LOGGER.debug("->rpl_user_dict %s", rpl_user_dict_hidden_pw)
+    # Dictionary should not be used as argument for logger, since it
+    # duplicates backslash. Convert to string and convert \\ back to \.
+    dic_msg = str(rpl_user_dict_hidden_pw)
+    dic_msg = dic_msg.replace("\\\\", "\\")
+    _LOGGER.debug("->rpl_user_dict %s", dic_msg)
     return rpl_user_dict
 
 
@@ -2046,7 +2062,7 @@ def persist_gr_config(defaults_path, config_values=None, set_on=True,
             # so replace its value
             if options_parser.has_option(
                     'mysqld', LOOSE_PREFIX.format(option_name)):
-                _LOGGER.debug("Option %s with loose prefix found", )
+                _LOGGER.debug("Option %s with loose prefix found", option_name)
                 # Save the value with "loose-" prefix.
                 config_values[LOOSE_PREFIX.format(option_name)] = \
                     config_values.pop(option_name)
