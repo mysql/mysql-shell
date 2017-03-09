@@ -2030,23 +2030,24 @@ static void print_result_set(mysqlx::Result &result, const std::vector<std::stri
 
 static int run_sql_batch(mysqlx::Connection *conn, const std::string &sql_)
 {
-  std::string delimiter = ";";
-  std::vector<std::pair<size_t, size_t> > ranges;
+  shcore::mysql::splitter::Delimiters delimiters({";", "\\G", "\\g"});
   std::stack<std::string> input_context_stack;
   std::string sql = sql_;
 
   replace_variables(sql);
 
-  shcore::mysql::splitter::determineStatementRanges(sql.data(), sql.length(), delimiter,
-                                           ranges, "\n", input_context_stack);
+  auto ranges = shcore::mysql::splitter::determineStatementRanges(sql.data(),
+      sql.length(), delimiters, "\n", input_context_stack);
 
-  for (std::vector<std::pair<size_t, size_t> >::const_iterator st = ranges.begin(); st != ranges.end(); ++st)
+  for (const auto &range : ranges)
   {
+    auto command = sql.substr(range.offset(), range.length());
     try
     {
       if (!OPT_quiet)
-          std::cout << "RUN " << sql.substr(st->first, st->second) << "\n";
-      std::shared_ptr<mysqlx::Result> result(conn->execute_sql(sql.substr(st->first, st->second)));
+        std::cout << "RUN " << command << "\n";
+      std::shared_ptr<mysqlx::Result> result(conn->execute_sql(command));
+
       if (result.get())
       {
         do
@@ -2078,7 +2079,7 @@ static int run_sql_batch(mysqlx::Connection *conn, const std::string &sql_)
     {
       variables_to_unreplace.clear();
 
-      std::cerr << "While executing " << sql.substr(st->first, st->second) << ":\n";
+      std::cerr << "While executing " << command << ":\n";
       if (!OPT_expect_error->check_error(err))
         return 1;
     }

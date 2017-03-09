@@ -23,6 +23,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/common.h"
+#include "../utils/utils_mysql_parsing.h"
 #include <boost/system/error_code.hpp>
 #include <stack>
 
@@ -44,8 +45,13 @@ public:
 
 private:
   std::string _sql_cache;
-  std::string _delimiter;
+  mysql::splitter::Delimiters _delimiters;
   std::stack<std::string> _parsing_context_stack;
+
+  Value process_sql(const std::string &query_str,
+      mysql::splitter::Delimiters::delim_type_t delimiter,
+      std::shared_ptr<mysqlsh::ShellDevelopmentSession> session,
+      std::function<void(shcore::Value)> result_processor);
 
   void cmd_process_file(const std::vector<std::string>& params);
 };

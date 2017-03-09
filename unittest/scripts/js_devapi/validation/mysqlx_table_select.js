@@ -138,3 +138,54 @@
 //@ Table.Select Parameter Binding through a View
 |Select Binding Length: 1|
 |Select Binding Name: alma|
+
+//@ Table.Select Basic vertical output
+|vertical|
+|*************************** 1. row ***************************|
+|name: adam|
+|*************************** 2. row ***************************|
+|name: alma|
+|*************************** 3. row ***************************|
+|name: angel|
+|*************************** 4. row ***************************|
+|name: brian|
+|*************************** 5. row ***************************|
+|name: carol|
+|*************************** 6. row ***************************|
+|name: donna|
+|*************************** 7. row ***************************|
+|name: jack|
+
+//@ Table.Select Check column align in vertical mode
+|vertical|
+|*************************** 1. row ***************************|
+|  name: donna|
+|   age: 16|
+|gender: female|
+|*************************** 2. row ***************************|
+|  name: jack|
+|   age: 17|
+|gender: male|
+
+//@ Table.Select Check row with newline in vertical mode
+|vertical|
+|*************************** 1. row ***************************|
+|  name: alma|
+|   age: 13|
+|gender: female|
+|*************************** 2. row ***************************|
+|  name: john|
+|doe|
+|   age: 13|
+|gender: male|
+
+//@ Table.Select Check switching between table and vertical mode
+|vertical|
+|*************************** 1. row ***************************|
+|name: jack|
+|table|
+|+------+|
+|| name ||
+|+------+|
+|| jack ||
+|+------+|

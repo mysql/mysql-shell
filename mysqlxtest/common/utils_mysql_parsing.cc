@@ -19,6 +19,8 @@
 //--------------------------------------------------------------------------------------------------
 #include "utils_mysql_parsing.h"
 #include <boost/algorithm/string/trim.hpp>
+#include <algorithm>
+#include <cassert>
 
 namespace shcore
 {
@@ -26,6 +28,60 @@ namespace shcore
   {
     namespace splitter
     {
+      Delimiters::Delimiters(const std::initializer_list<delim_type_t> &delimiters) :
+          main_delimiter(*std::begin(delimiters))
+      {
+        if (delimiters.size() > 1) {
+          additional_delimiters.reserve(delimiters.size() - 1);
+          std::copy(std::begin(delimiters) + 1, std::end(delimiters),
+              std::back_inserter(additional_delimiters));
+        }
+      }
+
+      std::size_t Delimiters::size() const {
+        return additional_delimiters.size() + 1;
+      }
+
+      void Delimiters::set_main_delimiter(delim_type_t delimiter) {
+        main_delimiter = std::move(delimiter);
+      }
+
+      const Delimiters::delim_type_t& Delimiters::get_main_delimiter() const {
+        return main_delimiter;
+      }
+
+      Delimiters::delim_type_t& Delimiters::operator[](std::size_t pos) {
+        assert(pos < size());
+        if (pos == 0)
+          return main_delimiter;
+        else
+          return additional_delimiters[pos - 1];
+      }
+
+      const Delimiters::delim_type_t& Delimiters::operator[](std::size_t pos) const {
+        return this->operator[](pos);
+      }
+
+      Statement_range::Statement_range(std::size_t begin, std::size_t end,
+          Delimiters::delim_type_t delimiter) : m_begin(begin), m_end(end),
+          m_delimiter(std::move(delimiter))
+      {}
+
+      std::size_t Statement_range::offset() const
+      {
+        return m_begin;
+      }
+
+      std::size_t Statement_range::length() const
+      {
+        return m_end;
+      }
+
+      const Delimiters::delim_type_t& Statement_range::get_delimiter() const
+      {
+        return m_delimiter;
+      }
+
       //--------------------------------------------------------------------------------------------------
 
       const unsigned char* skip_leading_whitespace(const unsigned char *head, const unsigned char *tail)
@@ -55,17 +111,13 @@ namespace shcore
       /**
        * A statement splitter to take a list of sql statements and split them into individual statements,
        * return their position and length in the original string (instead the copied strings).
-       *
-       * A tweak was added to the function to return the number of complete statements found, where
-       * complete means the ending delimiter was found.
+       * Complete statements contain additional delimiter attached, if no delimiter is found
+       * command should be treated as incomplete.
        */
-      size_t determineStatementRanges(const char *sql, size_t length, std::string &delimiter,
-                                                 std::vector<std::pair<size_t, size_t> > &ranges,
-                                                 const std::string &line_break, std::stack<std::string> &input_context_stack)
+      std::vector<Statement_range> determineStatementRanges(
+          const char *sql, size_t length, Delimiters &delimiters,
+          const std::string &line_break, std::stack<std::string> &input_context_stack)
       {
-        int full_statement_count = 0;
-        const unsigned char *delimiter_head = (unsigned char*)delimiter.c_str();
-
         const unsigned char keyword[] = "delimiter";
 
         const unsigned char *head = (unsigned char *)sql;
@@ -74,7 +126,7 @@ namespace shcore
         const unsigned char *new_line = (unsigned char*)line_break.c_str();
         bool have_content = false; // Set when anything else but comments were found for the current statement.
 
-        ranges.clear();
+        std::vector<Statement_range> ranges;
 
         while (tail < end)
         {
@@ -146,34 +198,40 @@ namespace shcore
             case '\'':
             case '`':
             {
-                      have_content = true;
-                      char quote = *tail++;
+              have_content = true;
+              char quote = *tail++;
 
-                      if (input_context_stack.empty() || input_context_stack.top() == "-")
-                      {
-                        // Quoted string/id. Skip this in a local loop if is opening quote.
-                        while (tail < end && *tail != quote)
-                        {
-                          // Skip any escaped character too.
-                          if (*tail == '\\')
-                            tail++;
-                          tail++;
-                        }
-                        if (*tail == quote)
-                          tail++; // Skip trailing quote char to if one was there.
-                        else
-                        {
-                          std::string q;
-                          q.assign(&quote, 1);
-                          input_context_stack.push(q); // Sets multiline opening quote to continue processing
-                        }
-                      }
-                      else // Closing quote, clears the multiline flag
-                        input_context_stack.pop();
-
+              if (input_context_stack.empty() || input_context_stack.top() == "-") {
+                // Quoted string/id. Skip this in a local loop if is opening quote.
+                while (tail < end ) {
+                  // Handle consecutive double quotes within a quoted string (for ' and ")
+                  // Consecutive double quotes for identifiers should not be handled, i. e., in case of `
+                  // See http://dev.mysql.com/doc/refman/5.7/en/string-literals.html#character-escape-sequences
+                  if(*tail == quote) {
+                    if((tail + 1) < end && *(tail + 1) == quote && quote != '`')
+                      tail++;
+                    else
                       break;
-            }
+                  }
+                  // Skip any escaped character within a quoted string (for ' and ")
+                  // Escaped characters for identifiers should not be handled, i. e., in case of `
+                  // See http://dev.mysql.com/doc/refman/5.7/en/string-literals.html#character-escape-sequences
+                  if (*tail == '\\' && quote != '`')
+                    tail++;
+                  tail++;
+                }
+                if (*tail == quote)
+                  tail++; // Skip trailing quote char to if one was there.
+                else {
+                  std::string q;
+                  q.assign(&quote, 1);
+                  input_context_stack.push(q); // Sets multiline opening quote to continue processing
+                }
+              } else // Closing quote, clears the multiline flag
+                input_context_stack.pop();
 
+              break;
+            }
             case 'd':
             case 'D':
             {
@@ -201,10 +259,9 @@ namespace shcore
                           while (run < end && !is_line_break(run, new_line))
                             run++;
 
-                          delimiter = std::string((char *)tail, run - tail);
+                          std::string delimiter = std::string((char *)tail, run - tail);
                           boost::trim(delimiter);
-
-                          delimiter_head = (unsigned char*)delimiter.c_str();
+                          delimiters.set_main_delimiter(delimiter);
 
                           // Skip over the delimiter statement and any following line breaks.
                           while (is_line_break(run, new_line))
@@ -217,53 +274,57 @@ namespace shcore
             }
           }
 
-          if (*tail == *delimiter_head)
-          {
-            // Found possible start of the delimiter. Check if it really is.
-            size_t count = delimiter.size();
-            if (count == 1)
+          for (int i = 0; i < delimiters.size(); i++) {
+            auto delimiter = delimiters[i];
+            if (*tail == delimiter[0])
             {
-              // Most common case. Trim the statement and check if it is not empty before adding the range.
-              head = skip_leading_whitespace(head, tail);
-              if (head < tail || (!input_context_stack.empty() && input_context_stack.top() == "-"))
+              // Found possible start of the delimiter. Check if it really is.
+              size_t count = delimiter.size();
+              if (count == 1)
               {
-                full_statement_count++;
-
-                if (!input_context_stack.empty())
-                  input_context_stack.pop();
-
-                if (head < tail)
-                  ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
-              }
-              head = ++tail;
-              have_content = false;
-            }
-            else
-            {
-              const unsigned char *run = tail + 1;
-              const unsigned char *del = delimiter_head + 1;
-              while (count-- > 1 && (*run++ == *del++))
-                ;
-
-              if (count == 0)
-              {
-                // Multi char delimiter is complete. Tail still points to the start of the delimiter.
-                // Run points to the first character after the delimiter.
+                // Most common case. Trim the statement and check if it is not empty before adding the range.
                 head = skip_leading_whitespace(head, tail);
                 if (head < tail || (!input_context_stack.empty() && input_context_stack.top() == "-"))
                 {
-                  full_statement_count++;
-
                   if (!input_context_stack.empty())
                     input_context_stack.pop();
 
                   if (head < tail)
-                    ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
+                    ranges.emplace_back(head - (unsigned char *)sql, tail - head, delimiter);
+                  else
+                    ranges.emplace_back(0, 0, delimiter); // Empty line with just a delimiter
                 }
-
-                tail = run;
-                head = run;
+                head = ++tail;
                 have_content = false;
+              }
+              else
+              {
+                const unsigned char *run = tail + 1;
+                const char *del = delimiter.c_str() + 1;
+                while (count-- > 1 && (*run++ == *del++))
+                  ;
+
+                if (count == 0)
+                {
+                  // Multi char delimiter is complete. Tail still points to the start of the delimiter.
+                  // Run points to the first character after the delimiter.
+                  head = skip_leading_whitespace(head, tail);
+                  if (head < tail || (!input_context_stack.empty() && input_context_stack.top() == "-"))
+                  {
+                    if (!input_context_stack.empty())
+                      input_context_stack.pop();
+
+                    if (head < tail)
+                      ranges.emplace_back(head - (unsigned char *)sql,
+                          tail - head, delimiter);
+                    else
+                      ranges.emplace_back(0, 0, delimiter); // Empty line with just a delimiter
+                  }
+
+                  tail = run;
+                  head = run;
+                  have_content = false;
+                }
               }
             }
           }
@@ -278,14 +339,15 @@ namespace shcore
         head = skip_leading_whitespace(head, tail);
         if (head < tail && (input_context_stack.empty() || input_context_stack.top() != "/*"))
         {
-          ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
+          // There is no delimiter yet
+          ranges.emplace_back(head - (unsigned char *)sql, tail - head, "");
 
           // If not a multiline string then sets the flag to multiline statement (not terminated)
           if (input_context_stack.empty())
             input_context_stack.push("-");
         }
 
-        return full_statement_count;
+        return ranges;
       }
     }
   }
