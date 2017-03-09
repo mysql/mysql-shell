@@ -30,8 +30,7 @@ namespace shcore {
 namespace mysql {
 namespace splitter {
 
-class Delimiters final
-{
+class Delimiters final {
 public:
   using delim_type_t = std::string;
 
@@ -49,8 +48,7 @@ private:
   std::vector<delim_type_t> additional_delimiters;
 };
 
-class Statement_range final
-{
+class Statement_range final {
   public:
     explicit Statement_range(std::size_t begin, std::size_t end,
         Delimiters::delim_type_t delimiter);

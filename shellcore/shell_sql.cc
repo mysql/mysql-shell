@@ -89,7 +89,7 @@ Value Shell_sql::process_sql(const std::string &query_str,
   if (_last_handled.empty())
     _last_handled = query_str + delimiter;
   else
-    _last_handled = '\n' + query_str + delimiter;
+    _last_handled += '\n' + query_str + delimiter;
 
   return ret_val;
 }
