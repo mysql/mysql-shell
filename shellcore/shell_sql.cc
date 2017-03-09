@@ -30,7 +30,25 @@ using namespace boost::system;
 
 Shell_sql::Shell_sql(IShell_core *owner)
   : Shell_language(owner), _delimiters({";", "\\G", "\\g"})
-{}
+{
+  static const std::string cmd_help_G =
+      "SYNTAX:\n"
+      "   <statement>\\G\n\n"
+      "Execute the statement in the MySQL server and display results in a vertical\n"
+      "format, one field and value per line.\n"
+      "Useful for results that are too wide to fit the screen horizontally.\n";
+
+  static const std::string cmd_help_g =
+      "SYNTAX:\n"
+      "   <statement>\\g\n\n"
+      "Execute the statement in the MySQL server and display results.\n"
+      "Same as executing with the current delimiter (default ;)\n";
+
+  // Inject help for statement commands. Actual handling of these
+  // commands is done in a way different from other commands
+  SET_CUSTOM_SHELL_COMMAND("\\G", "Send command to mysql server, display result vertically.", cmd_help_G, Shell_command_function());
+  SET_CUSTOM_SHELL_COMMAND("\\g", "Send command to mysql server.", cmd_help_g, Shell_command_function());
+}
 
 Value Shell_sql::process_sql(const std::string &query_str,
     mysql::splitter::Delimiters::delim_type_t delimiter,
