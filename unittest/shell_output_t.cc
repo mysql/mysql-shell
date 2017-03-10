@@ -65,12 +65,13 @@ TEST_F(Shell_output_test, table_output) {
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
   EXPECT_EQ(0, _ret_val);
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  std::string expected_output =
 R"(+----+
 | a  |
 +----+
 | 11 |
-+----+)");
++----+)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
 
 TEST_F(Shell_output_test, vertical_output) {
@@ -78,9 +79,10 @@ TEST_F(Shell_output_test, vertical_output) {
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
   EXPECT_EQ(0, _ret_val);
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  std::string expected_output =
 R"(*************************** 1. row ***************************
-a: 11)");
+a: 11)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
 
 TEST_F(Shell_output_test, mixed_output) {
@@ -88,16 +90,18 @@ TEST_F(Shell_output_test, mixed_output) {
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
   EXPECT_EQ(0, _ret_val);
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  std::string expected_output =
 R"(*************************** 1. row ***************************
-a: 11)");
+a: 11)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  expected_output =
 R"(+----+
 | b  |
 +----+
 | 12 |
-+----+)");
++----+)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
 
 TEST_F(Shell_output_test, vertical_output_column_align) {
@@ -105,11 +109,12 @@ TEST_F(Shell_output_test, vertical_output_column_align) {
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
   EXPECT_EQ(0, _ret_val);
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  std::string expected_output =
 R"(*************************** 1. row ***************************
      a: 11
 second: 12
- third: 1234)");
+ third: 1234)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
 
 TEST_F(Shell_output_test, vertical_output_result_with_newline) {
@@ -117,10 +122,11 @@ TEST_F(Shell_output_test, vertical_output_result_with_newline) {
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
   EXPECT_EQ(0, _ret_val);
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  std::string expected_output =
 R"(*************************** 1. row ***************************
 a: te
-st)");
+st)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
 
 TEST_F(Shell_output_test, output_format_option) {
@@ -129,9 +135,10 @@ TEST_F(Shell_output_test, output_format_option) {
   std::stringstream stream("select 11 as a;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  std::string expected_output =
 R"(*************************** 1. row ***************************
-a: 11)");
+a: 11)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   wipe_all();
   (*options)[SHCORE_OUTPUT_FORMAT] = Value("table");
@@ -139,12 +146,13 @@ a: 11)");
   stream.str("select 12 as a;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  expected_output =
 R"(+----+
 | a  |
 +----+
 | 12 |
-+----+)");
++----+)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   wipe_all();
   (*options)[SHCORE_OUTPUT_FORMAT] = Value("table");
@@ -152,9 +160,10 @@ R"(+----+
   stream.str("select 13 as a\\G");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
 
-  MY_EXPECT_STDOUT_CONTAINS(
+  expected_output =
 R"(*************************** 1. row ***************************
-a: 13)");
+a: 13)";
+  MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
 
 } //namespace Shell_output_tests
