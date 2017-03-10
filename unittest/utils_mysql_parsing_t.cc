@@ -134,6 +134,13 @@ TEST_F(TestMySQLSplitter, ignore_empty_statements_misc_delimiter) {
 }
 
 TEST_F(TestMySQLSplitter, single_line_comments) {
+  sql = "/* shows the database list */\n"
+        "show databases;";
+  send_sql(sql);
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases", sql.substr(ranges[0].offset(), ranges[0].length()));
+
   sql = "-- shows the database list\n"
         "show databases;";
   send_sql(sql);
@@ -466,5 +473,195 @@ TEST_F(TestMySQLSplitter, delimiter_change_misc_delimiter) {
   EXPECT_EQ("select 12 as b",
       sql.substr(ranges[1].offset(), ranges[1].length()));
 }
+
+TEST_F(TestMySQLSplitter, single_line_mysql_extension)
+{
+  sql = "/*! SET TIME_ZONE='+00:00' */;\n"
+        "show databases;";
+  send_sql(sql);
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(2, ranges.size());
+  EXPECT_EQ("/*! SET TIME_ZONE='+00:00' */", sql.substr(ranges[0].offset(),
+            ranges[0].length()));
+  EXPECT_EQ("show databases", sql.substr(ranges[1].offset(),
+            ranges[1].length()));
+}
+
+TEST_F(TestMySQLSplitter, multi_line_mysql_extension_in_batch) {
+  std::string view = "/*!50001 CREATE VIEW `ActorLimit10` AS SELECT "\
+    "1 AS `actor_id`,\n"\
+    "1 AS `first_name`,\n"\
+    "1 AS `last_name`,\n"\
+    "1 AS `last_update`*/";
+  sql = view + ";\nshow databases;";
+
+  send_sql(sql);
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(2, static_cast<int>(ranges.size()));
+  EXPECT_EQ(view, sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ("show databases", sql.substr(ranges[1].offset(), ranges[1].length()));
+}
+
+TEST_F(TestMySQLSplitter, multi_line_mysql_extension_line_by_line) {
+  send_sql("/*!50001 CREATE VIEW `ActorLimit10`");
+  EXPECT_EQ("/*!", multiline_flags.top());  // Multiline comment flag is set
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  std::string expected = "/*!50001 CREATE VIEW `ActorLimit10`";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("1 AS `actor_id`,");
+  EXPECT_EQ("/*!", multiline_flags.top()); // Multiline comment flag continues
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  expected = "1 AS `actor_id`,";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("1 AS `last_name`,");
+  EXPECT_EQ("/*!", multiline_flags.top()); // Multiline comment flag continues
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  expected = "1 AS `last_name`,";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("1 AS `last_update`*/;");
+  EXPECT_TRUE(multiline_flags.empty()); // Multiline comment flag is done
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  expected = "1 AS `last_update`*/";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+}
+
+TEST_F(TestMySQLSplitter, single_line_optimizer_hint)
+{
+  sql = "/*+ NO_RANGE_OPTIMIZATION(t3 PRIMARY, f2_idx) */;\n"
+        "show databases;";
+  send_sql(sql);
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(2, ranges.size());
+  EXPECT_EQ("/*+ NO_RANGE_OPTIMIZATION(t3 PRIMARY, f2_idx) */",
+            sql.substr(ranges[0].offset(),ranges[0].length()));
+  EXPECT_EQ("show databases", sql.substr(ranges[1].offset(),
+            ranges[1].length()));
+}
+
+TEST_F(TestMySQLSplitter, multi_line_optimizer_hint_in_batch) {
+  std::string optimizer = "/*+ BKA(t1) "\
+    "NO_BKA(t2)*/";
+  sql = optimizer + ";\nshow databases;";
+
+  send_sql(sql);
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(2, static_cast<int>(ranges.size()));
+  EXPECT_EQ(optimizer, sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ("show databases", sql.substr(ranges[1].offset(), ranges[1].length()));
+}
+
+TEST_F(TestMySQLSplitter, multi_line_optimizer_hint_line_by_line) {
+  send_sql("/*+ BKA(t1) ");
+  EXPECT_EQ("/*+", multiline_flags.top());  // Multiline comment flag is set
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  std::string expected = "/*+ BKA(t1) ";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("NO_BKA(t2)*/;");
+  EXPECT_TRUE(multiline_flags.empty()); // Multiline comment flag is done
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  expected = "NO_BKA(t2)*/";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+}
+
+TEST_F(TestMySQLSplitter, continued_stmt_multiline_comment) {
+
+  send_sql("SELECT 1 AS _one /*");
+  EXPECT_EQ("-", multiline_flags.top());  // Continued statement flag
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+
+  // The first range is the incomplete statement
+  std::string expected = "SELECT 1 AS _one /*";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("comment text */;");
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+
+  // The first range is the incomplete statement
+  expected = "comment text */";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+}
+
+
+TEST_F(TestMySQLSplitter, continued_stmt_dash_dash_comment) {
+  send_sql("select 1 as one -- sample text");
+  EXPECT_EQ("-", multiline_flags.top()); // Continued statement flag
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+
+  // The first range is the incomplete statement
+  std::string expected = "select 1 as one ";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql(";select 2 as two;");
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(2, static_cast<int>(ranges.size()));
+
+  // The first range is an empty statement indicating the previous one is done
+  EXPECT_EQ("", sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  // The second range is the second statement
+  expected = "select 2 as two";
+  EXPECT_EQ(expected, sql.substr(ranges[1].offset(), ranges[1].length()));
+}
+
+TEST_F(TestMySQLSplitter, continued_stmt_dash_dash_comment_batch) {
+  send_sql("select 1 as one -- sample text\n;select 2 as two;");
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(3, static_cast<int>(ranges.size()));
+
+  // The first range is the incomplete statement
+  std::string expected = "select 1 as one ";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  // The second range is the empty range for the delimiter on the second line
+  EXPECT_EQ("", sql.substr(ranges[1].offset(), ranges[1].length()));
+
+  // The third range is the second statement
+  expected = "select 2 as two";
+  EXPECT_EQ(expected, sql.substr(ranges[2].offset(), ranges[2].length()));
+}
+
+TEST_F(TestMySQLSplitter, continued_stmt_hash_comment) {
+  send_sql("select 1 as one #sample text");
+  EXPECT_EQ("-", multiline_flags.top()); // Continued statement flag
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+
+  // The first range is the incomplete statement
+  std::string expected = "select 1 as one ";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql(";select 2 as two;");
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(2, static_cast<int>(ranges.size()));
+
+  // The first range is an empty statement indicating the previous one is done
+  EXPECT_EQ("", sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  // The second range is the second statement
+  expected = "select 2 as two";
+  EXPECT_EQ(expected, sql.substr(ranges[1].offset(), ranges[1].length()));
+}
+
+TEST_F(TestMySQLSplitter, continued_stmt_hash_comment_batch) {
+  send_sql("select 1 as one #sample text\n;select 2 as two;");
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(3, static_cast<int>(ranges.size()));
+
+  // The first range is the incomplete statement
+  std::string expected = "select 1 as one ";
+  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  // The second range is the empty range for the delimiter on the second line
+  EXPECT_EQ("", sql.substr(ranges[1].offset(), ranges[1].length()));
+
+  // The third range is the second statement
+  expected = "select 2 as two";
+  EXPECT_EQ(expected, sql.substr(ranges[2].offset(), ranges[2].length()));
+}
+
 }
 }

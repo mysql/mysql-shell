@@ -120,24 +120,44 @@ std::vector<Statement_range> determineStatementRanges(
   while (tail < end) {
     switch (*tail) {
       case '*': // Comes from a multiline comment and comment is done
-        if (*(tail + 1) == '/' && (!input_context_stack.empty() && input_context_stack.top() == "/*")) {
-          if (!input_context_stack.empty())
+        if (*(tail + 1) == '/' && !input_context_stack.empty()) {
+          std::string ic = input_context_stack.top();
+          if (ic == "/*" || ic == "/*!" || ic == "/*+") {
             input_context_stack.pop();
 
-          tail += 2;
-          head = tail; // Skip over the comment.
+            tail += 2;
+            if (ic == "/*") // Skip over the comment
+                head = tail;
+            }
         }
         break;
       case '/': // Possible multi line comment or hidden (conditional) command.
         if (*(tail + 1) == '*') {
           tail += 2;
-          bool is_hidden_command = (*tail == '!');
+
+          // MySQL supports a couple of C variant comments with special meaning:
+          // - MySQL Extensions: /*! this is a valid statement */
+          // - Optimizer Hints:  /*+ this is an optimizer hint */
+          std::string context = "/*";
+          if (*tail == '!')
+            context.append("!");
+          else if(*tail == '+')
+            context.append("+");
+
           while (true) {
             while (tail < end && *tail != '*')
               tail++;
             if (tail == end) // Unfinished comment.
             {
-              input_context_stack.push("/*");
+              // If valid content was found before the comment
+              // it is indicated to the statement is considered
+              // complete on the first delimiter found after closing the
+              // comment
+              if (have_content)
+                input_context_stack.push("-");
+              else
+                input_context_stack.push(context);
+
               break;
             } else {
               if (*(tail + 1) == '/') {
@@ -147,7 +167,7 @@ std::vector<Statement_range> determineStatementRanges(
             }
           }
 
-          if (!is_hidden_command && !have_content)
+          if (context.size() == 2 && !have_content)
             head = tail + 1; // Skip over the comment.
 
           break;
@@ -156,22 +176,48 @@ std::vector<Statement_range> determineStatementRanges(
       case '-': // Possible single line comment.
       {
         const unsigned char *end_char = tail + 2;
-        if (*(tail + 1) == '-' && (*end_char == ' ' || *end_char == '\t' || is_line_break(end_char, new_line) || length == 2)) {
+        if (*(tail + 1) == '-' &&
+           (*end_char == ' ' ||
+            *end_char == '\t' ||
+            is_line_break(end_char, new_line) ||
+            length == 2)) {
+
+          // If there was content until now adds a range
+          if (have_content && head < tail) {
+            ranges.emplace_back(head - (unsigned char *)sql, tail - head, "");
+
+            // If there is content we need to indicate the statement continues
+            // on the next line
+            input_context_stack.push("-");
+            have_content = false;
+          }
+
+
           // Skip everything until the end of the line.
           tail += 2;
           while (tail < end && !is_line_break(tail, new_line))
             tail++;
-          if (!have_content)
-            head = tail;
+
+          head = tail;
         }
         break;
       }
 
       case '#': // MySQL single line comment.
+        // If there was content until now adds a range
+        if (have_content && head < tail) {
+          ranges.emplace_back(head - (unsigned char *)sql, tail - head, "");
+
+          // If there is content we need to indicate the statement continues
+          // on the next line
+          input_context_stack.push("-");
+          have_content = false;
+        }
+
         while (tail < end && !is_line_break(tail, new_line))
           tail++;
-        if (!have_content)
-          head = tail;
+
+        head = tail;
         break;
 
       case '"':
@@ -181,7 +227,8 @@ std::vector<Statement_range> determineStatementRanges(
         have_content = true;
         char quote = *tail++;
 
-        if (input_context_stack.empty() || input_context_stack.top() == "-") {
+        if (input_context_stack.empty() || input_context_stack.top() == "-" ||
+            input_context_stack.top() == "/*!") {
           // Quoted string/id. Skip this in a local loop if is opening quote.
           while (tail < end ) {
             // Handle consecutive double quotes within a quoted string (for ' and ")
@@ -200,9 +247,9 @@ std::vector<Statement_range> determineStatementRanges(
               tail++;
             tail++;
           }
-          if (*tail == quote)
-            tail++; // Skip trailing quote char to if one was there.
-          else {
+          // If the closing quote was not reached
+          // The quote will be multiline
+          if (*tail != quote) {
             std::string q;
             q.assign(&quote, 1);
             input_context_stack.push(q); // Sets multiline opening quote to continue processing
@@ -308,9 +355,10 @@ std::vector<Statement_range> determineStatementRanges(
     tail++;
   }
 
-  // Add remaining text to the range list but ignores it when it is a multiline comment
+  // Add remaining text to the range list if it is real content
   head = skip_leading_whitespace(head, tail);
-  if (head < tail && (input_context_stack.empty() || input_context_stack.top() != "/*")) {
+  if (head < tail &&
+     (input_context_stack.empty() || input_context_stack.top() != "/*")) {
 
     // There is no delimiter yet
     ranges.emplace_back(head - (unsigned char *)sql, tail - head, "");

@@ -65,6 +65,6 @@ protected:
   void dump_tabbed(shcore::Value::Array_type_ref records);
   void dump_table(shcore::Value::Array_type_ref records);
   void dump_vertical(shcore::Value::Array_type_ref records);
-  void dump_warnings();
+  void dump_warnings(bool classic = false);
 };
 #endif

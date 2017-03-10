@@ -86,10 +86,7 @@ Value Shell_sql::process_sql(const std::string &query_str,
     print_exception(exc);
   }
 
-  if (_last_handled.empty())
-    _last_handled = query_str + delimiter;
-  else
-    _last_handled += '\n' + query_str + delimiter;
+  _last_handled += query_str + delimiter;
 
   return ret_val;
 }
@@ -127,22 +124,6 @@ void Shell_sql::handle_input(std::string &code, Input_state &state, std::functio
 
     int range_index = 0;
 
-    // Handle the multiline (cached) command case
-    if (!_sql_cache.empty() && !ranges.empty() &&
-        !ranges[0].get_delimiter().empty()) {
-      // Statement has a delimiter, we can assemble a query from
-      // the new command and a cached string
-      std::string cached_query = _sql_cache + '\n' +
-          code.substr(ranges[0].offset(), ranges[0].length());
-
-      _sql_cache.clear();
-      no_query_executed = false;
-      ret_val = process_sql(cached_query, ranges[0].get_delimiter(), session,
-          result_processor);
-      // First statement was a continuation not a whole command, we can skip it
-      range_index++;
-    }
-
     for (; range_index < ranges.size(); range_index++)
     {
       if (ranges[range_index].get_delimiter().empty()) {
@@ -157,10 +138,24 @@ void Shell_sql::handle_input(std::string &code, Input_state &state, std::functio
           _sql_cache.append("\n").append(line);
       } else {
         no_query_executed = false;
-        ret_val = process_sql(code.substr(ranges[range_index].offset(),
-            ranges[range_index].length()),
-            ranges[range_index].get_delimiter(),
-            session, result_processor);
+        if (!_sql_cache.empty()){
+          no_query_executed = false;
+          std::string cached_query = _sql_cache + "\n" +
+              code.substr(ranges[range_index].offset(),
+              ranges[range_index].length());
+
+          _sql_cache.clear();
+
+          ret_val = process_sql(cached_query,
+              ranges[range_index].get_delimiter(),
+              session, result_processor);
+        }
+        else {
+          ret_val = process_sql(code.substr(ranges[range_index].offset(),
+              ranges[range_index].length()),
+              ranges[range_index].get_delimiter(),
+              session, result_processor);
+        }
       }
     }
     code = _sql_cache;
