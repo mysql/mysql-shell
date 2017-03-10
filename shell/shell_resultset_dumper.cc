@@ -118,7 +118,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysqlsh::mysql::ClassicResult>
 
     // Prints the warnings if there were any
     if (warning_count && _show_warnings)
-      dump_warnings();
+      dump_warnings(true);
   } while (result->next_data_set(shcore::Argument_list()).as_bool());
 }
 
@@ -395,7 +395,7 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
     output_stats = "Empty set";
 }
 
-void ResultsetDumper::dump_warnings() {
+void ResultsetDumper::dump_warnings(bool classic) {
   shcore::Value warnings = _resultset->get_member("warnings");
 
   if (warnings) {
@@ -406,10 +406,20 @@ void ResultsetDumper::dump_warnings() {
       shcore::Value record = warning_list->at(index);
       std::shared_ptr<mysqlsh::Row> row = record.as_object<mysqlsh::Row>();
 
-      unsigned long error = row->get_member("code").as_int();
+      std::string code = "code";
+      std::string level = "level";
+      std::string message = "message";
 
-      std::string type = row->get_member("level").as_string();
-      std::string msg = row->get_member("message").as_string();
+      if (classic) {
+        code = "Code";
+        level = "Level";
+        message = "Message";
+      }
+
+      unsigned long error = row->get_member(code).as_int();
+
+      std::string type = row->get_member(level).as_string();
+      std::string msg = row->get_member(message).as_string();
       _output_handler->print(_output_handler->user_data, (boost::format("%s (code %ld): %s\n") % type % error % msg).str().c_str());
 
       index++;

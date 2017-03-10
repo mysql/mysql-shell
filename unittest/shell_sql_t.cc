@@ -260,7 +260,7 @@ TEST_F(Shell_sql_test, multiple_statements_and_continued) {
   // query will be updated to only keep what has not been executed
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   //EXPECT_EQ("show", query);
-  EXPECT_EQ("show databases;\nselect 1;", env.shell_sql->get_handled_input());
+  EXPECT_EQ("show databases;select 1;", env.shell_sql->get_handled_input());
   EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
   query = "databases;";
@@ -381,5 +381,112 @@ TEST_F(Shell_sql_test, multiple_single_double_quotes) {
   EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 
 }
+
+TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
+  // ATM A multiline comment in the middle of a statement is
+  // not trimmed off
+  Input_state state;
+  std::string query = "SELECT 1 AS _one /*";
+
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
+  EXPECT_EQ("", query);
+
+  // SQL has not been handled yet
+  EXPECT_EQ("", env.shell_sql->get_handled_input());
+
+  // Prompt for continued statement
+  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+
+
+  query = "comment text */;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("SELECT 1 AS _one /*\ncomment text */;",
+      env.shell_sql->get_handled_input());
+
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+}
+
+
+TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
+  // ATM dash dash comments are trimmed from statements
+  Input_state state;
+  std::string query = "select 1 as one -- sample comment";
+
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
+  EXPECT_EQ("", query);
+
+  // SQL has not been handled yet
+  EXPECT_EQ("", env.shell_sql->get_handled_input());
+
+  // Prompt for continued statement
+  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+
+
+  query = ";select 2 as two;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("select 1 as one \n;select 2 as two;",
+      env.shell_sql->get_handled_input());
+
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+}
+
+TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment_batch) {
+  // ATM dash dash comments are trimmed from statements
+  Input_state state;
+  std::string query = "select 1 as one -- sample comment\n;select 2 as two;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("select 1 as one \n;select 2 as two;",
+      env.shell_sql->get_handled_input());
+
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+}
+
+TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
+  // ATM hash comments are trimmed from statements
+  Input_state state;
+  std::string query = "select 1 as one #sample comment";
+
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
+  EXPECT_EQ("", query);
+
+  // SQL has not been handled yet
+  EXPECT_EQ("", env.shell_sql->get_handled_input());
+
+  // Prompt for continued statement
+  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+
+
+  query = ";select 2 as two;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("select 1 as one \n;select 2 as two;",
+      env.shell_sql->get_handled_input());
+
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+}
+
+TEST_F(Shell_sql_test, continued_stmt_hash_comment_batch) {
+  // ATM hash comments are trimmed from statements
+  Input_state state;
+  std::string query = "select 1 as one #sample comment\n;select 2 as two;";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::Ok, state);
+  EXPECT_EQ("", query);
+  EXPECT_EQ("select 1 as one \n;select 2 as two;",
+      env.shell_sql->get_handled_input());
+
+  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+}
+
 }
 }
