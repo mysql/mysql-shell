@@ -2119,15 +2119,15 @@ class XShell_TestCases(unittest.TestCase):
                    "mysql-js>"),
                   ("session.runSql(\"use sakila;\");\n", "Query OK"),
                   ("session.runSql(\"drop table if exists sakila.friends;\");\n", "Query OK"),
-                  ("session.runSql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
-                   "age integer, gender varchar(20));\');\n", "Query OK"),
-                  ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'jack\',"
-                   "\'black\', 17, \'male\');\");\n", "mysql-js>"),
-                  ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'ruben\',"
-                   "\'morquecho\', 40, \'male\');\");\n", "mysql-js>"),
-                  ("session.runSql(\"UPDATE friends SET name=\'ruben dario\' where name =  '\ruben\';\");\n",
+                  ("session.runSql('create table sakila.friends (name varchar(50), last_name varchar(50), "
+                   "age integer, gender varchar(20));');\n", "Query OK"),
+                  ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES ('jack',"
+                   "'black', 17, 'male');\");\n", "mysql-js>"),
+                  ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES ('ruben',"
+                   "'morquecho', 40, 'male');\");\n", "mysql-js>"),
+                  ("session.runSql(\"UPDATE friends SET name='ruben dario' where name =  'ruben';\");\n",
                    "mysql-js>"),
-                  ("session.runSql(\"SELECT * from friends where name LIKE '\%ruben%\';\");\n", "ruben dario")
+                  ("session.runSql(\"SELECT * from friends where name LIKE '%ruben%';\");\n", "ruben dario")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -3059,6 +3059,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("issues MYS320 , delimiter in py is not recongnized, CLOSED: deliimtter is not a SQL statement, it's a feature of the SQL mode ")
     def test_4_3_30_1(self):
         '''[4.3.030]:1 PY Update alter stored procedure using session object: CLASSIC SESSION'''
         results = ''
@@ -3078,7 +3079,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
-    @unittest.skip("issues MYS320 , delimiter in js is not recongnized ")
+    @unittest.skip("issues MYS320 , delimiter in py is not recongnized, CLOSED: deliimtter is not a SQL statement, it's a feature of the SQL mode ")
     def test_4_3_30_2(self):
         '''[4.3.030]:2 PY Update alter stored procedure using session object: NODE SESSION'''
         results = ''
@@ -3605,18 +3606,18 @@ class XShell_TestCases(unittest.TestCase):
                   ("session.\n", "..."),
                   (
                   "sql('create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));').execute();\n",
-                  "..."),
+                  "  ..."),
                   ("\n", "mysql-js>"),
                   ("session.sql(\"show tables like 'friends';\").execute();\n", "1 row in set"),
                   ("session.sql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES('ruben','morquecho', "
                    "40,'male');\").execute();\n", "Query OK"),
                   ("session.sql(\"UPDATE sakila.friends SET name='ruben dario' where name =  'ruben';\").execute();\n",
                    "Query OK"),
-                  ("session.\n", "..."),
-                  ("sql(\"SELECT * from friends where name LIKE '%ruben dario%';\").execute();\n", "1 row in set"),
-                  ("\n", "mysql-js>"),
-                  ("session.\n", "..."),
-                  ("sql('drop table if exists sakila.friends;').execute();\n", "..."),
+                  ("session.\n", "  ..."),
+                  ("sql(\"SELECT * from friends where name LIKE '%ruben dario%';\").execute();\n", "  ..."),
+                  ("\n", "1 row in set"),
+                  ("session.\n", " ..."),
+                  ("sql('drop table if exists sakila.friends;').execute();\n", " ..."),
                   ("\n", "mysql-js>"),
                   ("session.sql(\"show tables like 'friends';\").execute();\n", "Empty set"),
                   ]
@@ -3796,13 +3797,12 @@ class XShell_TestCases(unittest.TestCase):
                    "mysql-js>"),
                   ("session.runSql('use sakila;');\n", "Query OK"),
                   ("session.runSql('drop view if exists js_view;');\n", "Query OK"),
-                  (
-                  "session.runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\");\n",
+                  ("session.runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\");\n",
                   "Query OK"),
-                  ("session.getSchema('sakila').getViews();\n", "js_view"),
+                  ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n",
+                  '1 row in set'),
                   ("session.dropView('sakila','js_view');\n", "Query OK"),
-                  (
-                  "session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n",
+                  ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n",
                   'Empty set')]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
