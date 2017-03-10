@@ -28,9 +28,13 @@ namespace sql_shell_tests {
 class TestMySQLSplitter : public ::testing::Test {
 protected:
   std::stack<std::string> multiline_flags;
-  mysql::splitter::Delimiters delimiters = {";", "\\G", "\\g"};
+  mysql::splitter::Delimiters delimiters;
   std::vector<mysql::splitter::Statement_range> ranges;
   std::string sql;
+
+  virtual void SetUp() {
+    delimiters = mysql::splitter::Delimiters({";", "\\G", "\\g"});
+  }
 
   void send_sql(const std::string &data) {
     // Sends the received sql and sets the list of command ranges denoted
