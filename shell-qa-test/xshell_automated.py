@@ -2669,11 +2669,11 @@ class XShell_TestCases(unittest.TestCase):
                    "age integer, gender varchar(20))\')\n", "Query OK"),
                   ("session.run_sql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'jack\',"
                    "\'black\', 17, \'male\');\")\n", "mysql-py>"),
-                  ("session.run_sql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'ruben\',"
-                   "\'morquecho\', 40, \'male\');\")\n", "mysql-py>"),
-                  ("session.run_sql(\"UPDATE friends SET name=\'ruben dario\' where name =  '\ruben\';\")\n",
+                  ("session.run_sql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES ('ruben',"
+                   "'morquecho', 40, 'male');\")\n", "mysql-py>"),
+                  ("session.run_sql(\"UPDATE friends SET name='ruben dario' where name =  'ruben';\")\n",
                    "mysql-py>"),
-                  ("session.run_sql(\"SELECT * from friends where name LIKE '\%ruben%\';\")\n", "ruben dario")
+                  ("session.run_sql(\"SELECT * from friends where name LIKE '%ruben%';\")\n", "ruben dario")
                   ]
 
         results = exec_xshell_commands(init_command, x_cmds)
