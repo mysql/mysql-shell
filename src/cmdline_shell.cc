@@ -221,6 +221,7 @@ void Command_line_shell::print_cmd_line_helper() {
   println("  --json                   Produce output in JSON format.");
   println("  --table                  Produce output in table format (default for interactive mode).");
   println("                           This option can be used to force that format when running in batch mode.");
+  println("  -E, --vertical           Print the output of a query (rows) vertically.");
   println("  -i, --interactive[=full] To use in batch mode, it forces emulation of interactive mode processing.");
   println("                           Each line on the batch is processed as if it were in interactive mode.");
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
