@@ -1,4 +1,4 @@
-// Assumptions: smart deployment rountines available
+// Assumptions: smart deployment routines available
 //@ Initialization
 var deployed_here = reset_or_deploy_sandboxes();
 

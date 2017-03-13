@@ -26,6 +26,9 @@ using namespace shcore;
 static bool g_test_sessions = getenv("TEST_SESSIONS") != nullptr;
 static bool g_test_debug = getenv("TEST_DEBUG") != nullptr;
 
+std::vector<std::string> Shell_test_output_handler::log;
+ngcommon::Logger *Shell_test_output_handler::_logger;
+
 Shell_test_output_handler::Shell_test_output_handler() {
   deleg.user_data = this;
   deleg.print = &Shell_test_output_handler::deleg_print;
@@ -35,6 +38,28 @@ Shell_test_output_handler::Shell_test_output_handler() {
 
   full_output.clear();
   debug = false;
+
+  // Initialize the logger and attach the hook for error verification
+  std::string log_path = shcore::get_binary_folder();
+  log_path += "/mysqlsh.log";
+  ngcommon::Logger::create_instance(log_path.c_str(), false);
+  _logger = ngcommon::Logger::singleton();
+  _logger->attach_log_hook(log_hook);
+}
+
+Shell_test_output_handler::~Shell_test_output_handler() {
+  _logger->detach_log_hook(log_hook);
+}
+
+void Shell_test_output_handler::log_hook(const char *message, ngcommon::Logger::LOG_LEVEL level, const char *domain) {
+  ngcommon::Logger::LOG_LEVEL current_level = _logger->get_log_level();
+
+  // If the level of the log is different than
+  // the one set, we don't want to store the message
+  if (current_level == level) {
+    std::string message_s(message);
+    log.push_back(message_s);
+  }
 }
 
 void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
@@ -130,6 +155,60 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
       ADD_FAILURE();
     }
   }
+}
+
+void Shell_test_output_handler::validate_log_content(const std::vector<std::string> &content, bool expected) {
+  for (auto &value : content) {
+    bool found = false;
+
+    if (std::find_if(log.begin(), log.end(),
+                     [&value](const std::string &str) {
+                        return str.find(value) != std::string::npos;
+                     })
+        != log.end()) {
+      found = true;
+    }
+
+    if (found != expected) {
+      std::string error = expected ? "Missing" : "Unexpected";
+      error += " LOG: " + value;
+      std::string s;
+      for (const auto &piece : log)
+        s += piece;
+      SCOPED_TRACE("LOG Actual: " + s);
+      SCOPED_TRACE(error);
+      ADD_FAILURE();
+    }
+  }
+
+  // Wipe the log here
+  wipe_log();
+}
+
+void Shell_test_output_handler::validate_log_content(const std::string &content, bool expected) {
+  bool found = false;
+
+  if (std::find_if(log.begin(), log.end(),
+                    [&content](const std::string &str) {
+                      return str.find(content) != std::string::npos;
+                    })
+                    != log.end()) {
+    found = true;
+  }
+
+  if (found != expected) {
+    std::string error = expected ? "Missing" : "Unexpected";
+    error += " LOG: " + content;
+    std::string s;
+    for (const auto &piece : log)
+      s += piece;
+    SCOPED_TRACE("LOG Actual: " + s);
+    SCOPED_TRACE(error);
+    ADD_FAILURE();
+  }
+
+  // Wipe the log here
+  wipe_log();
 }
 
 void Shell_test_output_handler::debug_print(const std::string& line) {

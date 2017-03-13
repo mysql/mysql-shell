@@ -363,6 +363,64 @@ TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
   validate_interactive("dba_reboot_cluster_interactive.js");
 }
 
+TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
+  _options->wizards = false;
+  reset_shell();
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
+  validate_interactive("dba_cluster_misconfigurations.js");
+
+  std::vector<std::string> log = {
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
+
+  MY_EXPECT_LOG_CONTAINS(log);
+}
+
+TEST_F(Shell_js_dba_tests, cluster_misconfigurations_interactive) {
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
+  //@<OUT> Dba.createCluster: cancel
+  output_handler.prompts.push_back("n");
+
+  //@<OUT> Dba.createCluster: ok
+  output_handler.prompts.push_back("y");
+
+  validate_interactive("dba_cluster_misconfigurations_interactive.js");
+
+  std::vector<std::string> log = {
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
+
+  MY_EXPECT_LOG_CONTAINS(log);
+}
+
+TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
+  _options->wizards = false;
+  reset_shell();
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
+  validate_interactive("dba_cluster_no_misconfigurations.js");
+
+  std::vector<std::string> log = {
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
+
+  MY_EXPECT_LOG_NOT_CONTAINS(log);
+}
+
+TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
+  validate_interactive("dba_cluster_no_misconfigurations_interactive.js");
+
+  std::vector<std::string> log = {
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
+
+  MY_EXPECT_LOG_NOT_CONTAINS(log);
+}
+
 TEST_F(Shell_js_dba_tests, function_preconditions) {
   _options->wizards = false;
   reset_shell();
