@@ -138,6 +138,8 @@ protected:
     _interactive_shell.reset(new mysqlsh::Base_shell(*_options.get(), &output_handler.deleg));
 
     set_defaults();
+
+    _interactive_shell->finish_init();
   }
 
   Shell_test_output_handler output_handler;

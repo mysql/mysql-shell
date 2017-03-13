@@ -22,7 +22,12 @@
 #include <iostream>
 #include <stdlib.h>
 
+extern "C" {
+const char *g_argv0 = nullptr;
+}
+
 int main(int argc, char **argv) {
+  g_argv0 = argv[0];
 #ifdef HAVE_V8
   extern void JScript_context_init();
 

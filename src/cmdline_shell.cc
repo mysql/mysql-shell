@@ -40,7 +40,6 @@ Command_line_shell::Command_line_shell(const Shell_options &options) : mysqlsh::
 #ifndef WIN32
   rl_initialize();
 #endif
-  //  using_history();
 
   _delegate.user_data = this;
   _delegate.print = &Command_line_shell::deleg_print;
@@ -51,6 +50,8 @@ Command_line_shell::Command_line_shell(const Shell_options &options) : mysqlsh::
   _delegate.print_value = nullptr;
 
   observe_notification("SN_STATEMENT_EXECUTED");
+
+  finish_init();
 }
 
 void Command_line_shell::deleg_print(void *cdata, const char *text) {
