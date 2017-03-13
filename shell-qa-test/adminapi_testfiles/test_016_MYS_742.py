@@ -84,12 +84,10 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host, '-P' + instance, '--classic']
-      x_cmds = [("dba.checkInstanceConfig(\""+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+instance+"\");\n", "\"status\": \"ok\"")]
+      x_cmds = [("dba.checkInstanceConfiguration(\"" + LOCALHOST.user + ":" + LOCALHOST.password + "@" +
+                 LOCALHOST.host + ":" + instance + "\");\n",  "\"status\": \"ok\"")]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-
-
 
   # ----------------------------------------------------------------------
 #

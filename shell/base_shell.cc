@@ -137,11 +137,11 @@ _options(options) {
   _shell->switch_mode(_options.initial_mode, lang_initialized);
 
   _result_processor = std::bind(&Base_shell::process_result, this, _1);
+}
 
-  if (lang_initialized) {
-    load_default_modules(_options.initial_mode);
-    init_scripts(_options.initial_mode);
-  }
+void Base_shell::finish_init() {
+  load_default_modules(_options.initial_mode);
+  init_scripts(_options.initial_mode);
 }
 
 bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {

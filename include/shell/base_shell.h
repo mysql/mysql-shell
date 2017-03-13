@@ -31,6 +31,11 @@ public:
                      const std::vector<std::string> &argv);
   int process_file(const std::string& file, const std::vector<std::string> &argv);
 
+  /** Finalize initialization steps after basic init of the shell is already done
+      Does things like loading init scripts.
+   */
+  virtual void finish_init();
+
   void init_environment();
   void init_scripts(shcore::Shell_core::Mode mode);
   void load_default_modules(shcore::Shell_core::Mode mode);

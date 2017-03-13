@@ -45,6 +45,7 @@ public:
 private:
   bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const; \
   mysqlsh::dba::ReplicationGroupState check_preconditions(const std::string& function_name) const;
+  void assert_not_dissolved(const std::string& function_name) const;
 };
 }
 

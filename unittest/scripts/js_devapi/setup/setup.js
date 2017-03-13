@@ -403,3 +403,34 @@ function try_restart_sandbox(port) {
     println('Restart failed at: ' + port);
   }
 }
+
+// Function to clean all trx and binary logs on the sandbox server.
+function reset_server_trx(port) {
+  // Connect to the sandbox server
+  var connected = connect_to_sandbox([port]);
+
+  if (connected) {
+      // Clean transactions and binary logs (must stop Group Replication first).
+      // NOTE: Group Replication is not started again after clean-up.
+      try {
+          println('Stopping Group Replication...');
+          session.runSql('STOP GROUP_REPLICATION');
+
+      } catch (err) {
+          println('Error stopping Group Replication at ' + port + ': ' + err.message);
+      }
+      try {
+          println('Remove binary logs and clean GTIDs sets (RESET MASTER)...');
+          session.runSql('RESET MASTER')
+      } catch (err) {
+          println('Error executing RESET MASTER at ' + port + ': ' + err.message);
+      }
+  }
+}
+
+// Function to clean all trx and binary logs on all sandbox servers.
+function reset_all_servers_trx() {
+    reset_server_trx(__mysql_sandbox_port1);
+    reset_server_trx(__mysql_sandbox_port2);
+    reset_server_trx(__mysql_sandbox_port3);
+}

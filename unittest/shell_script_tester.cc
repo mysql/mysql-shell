@@ -135,6 +135,16 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context, cons
   if (actual_index < actual_lines.size()) {
     size_t expected_index;
     for (expected_index = 0; expected_index < expected_lines.size(); expected_index++) {
+      // if there are less actual lines than the ones expected
+      if ((actual_index + expected_index) >= actual_lines.size()){
+        SCOPED_TRACE(stream + " actual: " + actual);
+        expected_lines[expected_index] += "<------ MISSING";
+        SCOPED_TRACE(stream + " expected lines missing: " + shcore::join_strings(expected_lines, "\n"));
+        ADD_FAILURE();
+        ret_val = false;
+        break;
+      }
+
       auto act_str = boost::trim_right_copy(actual_lines[actual_index + expected_index]);
       auto exp_str = boost::trim_right_copy(expected_lines[expected_index]);
       if (!multi_value_compare(exp_str, act_str)) {

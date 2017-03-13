@@ -250,6 +250,31 @@ bool get_server_variable(mysqlsh::mysql::Connection *connection, const std::stri
   return ret_val;
 }
 
+bool get_server_variable(mysqlsh::mysql::Connection *connection, const std::string& name,
+                         int &value, bool throw_on_error) {
+  bool ret_val = true;
+  std::string query = "SELECT @@" + name;
+
+  try {
+    auto result = connection->run_sql(query);
+    auto row = result->fetch_one();
+
+    if (row)
+      value = row->get_value(0).as_int();
+    else
+      ret_val = false;
+  } catch (shcore::Exception& error) {
+    if (throw_on_error)
+      throw;
+    else {
+      log_warning("Unable to read server variable '%s': %s", name.c_str(), error.what());
+      ret_val = false;
+    }
+  }
+
+  return ret_val;
+}
+
 void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
                           const std::string &value) {
   std::string query, query_raw = "SET GLOBAL " + name + " = ?";

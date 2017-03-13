@@ -57,6 +57,7 @@ public:
   void set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs);
   std::string get_name() { return _name; }
   std::string get_description() { return _description; }
+  void assert_not_dissolved(const std::string &option_name) const;
   void set_description(std::string description) { _description = description; };
 
   void set_option(const std::string& option, const shcore::Value &value);
@@ -132,6 +133,7 @@ protected:
   shcore::Value::Map_type_ref _accounts;
   shcore::Value::Map_type_ref _options;
   shcore::Value::Map_type_ref _attributes;
+  bool _dissolved;
 
 private:
   void init();

@@ -151,4 +151,17 @@ Cluster.status()
 //@<OUT> Cluster: final dissolve
 Cluster.dissolve({force: true})
 
-
+//@ Cluster: no operations can be done on a dissolved cluster
+Cluster.name
+Cluster.adminType
+Cluster.addInstance()
+Cluster.checkInstanceState()
+Cluster.describe()
+Cluster.dissolve()
+Cluster.forceQuorumUsingPartitionOf()
+Cluster.getAdminType()
+Cluster.getName()
+Cluster.rejoinInstance()
+Cluster.removeInstance()
+Cluster.rescan()
+Cluster.status()

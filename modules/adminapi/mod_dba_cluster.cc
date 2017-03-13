@@ -53,8 +53,8 @@ REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 REGISTER_HELP(CLUSTER_ADMINTYPE_BRIEF, "Cluster Administration type.");
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _metadata_storage(metadata_storage) {
-  init();
+_name(name), _metadata_storage(metadata_storage), _dissolved(false) {
+ init();
 }
 
 Cluster::~Cluster() {}
@@ -100,16 +100,33 @@ str Cluster::get_name() {}
 
 shcore::Value Cluster::get_member(const std::string &prop) const {
   shcore::Value ret_val;
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved(prop);
+
   if (prop == "name")
     ret_val = shcore::Value(_name);
   else if (prop == "adminType")
     ret_val = (*_options)[OPT_ADMIN_TYPE];
   else
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
-
   return ret_val;
 }
 
+void Cluster::assert_not_dissolved(const std::string &option_name) const {
+  std::string name;
+  if (has_member(option_name) && _dissolved) {
+    if (has_method(option_name)) {
+      name = get_function_name(option_name, false);
+      throw Exception::runtime_error(
+          class_name() + "." + name + ": " + "Can't call function '" + name + "' on a dissolved cluster");
+    }
+    else{
+      name = get_member_name(option_name, naming_style);
+      throw Exception::runtime_error(
+          class_name() + "." + name + ": " + "Can't access object member '" + name + "' on a dissolved cluster");
+    }
+  }
+}
 // Documentation of the getAdminType function
 REGISTER_HELP(CLUSTER_GETADMINTYPE_BRIEF, "Retrieves the Administration type of the cluster.");
 REGISTER_HELP(CLUSTER_GETADMINTYPE_RETURN, "@return The Administration type of the cluster.");
@@ -259,6 +276,9 @@ Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
 None Cluster::add_instance(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("addInstance");
+
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
   check_preconditions("addInstance");
@@ -341,6 +361,9 @@ None Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 #endif
 
 shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("rejoinInstance");
+
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
 
   check_preconditions("rejoinInstance");
@@ -396,6 +419,9 @@ None Cluster::remove_instance(InstanceDef instance, str password) {}
 #endif
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("removeInstance");
+
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
   check_preconditions("removeInstance");
@@ -425,6 +451,9 @@ ReplicaSet Cluster::get_replica_set(str name) {}
 #endif
 #endif
 shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("getReplicaSet");
+
   shcore::Value ret_val;
 
   if (args.size() == 0)
@@ -476,6 +505,9 @@ str Cluster::describe() {}
 #endif
 
 shcore::Value Cluster::describe(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("describe");
+
   args.ensure_count(0, get_function_name("describe").c_str());
 
   auto state = check_preconditions("describe");
@@ -528,6 +560,9 @@ str Cluster::status() {}
 #endif
 
 shcore::Value Cluster::status(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("status");
+
   args.ensure_count(0, get_function_name("status").c_str());
 
   auto state = check_preconditions("status");
@@ -581,6 +616,9 @@ None Cluster::dissolve(Dictionary options) {}
 #endif
 
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("dissolve");
+
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
   check_preconditions("dissolve");
@@ -615,6 +653,8 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     if (_metadata_storage->is_cluster_empty(get_id())) {
       _metadata_storage->drop_cluster(cluster_name);
       tx.commit();
+      // Set the flag, marking this cluster instance as invalid.
+      _dissolved = true;
     } else {
       if (force) {
         // Gets the instances on the only available replica set
@@ -629,6 +669,9 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 
         // once the data changes are done, we proceed doing the remove from GR
         _default_replica_set->remove_instances_from_gr(instances);
+
+        // Set the flag, marking this cluster instance as invalid.
+        _dissolved = true;
       } else {
         throw Exception::logic_error("Cannot drop cluster: The cluster is not empty.");
       }
@@ -654,6 +697,9 @@ None Cluster::rescan() {}
 #endif
 
 shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("rescan");
+
   args.ensure_count(0, get_function_name("rescan").c_str());
 
   check_preconditions("rescan");
@@ -726,6 +772,9 @@ None Cluster::force_quorum_using_partition_of(InstanceDef instance, str password
 #endif
 
 shcore::Value Cluster::force_quorum_using_partition_of(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("forceQuorumUsingPartitionOf");
+
   args.ensure_count(1, 2, get_function_name("forceQuorumUsingPartitionOf").c_str());
 
   check_preconditions("forceQuorumUsingPartitionOf");
@@ -789,6 +838,9 @@ Undefined Cluster::checkInstanceState(InstanceDef instance, String password) {}
 None Cluster::check_instance_state(InstanceDef instance, str password) {}
 #endif
 shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved("checkInstanceState");
+
   args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
 
   check_preconditions("checkInstanceState");
