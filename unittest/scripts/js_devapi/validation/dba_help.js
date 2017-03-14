@@ -24,7 +24,8 @@ The following functions are currently supported.
                                    members
  - killSandboxInstance             Kills a running MySQL Server instance on
                                    localhost.
- - rebootClusterFromCompleteOutage Brings a cluster back ONLINE when all members are OFFLINE.
+ - rebootClusterFromCompleteOutage Brings a cluster back ONLINE when all
+                                   members are OFFLINE.
  - resetSession                    Sets the session object to be used on the
                                    Dba operations.
  - startSandboxInstance            Starts an existing MySQL Server instance on
