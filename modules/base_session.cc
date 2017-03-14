@@ -351,6 +351,17 @@ shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args) {
   return shcore::Value(is_connected());
 }
 
+std::string ShellBaseSession::address() {
+  std::string res;
+  if (!_sock.empty())
+    // If using a socket, then the host is localhost
+    res = "localhost:" + _sock;
+  else if (_port != 0)
+    // if using a port, then the host is what was provided
+    res = _host + ":" + std::to_string(_port);
+  return res;
+}
+
 void ShellBaseSession::reconnect() {
   shcore::Argument_list args;
   args.push_back(shcore::Value(_uri));

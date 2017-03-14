@@ -32,7 +32,7 @@
 |<Cluster:devCluster>|
 
 #@# Dba: create_cluster already exist
-||Dba.create_cluster: Cluster is already initialized. Use Dba.get_cluster() to access it
+||Dba.create_cluster: Unable to create cluster. The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use <Dba>.get_cluster() to access it.
 
 #@# Dba: check_instance_configuration errors
 ||Dba.check_instance_configuration: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'

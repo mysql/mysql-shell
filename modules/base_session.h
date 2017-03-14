@@ -55,6 +55,7 @@ public:
   virtual shcore::Value get_status(const shcore::Argument_list &args) = 0;
   virtual shcore::Value get_capability(const std::string &name) { return shcore::Value(); }
   std::string uri() { return _uri; };
+  std::string address();
 
   virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const = 0;
 
