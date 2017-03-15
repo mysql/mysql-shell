@@ -82,7 +82,7 @@ public:
 
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  void update_cache();
+  virtual void update_cache();
   void _remove_object(const std::string& name, const std::string& type);
 
   virtual std::string get_object_type() { return "Schema"; }
