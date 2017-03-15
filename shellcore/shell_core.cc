@@ -23,6 +23,7 @@
 #include "shellcore/shell_python.h"
 #include "shellcore/object_registry.h"
 #include "modules/base_session.h"
+#include "modules/base_database_object.h"
 #include "interactive/interactive_global_schema.h"
 #include "interactive/interactive_global_session.h"
 #include "interactive/interactive_global_shell.h"
@@ -449,6 +450,14 @@ std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::set_dev_session(co
 
   shcore::Value currentSchema = session->get_cached_schema(session->get_default_schema());
 
+  // If a default schems is available on the session
+  // the internal cache must be updated
+  if (currentSchema) {
+    auto schema = currentSchema.as_object<mysqlsh::DatabaseObject>();
+    schema->update_cache();
+  }
+
+
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set
   if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
@@ -531,6 +540,12 @@ shcore::Value Shell_core::set_current_schema(const std::string& name) {
       else
         new_schema = _global_dev_session->call("setCurrentSchema", args);
     }
+  }
+
+  // Updates the internal cache of the active schema
+  if (new_schema){
+    auto schema = new_schema.as_object<mysqlsh::DatabaseObject>();
+    schema->update_cache();
   }
 
   // Updates the Target Object of the global schema if the wizard interaction is

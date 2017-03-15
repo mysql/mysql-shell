@@ -176,12 +176,12 @@ TEST_F(Shell_core_test, python_dictionary_key_handling) {
   reset_shell();
 
   _interactive_shell->process_line("\\py");
-  
+
   // Tests a string key is correctly retrieved
   _interactive_shell->process_line("{'type':'sample'}");
   MY_EXPECT_STDOUT_CONTAINS("\"type\": \"sample\"");
   wipe_all();
-  
+
   // Tests an object key retrieves it's string representation
   _interactive_shell->process_line("{type:'sample'}");
   MY_EXPECT_STDOUT_CONTAINS("\"<type 'type'>\": \"sample\"");
@@ -213,6 +213,118 @@ TEST_F(Shell_core_test, process_sql_no_delim_from_stream) {
 
   _interactive_shell->process_line("\\js");
   _interactive_shell->process_line("session.close();");
+}
+
+TEST_F(Shell_core_test, autocache_use_command_classic) {
+  execute("\\connect " + _mysql_uri);
+  process("sql/simple_schema.sql");
+  execute("\\js");
+  wipe_all();
+  execute("\\use simple_schema");
+  execute("print(db.city)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:city>");
+  wipe_all();
+  execute("print(db.city_list)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:city_list>");
+  wipe_all();
+  execute("print(db.country_info)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:country_info>");
+  wipe_all();
+  execute("session.close();");
+}
+
+TEST_F(Shell_core_test, autocache_use_command_node) {
+  execute("\\connect " + _uri);
+  process("sql/simple_schema.sql");
+  execute("\\js");
+  wipe_all();
+  execute("\\use simple_schema");
+  execute("print(db.city)");
+  MY_EXPECT_STDOUT_CONTAINS("<Table:city>");
+  wipe_all();
+  execute("print(db.city_list)");
+  MY_EXPECT_STDOUT_CONTAINS("<Table:city_list>");
+  wipe_all();
+  execute("print(db.country_info)");
+  MY_EXPECT_STDOUT_CONTAINS("<Collection:country_info>");
+  wipe_all();
+  execute("session.close();");
+}
+
+TEST_F(Shell_core_test, autocache_connect_command_classic) {
+  connect();
+  process("sql/simple_schema.sql");
+  execute("\\js");
+  execute("session.close()");
+  wipe_all();
+  execute("\\connect " + _mysql_uri + "/simple_schema");
+  execute("print(db.city)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:city>");
+  wipe_all();
+  execute("print(db.city_list)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:city_list>");
+  wipe_all();
+  execute("print(db.country_info)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:country_info>");
+  wipe_all();
+  execute("session.close();");
+}
+
+TEST_F(Shell_core_test, autocache_connect_command_node) {
+  connect();
+  process("sql/simple_schema.sql");
+  execute("\\js");
+  execute("session.close()");
+  wipe_all();
+  execute("\\connect " + _uri + "/simple_schema");
+  execute("print(db.city)");
+  MY_EXPECT_STDOUT_CONTAINS("<Table:city>");
+  wipe_all();
+  execute("print(db.city_list)");
+  MY_EXPECT_STDOUT_CONTAINS("<Table:city_list>");
+  wipe_all();
+  execute("print(db.country_info)");
+  MY_EXPECT_STDOUT_CONTAINS("<Collection:country_info>");
+  wipe_all();
+  execute("session.close();");
+}
+
+TEST_F(Shell_core_test, autocache_shell_connect_classic) {
+  connect();
+  process("sql/simple_schema.sql");
+  execute("\\js");
+  execute("session.close()");
+  wipe_all();
+  execute("shell.connect('" + _mysql_uri + "/simple_schema')");
+  execute("print(db.city)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:city>");
+  wipe_all();
+  execute("print(db.city_list)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:city_list>");
+  wipe_all();
+  execute("print(db.country_info)");
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicTable:country_info>");
+  wipe_all();
+  execute("session.close();");
+}
+
+TEST_F(Shell_core_test, autocache_shell_connect_node) {
+  connect();
+  process("sql/simple_schema.sql");
+  execute("\\js");
+  execute("session.close()");
+  wipe_all();
+  execute("shell.connect('" + _uri + "/simple_schema')");
+  execute("print(db.city)");
+  MY_EXPECT_STDOUT_CONTAINS("<Table:city>");
+  wipe_all();
+  execute("print(db.city_list)");
+  MY_EXPECT_STDOUT_CONTAINS("<Table:city_list>");
+  wipe_all();
+  execute("print(db.country_info)");
+  MY_EXPECT_STDOUT_CONTAINS("<Collection:country_info>");
+  wipe_all();
+  execute("session.close();");
 }
 }
 }
