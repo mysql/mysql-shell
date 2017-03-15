@@ -1,4 +1,4 @@
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,9 +15,9 @@
 
 SET(MYSH_MAJOR 1)
 SET(MYSH_MINOR 0)
-SET(MYSH_PATCH 8)
+SET(MYSH_PATCH 9)
 SET(MYSH_SPRINT 0)# Merge/Sprint Number (QA Tracking): 0 on Release
-SET(MYSH_LEVEL "-rc") # Strings like "-m1" and "-labs"
+SET(MYSH_LEVEL "") # Strings like "-m1" and "-labs"
 
 IF(NOT MYSH_LEVEL AND NOT MYSH_SPRINT STREQUAL "0")
   SET(MYSH_LEVEL ".${MYSH_SPRINT}")
