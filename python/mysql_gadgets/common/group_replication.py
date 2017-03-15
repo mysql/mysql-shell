@@ -1284,7 +1284,8 @@ def check_options_file(req_checker, error_msgs=None, update=True,
 
 
 def check_server_variables(req_checker, error_msgs=None, update=True,
-                           dynamic_vars=DYNAMIC_SERVER_VARS):
+                           dynamic_vars=DYNAMIC_SERVER_VARS,
+                           var_change_warning=False):
     """Checks the server variables that requires specific values for GR plugin
 
     :param req_checker: RequirementChecker instance used to run the tests.
@@ -1298,6 +1299,10 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                          update if the current value is not the required.
                          By default DYNAMIC_SERVER_VARS is used.
     :type dynamic_vars: set
+    :param var_change_warning: Indicate if a warning is issued when a dynamic
+                               server variable is changed. By default False,
+                               no warning is issued.
+    :type var_change_warning: bool
 
     """
     if error_msgs is None:
@@ -1347,6 +1352,11 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                         server.set_variable(var_name,
                                             "'{0}'".format(needs_value),
                                             var_type='global')
+                        # Issue a warning if requested.
+                        if var_change_warning:
+                            _LOGGER.warning("Server variable %s was changed "
+                                            "from '%s' to '%s'.", var_name,
+                                            has, needs_value)
                         var_res.pop(var_name)
                     except GadgetDBError as err:
                         _LOGGER.warning("Error: %s was raised updating"
@@ -1471,7 +1481,8 @@ def check_peer_ssl_compatibility(peer_server, ssl_mode):
 def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                               dry_run=False, skip_schema_checks=False,
                               update=True, skip_backup=False,
-                              dynamic_vars=DYNAMIC_SERVER_VARS):
+                              dynamic_vars=DYNAMIC_SERVER_VARS,
+                              var_change_warning=False):
     """Runs the checking of the group replication requirements
 
     :param server:        Server to check GR requirements.
@@ -1498,6 +1509,10 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                          update if the current value is not the required.
                          By default DYNAMIC_SERVER_VARS is used.
     :type dynamic_vars: set
+    :param var_change_warning: Indicate if a warning is issued when a dynamic
+                               server variable is changed. By default False,
+                               no warning is issued.
+    :type var_change_warning: bool
 
     :raise GadgetError: If the server does not meet the requirements or
                         Gadget could not make the required changes to
@@ -1514,7 +1529,7 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
     if SERVER_VARIABLES in req_dict.keys():
         errors = []
         options_res = check_server_variables(req_checker, errors, update,
-                                             dynamic_vars)
+                                             dynamic_vars, var_change_warning)
         if errors:
             error_msgs[SERVER_VARIABLES] = errors
 

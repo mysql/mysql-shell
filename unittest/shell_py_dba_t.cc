@@ -366,6 +366,64 @@ TEST_F(Shell_py_dba_tests, reboot_cluster_interactive) {
   validate_interactive("dba_reboot_cluster_interactive.py");
 }
 
+TEST_F(Shell_py_dba_tests, cluster_misconfigurations) {
+  _options->wizards = false;
+  reset_shell();
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
+  validate_interactive("dba_cluster_misconfigurations.py");
+
+  std::vector<std::string> log = {
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
+
+  MY_EXPECT_LOG_CONTAINS(log);
+}
+
+TEST_F(Shell_py_dba_tests, cluster_misconfigurations_interactive) {
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
+  //@<OUT> Dba.createCluster: cancel
+  output_handler.prompts.push_back("n");
+
+  //@<OUT> Dba.createCluster: ok
+  output_handler.prompts.push_back("y");
+
+  validate_interactive("dba_cluster_misconfigurations_interactive.py");
+
+  std::vector<std::string> log = {
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
+
+  MY_EXPECT_LOG_CONTAINS(log);
+}
+
+TEST_F(Shell_py_dba_tests, cluster_no_misconfigurations) {
+  _options->wizards = false;
+  reset_shell();
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
+  validate_interactive("dba_cluster_no_misconfigurations.py");
+
+  std::vector<std::string> log = {
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
+
+  MY_EXPECT_LOG_NOT_CONTAINS(log);
+}
+
+TEST_F(Shell_py_dba_tests, cluster_no_misconfigurations_interactive) {
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
+  validate_interactive("dba_cluster_no_misconfigurations_interactive.py");
+
+  std::vector<std::string> log = {
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
+
+  MY_EXPECT_LOG_NOT_CONTAINS(log);
+}
+
 TEST_F(Shell_py_dba_tests, function_preconditions) {
   _options->wizards = false;
   reset_shell();
@@ -417,7 +475,10 @@ TEST_F(Shell_py_dba_tests, no_interactive_rpl_filter_check) {
   // Execute setup script to be able to use smart deployment functions.
   execute_setup();
 
-  // Smart deployment of sandbox instances.
+  // Deployment of new sandbox instances.
+  // In order to avoid the following bug we ensure the sandboxes are freshly deployed:
+  // BUG #25071492: SERVER SESSION ASSERT FAILURE ON SERVER RESTART
+  execute("cleanup_sandboxes(True)");
   execute("deployed1 = reset_or_deploy_sandbox(" + _mysql_sandbox_port1 + ")");
   execute("deployed2 = reset_or_deploy_sandbox(" + _mysql_sandbox_port2 + ")");
   execute("deployed3 = reset_or_deploy_sandbox(" + _mysql_sandbox_port3 + ")");

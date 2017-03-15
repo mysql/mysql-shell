@@ -557,7 +557,7 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   bool is_seed_instance = peer_instance_url.empty();
 
   std::string command;
-  shcore::Value::Array_type_ref errors;
+  shcore::Value::Array_type_ref errors, warnings;
 
   if (is_seed_instance) {
     exit_code = _cluster->get_provisioning_interface()->start_replicaset(instance_url,
@@ -577,6 +577,15 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   }
 
   if (exit_code == 0) {
+    // If the exit_code is zero but there are errors
+    // it means they're warnings and we must log them first
+    if (errors) {
+      for (auto error_object : *errors) {
+        auto map = error_object.as_map();
+        std::string error_str = map->get_string("msg");
+        log_warning("DBA: %s : %s", instance_url.c_str(), error_str.c_str());
+      }
+    }
     if (is_seed_instance)
       ret_val = shcore::Value("The instance '" + instance_url + "' was successfully added as seeding instance to the MySQL Cluster.");
     else

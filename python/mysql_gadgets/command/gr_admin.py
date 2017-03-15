@@ -397,7 +397,8 @@ def start(server_info, **kwargs):
 
         check_server_requirements(server, req_dict, rpl_user_dict, verbose,
                                   dry_run, skip_schema_checks,
-                                  skip_backup=skip_backup)
+                                  skip_backup=skip_backup,
+                                  var_change_warning=True)
 
         gr_host, local_port = resolve_gr_local_address(gr_host, server.host,
                                                        server.port)
@@ -784,7 +785,8 @@ def join(server_info, peer_server_info, **kwargs):
             rpl_user_dict = None
 
         check_server_requirements(server, req_dict, rpl_user_dict, verbose,
-                                  dry_run, skip_backup=skip_backup)
+                                  dry_run, skip_backup=skip_backup,
+                                  var_change_warning=True)
 
         # verify the group replication is installed and not disabled.
         check_gr_plugin_is_installed(server, option_file, dry_run)

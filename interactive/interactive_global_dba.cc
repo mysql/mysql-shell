@@ -321,6 +321,38 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     session = dba->get_active_session();
     println("A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n");
 
+    // Use check_instance_configuration() in order to verify if we need to prompt
+    // the user to allow the configuration changes
+    shcore::Argument_list args;
+    Value::Map_type_ref instance_def(new shcore::Value::Map_type);
+    instance_def = get_connection_data(session->uri(), false);
+    args.push_back(shcore::Value(instance_def));
+
+    Value::Map_type_ref options(new shcore::Value::Map_type);
+    (*options)["password"] = shcore::Value(session->get_password());
+    args.push_back(shcore::Value(options));
+
+    shcore::Value check_report = call_target("checkInstanceConfiguration", args);
+    auto result = check_report.as_map();
+    std::string status = result->get_string("status");
+
+    if (status == "error") {
+      std::string r;
+      println("Warning: The instance configuration needs to be changed in order to\n"
+              "create an InnoDB cluster. To see which changes will be made, please\n"
+              "use the dba." + get_member_name("checkInstanceConfiguration", naming_style) + "() function before confirming\n"
+              "to change the configuration.");
+      println();
+
+      if (!(prompt("Should the configuration be changed accordingly? [Y|n]: ", r)
+          && (r == "y" || r == "Y" || r == "yes" || r == "Yes"))) {
+        println();
+        println("Cancelled");
+        return shcore::Value();
+      } else
+        println();
+    }
+
     if (multi_master && !force) {
       println(
         "The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.\n"
@@ -331,10 +363,12 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       std::string r;
       println("I have read the MySQL InnoDB cluster manual and I understand the requirements\n"
               "and limitations of advanced Multi-Master Mode.");
-      if (!(prompt("Confirm [y|N]: ", r) && (r == "y" || r == "yes" || r == "Yes"))) {
+      if (!(prompt("Confirm [y|N]: ", r) && (r == "y" || r == "Y" || r == "yes" || r == "Yes"))) {
+        println();
         println("Cancelled");
         return shcore::Value();
       } else {
+        println();
         (*options)["force"] = shcore::Value(true);
       }
     }

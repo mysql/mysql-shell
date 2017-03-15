@@ -20,6 +20,8 @@
 #include "shellcore/shell_notifications.h"
 #include <set>
 #include <fstream>
+#include <vector>
+#include <list>
 #include "shell/base_shell.h"
 
 #ifdef GTEST_TEST_
@@ -57,25 +59,39 @@ class Shell_test_output_handler {
 public:
   // You can define per-test set-up and tear-down logic as usual.
   Shell_test_output_handler();
+  ~Shell_test_output_handler();
 
   virtual void TearDown() {}
 
   static void deleg_print(void *user_data, const char *text);
   static void deleg_print_error(void *user_data, const char *text);
+  static void deleg_print_value(void *user_data, const char *text);
   static bool deleg_prompt(void *user_data, const char *UNUSED(prompt), std::string &ret);
   static bool deleg_password(void *user_data, const char *UNUSED(prompt), std::string &ret);
 
   void wipe_out() { std_out.clear(); }
   void wipe_err() { std_err.clear(); }
+  void wipe_log() { log.clear(); }
   void wipe_all() { std_out.clear(); std_err.clear(); }
 
   shcore::Interpreter_delegate deleg;
   std::string std_err;
   std::string std_out;
   std::stringstream full_output;
+  static std::vector<std::string> log;
+
+  void set_log_level(ngcommon::Logger::LOG_LEVEL log_level) {
+    _logger->set_log_level(log_level);
+  }
+
+  ngcommon::Logger::LOG_LEVEL get_log_level() {
+    return _logger->get_log_level();
+  }
 
   void validate_stdout_content(const std::string& content, bool expected);
   void validate_stderr_content(const std::string& content, bool expected);
+  void validate_log_content(const std::vector<std::string> &content, bool expected);
+  void validate_log_content(const std::string &content, bool expected);
 
   void debug_print(const std::string& line);
   void debug_print_header(const std::string& line);
@@ -86,12 +102,19 @@ public:
 
   std::list<std::string> prompts;
   std::list<std::string> passwords;
+
+protected:
+  static ngcommon::Logger *_logger;
+
+  static void log_hook(const char *message, ngcommon::Logger::LOG_LEVEL level, const char *domain);
 };
 
 #define MY_EXPECT_STDOUT_CONTAINS(x) output_handler.validate_stdout_content(x,true)
 #define MY_EXPECT_STDERR_CONTAINS(x) output_handler.validate_stderr_content(x,true)
+#define MY_EXPECT_LOG_CONTAINS(x) output_handler.validate_log_content(x,true)
 #define MY_EXPECT_STDOUT_NOT_CONTAINS(x) output_handler.validate_stdout_content(x,false)
 #define MY_EXPECT_STDERR_NOT_CONTAINS(x) output_handler.validate_stderr_content(x,false)
+#define MY_EXPECT_LOG_NOT_CONTAINS(x) output_handler.validate_log_content(x,false)
 
 class Shell_core_test_wrapper : public ::testing::Test, public shcore::NotificationObserver {
 protected:
@@ -147,6 +170,7 @@ protected:
   std::shared_ptr<mysqlsh::Shell_options> _options;
   void wipe_out() { output_handler.wipe_out(); }
   void wipe_err() { output_handler.wipe_err(); }
+  void wipe_log() { output_handler.wipe_log(); }
   void wipe_all() { output_handler.wipe_all(); }
 
   std::string _host;
