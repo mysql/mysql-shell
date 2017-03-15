@@ -27,7 +27,7 @@ project(mysh_deb_init NONE)
 
 include(../../version.cmake)
 
-set(YEAR      2016)  # FIXME automate somehow
+set(YEAR      2017)  # FIXME automate somehow
 set(PRODUCT   "MySQL Shell ${MYSH_BASE_VERSION}")
 
 if(NOT DEBIAN_REVISION)
@@ -137,6 +137,10 @@ if(HAVE_PYTHON)
   list(APPEND DEB_BUILD_DEPS "python-dev")
 endif()
 
+if(WITH_CONNECTOR_PYTHON)
+  list(APPEND EXTRA_CMAKE_OPTS "-DWITH_CONNECTOR_PYTHON=${WITH_CONNECTOR_PYTHON}")
+endif()
+
 if(WITH_GTEST)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_TESTS=ON")
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_GTEST=${WITH_GTEST}")
@@ -144,17 +148,6 @@ endif()
 
 string(REPLACE ";" " "  EXTRA_CMAKE_OPTS "${EXTRA_CMAKE_OPTS}")
 string(REPLACE ";" ", " DEB_BUILD_DEPS   "${DEB_BUILD_DEPS}")
-
-# ----------------------------------------------------------------------
-# The option WITH_EXTRA_EXE takes a path to a executable to add
-# to the package, and put it into /usr/bin when installing
-# ----------------------------------------------------------------------
-
-if(WITH_EXTRA_EXE)
-  set(EXTRA_INSTALL "${WITH_EXTRA_EXE};bin;main")
-  get_filename_component(_name "${WITH_EXTRA_EXE}" NAME)
-  set(EXTRA_EXE_INSTALL "usr/bin/${_name}")
-endif()
 
 # ----------------------------------------------------------------------
 # Copy this directory and process the .in files

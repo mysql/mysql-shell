@@ -49,11 +49,12 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
   // set _local_mysqlprovision_path if empty
   if (_local_mysqlprovision_path.empty()) {
-    // 1st try from global options (initialized from MYSQLPROVISION env var)
+    // 1st try from global options (programmatically set by main program)
     // 2nd check if the binary is in the same dir as ourselves
     // 3rd set it to mysqlprovision and hope that it will be in $PATH
 
-    _local_mysqlprovision_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+    if ((*shcore::Shell_core_options::get()).has_key(SHCORE_GADGETS_PATH))
+      _local_mysqlprovision_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
     if (_local_mysqlprovision_path.empty()) {
       std::string tmp(get_binary_folder());
@@ -70,9 +71,6 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     if (_local_mysqlprovision_path.empty())
       _local_mysqlprovision_path = "mysqlprovision";
   }
-
-  if (_local_mysqlprovision_path.find(".py") == _local_mysqlprovision_path.size() - 3)
-    args_script.push_back("python");
 
   args_script.push_back(_local_mysqlprovision_path.c_str());
   args_script.push_back(cmd.c_str());
@@ -234,7 +232,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
    * process launcher returns 128 if an ENOENT happened.
    */
   if (exit_code == 128)
-    throw shcore::Exception::runtime_error("Please install mysqlprovision. If already installed, set its path using the environment variable: MYSQLPROVISION");
+    throw shcore::Exception::runtime_error("mysqlprovision not found. Please verify that mysqlsh is installed correctly.");
 
   /*
    * mysqlprovision returns 1 as exit-code for internal behaviour errors.
@@ -484,7 +482,7 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url,
                                       const std::string &ssl_mode,
                                       const std::string &ip_whitelist,
                                       const std::string &gr_group_seeds,
-                                      bool skip_rpl_user,                                      
+                                      bool skip_rpl_user,
                                       shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;

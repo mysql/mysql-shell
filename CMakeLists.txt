@@ -246,7 +246,7 @@ include_directories(${MYSQL_INCLUDE_DIR}
                    )
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-                   
+
 IF (HAVE_PYTHON)
   include_directories(${PYTHON_INCLUDE_DIRS})
 ENDIF()
@@ -271,6 +271,8 @@ ENDIF()
 ###
 ### Build Projects
 ###
+
+add_subdirectory(python)
 
 if(WINDOWS_RUNTIME_MD)
   #add_subdirectory(types)
