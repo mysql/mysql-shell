@@ -2,9 +2,6 @@
 
 #@ Initialization
 deployed_here = reset_or_deploy_sandboxes()
-if (not deployed_here):
-    # Reset (clean) transactions on all servers if they are reused.
-    reset_all_servers_trx()
 
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 

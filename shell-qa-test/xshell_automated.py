@@ -72,8 +72,8 @@ def read_til_getShell(proc, fd, text):
     globalvar.last_search = text
     data = []
     line = ""
-    #while line.find(text,0,len(line))< 0  and proc.poll() == None and  globalvar.last_found.find(text,0,len(globalvar.last_found))< 0:
-    while line.find("mysql-sql>",0,len(line))< 0  and  line.find("mysql-py>",0,len(line))< 0 and  line.find("mysql-js>",0,len(line))< 0 and  line.find("  ...",0,len(line))< 0:
+    while not any(n in line for n in xPrompts.prompts):
+    #while line.find("mysql-sql>",0,len(line))< 0  and  line.find("mysql-py>",0,len(line))< 0 and  line.find("mysql-js>",0,len(line))< 0 and  line.find("  ...",0,len(line))< 0:
         try:
             line = read_line(proc, fd, text)
             globalvar.last_found = globalvar.last_found + line
@@ -182,6 +182,23 @@ REMOTEHOST.port = str(config["remote"]["port"])
 class globalvar:
     last_found=""
     last_search=""
+
+class prompt:
+    def __init__(self):
+        self.prompts = []
+
+    def add(self, x):
+        self.prompts.append(x)
+    def remove_last(self):
+        self.prompts.pop(-1)
+
+
+xPrompts= prompt()
+xPrompts.add("mysql-js>")
+xPrompts.add("mysql-sql>")
+xPrompts.add("mysql-py>")
+xPrompts.add("  ...")
+
 
 ###########################################################################################
 
@@ -7035,10 +7052,10 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
-    @unittest.skip("not finding customized prompt")
     def test_MYS_341_01(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-341 with classic session and py custom prompt"""
         results = ''
+        xPrompts.add("--mypy--prompt-->")
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
         x_cmds = [#(";\n", 'mysql-py>'),
@@ -7048,11 +7065,13 @@ class XShell_TestCases(unittest.TestCase):
                   ("\\py\n", "--mypy--prompt-->")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
+        xPrompts.remove_last()
         self.assertEqual(results, 'PASS')
 
     def test_MYS_341_02(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-341 with node session and js custom prompt"""
         results = ''
+        xPrompts.add(">>")
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
         x_cmds = [(";\n", 'mysql-js>'),
@@ -7063,6 +7082,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("\\js\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
+        xPrompts.remove_last()
         self.assertEqual(results, 'PASS')
 
     def test_MYS_348(self):
