@@ -88,6 +88,7 @@ public:
   static void update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache, DatabaseObject* target = NULL);
   static void get_object_list(Cache target_cache, shcore::Value::Array_type_ref list);
   static shcore::Value find_in_cache(const std::string& name, Cache target_cache);
+  virtual void update_cache() {}
 };
 };
 
