@@ -9,6 +9,7 @@ Mandatory
 - boost 1.59+
 - libmysqlclient 5.7+
 - protobuf 2.6.1
+- zip (gnuwin32 in windows)
 
 Optional
 - gtest 1.7
