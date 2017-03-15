@@ -475,7 +475,10 @@ TEST_F(Shell_py_dba_tests, no_interactive_rpl_filter_check) {
   // Execute setup script to be able to use smart deployment functions.
   execute_setup();
 
-  // Smart deployment of sandbox instances.
+  // Deployment of new sandbox instances.
+  // In order to avoid the following bug we ensure the sandboxes are freshly deployed:
+  // BUG #25071492: SERVER SESSION ASSERT FAILURE ON SERVER RESTART
+  execute("cleanup_sandboxes(True)");
   execute("deployed1 = reset_or_deploy_sandbox(" + _mysql_sandbox_port1 + ")");
   execute("deployed2 = reset_or_deploy_sandbox(" + _mysql_sandbox_port2 + ")");
   execute("deployed3 = reset_or_deploy_sandbox(" + _mysql_sandbox_port3 + ")");

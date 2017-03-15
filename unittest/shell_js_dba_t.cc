@@ -465,7 +465,10 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
   // Execute setup script to be able to use smart deployment functions.
   execute_setup();
 
-  // Smart deployment of sandbox instances.
+  // Deployment of new sandbox instances.
+  // In order to avoid the following bug we ensure the sandboxes are freshly deployed:
+  // BUG #25071492: SERVER SESSION ASSERT FAILURE ON SERVER RESTART
+  execute("cleanup_sandboxes(true);");
   execute("var deployed1 = reset_or_deploy_sandbox(" + _mysql_sandbox_port1 + ");");
   execute("var deployed2 = reset_or_deploy_sandbox(" + _mysql_sandbox_port2 + ");");
   execute("var deployed3 = reset_or_deploy_sandbox(" + _mysql_sandbox_port3 + ");");
@@ -512,7 +515,7 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
   remove_from_cfg_file(cfgpath3, "binlog-ignore-db");
   execute("try_restart_sandbox(" + _mysql_sandbox_port3 + ");");
 
-  // Clean deployed sandbox.
+  // Clean deployed sandboxes.
   execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port1 + ", deployed1);");
   execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port2 + ", deployed2);");
   execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port3 + ", deployed3);");
