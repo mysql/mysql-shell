@@ -83,8 +83,8 @@ cmake .. \
     -DWITH_TESTS=ON \
     -DWITH_GTEST=%{with_gtest} \
 %endif
-%if 0%{?with_extra_exe:1}
-    -DEXTRA_INSTALL="%{with_extra_exe};bin;main" \
+%if 0%{?with_connector_python:1}
+    -DWITH_CONNECTOR_PYTHON="%{with_connector_python}" \
 %endif
     -DHAVE_PYTHON=1 \
 
@@ -109,11 +109,12 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %doc @LICENSE_FILE@
 %doc README
 %{_bindir}/mysqlsh
-%if 0%{?with_extra_exe:1}
-%{_bindir}/%{basename:%{with_extra_exe}}
-%endif
+%{_bindir}/mysqlprovision
 
 %changelog
+* Mon Mar 13 2017 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.8-1
+- Updated for mysqlprovision build change
+
 * Thu Sep 01 2016 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com> - 1.0.5-0.1
 - Updated for 1.0.5 labs release
 

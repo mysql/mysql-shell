@@ -87,14 +87,6 @@ _options(new shcore::Value::Map_type) {
   (*_options)[SHCORE_MULTIPLE_INSTANCES] = Value::False();
   (*_options)[SHCORE_USE_WIZARDS] = Value::True();
 
-  std::string gadgets_path;
-
-  if (getenv("MYSQLPROVISION") != NULL) {
-    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision binary path
-    (*_options)[SHCORE_GADGETS_PATH] = Value(gadgets_path.c_str());
-  } else
-    (*_options)[SHCORE_GADGETS_PATH] = Value("");
-
   std::string home = shcore::get_home_dir();
 
 #ifdef WIN32

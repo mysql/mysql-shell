@@ -22,6 +22,8 @@
 #include <iostream>
 #include <stdlib.h>
 
+#include "shellcore/shell_core_options.h"
+
 extern "C" {
 const char *g_argv0 = nullptr;
 }
@@ -118,6 +120,17 @@ int main(int argc, char **argv) {
     }
     return 0;
   }
+
+  std::string mppath;
+  char *p = strrchr(argv[0], '/');
+  if (p) {
+    mppath = std::string(argv[0], p - argv[0]);
+  } else {
+    p = strrchr(argv[0], '\\');
+    mppath = std::string(argv[0], p - argv[0]);
+  }
+  mppath.append("/../mysqlprovision");
+  (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] = shcore::Value(mppath);
 
   int ret_val = RUN_ALL_TESTS();
 
