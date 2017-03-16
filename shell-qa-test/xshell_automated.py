@@ -16,7 +16,7 @@ def timeout(timeout):
         def wrapper(*args, **kwargs):
             # res = [Exception('function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout))]
             #res = [Exception('FAILED timeout [%s seconds] exceeded! ' % ( timeout))]
-            globales = func.func_globals
+            #globales = func.func_globals
             res = [Exception('FAILED timeout [%s seconds] exceeded! \n\r SEARCHED: [ %s ]  \n\r FOUND: [ %s ] ' % (timeout,globalvar.last_search,globalvar.last_found))]
             def newFunc():
                 try:
@@ -52,8 +52,8 @@ def read_line(proc, fd, end_string):
             elif new_byte:
                 # data += new_byte
                 data += str(new_byte) ##, encoding='utf-8')
-                #if data.endswith(end_string):
-                if data.endswith("mysql-sql>") or data.endswith("mysql-js>") or data.endswith("mysql-py>")or data.endswith("  ..."):
+                if any(n in data for n in xPrompts.prompts):
+                #if data.endswith("mysql-sql>") or data.endswith("mysql-js>") or data.endswith("mysql-py>")or data.endswith("  ..."):
                     break;
             elif proc.poll() is not None:
                 break
@@ -291,8 +291,8 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--x', '--sql']
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        p.stdin.write(bytearray(";\n", 'ascii'))
-        p.stdin.flush()
+        #p.stdin.write(bytearray(";\n", 'ascii'))
+        #p.stdin.flush()
         stdin, stdout = p.communicate()
         if stdin.find(bytearray("mysql-sql>", "ascii"), 0, len(stdin)) > 0:
             results = "PASS"
