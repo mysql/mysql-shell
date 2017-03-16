@@ -40,46 +40,38 @@ def timeout(timeout):
 
 
 
-def read_line(proc, fd, end_string):
+def read_line(p):
     data = ""
     new_byte = b''
     #t = time.time()
     while (new_byte != b'\n'):
         try:
-            new_byte = fd.read(1)
+            new_byte = p.stdout.read(1)
             if new_byte == '' and proc.poll() != None:
                 break
             elif new_byte:
                 # data += new_byte
                 data += str(new_byte) ##, encoding='utf-8')
                 if any(n in data for n in xPrompts.prompts):
-                #if data.endswith("mysql-sql>") or data.endswith("mysql-js>") or data.endswith("mysql-py>")or data.endswith("  ..."):
                     break;
             elif proc.poll() is not None:
                 break
         except ValueError:
-            # timeout occurred
-            # print("read_line_timeout")
             break
-    # print("read_line returned :"),
-    # sys.stdout.write(data)
     return data
 
 @timeout(10)
-def read_til_getShell(proc, fd, text):
-    globalvar.last_search = ""
+def read_til_getShell(p):
     globalvar.last_found=""
-    globalvar.last_search = text
     data = []
     line = ""
     while not any(n in line for n in xPrompts.prompts):
-    #while line.find("mysql-sql>",0,len(line))< 0  and  line.find("mysql-py>",0,len(line))< 0 and  line.find("mysql-js>",0,len(line))< 0 and  line.find("  ...",0,len(line))< 0:
         try:
-            line = read_line(proc, fd, text)
+            line = read_line(p)
             globalvar.last_found = globalvar.last_found + line
             if line:
                 data.append(line)
-            elif proc.poll() is not None:
+            elif p.poll() is not None:
                 break
         except ValueError:
             print("read_line_timeout")
@@ -88,6 +80,7 @@ def read_til_getShell(proc, fd, text):
 
 def exec_xshell_commands(init_cmdLine,x_cmds):
     RESULTS="PASS"
+    globalvar.last_search = ""
     if "--sql"  in init_cmdLine:
         sessionType = "mysql-sql>"
     elif "--sqlc"  in init_cmdLine:
@@ -100,7 +93,8 @@ def exec_xshell_commands(init_cmdLine,x_cmds):
         sessionType = "mysql-js>"
     allXshellSession = ""
     p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
-    found = str(read_til_getShell(p, p.stdout,sessionType))
+    globalvar.last_search = sessionType
+    found = str(read_til_getShell(p))
     if found.find(sessionType, 0, len(found)) == -1 and found.find("FAILED", 0, len(found)) >= 0:
         # RESULTS = "FAILED"
         return found #, RESULTS
@@ -111,7 +105,7 @@ def exec_xshell_commands(init_cmdLine,x_cmds):
         p.stdin.flush()
         globalvar.last_search = str(command[1])
         allXshellSession = allXshellSession + globalvar.last_search
-        found = str(read_til_getShell(p, p.stdout, command[1]))
+        found = str(read_til_getShell(p))
         ###  I JUST CHANGE THE AND INSTEAD OR
         if found.find(command[1], 0, len(found)) == -1 and found.find("FAILED", 0, len(found)) >= 0:
             # RESULTS = "FAILED"
