@@ -2,29 +2,37 @@ MySQL Shell 1.0
 ===============
 (a client tool component of the MySQL Server)
 
-This is a DMR (Developer Milestone Release) version of MySQL Shell (a component
-of the MySQL Server). The MySQL Shell is provided under Oracle's dual-license.
+This is the first GA version of MySQL Shell (a component of the MySQL Server).
+The MySQL Shell is provided under Oracle's dual-license.
 
-MySQL Shell is an interactive and scriptable shell for the MySQL Database
-Server. It supports both Javascript or Python with new MySQL  CRUD APIS. The
-MySQL Shell can be used to connect to MySQL 5.7 Servers with the new X Protocol
-for MySQL Document Stores enabled. JavaScript and Python within the shell
-provide access to new Document Store (CRUD) methods. These methods enable
-developers and DBAs to create "schema-less" JSON document collections and
-perform CRUD operations on those collections with little to no knowledge of the
-SQL language.
+MySQL Shell is an interactive JavaScript, Python and SQL
+console interface, supporting development and administration for
+the MySQL Server. It provides scriptable API htat supports the creation and
+management of MySQL InnoDB clusters, as well as a modern fluent CRUD API for
+the MySQL Document Store.
 
-Additionally, the MySQL Shell provides partial compatibility with the mysql
+The AdminAPI provides an integrated solution for high availability and
+scalability using InnoDB based MySQL databases, without requiring advanced
+MySQL expertise.
+
+The Document Store DevAPI enables developers and DBAs to create "schema-less"
+JSON document collections and perform Create, Update, Read, Delete (CRUD)
+operations on those collections with little to no knowledge of the SQL language.
+
+Additionally, MySQL Shell provides partial compatibility with the mysql
 command line client by supporting many of the same command line options. As with
-the mysql command line, the MySQL Shell can also be used to connect to and send
+the mysql command line, MySQL Shell can also be used to connect to and send
 SQL commands to pre-5.7.12 versions of the MySQL server using the standard MySQL
 network protocol.
 
-For more information about how to use the MySQL Shell and the MySQL Document
-Store support see http://dev.mysql.com/doc/refman/5.7/en/document-store.html
+For more information about how to configure and work with an InnoDB Cluster
+see https://dev.mysql.com/doc/refman/en/mysql-innodb-cluster-userguide.html
 
-For full documentation on the MySQL Server, the MySQL Shell and related
-topics, see: http://dev.mysql.com/doc/refman/5.7/en/
+For more information about how to use MySQL Shell and the MySQL Document
+Store support see https://dev.mysql.com/doc/refman/en/document-store.html
+
+For full documentation on MySQL Server, MySQL Shell and related
+topics, see: http://dev.mysql.com/doc/refman/en/
 
 If you want to write applications that use the the CRUD based X DevAPI use the
 latest MySQL Connectors for your language of choice. You can also find
@@ -36,7 +44,7 @@ LICENSE
 For the avoidance of doubt, this particular copy of the software is released
 under the version 2 of the GNU General Public License.
 
-The MySQL Shell is brought to you by the MySQL team at Oracle.
+MySQL Shell is brought to you by the MySQL team at Oracle.
 
 
 Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
