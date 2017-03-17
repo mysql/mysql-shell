@@ -64,5 +64,54 @@ print('Valid:', schema.existsInDatabase());
 mySession.dropSchema('js_shell_test');
 print('Invalid:', schema.existsInDatabase());
 
+//@ Testing name shadowing: setup
+mySession.createSchema('js_db_object_shadow');
+mySession.setCurrentSchema('js_db_object_shadow');
+result = mySession.runSql('create table `name` (name varchar(50));');
+result = mySession.runSql('create table `schema` (name varchar(50));');
+result = mySession.runSql('create table `session` (name varchar(50));');
+result = mySession.runSql('create table `getTable` (name varchar(50));');
+result = mySession.runSql('create table `another` (name varchar(50));');
+
+var schema = mySession.getSchema('js_db_object_shadow');
+
+//@ Testing name shadowing: name
+print(schema.name)
+
+//@ Testing name shadowing: getName
+print(schema.getName())
+
+//@ Testing name shadowing: schema
+print(schema.schema)
+
+//@ Testing name shadowing: getSchema
+print(schema.getSchema())
+
+//@ Testing name shadowing: session
+print(schema.session)
+
+//@ Testing name shadowing: getSession
+print(schema.getSession())
+
+//@ Testing name shadowing: another
+print(schema.another)
+
+//@ Testing name shadowing: getTable('another')
+print(schema.getTable('another'))
+
+//@ Testing name shadowing: getTable('name')
+print(schema.getTable('name'))
+
+//@ Testing name shadowing: getTable('schema')
+print(schema.getTable('schema'))
+
+//@ Testing name shadowing: getTable('session')
+print(schema.getTable('session'))
+
+//@ Testing name shadowing: getTable('getTable')
+print(schema.getTable('getTable'))
+
+mySession.dropSchema('js_db_object_shadow');
+
 // Closes the session
 mySession.close();

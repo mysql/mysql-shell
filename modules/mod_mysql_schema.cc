@@ -74,6 +74,9 @@ void ClassicSchema::init() {
   add_method("getTables", std::bind(&ClassicSchema::get_tables, this, _1), NULL);
   add_method("getTable", std::bind(&ClassicSchema::get_table, this, _1), "name", shcore::String, NULL);
 
+  // Note: If properties are added uncomment this
+  //_base_property_count = _properties.size();
+
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
 
@@ -159,12 +162,17 @@ void ClassicSchema::_remove_object(const std::string& name, const std::string& t
  */
 #endif
 Value ClassicSchema::get_member(const std::string &prop) const {
-  // Searches the property in tables
-  Value ret_val = find_in_cache(prop, _tables);
+  Value ret_val;
 
-  // Search the property in views
-  if (!ret_val)
-    ret_val = find_in_cache(prop, _views);
+  // Only checks the cache if the requested member is not a base one
+  if (!is_base_member(prop)) {
+    // Searches the property in tables
+    ret_val = find_in_cache(prop, _tables);
+
+    // Search the property in views
+    if (!ret_val)
+      ret_val = find_in_cache(prop, _views);
+  }
 
   // Search the rest of the properties
   if (!ret_val)

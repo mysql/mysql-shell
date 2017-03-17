@@ -79,6 +79,9 @@ protected:
   std::weak_ptr<DatabaseObject> _schema;
   std::string _name;
 
+  size_t _base_property_count;
+  bool is_base_member(const std::string &prop) const;
+
 private:
   void init();
   // Handling of database object caches

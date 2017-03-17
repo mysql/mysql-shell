@@ -93,5 +93,75 @@ print 'Valid:', schema.exists_in_database()
 mySession.drop_schema('js_shell_test')
 print 'Invalid:', schema.exists_in_database()
 
+#@ Testing name shadowing: setup
+mySession.create_schema('py_db_object_shadow');
+mySession.set_current_schema('py_db_object_shadow');
+
+collection_sql = "(`doc` json DEFAULT NULL,`_id` varchar(32) GENERATED ALWAYS AS (json_unquote(json_extract(doc, '$._id'))) STORED) ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+mySession.sql('create table `name` (name varchar(50));');
+mySession.sql('create table `schema` ' + collection_sql);
+mySession.sql('create table `session` (name varchar(50));');
+mySession.sql('create table `getTable` ' + collection_sql);
+mySession.sql('create table `get_table` (name varchar(50));');
+mySession.sql('create table `getCollection` ' + collection_sql);
+mySession.sql('create table `get_collection` (name varchar(50));');
+mySession.sql('create table `another` ' + collection_sql);
+
+schema = mySession.get_schema('py_db_object_shadow');
+
+#@ Testing name shadowing: name
+print(schema.name)
+
+#@ Testing name shadowing: getName
+print schema.get_name()
+
+#@ Testing name shadowing: schema
+print schema.schema
+
+#@ Testing name shadowing: getSchema
+print schema.get_schema()
+
+#@ Testing name shadowing: session
+print schema.session
+
+#@ Testing name shadowing: getSession
+print schema.get_session()
+
+#@ Testing name shadowing: another
+print schema.another
+
+#@ Testing name shadowing: get_collection('another')
+print schema.get_collection('another')
+
+#@ Testing name shadowing: get_table('name')
+print schema.get_table('name')
+
+#@ Testing name shadowing: get_collection('schema')
+print schema.get_collection('schema')
+
+#@ Testing name shadowing: get_table('session')
+print schema.get_table('session')
+
+#@ Testing name shadowing: get_collection('getTable')
+print schema.get_collection('getTable')
+
+#@ Testing name shadowing: getTable (not a python function)
+print schema.getTable
+
+#@ Testing name shadowing: get_table('get_table')
+print schema.get_table('get_table')
+
+#@ Testing name shadowing: get_collection('getCollection')
+print schema.get_collection('getCollection')
+
+#@ Testing name shadowing: getCollection (not a python function)
+print schema.getCollection
+
+#@ Testing name shadowing: get_table('get_collection')
+print schema.get_table('get_collection')
+
+mySession.drop_schema('py_db_object_shadow')
+
 # Closes the session
 mySession.close()

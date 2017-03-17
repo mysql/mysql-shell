@@ -37,7 +37,7 @@ using namespace mysqlsh;
 using namespace shcore;
 
 DatabaseObject::DatabaseObject(std::shared_ptr<ShellBaseSession> session, std::shared_ptr<DatabaseObject> schema, const std::string &name)
-  : _session(session), _schema(schema), _name(name) {
+  : _session(session), _schema(schema), _name(name), _base_property_count(0) {
   init();
 }
 
@@ -47,6 +47,9 @@ void DatabaseObject::init() {
   add_property("name", "getName");
   add_property("session", "getSession");
   add_property("schema", "getSchema");
+
+  // Hold the number of base properties
+  _base_property_count = _properties.size();
 
   add_method("existsInDatabase", std::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
 }
@@ -202,8 +205,12 @@ void DatabaseObject::update_cache(const std::vector<std::string>& names, const s
     if (existing.find(name) == existing.end()) {
       (*target_cache)[name] = generator(name);
 
-      if (target && shcore::is_valid_identifier(name))
-        target->add_property(name);
+      if (target && shcore::is_valid_identifier(name)) {
+        // Dynamic properties must keep the name as in the database
+        // i.e. Name must not change to match the python naming style
+        std::string names = name + "|" + name;
+        target->add_property(names);
+      }
     }
 
     else
@@ -246,4 +253,13 @@ shcore::Value DatabaseObject::find_in_cache(const std::string& name, Cache targe
     return Value(std::shared_ptr<Object_bridge>(iter->second.as_object()));
   else
     return Value();
+}
+
+bool DatabaseObject::is_base_member(const std::string &prop) const {
+  auto style = naming_style;
+  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f) { return f.second->name(style) == prop; });
+
+  auto prop_index = std::find_if(_properties.begin(), _properties.begin() + (_base_property_count - 1), [prop, style](std::shared_ptr<Cpp_property_name> p) { return p->name(style) == prop; });
+
+  return (method_index != _funcs.end() || prop_index != _properties.begin() + (_base_property_count - 1));
 }
