@@ -90,5 +90,77 @@ print('Valid:', schema.existsInDatabase());
 mySession.dropSchema('js_shell_test');
 print('Invalid:', schema.existsInDatabase());
 
+//@ Testing name shadowing: setup
+mySession.createSchema('js_db_object_shadow');
+mySession.setCurrentSchema('js_db_object_shadow');
+
+collection_sql = "(`doc` json DEFAULT NULL,`_id` varchar(32) GENERATED ALWAYS AS (json_unquote(json_extract(doc, '$._id'))) STORED) ENGINE=InnoDB DEFAULT CHARSET=utf8"
+
+mySession.sql('create table `name` (name varchar(50));');
+mySession.sql('create table `schema` ' + collection_sql);
+mySession.sql('create table `session` (name varchar(50));');
+mySession.sql('create table `getTable` ' + collection_sql);
+mySession.sql('create table `get_table` (name varchar(50));');
+mySession.sql('create table `getCollection` ' + collection_sql);
+mySession.sql('create table `get_collection` (name varchar(50));');
+mySession.sql('create table `another` ' + collection_sql);
+
+var schema = mySession.getSchema('js_db_object_shadow');
+
+//@ Testing name shadowing: name
+print(schema.name)
+
+//@ Testing name shadowing: getName
+print(schema.getName())
+
+//@ Testing name shadowing: schema
+print(schema.schema)
+
+//@ Testing name shadowing: getSchema
+print(schema.getSchema())
+
+//@ Testing name shadowing: session
+print(schema.session)
+
+//@ Testing name shadowing: getSession
+print(schema.getSession())
+
+//@ Testing name shadowing: another
+print(schema.another)
+
+//@ Testing name shadowing: getCollection('another')
+print(schema.getCollection('another'))
+
+//@ Testing name shadowing: getTable('name')
+print(schema.getTable('name'))
+
+//@ Testing name shadowing: getCollection('schema')
+print(schema.getCollection('schema'))
+
+//@ Testing name shadowing: getTable('session')
+print(schema.getTable('session'))
+
+//@ Testing name shadowing: getCollection('getTable')
+print(schema.getCollection('getTable'))
+
+//@ Testing name shadowing: get_table (not a JS function)
+print(schema.get_table)
+
+//@ Testing name shadowing: getTable('get_table')
+print(schema.getTable('get_table'))
+
+//@ Testing name shadowing: getCollection('getCollection')
+print(schema.getCollection('getCollection'))
+
+//@ Testing name shadowing: get_collection (not a JS function)
+print(schema.get_collection)
+
+//@ Testing name shadowing: getTable('get_collection')
+print(schema.getTable('get_collection'))
+
+//@ cleanup
+mySession.dropSchema('js_db_object_shadow')
+
+
 // Closes the session
 mySession.close();

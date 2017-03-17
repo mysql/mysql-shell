@@ -63,3 +63,58 @@
 #@ Testing existence
 |Valid: True|
 |Invalid: False|
+
+#@ Testing name shadowing: setup
+||
+
+#@ Testing name shadowing: name
+|py_db_object_shadow|
+
+#@ Testing name shadowing: getName
+|py_db_object_shadow|
+
+#@ Testing name shadowing: schema
+||
+
+#@ Testing name shadowing: getSchema
+||
+
+#@ Testing name shadowing: session
+|<NodeSession:|
+
+#@ Testing name shadowing: getSession
+|<NodeSession:|
+
+#@ Testing name shadowing: another
+|<Collection:another>|
+
+#@ Testing name shadowing: get_collection('another')
+|<Collection:another>|
+
+#@ Testing name shadowing: get_table('name')
+|<Table:name>|
+
+#@ Testing name shadowing: get_collection('schema')
+|<Collection:schema>|
+
+#@ Testing name shadowing: get_table('session')
+|<Table:session>|
+
+#@ Testing name shadowing: get_collection('getTable')
+|<Collection:getTable>|
+
+#@ Testing name shadowing: getTable (not a python function)
+|<Collection:getTable>|
+
+#@ Testing name shadowing: get_table('get_table')
+|<Table:get_table>|
+
+#@ Testing name shadowing: get_collection('getCollection')
+|<Collection:getCollection>|
+
+#@ Testing name shadowing: getCollection (not a python function)
+|<Collection:getCollection>|
+
+#@ Testing name shadowing: get_table('get_collection')
+|<Table:get_collection>|
+

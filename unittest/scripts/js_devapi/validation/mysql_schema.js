@@ -41,3 +41,42 @@
 //@ Testing existence
 |Valid: true|
 |Invalid: false|
+
+//@ Testing name shadowing: setup
+||
+
+//@ Testing name shadowing: name
+|js_db_object_shadow|
+
+//@ Testing name shadowing: getName
+|js_db_object_shadow|
+
+//@ Testing name shadowing: schema
+||
+
+//@ Testing name shadowing: getSchema
+||
+
+//@ Testing name shadowing: session
+|<ClassicSession:|
+
+//@ Testing name shadowing: getSession
+|<ClassicSession:|
+
+//@ Testing name shadowing: another
+|<ClassicTable:another>|
+
+//@ Testing name shadowing: getTable('another')
+|<ClassicTable:another>|
+
+//@ Testing name shadowing: getTable('name')
+|<ClassicTable:name>|
+
+//@ Testing name shadowing: getTable('schema')
+|<ClassicTable:schema>|
+
+//@ Testing name shadowing: getTable('session')
+|<ClassicTable:session>|
+
+//@ Testing name shadowing: getTable('getTable')
+|<ClassicTable:getTable>|

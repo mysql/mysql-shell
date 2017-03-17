@@ -72,6 +72,9 @@ void Schema::init() {
 
   add_method("createCollection", std::bind(&Schema::create_collection, this, _1), "name", shcore::String, NULL);
 
+  // Note: If properties are added uncomment this
+  //_base_property_count = _properties.size();
+
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
   _collections = Value::new_map().as_map();
@@ -154,16 +157,21 @@ void Schema::_remove_object(const std::string& name, const std::string& type) {
 }
 
 Value Schema::get_member(const std::string &prop) const {
-  // Searches prop as  a table
-  Value ret_val = find_in_cache(prop, _tables);
+  Value ret_val;
 
-  // Searches prop as a collection
-  if (!ret_val)
-    ret_val = find_in_cache(prop, _collections);
+  // Only checks the cache if the requested member is not a base one
+  if (!is_base_member(prop)) {
+    // Searches prop as  a table
+    ret_val = find_in_cache(prop, _tables);
 
-  // Searches prop as a view
-  if (!ret_val)
-    ret_val = find_in_cache(prop, _views);
+    // Searches prop as a collection
+    if (!ret_val)
+      ret_val = find_in_cache(prop, _collections);
+
+    // Searches prop as a view
+    if (!ret_val)
+      ret_val = find_in_cache(prop, _views);
+  }
 
   if (!ret_val)
     ret_val = DatabaseObject::get_member(prop);
