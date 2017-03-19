@@ -69,5 +69,58 @@ print 'Valid:', schema.exists_in_database()
 mySession.drop_schema('js_shell_test')
 print 'Invalid:', schema.exists_in_database()
 
+#@ Testing name shadowing: setup
+mySession.create_schema('py_db_object_shadow');
+mySession.set_current_schema('py_db_object_shadow');
+result = mySession.run_sql('create table `name` (name varchar(50));');
+result = mySession.run_sql('create table `schema` (name varchar(50));');
+result = mySession.run_sql('create table `session` (name varchar(50));');
+result = mySession.run_sql('create table `getTable` (name varchar(50));');
+result = mySession.run_sql('create table `get_table` (name varchar(50));');
+result = mySession.run_sql('create table `another` (name varchar(50));');
+
+schema = mySession.get_schema('py_db_object_shadow');
+
+#@ Testing name shadowing: name
+print(schema.name)
+
+#@ Testing name shadowing: getName
+print schema.get_name()
+
+#@ Testing name shadowing: schema
+print schema.schema
+
+#@ Testing name shadowing: getSchema
+print schema.get_schema()
+
+#@ Testing name shadowing: session
+print schema.session
+
+#@ Testing name shadowing: getSession
+print schema.get_session()
+
+#@ Testing name shadowing: another
+print schema.another
+
+#@ Testing name shadowing: getTable('another')
+print schema.get_table('another')
+
+#@ Testing name shadowing: getTable('name')
+print schema.get_table('name')
+
+#@ Testing name shadowing: getTable('schema')
+print schema.get_table('schema')
+
+#@ Testing name shadowing: getTable('session')
+print schema.get_table('session')
+
+#@ Testing name shadowing: getTable('getTable')
+print schema.get_table('getTable')
+
+#@ Testing name shadowing: getTable('get_table')
+print schema.get_table('get_table')
+
+mySession.drop_schema('py_db_object_shadow')
+
 # Closes the session
 mySession.close()

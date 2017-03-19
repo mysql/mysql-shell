@@ -58,6 +58,7 @@ public:
 private:
   // Private constructor since this is a singleton
   Shell_core_options();
+  void init();
 
   // Options will be stored on a MAP
   Value::Map_type_ref _options;

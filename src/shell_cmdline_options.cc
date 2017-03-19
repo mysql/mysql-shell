@@ -289,6 +289,8 @@ _options.ssl_info.skip = false;
         break;
       } else
         _options.log_level = nlog_level;
+    } else if (check_arg(argv, i, "--vertical", "-E")) {
+      _options.output_format = "vertical";
     } else if (exit_code == 0) {
       if (argv[i][0] != '-') {
           value = argv[i];

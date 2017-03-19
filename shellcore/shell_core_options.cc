@@ -20,6 +20,7 @@
 #include <boost/format.hpp>
 #include "shellcore/shell_core_options.h"
 #include "utils/utils_file.h"
+#include "utils/utils_general.h"
 
 using namespace shcore;
 
@@ -65,8 +66,9 @@ void Shell_core_options::set_member(const std::string &prop, Value value) {
   if (_options->has_key(prop)) {
     if (prop == SHCORE_OUTPUT_FORMAT) {
       std::string format = value.as_string();
-      if (format != "table" && format != "json" && format != "json/raw")
-        throw shcore::Exception::value_error((boost::format("The option %s must be one of: table, json or json/raw.") % prop).str());
+      if (format != "table" && format != "json" && format != "json/raw" && format != "vertical")
+        throw shcore::Exception::value_error((boost::format(
+            "The option %s must be one of: table, vertical, json or json/raw.") % prop).str());
     } else if (prop == SHCORE_INTERACTIVE || prop == SHCORE_BATCH_CONTINUE_ON_ERROR)
       throw shcore::Exception::value_error((boost::format("The option %s is read only.") % prop).str());
 
@@ -80,6 +82,9 @@ void Shell_core_options::set_member(const std::string &prop, Value value) {
 
 Shell_core_options::Shell_core_options() :
 _options(new shcore::Value::Map_type) {
+
+  init();
+
   (*_options)[SHCORE_OUTPUT_FORMAT] = Value("table");
   (*_options)[SHCORE_INTERACTIVE] = Value::True();
   (*_options)[SHCORE_SHOW_WARNINGS] = Value::True();
@@ -96,6 +101,25 @@ _options(new shcore::Value::Map_type) {
 #endif
 
   (*_options)[SHCORE_SANDBOX_DIR] = Value(home.c_str());
+}
+
+void Shell_core_options::init() {
+  std::string option(SHCORE_OUTPUT_FORMAT);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_INTERACTIVE);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_SHOW_WARNINGS);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_BATCH_CONTINUE_ON_ERROR);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_MULTIPLE_INSTANCES);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_USE_WIZARDS);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_GADGETS_PATH);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_SANDBOX_DIR);
+  add_property(option + "|" + option);
 }
 
 Shell_core_options::~Shell_core_options() {

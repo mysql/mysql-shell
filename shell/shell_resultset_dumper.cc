@@ -118,7 +118,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysqlsh::mysql::ClassicResult>
 
     // Prints the warnings if there were any
     if (warning_count && _show_warnings)
-      dump_warnings();
+      dump_warnings(true);
   } while (result->next_data_set(shcore::Argument_list()).as_bool());
 }
 
@@ -224,6 +224,40 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
       std::string raw_value = row->get_member(field_index).descr();
       _output_handler->print(_output_handler->user_data, raw_value.c_str());
       _output_handler->print(_output_handler->user_data, field_index < (field_count - 1) ? "\t" : "\n");
+    }
+  }
+}
+
+void ResultsetDumper::dump_vertical(shcore::Value::Array_type_ref records) {
+  std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
+  auto field_count = metadata->size();
+  std::string star_separator(27, '*');
+
+  // Calculate length of a longest column description, used to right align
+  // column descriptions
+  std::size_t max_col_len = 0;
+  for (int col_index = 0; col_index < metadata->size(); col_index++) {
+    std::shared_ptr<mysqlsh::Column> column =
+        std::static_pointer_cast<mysqlsh::Column>(metadata->at(col_index).as_object());
+    max_col_len = std::max(max_col_len,  column->get_column_label().length());
+  }
+
+  for (int row_index = 0; row_index < records->size(); row_index++) {
+    std::string row_header = star_separator + " " + std::to_string(row_index + 1) +
+      ". row " + star_separator + "\n";
+
+    _output_handler->print(_output_handler->user_data, row_header.c_str());
+
+    for (int col_index = 0; col_index < metadata->size(); col_index++) {
+      std::shared_ptr<mysqlsh::Column> column =
+          std::static_pointer_cast<mysqlsh::Column>(metadata->at(col_index).as_object());
+
+      std::shared_ptr<mysqlsh::Row> row = records->at(row_index).as_object<mysqlsh::Row>();
+      std::string padding(max_col_len - column->get_column_label().size(), ' ');
+      std::string value_row = padding + column->get_column_label() + ": " +
+          row->get_member(col_index).descr() + "\n";
+
+      _output_handler->print(_output_handler->user_data, value_row.c_str());
     }
   }
 }
@@ -348,7 +382,9 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
 
   if (array_records->size()) {
     // print rows from result, with stats etc
-    if (_interactive || _format == "table")
+    if (_format == "vertical")
+      dump_vertical(array_records);
+    else if (_interactive || _format == "table")
       dump_table(array_records);
     else
       dump_tabbed(array_records);
@@ -359,7 +395,7 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
     output_stats = "Empty set";
 }
 
-void ResultsetDumper::dump_warnings() {
+void ResultsetDumper::dump_warnings(bool classic) {
   shcore::Value warnings = _resultset->get_member("warnings");
 
   if (warnings) {
@@ -370,10 +406,20 @@ void ResultsetDumper::dump_warnings() {
       shcore::Value record = warning_list->at(index);
       std::shared_ptr<mysqlsh::Row> row = record.as_object<mysqlsh::Row>();
 
-      unsigned long error = row->get_member("code").as_int();
+      std::string code = "code";
+      std::string level = "level";
+      std::string message = "message";
 
-      std::string type = row->get_member("level").as_string();
-      std::string msg = row->get_member("message").as_string();
+      if (classic) {
+        code = "Code";
+        level = "Level";
+        message = "Message";
+      }
+
+      unsigned long error = row->get_member(code).as_int();
+
+      std::string type = row->get_member(level).as_string();
+      std::string msg = row->get_member(message).as_string();
       _output_handler->print(_output_handler->user_data, (boost::format("%s (code %ld): %s\n") % type % error % msg).str().c_str());
 
       index++;

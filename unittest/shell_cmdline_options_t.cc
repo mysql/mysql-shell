@@ -501,6 +501,8 @@ TEST_F(Shell_cmdline_options_t, app) {
   test_option_with_value("json", "", "raw", "json", !IS_CONNECTION_DATA, IS_NULLABLE, "output_format", "json/raw");
   test_option_with_no_value("--json", "output_format", "json");
   test_option_with_no_value("--table", "output_format", "table");
+  test_option_with_no_value("--vertical", "output_format", "vertical");
+  test_option_with_no_value("-E", "output_format", "vertical");
   test_option_with_no_value("--trace-proto", "trace_protocol", "1");
   test_option_with_no_value("--force", "force", "1");
   test_option_with_no_value("--interactive", "interactive", "1");

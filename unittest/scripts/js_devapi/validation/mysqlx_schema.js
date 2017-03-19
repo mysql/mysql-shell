@@ -63,3 +63,60 @@
 //@ Testing existence
 |Valid: true|
 |Invalid: false|
+
+//@ Testing name shadowing: setup
+||
+
+//@ Testing name shadowing: name
+|js_db_object_shadow|
+
+//@ Testing name shadowing: getName
+|js_db_object_shadow|
+
+//@ Testing name shadowing: schema
+||
+
+//@ Testing name shadowing: getSchema
+||
+
+//@ Testing name shadowing: session
+|<NodeSession:|
+
+//@ Testing name shadowing: getSession
+|<NodeSession:|
+
+//@ Testing name shadowing: another
+|<Collection:another>|
+
+//@ Testing name shadowing: getCollection('another')
+|<Collection:another>|
+
+//@ Testing name shadowing: getTable('name')
+|<Table:name>|
+
+//@ Testing name shadowing: getCollection('schema')
+|<Collection:schema>|
+
+//@ Testing name shadowing: getTable('session')
+|<Table:session>|
+
+//@ Testing name shadowing: getCollection('getTable')
+|<Collection:getTable>|
+
+//@ Testing name shadowing: get_table (not a JS function)
+|<Table:get_table>|
+
+//@ Testing name shadowing: getTable('get_table')
+|<Table:get_table>|
+
+//@ Testing name shadowing: getCollection('getCollection')
+|<Collection:getCollection>|
+
+//@ Testing name shadowing: get_collection (not a JS function)
+|<Table:get_collection>|
+
+//@ Testing name shadowing: getTable('get_collection')
+|<Table:get_collection>|
+
+//@ cleanup
+||

@@ -21,7 +21,6 @@
 #include "../modules/base_session.h"
 #include "../modules/mod_mysql_session.h"
 #include "../modules/mod_mysqlx_session.h"
-#include "../utils/utils_mysql_parsing.h"
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
@@ -30,20 +29,77 @@ using namespace shcore;
 using namespace boost::system;
 
 Shell_sql::Shell_sql(IShell_core *owner)
-  : Shell_language(owner) {
-  _delimiter = ";";
+  : Shell_language(owner), _delimiters({";", "\\G", "\\g"})
+{
+  static const std::string cmd_help_G =
+      "SYNTAX:\n"
+      "   <statement>\\G\n\n"
+      "Execute the statement in the MySQL server and display results in a vertical\n"
+      "format, one field and value per line.\n"
+      "Useful for results that are too wide to fit the screen horizontally.\n";
+
+  static const std::string cmd_help_g =
+      "SYNTAX:\n"
+      "   <statement>\\g\n\n"
+      "Execute the statement in the MySQL server and display results.\n"
+      "Same as executing with the current delimiter (default ;)\n";
+
+  // Inject help for statement commands. Actual handling of these
+  // commands is done in a way different from other commands
+  SET_CUSTOM_SHELL_COMMAND("\\G", "Send command to mysql server, display result vertically.", cmd_help_G, Shell_command_function());
+  SET_CUSTOM_SHELL_COMMAND("\\g", "Send command to mysql server.", cmd_help_g, Shell_command_function());
+}
+
+Value Shell_sql::process_sql(const std::string &query_str,
+    mysql::splitter::Delimiters::delim_type_t delimiter,
+    std::shared_ptr<mysqlsh::ShellDevelopmentSession> session,
+    std::function<void(shcore::Value)> result_processor) {
+  Value ret_val;
+  try {
+    shcore::Argument_list query;
+    query.push_back(Value(query_str));
+
+    // ClassicSession has runSql and returns a ClassicResult object
+    if (session->has_member("runSql"))
+      ret_val = session->call("runSql", query);
+
+    // NodeSession uses SqlExecute object in which we need to call
+    // .execute() to get the Resultset object
+    else if (session->has_member("sql"))
+      ret_val = session->call("sql", query).as_object()->call("execute",
+                              shcore::Argument_list());
+    else
+      throw shcore::Exception::logic_error("The current session type (" +
+          session->class_name() + ") can't be used for SQL execution.");
+
+    // If reached this point, processes the returned result object
+    if (!_killed) {
+      auto shcore_options = Shell_core_options::get();
+      auto old_format = (*shcore_options)[SHCORE_OUTPUT_FORMAT];
+      if (delimiter == "\\G")
+        (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value("vertical");
+      result_processor(ret_val);
+      (*shcore_options)[SHCORE_OUTPUT_FORMAT] = old_format;
+    }
+    _killed = false;
+  } catch (shcore::Exception &exc) {
+    print_exception(exc);
+  }
+
+  _last_handled += query_str + delimiter;
+
+  return ret_val;
 }
 
 void Shell_sql::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
   Value ret_val;
   state = Input_state::Ok;
   auto session = _owner->get_dev_session();
+  bool no_query_executed = true;
 
   _last_handled.clear();
 
   if (session) {
-    std::vector<std::pair<size_t, size_t> > ranges;
-    size_t statement_count;
 
     // NOTE: We need to find a nice way to decide whether parsing or not multiline blocks
     // is enabled or not, for now will let this commented out and do parsing all the time
@@ -62,92 +118,57 @@ void Shell_sql::handle_input(std::string &code, Input_state &state, std::functio
     // Parses the input string to identify individual statements in it.
     // Will return a range for every statement that ends with the delimiter, if there
     // is additional code after the last delimiter, a range for it will be included too.
-    statement_count = shcore::mysql::splitter::determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
+    auto ranges = shcore::mysql::splitter::determineStatementRanges(code.data(),
+        code.length(), _delimiters, "\n", _parsing_context_stack);
     //}
 
-    // statement_count is > 0 if the splitter determined a statement was completed
-    // ranges: contains the char ranges having statements.
-    // special case: statement_count is 1 but there are no ranges: the delimiter was sent on the last call to the splitter
-    //               and it determined the continued statement is now complete, but there's no additional data for it
-    size_t index = 0;
+    int range_index = 0;
 
-    // Gets the total number of ranges
-    size_t range_count = ranges.size();
-    std::vector<std::string> statements;
-    if (statement_count) {
-      // If cache has data it is part of the found statement so it has to
-      // be flushed at this point into the statements list for execution
-      if (!_sql_cache.empty()) {
-        if (statement_count > range_count)
-          statements.push_back(_sql_cache);
-        else {
-          statements.push_back(_sql_cache.append("\n").append(code.substr(ranges[0].first, ranges[0].second)));
-          index++;
-        }
+    for (; range_index < ranges.size(); range_index++)
+    {
+      if (ranges[range_index].get_delimiter().empty()) {
+        // There is no delimiter, partial command added to cache
+        std::string line = code.substr(ranges[range_index].offset(),
+            ranges[range_index].length());
 
-        _sql_cache.clear();
-      }
-
-      if (range_count) {
-        // Now also adds the rest of the statements for execution
-        for (; index < statement_count; index++)
-          statements.push_back(code.substr(ranges[index].first, ranges[index].second));
-
-        // If there's still data, itis a partial statement: gets cached
-        if (index < range_count)
-          _sql_cache = code.substr(ranges[index].first, ranges[index].second);
-      }
-
-      code = _sql_cache;
-
-      // Executes every found statement
-      for (index = 0; index < statements.size(); index++) {
-        shcore::Argument_list query;
-        query.push_back(Value(statements[index]));
-
-        try {
-          // ClassicSession has runSql and returns a ClassicResult object
-          if (session->has_member("runSql"))
-            ret_val = session->call("runSql", query);
-
-          // NodeSession uses SqlExecute object in which we need to call
-          // .execute() to get the Resultset object
-          else if (session->has_member("sql"))
-            ret_val = session->call("sql", query).as_object()->call("execute", shcore::Argument_list());
-          else
-            throw shcore::Exception::logic_error("The current session type (" + session->class_name() + ") can't be used for SQL execution.");
-
-          // If reached this point, processes the returned result object
-          if (!_killed)
-            result_processor(ret_val);
-          _killed = false;
-        } catch (shcore::Exception &exc) {
-          print_exception(exc);
-        }
-
-        if (_last_handled.empty())
-          _last_handled = statements[index].append(_delimiter);
+        boost::trim_right_if(line, boost::is_any_of("\n"));
+        if (_sql_cache.empty())
+          _sql_cache = line;
         else
-          _last_handled.append("\n").append(statements[index]).append(_delimiter);
-      }
-    } else if (range_count) {
-      std::string line = code.substr(ranges[0].first, ranges[0].second);
-      boost::trim_right_if(line, boost::is_any_of("\n"));
-      if (_sql_cache.empty())
-        _sql_cache = line;
-      else
-        _sql_cache.append("\n").append(line);
-    } else // Multiline code, all is "processed"
-      code = "";
+          _sql_cache.append("\n").append(line);
+      } else {
+        no_query_executed = false;
+        if (!_sql_cache.empty()){
+          no_query_executed = false;
+          std::string cached_query = _sql_cache + "\n" +
+              code.substr(ranges[range_index].offset(),
+              ranges[range_index].length());
 
-    // Nothing was processed so it is not an error
-    if (!statement_count)
-      ret_val = Value::Null();
+          _sql_cache.clear();
+
+          ret_val = process_sql(cached_query,
+              ranges[range_index].get_delimiter(),
+              session, result_processor);
+        }
+        else {
+          ret_val = process_sql(code.substr(ranges[range_index].offset(),
+              ranges[range_index].length()),
+              ranges[range_index].get_delimiter(),
+              session, result_processor);
+        }
+      }
+    }
+    code = _sql_cache;
 
     if (_parsing_context_stack.empty())
       state = Input_state::Ok;
     else
       state = Input_state::ContinuedSingle;
+
+    // Nothing was processed so it is not an error
+    if (no_query_executed)
+      ret_val = Value::Null();
+
   } else
     // handle_input implementations are not throwing exceptions
     // They handle the printing internally

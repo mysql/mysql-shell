@@ -65,6 +65,13 @@ JOIN = "join-replicaset"
 LEAVE = "leave-replicaset"
 START = "start-replicaset"
 
+try:
+    import ssl
+    HAVE_SSL_SUPPORT = True
+except ImportError:
+    HAVE_SSL_SUPPORT = False
+
+
 _VALID_COMMANDS = [CLONE, CHECK, HEALTH, JOIN, LEAVE, STATUS, START, SANDBOX]
 
 _AVAILABLE_COMMANDS = ("The available commands are: {0} and {1}"
@@ -252,6 +259,17 @@ _ERROR_INVALID_PORT = ("Port '{port}' is not a valid for {listener} or "
 
 _ERROR_DUPLICATED_PORT = ("Invalid mysqlx port '{mysqlx_port}', it must be "
                           "different from the server port '{server_port}'.")
+
+_ERROR_NO_SSL_SUPPORT_OPTIONS = (
+    "SSL for communicating with MySQL server is currently not supported for "
+    "this command. Please execute it again without using any SSL certificate "
+    "options for the instance definition.")
+
+_ERROR_NO_SSL_SUPPORT_SESSION = (
+    "SSL for communicating with MySQL server is currently not supported for "
+    "this command. Please establish a new session to the current instance "
+    "without using any SSL certificate options and re-execute the command "
+    "again.")
 
 if __name__ == "__main__":
     # retrieve logger
@@ -639,6 +657,24 @@ if __name__ == "__main__":
             ssl_server_conn_dict["ssl_key"] = args.server_ssl_key
         if ssl_server_conn_dict:
             ssl_server_conn_dict["ssl"] = True
+            # throw an error if Python has no ssl support but we are trying to
+            # use ssl to encrypt the communications
+            if not HAVE_SSL_SUPPORT:
+                if command == JOIN:
+                    # on the join replicaset command the server argument is
+                    # the server we want to add to the group. This means any
+                    # ssl connection information does not come from the current
+                    # session but from instance definition parameter of
+                    # <cluster>.addInstance
+                    _LOGGER.error(_ERROR_NO_SSL_SUPPORT_OPTIONS)
+                    sys.exit(1)
+                else:
+                    # on the rest of the commands the server ssl information
+                    # provided to mysqlprovision comes from the connection
+                    # being used in the shell session.
+                    _LOGGER.error(_ERROR_NO_SSL_SUPPORT_SESSION)
+                    sys.exit(1)
+
         args.server.update(ssl_server_conn_dict)
 
     if hasattr(args, "peer_server") and isinstance(args.peer_server, dict):
@@ -651,6 +687,13 @@ if __name__ == "__main__":
             ssl_peer_conn_dict["ssl_key"] = args.peer_server_ssl_key
         if ssl_peer_conn_dict:
             ssl_peer_conn_dict["ssl"] = True
+            if not HAVE_SSL_SUPPORT:
+                # on the join command (only command that receives a peer
+                # server) the peer_server ssl information provided to
+                # mysqlprovision comes from the connection being used in the
+                # shell session.
+                _LOGGER.error(_ERROR_NO_SSL_SUPPORT_SESSION)
+                sys.exit(1)
         args.peer_server.update(ssl_peer_conn_dict)
 
     if command == SANDBOX:
