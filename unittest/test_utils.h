@@ -14,7 +14,7 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <gtest/gtest.h>
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "scripting/common.h"
 #include "shellcore/shell_notifications.h"
@@ -22,7 +22,7 @@
 #include <fstream>
 #include <vector>
 #include <list>
-#include "shell/base_shell.h"
+#include "shellcore/base_shell.h"
 
 #ifdef GTEST_TEST_
 #undef GTEST_TEST_

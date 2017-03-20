@@ -26,7 +26,7 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_core_options.h"
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 
 namespace mysqlsh {
 namespace dba {

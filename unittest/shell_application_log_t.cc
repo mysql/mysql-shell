@@ -22,10 +22,10 @@
 #include <fstream>
 #include <string>
 
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
-#include "base_session.h"
+#include "modules/base_session.h"
 #include "utils/utils_file.h"
 
 namespace shcore {

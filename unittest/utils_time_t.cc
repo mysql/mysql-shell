@@ -25,7 +25,7 @@
 #include <stack>
 
 #include "gtest/gtest.h"
-#include "../utils/utils_time.h"
+#include "utils/utils_time.h"
 
 #if defined(WIN32)
 #include <time.h>

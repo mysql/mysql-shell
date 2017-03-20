@@ -21,7 +21,7 @@
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 #include "scripting/types_cpp.h"
 
 #include "shellcore/shell_core.h"
@@ -29,7 +29,7 @@
 #include "../modules/base_session.h"
 //#include "../modules/mod_session.h"
 //#include "../modules/mod_schema.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "test_utils.h"
 #include <boost/algorithm/string.hpp>
 

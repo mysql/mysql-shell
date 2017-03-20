@@ -15,10 +15,13 @@
 
 
 include_directories(${SSL_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/common/mysqlx
     ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/mySTL
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/mysqlxtest/myasio
+    ${CMAKE_SOURCE_DIR}/mysqlshdk/include
+    ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})

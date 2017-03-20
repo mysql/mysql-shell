@@ -28,6 +28,21 @@
 #include <iomanip>
 #include <sstream>
 #include <boost/format.hpp>
+#include <boost/random.hpp>
+
+struct Init_uuid_gen {
+  Init_uuid_gen() {
+    // Use a random seed for UUIDs
+    std::time_t now = std::time(NULL);
+    boost::uniform_int<> dist(INT_MIN, INT_MAX);
+    boost::mt19937 gen;
+    boost::variate_generator<boost::mt19937 &, boost::uniform_int<> > vargen(gen, dist);
+    gen.seed(now);
+    init_uuid(vargen());
+  }
+};
+static Init_uuid_gen __init_uuid;
+
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;

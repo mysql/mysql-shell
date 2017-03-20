@@ -22,7 +22,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "src/shell_cmdline_options.h"
+#include "mysqlsh/shell_cmdline_options.h"
 
 namespace shcore {
 #define IS_CONNECTION_DATA true

@@ -21,7 +21,7 @@
 #include <stack>
 
 #include "gtest/gtest.h"
-#include "../utils/utils_mysql_parsing.h"
+#include "utils/utils_mysql_parsing.h"
 
 namespace shcore {
 namespace sql_shell_tests {

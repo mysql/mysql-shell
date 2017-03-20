@@ -25,7 +25,7 @@
 #include <gtest/gtest.h>
 #include "../mysqlxtest/common/proj_parser.h"
 #include "scripting/types_cpp.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 #include "mysqlx_datatypes.pb.h"
 #include "mysqlx_expr.pb.h"

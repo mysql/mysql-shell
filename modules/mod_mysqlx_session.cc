@@ -25,7 +25,7 @@
 #include "mod_mysqlx_constants.h"
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 #include "mod_mysqlx_session_sql.h"
 #include "utils/utils_general.h"
 #include "utils/utils_time.h"

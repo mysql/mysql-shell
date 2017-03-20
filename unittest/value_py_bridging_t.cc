@@ -16,7 +16,7 @@
 /* python_contex.h includes Python.h so it needs to be the first include to avoid
  * error: "_POSIX_C_SOURCE" redefined
  */
-#include "shellcore/python_context.h"
+#include "scripting/python_context.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -28,13 +28,13 @@
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 #include "scripting/types_cpp.h"
-#include "shellcore/object_registry.h"
-#include "shellcore/python_utils.h"
-#include "shellcore/common.h"
+#include "scripting/object_registry.h"
+#include "scripting/python_utils.h"
+#include "scripting/common.h"
 
-#include "shellcore/python_array_wrapper.h"
+#include "scripting/python_array_wrapper.h"
 #include "test_utils.h"
 
 /*extern void Python_context_init();
@@ -167,7 +167,6 @@ TEST_F(Python, simple_to_py_and_back) {
 TEST_F(Python, basic) {
   ASSERT_TRUE(py);
 
-  boost::system::error_code error;
   WillEnterPython lock;
   Input_state cont = Input_state::Ok;
 
@@ -177,10 +176,10 @@ TEST_F(Python, basic) {
   result = py->execute_interactive("1+1", cont);
   ASSERT_EQ(result.as_int(), 2);
 
-  result = py->execute("", error);
+  result = py->execute("");
   ASSERT_EQ(result, Value::Null());
 
-  result = py->execute("1+1+", error);
+  result = py->execute("1+1+");
   ASSERT_EQ(result, Value());
 }
 

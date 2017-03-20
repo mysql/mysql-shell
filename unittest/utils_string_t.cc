@@ -22,7 +22,7 @@
 #include <tuple>
 
 #include "gtest/gtest.h"
-#include "../utils/utils_string.h"
+#include "utils/utils_string.h"
 
 TEST(UtilsString, strip) {
   EXPECT_EQ("", shcore::str_strip(""));

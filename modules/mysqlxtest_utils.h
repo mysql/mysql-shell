@@ -25,7 +25,7 @@
 
 #include "scripting/types_cpp.h"
 #include "scripting/common.h"
-#include "mysqlx.h"
+#include "mysqlxtest/mysqlx.h"
 
 #ifdef __GNUC__
 #define ATTR_UNUSED __attribute__((unused))

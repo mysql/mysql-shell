@@ -15,14 +15,13 @@
 
 cmake_minimum_required (VERSION 2.8)
 
-project (mysqlsh)
+project(mysqlsh)
 
 IF(CMAKE_VERSION VERSION_EQUAL "3.0.0" OR
    CMAKE_VERSION VERSION_GREATER "3.0.0")
   CMAKE_POLICY(SET CMP0026 OLD)
   CMAKE_POLICY(SET CMP0045 OLD)
   CMAKE_POLICY(SET CMP0042 OLD)
-
 ENDIF()
 
 set(CMAKE_MODULE_PATH
@@ -104,39 +103,11 @@ add_definitions(-DHAVE_LIBMYSQLCLIENT)
 find_package(Boost 1.42 REQUIRED)
 find_package(Curses)
 
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
 # Check whether boost::system can be compiled into the binary
 include(CheckCXXSourceCompiles)
 SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
-
- SET(CMAKE_REQUIRED_INCLUDES ${Boost_INCLUDE_DIRS})
-
- SET(BOOST_SOURCE
- "
- #define BOOST_ERROR_CODE_HEADER_ONLY
- #include <boost/system/error_code.hpp>
- int main()
- {
-   boost::system::error_code error;
-   return error.value();
-  }
- ")
-
-
- SET(BOOST_SYSTEM_COMPILES "BOOST_SYSTEM_COMPILES")
-
- CHECK_CXX_SOURCE_COMPILES("${BOOST_SOURCE}" BOOST_SYSTEM_COMPILES)
-
-if (BOOST_SYSTEM_COMPILES)
-  set(BOOST_SOURCE_CODE "${PROJECT_SOURCE_DIR}/src/boost_code.cc")
-else()
-  message(STATUS "Boost requires linkage")
-  set(BOOST_LIBRARIES boost_system)
-endif()
-
-# disable optimization for boost error_code, otherwise we get link errors in Release builds
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
-endif ()
 
 ##
 ## Installation location
@@ -167,7 +138,7 @@ MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
 ENDMACRO()
 
 # Must be before MYSQL_CHECK_SSL()
-include_directories( ${CMAKE_BINARY_DIR}/include/ ${PROJECT_SOURCE_DIR}/include)
+include_directories(${CMAKE_BINARY_DIR}/include/ ${PROJECT_SOURCE_DIR}/include)
 
 # Add bundled yassl/taocrypt or system openssl.
 IF (WITH_SSL)
@@ -184,29 +155,7 @@ MESSAGE(STATUS "SSL_INCLUDE_DIRS: ${SSL_INCLUDE_DIRS}")
 ### Handle User Options
 ###
 
-if(NOT WINDOWS_RUNTIME_MD)
-  add_definitions(-DNo_mysqlshtypes)
-endif()
-
-# Common warning flags for GCC, G++, Clang and Clang++
-set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
-
-# Common warning flags for GCC and Clang
-set(MY_C_WARNING_FLAGS
-    "${MY_WARNING_FLAGS} -Wwrite-strings -Wdeclaration-after-statement")
-
-set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
-
-if(NOT WIN32)
-  # make some overzealous warnings into non errors
-  set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Wno-error=unused-value,unused-variable")
-  #  add_subdirectory(src/libedit)
-endif()
-
-
-IF (HAVE_V8)
-  include_directories( ${V8_INCLUDE_DIR} )
-
+if(HAVE_V8)
   find_library(V8_LIB v8
                PATHS ${V8_LIB_DIR}
                NO_DEFAULT_PATH
@@ -237,25 +186,12 @@ IF (HAVE_V8)
   else()	# Linux
     set(V8_LINK_LIST ${V8_LIBS})
   endif()
-ENDIF()
-
-include_directories(${MYSQL_INCLUDE_DIR}
-                    "${CMAKE_SOURCE_DIR}"
-                    "${CMAKE_SOURCE_DIR}/common"
-                    "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
-                   )
-
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-
-IF (HAVE_PYTHON)
-  include_directories(${PYTHON_INCLUDE_DIRS})
-ENDIF()
+endif()
 
 add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
-
-IF(WIN32)
+if(WIN32)
   add_definitions(-DMYSH_VERSION_WIN="${MYSH_VERSION_WIN}")
-ENDIF()
+endif()
 
 IF(WITH_TESTS)
   ###
@@ -272,76 +208,14 @@ ENDIF()
 ### Build Projects
 ###
 
+add_subdirectory(doc)
 add_subdirectory(python)
-
-if(WINDOWS_RUNTIME_MD)
-  #add_subdirectory(types)
-  add_definitions(-DUSING_V8_SHARED)
-  remove_definitions(-Dmysqlshtypes_EXPORTS)
-endif()
 add_subdirectory(mysqlxtest)
-add_subdirectory(shellcore)
-
-# mysqlsh cmdline util build
-if(NOT WIN32)
-  include_directories( "${PROJECT_SOURCE_DIR}/src/libedit" )
-endif()
-
-set(mysh_SRC
-    "${PROJECT_SOURCE_DIR}/src/main.cc"
-    "${PROJECT_SOURCE_DIR}/src/get_password.cc"
-    "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.h"
-    "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.cc"
-    "${PROJECT_SOURCE_DIR}/src/cmdline_shell.h"
-    "${PROJECT_SOURCE_DIR}/src/cmdline_shell.cc"
-)
-
-if(WIN32)
-  SET(MYSH_FILE_TYPE "VFT_APP")
-  SET(MYSH_PRODUCT_NAME "MySQL Shell")
-  SET(MYSH_ORIGINAL_FILE_NAME "mysqlsh.exe")
-  SET(MYSH_FILE_DESCRIPTION "MySQL Shell")
-  CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/res/resource.rc.in   ${CMAKE_BINARY_DIR}/mysqlsh.rc @ONLY)
-  set(mysh_SRC
-      "${mysh_SRC}"
-      "${CMAKE_BINARY_DIR}/mysqlsh.rc"
-      )
-endif()
-
-add_executable(mysqlsh ${mysh_SRC} ${BOOST_SOURCE_CODE})
-
-if(WIN32)
-  if(NOT WINDOWS_RUNTIME_MD)
-    add_dependencies(mysqlsh boost_code.obj)
-  endif()
-else()
-  target_link_libraries(mysqlsh edit)
-endif()
-
-# Last, to make -lrt -lpthread last, v8 needs it
-target_link_libraries(mysqlsh ${MYSQLSHCORE_LIBS} ${GCOV_LDFLAGS})
-
-install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
-
-if(WIN32)
-  install(FILES "${CMAKE_SOURCE_DIR}/res/mysqlprovision.cmd" COMPONENT main DESTINATION ${INSTALL_BINDIR})
-  if(NOT WINDOWS_RUNTIME_MD)
-    CHANGE_MD_2_MT()
-  endif()
-
-  IF(CMAKE_BUILD_TYPE MATCHES Debug)
-    add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        "${CMAKE_SOURCE_DIR}/res/mysqlprovision.cmd" $<TARGET_FILE_DIR:mysqlsh>)
-  ENDIF()
-endif()
-
-add_definitions(-DBOOST_ALL_NO_LIB)
-
-ADD_SUBDIRECTORY(doc)
+add_subdirectory(mysqlshdk)
+add_subdirectory(modules)
+add_subdirectory(src)
 
 include(packaging)
-include(extra_install)
 
 if(WIN32)
   remove_definitions(-DUNICODE)
@@ -424,32 +298,3 @@ if (HAVE_PYTHON)
     endif()
   endif()
 endif()
-
-
-# Generate mysqlsh_config script
-
-SET(prefix "${CMAKE_INSTALL_PREFIX}")
-SET(sysconfdir ${prefix})
-SET(bindir ${prefix}/${INSTALL_BINDIR})
-SET(datadir ${prefix}/${INSTALL_SHAREDIR})
-SET(pkgdatadir ${prefix}/${INSTALL_SHAREDIR})
-SET(libsubdir  ${INSTALL_LIBDIR})
-SET(pkgincludedir ${prefix}/${INSTALL_INCLUDEDIR})
-SET(pkglibdir ${prefix}/${INSTALL_LIBDIR})
-
-FOREACH(LIB ${MYSQLSHCORE_LIBS})
-  SET(MYSQLSHCORE_LIBLIST "${MYSQLSHCORE_LIBLIST} -l${LIB}")
-ENDFOREACH()
-
-#unused IF (WITH_DEV AND NOT WIN32)
-IF(WITH_DEV AND FALSE)
-    CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/mysqlsh_config.sh
-        ${CMAKE_CURRENT_BINARY_DIR}/mysqlsh_config ESCAPE_QUOTES @ONLY)
-    EXECUTE_PROCESS(COMMAND chmod +x ${CMAKE_CURRENT_BINARY_DIR}/mysqlsh_config)
-
-   INSTALL_SCRIPT(
-      ${CMAKE_CURRENT_BINARY_DIR}/mysqlsh_config
-      DESTINATION ${INSTALL_BINDIR}
-      COMPONENT dev
-    )
-ENDIF()

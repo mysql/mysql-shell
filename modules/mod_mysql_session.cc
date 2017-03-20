@@ -31,7 +31,7 @@
 
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 #include "shellcore/shell_notifications.h"
 
 #include "scripting/proxy_object.h"

@@ -16,7 +16,7 @@
 #include "test_utils.h"
 #include <boost/algorithm/string.hpp>
 #include "shellcore/shell_core_options.h"
-#include "shell/shell_resultset_dumper.h"
+#include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
 #include "modules/base_session.h"

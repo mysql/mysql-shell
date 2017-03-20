@@ -24,7 +24,7 @@
 #include <stack>
 
 #include "gtest/gtest.h"
-#include "../utils/utils_general.h"
+#include "utils/utils_general.h"
 
 namespace shcore {
 TEST(utils_general, split_account) {

@@ -21,7 +21,7 @@
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 #include "scripting/types_cpp.h"
 
 #include "shellcore/shell_core.h"

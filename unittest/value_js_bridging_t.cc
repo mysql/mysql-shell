@@ -23,12 +23,12 @@
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 #include "scripting/types_cpp.h"
-#include "shellcore/object_registry.h"
-#include "shellcore/jscript_context.h"
+#include "scripting/object_registry.h"
+#include "scripting/jscript_context.h"
 #include "test_utils.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "modules/mod_sys.h"
 using namespace std::placeholders;
 

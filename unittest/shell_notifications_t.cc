@@ -21,16 +21,16 @@
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
-#include "shellcore/lang_base.h"
+#include "scripting/lang_base.h"
 #include "scripting/types_cpp.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
 #include "shellcore/shell_notifications.h"
 #include "../modules/base_session.h"
 #include "../modules/base_resultset.h"
-#include "shell/shell_resultset_dumper.h"
+#include "shellcore/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
 #include <queue>
