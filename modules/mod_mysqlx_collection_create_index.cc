@@ -23,7 +23,7 @@
 #include "base_constants.h"
 #include "uuid_gen.h"
 #include "mysqlx_parser.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 #include <iomanip>
 #include <sstream>

@@ -23,14 +23,14 @@
 #include "mod_mysqlx_resultset.h"
 #include "mod_mysqlx_expression.h"
 #include "mod_mysqlx_constants.h"
-#include "shellcore/object_factory.h"
+#include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "mod_mysqlx_session_sql.h"
 #include "utils/utils_general.h"
 #include "utils/utils_time.h"
 #include "utils/utils_file.h"
-#include "shellcore/proxy_object.h"
+#include "scripting/proxy_object.h"
 #include "shellcore/shell_notifications.h"
 
 #include "mysqlxtest_utils.h"
@@ -44,7 +44,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4

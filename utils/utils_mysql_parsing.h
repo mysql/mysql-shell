@@ -19,7 +19,7 @@
 #ifndef _UTILS_MYSQL_PARSING_H_
 #define _UTILS_MYSQL_PARSING_H_
 
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 #define SPACES " \t\r\n"
 

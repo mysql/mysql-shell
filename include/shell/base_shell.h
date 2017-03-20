@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,7 +20,7 @@
 #define _INTERACTIVE_SHELL_
 
 #include "shell/shell_options.h"
-#include "shellcore/types.h"
+#include "scripting/types.h"
 #include "shellcore/shell_core.h"
 
 namespace mysqlsh {

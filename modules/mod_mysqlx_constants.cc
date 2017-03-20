@@ -19,8 +19,8 @@
 
 #include "base_constants.h"
 #include "mod_mysqlx_constants.h"
-#include "shellcore/object_factory.h"
-#include "utils/utils_help.h"
+#include "scripting/object_factory.h"
+#include "shellcore/utils_help.h"
 
 #ifdef __clang__
 #pragma clang diagnostic push

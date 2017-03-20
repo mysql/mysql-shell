@@ -20,7 +20,7 @@
 #ifndef _MOD_MYSQL_H_
 #define _MOD_MYSQL_H_
 
-#include "shellcore/module_registry.h"
+#include "scripting/module_registry.h"
 
 namespace mysqlsh {
 

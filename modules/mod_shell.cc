@@ -20,7 +20,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/base_session.h"
 

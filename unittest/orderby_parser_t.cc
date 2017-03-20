@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 #include "../mysqlxtest/common/orderby_parser.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/common.h"
 
 #include "mysqlx_datatypes.pb.h"

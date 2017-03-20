@@ -21,7 +21,7 @@
 #include "shellcore/shell_sql.h"
 #include "shellcore/shell_jscript.h"
 #include "shellcore/shell_python.h"
-#include "shellcore/object_registry.h"
+#include "scripting/object_registry.h"
 #include "modules/base_session.h"
 #include "modules/base_database_object.h"
 #include "interactive/interactive_global_schema.h"

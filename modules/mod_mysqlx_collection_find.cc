@@ -20,11 +20,11 @@
 #include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "mod_mysqlx_expression.h"
 #include "mysqlxtest/common/expr_parser.h"
 #include "utils/utils_time.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;

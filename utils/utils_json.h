@@ -24,7 +24,7 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/prettywriter.h>
 
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 namespace shcore {
 // This class is to wrap the Raw and Pretty writers from rapidjson since

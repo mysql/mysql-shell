@@ -18,7 +18,7 @@
  */
 #include "mod_mysqlx_table_insert.h"
 #include "mod_mysqlx_table.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "mod_mysqlx_resultset.h"
 #include <boost/format.hpp>
 #include "utils/utils_time.h"

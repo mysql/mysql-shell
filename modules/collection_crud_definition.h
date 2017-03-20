@@ -23,8 +23,8 @@
 #ifndef _MOD_COLLECTION_CRUD_DEFINITION_H_
 #define _MOD_COLLECTION_CRUD_DEFINITION_H_
 
-#include "shellcore/types_cpp.h"
-#include "shellcore/common.h"
+#include "scripting/types_cpp.h"
+#include "scripting/common.h"
 #include "crud_definition.h"
 #include "mysqlx_crud.h"
 #include "mysqlxtest_utils.h"

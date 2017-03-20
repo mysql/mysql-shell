@@ -18,7 +18,7 @@
  */
 
 #include "base_constants.h"
-#include "shellcore/object_factory.h"
+#include "scripting/object_factory.h"
 
 #ifdef __clang__
 #pragma clang diagnostic push

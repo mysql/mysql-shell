@@ -26,7 +26,7 @@
 #include <inttypes.h>
 #include <string>
 
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_signed.hpp>

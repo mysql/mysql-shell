@@ -24,8 +24,8 @@
 #define _MOD_MYSQL_TABLE_H_
 
 #include "base_database_object.h"
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 
 namespace mysqlsh {
 namespace mysql {

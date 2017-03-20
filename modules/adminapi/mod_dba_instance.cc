@@ -18,7 +18,7 @@
  */
 
 //#include "mod_dba_instance.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 
 namespace mysqlsh {

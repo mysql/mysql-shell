@@ -24,7 +24,7 @@
 #include "shellcore/shell_core_options.h" // <---
 #include "modules/base_resultset.h"
 #include "utils/utils_time.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 #include "logger/logger.h"
 
 #include <boost/format.hpp>

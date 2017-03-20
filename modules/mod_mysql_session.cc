@@ -29,12 +29,12 @@
 #pragma clang diagnostic pop
 #endif
 
-#include "shellcore/object_factory.h"
+#include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_notifications.h"
 
-#include "shellcore/proxy_object.h"
+#include "scripting/proxy_object.h"
 #include "mysqlxtest_utils.h"
 
 #include <boost/lexical_cast.hpp>
@@ -45,7 +45,7 @@
 #include "mod_mysql_resultset.h"
 #include "mod_mysql_schema.h"
 #include "utils/utils_general.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 #include "utils/utils_connection.h"
 
 #define MAX_COLUMN_LENGTH 1024

@@ -23,7 +23,7 @@
 #include "mysqlxtest/common/expr_parser.h"
 #include "mod_mysqlx_expression.h"
 #include "utils/utils_time.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 #include <iomanip>
 #include <sstream>

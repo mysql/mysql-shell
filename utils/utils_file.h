@@ -21,7 +21,7 @@
 #define __mysh__utils_file__
 
 #include <string>
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 namespace shcore {
 std::string SHCORE_PUBLIC get_global_config_path();

@@ -26,7 +26,7 @@
 #include <cstring>
 #include <stdexcept>
 
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 namespace shcore {
 

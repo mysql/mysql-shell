@@ -19,7 +19,7 @@
 #include "mod_mysqlx_table_update.h"
 #include "mod_mysqlx_table.h"
 #include "mod_mysqlx_resultset.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "mod_mysqlx_expression.h"
 #include "utils/utils_time.h"
 #include <sstream>

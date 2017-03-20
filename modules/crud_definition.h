@@ -23,8 +23,8 @@
 #ifndef _MOD_CRUD_DEFINITION_H_
 #define _MOD_CRUD_DEFINITION_H_
 
-#include "shellcore/types_cpp.h"
-#include "shellcore/common.h"
+#include "scripting/types_cpp.h"
+#include "scripting/common.h"
 #include "dynamic_object.h"
 
 #include <set>

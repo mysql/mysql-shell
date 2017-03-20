@@ -20,8 +20,7 @@
 #ifndef __mysh__utils_time__
 #define __mysh__utils_time__
 
-#include "shellcore/types_common.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include <string>
 
 class SHCORE_PUBLIC MySQL_timer {

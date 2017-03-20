@@ -23,7 +23,7 @@
 #ifndef _INTERACTIVE_GLOBAL_DBA_H_
 #define _INTERACTIVE_GLOBAL_DBA_H_
 
-#include "shellcore/interactive_object_wrapper.h"
+#include "interactive_object_wrapper.h"
 #include "modules/adminapi/mod_dba_common.h"
 
 namespace shcore {

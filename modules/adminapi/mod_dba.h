@@ -22,7 +22,7 @@
 
 #include "modules/mod_common.h"
 #include "modules/mod_mysql_session.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "modules/base_session.h"
 #include "mod_dba_cluster.h"

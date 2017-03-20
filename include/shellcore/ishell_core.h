@@ -20,9 +20,10 @@
 #ifndef _ISHELL_CORE_
 #define _ISHELL_CORE_
 
-#include "shellcore/object_registry.h"
-#include "shellcore/types_common.h"
-#include "shellcore/types.h"
+#include "scripting/object_registry.h"
+#include "scripting/types_common.h"
+#include "scripting/types.h"
+#include "scripting/context_common.h"
 #include "shellcore/lang_base.h"
 
 #include <iostream>
@@ -39,11 +40,6 @@ class ShellDevelopmentSession;
 };
 
 namespace shcore {
-enum class Input_state {
-  Ok,
-  ContinuedSingle,
-  ContinuedBlock,
-};
 
 class SHCORE_PUBLIC IShell_core {
 public:

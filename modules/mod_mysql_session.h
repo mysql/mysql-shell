@@ -24,8 +24,8 @@
 #define _MOD_SESSION_H_
 
 #include "mod_common.h"
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "mysql_connection.h"
 #include "base_session.h"

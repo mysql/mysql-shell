@@ -28,10 +28,10 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/mod_mysql_resultset.h"
 #include "utils/utils_general.h"
-#include "shellcore/object_factory.h"
+#include "scripting/object_factory.h"
 #include "shellcore/shell_core_options.h"
 #include "../mysqlxtest_utils.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 #include "modules/adminapi/mod_dba_sql.h"
 
 #include "logger/logger.h"

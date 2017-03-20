@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include "shellcore/types_cpp.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 
 

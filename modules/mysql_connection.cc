@@ -22,15 +22,15 @@
 #include "utils/utils_general.h"
 #include "utils/utils_connection.h"
 
-#include "shellcore/obj_date.h"
+#include "scripting/obj_date.h"
 
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 
 using namespace mysqlsh::mysql;
 
-#include "shellcore/object_factory.h"
-#include "shellcore/common.h"
+#include "scripting/object_factory.h"
+#include "scripting/common.h"
 #include <stdlib.h>
 
 #define MAX_COLUMN_LENGTH 1024

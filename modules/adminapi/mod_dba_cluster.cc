@@ -32,7 +32,7 @@
 #include "mod_dba_metadata_storage.h"
 #include "../mysqlxtest_utils.h"
 #include "utils/utils_general.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 #include "mod_dba_sql.h"
 
 using namespace std::placeholders;

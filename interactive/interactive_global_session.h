@@ -23,7 +23,7 @@
 #ifndef _INTERACTIVE_GLOBAL_SESSION_H_
 #define _INTERACTIVE_GLOBAL_SESSION_H_
 
-#include "shellcore/interactive_object_wrapper.h"
+#include "interactive_object_wrapper.h"
 
 namespace shcore {
 //! Interactive wrapper for the global session

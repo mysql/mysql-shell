@@ -23,8 +23,8 @@
 #ifndef _MOD_MYSQL_CONNECTION_H_
 #define _MOD_MYSQL_CONNECTION_H_
 
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include "utils/utils_time.h"
 #include "utils/utils_connection.h"
 

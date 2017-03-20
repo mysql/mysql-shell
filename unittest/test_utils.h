@@ -16,7 +16,7 @@
 #include <gtest/gtest.h>
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "shellcore/shell_notifications.h"
 #include <set>
 #include <fstream>

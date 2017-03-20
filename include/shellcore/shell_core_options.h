@@ -20,7 +20,7 @@
 #ifndef _SHELLCORE_OPTIONS_H_
 #define _SHELLCORE_OPTIONS_H_
 
-#include "shellcore/types_cpp.h"
+#include "scripting/types_cpp.h"
 
 #define SHCORE_OUTPUT_FORMAT "outputFormat"
 #define SHCORE_INTERACTIVE "interactive"

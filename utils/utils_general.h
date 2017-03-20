@@ -21,8 +21,8 @@
 #define __mysh__utils_general__
 
 
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include "utils/utils_connection.h"
 #include <string>
 #include <set>

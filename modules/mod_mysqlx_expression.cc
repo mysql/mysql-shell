@@ -23,7 +23,7 @@
 #endif
 
 #include "mod_mysqlx_expression.h"
-#include "shellcore/object_factory.h"
+#include "scripting/object_factory.h"
 
 #ifdef __clang__
 #pragma clang diagnostic pop

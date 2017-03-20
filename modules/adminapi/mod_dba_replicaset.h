@@ -25,8 +25,8 @@
 #define JSON_TOPOLOGY_OUTPUT 2
 #define JSON_RESCAN_OUTPUT 3
 
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include <set>
 #include "mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"

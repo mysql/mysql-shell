@@ -23,17 +23,17 @@
 #include "mod_mysql_session.h"
 #include "mod_mysql_resultset.h"
 
-#include "shellcore/object_factory.h"
+#include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 
-#include "shellcore/proxy_object.h"
+#include "scripting/proxy_object.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include "utils/utils_general.h"
 #include "logger/logger.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 #include "mysqlxtest_utils.h"
 
 using namespace mysqlsh::mysql;

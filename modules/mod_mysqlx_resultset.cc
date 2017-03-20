@@ -20,12 +20,12 @@
 #include "mod_mysqlx_resultset.h"
 #include "base_constants.h"
 #include "mysqlx.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "shellcore/shell_core_options.h"
-#include "shellcore/obj_date.h"
+#include "scripting/obj_date.h"
 #include "utils/utils_time.h"
 #include "mysqlxtest_utils.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace shcore;

@@ -26,7 +26,7 @@
 #include "mod_mysqlx_collection_modify.h"
 #include "mod_mysqlx_collection_create_index.h"
 #include "mod_mysqlx_collection_drop_index.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;

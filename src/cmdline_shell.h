@@ -25,7 +25,7 @@
 
 #include "shell/shell_options.h"
 #include "shellcore/shell_notifications.h"
-#include "shellcore/types.h"
+#include "scripting/types.h"
 #include "shellcore/shell_core.h"
 
 namespace mysqlsh {

@@ -24,8 +24,8 @@
 #define _MOD_MYSQLX_COLLECTION_H_
 
 #include "base_database_object.h"
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include "mysqlx_crud.h"
 
 #include "mod_mysqlx_collection_add.h"

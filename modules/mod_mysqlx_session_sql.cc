@@ -19,10 +19,10 @@
 #include "mod_mysqlx_session_sql.h"
 #include "mod_mysqlx_session.h"
 #include "mod_mysqlx_resultset.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "mysqlx.h"
 #include "mysqlxtest_utils.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;

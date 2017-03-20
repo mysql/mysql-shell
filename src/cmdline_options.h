@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <cstring>
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 class Command_line_options
 {

@@ -20,8 +20,8 @@
 #ifndef _SHELLNOTIFICATIONS_H_
 #define _SHELLNOTIFICATIONS_H_
 
-#include "shellcore/common.h"
-#include "shellcore/types.h"
+#include "scripting/common.h"
+#include "scripting/types.h"
 
 namespace shcore {
 class SHCORE_PUBLIC NotificationObserver {

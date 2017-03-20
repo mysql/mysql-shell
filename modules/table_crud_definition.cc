@@ -19,7 +19,7 @@
 
 #include "table_crud_definition.h"
 #include "mod_mysqlx_expression.h"
-#include "shellcore/obj_date.h"
+#include "scripting/obj_date.h"
 #include <sstream>
 
 using namespace mysqlsh::mysqlx;

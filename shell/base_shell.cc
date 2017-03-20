@@ -26,7 +26,7 @@
 #include "modules/base_resultset.h"
 #include "shell_resultset_dumper.h"
 #include "utils/utils_time.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 #include "logger/logger.h"
 
 #include <boost/format.hpp>

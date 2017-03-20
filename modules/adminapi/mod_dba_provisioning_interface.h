@@ -23,8 +23,8 @@
 #include <string>
 #include <vector>
 
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/shell_core_options.h"
 #include "shellcore/lang_base.h"
 

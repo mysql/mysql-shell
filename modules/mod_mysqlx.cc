@@ -21,8 +21,8 @@
 #include "base_session.h"
 #include "mod_mysqlx_expression.h"
 #include "mod_mysqlx_constants.h"
-#include "shellcore/obj_date.h"
-#include "utils/utils_help.h"
+#include "scripting/obj_date.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 namespace mysqlsh {

@@ -25,8 +25,8 @@
 
 #include "mod_common.h"
 #include "base_database_object.h"
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 
 #include "mysqlx_crud.h"
 

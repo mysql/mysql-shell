@@ -20,7 +20,7 @@
 #ifndef _MODULES_ADMINAPI_MOD_DBA_COMMON_
 #define _MODULES_ADMINAPI_MOD_DBA_COMMON_
 
-#include "shellcore/types.h"
+#include "scripting/types.h"
 #include "shellcore/lang_base.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"

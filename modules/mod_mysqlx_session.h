@@ -21,8 +21,8 @@
 #define _MOD_XSESSION_H_
 
 #include "mod_common.h"
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "base_session.h"
 #include "mod_mysqlx_session_handle.h"

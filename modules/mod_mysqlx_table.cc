@@ -25,7 +25,7 @@
 #include "mod_mysqlx_table_update.h"
 #include "mod_mysqlx_table_select.h"
 
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;

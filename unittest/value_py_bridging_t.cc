@@ -27,9 +27,9 @@
 #include <boost/algorithm/string.hpp>
 
 #include "gtest/gtest.h"
-#include "shellcore/types.h"
+#include "scripting/types.h"
 #include "shellcore/lang_base.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/object_registry.h"
 #include "shellcore/python_utils.h"
 #include "shellcore/common.h"

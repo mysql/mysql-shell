@@ -19,7 +19,7 @@
 
 #include "mod_mysql.h"
 #include "base_session.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 namespace mysqlsh {

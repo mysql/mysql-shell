@@ -17,9 +17,9 @@
  * 02110-1301  USA
  */
 
-#include "shellcore/python_context.h"
+#include "scripting/python_context.h"
 #include "shellcore/shell_python.h"
-#include "shellcore/python_utils.h"
+#include "scripting/python_utils.h"
 #include "../modules/base_session.h"
 
 using namespace shcore;
@@ -59,13 +59,9 @@ void Shell_python::handle_input(std::string &code, Input_state &state,
     result = _py->execute_interactive(code, state);
   } else {
     try {
-      boost::system::error_code err;
       WillEnterPython lock;
-      result = _py->execute(code, err, _owner->get_input_source(),
+      result = _py->execute(code, _owner->get_input_source(),
                             _owner->get_input_args());
-      if (err) {
-        _owner->print_error(err.message());
-      }
     } catch (Exception &exc) {
       // This exception was already printed in PY
       // and the correct return_value of undefined is set
@@ -84,7 +80,6 @@ void Shell_python::handle_input(std::string &code, Input_state &state,
 std::string Shell_python::prompt() {
   std::string ret_val = "mysql-py> ";
 
-  boost::system::error_code err;
   try {
     Input_state state = Input_state::Ok;
     WillEnterPython lock;

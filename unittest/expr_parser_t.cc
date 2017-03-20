@@ -24,7 +24,7 @@
 
 #include <gtest/gtest.h>
 #include "../mysqlxtest/common/expr_parser.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types_cpp.h"
 
 #include "mysqlx_datatypes.pb.h"
 #include "mysqlx_expr.pb.h"

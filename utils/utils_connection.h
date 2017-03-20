@@ -22,7 +22,7 @@
 
 #include <string>
 
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 #ifdef _WIN32
 #include <string.h>

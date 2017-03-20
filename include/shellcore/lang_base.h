@@ -23,9 +23,9 @@
 #include <boost/system/error_code.hpp>
 #include <string>
 
-#include "types.h"
-#include "shellcore/types_common.h"
-#include "common.h"
+#include "scripting/types.h"
+#include "scripting/types_common.h"
+#include "scripting/common.h"
 
 namespace shcore {
 struct TYPES_COMMON_PUBLIC Interpreter_delegate {

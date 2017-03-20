@@ -20,8 +20,8 @@
 #ifndef _MOD_DBA_ADMIN_CLUSTER_H_
 #define _MOD_DBA_ADMIN_CLUSTER_H_
 
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 
 #include "mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_common.h"

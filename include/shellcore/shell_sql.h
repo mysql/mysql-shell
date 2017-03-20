@@ -22,7 +22,7 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/ishell_core.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "../utils/utils_mysql_parsing.h"
 #include <boost/system/error_code.hpp>
 #include <stack>

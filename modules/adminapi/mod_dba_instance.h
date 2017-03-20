@@ -21,8 +21,8 @@
 #define MODULES_ADMINAPI_MOD_DBA_INSTANCE_H_
 
 #include <string>
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 
 namespace mysqlsh {
 namespace dba {

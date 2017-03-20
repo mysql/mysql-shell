@@ -18,7 +18,7 @@
  */
 
 #include "utils_json.h"
-#include <shellcore/types.h>
+#include "scripting/types.h"
 
 using namespace shcore;
 

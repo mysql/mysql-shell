@@ -23,8 +23,8 @@
 #ifndef _MOD_MYSQLXTEST_UTILS_H_
 #define _MOD_MYSQLXTEST_UTILS_H_
 
-#include "shellcore/types_cpp.h"
-#include "shellcore/common.h"
+#include "scripting/types_cpp.h"
+#include "scripting/common.h"
 #include "mysqlx.h"
 
 #ifdef __GNUC__

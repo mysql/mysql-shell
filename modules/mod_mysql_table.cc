@@ -20,7 +20,7 @@
 #include "mod_mysql_schema.h"
 #include "mod_mysql_table.h"
 
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;

@@ -25,7 +25,7 @@
 #include "mod_mysql_resultset.h"
 #include "mysql_connection.h"
 #include "shellcore/shell_core_options.h"
-#include "utils/utils_help.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;

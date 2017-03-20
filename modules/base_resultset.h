@@ -24,8 +24,8 @@
 #define _MOD_CORE_RESULT_SET_H_
 
 #include "mod_common.h"
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 
 namespace mysqlsh {
 // This is the Shell Common Base Class for all the resultset classes

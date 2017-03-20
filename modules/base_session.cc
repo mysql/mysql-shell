@@ -19,13 +19,13 @@
 
 #include "base_session.h"
 
-#include "shellcore/object_factory.h"
+#include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 #include "shellcore/shell_notifications.h"
 
-#include "shellcore/proxy_object.h"
+#include "scripting/proxy_object.h"
 
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"

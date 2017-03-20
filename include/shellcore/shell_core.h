@@ -20,8 +20,7 @@
 #ifndef _SHELLCORE_H_
 #define _SHELLCORE_H_
 
-#include "shellcore/common.h"
-#include "shellcore/types.h"
+#include "scripting/common.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h"
 #include "shellcore/shell_notifications.h"

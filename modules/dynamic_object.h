@@ -23,8 +23,8 @@
 #ifndef _MOD_DYNAMIC_OBJECT_H_
 #define _MOD_DYNAMIC_OBJECT_H_
 
-#include "shellcore/types_cpp.h"
-#include "shellcore/common.h"
+#include "scripting/types_cpp.h"
+#include "scripting/common.h"
 
 #include <set>
 

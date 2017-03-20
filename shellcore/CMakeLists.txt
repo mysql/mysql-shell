@@ -43,73 +43,39 @@ if ( HAVE_V8 )
   string(REPLACE "\n" "\\n\"\n\"" JS_CORE_MODULE_UPDATED "${JS_CORE_MODULE_PREPARED}")
 
   # Creates the target file containing the code ready for processing
-  configure_file("${CMAKE_SOURCE_DIR}/include/shellcore/jscript_core_definitions.h.in"
-                 "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h")
+  configure_file("${CMAKE_SOURCE_DIR}/include/scripting/jscript_core_definitions.h.in"
+                 "${CMAKE_BINARY_DIR}/scripting/jscript_core_definitions.h")
 endif()
 
 file(GLOB libmysqlshcore_SRC
-    "${CMAKE_SOURCE_DIR}/include/shell/*.h"
-    "${CMAKE_SOURCE_DIR}/include/shellcore/*.h"
-    "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.cc"
-    "${CMAKE_SOURCE_DIR}/utils/utils_time.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_time.cc"
-    "${CMAKE_SOURCE_DIR}/utils/utils_file.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_file.cc"
-    "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
-    "${CMAKE_SOURCE_DIR}/utils/utils_general.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_general.cc"
-    "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.cc"
-    "${CMAKE_SOURCE_DIR}/utils/utils_connection.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_connection.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_string.cc"
-    "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.h"
     "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.cc"
-    "${CMAKE_SOURCE_DIR}/utils/uri_parser.h"
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.cc"
-    "${CMAKE_SOURCE_DIR}/utils/utils_help.h"
-    "${CMAKE_SOURCE_DIR}/utils/utils_help.cc"
-    "${CMAKE_SOURCE_DIR}/interactive/interactive_global_schema.h"
     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_schema.cc"
-    "${CMAKE_SOURCE_DIR}/interactive/interactive_global_session.h"
     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_session.cc"
     "${CMAKE_SOURCE_DIR}/shell/base_shell.cc"
-    "${CMAKE_SOURCE_DIR}/shell/shell_resultset_dumper.h"
     "${CMAKE_SOURCE_DIR}/shell/shell_resultset_dumper.cc"
     "${CMAKE_SOURCE_DIR}/shell/shell_options.cc"
     "*.cc"
-    "*.h"
-
+    "../scripting/*.cc"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
-    "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
     "${BOOST_SOURCE_CODE}"
 )
 
-#if(NOT WINDOWS_RUNTIME_MD)
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/process_launcher/process_launcher.cc")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/common/exception.cc")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_dba.h")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_dba.cc")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.h")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.cc")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_shell.h")
-  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_shell.cc")
-
-#else()
-#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
-#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
-#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/object_factory.cc")
-# list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/proxy_object.cc")
-##  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
-#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
-#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
-#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
-#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
-#endif()
+list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
+list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
+list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/process_launcher/process_launcher.cc")
+list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/common/exception.cc")
+list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_dba.cc")
+list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.cc")
+list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_shell.cc")
 
 
 # Configures V8 accordingly...

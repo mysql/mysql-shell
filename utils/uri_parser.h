@@ -21,7 +21,7 @@
 #define _URI_PARSER_
 
 #include "base_tokenizer.h"
-#include "shellcore/types.h"
+#include "scripting/types.h"
 #include <string>
 #include <vector>
 #include <map>

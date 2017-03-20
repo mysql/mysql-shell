@@ -22,7 +22,7 @@
 
 #include "modules/mysql_connection.h"
 #include "modules/adminapi/mod_dba_common.h"
-#include "shellcore/common.h"
+#include "scripting/common.h"
 
 namespace mysqlsh {
 namespace dba {

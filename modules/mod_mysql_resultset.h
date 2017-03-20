@@ -23,8 +23,8 @@
 #ifndef _MOD_RESULT_H_
 #define _MOD_RESULT_H_
 
-#include "shellcore/types.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include "base_resultset.h"
 #include <list>
 

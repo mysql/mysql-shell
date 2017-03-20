@@ -18,7 +18,7 @@
  */
 
 #include "shellcore/shell_jscript.h"
-#include "shellcore/jscript_context.h"
+#include "scripting/jscript_context.h"
 #include "../modules/base_session.h"
 #include "../modules/mod_mysqlx_session.h"
 #include <boost/format.hpp>

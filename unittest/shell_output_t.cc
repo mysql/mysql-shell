@@ -20,9 +20,9 @@
 #include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
-#include "shellcore/types.h"
+#include "scripting/types.h"
 #include "shellcore/lang_base.h"
-#include "shellcore/types_cpp.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/common.h"
 
 #include "shellcore/shell_core.h"
