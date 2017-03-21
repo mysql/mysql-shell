@@ -5398,7 +5398,7 @@ class XShell_TestCases(unittest.TestCase):
                    "classic_session : " + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + "/sakila" + os.linesep + "classic_session1"),
                   ]
 
-    @unittest.skip("not getting the STDOUT info throut the shell.prompt")
+    #@unittest.skip("not getting the STDOUT info throut the shell.prompt")
     def test_shell_prompt_function(self):
         '''[] test for shell.prompt() function '''
         results = ''
@@ -5409,7 +5409,9 @@ class XShell_TestCases(unittest.TestCase):
                     ("shell.prompt('prompttext:')\n", "prompttext:"),
                     ("testinput\n", "testinput" + os.linesep + "mysql-py>")
                   ]
+        xPrompts.add("prompttext:")
         results = exec_xshell_commands(init_command, x_cmds)
+        xPrompts.remove_last()
         self.assertEqual(results, 'PASS')
 
     def test_help_global_objects(self):
