@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,6 +23,13 @@
 #include <vector>
 #include <list>
 #include "shellcore/base_shell.h"
+#include "modules/mod_shell.h"
+#include "modules/mod_sys.h"
+#include "modules/adminapi/mod_dba.h"
+#include "src/interactive/interactive_global_dba.h"
+#include "src/interactive/interactive_global_schema.h"
+#include "src/interactive/interactive_global_session.h"
+#include "src/interactive/interactive_global_shell.h"
 
 #ifdef GTEST_TEST_
 #undef GTEST_TEST_
@@ -159,6 +166,31 @@ protected:
 
   void reset_shell() {
     _interactive_shell.reset(new mysqlsh::Base_shell(*_options.get(), &output_handler.deleg));
+
+  // Registers the interactive objects if required
+  auto shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(_interactive_shell->shell_context().get()));
+  auto sys = std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_interactive_shell->shell_context().get()));
+  auto dba = std::shared_ptr<mysqlsh::dba::Dba>(new mysqlsh::dba::Dba(_interactive_shell->shell_context().get()));
+
+  if (_options->wizards) {
+    auto interactive_db = std::shared_ptr<shcore::Global_schema>(new shcore::Global_schema(*_interactive_shell->shell_context().get()));
+    auto interactive_session = std::shared_ptr<shcore::Global_session>(new shcore::Global_session(*_interactive_shell->shell_context().get()));
+    auto interactive_shell = std::shared_ptr<shcore::Global_shell>(new shcore::Global_shell(*_interactive_shell->shell_context().get()));
+    auto interactive_dba = std::shared_ptr<shcore::Global_dba>(new shcore::Global_dba(*_interactive_shell->shell_context().get()));
+
+    interactive_shell->set_target(shell);
+    interactive_dba->set_target(dba);
+
+    _interactive_shell->set_global_object("db", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_db), shcore::IShell_core::Scripting);
+    _interactive_shell->set_global_object("session", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_session));
+    _interactive_shell->set_global_object("shell", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_shell), shcore::IShell_core::Scripting);
+    _interactive_shell->set_global_object("dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_dba), shcore::IShell_core::Scripting);
+  } else {
+    _interactive_shell->set_global_object("shell", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(shell), shcore::IShell_core::Scripting);
+    _interactive_shell->set_global_object("dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(dba), shcore::IShell_core::Scripting);
+  }
+
+  _interactive_shell->set_global_object("sys", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(sys), shcore::IShell_core::JScript);
 
     set_defaults();
 

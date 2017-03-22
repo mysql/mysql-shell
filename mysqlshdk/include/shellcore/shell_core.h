@@ -130,8 +130,6 @@ public:
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session);
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session();
 
-  virtual shcore::Value set_current_schema(const std::string& name);
-
   virtual Object_registry *registry() { return _registry; }
 public:
   virtual std::string preprocess_input_line(const std::string &s);
@@ -178,8 +176,6 @@ private:
   std::string format_json_output(const shcore::Value &info, const std::string& tag);
 
   virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data);
-  void set_dba_global();
-  void set_shell_global();
   void init_sql();
   void init_js();
   void init_py();

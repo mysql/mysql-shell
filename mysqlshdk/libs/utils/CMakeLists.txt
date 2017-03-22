@@ -13,7 +13,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-include_directories(${CMAKE_SOURCE_DIR}/common/common/)
+include_directories(${CMAKE_SOURCE_DIR}/common/common/
+                    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
 set(utils_SOURCE
     utils_mysql_parsing.h
     utils_mysql_parsing.cc

@@ -26,6 +26,7 @@
 #include "shellcore/shell_notifications.h"
 
 #include "scripting/proxy_object.h"
+#include "modules/base_database_object.h"
 
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
@@ -447,6 +448,13 @@ shcore::Value ShellDevelopmentSession::get_cached_schema(const std::string &name
 
   if (_schemas->find(name) != _schemas->end()) {
     ret_val = (*_schemas)[name];
+
+    // If a default schems is available on the session
+    // the internal cache must be updated
+    if (ret_val) {
+      auto schema = ret_val.as_object<mysqlsh::DatabaseObject>();
+      schema->update_cache();
+    }
   }
 
   return ret_val;

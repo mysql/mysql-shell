@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
 
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
+#include "modules/base_session.h"
 
 
 #ifndef _MODULES_MOD_SHELL_H_
@@ -43,6 +44,11 @@ namespace mysqlsh {
     shcore::Value prompt(const shcore::Argument_list &args);
     shcore::Value connect(const shcore::Argument_list &args);
 
+    shcore::Value set_current_schema(const shcore::Argument_list &args);
+    shcore::Value set_session(const shcore::Argument_list &args);
+    shcore::Value get_session(const shcore::Argument_list &args);
+    shcore::Value reconnect(const shcore::Argument_list &args);
+
     #if DOXYGEN_JS
     Dictionary options;
     Callback customPrompt;
@@ -57,12 +63,18 @@ namespace mysqlsh {
     None connect(ConnectionData connectionData, str password);
     #endif
 
+    std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const shcore::Argument_list &args, mysqlsh::SessionType session_type);
+    std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session);
+    std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session();
+
   protected:
     void init();
 
     shcore::Value _custom_prompt[2];
 
     shcore::IShell_core *_shell_core;
+
+    std::shared_ptr<ShellDevelopmentSession> _global_dev_session;
   };
 }
 

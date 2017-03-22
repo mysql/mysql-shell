@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,8 +31,13 @@ void Global_schema::resolve() const {
           std::string error;
           if (answer.empty())
             throw shcore::Exception::argument_error("Invalid schema specified.");
-          else
-            _shell_core.set_current_schema(answer);
+          else {
+            auto shell_global = _shell_core.get_global("shell");
+            shcore::Argument_list current_schema;
+            current_schema.push_back(shcore::Value(answer));
+
+            shcore::Value schema = shell_global.as_object()->call("setCurrentSchema", current_schema);
+          }
         }
       }
     }

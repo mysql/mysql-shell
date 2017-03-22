@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,24 +23,10 @@
 #include "shellcore/shell_python.h"
 #include "scripting/object_registry.h"
 #include "modules/base_session.h"
-#include "modules/base_database_object.h"
-#ifdef FIXME
-#include "interactive/interactive_global_schema.h"
-#include "interactive/interactive_global_session.h"
-#include "interactive/interactive_global_shell.h"
-#include "interactive/interactive_global_dba.h"
-#endif
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
-#include "modules/mod_mysqlx.h"
-#include "modules/mod_mysql.h"
-#include "modules/mod_shell.h"
-#include "modules/mod_sys.h"
 #include "utils/utils_general.h"
 #include "utils/base_tokenizer.h"
-
-#include "modules/adminapi/mod_dba.h"
-
 #include "scripting/lang_base.h"
 #include <fstream>
 #include <locale>
@@ -53,30 +39,10 @@ using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   : IShell_core(), _client_delegate(shdelegate), _running_query(false), _reconnect_session(false) {
-  INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
-  INIT_MODULE(mysqlsh::mysql::Mysql);
-
   _mode = Mode::None;
   _registry = new Object_registry();
 
-#ifdef FIXME
-  // When using wizards, the global variables are set to the Interactive Wrappers
-  // from the beggining, they will allow interactive resolution when the variables
-  // are used by the first time
-  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
-    set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)), Mode::Scripting);
-    set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
-    set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)), Mode::Scripting);
-    set_global("shell", shcore::Value::wrap<Global_shell>(new Global_shell(*this)), Mode::Scripting);
-  }
-#endif
-  set_dba_global();
-  set_shell_global();
-
   // The sys global is for JavaScript only
-
-  std::shared_ptr<mysqlsh::Sys>sys(new mysqlsh::Sys(this));
-  set_global("sys", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(sys)), Mode::JScript);
 
   observe_notification("SN_SESSION_CONNECTION_LOST");
 
@@ -345,22 +311,6 @@ void Shell_core::init_py() {
 }
 
 void Shell_core::set_global(const std::string &name, const Value &value, Mode mode) {
-  // Exception to ensure consistency, if wizard usage is ON then the global variables
-  // Can't be replaced, they were set already and integrators (WB/VS) should use
-  // set_dev_session or set_current_schema to set the variables
-  if ((!name.compare("db") || !name.compare("session")) &&
-  _globals.count(name) != 0 &&
-  (*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
-    std::string error = "Can't override the global variables when using wizards is ON. ";
-
-    if (!name.compare("db"))
-     error.append("Use set_dev_session instead.");
-    else
-       error.append("Use set_current_schema instead.");
-
-    throw std::logic_error(error);
-  }
-
   _globals[name] = {mode, value};
 
   for (std::map<Mode, Shell_language*>::const_iterator iter = _langs.begin();
@@ -434,151 +384,63 @@ std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::connect_dev_sessio
 * If there's a selected schema on the received session, it will be made available to the scripting interfaces on the global *db* variable
 */
 std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session) {
-  _global_dev_session = session;
 
-  shcore::Value currentSchema = session->get_cached_schema(session->get_default_schema());
+  shcore::Argument_list args;
 
-  // If a default schems is available on the session
-  // the internal cache must be updated
-  if (currentSchema) {
-    auto schema = currentSchema.as_object<mysqlsh::DatabaseObject>();
-    schema->update_cache();
-  }
+  args.push_back(shcore::Value(session));
 
-#ifdef FIXME
-  // When using the interactive wrappers instead of setting the global variables
-  // The target Objects on the wrappers are set
-  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
-    get_global("session").as_object<Interactive_object_wrapper>()->set_target(std::static_pointer_cast<Cpp_object_bridge>(_global_dev_session));
+  auto shell = get_global("shell");
 
-    if (currentSchema)
-      get_global("db").as_object<Interactive_object_wrapper>()->set_target(currentSchema.as_object<Cpp_object_bridge>());
-    else
-      get_global("db").as_object<Interactive_object_wrapper>()->set_target(std::shared_ptr<Cpp_object_bridge>());
-  }
+  if (shell)
+    shell.as_object()->call("setSession", args);
+  else
+    set_global("session", shcore::Value(session));
 
-  // Use the db/session objects directly if the wizards are OFF
-  else {
-    set_global("session", shcore::Value(std::static_pointer_cast<Object_bridge>(_global_dev_session)));
-    set_global("db", currentSchema, Mode::Scripting);
-  }
-#endif
-  return _global_dev_session;
+  return session;
 }
 
 /**
 * Returns the global development session.
 */
 std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::get_dev_session() {
-  return _global_dev_session;
-}
+  auto shell = get_global("shell");
+  shcore::Value global_session;
 
-/**
- * Configures the received session as the global admin session.
- * \param session: The session to be set as global.
- *
- * If there's unique farm on the received session, it will be made available to the scripting interfaces on the global *farm* variable
- */
-void Shell_core::set_dba_global() {
-  std::shared_ptr<mysqlsh::dba::Dba>dba(new mysqlsh::dba::Dba(this));
+  if (shell)
+    global_session = shell.as_object()->call("getSession", shcore::Argument_list());
+  else
+    global_session = get_global("session");
 
-#ifdef FIXME
-  // When using the interactive wrappers instead of setting the global variables
-  // The target Objects on the wrappers are set
-  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
-    get_global("dba").as_object<Interactive_object_wrapper>()->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(dba));
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession>  session;
+  if (global_session)
+    session = global_session.as_object<mysqlsh::ShellDevelopmentSession>();
 
-  // Use the admin session objects directly if the wizards are OFF
-  else {
-    set_global("dba", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(dba)), Mode::Scripting);
-  }
-  #endif
-}
-
-void Shell_core::set_shell_global() {
-  std::shared_ptr<mysqlsh::Shell>shell(new mysqlsh::Shell(this));
-#ifdef FIXME
-  // When using the interactive wrappers instead of setting the global variables
-  // The target Objects on the wrappers are set
-  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
-    get_global("shell").as_object<Interactive_object_wrapper>()->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(shell));
-
-  // Use the admin session objects directly if the wizards are OFF
-  else {
-    set_global("shell", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(shell)), Mode::Scripting);
-  }
-#endif
-}
-
-/**
-* Sets the received schema as the selected one on the global development session.
-* \param name: The name of the schema to be selected.
-*
-* If the global development session is active, the received schema will be selected as the active one.
-*
-* The new active schema will be made available to the scripting interfaces on the global *db* variable.
-*/
-shcore::Value Shell_core::set_current_schema(const std::string& name) {
-  shcore::Value new_schema;
-
-  if (!name.empty()) {
-    if (_global_dev_session && _global_dev_session->is_connected()) {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(name));
-
-      if (!_global_dev_session->class_name().compare("XSession"))
-        new_schema = _global_dev_session->get_schema(args);
-      else
-        new_schema = _global_dev_session->call("setCurrentSchema", args);
-    }
-  }
-
-  // Updates the internal cache of the active schema
-  if (new_schema){
-    auto schema = new_schema.as_object<mysqlsh::DatabaseObject>();
-    schema->update_cache();
-  }
-#ifdef FIXME
-  // Updates the Target Object of the global schema if the wizard interaction is
-  // turned ON
-  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
-    if (new_schema)
-      get_global("db").as_object<Interactive_object_wrapper>()->set_target(new_schema.as_object<Cpp_object_bridge>());
-    else
-      get_global("db").as_object<Interactive_object_wrapper>()->set_target(std::shared_ptr<Cpp_object_bridge>());
-  } else
-    set_global("db", new_schema, Mode::Scripting);
-#endif
-  return new_schema;
+  return session;
 }
 
 void Shell_core::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
   if (name == "SN_SESSION_CONNECTION_LOST") {
     auto session = std::dynamic_pointer_cast<mysqlsh::ShellDevelopmentSession>(sender);
 
-    if (session && session == _global_dev_session)
+    if (session && session == get_dev_session())
       _reconnect_session = true;
   }
 }
 
 bool Shell_core::reconnect() {
-  bool ret_val = false;
+  auto shell = get_global("shell");
+  shcore::Value ret_val;
+  if (shell)
+    ret_val = shell.as_object()->call("reconnect", shcore::Argument_list());
 
-  try {
-    _global_dev_session->reconnect();
-    ret_val = true;
-  } catch (shcore::Exception &e) {
-    ret_val = false;
-  }
-
-  return ret_val;
+  return ret_val.as_bool();
 }
 
 bool Shell_core::reconnect_if_needed() {
   bool ret_val = false;
   if (_reconnect_session) {
     {
-      print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'..");
+      print("The global session got disconnected.\nAttempting to reconnect to '" + get_dev_session()->uri() + "'..");
 
 #ifdef _WIN32
       Sleep(500);
@@ -606,7 +468,7 @@ bool Shell_core::reconnect_if_needed() {
       if (ret_val)
         print("\nThe global session was successfully reconnected.\n");
       else
-        print("\nThe global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
+        print("\nThe global session could not be reconnected automatically.\nPlease use '\\connect " + get_dev_session()->uri() + "' instead to manually reconnect.\n");
     }
   }
 

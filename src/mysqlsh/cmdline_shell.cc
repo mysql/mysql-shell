@@ -23,9 +23,19 @@
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h" // <---
 #include "modules/base_resultset.h"
+#include "modules/mod_mysql.h"
+#include "modules/mod_mysqlx.h"
 #include "utils/utils_time.h"
 #include "shellcore/utils_help.h"
 #include "logger/logger.h"
+#include "interactive/interactive_global_dba.h"
+#include "interactive/interactive_global_schema.h"
+#include "interactive/interactive_global_session.h"
+#include "interactive/interactive_global_shell.h"
+#include "modules/mod_shell.h"
+#include "modules/mod_sys.h"
+#include "modules/adminapi/mod_dba.h"
+#include <memory>
 
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -50,6 +60,34 @@ Command_line_shell::Command_line_shell(const Shell_options &options) : mysqlsh::
   _delegate.print_value = nullptr;
 
   observe_notification("SN_STATEMENT_EXECUTED");
+
+  // Registers the interactive objects if required
+  auto shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(_shell.get()));
+  auto sys = std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
+  auto dba = std::shared_ptr<mysqlsh::dba::Dba>(new mysqlsh::dba::Dba(_shell.get()));
+
+  if (options.wizards) {
+    auto interactive_db = std::shared_ptr<shcore::Global_schema>(new shcore::Global_schema(*_shell.get()));
+    auto interactive_session = std::shared_ptr<shcore::Global_session>(new shcore::Global_session(*_shell.get()));
+    auto interactive_shell = std::shared_ptr<shcore::Global_shell>(new shcore::Global_shell(*_shell.get()));
+    auto interactive_dba = std::shared_ptr<shcore::Global_dba>(new shcore::Global_dba(*_shell.get()));
+
+    interactive_shell->set_target(shell);
+    interactive_dba->set_target(dba);
+
+    set_global_object("db", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_db), shcore::IShell_core::Scripting);
+    set_global_object("session", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_session));
+    set_global_object("shell", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_shell), shcore::IShell_core::Scripting);
+    set_global_object("dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_dba), shcore::IShell_core::Scripting);
+  } else {
+    set_global_object("shell", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(shell), shcore::IShell_core::Scripting);
+    set_global_object("dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(dba), shcore::IShell_core::Scripting);
+  }
+
+  set_global_object("sys", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(sys), shcore::IShell_core::JScript);
+
+  INIT_MODULE(mysqlsh::mysql::Mysql);
+  INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
 
   finish_init();
 }

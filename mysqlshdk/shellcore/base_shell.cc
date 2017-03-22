@@ -21,6 +21,7 @@
 #include "modules/base_session.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h" // <---
 #include "shellcore/shell_notifications.h"
 #include "modules/base_resultset.h"
@@ -773,7 +774,12 @@ bool Base_shell::cmd_use(const std::vector<std::string>& args) {
 
     if (error.empty()) {
       try {
-        shcore::Value schema = _shell->set_current_schema(real_param);
+        auto shell_global = _shell->get_global("shell");
+        shcore::Argument_list current_schema;
+        current_schema.push_back(shcore::Value(real_param));
+
+        shcore::Value schema = shell_global.as_object()->call("setCurrentSchema", current_schema);
+
         auto session = _shell->get_dev_session();
 
         if (session) {
@@ -1001,4 +1007,9 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
     return _shell->process_stream(stream, source, _result_processor, argv);
   }
 }
+
+void Base_shell::set_global_object(const std::string& name, std::shared_ptr<shcore::Cpp_object_bridge> object, shcore::IShell_core::Mode mode) {
+  _shell->set_global(name, shcore::Value(object), mode);
+}
+
 }

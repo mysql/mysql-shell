@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -73,9 +73,6 @@ public:
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type) = 0;
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session) = 0;
   virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session() = 0;
-
-  // Global Schema
-  virtual shcore::Value set_current_schema(const std::string& name) = 0;
 
   virtual std::string prompt() = 0;
 

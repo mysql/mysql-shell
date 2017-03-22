@@ -67,6 +67,8 @@ public:
 
   std::shared_ptr<shcore::Shell_core> shell_context() const { return _shell; }
 
+  void set_global_object(const std::string& name, std::shared_ptr<shcore::Cpp_object_bridge> object, shcore::IShell_core::Mode mode = shcore::IShell_core::Mode::All);
+
 protected:
   mysqlsh::Shell_options _options;
   std::shared_ptr<shcore::Shell_core> _shell;
@@ -77,18 +79,12 @@ private:
 
   bool switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &args);
   std::function<void(shcore::Value)> _result_processor;
-
-private:
   shcore::Value connect_session(const shcore::Argument_list &args, mysqlsh::SessionType session_type, bool recreate_schema);
-
-private:
   bool do_shell_command(const std::string &command);
-private:
-  shcore::Interpreter_delegate _delegate;
 
+  shcore::Interpreter_delegate _delegate;
   std::string _input_buffer;
   shcore::Input_state _input_mode;
-
   shcore::Shell_command_handler _shell_command_handler;
 };
 }

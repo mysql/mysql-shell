@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,6 +50,11 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/boost_code.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/get_password.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/shell_cmdline_options.cc"
+        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_dba.cc"
+        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_dba_cluster.cc"
+        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_schema.cc"
+        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_session.cc"
+        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_shell.cc"
     )
     if(NOT HAVE_PROTOBUF)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/mod_mysqlx_t.cc")

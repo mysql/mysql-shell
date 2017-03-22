@@ -16,7 +16,8 @@
 include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
-    ${CMAKE_SOURCE_DIR}/mysqlshdk/include)
+    ${CMAKE_SOURCE_DIR}/mysqlshdk/include
+    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
 
 add_subdirectory(libs/utils)
 add_subdirectory(scripting)

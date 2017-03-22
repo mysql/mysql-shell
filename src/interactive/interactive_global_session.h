@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,7 +23,7 @@
 #ifndef _INTERACTIVE_GLOBAL_SESSION_H_
 #define _INTERACTIVE_GLOBAL_SESSION_H_
 
-#include "interactive_object_wrapper.h"
+#include "modules/interactive_object_wrapper.h"
 
 namespace shcore {
 //! Interactive wrapper for the global session
