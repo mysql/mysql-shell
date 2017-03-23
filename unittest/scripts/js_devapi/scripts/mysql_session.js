@@ -120,5 +120,8 @@ var cschema = classicSession.getCurrentSchema();
 print(dschema);
 print(cschema);
 
+//$ ClassicSession: date handling
+classicSession.runSql("select cast('9999-12-31 23:59:59.999999' as datetime(6))");
+
 // Cleanup
 classicSession.close();

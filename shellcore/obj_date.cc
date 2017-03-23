@@ -28,7 +28,7 @@ using namespace shcore;
 #include "shellcore/object_factory.h"
 REGISTER_OBJECT(mysqlx, Date);
 
-Date::Date(int year, int month, int day, int hour, int min, float sec)
+Date::Date(int year, int month, int day, int hour, int min, double sec)
   : _year(year), _month(month), _day(day), _hour(hour), _min(min), _sec(sec) {}
 
 bool Date::operator == (const Object_bridge &other) const {
@@ -52,8 +52,9 @@ bool Date::operator == (const Date &other) const {
 std::string &Date::append_descr(std::string &s_out, int UNUSED(indent), int quote_strings) const {
   if (quote_strings)
     s_out.push_back((char)quote_strings);
-  if ((float)(int)_sec != _sec)
-    s_out.append((boost::format("%04i-%02i-%02i %i:%02i:%02.3f") % _year % (_month + 1) % _day % _hour % _min % _sec).str());
+  if ((double)(int)_sec != _sec)
+
+    s_out.append((boost::format("%04i-%02i-%02i %i:%02i:%02.10g") % _year % (_month + 1) % _day % _hour % _min % _sec).str());
   else
     s_out.append((boost::format("%1$04d-%2$02i-%3$02i %4$i:%5$02i:%6$02i") % _year % (_month + 1) % _day % _hour % _min % (int)_sec).str());
   if (quote_strings)
@@ -104,9 +105,9 @@ Object_bridge_ref Date::unrepr(const std::string &s) {
   int day = 0;
   int hour = 0;
   int min = 0;
-  float sec = 0.0;
+  double sec = 0.0;
 
-  sscanf(s.c_str(), "%i-%i-%i %i:%i:%f", &year, &month, &day, &hour, &min, &sec);
+  sscanf(s.c_str(), "%i-%i-%i %i:%i:%lf", &year, &month, &day, &hour, &min, &sec);
   return Object_bridge_ref(new Date(year, month - 1, day, hour, min, sec));
 }
 
@@ -137,5 +138,5 @@ Object_bridge_ref Date::from_ms(int64_t ms_since_epoch) {
 #endif
 
   return Object_bridge_ref(new Date(t.tm_year + 1900, t.tm_mon, t.tm_mday,
-                                    t.tm_hour, t.tm_min, t.tm_sec + (float)ms / 1000.0));
+                                    t.tm_hour, t.tm_min, t.tm_sec + (double)ms / 1000.0));
 }
