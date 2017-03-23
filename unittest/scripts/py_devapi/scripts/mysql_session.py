@@ -126,5 +126,8 @@ cschema = classicSession.get_current_schema()
 print dschema
 print cschema
 
+#@ ClassicSession: date handling
+classicSession.run_sql("select cast('9999-12-31 23:59:59.999999' as datetime(6))")
+
 # Cleanup
 classicSession.close()

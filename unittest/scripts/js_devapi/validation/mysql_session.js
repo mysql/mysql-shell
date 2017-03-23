@@ -64,3 +64,6 @@
 //@ ClassicSession: current schema validations: default, information_schema
 |<ClassicSchema:mysql>|
 |<ClassicSchema:information_schema>|
+
+//$ ClassicSession: date handling
+|9999-12-31 23:59:59.999999|

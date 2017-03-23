@@ -25,7 +25,7 @@
 namespace shcore {
 class SHCORE_PUBLIC Date : public Cpp_object_bridge {
 public:
-  Date(int year, int month, int day, int hour, int min, float sec);
+  Date(int year, int month, int day, int hour, int min, double sec);
 
   virtual std::string class_name() const { return "Date"; }
 
@@ -46,7 +46,7 @@ public:
   int get_day() const { return _day; }
   int get_hour() const { return _hour; }
   int get_min() const { return _min; }
-  float get_sec() const { return _sec; }
+  double get_sec() const { return _sec; }
 
 public:
   static Object_bridge_ref create(const shcore::Argument_list &args);
@@ -59,7 +59,7 @@ private:
   int _day;
   int _hour;
   int _min;
-  float _sec;
+  double _sec;
 };
 }
 
