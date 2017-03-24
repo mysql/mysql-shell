@@ -189,3 +189,19 @@
 |+------+|
 || jack ||
 |+------+|
+
+//@ Table.Select Zerofill field as variable
+|Variable value : 1|
+|Variable value : 12|
+|Variable value : 12345|
+|Variable value : 123456789|
+
+//@ Table.Select Zerofill field display
+|+-----------+|
+|value|
+|+-----------+|
+|00001|
+|00012|
+|12345|
+|123456789|
+|+-----------+|

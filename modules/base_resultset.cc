@@ -350,7 +350,7 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
     if (indent >= 0)
       s_out.append((indent + 1) * 4, ' ');
 
-    value_array[index].append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+    value_array[index].first.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
   }
 
   s_out += nl;
@@ -366,7 +366,7 @@ void Row::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   for (size_t index = 0; index < value_array.size(); index++)
-    dumper.append_value(names[index], value_array[index]);
+    dumper.append_value(names[index], value_array[index].first);
 
   dumper.end_object();
 }
@@ -449,14 +449,21 @@ shcore::Value Row::get_member(const std::string &prop) const {
 #endif
 shcore::Value Row::get_member(size_t index) const {
   if (index < value_array.size())
-    return value_array[index];
+    return value_array[index].first;
   else
     return shcore::Value();
 }
 
-void Row::add_item(const std::string &key, shcore::Value value) {
+std::string Row::get_display_value(std::size_t index) const {
+  if (value_array[index].second.empty())
+    return value_array[index].first.descr();
+  return value_array[index].second;
+}
+
+void Row::add_item(const std::string &key, shcore::Value value,
+  const std::string &display_value) {
   // All the values are available through index
-  value_array.push_back(value);
+  value_array.push_back({value, display_value});
   names.push_back(key);
 
   // Values would be available as properties if they are valid identifier

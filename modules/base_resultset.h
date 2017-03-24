@@ -289,7 +289,7 @@ public:
 
   std::map<std::string, shcore::Value> values;
   std::vector<std::string> names;
-  shcore::Value::Array_type value_array;
+  std::vector<std::pair<shcore::Value, std::string>> value_array;
 
   virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
   virtual std::string &append_repr(std::string &s_out) const;
@@ -302,11 +302,13 @@ public:
 
   virtual shcore::Value get_member(const std::string &prop) const;
   shcore::Value get_member(size_t index) const;
+  std::string get_display_value(std::size_t index) const;
 
   size_t get_length() { return values.size(); }
   virtual bool is_indexed() const { return true; }
 
-  void add_item(const std::string &key, shcore::Value value);
+  void add_item(const std::string &key, shcore::Value value,
+    const std::string &display_value = "");
 };
 };
 
