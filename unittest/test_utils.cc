@@ -20,6 +20,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
 #include "modules/base_session.h"
+#include <random>
 
 using namespace shcore;
 
@@ -511,4 +512,20 @@ void Crud_test_wrapper::ensure_available_functions(const std::string& functions)
       exec_and_out_contains("crud." + *index + "('');", "", "Forbidden usage of " + *index);
     }
   }
+}
+
+std::string random_string(std::string::size_type length)
+{
+  std::string alphanum =
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  std::random_device seed;
+  std::mt19937 rng{seed()};
+  std::uniform_int_distribution<std::string::size_type> dist(0, alphanum.size() - 1);
+
+  std::string result;
+  result.reserve(length);
+  while (length--)
+    result += alphanum[dist(rng)];
+
+  return result;
 }

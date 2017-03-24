@@ -15,6 +15,7 @@
 
 #include "test_utils.h"
 #include "utils/utils_file.h"
+#include <cstdio>
 
 namespace shcore {
 namespace shell_core_tests {
@@ -468,6 +469,54 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_sql) {
   // We have to change to a scripting mode to close the session
   execute("\\js");
   execute("session.close()");
+
+  output_handler.wipe_all();
+}
+
+TEST_F(Interactive_shell_test, shell_empty_source_command) {
+  _interactive_shell->process_line("\\source");
+  MY_EXPECT_STDERR_CONTAINS("Filename not specified");
+  output_handler.wipe_all();
+}
+
+TEST_F(Interactive_shell_test, shell_command_source_invalid_path_js) {
+  _interactive_shell->process_line("\\js");
+
+  //directory
+  std::string tmpdir = getenv("TMPDIR") ? getenv("TMPDIR") : ".";
+  _interactive_shell->process_line("\\source " + tmpdir);
+  MY_EXPECT_STDERR_CONTAINS("Failed to open file: '" + tmpdir +
+		"' is a directory");
+
+  output_handler.wipe_all();
+
+  std::string filename = "empty_file_" + random_string(10);
+
+  //no such file
+  _interactive_shell->process_line("\\source " + filename);
+  MY_EXPECT_STDERR_CONTAINS("Failed to open file '" + filename +
+    "', error: No such file or directory");
+
+  output_handler.wipe_all();
+}
+
+TEST_F(Interactive_shell_test, shell_command_source_invalid_path_py) {
+  _interactive_shell->process_line("\\py");
+
+  //directory
+  std::string tmpdir = getenv("TMPDIR") ? getenv("TMPDIR") : ".";
+  _interactive_shell->process_line("\\source " + tmpdir);
+  MY_EXPECT_STDERR_CONTAINS("Failed to open file: '" + tmpdir +
+		"' is a directory");
+
+  output_handler.wipe_all();
+
+  std::string filename = "empty_file_" + random_string(10);
+
+  //no such file
+  _interactive_shell->process_line("\\source " + filename);
+  MY_EXPECT_STDERR_CONTAINS("Failed to open file '" + filename +
+    "', error: No such file or directory");
 
   output_handler.wipe_all();
 }

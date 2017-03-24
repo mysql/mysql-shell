@@ -55,6 +55,8 @@ public:\
     void GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::TestBody()
 #endif
 
+std::string random_string(std::string::size_type length);
+
 class Shell_test_output_handler {
 public:
   // You can define per-test set-up and tear-down logic as usual.

@@ -147,6 +147,9 @@ void Base_shell::finish_init() {
 bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {
   std::string file;
 
+  if (params.size() < 2)
+    throw shcore::Exception::runtime_error("Filename not specified");
+
   // The parameter 0 contains the somplete command as submitted by the user
   // File name would be on parameter 1
   file = params[1];
@@ -401,7 +404,9 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
       scripts_paths.push_back(path);
 
     for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i) {
-      process_file(*i, {*i});
+      std::ifstream stream(*i);
+      if (stream && stream.peek() != std::ifstream::traits_type::eof())
+        process_file(*i, {*i});
     }
   } catch (std::exception &e) {
     std::string error(e.what());
@@ -947,6 +952,11 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
     std::ifstream s(file.c_str());
 
     if (!s.fail()) {
+      if (shcore::is_folder(file))
+      {
+        print_error((boost::format("Failed to open file: '%s' is a directory\n") % file).str());
+        return ret_val;
+      }
       // The return value now depends on the stream processing
       ret_val = process_stream(s, file, argv);
 
@@ -958,7 +968,8 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
       s.close();
     } else {
       // TODO: add a log entry once logging is
-      print_error((boost::format("Failed to open file '%s', error: %d\n") % file % errno).str());
+      print_error((boost::format("Failed to open file '%s', error: %s\n") %
+        file % std::strerror(errno)).str());
     }
   }
 
@@ -974,11 +985,8 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
       _shell->print(prompt());
 
     bool comment_first_js_line = _shell->interactive_mode() == shcore::IShell_core::Mode::JScript;
-    while (!stream.eof()) {
-      std::string line;
-
-      std::getline(stream, line);
-
+    std::string line;
+    while (std::getline(stream, line)) {
       // When processing JavaScript files, validates the very first line to start with #!
       // If that's the case, it is replaced by a comment indicator //
       if (comment_first_js_line && line.size() > 1 && line[0] == '#' && line[1] == '!')
