@@ -24,7 +24,7 @@ import sys
 from mysql_gadgets.exceptions import GadgetError, GadgetVersionError
 
 # Major, Minor, Patch, Status
-VERSION = (2, 0, 0, '', 0)
+VERSION = (2, 1, 0, '', 0)
 # Future versions will have to include only the X, Y (no Z).
 
 VERSION_STRING = "%s.%s.%s" % VERSION[0:3]

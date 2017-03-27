@@ -47,6 +47,7 @@ public:
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
                      const shcore::Value &mycnf_options,
+                     bool start,
                      bool ignore_ssl_error,
                      shcore::Value::Array_type_ref &errors);
   int delete_sandbox(int port, const std::string &sandbox_dir,
