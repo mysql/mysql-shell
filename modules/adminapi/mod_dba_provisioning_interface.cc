@@ -110,7 +110,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
   std::string stage_action;
 
-  ngcommon::Process_launcher p(args_script[0], &args_script[0]);
+  ngcommon::Process_launcher p(&args_script[0]);
   try {
     stage_action = "starting";
     p.start();
@@ -345,11 +345,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   if (!sandbox_dir.empty()) {
     sandbox_args.push_back("--sandboxdir");
 
-#ifdef _WIN32
-    sandbox_args.push_back("\"" + sandbox_dir + "\"");
-#else
     sandbox_args.push_back(sandbox_dir);
-#endif
   } else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
     std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
 
@@ -357,11 +353,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
       shcore::ensure_dir_exists(dir);
 
       sandbox_args.push_back("--sandboxdir");
-#ifdef _WIN32
-      sandbox_args.push_back("\"" + dir + "\"");
-#else
       sandbox_args.push_back(dir);
-#endif
     } catch (std::runtime_error &error) {
       log_warning("DBA: Unable to create default sandbox directory at %s.", dir.c_str());
     }

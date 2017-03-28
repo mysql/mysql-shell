@@ -388,3 +388,26 @@ def try_restart_sandbox(port):
         print 'Restart succeeded at: %s' % port
     else:
         print 'Restart failed at: %s' % port
+
+
+# Function to delete sandbox (only succeed after full server shutdown).
+def try_delete_sandbox(port, sandbox_dir):
+  options = {}
+  if sandbox_dir:
+    options['sandboxDir'] = sandbox_dir
+
+  # Restart sandbox instance to use the new option.
+  print 'Try deleting sandbox at: %s' % port
+  def try_delete():
+    try:
+      dba.delete_sandbox_instance(port, options)
+      print "succeeded"
+      return True
+    except Exception, err:
+      print "failed: %s" % str(err)
+      return False
+
+  if wait(10, 1, try_delete):
+    print 'Delete succeeded at: %s' % port
+  else:
+    print 'Delete failed at: %s' % port

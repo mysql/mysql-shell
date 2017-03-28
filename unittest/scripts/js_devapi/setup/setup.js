@@ -415,3 +415,31 @@ function try_restart_sandbox(port) {
     println('Restart failed at: ' + port);
   }
 }
+
+
+//Function to delete sandbox (only succeed after full server shutdown).
+function try_delete_sandbox(port, sandbox_dir) {
+    var deleted = false;
+
+    options = {}
+    if (sandbox_dir != '')
+        options['sandboxDir'] = sandbox_dir;
+
+    print('Try deleting sandbox at: ' + port);
+    started = wait(10, 1, function() {
+        try {
+            dba.deleteSandboxInstance(port, options);
+
+            println(' succeeded');
+            return true;
+        } catch (err) {
+            println(' failed: ' + err.message);
+            return false;
+        }
+    });
+    if (deleted) {
+        println('Delete succeeded at: ' + port);
+    } else {
+        println('Delete failed at: ' + port);
+    }
+}

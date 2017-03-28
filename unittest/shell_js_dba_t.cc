@@ -24,6 +24,7 @@
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
 #include "utils/utils_connection.h"
+#include "utils/utils_file.h"
 
 namespace shcore {
 class Shell_js_dba_tests : public Shell_js_script_tester {
@@ -177,6 +178,29 @@ protected:
   }
 
 };
+
+TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("dba.verbose = true;");
+
+  // Create directory with space and quotes in name to test.
+#ifdef _WIN32
+  std::string path_splitter = "\\";
+#else
+  std::string path_splitter = "/";
+#endif
+  // Note: not tested with " in the folder name because windows does not
+  // support the creation of directories with: <>:"/\|?*
+  std::string dir = _sandbox_dir + path_splitter + "foo \' bar";
+  shcore::ensure_dir_exists(dir);
+
+  validate_interactive("dba_sandboxes.js");
+
+  // Remove previously created directory.
+  shcore::remove_directory(dir);
+}
 
 TEST_F(Shell_js_dba_tests, dba_help) {
   validate_interactive("dba_help.js");

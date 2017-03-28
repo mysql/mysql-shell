@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017 Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -44,6 +44,54 @@
 
 using namespace ngcommon;
 
+/** Joins list of strings into a command line that is suitable for Windows
+
+  https://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
+ */
+std::string Process_launcher::make_windows_cmdline(const char **argv) {
+  assert(argv[0]);
+  std::string cmd = argv[0];
+
+  for (int i = 1; argv[i]; i++) {
+    cmd.push_back(' ');
+    // if there are any whitespaces or quotes in the arg, we need to quote
+    if (strcspn(argv[i], "\" \t\n\r") < strlen(argv[i])) {
+      cmd.push_back('"');
+      for (const char *s = argv[i]; *s; ++s) {
+        // The trick is that backslashes behave different when they have a "
+        // after them from when they don't
+        int nbackslashes = 0;
+        while (*s == '\\') {
+          nbackslashes++;
+          s++;
+        }
+        if (nbackslashes > 0) {
+          if (*(s + 1) == '"' || *(s + 1) == '\0') {
+            // if backslashes appear before a ", they need to be escaped
+            // if a backslsh appears before the end of the string
+            // the next char will be the final ", so we also need to escape
+            // them
+            cmd.append(nbackslashes * 2, '\\');
+          } else {
+            // otherwise, just add them as singles
+            cmd.append(nbackslashes, '\\');
+          }
+        }
+        // if a quote appears, we have to escape it
+        if (*s == '"') {
+          cmd.append("\\\"");
+        } else {
+          cmd.push_back(*s);
+        }
+      }
+      cmd.push_back('"');
+    } else {
+      cmd.append(argv[i]);
+    }
+  }
+  return cmd;
+}
+
 #ifdef WIN32
 
 void Process_launcher::start() {
@@ -70,16 +118,8 @@ void Process_launcher::start() {
     report_error("Failed to created child_in_wr");
 
   // Create Process
-  std::string s = this->cmd_line;
-  const char **pc = args;
-  while (*++pc != NULL) {
-    s += " ";
-    s += *pc;
-  }
-  char *sz_cmd_line = (char *)malloc(s.length() + 1);
-  if (!sz_cmd_line)
-    report_error("Cannot assign memory for command line in Process_launcher::start");
-  _tcscpy(sz_cmd_line, s.c_str());
+  std::string cmd = make_windows_cmdline(argv);
+  LPTSTR lp_cmd = const_cast<char *>(cmd.c_str());
 
   BOOL bSuccess = FALSE;
 
@@ -95,7 +135,7 @@ void Process_launcher::start() {
 
   bSuccess = CreateProcess(
     NULL,          // lpApplicationName
-    sz_cmd_line,     // lpCommandLine
+    lp_cmd,        // lpCommandLine
     NULL,          // lpProcessAttributes
     NULL,          // lpThreadAttributes
     TRUE,          // bInheritHandles
@@ -115,7 +155,6 @@ void Process_launcher::start() {
 
   //DWORD res1 = WaitForInputIdle(pi.hProcess, 100);
   //res1 = WaitForSingleObject(pi.hThread, 100);
-  free(sz_cmd_line);
 }
 
 uint64_t Process_launcher::get_pid() {
@@ -314,11 +353,12 @@ void Process_launcher::start()
     fcntl(fd_out[1], F_SETFD, FD_CLOEXEC);
     fcntl(fd_in[0], F_SETFD, FD_CLOEXEC);
 
-    execvp(cmd_line, (char * const *)args);
+    execvp(argv[0], (char * const *)argv);
     // if exec returns, there is an error.
     // TODO: Use explain_execvp if available
     int my_errno = errno;
-    fprintf(stderr, "%s could not be executed: %s (errno %d)\n", cmd_line, strerror(my_errno), my_errno);
+    fprintf(stderr, "%s could not be executed: %s (errno %d)\n", argv[0],
+            strerror(my_errno), my_errno);
 
     // we need to identify an ENOENT and since some programs return 2 as exit-code
     // we need to return a non-existent code, 128 is a general convention used to indicate

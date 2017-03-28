@@ -313,6 +313,125 @@ void ensure_dir_exists(const std::string& path) {
 }
 
 /*
+ * Remove the specified directory and all its contents.
+ */
+void remove_directory(const std::string& path) {
+  const char *dir_path = path.c_str();
+#ifdef WIN32
+  DWORD dwAttrib = GetFileAttributesA(dir_path);
+  if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
+    throw std::runtime_error(
+        (boost::format("Unable to remove directory %s: %s") % dir_path %
+         shcore::get_last_error()).str());
+  } else if (!(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
+    throw std::runtime_error(
+        (boost::format("Not a directory, unable to remove %.") %
+        dir_path).str());
+  } else {
+    WIN32_FIND_DATA ffd;
+    HANDLE hFind = INVALID_HANDLE_VALUE;
+
+    // Add wildcard to search for all contents in path.
+    std::string search_path = path + "\\*";
+    hFind = FindFirstFile(search_path.c_str(), &ffd);
+    if (hFind == INVALID_HANDLE_VALUE)
+      throw std::runtime_error(
+          (boost::format("Unable to remove directory %s. Error searching for "
+                         "files in directory: %s") %
+           dir_path % shcore::get_last_error()).str());
+
+    // Remove all elements in directory (recursively)
+    do {
+      // Skip directories "." and ".."
+      if (!strcmp(ffd.cFileName, ".") ||
+          !strcmp(ffd.cFileName, "..")) {
+        continue;
+      }
+
+      // Use the full path to the dir element.
+      std::string dir_elem = path + "\\" + ffd.cFileName;
+
+      if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        // It is a directory then do a recursive call to remove it.
+        remove_directory(dir_elem);
+      } else {
+        // It is a file, remove it.
+        int res = DeleteFile(dir_elem.c_str());
+        if (!res) {
+          throw std::runtime_error(
+              (boost::format("Unable to remove directory %s. Error removing "
+                             "file %s: %s") %
+               dir_path % dir_elem.c_str() % shcore::get_last_error()).str());
+         }
+      }
+    } while (FindNextFile(hFind, &ffd) != 0);
+    FindClose(hFind);
+
+    // The directory is now empty and can be removed.
+    int res = RemoveDirectory(dir_path);
+    if (!res) {
+      throw std::runtime_error(
+          (boost::format("Error removing directory %s: %s") %
+           dir_path % shcore::get_last_error()).str());
+    }
+  }
+#else
+  DIR *dir = opendir(dir_path);
+  if (dir) {
+    // Remove all elements in directory (recursively)
+    struct dirent *p_dir_entry;
+    while(p_dir_entry = readdir(dir)){
+      // Skip directories "." and ".."
+      if (!strcmp(p_dir_entry->d_name, ".") ||
+          !strcmp(p_dir_entry->d_name, "..")) {
+        continue;
+      }
+
+      // Use the full path to the dir element.
+      std::string dir_elem = path + "/" + p_dir_entry->d_name;
+
+      // Get the information about the dir element to act accordingly
+      // depending if it is a directory or a file.
+      struct stat stat_info;
+      if (!stat(dir_elem.c_str(), &stat_info)) {
+        if (S_ISDIR(stat_info.st_mode)) {
+          // It is a directory then do a recursive call to remove it.
+          remove_directory(dir_elem);
+        } else {
+          // It is a file, remove it.
+          int res = std::remove(dir_elem.c_str());
+          if (res) {
+            throw std::runtime_error(
+                (boost::format(
+                     "Unable to remove directory %s. Error removing %s: %s") %
+                 dir_path % dir_elem.c_str() % shcore::get_last_error()).str());
+          }
+        }
+      }
+    }
+    closedir(dir);
+
+    // The directory is now empty and can be removed.
+    int res = rmdir(dir_path);
+    if (res) {
+      throw std::runtime_error((boost::format("Error remove directory %s: %s") %
+                                dir_path % shcore::get_last_error()).str());
+    }
+
+  } else if (ENOENT == errno) {
+    throw std::runtime_error("Directory "+ path +
+        " does not exist and cannot be removed.");
+  } else if (ENOTDIR == errno) {
+    throw std::runtime_error("Not a directory, unable to remove " + path + ".");
+  } else {
+    throw std::runtime_error(
+        (boost::format("Unable to remove directory %s: %s") % dir_path %
+         shcore::get_last_error()).str());
+  }
+#endif
+}
+
+/*
  * Returns the last system specific error description (using GetLastError in Windows or errno in Unix/OSX).
  */
 std::string get_last_error() {
