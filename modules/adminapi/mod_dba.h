@@ -24,7 +24,7 @@
 #include "modules/mod_mysql_session.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "modules/base_session.h"
+#include "shellcore/base_session.h"
 #include "mod_dba_cluster.h"
 #include <set>
 #include <map>
@@ -54,7 +54,7 @@ public:
   virtual void set_member(const std::string &prop, shcore::Value value);
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  std::shared_ptr<ShellDevelopmentSession> get_active_session() const;
+  std::shared_ptr<ShellBaseSession> get_active_session() const;
   ReplicationGroupState check_preconditions(const std::string& function_name) const;
   virtual int get_default_port() { return 33060; };
   int get_default_instance_port() { return 3306; }
@@ -85,7 +85,7 @@ public:
   void validate_instances_status_reboot_cluster(const shcore::Argument_list &args);
   void validate_instances_gtid_reboot_cluster(std::string *out_cluster_name,
                                               const shcore::Value::Map_type_ref &options,
-                                              const std::shared_ptr<ShellDevelopmentSession> &instance_session);
+                                              const std::shared_ptr<ShellBaseSession> &instance_session);
 
 #if DOXYGEN_JS
   Integer verbose;
@@ -121,7 +121,7 @@ public:
   static std::shared_ptr<mysqlsh::mysql::ClassicSession> get_session(const shcore::Argument_list& args);
 
 protected:
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> _custom_session;
+  std::shared_ptr<mysqlsh::ShellBaseSession> _custom_session;
   shcore::IShell_core *_shell_core;
 
   void init();

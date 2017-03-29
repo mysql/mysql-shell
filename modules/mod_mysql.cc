@@ -18,7 +18,7 @@
  */
 
 #include "mod_mysql.h"
-#include "base_session.h"
+#include "mod_mysql_session.h"
 #include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
@@ -74,8 +74,7 @@ ClassicSession get_classic_session(ConnectionData connectionData, str password){
 #endif
 
 DEFINE_FUNCTION(Mysql, get_classic_session) {
-  auto session = connect_session(args, mysqlsh::SessionType::Classic);
-  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
+  return shcore::Value(ClassicSession::create(args));
 }
 
 }

@@ -108,28 +108,42 @@ Bool BaseSession::isOpen() {}
 #elif DOXYGEN_PY
 bool BaseSession::is_open() {}
 #endif
-bool BaseSession::is_connected() const {
+bool BaseSession::is_open() const {
   return _session.is_connected();
+}
+
+shcore::Value BaseSession::_is_open(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("isOpen").c_str());
+
+  return shcore::Value(is_open());
 }
 
 std::shared_ptr< ::mysqlx::Session> BaseSession::session_obj() const {
   return _session.get();
 }
 
-BaseSession::BaseSession(const BaseSession& s) : ShellDevelopmentSession(s), _case_sensitive_table_names(false) {
+BaseSession::BaseSession(const BaseSession& s) : ShellBaseSession(s), _case_sensitive_table_names(false) {
   init();
+}
+
+BaseSession::~BaseSession() {
+  if (is_open())
+    close();
 }
 
 void BaseSession::init() {
   _schemas.reset(new shcore::Value::Map_type);
 
-  add_method("close", std::bind(&BaseSession::close, this, _1), "data");
+  add_method("close", std::bind(&BaseSession::_close, this, _1), "data");
   add_method("setFetchWarnings", std::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
-  add_method("startTransaction", std::bind(&BaseSession::startTransaction, this, _1), "data");
-  add_method("commit", std::bind(&BaseSession::commit, this, _1), "data");
-  add_method("rollback", std::bind(&BaseSession::rollback, this, _1), "data");
+  add_method("startTransaction", std::bind(&BaseSession::_start_transaction, this, _1), "data");
+  add_method("commit", std::bind(&BaseSession::_commit, this, _1), "data");
+  add_method("rollback", std::bind(&BaseSession::_rollback, this, _1), "data");
 
-  add_method("dropSchema", std::bind(&BaseSession::drop_schema, this, _1), "data");
+  add_method("createSchema", std::bind(&BaseSession::_create_schema, this, _1), "data");
+  add_method("getSchema", std::bind(&BaseSession::_get_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getSchemas", std::bind(&BaseSession::get_schemas, this, _1), NULL);
+  add_method("dropSchema", std::bind(&BaseSession::_drop_schema, this, _1), "data");
   add_method("dropTable", std::bind(&BaseSession::drop_schema_object, this, _1, "Table"), "data");
   add_method("dropCollection", std::bind(&BaseSession::drop_schema_object, this, _1, "Collection"), "data");
   add_method("dropView", std::bind(&BaseSession::drop_schema_object, this, _1, "View"), "data");
@@ -139,7 +153,7 @@ void BaseSession::init() {
   update_schema_cache = [generator, this](const std::string &name, bool exists) {DatabaseObject::update_cache(name, generator, true, _schemas); };
 }
 
-Value BaseSession::connect(const Argument_list &args) {
+void BaseSession::connect(const Argument_list &args) {
   std::string function = class_name() + '.' + "connect";
   args.ensure_count(1, 2, function.c_str());
 
@@ -166,8 +180,6 @@ Value BaseSession::connect(const Argument_list &args) {
       update_schema_cache(_default_schema, true);
   }
   CATCH_AND_TRANSLATE();
-
-  return Value::Null();
 }
 
 void BaseSession::set_option(const char *option, int value) {
@@ -203,27 +215,28 @@ Undefined BaseSession::close() {}
 #elif DOXYGEN_PY
 None BaseSession::close() {}
 #endif
-Value BaseSession::close(const shcore::Argument_list &args) {
+Value BaseSession::_close(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("close").c_str());
 
-  // Connection must be explicitly closed, we can't rely on the
-  // automatic destruction because if shared across different objects
-  // it may remain open
-  reset_session();
-
-  ShellNotifications::get()->notify("SN_SESSION_CLOSED", _get_shared_this());
+  close();
 
   return shcore::Value();
 }
 
-void BaseSession::reset_session() {
+void BaseSession::close() {
   try {
+    // Connection must be explicitly closed, we can't rely on the
+    // automatic destruction because if shared across different objects
+    // it may remain open
+
     log_warning("Closing session: %s", _uri.c_str());
 
     _session.reset();
   } catch (std::exception &e) {
     log_warning("Error occurred closing session: %s", e.what());
   }
+
+  ShellNotifications::get()->notify("SN_SESSION_CLOSED", _get_shared_this());
 }
 
 Value BaseSession::sql(const Argument_list &args) {
@@ -260,24 +273,33 @@ Schema BaseSession::createSchema(String name) {}
 #elif DOXYGEN_PY
 Schema BaseSession::create_schema(str name) {}
 #endif
-Value BaseSession::create_schema(const shcore::Argument_list &args) {
+Value BaseSession::_create_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("createSchema").c_str());
 
-  Value ret_val;
+  std::string name;
   try {
-    std::string schema = args.string_at(0);
-    std::string statement = sqlstring("create schema !", 0) << schema;
-    ret_val = executeStmt("sql", statement, false, shcore::Argument_list());
+    name = args.string_at(0);
 
-    // if reached this point it indicates that there were no errors
-    update_schema_cache(schema, true);
-
-    ret_val = (*_schemas)[schema];
+    create_schema(name);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createSchema"));
 
-  return ret_val;
+  return (*_schemas)[name];
 }
+
+void BaseSession::create_schema(const std::string& name) {
+    std::string statement = sqlstring("create schema !", 0) << name;
+    executeStmt("sql", statement, false, shcore::Argument_list());
+
+    // if reached this point it indicates that there were no errors
+    update_schema_cache(name, true);
+}
+
+void BaseSession::set_current_schema(const std::string &name) {
+    std::shared_ptr< ::mysqlx::Result> result = execute_sql(sqlstring("use !", 0) << name);
+    result->flush();
+}
+
 
 // Documentation of startTransaction function
 REGISTER_HELP(BASESESSION_STARTTRANSACTION_BRIEF, "Starts a transaction context on the server.");
@@ -304,7 +326,7 @@ Result BaseSession::startTransaction() {}
 #elif DOXYGEN_PY
 Result BaseSession::start_transaction() {}
 #endif
-shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args) {
+shcore::Value BaseSession::_start_transaction(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("startTransaction").c_str());
 
   shcore::Value ret_val;
@@ -336,7 +358,7 @@ Result BaseSession::commit() {}
 #elif DOXYGEN_PY
 Result BaseSession::commit() {}
 #endif
-shcore::Value BaseSession::commit(const shcore::Argument_list &args) {
+shcore::Value BaseSession::_commit(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("commit").c_str());
 
   shcore::Value ret_val;
@@ -369,7 +391,7 @@ Result BaseSession::rollback() {}
 #elif DOXYGEN_PY
 Result BaseSession::rollback() {}
 #endif
-shcore::Value BaseSession::rollback(const shcore::Argument_list &args) {
+shcore::Value BaseSession::_rollback(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("rollback").c_str());
 
   shcore::Value ret_val;
@@ -383,11 +405,16 @@ shcore::Value BaseSession::rollback(const shcore::Argument_list &args) {
 }
 
 /* Sql Execution Function */
+shcore::Object_bridge_ref BaseSession::raw_execute_sql(const std::string& query) const {
+  return execute_sql(query, shcore::Argument_list()).as_object();
+}
+
 shcore::Value BaseSession::execute_sql(const std::string& statement, const shcore::Argument_list &args) const {
   return executeStmt("sql", statement, true, args);
 }
 
 // This function is for SQL execution at the C++ layer
+// TODO: This function should be removed when ISession is implemented
 std::shared_ptr< ::mysqlx::Result> BaseSession::execute_sql(const std::string &sql) const {
   std::shared_ptr< ::mysqlx::Result> result;
   try {
@@ -515,26 +542,21 @@ Schema BaseSession::getSchema(String name) {}
 #elif DOXYGEN_PY
 Schema BaseSession::get_schema(str name) {}
 #endif
-shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const {
+shcore::Object_bridge_ref BaseSession::get_schema(const std::string &name) const {
+  auto ret_val = ShellBaseSession::get_schema(name);
+
+  auto dbobject = std::dynamic_pointer_cast<DatabaseObject>(ret_val);
+  dbobject->update_cache();
+
+  return ret_val;
+}
+
+shcore::Value BaseSession::_get_schema(const shcore::Argument_list &args) const {
   args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
   try {
-    std::string type = "Schema";
-    std::string search_name = args.string_at(0);
-    std::string name = db_object_exists(type, search_name, "");
-
-    if (!name.empty()) {
-      update_schema_cache(name, true);
-
-      ret_val = (*_schemas)[name];
-
-      ret_val.as_object<Schema>()->update_cache();
-    } else {
-      update_schema_cache(search_name, false);
-
-      throw Exception::runtime_error("Unknown database '" + search_name + "'");
-    }
+    ret_val = shcore::Value(get_schema(args.string_at(0)));
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getSchema"));
 
@@ -621,26 +643,24 @@ Result BaseSession::dropSchema(String name) {}
 #elif DOXYGEN_PY
 Result BaseSession::drop_schema(str name) {}
 #endif
-shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args) {
+void BaseSession::drop_schema(const std::string &name) {
+  executeStmt("sql", sqlstring("drop schema !", 0) << name, false, shcore::Argument_list());
+
+  if (_schemas->find(name) != _schemas->end())
+    _schemas->erase(name);
+}
+
+shcore::Value BaseSession::_drop_schema(const shcore::Argument_list &args) {
   std::string function = get_function_name("dropSchema");
 
   args.ensure_count(1, function.c_str());
 
-  if (args[0].type != shcore::String)
-    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
-
-  std::string name = args[0].as_string();
-
-  shcore::Value ret_val;
   try {
-    ret_val = executeStmt("sql", sqlstring("drop schema !", 0) << name, false, shcore::Argument_list());
-
-    if (_schemas->find(name) != _schemas->end())
-      _schemas->erase(name);
+    drop_schema(args[0].as_string());
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropSchema"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(function);
 
-  return ret_val;
+  return shcore::Value();
 }
 
 // Documentation of dropTable function
@@ -746,11 +766,18 @@ std::string BaseSession::db_object_exists(std::string &type, const std::string &
   return _session.db_object_exists(type, name, owner);
 }
 
-shcore::Value BaseSession::get_capability(const std::string& name) {
-  return _session.get_capability(name);
+std::string BaseSession::get_node_type() {
+  std::string ret_val = "mysql";
+
+  shcore::Value node_type = _session.get_capability("node_type");
+
+  if(node_type)
+    ret_val = node_type.as_string();
+
+  return ret_val;
 }
 
-shcore::Value BaseSession::get_status(const shcore::Argument_list &args) {
+shcore::Value::Map_type_ref BaseSession::get_status() {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
   if (class_name() == "XSession")
@@ -758,9 +785,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args) {
   else
     (*status)["SESSION_TYPE"] = shcore::Value("Node");
 
-  shcore::Value node_type = get_capability("node_type");
-  if (node_type)
-    (*status)["NODE_TYPE"] = node_type;
+  (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
 
   (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
 
@@ -812,7 +837,32 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args) {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
 
-  return shcore::Value(status);
+  return std::move(status);
+}
+
+void BaseSession::start_transaction() {
+  if (_tx_deep == 0)
+    execute_sql("start transaction", shcore::Argument_list());
+
+  _tx_deep++;
+}
+
+void BaseSession::commit() {
+  _tx_deep--;
+
+  assert(_tx_deep >= 0);
+
+  if (_tx_deep == 0)
+    execute_sql("commit", shcore::Argument_list());
+}
+
+void BaseSession::rollback() {
+  _tx_deep--;
+
+  assert(_tx_deep >= 0);
+
+  if (_tx_deep == 0)
+    execute_sql("rollback", shcore::Argument_list());
 }
 
 std::shared_ptr<BaseSession> XSession::_get_shared_this() const {
@@ -822,7 +872,13 @@ std::shared_ptr<BaseSession> XSession::_get_shared_this() const {
 }
 
 std::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysqlsh::SessionType::X);
+  std::shared_ptr<XSession> session(new XSession());
+
+  session->connect(args);
+
+  shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
+
+  return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
 }
 
 NodeSession::NodeSession() : BaseSession() {
@@ -834,10 +890,13 @@ NodeSession::NodeSession(const NodeSession& s) : BaseSession(s) {
 }
 
 void NodeSession::init() {
+  add_property("uri", "getUri");
+  add_property("defaultSchema", "getDefaultSchema");
   add_property("currentSchema", "getCurrentSchema");
 
+  add_method("isOpen", std::bind(&BaseSession::_is_open, this, _1), NULL);
   add_method("sql", std::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
-  add_method("setCurrentSchema", std::bind(&NodeSession::set_current_schema, this, _1), "name", shcore::String, NULL);
+  add_method("setCurrentSchema", std::bind(&NodeSession::_set_current_schema, this, _1), "name", shcore::String, NULL);
   add_method("quoteName", std::bind(&NodeSession::quote_name, this, _1), "name", shcore::String, NULL);
 }
 
@@ -848,7 +907,13 @@ std::shared_ptr<BaseSession> NodeSession::_get_shared_this() const {
 }
 
 std::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysqlsh::SessionType::Node);
+  std::shared_ptr<NodeSession> session(new NodeSession());
+
+  session->connect(args);
+
+  shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
+
+  return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
 }
 
 // Documentation of sql function
@@ -909,14 +974,20 @@ Schema NodeSession::get_current_schema() {}
 Value NodeSession::get_member(const std::string &prop) const {
   Value ret_val;
 
-  if (prop == "currentSchema") {
+  if (prop == "uri")
+    ret_val = shcore::Value(_uri);
+  else if (prop == "defaultSchema") {
+    if (!_default_schema.empty()){
+      ret_val = shcore::Value(get_schema(_default_schema));
+    } else
+      ret_val = Value::Null();
+  }
+  else if (prop == "currentSchema") {
     NodeSession *session = const_cast<NodeSession *>(this);
     std::string name = session->_retrieve_current_schema();
 
     if (!name.empty()) {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(name));
-      ret_val = get_schema(args);
+      ret_val = shcore::Value(get_schema(name));
     } else
       ret_val = Value::Null();
   } else
@@ -971,17 +1042,18 @@ Schema NodeSession::setCurrentSchema(String name) {}
 #elif DOXYGEN_PY
 Schema NodeSession::set_current_schema(str name) {}
 #endif
-
-shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args) {
+shcore::Value NodeSession::_set_current_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
 
-  if (_session.is_connected()) {
-    std::string name = args[0].as_string();
+  try {
+    if (_session.is_connected()) {
+      std::string name = args[0].as_string();
 
-    std::shared_ptr< ::mysqlx::Result> result = execute_sql(sqlstring("use !", 0) << name);
-    result->flush();
-  } else
-  throw Exception::runtime_error(class_name() + " not connected");
+      set_current_schema(name);
+    } else
+      throw Exception::runtime_error(class_name() + " not connected");
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setCurrentSchema"))
 
   return get_member("currentSchema");
 }

@@ -26,6 +26,7 @@
 #include "modules/adminapi/mod_dba.h"
 //#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/mod_shell.h"
 #include "modules/mod_mysql_resultset.h"
 #include "utils/utils_general.h"
 #include "scripting/object_factory.h"
@@ -136,8 +137,8 @@ Value Dba::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session() const {
-  std::shared_ptr<ShellDevelopmentSession> ret_val;
+std::shared_ptr<ShellBaseSession> Dba::get_active_session() const {
+  std::shared_ptr<ShellBaseSession> ret_val;
   if (_custom_session)
     ret_val = _custom_session;
   else
@@ -563,7 +564,7 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
   try {
     if (args.size()) {
       // TODO: Review the case when using a Global_session
-      _custom_session = args[0].as_object<ShellDevelopmentSession>();
+      _custom_session = args[0].as_object<ShellBaseSession>();
 
       if (!_custom_session)
         throw shcore::Exception::argument_error("Invalid session object.");
@@ -818,7 +819,7 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, co
             password = opt_map.string_at("dbPassword");
 
           auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
-                mysqlsh::connect_session(uri, password, mysqlsh::SessionType::Classic));
+                Shell::connect_session(uri, password, mysqlsh::SessionType::Classic));
           assert(session);
 
           log_info("Creating root@%s account for sandbox %i", remote_root.c_str(), port);
@@ -837,7 +838,7 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, co
           }
           session->execute_sql("SET sql_log_bin = 1");
 
-          session->close(shcore::Argument_list());
+          session->close();
         }
       }
     }
@@ -1094,7 +1095,7 @@ std::shared_ptr<mysqlsh::mysql::ClassicSession> Dba::get_session(const shcore::A
   std::string session_id = shcore::build_connection_string(options, false);
 
   if (_session_cache.find(session_id) == _session_cache.end()) {
-    auto session = mysqlsh::connect_session(args, mysqlsh::SessionType::Classic);
+    auto session = Shell::connect_session(args, mysqlsh::SessionType::Classic);
 
     ret_val = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
 
@@ -1159,13 +1160,13 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
   GRInstanceType type = get_gr_instance_type(session->connection());
 
   if (type == GRInstanceType::GroupReplication) {
-    session->close(shcore::Argument_list());
+    session->close();
     throw shcore::Exception::runtime_error("The instance '" + uri + "' is already part of a Replication Group");
   }
   // configureLocalInstance is allowed even if the instance is part of the InnoDB cluster
   // checkInstanceConfiguration is not
   else if (type == GRInstanceType::InnoDBCluster && !allow_update) {
-    session->close(shcore::Argument_list());
+    session->close();
     throw shcore::Exception::runtime_error("The instance '" + uri + "' is already part of an InnoDB Cluster");
   }
   else {
@@ -1378,7 +1379,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  std::shared_ptr<mysqlsh::ShellBaseSession> session;
   Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
                            instances_lists_intersection;
@@ -1632,7 +1633,7 @@ ReplicationGroupState Dba::check_preconditions(const std::string& function_name)
 std::vector<std::pair<std::string, std::string>> Dba::get_replicaset_instances_status(std::string *out_cluster_name,
           const shcore::Value::Map_type_ref &options) {
   std::vector<std::pair<std::string, std::string>> instances_status;
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  std::shared_ptr<mysqlsh::ShellBaseSession> session;
   std::string user, password, host, port, active_session_address, instance_address, conn_status;
 
   if (out_cluster_name->empty())
@@ -1706,8 +1707,8 @@ std::vector<std::pair<std::string, std::string>> Dba::get_replicaset_instances_s
     try {
       log_info("Opening a new session to the instance to determine its status: %s",
                 instance_address.c_str());
-      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
-      session->close(shcore::Argument_list());
+      session = Shell::connect_session(session_args, mysqlsh::SessionType::Classic);
+      session->close();
     } catch (std::exception &e) {
       conn_status = e.what();
       log_warning("Could not open connection to %s: %s.", instance_address.c_str(), e.what());
@@ -1732,7 +1733,7 @@ std::vector<std::pair<std::string, std::string>> Dba::get_replicaset_instances_s
 void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &args) {
   std::string cluster_name, user, password, port, host, active_session_address;
   shcore::Value::Map_type_ref options;
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  std::shared_ptr<mysqlsh::ShellBaseSession> session;
   mysqlsh::mysql::ClassicSession *classic_current;
 
   if (args.size() == 1)
@@ -1831,7 +1832,7 @@ void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &
     try {
       log_info("Opening a new session to the instance: %s",
                 instance_address.c_str());
-      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      session = Shell::connect_session(session_args, mysqlsh::SessionType::Classic);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     } catch (std::exception &e) {
       throw Exception::runtime_error("Could not open connection to " + instance_address + "");
@@ -1840,7 +1841,7 @@ void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &
     GRInstanceType type = get_gr_instance_type(classic->connection());
 
     // Close the session
-    session->close(shcore::Argument_list());
+    session->close();
 
     switch (type) {
       case GRInstanceType::InnoDBCluster:
@@ -1871,7 +1872,7 @@ void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &
  */
 void Dba::validate_instances_gtid_reboot_cluster(std::string *out_cluster_name,
                                                  const shcore::Value::Map_type_ref &options,
-                                                 const std::shared_ptr<ShellDevelopmentSession> &instance_session) {
+                                                 const std::shared_ptr<ShellBaseSession> &instance_session) {
   /* GTID verification is done by verifying which instance has the GTID superset.the
    * In order to do so, a union of the global gtid executed and the received transaction
    * set must be done using:
@@ -1893,7 +1894,7 @@ void Dba::validate_instances_gtid_reboot_cluster(std::string *out_cluster_name,
 
   std::pair<std::string, std::string> most_updated_instance;
   mysqlsh::mysql::ClassicSession *classic_current;
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  std::shared_ptr<mysqlsh::ShellBaseSession> session;
   std::string host, port, active_session_address, user, password;
 
   // get the current session information
@@ -1977,7 +1978,7 @@ void Dba::validate_instances_gtid_reboot_cluster(std::string *out_cluster_name,
     try {
       log_info("Opening a new session to the instance for gtid validations %s",
                 instance_address.c_str());
-      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      session = Shell::connect_session(session_args, mysqlsh::SessionType::Classic);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     } catch (std::exception &e) {
       throw Exception::runtime_error("Could not open a connection to " +
@@ -1991,7 +1992,7 @@ void Dba::validate_instances_gtid_reboot_cluster(std::string *out_cluster_name,
     get_server_variable(classic->connection(), "GLOBAL.GTID_EXECUTED", gtid_executed);
 
     // Close the session
-    session->close(shcore::Argument_list());
+    session->close();
 
     std::string msg = "The instance: '" + instance_address + "' GLOBAL.GTID_EXECUTED is: " + gtid_executed;
     log_info("%s", msg.c_str());

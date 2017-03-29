@@ -19,7 +19,7 @@
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
-#include "modules/base_session.h"
+#include "shellcore/base_session.h"
 
 using namespace shcore;
 
@@ -366,7 +366,7 @@ void Shell_core_test_wrapper::TearDown() {
         std::cerr << "WARNING: Closing dangling session opened on " << entry.second << std::endl;
 
       auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
-      session->close(shcore::Argument_list());
+      session->close();
     }
   }
 

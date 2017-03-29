@@ -19,7 +19,7 @@
 
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "modules/base_session.h"
+#include "shellcore/base_session.h"
 
 
 #ifndef _MODULES_MOD_SHELL_H_
@@ -44,7 +44,9 @@ namespace mysqlsh {
     shcore::Value prompt(const shcore::Argument_list &args);
     shcore::Value connect(const shcore::Argument_list &args);
 
-    shcore::Value set_current_schema(const shcore::Argument_list &args);
+    void set_current_schema(const std::string& name);
+
+    shcore::Value _set_current_schema(const shcore::Argument_list &args);
     shcore::Value set_session(const shcore::Argument_list &args);
     shcore::Value get_session(const shcore::Argument_list &args);
     shcore::Value reconnect(const shcore::Argument_list &args);
@@ -63,9 +65,11 @@ namespace mysqlsh {
     None connect(ConnectionData connectionData, str password);
     #endif
 
-    std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const shcore::Argument_list &args, mysqlsh::SessionType session_type);
-    std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session);
-    std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session();
+    std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellBaseSession>& session);
+    std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session();
+
+    static std::shared_ptr<mysqlsh::ShellBaseSession> connect_session(const std::string &uri, const std::string &password, SessionType session_type);
+    static std::shared_ptr<mysqlsh::ShellBaseSession> connect_session(const shcore::Argument_list &args, SessionType session_type);
 
   protected:
     void init();
@@ -73,8 +77,6 @@ namespace mysqlsh {
     shcore::Value _custom_prompt[2];
 
     shcore::IShell_core *_shell_core;
-
-    std::shared_ptr<ShellDevelopmentSession> _global_dev_session;
   };
 }
 

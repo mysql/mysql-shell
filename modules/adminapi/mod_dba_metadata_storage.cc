@@ -45,7 +45,7 @@ _dba(dba) {}
 MetadataStorage::~MetadataStorage() {}
 
 std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::string &sql, bool retry, const std::string &log_sql) const {
-  shcore::Value ret_val;
+  shcore::Object_bridge_ref ret_val;
 
   if (log_sql.empty())
     log_debug("DBA: execute_sql('%s'", sql.c_str());
@@ -59,7 +59,7 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::st
   int retry_count = kMaxReadOnlyRetries;
   while (retry_count > 0) {
     try {
-      ret_val = session->execute_sql(sql, shcore::Argument_list());
+      ret_val = session->raw_execute_sql(sql);
 
       // If reached here it means there were no errors
       retry_count = 0;
@@ -83,7 +83,7 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::st
     }
   }
 
-  return ret_val.as_object<mysql::ClassicResult>();
+  return std::dynamic_pointer_cast<mysql::ClassicResult>(ret_val);
 }
 
 void MetadataStorage::start_transaction() {

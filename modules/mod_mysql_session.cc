@@ -68,24 +68,31 @@ ClassicSession::ClassicSession() {
 }
 
 ClassicSession::ClassicSession(const ClassicSession& session) :
-ShellDevelopmentSession(session), _conn(session._conn) {
+ShellBaseSession(session), _conn(session._conn) {
   init();
 }
 
 void ClassicSession::init() {
   //_schema_proxy.reset(new Proxy_object(std::bind(&ClassicSession::get_db, this, _1)));
 
+  add_property("uri", "getUri");
+  add_property("defaultSchema", "getDefaultSchema");
   add_property("currentSchema", "getCurrentSchema");
 
-  add_method("close", std::bind(&ClassicSession::close, this, _1), "data");
+  add_method("close", std::bind(&ClassicSession::_close, this, _1), "data");
   add_method("runSql", std::bind(&ClassicSession::run_sql, this, _1),
     "stmt", shcore::String,
     NULL);
-  add_method("setCurrentSchema", std::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
-  add_method("startTransaction", std::bind(&ClassicSession::startTransaction, this, _1), "data");
-  add_method("commit", std::bind(&ClassicSession::commit, this, _1), "data");
-  add_method("rollback", std::bind(&ClassicSession::rollback, this, _1), "data");
-  add_method("dropSchema", std::bind(&ClassicSession::drop_schema, this, _1), "data");
+
+  add_method("isOpen", std::bind(&ClassicSession::_is_open, this, _1), NULL);
+  add_method("createSchema", std::bind(&ClassicSession::_create_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getSchema", std::bind(&ClassicSession::_get_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getSchemas", std::bind(&ClassicSession::get_schemas, this, _1), NULL);
+  add_method("setCurrentSchema", std::bind(&ClassicSession::_set_current_schema, this, _1), "name", shcore::String, NULL);
+  add_method("startTransaction", std::bind(&ClassicSession::_start_transaction, this, _1), "data");
+  add_method("commit", std::bind(&ClassicSession::_commit, this, _1), "data");
+  add_method("rollback", std::bind(&ClassicSession::_rollback, this, _1), "data");
+  add_method("dropSchema", std::bind(&ClassicSession::_drop_schema, this, _1), "data");
   add_method("dropTable", std::bind(&ClassicSession::drop_schema_object, this, _1, "Table"), "data");
   add_method("dropView", std::bind(&ClassicSession::drop_schema_object, this, _1, "View"), "data");
 
@@ -100,7 +107,7 @@ Connection *ClassicSession::connection() {
   return _conn.get();
 }
 
-Value ClassicSession::connect(const Argument_list &args) {
+void ClassicSession::connect(const Argument_list &args) {
   std::string function = class_name() + '.' + "connect";
   args.ensure_count(1, 2, function.c_str());
 
@@ -117,8 +124,6 @@ Value ClassicSession::connect(const Argument_list &args) {
       update_schema_cache(_default_schema, true);
   }
   CATCH_AND_TRANSLATE();
-
-  return Value::Null();
 }
 
 // Documentation of close function
@@ -132,9 +137,7 @@ Undefined ClassicSession::close() {}
 #elif DOXYGEN_PY
 None ClassicSession::close() {}
 #endif
-Value ClassicSession::close(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("close").c_str());
-
+void ClassicSession::close() {
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
   // it may remain open
@@ -144,9 +147,22 @@ Value ClassicSession::close(const shcore::Argument_list &args) {
   _conn.reset();
 
   ShellNotifications::get()->notify("SN_SESSION_CLOSED", shared_from_this());
+}
+
+Value ClassicSession::_close(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("close").c_str());
+
+  close();
 
   return shcore::Value();
 }
+
+shcore::Value ClassicSession::_is_open(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("isOpen").c_str());
+
+  return shcore::Value(is_open());
+}
+
 
 //Documentation of runSql function
 REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query against the database and returns a  ClassicResult object wrapping the result.");
@@ -194,6 +210,9 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) const {
   }
 
   return ret_val;
+}
+shcore::Object_bridge_ref ClassicSession::raw_execute_sql(const std::string& query) const {
+  return execute_sql(query, shcore::Argument_list()).as_object();
 }
 
 shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore::Argument_list &UNUSED(args)) const {
@@ -243,33 +262,38 @@ ClassicSchema ClassicSession::createSchema(String name) {}
 #elif DOXYGEN_PY
 ClassicSchema ClassicSession::create_schema(str name) {}
 #endif
-Value ClassicSession::create_schema(const shcore::Argument_list &args) {
+Value ClassicSession::_create_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("createSchema").c_str());
+  std::string name;
 
-  Value ret_val;
+  try {
+    name = args.string_at(0);
+
+    create_schema(name);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createSchema"));
+
+  return (*_schemas)[name];
+}
+
+void ClassicSession::create_schema(const std::string &name) {
   if (!_conn)
     throw Exception::logic_error("Not connected.");
   else {
     // Options are the statement and optionally options to modify
     // How the resultset is created.
-    std::string schema = args.string_at(0);
 
-    if (schema.empty())
+    if (name.empty())
       throw Exception::argument_error("The schema name can not be empty.");
     else {
-      std::string statement = sqlstring("create schema !", 0) << schema;
-      ret_val = execute_sql(statement, shcore::Argument_list());
+      std::string statement = sqlstring("create schema !", 0) << name;
+      execute_sql(statement, shcore::Argument_list());
 
-      std::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));
-
-      // If reached this point it indicates the schema was created successfully
-      ret_val = shcore::Value(std::static_pointer_cast<Object_bridge>(object));
-      (*_schemas)[schema] = ret_val;
+      (*_schemas)[name] = shcore::Value::wrap<ClassicSchema>(new ClassicSchema(shared_from_this(), name));
     }
   }
-
-  return ret_val;
 }
+
 
 // Documentation of getDefaultSchema function
 REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the ClassicSchema configured as default for the session.");
@@ -326,18 +350,24 @@ Value ClassicSession::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
   Value ret_val;
 
-  if (prop == "currentSchema") {
+  if (prop == "uri")
+    ret_val = shcore::Value(_uri);
+  else if (prop == "defaultSchema") {
+    if (!_default_schema.empty()){
+      ret_val = shcore::Value(get_schema(_default_schema));
+    } else
+      ret_val = Value::Null();
+  }
+  else if (prop == "currentSchema") {
     ClassicSession *session = const_cast<ClassicSession *>(this);
     std::string name = session->_retrieve_current_schema();
 
     if (!name.empty()) {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(name));
-      ret_val = get_schema(args);
+      ret_val = shcore::Value(get_schema(name));
     } else
       ret_val = Value::Null();
   } else
-    ret_val = ShellDevelopmentSession::get_member(prop);
+    ret_val = ShellBaseSession::get_member(prop);
 
   return ret_val;
 }
@@ -395,26 +425,21 @@ ClassicSchema ClassicSession::getSchema(String name) {}
 #elif DOXYGEN_PY
 ClassicSchema ClassicSession::get_schema(str name) {}
 #endif
-shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const {
+shcore::Object_bridge_ref ClassicSession::get_schema(const std::string &name) const {
+  auto ret_val = ShellBaseSession::get_schema(name);
+
+  auto dbobject = std::dynamic_pointer_cast<DatabaseObject>(ret_val);
+  dbobject->update_cache();
+
+  return ret_val;
+}
+
+shcore::Value ClassicSession::_get_schema(const shcore::Argument_list &args) const {
   args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
   try {
-    std::string type = "Schema";
-    std::string search_name = args.string_at(0);
-    std::string name = db_object_exists(type, search_name, "");
-
-    if (!name.empty()) {
-      update_schema_cache(name, true);
-
-      ret_val = (*_schemas)[name];
-
-      ret_val.as_object<ClassicSchema>()->update_cache();
-    } else {
-      update_schema_cache(search_name, false);
-
-      throw Exception::runtime_error("Unknown database '" + search_name + "'");
-    }
+    ret_val = shcore::Value(get_schema(args.string_at(0)));
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getSchema"));
 
@@ -479,16 +504,20 @@ ClassicSchema ClassicSession::setCurrentSchema(String schema) {}
 #elif DOXYGEN_PY
 ClassicSchema ClassicSession::set_current_schema(str schema) {}
 #endif
-shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &args) {
+void ClassicSession::set_current_schema(const std::string &name) {
+  shcore::Argument_list query;
+  query.push_back(Value(sqlstring("use !", 0) << name));
+
+  run_sql(query);
+}
+
+shcore::Value ClassicSession::_set_current_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
 
   if (_conn) {
     std::string name = args[0].as_string();
 
-    shcore::Argument_list query;
-    query.push_back(Value(sqlstring("use !", 0) << name));
-
-    Value res = run_sql(query);
+    set_current_schema(name);
   } else
     throw Exception::runtime_error("ClassicSession not connected");
 
@@ -496,7 +525,13 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
 }
 
 std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args) {
-  return connect_session(args, mysqlsh::SessionType::Classic);
+  std::shared_ptr<ClassicSession> session(new ClassicSession());
+
+  session->connect(args);
+
+  shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
+
+  return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
 }
 
 // Documentation of dropSchema function
@@ -516,21 +551,24 @@ ClassicResult ClassicSession::dropSchema(String name) {}
 #elif DOXYGEN_PY
 ClassicResult ClassicSession::drop_schema(str name) {}
 #endif
-shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args) {
+void ClassicSession::drop_schema(const std::string &name) {
+  execute_sql(sqlstring("drop schema !", 0) << name, shcore::Argument_list());
+
+  _remove_schema(name);
+}
+
+shcore::Value ClassicSession::_drop_schema(const shcore::Argument_list &args) {
   std::string function = get_function_name("dropSchema");
 
   args.ensure_count(1, function.c_str());
 
-  if (args[0].type != shcore::String)
-    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+  try {
+    drop_schema(args[0].as_string());
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(function);
 
-  std::string name = args[0].as_string();
 
-  Value ret_val = execute_sql(sqlstring("drop schema !", 0) << name, shcore::Argument_list());
-
-  _remove_schema(name);
-
-  return ret_val;
+  return shcore::Value();
 }
 
 // Documentation of dropTable function
@@ -687,7 +725,7 @@ ClassicResult ClassicSession::startTransaction() {}
 #elif DOXYGEN_PY
 ClassicResult ClassicSession::start_transaction() {}
 #endif
-shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args) {
+shcore::Value ClassicSession::_start_transaction(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("startTransaction").c_str());
 
   return execute_sql("start transaction", shcore::Argument_list());
@@ -713,7 +751,7 @@ ClassicResult ClassicSession::commit() {}
 #elif DOXYGEN_PY
 ClassicResult ClassicSession::commit() {}
 #endif
-shcore::Value ClassicSession::commit(const shcore::Argument_list &args) {
+shcore::Value ClassicSession::_commit(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("commit").c_str());
 
   return execute_sql("commit", shcore::Argument_list());
@@ -739,13 +777,13 @@ ClassicResult ClassicSession::rollback() {}
 #elif DOXYGEN_PY
 ClassicResult ClassicSession::rollback() {}
 #endif
-shcore::Value ClassicSession::rollback(const shcore::Argument_list &args) {
+shcore::Value ClassicSession::_rollback(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("rollback").c_str());
 
   return execute_sql("rollback", shcore::Argument_list());
 }
 
-shcore::Value ClassicSession::get_status(const shcore::Argument_list &args) {
+shcore::Value::Map_type_ref ClassicSession::get_status() {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
   try {
@@ -810,5 +848,30 @@ shcore::Value ClassicSession::get_status(const shcore::Argument_list &args) {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
 
-  return shcore::Value(status);
+  return std::move(status);
+}
+
+void ClassicSession::start_transaction() {
+  if (_tx_deep == 0)
+    execute_sql("start transaction", shcore::Argument_list());
+
+  _tx_deep++;
+}
+
+void ClassicSession::commit() {
+  _tx_deep--;
+
+  assert(_tx_deep >= 0);
+
+  if (_tx_deep == 0)
+    execute_sql("commit", shcore::Argument_list());
+}
+
+void ClassicSession::rollback() {
+  _tx_deep--;
+
+  assert(_tx_deep >= 0);
+
+  if (_tx_deep == 0)
+    execute_sql("rollback", shcore::Argument_list());
 }

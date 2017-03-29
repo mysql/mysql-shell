@@ -23,8 +23,6 @@
 #include <stdlib.h>
 
 #include "shellcore/shell_core_options.h"
-#include "modules/mod_mysql.h"
-#include "modules/mod_mysqlx.h"
 
 extern "C" {
 const char *g_argv0 = nullptr;
@@ -45,9 +43,6 @@ int main(int argc, char **argv) {
     std::cerr << "Note: Use MYSQLX_PORT to define the XProtocol port (if != 33060)\n";
     exit(1);
   }
-
-  INIT_MODULE(mysqlsh::mysql::Mysql);
-  INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
 
   ::testing::InitGoogleTest(&argc, argv);
 

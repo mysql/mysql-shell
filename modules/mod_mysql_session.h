@@ -28,7 +28,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "mysql_connection.h"
-#include "base_session.h"
+#include "shellcore/base_session.h"
 
 namespace shcore {
 class Shell_core;
@@ -61,13 +61,13 @@ class ClassicResult;
 * \sa mysql.getClassicSession(String connectionData, String password)
 * \sa mysql.getClassicSession(Map connectionData, String password)
 */
-class SHCORE_PUBLIC ClassicSession : public ShellDevelopmentSession, public std::enable_shared_from_this<ClassicSession> {
+class SHCORE_PUBLIC ClassicSession : public ShellBaseSession, public std::enable_shared_from_this<ClassicSession> {
 public:
   ClassicSession();
   ClassicSession(const ClassicSession& session);
-  virtual ~ClassicSession() { try { shcore::Argument_list a; close(a); } catch (...) {} };
+  virtual ~ClassicSession() { try { close(); } catch (...) {} };
 
-// We need to hide this from doxygen to avoif warnings
+// We need to hide this from doxygen to avoid warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
   std::shared_ptr<ClassicResult> execute_sql(const std::string& query) const;
 #endif
@@ -78,23 +78,35 @@ public:
   virtual shcore::Value get_member(const std::string &prop) const;
 
   // Virtual methods from ISession
-  virtual shcore::Value connect(const shcore::Argument_list &args);
-  virtual shcore::Value close(const shcore::Argument_list &args);
+  virtual void connect(const shcore::Argument_list &args);
+  virtual void close();
+  virtual void create_schema(const std::string& name);
+  virtual void drop_schema(const std::string &name);
+  virtual void set_current_schema(const std::string &name);
+  virtual shcore::Object_bridge_ref get_schema(const std::string &name) const;
+  virtual void start_transaction();
+  virtual void commit();
+  virtual void rollback();
+
+
+  shcore::Value _close(const shcore::Argument_list &args);
   virtual shcore::Value run_sql(const shcore::Argument_list &args) const;
-  virtual shcore::Value create_schema(const shcore::Argument_list &args);
-  virtual shcore::Value startTransaction(const shcore::Argument_list &args);
-  virtual shcore::Value commit(const shcore::Argument_list &args);
-  virtual shcore::Value rollback(const shcore::Argument_list &args);
-  virtual shcore::Value drop_schema(const shcore::Argument_list &args);
-  virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
+  shcore::Value _create_schema(const shcore::Argument_list &args);
+  virtual shcore::Value _start_transaction(const shcore::Argument_list &args);
+  virtual shcore::Value _commit(const shcore::Argument_list &args);
+  virtual shcore::Value _rollback(const shcore::Argument_list &args);
+  shcore::Value _drop_schema(const shcore::Argument_list &args);
+  shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
+  shcore::Value _is_open(const shcore::Argument_list &args);
 
-  virtual shcore::Value get_status(const shcore::Argument_list &args);
 
-  virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
+  virtual shcore::Value::Map_type_ref get_status();
 
-  virtual shcore::Value get_schemas(const shcore::Argument_list &args) const;
+  shcore::Value _get_schema(const shcore::Argument_list &args) const;
 
-  shcore::Value set_current_schema(const shcore::Argument_list &args);
+  shcore::Value get_schemas(const shcore::Argument_list &args) const;
+
+  shcore::Value _set_current_schema(const shcore::Argument_list &args);
 
   virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
 
@@ -104,7 +116,8 @@ public:
 
   virtual uint64_t get_connection_id() const { return (uint64_t)_conn->get_thread_id(); }
 
-  virtual shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
+  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const;
+  shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
 
 #if DOXYGEN_JS
   String uri; //!< Same as getUri()
@@ -156,7 +169,7 @@ public:
 #elif DOXYGEN_PY
   bool is_open() {}
 #endif
-  virtual bool is_connected() const { return _conn ? true : false; }
+  virtual bool is_open() const { return _conn ? true : false; }
 
   virtual int get_default_port() { return 3306; };
 

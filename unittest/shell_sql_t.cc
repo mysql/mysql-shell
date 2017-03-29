@@ -26,7 +26,7 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
-#include "../modules/base_session.h"
+#include "shellcore/base_session.h"
 //#include "../modules/mod_session.h"
 //#include "../modules/mod_schema.h"
 #include "scripting/common.h"
@@ -63,7 +63,7 @@ protected:
 
   virtual void TearDown() {
     shcore::Argument_list args;
-    env.shell_core->get_dev_session()->close(args);
+    env.shell_core->get_dev_session()->close();
   }
 
   void process_result(shcore::Value result) {
@@ -93,7 +93,9 @@ protected:
     if (pwd)
       args.push_back(Value(pwd));
 
-    env.shell_core->connect_dev_session(args, mysqlsh::SessionType::Classic);
+    auto session = mysqlsh::Shell::connect_session(args, mysqlsh::SessionType::Classic);
+
+    env.shell_core->set_dev_session(session);
   }
 };
 

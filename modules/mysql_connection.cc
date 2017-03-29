@@ -18,7 +18,7 @@
  */
 
 #include "mysql_connection.h"
-#include "base_session.h"
+#include "shellcore/base_session.h"
 #include "utils/utils_general.h"
 #include "utils/utils_connection.h"
 

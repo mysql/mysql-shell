@@ -22,7 +22,7 @@
 #include <system_error>
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
-#include "modules/base_session.h"
+#include "shellcore/base_session.h"
 #include "utils/utils_general.h"
 #include "common/process_launcher/process_launcher.h"
 #include "utils/utils_file.h"

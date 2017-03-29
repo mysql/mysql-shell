@@ -25,7 +25,7 @@
 #include "scripting/common.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
-#include "modules/base_session.h"
+#include "shellcore/base_session.h"
 #include "utils/utils_file.h"
 
 namespace shcore {

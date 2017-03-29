@@ -27,7 +27,7 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
-#include "../modules/base_session.h"
+#include "shellcore/base_session.h"
 #include "../modules/base_resultset.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "test_utils.h"
@@ -200,7 +200,7 @@ TEST_F(Shell_core_test, regression_prompt_on_override_session) {
   EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
 
   // The session object has been overriden, even so we need to close th session
-  _interactive_shell->shell_context()->get_dev_session()->close(shcore::Argument_list());
+  _interactive_shell->shell_context()->get_dev_session()->close();
 }
 
 TEST_F(Shell_core_test, process_sql_no_delim_from_stream) {

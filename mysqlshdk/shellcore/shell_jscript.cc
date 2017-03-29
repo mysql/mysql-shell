@@ -19,7 +19,7 @@
 
 #include "shellcore/shell_jscript.h"
 #include "scripting/jscript_context.h"
-#include "../modules/base_session.h"
+#include "shellcore/base_session.h"
 #include "../modules/mod_mysqlx_session.h"
 #include <boost/format.hpp>
 
@@ -62,12 +62,8 @@ std::string Shell_javascript::prompt() {
   std::string node_type = "mysql";
   std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
 
-  if (session) {
-    shcore::Value st = session->get_capability("node_type");
-
-    if (st)
-      node_type = st.as_string();
-  }
+  if (session)
+    node_type = session->get_node_type();
 
   return node_type + "-js> ";
 }

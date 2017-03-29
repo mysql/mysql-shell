@@ -18,7 +18,6 @@
  */
 #ifndef _CMDLINE_SHELL_
 #define _CMDLINE_SHELL_
-#include "shellcore/base_shell.h"
 #ifndef WIN32
 #  include "editline/readline.h"
 #endif
@@ -27,9 +26,10 @@
 #include "shellcore/shell_notifications.h"
 #include "scripting/types.h"
 #include "shellcore/shell_core.h"
+#include "mysql_shell.h"
 
 namespace mysqlsh {
-class Command_line_shell :public mysqlsh::Base_shell, public shcore::NotificationObserver {
+class Command_line_shell :public Mysql_shell, public shcore::NotificationObserver {
 public:
   Command_line_shell(const Shell_options &options);
   void command_loop();

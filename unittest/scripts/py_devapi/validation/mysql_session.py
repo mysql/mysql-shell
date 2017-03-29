@@ -13,7 +13,7 @@
 
 #@ ClassicSession: validate dynamic members for system schemas
 |mysql: OK|
-|information_schema: OK|		
+|information_schema: OK|
 
 #@ ClassicSession: accessing Schemas
 |<ClassicSchema:mysql>|
@@ -34,7 +34,7 @@
 |<ClassicSchema:node_session_schema>|
 
 #@ ClassicSession: create schema failure
-||MySQL Error (1007): Can't create database 'node_session_schema'; database exists
+||MySQL Error (1007): ClassicSession.create_schema: Can't create database 'node_session_schema'; database exists
 
 #@ Session: create quoted schema
 |<ClassicSchema:quoted schema>|

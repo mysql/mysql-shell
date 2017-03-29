@@ -42,6 +42,7 @@ public:
   virtual bool print_help(const std::string& topic);
   void print_exception(const shcore::Exception &e);
   virtual void abort();
+  std::shared_ptr<mysqlsh::ShellBaseSession> get_session();
 
 private:
   std::string _sql_cache;
@@ -50,7 +51,7 @@ private:
 
   Value process_sql(const std::string &query_str,
       mysql::splitter::Delimiters::delim_type_t delimiter,
-      std::shared_ptr<mysqlsh::ShellDevelopmentSession> session,
+      std::shared_ptr<mysqlsh::ShellBaseSession> session,
       std::function<void(shcore::Value)> result_processor);
 
   void cmd_process_file(const std::vector<std::string>& params);

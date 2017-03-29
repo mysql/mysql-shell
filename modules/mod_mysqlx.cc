@@ -18,7 +18,7 @@
  */
 
 #include "mod_mysqlx.h"
-#include "base_session.h"
+#include "mod_mysqlx_session.h"
 #include "mod_mysqlx_expression.h"
 #include "mod_mysqlx_constants.h"
 #include "scripting/obj_date.h"
@@ -105,8 +105,7 @@ NodeSession getNodeSession(ConnectionData connectionData, String password){}
 NodeSession get_node_session(ConnectionData connectionData, str password){}
 #endif
 DEFINE_FUNCTION(Mysqlx, get_node_session) {
-  auto session = connect_session(args, mysqlsh::SessionType::Node);
-  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
+  return shcore::Value(NodeSession::create(args));
 }
 
 

@@ -269,7 +269,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Value::Map_type_ref options;
   std::string cluster_name;
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
   try {
     cluster_name = args.string_at(0);
@@ -1231,7 +1231,7 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
 
         if (!ensure_admin_account_usable(session, admin_user, admin_user_host,
               &account)) {
-          session->close(shcore::Argument_list());
+          session->close();
           return shcore::Value();
         }
       }

@@ -22,7 +22,7 @@
 #include "shellcore/shell_jscript.h"
 #include "shellcore/shell_python.h"
 #include "scripting/object_registry.h"
-#include "modules/base_session.h"
+#include "shellcore/base_session.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "utils/utils_general.h"
@@ -345,82 +345,27 @@ bool Shell_core::handle_shell_command(const std::string &line) {
 }
 
 /**
-* Creates a Development session of the given type using the received connection parameters.
-* \param args The connection parameters to be used creating the session.
-*
-* The args list should be filled with a Connection Data Dictionary and optionally a Password
-*
-* The Connection Data Dictionary supports the next elements:
-*
-*  - host, the host to use for the connection (can be an IP or DNS name)
-*  - port, the TCP port where the server is listening (default value is 33060).
-*  - schema, the current database for the connection's session.
-*  - dbUser, the user to authenticate against.
-*  - dbPassword, the password of the user user to authenticate against.
-*  - ssl_ca, the path to the X509 certificate authority in PEM format.
-*  - ssl_cert, the path to the X509 certificate in PEM format.
-*  - ssl_key, the path to the X509 key in PEM format.
-*
-* If a Password is added to the args list, it will override any password coming on the Connection Data Dictionary.
-*
-* Since this function creates a Development Session, it can be any of:
-*
-* - XSession
-* - NodeSession
-* - ClassicSession
-*
-* Once the session is established, it will be made available on a global *session* variable.
-*
-* If the Connection Data contained the *schema* attribute, the schema will be made available to the scripting interfaces on the global *db* variable.
-*/
-std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type) {
-  return set_dev_session(mysqlsh::connect_session(args, session_type));
-}
-
-/**
 * Configures the received session as the global development session.
 * \param session: The session to be set as global.
 *
 * If there's a selected schema on the received session, it will be made available to the scripting interfaces on the global *db* variable
 */
-std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session) {
+std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::set_dev_session(const std::shared_ptr<mysqlsh::ShellBaseSession>& session) {
+  _global_dev_session = session;
 
-  shcore::Argument_list args;
-
-  args.push_back(shcore::Value(session));
-
-  auto shell = get_global("shell");
-
-  if (shell)
-    shell.as_object()->call("setSession", args);
-  else
-    set_global("session", shcore::Value(session));
-
-  return session;
+  return _global_dev_session;
 }
 
 /**
 * Returns the global development session.
 */
-std::shared_ptr<mysqlsh::ShellDevelopmentSession> Shell_core::get_dev_session() {
-  auto shell = get_global("shell");
-  shcore::Value global_session;
-
-  if (shell)
-    global_session = shell.as_object()->call("getSession", shcore::Argument_list());
-  else
-    global_session = get_global("session");
-
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession>  session;
-  if (global_session)
-    session = global_session.as_object<mysqlsh::ShellDevelopmentSession>();
-
-  return session;
+std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::get_dev_session() {
+  return _global_dev_session;
 }
 
 void Shell_core::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
   if (name == "SN_SESSION_CONNECTION_LOST") {
-    auto session = std::dynamic_pointer_cast<mysqlsh::ShellDevelopmentSession>(sender);
+    auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(sender);
 
     if (session && session == get_dev_session())
       _reconnect_session = true;
@@ -428,19 +373,23 @@ void Shell_core::handle_notification(const std::string &name, const shcore::Obje
 }
 
 bool Shell_core::reconnect() {
-  auto shell = get_global("shell");
-  shcore::Value ret_val;
-  if (shell)
-    ret_val = shell.as_object()->call("reconnect", shcore::Argument_list());
+  bool ret_val = false;
 
-  return ret_val.as_bool();
+  try {
+    _global_dev_session->reconnect();
+    ret_val = true;
+  } catch (shcore::Exception &e) {
+    ret_val = false;
+  }
+
+  return ret_val;
 }
 
 bool Shell_core::reconnect_if_needed() {
   bool ret_val = false;
   if (_reconnect_session) {
     {
-      print("The global session got disconnected.\nAttempting to reconnect to '" + get_dev_session()->uri() + "'..");
+      print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'..");
 
 #ifdef _WIN32
       Sleep(500);
@@ -468,7 +417,7 @@ bool Shell_core::reconnect_if_needed() {
       if (ret_val)
         print("\nThe global session was successfully reconnected.\n");
       else
-        print("\nThe global session could not be reconnected automatically.\nPlease use '\\connect " + get_dev_session()->uri() + "' instead to manually reconnect.\n");
+        print("\nThe global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
     }
   }
 

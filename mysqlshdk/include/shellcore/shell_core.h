@@ -126,9 +126,8 @@ public:
   virtual Value get_global(const std::string &name);
   std::vector<std::string> get_global_objects(Mode mode);
 
-  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysqlsh::SessionType session_type);
-  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellDevelopmentSession>& session);
-  virtual std::shared_ptr<mysqlsh::ShellDevelopmentSession> get_dev_session();
+  virtual std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellBaseSession>& session);
+  virtual std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session();
 
   virtual Object_registry *registry() { return _registry; }
 public:
@@ -187,7 +186,7 @@ private:
   std::map<std::string, std::pair<Mode, Value> > _globals;
   std::map<Mode, Shell_language*> _langs;
 
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> _global_dev_session;
+  std::shared_ptr<mysqlsh::ShellBaseSession> _global_dev_session;
 
   Interpreter_delegate *_client_delegate;
   Interpreter_delegate _delegate;

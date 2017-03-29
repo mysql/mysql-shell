@@ -58,6 +58,7 @@ set(mysh_SRC
     mysqlsh/get_password.cc
     mysqlsh/shell_cmdline_options.cc
     mysqlsh/cmdline_shell.cc
+    mysqlsh/mysql_shell.cc
     interactive/interactive_dba_cluster.cc
     interactive/interactive_global_dba.cc
     interactive/interactive_global_schema.cc

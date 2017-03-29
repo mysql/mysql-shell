@@ -18,7 +18,7 @@
  */
 
 #include "shellcore/base_shell.h"
-#include "modules/base_session.h"
+#include "shellcore/base_session.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "shellcore/ishell_core.h"
@@ -27,7 +27,6 @@
 #include "modules/base_resultset.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_time.h"
-#include "shellcore/utils_help.h"
 #include "logger/logger.h"
 
 #include <boost/format.hpp>
@@ -69,71 +68,6 @@ _options(options) {
 
   _shell.reset(new shcore::Shell_core(custom_delegate));
 
-  std::string cmd_help_connect =
-    "SYNTAX:\n"
-    "   \\connect [-<TYPE>] <URI>\n\n"
-    "WHERE:\n"
-    "   TYPE is an optional parameter to specify the session type. Accepts the next values:\n"
-    "        n: to establish an Node session\n"
-    "        c: to establish a Classic session\n"
-    "        If the session type is not specified, an Node session will be established.\n"
-    "   URI is in the format of: [user[:password]@]hostname[:port]\n\n"
-    "EXAMPLES:\n"
-    "   \\connect root@localhost\n"
-    "   \\connect -n $my_cfg_name";
-
-  std::string cmd_help_source =
-    "SYNTAX:\n"
-    "   \\source <sql_file_path>\n"
-    "   \\. <sql_file_path>\n\n"
-    "EXAMPLES:\n"
-    "   \\source C:\\Users\\MySQL\\sakila.sql\n"
-    "   \\. C:\\Users\\MySQL\\sakila.sql\n\n"
-    "NOTE: Can execute files from the supported types: SQL, Javascript, or Python.\n"
-    "Processing is done using the active language set for processing mode.\n";
-
-  std::string cmd_help_use =
-    "SYNTAX:\n"
-    "   \\use <schema>\n"
-    "   \\u <schema>\n\n"
-    "EXAMPLES:\n"
-    "   \\use mysql"
-    "   \\u 'my schema'"
-    "NOTE: This command works with the global session.\n"
-    "If it is either a Node or Classic session, the current schema will be updated (affects SQL mode).\n"
-    "The global db variable will be updated to hold the requested schema.\n";
-
-  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Base_shell::cmd_print_shell_help);
-  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::SQL, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::JScript, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::Python, _1));
-  SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Base_shell::cmd_process_file);
-  SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "", Base_shell::cmd_start_multiline);
-  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "", Base_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect, Base_shell::cmd_connect);
-  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Base_shell::cmd_warnings);
-  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Base_shell::cmd_nowarnings);
-  SET_SHELL_COMMAND("\\status|\\s", "Print information about the current global connection.", "", Base_shell::cmd_status);
-  SET_SHELL_COMMAND("\\use|\\u", "Set the current schema for the global session.", cmd_help_use, Base_shell::cmd_use);
-
-  const std::string cmd_help_store_connection =
-    "SYNTAX:\n"
-    "   \\savecon [-f] <SESSION_CONFIG_NAME> <URI>\n\n"
-    "   \\savecon <SESSION_CONFIG_NAME>\n\n"
-    "WHERE:\n"
-    "   SESSION_CONFIG_NAME is the name to be assigned to the session configuration. Must be a valid identifier\n"
-    "   -f is an optional flag, when specified the store operation will override the configuration associated to SESSION_CONFIG_NAME\n"
-    "   URI Optional. the connection string following the URI convention. If not provided, will use the URI of the current session.\n\n"
-    "EXAMPLES:\n"
-    "   \\saveconn my_config_name root:123@localhost:33060\n";
-  const std::string cmd_help_delete_connection =
-    "SYNTAX:\n"
-    "   \\rmconn <SESSION_CONFIG_NAME>\n\n"
-    "WHERE:\n"
-    "   SESSION_CONFIG_NAME is the name of session configuration to be deleted.\n\n"
-    "EXAMPLES:\n"
-    "   \\rmconn my_config_name\n";
-
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
 
@@ -143,31 +77,6 @@ _options(options) {
 void Base_shell::finish_init() {
   load_default_modules(_options.initial_mode);
   init_scripts(_options.initial_mode);
-}
-
-bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {
-  std::string file;
-
-  // The parameter 0 contains the somplete command as submitted by the user
-  // File name would be on parameter 1
-  file = params[1];
-
-  boost::trim(file);
-
-  // Adds support for quoted files in case there are spaces in the path
-  if ((file[0] == '\'' && file[file.size() - 1] == '\'') ||
-      (file[0] == '"' && file[file.size() - 1] == '"'))
-    file = file.substr(1, file.size() - 2);
-
-  std::vector<std::string> args(params);
-
-  // Deletes the original command
-  args.erase(args.begin());
-  args[0] = file;
-
-  Base_shell::process_file(file, args);
-
-  return true;
 }
 
 void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::string& uri, const std::string& sessionid) {
@@ -195,167 +104,6 @@ void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::
   message += "Creating " + stype + " Session to '" + uri + "'";
 
   println(message);
-}
-
-bool Base_shell::connect(bool primary_session) {
-  try {
-    shcore::Argument_list args;
-    shcore::Value::Map_type_ref connection_data;
-    bool secure_password = true;
-    if (!_options.uri.empty()) {
-      connection_data = shcore::get_connection_data(_options.uri);
-      if (connection_data->has_key("dbPassword") && !connection_data->get_string("dbPassword").empty())
-        secure_password = false;
-    } else
-      connection_data.reset(new shcore::Value::Map_type);
-
-    // If the session is being created from command line
-    // Individual parameters will override whatever was defined on the URI/stored connection
-    if (primary_session) {
-      if (_options.password)
-        secure_password = false;
-
-      shcore::update_connection_data(connection_data,
-                                     _options.user, _options.password,
-                                     _options.host, _options.port,
-                                     _options.sock, _options.schema,
-                                     !_options.ssl_info.skip,
-                                     _options.ssl_info,
-                                     _options.auth_method);
-      if (_options.auth_method == "PLAIN")
-        println("mysqlx: [Warning] PLAIN authentication method is NOT secure!");
-
-      if (!secure_password)
-        println("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
-    }
-
-    // If a scheme is given on the URI the session type must match the URI scheme
-    if (connection_data->has_key("scheme")) {
-      std::string scheme = connection_data->get_string("scheme");
-      std::string error;
-
-      if (_options.session_type == mysqlsh::SessionType::Auto) {
-        if (scheme == "mysqlx")
-          _options.session_type = mysqlsh::SessionType::Node;
-        else if (scheme == "mysql")
-          _options.session_type = mysqlsh::SessionType::Classic;
-      } else {
-        if (scheme == "mysqlx") {
-          if (_options.session_type == mysqlsh::SessionType::Classic)
-            error = "Invalid URI for Classic session";
-        } else if (scheme == "mysql") {
-          if (_options.session_type == mysqlsh::SessionType::Node)
-            error = "Invalid URI for Node session";
-        }
-      }
-
-      if (!error.empty())
-        throw shcore::Exception::argument_error(error);
-    }
-
-    shcore::set_default_connection_data(connection_data);
-
-    if (_options.interactive)
-      print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), /*_options.app*/"");
-
-    args.push_back(shcore::Value(connection_data));
-
-    connect_session(args, _options.session_type, primary_session ? _options.recreate_database : false);
-  } catch (shcore::Exception &exc) {
-    _shell->print_value(shcore::Value(exc.error()), "error");
-    return false;
-  } catch (std::exception &exc) {
-    print_error(exc.what());
-    return false;
-  }
-
-  return true;
-}
-
-shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mysqlsh::SessionType session_type, bool recreate_schema) {
-  std::string pass;
-  std::string schema_name;
-
-  shcore::Value::Map_type_ref connection_data = args.map_at(0);
-
-  // Retrieves the schema on which the session will work on
-  shcore::Argument_list schema_arg;
-  if (connection_data->has_key("schema")) {
-    schema_name = (*connection_data)["schema"].as_string();
-    schema_arg.push_back(shcore::Value(schema_name));
-  }
-
-  if (recreate_schema && schema_name.empty())
-      throw shcore::Exception::runtime_error("Recreate schema requested, but no schema specified");
-
-  // Creates the argument list for the real connection call
-  shcore::Argument_list connect_args;
-  connect_args.push_back(shcore::Value(connection_data));
-
-  // Prompts for the password if needed
-  if (!connection_data->has_key("dbPassword") || _options.prompt_password) {
-    if (_shell->password("Enter password: ", pass))
-      connect_args.push_back(shcore::Value(pass));
-  }
-
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
-                                                   new_session(_shell->connect_dev_session(connect_args, session_type));
-
-  new_session->set_option("trace_protocol", _options.trace_protocol);
-
-  if (recreate_schema) {
-    println("Recreating schema " + schema_name + "...");
-    try {
-      new_session->drop_schema(schema_arg);
-    } catch (shcore::Exception &e) {
-      if (e.is_mysql() && e.code() == 1008)
-        ; // ignore DB doesn't exist error
-      else
-        throw;
-    }
-    new_session->create_schema(schema_arg);
-
-    if (new_session->class_name().compare("XSession"))
-      new_session->call("setCurrentSchema", schema_arg);
-  }
-
-  if (_options.interactive) {
-    if (old_session && old_session.unique() && old_session->is_connected()) {
-      if (_options.interactive)
-        println("Closing old connection...");
-
-      old_session->close(shcore::Argument_list());
-    }
-
-    std::string session_type = new_session->class_name();
-    std::string message;
-
-    if (_options.session_type == mysqlsh::SessionType::Auto) {
-      if (session_type == "ClassicSession")
-        message = "Classic ";
-      else if (session_type == "NodeSession")
-        message = "Node ";
-    }
-
-    message += "Session successfully established. ";
-
-    shcore::Value default_schema;
-
-    // Any session could have a default schema after connection is done
-    default_schema = new_session->get_cached_schema(new_session->get_default_schema());
-
-    if (default_schema) {
-      if (session_type == "ClassicSession")
-        message += "Default schema set to `" + default_schema.as_object()->get_member("name").as_string() + "`.";
-      else
-        message += "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
-    } else
-      message += "No default schema selected.";
-
-    println(message);
-  }
-
-  return shcore::Value::Null();
 }
 
 // load scripts for standard locations in order to be able to implement standard routines
@@ -453,20 +201,9 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
       case shcore::Shell_core::Mode::None:
         break;
       case shcore::Shell_core::Mode::SQL:
-      {
-        auto session = _shell->get_dev_session();
-        if (session && (session->class_name() == "XSession")) {
-          println("The active session is an " + session->class_name());
-          println("SQL mode is not supported on this session type: command ignored.");
-          println("To switch to SQL mode reconnect with a Node Session by either:");
-          println("* Using the \\connect -n shell command.");
-          println("* Using --node when calling the MySQL Shell on the command line.");
-        } else {
-          if (_shell->switch_mode(mode, lang_initialized))
-            println("Switching to SQL mode... Commands end with ;");
-        }
+        if (_shell->switch_mode(mode, lang_initialized))
+          println("Switching to SQL mode... Commands end with ;");
         break;
-      }
       case shcore::Shell_core::Mode::JScript:
 #ifdef HAVE_V8
         if (_shell->switch_mode(mode, lang_initialized))
@@ -503,381 +240,53 @@ void Base_shell::print_error(const std::string &error) {
   _shell->print_error(error);
 }
 
-bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
-  bool printed = false;
-
-  // If help came with parameter attempts to print the
-  // specific help on the active shell first and global commands
-  if (args.size() > 1) {
-    printed = _shell->print_help(args[1]);
-
-    if (!printed) {
-      std::string help;
-      if (_shell_command_handler.get_command_help(args[1], help)) {
-        _shell->println(help);
-        printed = true;
-      }
-    }
-  }
-
-  // If not specific help found, prints the generic help
-  if (!printed) {
-    _shell->print(_shell_command_handler.get_commands("===== Global Commands ====="));
-
-    // Prints the active shell specific help
-    _shell->print_help("");
-
-    println("");
-    println("For help on a specific command use the command as \\? <command>");
-    println("");
-    auto globals = _shell->get_global_objects(interactive_mode());
-    std::vector<std::pair<std::string, std::string> > global_names;
-
-    if (globals.size()) {
-      for (auto name : globals) {
-        auto object_val = _shell->get_global(name);
-        auto object = std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(object_val.as_object());
-        global_names.push_back({name, object->class_name()});
-      }
-    }
-
-    // Inserts the default modules
-    if (interactive_mode() & shcore::IShell_core::Scripting) {
-      global_names.push_back({"mysqlx", "mysqlx"});
-      global_names.push_back({"mysql", "mysql"});
-    }
-
-    std::sort(global_names.begin(), global_names.end());
-
-    if (!global_names.empty()) {
-      println("===== Global Objects =====");
-      for (auto name : global_names) {
-        auto brief = shcore::get_help_text(name.second + "_INTERACTIVE_BRIEF");
-        if (brief.empty())
-          brief = shcore::get_help_text(name.second + "_BRIEF");
-
-        if (!brief.empty())
-          println((boost::format("%-10s %s") % name.first % brief[0]).str());
-      }
-    }
-
-    println();
-    println("Please note that MySQL Document Store APIs are subject to change in future");
-    println("releases.");
-    println("");
-    println("For more help on a global variable use <var>.help(), e.g. dba.help()");
-    println("");
-  }
-
-  return true;
-}
-
-bool Base_shell::cmd_start_multiline(const std::vector<std::string>& args) {
-  // This command is only available for SQL Mode
-  if (args.size() == 1 && _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
-    _input_mode = shcore::Input_state::ContinuedBlock;
-
-    return true;
-  }
-
-  return false;
-}
-
-bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
-  bool error = false;
-  bool uri = false;
-  _options.session_type = mysqlsh::SessionType::Auto;
-
-  // Holds the argument index for the target to which the session will be established
-  size_t target_index = 1;
-
-  if (args.size() > 1 && args.size() < 4) {
-    if (args.size() == 3) {
-      std::string arg_2 = args[2];
-      boost::trim(arg_2);
-
-      if (!arg_2.empty()) {
-        target_index++;
-        uri = true;
-      }
-    }
-
-    std::string arg = args[1];
-    boost::trim(arg);
-
-    if (arg.empty())
-      error = true;
-    else if (!arg.compare("-n") || !arg.compare("-N"))
-      _options.session_type = mysqlsh::SessionType::Node;
-    else if (!arg.compare("-c") || !arg.compare("-C"))
-      _options.session_type = mysqlsh::SessionType::Classic;
-    else {
-      if (args.size() == 3)
-        error = true;
-      else
-        uri = true;
-    }
-
-    if (!error) {
-      if (uri) {
-        /*if (args[target_index].find("$") == 0)
-          _options.app = args[target_index].substr(1);
-          else {
-          _options.app = "";*/
-        _options.uri = args[target_index];
-        //}
-      }
-      connect();
-    }
-  } else
-    error = true;
-
-  if (error)
-    print_error("\\connect [-<type>] <uri or $name>\n");
-
-  return true;
-}
-
-bool Base_shell::cmd_quit(const std::vector<std::string>& UNUSED(args)) {
-  _options.interactive = false;
-
-  return true;
-}
-
-bool Base_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args)) {
-  (*shcore::Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = shcore::Value::True();
-
-  println("Show warnings enabled.");
-
-  return true;
-}
-
-bool Base_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args)) {
-  (*shcore::Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = shcore::Value::False();
-
-  println("Show warnings disabled.");
-
-  return true;
-}
-
-bool Base_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
-  std::string version_msg("MySQL Shell Version ");
-  version_msg += MYSH_VERSION;
-  version_msg += "\n";
-  println(version_msg);
-
-  if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected()) {
-    shcore::Value raw_status = _shell->get_dev_session()->get_status(shcore::Argument_list());
-    std::string output_format = (*shcore::Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
-
-    if (output_format.find("json") == 0)
-      println(raw_status.json(output_format == "json"));
-    else {
-      shcore::Value::Map_type_ref status = raw_status.as_map();
-
-      std::string format = "%-30s%s";
-
-      if (status->has_key("STATUS_ERROR"))
-        println((boost::format(format) % "Error Retrieving Status: " % (*status)["STATUS_ERROR"].descr(true)).str());
-      else {
-        if (status->has_key("SESSION_TYPE"))
-          println((boost::format(format) % "Session type: " % (*status)["SESSION_TYPE"].descr(true)).str());
-
-        if (status->has_key("NODE_TYPE"))
-          println((boost::format(format) % "Server type: " % (*status)["NODE_TYPE"].descr(true)).str());
-
-        if (status->has_key("CONNECTION_ID"))
-          println((boost::format(format) % "Connection Id: " % (*status)["CONNECTION_ID"].descr(true)).str());
-
-        if (status->has_key("DEFAULT_SCHEMA"))
-          println((boost::format(format) % "Default schema: " % (*status)["DEFAULT_SCHEMA"].descr(true)).str());
-
-        if (status->has_key("CURRENT_SCHEMA"))
-          println((boost::format(format) % "Current schema: " % (*status)["CURRENT_SCHEMA"].descr(true)).str());
-
-        if (status->has_key("CURRENT_USER"))
-          println((boost::format(format) % "Current user: " % (*status)["CURRENT_USER"].descr(true)).str());
-
-        if (status->has_key("SSL_CIPHER"))
-          println((boost::format(format) % "SSL: Cipher in use: " % (*status)["SSL_CIPHER"].descr(true)).str());
-        else
-          println((boost::format(format) % "SSL:" % "Not in use.").str());
-
-        if (status->has_key("SERVER_VERSION"))
-          println((boost::format(format) % "Server version: " % (*status)["SERVER_VERSION"].descr(true)).str());
-
-        if (status->has_key("SERVER_INFO"))
-          println((boost::format(format) % "Server info: " % (*status)["SERVER_INFO"].descr(true)).str());
-
-        if (status->has_key("PROTOCOL_VERSION"))
-          println((boost::format(format) % "Protocol version: " % (*status)["PROTOCOL_VERSION"].descr(true)).str());
-
-        if (status->has_key("CONNECTION"))
-          println((boost::format(format) % "Connection: " % (*status)["CONNECTION"].descr(true)).str());
-
-        if (status->has_key("SERVER_CHARSET"))
-          println((boost::format(format) % "Server characterset: " % (*status)["SERVER_CHARSET"].descr(true)).str());
-
-        if (status->has_key("SCHEMA_CHARSET"))
-          println((boost::format(format) % "Schema characterset: " % (*status)["SCHEMA_CHARSET"].descr(true)).str());
-
-        if (status->has_key("CLIENT_CHARSET"))
-          println((boost::format(format) % "Client characterset: " % (*status)["CLIENT_CHARSET"].descr(true)).str());
-
-        if (status->has_key("CONNECTION_CHARSET"))
-          println((boost::format(format) % "Conn. characterset: " % (*status)["CONNECTION_CHARSET"].descr(true)).str());
-
-        if (status->has_key("SERVER_STATS")) {
-          std::string stats = (*status)["SERVER_STATS"].descr(true);
-          size_t start = stats.find(" ");
-          start++;
-          size_t end = stats.find(" ", start);
-
-          std::string time = stats.substr(start, end - start);
-          unsigned long ltime = boost::lexical_cast<unsigned long>(time);
-          std::string str_time = MySQL_timer::format_legacy(ltime, false, true);
-
-          println((boost::format(format) % "Up time: " % str_time).str());
-          println("");
-          println(stats.substr(end + 2));
-        }
-      }
-    }
-  } else
-    print_error("Not Connected.\n");
-
-  return true;
-}
-
-bool Base_shell::cmd_use(const std::vector<std::string>& args) {
-  std::string error;
-  if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected()) {
-    std::string real_param;
-
-    // If quoted, takes as param what's inside of the quotes
-    auto start = args[0].find_first_of("\"'`");
-    if (start != std::string::npos) {
-      std::string quote = args[0].substr(start, 1);
-
-      if (args[0].size() >= start) {
-        auto end = args[0].find(quote, start + 1);
-
-        if (end != std::string::npos)
-          real_param = args[0].substr(start + 1, end - start - 1);
-        else
-          error = "Mistmatched quote on command parameter: " + args[0].substr(start) + "\n";
-      }
-    } else if (args.size() == 2)
-      real_param = args[1];
-    else
-      error = "\\use <schema_name>\n";
-
-    if (error.empty()) {
-      try {
-        auto shell_global = _shell->get_global("shell");
-        shcore::Argument_list current_schema;
-        current_schema.push_back(shcore::Value(real_param));
-
-        shcore::Value schema = shell_global.as_object()->call("setCurrentSchema", current_schema);
-
-        auto session = _shell->get_dev_session();
-
-        if (session) {
-          auto session_type = session->class_name();
-          std::string message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
-
-          if (session_type == "ClassicSession")
-            message = "Schema set to `" + schema.as_object()->get_member("name").as_string() + "`.";
-          else
-            message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
-
-          println(message);
-        }
-      } catch (shcore::Exception &e) {
-        error = e.format();
-      }
-    }
-  } else
-    error = "Not Connected.\n";
-
-  if (!error.empty())
-    print_error(error);
-
-  return true;
-}
-
-bool Base_shell::do_shell_command(const std::string &line) {
-  // Verifies if the command can be handled by the active shell
-  bool handled = _shell->handle_shell_command(line);
-
-  // Global Command Processing (xShell specific)
-  if (!handled)
-    handled = _shell_command_handler.process(line);
-
-  return handled;
-}
-
 void Base_shell::process_line(const std::string &line) {
   bool handled_as_command = false;
   std::string to_history;
 
-  // check if the line is an escape/shell command
-  if (_input_buffer.empty() && !line.empty() && _input_mode == shcore::Input_state::Ok) {
+  if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty())
+    _input_mode = shcore::Input_state::Ok;
+
+  // Appends the line, no matter it is an empty line
+  _input_buffer.append(_shell->preprocess_input_line(line));
+
+  // Appends the new line if anything has been added to the buffer
+  if (!_input_buffer.empty())
+    _input_buffer.append("\n");
+
+  if (_input_mode != shcore::Input_state::ContinuedBlock && !_input_buffer.empty()) {
     try {
-      handled_as_command = do_shell_command(line);
+      _shell->handle_input(_input_buffer, _input_mode, _result_processor);
+
+      // Here we analyze the input mode as it was let after executing the code
+      if (_input_mode == shcore::Input_state::Ok) {
+        to_history = _shell->get_handled_input();
+      }
+    } catch (shcore::Exception &exc) {
+      _shell->print_value(shcore::Value(exc.error()), "error");
+      to_history = _input_buffer;
     } catch (std::exception &exc) {
       std::string error(exc.what());
       error += "\n";
       print_error(error);
+      to_history = _input_buffer;
     }
+
+    // TODO: Do we need this cleanup? i.e. in case of exceptions above??
+    // Clears the buffer if OK, if continued, buffer will contain
+    // the non executed code
+    if (_input_mode == shcore::Input_state::Ok)
+      _input_buffer.clear();
   }
 
-  if (handled_as_command)
-    to_history = line;
-  else {
-    if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty())
-      _input_mode = shcore::Input_state::Ok;
+  if (!to_history.empty())
+    notify_executed_statement(to_history);
+}
 
-    // Appends the line, no matter it is an empty line
-    _input_buffer.append(_shell->preprocess_input_line(line));
-
-    // Appends the new line if anything has been added to the buffer
-    if (!_input_buffer.empty())
-      _input_buffer.append("\n");
-
-    if (_input_mode != shcore::Input_state::ContinuedBlock && !_input_buffer.empty()) {
-      try {
-        _shell->handle_input(_input_buffer, _input_mode, _result_processor);
-
-        // Here we analyze the input mode as it was let after executing the code
-        if (_input_mode == shcore::Input_state::Ok) {
-          to_history = _shell->get_handled_input();
-        }
-      } catch (shcore::Exception &exc) {
-        _shell->print_value(shcore::Value(exc.error()), "error");
-        to_history = _input_buffer;
-      } catch (std::exception &exc) {
-        std::string error(exc.what());
-        error += "\n";
-        print_error(error);
-        to_history = _input_buffer;
-      }
-
-      // TODO: Do we need this cleanup? i.e. in case of exceptions above??
-      // Clears the buffer if OK, if continued, buffer will contain
-      // the non executed code
-      if (_input_mode == shcore::Input_state::Ok)
-        _input_buffer.clear();
-    }
-  }
-
-  if (!to_history.empty()) {
+void Base_shell::notify_executed_statement(const std::string& line) {
     shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
-    (*data)["statement"] = shcore::Value(to_history);
+    (*data)["statement"] = shcore::Value(line);
     shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr, data);
-  }
-
-  _shell->reconnect_if_needed();
 }
 
 void Base_shell::abort() {

@@ -25,7 +25,7 @@
 #include "scripting/common.h"
 #include "scripting/proxy_object.h"
 #include "utils/utils_general.h"
-#include "base_session.h"
+#include "shellcore/base_session.h"
 #include "mysqlxtest_utils.h"
 
 #include <boost/lexical_cast.hpp>

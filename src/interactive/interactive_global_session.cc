@@ -18,7 +18,9 @@
  */
 
 #include "interactive_global_session.h"
+#include "interactive_global_shell.h"
 #include "utils/utils_general.h"
+#include "modules/mod_shell.h"
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -38,7 +40,7 @@ void Global_session::resolve() const {
   "   1) MySQL Document Store Session through X Protocol\n"\
   "   2) Classic MySQL Session\n\n"\
   "Please select the session type or ENTER to cancel: ";
-  
+
   if (prompt(message, answer)) {
     if (!answer.empty() && answer.length() == 1) {
       mysqlsh::SessionType type;
@@ -69,12 +71,18 @@ void Global_session::resolve() const {
             shcore::Argument_list args;
             args.push_back(shcore::Value(connection_data));
 
-            _shell_core.connect_dev_session(args, type);
+            auto session = mysqlsh::Shell::connect_session(args, type);
+
+            // Since this is an interactive global,
+            // it means the shell global is also interactive
+            auto shell_global = _shell_core.get_global("shell").as_object<Global_shell>();
+            auto shell_object = std::dynamic_pointer_cast<mysqlsh::Shell>(shell_global->get_target());
+            shell_object->set_dev_session(session);
           }
         }
       }
     }
-    
+
     if(error)
       print("Invalid session type\n");
   }

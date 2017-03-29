@@ -18,7 +18,7 @@
  */
 
 #include "shellcore/shell_sql.h"
-#include "../modules/base_session.h"
+#include "shellcore/base_session.h"
 #include "../modules/mod_mysql_session.h"
 #include "../modules/mod_mysqlx_session.h"
 #include <boost/format.hpp>
@@ -52,7 +52,7 @@ Shell_sql::Shell_sql(IShell_core *owner)
 
 Value Shell_sql::process_sql(const std::string &query_str,
     mysql::splitter::Delimiters::delim_type_t delimiter,
-    std::shared_ptr<mysqlsh::ShellDevelopmentSession> session,
+    std::shared_ptr<mysqlsh::ShellBaseSession> session,
     std::function<void(shcore::Value)> result_processor) {
   Value ret_val;
   try {
@@ -192,12 +192,8 @@ std::string Shell_sql::prompt() {
     std::string node_type = "mysql";
     std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
 
-    if (session) {
-      shcore::Value st = session->get_capability("node_type");
-
-      if (st)
-        node_type = st.as_string();
-    }
+    if (session)
+      node_type = session->get_node_type();
 
     return node_type + "-sql> ";
   }

@@ -19,7 +19,7 @@
 
 #include <algorithm>
 #include "modules/adminapi/mod_dba_sql.h"
-#include "modules/base_session.h"
+#include "modules/mod_shell.h"
 #include "modules/mod_mysql_session.h"
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
@@ -48,7 +48,7 @@ protected:
     shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_info);
     std::string mysql_uri = "mysql://";
     shcore::Argument_list session_args;
-    std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+    std::shared_ptr<mysqlsh::ShellBaseSession> session;
     mysqlsh::mysql::ClassicSession *classic;
     std::string have_ssl;
     _have_ssl = false;
@@ -65,7 +65,7 @@ protected:
     session_args.push_back(Value(mysql_uri));
     try {
       output_handler.debug_print("Connecting to the base server...");
-      session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
+      session = mysqlsh::Shell::connect_session(session_args, mysqlsh::SessionType::Classic);
       output_handler.debug_print("Connection succeeded...");
 
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
@@ -73,8 +73,7 @@ protected:
                                         have_ssl);
       std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
       _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
-      shcore::Argument_list args;
-      classic->close(args);
+      classic->close();
 
     } catch(shcore::Exception &e){
       std::string error ("Connection to the base server failed: ");

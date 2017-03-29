@@ -18,6 +18,8 @@
  */
 
 #include "interactive_global_schema.h"
+#include "interactive_global_shell.h"
+#include "modules/mod_shell.h"
 using namespace shcore;
 
 void Global_schema::resolve() const {
@@ -32,11 +34,11 @@ void Global_schema::resolve() const {
           if (answer.empty())
             throw shcore::Exception::argument_error("Invalid schema specified.");
           else {
-            auto shell_global = _shell_core.get_global("shell");
-            shcore::Argument_list current_schema;
-            current_schema.push_back(shcore::Value(answer));
-
-            shcore::Value schema = shell_global.as_object()->call("setCurrentSchema", current_schema);
+            // Since this is an interactive global,
+            // it means the shell global is also interactive
+            auto shell_global = _shell_core.get_global("shell").as_object<Global_shell>();
+            auto shell_object = std::dynamic_pointer_cast<mysqlsh::Shell>(shell_global->get_target());
+            shell_object->set_current_schema(answer);
           }
         }
       }

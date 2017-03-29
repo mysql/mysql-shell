@@ -24,7 +24,7 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "base_session.h"
+#include "shellcore/base_session.h"
 #include "mod_mysqlx_session_handle.h"
 #include "mysqlxtest/mysqlx.h"
 
@@ -59,7 +59,7 @@ class Schema;
 * \sa mysqlx.getNodeSession(String connectionData, String password)
 * \sa mysqlx.getNodeSession(Map connectionData, String password)
 */
-class SHCORE_PUBLIC BaseSession : public ShellDevelopmentSession {
+class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
 public:
 #if DOXYGEN_JS
   String uri; //!< Same as getUri()
@@ -106,28 +106,41 @@ private:
 
   BaseSession();
   BaseSession(const BaseSession& s);
-  virtual ~BaseSession() { reset_session(); }
+  virtual ~BaseSession();
 
-  virtual shcore::Value connect(const shcore::Argument_list &args);
-  virtual shcore::Value close(const shcore::Argument_list &args);
+  virtual void connect(const shcore::Argument_list &args);
+  virtual void close();
+  virtual void create_schema(const std::string& name);
+  virtual void drop_schema(const std::string &name);
+  virtual void set_current_schema(const std::string &name);
+  virtual shcore::Object_bridge_ref get_schema(const std::string &name) const;
+  virtual void start_transaction();
+  virtual void commit();
+  virtual void rollback();
+
+  shcore::Value _close(const shcore::Argument_list &args);
   virtual shcore::Value sql(const shcore::Argument_list &args);
-  virtual shcore::Value create_schema(const shcore::Argument_list &args);
-  virtual shcore::Value startTransaction(const shcore::Argument_list &args);
-  virtual shcore::Value commit(const shcore::Argument_list &args);
-  virtual shcore::Value rollback(const shcore::Argument_list &args);
-  virtual shcore::Value drop_schema(const shcore::Argument_list &args);
-  virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
+  virtual shcore::Value _create_schema(const shcore::Argument_list &args);
+  virtual shcore::Value _start_transaction(const shcore::Argument_list &args);
+  virtual shcore::Value _commit(const shcore::Argument_list &args);
+  virtual shcore::Value _rollback(const shcore::Argument_list &args);
+  shcore::Value _drop_schema(const shcore::Argument_list &args);
+  shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
+  shcore::Value _is_open(const shcore::Argument_list &args);
 
   shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
-  virtual shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
+  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const;
+  shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
+
+  // This function will be removed when ISession is implemented
   std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
-  virtual bool is_connected() const;
-  virtual shcore::Value get_status(const shcore::Argument_list &args);
-  virtual shcore::Value get_capability(const std::string& name);
+  virtual bool is_open() const;
+  virtual shcore::Value::Map_type_ref get_status();
+  virtual std::string get_node_type();
 
-  virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
+  shcore::Value _get_schema(const shcore::Argument_list &args) const;
 
-  virtual shcore::Value get_schemas(const shcore::Argument_list &args) const;
+  shcore::Value get_schemas(const shcore::Argument_list &args) const;
 
   virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
 
@@ -145,7 +158,11 @@ private:
 
 protected:
   shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
-  virtual std::shared_ptr<BaseSession> _get_shared_this() const = 0;
+
+  // Default implementation returns an empty pointer
+  // This is required because close() is called from the destructor
+  // Meaning the _get_shared_this() virtuality takes no effect
+  virtual std::shared_ptr<BaseSession> _get_shared_this() const { return std::shared_ptr<BaseSession>();}
   std::string _retrieve_current_schema();
 
   virtual int get_default_port() { return 33060; };
@@ -155,8 +172,6 @@ protected:
   bool _case_sensitive_table_names;
   void init();
   uint64_t _connection_id;
-private:
-  void reset_session();
 };
 
 /**
@@ -215,7 +230,7 @@ public:
   shcore::Value sql(const shcore::Argument_list &args);
   shcore::Value quote_name(const shcore::Argument_list &args);
 
-  shcore::Value set_current_schema(const shcore::Argument_list &args);
+  shcore::Value _set_current_schema(const shcore::Argument_list &args);
 protected:
   void init();
 };

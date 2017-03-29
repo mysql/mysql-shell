@@ -21,7 +21,7 @@
 #include "utils/utils_general.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/mysqlxtest_utils.h"
-#include "modules/base_session.h"
+#include "shellcore/base_session.h"
 
 using namespace std::placeholders;
 

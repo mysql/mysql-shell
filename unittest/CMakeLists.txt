@@ -50,6 +50,11 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/boost_code.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/get_password.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/shell_cmdline_options.cc"
+        "${CMAKE_SOURCE_DIR}/src/mysqlsh/mysql_shell.cc"
+
+        # NOTE: these sources are required because Mysql_shell is not part of a library used by the test system
+        # but is ont the application level. At some point we should put Mysql_shell available in a alibrary
+        # to be integrable as Full Shell Functionality
         "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_dba.cc"
         "${CMAKE_SOURCE_DIR}/src/interactive/interactive_dba_cluster.cc"
         "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_schema.cc"

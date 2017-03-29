@@ -17,28 +17,20 @@
  * 02110-1301  USA
  */
 
-#include "base_session.h"
+#include "shellcore/base_session.h"
 
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "scripting/lang_base.h"
 #include "scripting/common.h"
-#include "shellcore/shell_notifications.h"
 
 #include "scripting/proxy_object.h"
-#include "modules/base_database_object.h"
 
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
-#include "mysqlxtest_utils.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-
-#ifdef HAVE_LIBMYSQLCLIENT
-#include "mod_mysql_session.h"
-#endif
-#include "mod_mysqlx_session.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -47,88 +39,19 @@ using namespace mysqlsh;
 using namespace shcore;
 
 
-std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session(
-    const std::string &uri, const std::string &password, SessionType session_type) {
-  Argument_list args;
 
-  args.push_back(Value(shcore::get_connection_data(uri, true)));
-  (*args.map_at(0))["password"] = Value(password);
-
-  return connect_session(args, session_type);
-}
-
-std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session(const shcore::Argument_list &args, SessionType session_type) {
-  std::shared_ptr<ShellDevelopmentSession> ret_val;
-
-  mysqlsh::SessionType type(session_type);
-
-  // Automatic protocol detection is ON
-  // Attempts X Protocol first, then Classic
-  if (type == mysqlsh::SessionType::Auto) {
-    ret_val.reset(new mysqlsh::mysqlx::NodeSession());
-    try {
-      ret_val->connect(args);
-
-      ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
-
-      return ret_val;
-    } catch (shcore::Exception &e) {
-      // Unknown message received from server indicates an attempt to create
-      // And X Protocol session through the MySQL protocol
-      int code = 0;
-      if (e.error()->has_key("code"))
-        code = e.error()->get_int("code");
-
-      if (code == 2027 || // Unknown message received from server 10
-         code == 2002)    // No connection could be made because the target machine actively refused it connecting to host:port
-        type = mysqlsh::SessionType::Classic;
-      else
-        throw;
-    }
-  }
-
-  switch (type) {
-    case mysqlsh::SessionType::X:
-      ret_val.reset(new mysqlsh::mysqlx::XSession());
-      break;
-    case mysqlsh::SessionType::Node:
-      ret_val.reset(new mysqlsh::mysqlx::NodeSession());
-      break;
-#ifdef HAVE_LIBMYSQLCLIENT
-    case mysqlsh::SessionType::Classic:
-      ret_val.reset(new mysql::ClassicSession());
-      break;
-#endif
-    default:
-      throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
-      break;
-  }
-
-  ret_val->connect(args);
-
-  ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
-
-  return ret_val;
-}
 
 ShellBaseSession::ShellBaseSession() :
-_port(0) {
-  init();
+_port(0), _tx_deep(0) {
 }
 
 ShellBaseSession::ShellBaseSession(const ShellBaseSession& s) :
 _user(s._user), _password(s._password), _host(s._host), _port(s._port), _sock(s._sock), _schema(s._schema),
-_ssl_info(s._ssl_info) {
-  init();
-}
-
-void ShellBaseSession::init() {
-  add_property("uri", "getUri");
-  add_method("isOpen", std::bind(&ShellBaseSession::is_open, this, _1), NULL);
+_ssl_info(s._ssl_info), _tx_deep(s._tx_deep) {
 }
 
 std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {
-  if (!is_connected())
+  if (!is_open())
     s_out.append("<" + class_name() + ":disconnected>");
   else
     s_out.append("<" + class_name() + ":" + _uri + ">");
@@ -143,33 +66,12 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   dumper.append_string("class", class_name());
-  dumper.append_bool("connected", is_connected());
+  dumper.append_bool("connected", is_open());
 
-  if (is_connected())
+  if (is_open())
     dumper.append_string("uri", _uri);
 
   dumper.end_object();
-}
-
-#if DOXYGEN_CPP
-/**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
- *
- * \li uri: returns a String object with connection information in URI format.
- */
-#endif
-shcore::Value ShellBaseSession::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
-
-  if (prop == "uri")
-    ret_val = shcore::Value(_uri);
-  else
-    ret_val = Cpp_object_bridge::get_member(prop);
-
-  return ret_val;
 }
 
 void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
@@ -346,12 +248,6 @@ std::string ShellBaseSession::get_quoted_name(const std::string& name) {
   return quoted_name;
 }
 
-shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("isOpen").c_str());
-
-  return shcore::Value(is_connected());
-}
-
 std::string ShellBaseSession::address() {
   std::string res;
   if (!_sock.empty())
@@ -371,90 +267,23 @@ void ShellBaseSession::reconnect() {
   connect(args);
 }
 
-ShellDevelopmentSession::ShellDevelopmentSession() :
-ShellBaseSession() {
-  init();
-}
+shcore::Object_bridge_ref ShellBaseSession::get_schema(const std::string &name) const {
+  shcore::Object_bridge_ref ret_val;
+  std::string type = "Schema";
 
-ShellDevelopmentSession::ShellDevelopmentSession(const ShellDevelopmentSession& s) :
-ShellBaseSession(s) {
-  init();
-}
+  if (name.empty())
+    throw Exception::runtime_error("Schema name must be specified");
 
-#if DOXYGEN_CPP
-/**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
- *
- * \li defaultSchema: returns Schema or ClassicSchema object representing the default schema defined on the connectio ninformatio used to create the session. If none was specified, returns Null.
- */
-#endif
-shcore::Value ShellDevelopmentSession::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
+  std::string found_name = db_object_exists(type, name, "");
 
-  if (prop == "defaultSchema") {
-    if (!_default_schema.empty()) {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(_default_schema));
-      ret_val = get_schema(args);
-    } else
-      ret_val = Value::Null();
-  } else
-    ret_val = ShellBaseSession::get_member(prop);
+  if (!found_name.empty()) {
+    update_schema_cache(found_name, true);
 
-  return ret_val;
-}
+    ret_val = (*_schemas)[found_name].as_object();
+  } else {
+    update_schema_cache(name, false);
 
-void ShellDevelopmentSession::init() {
-  add_property("defaultSchema", "getDefaultSchema");
-
-  add_method("createSchema", std::bind(&ShellDevelopmentSession::create_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getSchema", std::bind(&ShellDevelopmentSession::get_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getSchemas", std::bind(&ShellDevelopmentSession::get_schemas, this, _1), NULL);
-
-  _tx_deep = 0;
-}
-
-void ShellDevelopmentSession::start_transaction() {
-  if (_tx_deep == 0)
-    execute_sql("start transaction", shcore::Argument_list());
-
-  _tx_deep++;
-}
-
-void ShellDevelopmentSession::commit() {
-  _tx_deep--;
-
-  assert(_tx_deep >= 0);
-
-  if (_tx_deep == 0)
-    execute_sql("commit", shcore::Argument_list());
-}
-
-void ShellDevelopmentSession::rollback() {
-  _tx_deep--;
-
-  assert(_tx_deep >= 0);
-
-  if (_tx_deep == 0)
-    execute_sql("rollback", shcore::Argument_list());
-}
-
-// Returns a schema from the cache if found
-shcore::Value ShellDevelopmentSession::get_cached_schema(const std::string &name) {
-  shcore::Value ret_val;
-
-  if (_schemas->find(name) != _schemas->end()) {
-    ret_val = (*_schemas)[name];
-
-    // If a default schems is available on the session
-    // the internal cache must be updated
-    if (ret_val) {
-      auto schema = ret_val.as_object<mysqlsh::DatabaseObject>();
-      schema->update_cache();
-    }
+    throw Exception::runtime_error("Unknown database '" + name + "'");
   }
 
   return ret_val;
