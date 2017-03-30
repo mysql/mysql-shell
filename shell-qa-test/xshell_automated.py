@@ -64,7 +64,7 @@ def read_line(p):
             break
     return data
 
-@timeout(10)
+@timeout(15)
 def read_til_getShell(p):
     globalvar.last_found=""
     data = []
