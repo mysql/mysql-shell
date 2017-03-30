@@ -476,51 +476,51 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
         println(shcore::str_format(format.c_str(), "Error Retrieving Status: ", (*status)["STATUS_ERROR"].descr(true).c_str()));
       else {
         if (status->has_key("SESSION_TYPE"))
-          println(shcore::str_format(format.c_str(), "Session type: ", (*status)["SESSION_TYPE"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Session type: ", (*status)["SESSION_TYPE"].descr(true).c_str()));
 
         if (status->has_key("NODE_TYPE"))
-          println(shcore::str_format(format.c_str(), "Server type: ", (*status)["NODE_TYPE"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Server type: ", (*status)["NODE_TYPE"].descr(true).c_str()));
 
         if (status->has_key("CONNECTION_ID"))
-          println(shcore::str_format(format.c_str(), "Connection Id: ", (*status)["CONNECTION_ID"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Connection Id: ", (*status)["CONNECTION_ID"].descr(true).c_str()));
 
         if (status->has_key("DEFAULT_SCHEMA"))
-          println(shcore::str_format(format.c_str(), "Default schema: ", (*status)["DEFAULT_SCHEMA"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Default schema: ", (*status)["DEFAULT_SCHEMA"].descr(true).c_str()));
 
         if (status->has_key("CURRENT_SCHEMA"))
-          println(shcore::str_format(format.c_str(), "Current schema: ", (*status)["CURRENT_SCHEMA"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Current schema: ", (*status)["CURRENT_SCHEMA"].descr(true).c_str()));
 
         if (status->has_key("CURRENT_USER"))
-          println(shcore::str_format(format.c_str(), "Current user: ", (*status)["CURRENT_USER"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Current user: ", (*status)["CURRENT_USER"].descr(true).c_str()));
 
         if (status->has_key("SSL_CIPHER"))
-          println(shcore::str_format(format.c_str(), "SSL: Cipher in use: ", (*status)["SSL_CIPHER"].descr(true)));
+          println(shcore::str_format(format.c_str(), "SSL: Cipher in use: ", (*status)["SSL_CIPHER"].descr(true).c_str()));
         else
           println(shcore::str_format(format.c_str(), "SSL:", "Not in use."));
 
         if (status->has_key("SERVER_VERSION"))
-          println(shcore::str_format(format.c_str(), "Server version: ", (*status)["SERVER_VERSION"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Server version: ", (*status)["SERVER_VERSION"].descr(true).c_str()));
 
         if (status->has_key("SERVER_INFO"))
-          println(shcore::str_format(format.c_str(), "Server info: ", (*status)["SERVER_INFO"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Server info: ", (*status)["SERVER_INFO"].descr(true).c_str()));
 
         if (status->has_key("PROTOCOL_VERSION"))
-          println(shcore::str_format(format.c_str(), "Protocol version: ", (*status)["PROTOCOL_VERSION"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Protocol version: ", (*status)["PROTOCOL_VERSION"].descr(true).c_str()));
 
         if (status->has_key("CONNECTION"))
-          println(shcore::str_format(format.c_str(), "Connection: ", (*status)["CONNECTION"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Connection: ", (*status)["CONNECTION"].descr(true).c_str()));
 
         if (status->has_key("SERVER_CHARSET"))
-          println(shcore::str_format(format.c_str(), "Server characterset: ", (*status)["SERVER_CHARSET"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Server characterset: ", (*status)["SERVER_CHARSET"].descr(true).c_str()));
 
         if (status->has_key("SCHEMA_CHARSET"))
-          println(shcore::str_format(format.c_str(), "Schema characterset: ", (*status)["SCHEMA_CHARSET"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Schema characterset: ", (*status)["SCHEMA_CHARSET"].descr(true).c_str()));
 
         if (status->has_key("CLIENT_CHARSET"))
-          println(shcore::str_format(format.c_str(), "Client characterset: ", (*status)["CLIENT_CHARSET"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Client characterset: ", (*status)["CLIENT_CHARSET"].descr(true).c_str()));
 
         if (status->has_key("CONNECTION_CHARSET"))
-          println(shcore::str_format(format.c_str(), "Conn. characterset: ", (*status)["CONNECTION_CHARSET"].descr(true)));
+          println(shcore::str_format(format.c_str(), "Conn. characterset: ", (*status)["CONNECTION_CHARSET"].descr(true).c_str()));
 
         if (status->has_key("SERVER_STATS")) {
           std::string stats = (*status)["SERVER_STATS"].descr(true);
