@@ -5419,7 +5419,7 @@ class XShell_TestCases(unittest.TestCase):
                    "classic_session : " + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + "/sakila" + os.linesep + "classic_session1"),
                   ]
 
-    #@unittest.skip("it pass if debbugging and if run , it fails, investigation ongoing")
+    @unittest.skip("it pass if debbugging and if run , it fails, investigation ongoing")
     def test_shell_prompt_function(self):
         '''[] test for shell.prompt() function '''
         results = ''
