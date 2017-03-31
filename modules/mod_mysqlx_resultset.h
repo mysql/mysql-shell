@@ -32,6 +32,7 @@ class Result;
 namespace mysqlsh {
 namespace mysqlx {
 /**
+* \ingroup XDevAPI
 * $(BASERESULT_BRIEF)
 */
 class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
@@ -77,6 +78,7 @@ protected:
 };
 
 /**
+* \ingroup XDevAPI
 * $(RESULT_BRIEF)
 *
 * $(RESULT_DETAIL)
@@ -125,6 +127,7 @@ public:
 };
 
 /**
+* \ingroup XDevAPI
 * $(DOCRESULT_BRIEF)
 */
 class SHCORE_PUBLIC DocResult : public BaseResult {
@@ -154,6 +157,7 @@ private:
 };
 
 /**
+* \ingroup XDevAPI
 * $(ROWRESULT_BRIEF)
 */
 class SHCORE_PUBLIC RowResult : public BaseResult {
@@ -204,6 +208,7 @@ private:
 };
 
 /**
+* \ingroup XDevAPI
 * $(SQLRESULT_BRIEF)
 */
 class SHCORE_PUBLIC SqlResult : public RowResult {

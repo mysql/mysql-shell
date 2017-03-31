@@ -32,6 +32,7 @@ namespace mysql {
 class ClassicSchema;
 
 /**
+* \ingroup ShellAPI
 * $(CLASSICTABLE_BRIEF)
 */
 class ClassicTable : public DatabaseObject {

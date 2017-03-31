@@ -34,6 +34,7 @@ class Result;
 class Row;
 
 /**
+* \ingroup ShellAPI
 * $(CLASSICRESULT_BRIEF)
 *
 * $(CLASSICRESULT_DETAIL)

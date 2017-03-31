@@ -25,6 +25,8 @@
 namespace mysqlsh {
 
 /**
+  *\defgroup mysqlx mysqlx
+  *\ingroup XDevAPI
   * $(MYSQLX_BRIEF)
   *
   * $(MYSQLX_DETAIL)

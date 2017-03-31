@@ -29,6 +29,7 @@ namespace mysqlsh {
 namespace mysqlx {
 class NodeSession;
 /**
+* \ingroup XDevAPI
 * $(SQLEXECUTE_BRIEF)
 *
 * $(SQLEXECUTE_DETAIL)

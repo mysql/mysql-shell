@@ -38,6 +38,7 @@ namespace mysqlx {
 class Schema;
 
 /**
+* \ingroup XDevAPI
 * $(TABLE_BRIEF)
 */
 class Table : public DatabaseObject, public std::enable_shared_from_this<Table> {

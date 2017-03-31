@@ -37,6 +37,7 @@ class DatabaseObject;
 namespace mysqlx {
 class Schema;
 /**
+* \ingroup XDevAPI
 * $(BASESESSION_BRIEF)
 *
 * $(BASESESSION_DETAIL)
@@ -180,6 +181,7 @@ public:
 };
 
 /**
+* \ingroup XDevAPI
 * $(NODESESSION_BRIEF)
 *
 * $(NODESESSION_DETAIL)

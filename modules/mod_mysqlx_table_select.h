@@ -30,6 +30,7 @@ namespace mysqlx {
 class Table;
 
 /**
+* \ingroup XDevAPI
 * Handler for record selection on a Table.
 *
 * This object provides the necessary functions to allow selecting record data from a table.

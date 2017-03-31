@@ -30,6 +30,7 @@
 namespace mysqlsh {
 namespace mysqlx {
 /**
+* \ingroup mysqlx
 * Constants to represent data types con Column objects
 *
 * Supported Data Types
@@ -67,6 +68,7 @@ public:
 };
 
 /**
+* \ingroup mysqlx
 * Constants to represent index types
 *
 * Supported Index Types

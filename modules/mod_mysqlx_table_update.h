@@ -30,6 +30,7 @@ namespace mysqlx {
 class Table;
 
 /**
+* \ingroup XDevAPI
 * Handler for record update operations on a Table.
 *
 * This object provides the necessary functions to allow updating records on a table.

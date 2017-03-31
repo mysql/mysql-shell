@@ -36,8 +36,10 @@
 namespace mysqlsh {
 namespace mysqlx {
 class Schema;
-
-//! Represents a Collection on an Schema, retrieved with session created using the mysqlx module.
+/**
+ * Represents a Collection on an Schema, retrieved with session created using the mysqlx module.
+ * \ingroup XDevAPI
+ */
 class Collection : public DatabaseObject, public std::enable_shared_from_this<Collection> {
 public:
   Collection(std::shared_ptr<Schema> owner, const std::string &name);
