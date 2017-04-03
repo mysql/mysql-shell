@@ -109,6 +109,35 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 include(CheckCXXSourceCompiles)
 SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
 
+SET(CMAKE_REQUIRED_INCLUDES ${Boost_INCLUDE_DIRS})
+
+SET(BOOST_SOURCE
+"
+#define BOOST_ERROR_CODE_HEADER_ONLY
+#include <boost/system/error_code.hpp>
+int main()
+{
+ boost::system::error_code error;
+ return error.value();
+}
+")
+
+SET(BOOST_SYSTEM_COMPILES "BOOST_SYSTEM_COMPILES")
+
+CHECK_CXX_SOURCE_COMPILES("${BOOST_SOURCE}" BOOST_SYSTEM_COMPILES)
+
+if (BOOST_SYSTEM_COMPILES)
+  set(BOOST_SOURCE_CODE "${PROJECT_SOURCE_DIR}/src/mysqlsh/boost_code.cc")
+else()
+  message(STATUS "Boost requires linkage")
+  set(BOOST_LIBRARIES boost_system)
+endif()
+
+# disable optimization for boost error_code, otherwise we get link errors in Release builds
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/shell/mysqlsh/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
+endif ()
+
 ##
 ## Installation location
 ##

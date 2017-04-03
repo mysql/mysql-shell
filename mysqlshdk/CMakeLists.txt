@@ -32,7 +32,7 @@ add_subdirectory(shellcore)
 merge_libraries(mysqlshdk-static STATIC
     utils
     scripting
-    shellcore)
+    shellcore NOINSTALL)
 
   #target_link_libraries(mysqlshdk
   #          mysqlxtest

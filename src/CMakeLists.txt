@@ -24,35 +24,6 @@ include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
                     "${CMAKE_SOURCE_DIR}/src/mysqlsh/libedit")
 
-SET(BOOST_SOURCE
-"
-#define BOOST_ERROR_CODE_HEADER_ONLY
-#include <boost/system/error_code.hpp>
-int main()
-{
- boost::system::error_code error;
- return error.value();
-}
-")
-
-
-SET(BOOST_SYSTEM_COMPILES "BOOST_SYSTEM_COMPILES")
-
-CHECK_CXX_SOURCE_COMPILES("${BOOST_SOURCE}" BOOST_SYSTEM_COMPILES)
-
-if (BOOST_SYSTEM_COMPILES)
-  set(BOOST_SOURCE_CODE "${PROJECT_SOURCE_DIR}/src/mysqlsh/boost_code.cc")
-else()
-  message(STATUS "Boost requires linkage")
-  set(BOOST_LIBRARIES boost_system)
-endif()
-
-# disable optimization for boost error_code, otherwise we get link errors in Release builds
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/shell/mysqlsh/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
-endif ()
-
-
 set(mysh_SRC
     mysqlsh/main.cc
     mysqlsh/get_password.cc
@@ -79,7 +50,7 @@ if(WIN32)
 endif()
 
 add_executable(mysqlsh ${mysh_SRC} ${BOOST_SOURCE_CODE})
-set_target_properties(mysqlsh PROPERTIES OUTPUT_NAME ${CMAKE_BINARY_DIR}/mysqlsh)
+set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 if(WIN32)
   if(NOT WINDOWS_RUNTIME_MD)
