@@ -22,6 +22,7 @@ IF(CMAKE_VERSION VERSION_EQUAL "3.0.0" OR
   CMAKE_POLICY(SET CMP0026 OLD)
   CMAKE_POLICY(SET CMP0045 OLD)
   CMAKE_POLICY(SET CMP0042 OLD)
+
 ENDIF()
 
 set(CMAKE_MODULE_PATH
@@ -237,6 +238,9 @@ IF(WITH_TESTS)
   ###
   include(testing)
   SETUP_TESTING()
+ENDIF()
+
+IF(WITH_TESTS)
   add_subdirectory(unittest)
   add_subdirectory(shell-tests)
   CONFIGURE_FILE(CTestCustom.cmake   ${CMAKE_BINARY_DIR}/CTestCustom.cmake)

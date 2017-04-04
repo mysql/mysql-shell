@@ -13,9 +13,10 @@ MACRO(SETUP_TESTING)
     IF(WITH_COVERAGE)
         MESSAGE(STATUS "Enabling coverage support for gcc")
 
-        ADD_DEFINITIONS("-g -O0 -Wall -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage")
+        #ADD_DEFINITIONS("-g -O0 -Wall -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage")
+        ADD_DEFINITIONS("-g -O0 -fprofile-arcs -ftest-coverage")
 
-        SET(GCOV_LDFLAGS "-fprofile-arcs -ftest-coverage")
+        SET(GCOV_LDFLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
     ENDIF(WITH_COVERAGE)
 
 ENDMACRO(SETUP_TESTING)

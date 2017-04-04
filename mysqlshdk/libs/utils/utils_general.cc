@@ -37,6 +37,7 @@
 #include <cctype>
 
 #include <boost/format.hpp>
+#include "utils_connection.h"
 
 namespace shcore {
 bool is_valid_identifier(const std::string& name) {
@@ -104,7 +105,7 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
     }
 
     bool has_ssl = false;
-    struct SslInfo ssl_info;
+    mysqlshdk::utils::Ssl_info ssl_info;
 
     if (data->has_key(kSslCa)) {
       ssl_info.ca = (*data)[kSslCa].as_string();
@@ -160,46 +161,46 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
   return uri;
 }
 
-void conn_str_cat_ssl_data(std::string& uri, const SslInfo &ssl_info) {
+void conn_str_cat_ssl_data(std::string& uri, const mysqlshdk::utils::Ssl_info &ssl_info) {
 
   std::string uri_tmp;
-  if (!ssl_info.ca.empty())
-    uri_tmp.append(kSslCa).append("=").append(ssl_info.ca);
+  if (!ssl_info.ca.is_null())
+    uri_tmp.append(kSslCa).append("=").append(*ssl_info.ca);
 
-  if (!ssl_info.capath.empty()) {
+  if (!ssl_info.capath.is_null()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
-    uri_tmp.append(kSslCaPath).append("=").append(ssl_info.capath);
+    uri_tmp.append(kSslCaPath).append("=").append(*ssl_info.capath);
   }
 
-  if (!ssl_info.cert.empty()) {
+  if (!ssl_info.cert.is_null()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
-    uri_tmp.append(kSslCert).append("=").append(ssl_info.cert);
+    uri_tmp.append(kSslCert).append("=").append(*ssl_info.cert);
   }
 
-  if (!ssl_info.key.empty()) {
+  if (!ssl_info.key.is_null()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
-    uri_tmp.append(kSslKey).append("=").append(ssl_info.key);
+    uri_tmp.append(kSslKey).append("=").append(*ssl_info.key);
   }
 
-  if (!ssl_info.ciphers.empty()) {
+  if (!ssl_info.ciphers.is_null()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
-    uri_tmp.append(kSslCiphers).append("=").append(ssl_info.ciphers);
+    uri_tmp.append(kSslCiphers).append("=").append(*ssl_info.ciphers);
   }
 
-  if (!ssl_info.crl.empty()) {
+  if (!ssl_info.crl.is_null()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
-    uri_tmp.append(kSslCrl).append("=").append(ssl_info.crl);
+    uri_tmp.append(kSslCrl).append("=").append(*ssl_info.crl);
   }
 
-  if (!ssl_info.crlpath.empty()) {
+  if (!ssl_info.crlpath.is_null()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
-    uri_tmp.append(kSslCrlPath).append("=").append(ssl_info.crlpath);
+    uri_tmp.append(kSslCrlPath).append("=").append(*ssl_info.crlpath);
   }
 
   if (ssl_info.mode != 0) {
@@ -208,10 +209,10 @@ void conn_str_cat_ssl_data(std::string& uri, const SslInfo &ssl_info) {
     uri_tmp.append(kSslMode).append("=").append(shcore::MapSslModeNameToValue::get_value(ssl_info.mode));
   }
 
-  if (!ssl_info.tls_version.empty()) {
+  if (!ssl_info.tls_version.is_null()) {
     if (!uri_tmp.empty())
       uri_tmp.append("&");
-    uri_tmp.append(kSslTlsVersion).append("=").append(ssl_info.tls_version);
+    uri_tmp.append(kSslTlsVersion).append("=").append(*ssl_info.tls_version);
   }
 
   if (!uri_tmp.empty())  {
@@ -223,7 +224,7 @@ void conn_str_cat_ssl_data(std::string& uri, const SslInfo &ssl_info) {
 void parse_mysql_connstring(const std::string &connstring,
                             std::string &scheme, std::string &user, std::string &password,
                             std::string &host, int &port, std::string &sock,
-                            std::string &db, int &pwd_found, struct SslInfo& ssl_info,
+                            std::string &db, int &pwd_found, struct mysqlshdk::utils::Ssl_info& ssl_info,
                             bool set_defaults) {
   try {
     uri::Uri_parser parser;
@@ -256,43 +257,27 @@ void parse_mysql_connstring(const std::string &connstring,
 
     if (data.has_attribute(kSslCa))
       ssl_info.ca = data.get_attribute(kSslCa);
-    else
-      ssl_info.ca = "";
 
     if (data.has_attribute(kSslCert))
       ssl_info.cert = data.get_attribute(kSslCert);
-    else
-      ssl_info.cert = "";
 
     if (data.has_attribute(kSslKey))
       ssl_info.key = data.get_attribute(kSslKey);
-    else
-      ssl_info.key = "";
 
     if (data.has_attribute(kSslCaPath))
       ssl_info.capath = data.get_attribute(kSslCaPath);
-    else
-      ssl_info.capath = "";
 
     if (data.has_attribute(kSslCrl))
       ssl_info.crl = data.get_attribute(kSslCrl);
-    else
-      ssl_info.crl = "";
 
     if (data.has_attribute(kSslCrlPath))
       ssl_info.crlpath = data.get_attribute(kSslCrlPath);
-    else
-      ssl_info.crlpath = "";
 
     if (data.has_attribute(kSslCiphers))
       ssl_info.ciphers = data.get_attribute(kSslCiphers);
-    else
-      ssl_info.ciphers = "";
 
     if (data.has_attribute(kSslTlsVersion))
       ssl_info.tls_version = data.get_attribute(kSslTlsVersion);
-    else
-      ssl_info.tls_version = "";
 
     if (data.has_attribute(kSslMode)) {
       int mode = shcore::MapSslModeNameToValue::get_value(data.get_attribute(kSslMode));
@@ -404,7 +389,7 @@ bool SHCORE_PUBLIC validate_uri(const std::string &uri) {
   int uri_port = 0;
   std::string uri_sock;
   std::string uri_database;
-  struct SslInfo ssl_info;
+  struct mysqlshdk::utils::Ssl_info ssl_info;
   int pwd_found = 0;
 
   bool ret_val = false;
@@ -433,7 +418,7 @@ Value::Map_type_ref get_connection_data(const std::string &uri, bool set_default
   int uri_port = 0;
   std::string uri_sock;
   std::string uri_database;
-  struct SslInfo uri_ssl_info;
+  struct mysqlshdk::utils::Ssl_info uri_ssl_info;
   int pwd_found = 0;
 
   // Creates the connection dictionary
@@ -465,29 +450,29 @@ Value::Map_type_ref get_connection_data(const std::string &uri, bool set_default
     if (!uri_sock.empty())
       (*ret_val)[kSocket] = Value(uri_sock);
 
-    if (!uri_ssl_info.ca.empty())
-      (*ret_val)[kSslCa] = Value(uri_ssl_info.ca);
+    if (!uri_ssl_info.ca.is_null())
+      (*ret_val)[kSslCa] = Value(*uri_ssl_info.ca);
 
-    if (!uri_ssl_info.cert.empty())
-      (*ret_val)[kSslCert] = Value(uri_ssl_info.cert);
+    if (!uri_ssl_info.cert.is_null())
+      (*ret_val)[kSslCert] = Value(*uri_ssl_info.cert);
 
-    if (!uri_ssl_info.key.empty())
-      (*ret_val)[kSslKey] = Value(uri_ssl_info.key);
+    if (!uri_ssl_info.key.is_null())
+      (*ret_val)[kSslKey] = Value(*uri_ssl_info.key);
 
-    if (!uri_ssl_info.capath.empty())
-      (*ret_val)[kSslCaPath] = Value(uri_ssl_info.capath);
+    if (!uri_ssl_info.capath.is_null())
+      (*ret_val)[kSslCaPath] = Value(*uri_ssl_info.capath);
 
-    if (!uri_ssl_info.crl.empty())
-      (*ret_val)[kSslCrl] = Value(uri_ssl_info.crl);
+    if (!uri_ssl_info.crl.is_null())
+      (*ret_val)[kSslCrl] = Value(*uri_ssl_info.crl);
 
-    if (!uri_ssl_info.crlpath.empty())
-      (*ret_val)[kSslCrlPath] = Value(uri_ssl_info.crlpath);
+    if (!uri_ssl_info.crlpath.is_null())
+      (*ret_val)[kSslCrlPath] = Value(*uri_ssl_info.crlpath);
 
-    if (!uri_ssl_info.ciphers.empty())
-      (*ret_val)[kSslCiphers] = Value(uri_ssl_info.ciphers);
+    if (!uri_ssl_info.ciphers.is_null())
+      (*ret_val)[kSslCiphers] = Value(*uri_ssl_info.ciphers);
 
-    if (!uri_ssl_info.tls_version.empty())
-      (*ret_val)[kSslTlsVersion] = Value(uri_ssl_info.tls_version);
+    if (!uri_ssl_info.tls_version.is_null())
+      (*ret_val)[kSslTlsVersion] = Value(*uri_ssl_info.tls_version);
 
     if (uri_ssl_info.mode != 0)
       (*ret_val)[kSslMode] = Value(shcore::MapSslModeNameToValue::get_value(uri_ssl_info.mode));
@@ -502,7 +487,7 @@ void update_connection_data(Value::Map_type_ref data,
                             const std::string &user, const char *password,
                             const std::string &host, int &port, const std::string& sock,
                             const std::string &database,
-                            bool ssl, const struct shcore::SslInfo& ssl_info,
+                            bool ssl, const struct mysqlshdk::utils::Ssl_info& ssl_info,
                             const std::string &auth_method) {
   if (!user.empty())
     (*data)[kDbUser] = Value(user);
@@ -523,29 +508,29 @@ void update_connection_data(Value::Map_type_ref data,
     (*data)[kSocket] = Value(sock);
 
   if (ssl) {
-    if (!ssl_info.ca.empty())
-      (*data)[kSslCa] = Value(ssl_info.ca);
+    if (!ssl_info.ca.is_null())
+      (*data)[kSslCa] = Value(*ssl_info.ca);
 
-    if (!ssl_info.cert.empty())
-      (*data)[kSslCert] = Value(ssl_info.cert);
+    if (!ssl_info.cert.is_null())
+      (*data)[kSslCert] = Value(*ssl_info.cert);
 
-    if (!ssl_info.key.empty())
-      (*data)[kSslKey] = Value(ssl_info.key);
+    if (!ssl_info.key.is_null())
+      (*data)[kSslKey] = Value(*ssl_info.key);
 
-    if (!ssl_info.capath.empty())
-      (*data)[kSslCaPath] = Value(ssl_info.capath);
+    if (!ssl_info.capath.is_null())
+      (*data)[kSslCaPath] = Value(*ssl_info.capath);
 
-    if (!ssl_info.crl.empty())
-      (*data)[kSslCrl] = Value(ssl_info.crl);
+    if (!ssl_info.crl.is_null())
+      (*data)[kSslCrl] = Value(*ssl_info.crl);
 
-    if (!ssl_info.crlpath.empty())
-      (*data)[kSslCrlPath] = Value(ssl_info.crlpath);
+    if (!ssl_info.crlpath.is_null())
+      (*data)[kSslCrlPath] = Value(*ssl_info.crlpath);
 
-    if (!ssl_info.ciphers.empty())
-      (*data)[kSslCiphers] = Value(ssl_info.ciphers);
+    if (!ssl_info.ciphers.is_null())
+      (*data)[kSslCiphers] = Value(*ssl_info.ciphers);
 
-    if (!ssl_info.tls_version.empty())
-      (*data)[kSslTlsVersion] = Value(ssl_info.tls_version);
+    if (!ssl_info.tls_version.is_null())
+      (*data)[kSslTlsVersion] = Value(*ssl_info.tls_version);
 
     if (ssl_info.mode != 0)
       (*data)[kSslMode] = Value(shcore::MapSslModeNameToValue::get_value(ssl_info.mode));

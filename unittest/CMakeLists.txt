@@ -30,10 +30,15 @@ if(WITH_TESTS)
                 ${CMAKE_SOURCE_DIR}/common
                 ${MYSQL_INCLUDE_DIRS}
                 ${GTEST_INCLUDE_DIR}
+                ${GMOCK_INCLUDE_DIR}
                 ${PYTHON_INCLUDE_DIR}
                 ${V8_INCLUDE_DIR})
 
     file(GLOB mysqlsh_tests_SRC
+        "${PROJECT_SOURCE_DIR}/unittest/mocks/mysqlshdk/libs/db/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/instance/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/db/mysql_session_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/utils/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*/*_t.cc")
 
@@ -78,6 +83,7 @@ if(WITH_TESTS)
             mysqlshdk-static
             mysqlxtest
             gtest
+            gmock
             ${MYSQL_LIBRARIES}
             ${PROTOBUF_LIBRARY}
             ${SSL_LIBRARIES}

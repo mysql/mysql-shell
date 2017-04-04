@@ -35,6 +35,7 @@ set(utils_SOURCE
     base_tokenizer.cc
     uri_parser.h
     uri_parser.cc
+    nullable.h
     ${CMAKE_SOURCE_DIR}/common/logger/logger.cc
     ${CMAKE_SOURCE_DIR}/common/process_launcher/process_launcher.cc
 )

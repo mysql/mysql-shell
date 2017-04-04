@@ -25,6 +25,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "mysqlxtest/mysqlx.h"
+#include "mysqlshdk/libs/db/ssl_info.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -37,10 +38,7 @@ public:
   std::shared_ptr< ::mysqlx::Session> get() const { return _session; }
   void open(const std::string &host, int port, const std::string &schema,
             const std::string &user, const std::string &pass,
-            const std::string &ssl_ca, const std::string &ssl_cert,
-            const std::string &ssl_key, const std::string &ssl_ca_path,
-            const std::string &ssl_crl, const std::string &ssl_crl_path,
-            const std::string &ssl_tls_version, const std::string& ssl_ciphers, int ssl_mode,
+            const mysqlshdk::utils::Ssl_info& ssl_info,
             const std::size_t timeout,
             const std::string &auth_method = "MYSQL41", const bool get_caps = false);
 

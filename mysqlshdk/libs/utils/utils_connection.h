@@ -33,54 +33,6 @@
 
 namespace shcore {
 
-struct SHCORE_PUBLIC SslInfo
-{
-  SslInfo() {
-    skip = true;
-    mode = 0;
-    ca = "";
-    cert = "";
-    key = "";
-    capath = "";
-    ciphers = "";
-    crl = "";
-    crlpath = "";
-    tls_version = "";
-
-  }
-  SslInfo(const SslInfo& s);
-  bool skip;
-  int mode;
-  std::string ca;
-  std::string capath;
-  std::string crl;
-  std::string crlpath;
-  std::string ciphers;
-  std::string tls_version;
-  std::string cert;
-  std::string key;
-  bool has_data() {
-    return skip == false ||
-      mode != 0 ||
-      !ca.empty() ||
-      !capath.empty() ||
-      !crl.empty() ||
-      !crlpath.empty() ||
-      !ciphers.empty() ||
-      !tls_version.empty() ||
-      !cert.empty() ||
-      !key.empty();
-  }
-};
-
-
-enum class SslMode {
-  Disabled = 1,
-  Preferred = 2,
-  Required = 3,
-  VerifyCa = 4,
-  VerifyIdentity = 5
-};
 
 /**
  * Bidirectional map of modes values:

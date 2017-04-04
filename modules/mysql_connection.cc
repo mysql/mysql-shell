@@ -20,7 +20,6 @@
 #include "mysql_connection.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_general.h"
-#include "utils/utils_connection.h"
 
 #include "scripting/obj_date.h"
 
@@ -223,7 +222,7 @@ Connection::Connection(const std::string &uri_, const char *password)
 
   _mysql = mysql_init(NULL);
 
-  struct shcore::SslInfo ssl_info;
+  struct mysqlshdk::utils::Ssl_info ssl_info;
   shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_info);
 
   if (password)
@@ -240,7 +239,7 @@ Connection::Connection(const std::string &uri_, const char *password)
 }
 
 Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
-  const struct shcore::SslInfo& ssl_info)
+  const struct mysqlshdk::utils::Ssl_info& ssl_info)
 : _mysql(NULL) {
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
 
@@ -259,39 +258,39 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   }
 }
 
-bool Connection::setup_ssl(const struct shcore::SslInfo& ssl_info) {
+bool Connection::setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info) {
   unsigned int value;
 
   if (ssl_info.skip) return true;
 
-  if (!ssl_info.ca.empty())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CA, ssl_info.ca.c_str());
+  if (!ssl_info.ca.is_null())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CA, (*ssl_info.ca).c_str());
 
-  if (!ssl_info.capath.empty())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH, ssl_info.capath.c_str());
+  if (!ssl_info.capath.is_null())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH, (*ssl_info.capath).c_str());
 
-  if (!ssl_info.crl.empty())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CRL, ssl_info.crl.c_str());
+  if (!ssl_info.crl.is_null())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CRL, (*ssl_info.crl).c_str());
 
-  if (!ssl_info.crlpath.empty())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH, ssl_info.crlpath.c_str());
+  if (!ssl_info.crlpath.is_null())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH, (*ssl_info.crlpath).c_str());
 
-  if (!ssl_info.ciphers.empty())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER, ssl_info.ciphers.c_str());
+  if (!ssl_info.ciphers.is_null())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER, (*ssl_info.ciphers).c_str());
 
-  if (!ssl_info.tls_version.empty())
-    mysql_options(_mysql, MYSQL_OPT_TLS_VERSION, ssl_info.tls_version.c_str());
+  if (!ssl_info.tls_version.is_null())
+    mysql_options(_mysql, MYSQL_OPT_TLS_VERSION, (*ssl_info.tls_version).c_str());
 
-  if (!ssl_info.cert.empty())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CERT, ssl_info.cert.c_str());
+  if (!ssl_info.cert.is_null())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CERT, (*ssl_info.cert).c_str());
 
-  if (!ssl_info.key.empty())
-    mysql_options(_mysql, MYSQL_OPT_SSL_KEY, ssl_info.key.c_str());
+  if (!ssl_info.key.is_null())
+    mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (*ssl_info.key).c_str());
 
   if (ssl_info.mode)
     value = ssl_info.mode;
   else
-    value = static_cast<int>(shcore::SslMode::Preferred);
+    value = static_cast<int>(mysqlshdk::utils::Ssl_mode::Preferred);
 
   mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
 

@@ -46,7 +46,6 @@
 #include "mod_mysql_schema.h"
 #include "utils/utils_general.h"
 #include "shellcore/utils_help.h"
-#include "utils/utils_connection.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4

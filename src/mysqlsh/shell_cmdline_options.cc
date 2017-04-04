@@ -23,6 +23,7 @@
 #include "shell_cmdline_options.h"
 #include "utils/utils_general.h"
 #include "utils/utils_connection.h"
+#include "mysqlshdk/libs/db/ssl_info.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>

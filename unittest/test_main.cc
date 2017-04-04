@@ -25,7 +25,7 @@
 #include "shellcore/shell_core_options.h"
 
 extern "C" {
-const char *g_argv0 = nullptr;
+  const char *g_argv0 = nullptr;
 }
 
 int main(int argc, char **argv) {

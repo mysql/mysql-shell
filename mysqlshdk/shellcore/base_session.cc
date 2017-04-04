@@ -23,6 +23,7 @@
 #include "shellcore/shell_core.h"
 #include "scripting/lang_base.h"
 #include "scripting/common.h"
+#include "mysqlshdk/libs/utils/utils_connection.h"
 
 #include "scripting/proxy_object.h"
 
@@ -103,7 +104,6 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
   // STEP 2: Gets the individual connection parameters whatever the source is
   //-------------------------------------------------------------------------
   // Handles the case where an URI was received
-  //struct shcore::SslInfo ssl_info;
   if (!uri.empty()) {
     std::string protocol;
     int pwd_found;

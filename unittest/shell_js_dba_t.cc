@@ -23,7 +23,7 @@
 #include "modules/mod_mysql_session.h"
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
-#include "utils/utils_connection.h"
+#include "mysqlshdk/libs/db/ssl_info.h"
 
 namespace shcore {
 class Shell_js_dba_tests : public Shell_js_script_tester {
@@ -44,7 +44,7 @@ protected:
 
     int port = 33060, pwd_found;
     std::string protocol, user, password, host, sock, schema;
-    struct SslInfo ssl_info;
+    mysqlshdk::utils::Ssl_info ssl_info;
     shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_info);
     std::string mysql_uri = "mysql://";
     shcore::Argument_list session_args;

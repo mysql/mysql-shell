@@ -230,6 +230,44 @@ void Shell_test_output_handler::flush_debug_log() {
   full_output.clear();
 }
 
+void Shell_base_test::SetUp() {
+  const char *uri = getenv("MYSQL_URI");
+  if (uri) {
+    // Creates connection data and recreates URI, this will fix URI if no password is defined
+    // So the UT don't prompt for password ever
+    shcore::Value::Map_type_ref data = shcore::get_connection_data(uri);
+
+    _host = data->get_string("host");
+    _user = data->get_string("dbUser");
+
+    const char *pwd = getenv("MYSQL_PWD");
+    if (pwd) {
+      _pwd.assign(pwd);
+      (*data)["dbPassword"] = shcore::Value(_pwd);
+    }
+
+    _uri = shcore::build_connection_string(data, true);
+    _mysql_uri = _uri;
+
+    const char *xport = getenv("MYSQLX_PORT");
+    if (xport) {
+      _port_number = atoi(xport);
+      _port.assign(xport);
+      (*data)["port"] = shcore::Value(_pwd);
+      _uri += ":" + _port;
+    }
+    _uri_nopasswd = shcore::strip_password(_uri);
+
+    const char *port = getenv("MYSQL_PORT");
+    if (port) {
+      _mysql_port_number = atoi(port);
+      _mysql_port.assign(port);
+      _mysql_uri += ":" + _mysql_port;
+    }
+
+    _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
+  }
+}
 
 std::string Shell_core_test_wrapper::context_identifier() {
   std::string ret_val;
@@ -249,6 +287,9 @@ std::string Shell_core_test_wrapper::context_identifier() {
 }
 
 void Shell_core_test_wrapper::SetUp() {
+
+  Shell_base_test::SetUp();
+
   output_handler.debug_print_header(context_identifier());
 
   // Initializes the options member
@@ -259,63 +300,30 @@ void Shell_core_test_wrapper::SetUp() {
   set_options();
   output_handler.debug = debug;
 
-  const char *uri = getenv("MYSQL_URI");
-  if (uri) {
-    // Creates connection data and recreates URI, this will fix URI if no password is defined
-    // So the UT don't prompt for password ever
-    shcore::Value::Map_type_ref data = shcore::get_connection_data(uri);
-
-    _host = data->get_string("host");
-
-    const char *pwd = getenv("MYSQL_PWD");
-    if (pwd) {
-      _pwd.assign(pwd);
-      (*data)["dbPassword"] = shcore::Value(_pwd);
-    }
-
-    _uri = shcore::build_connection_string(data, true);
-    _mysql_uri = _uri;
-
-    const char *xport = getenv("MYSQLX_PORT");
-    if (xport) {
-      _port.assign(xport);
-      (*data)["port"] = shcore::Value(_pwd);
-      _uri += ":" + _port;
-    }
-    _uri_nopasswd = shcore::strip_password(_uri);
-
-    const char *port = getenv("MYSQL_PORT");
-    if (port) {
-      _mysql_port.assign(port);
-      _mysql_uri += ":" + _mysql_port;
-    }
-
-    const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-    if (sandbox_port1) {
-      _mysql_sandbox_port1.assign(sandbox_port1);
-    } else {
-      std::string sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
-      _mysql_sandbox_port1.assign(sandbox_port1);
-    }
-
-    const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-    if (sandbox_port2) {
-      _mysql_sandbox_port2.assign(sandbox_port2);
-    } else {
-      std::string sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
-      _mysql_sandbox_port2.assign(sandbox_port2);
-    }
-
-    const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-    if (sandbox_port3) {
-      _mysql_sandbox_port3.assign(sandbox_port3);
-    } else {
-      std::string sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
-      _mysql_sandbox_port3.assign(sandbox_port3);
-    }
-
-    _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
+  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
+  if (sandbox_port1) {
+    _mysql_sandbox_port1.assign(sandbox_port1);
+  } else {
+    std::string sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
+    _mysql_sandbox_port1.assign(sandbox_port1);
   }
+
+  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
+  if (sandbox_port2) {
+    _mysql_sandbox_port2.assign(sandbox_port2);
+  } else {
+    std::string sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
+    _mysql_sandbox_port2.assign(sandbox_port2);
+  }
+
+  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
+  if (sandbox_port3) {
+    _mysql_sandbox_port3.assign(sandbox_port3);
+  } else {
+    std::string sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
+    _mysql_sandbox_port3.assign(sandbox_port3);
+  }
+
 
   const char *tmpdir = getenv("TMPDIR");
   if (tmpdir) {

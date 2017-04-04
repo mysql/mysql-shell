@@ -14,23 +14,27 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 include_directories(BEFORE
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
     ${CMAKE_SOURCE_DIR}/mysqlshdk/include
     ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
 
 add_subdirectory(libs/utils)
+add_subdirectory(libs/db)
 add_subdirectory(scripting)
 add_subdirectory(shellcore)
 
 #TODO: ADD_VERSION_INFO
 #merge_libraries(mysqlshdk SHARED
 #    utils
+#    db
 #    scripting
 #    shellcore)
 
 merge_libraries(mysqlshdk-static STATIC
     utils
+    db
     scripting
     shellcore NOINSTALL)
 

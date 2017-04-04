@@ -1,14 +1,14 @@
 # Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -66,6 +66,12 @@ FIND_PATH(GTEST_INCLUDE_DIR
         NO_DEFAULT_PATH
           )
 
+FIND_PATH(GMOCK_INCLUDE_DIR
+        NAMES gmock/gmock.h
+        PATHS ${GTEST_${GTEST_CMAKE_PROJECT_NAME}_SOURCE_DIR}/include ${GTEST_${GTEST_CMAKE_PROJECT_NAME}_SOURCE_DIR}/gtest/include
+        NO_DEFAULT_PATH
+          )
+
 IF(NOT EXISTS "${GTEST_INCLUDE_DIR}/gtest/gtest.h")
   MESSAGE(FATAL_ERROR "Could not find gtest headers at: ${GTEST_INCLUDE_DIR}")
 ENDIF()
@@ -92,12 +98,28 @@ FIND_LIBRARY(gtest_main_location
   NO_DEFAULT_PATH
 )
 
+FIND_LIBRARY(gmock_location
+  NAMES libmonck gmock
+  PATHS ${WITH_GTEST} ${WITH_GTEST}/gtest
+  PATH_SUFFIXES . Release RelWithDebInfo Debug
+  NO_DEFAULT_PATH
+)
+
+FIND_LIBRARY(gmock_main_location
+  NAMES libgmock_main gmock_main
+  PATHS ${WITH_GTEST} ${WITH_GTEST}/gtest
+  PATH_SUFFIXES . Release RelWithDebInfo Debug
+  NO_DEFAULT_PATH
+)
+
 #MESSAGE("gtest location: ${gtest_location}")
 #MESSAGE("gtest_main location: ${gtest_main_location}")
 
 
 add_library(gtest STATIC IMPORTED)
 add_library(gtest_main STATIC IMPORTED)
+add_library(gmock STATIC IMPORTED)
+add_library(gmock_main STATIC IMPORTED)
 
 set_target_properties(gtest PROPERTIES
   IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
@@ -110,6 +132,16 @@ set_target_properties(gtest_main PROPERTIES
   IMPORTED_LOCATION "${gtest_main_location}"
 )
 
+set_target_properties(gmock PROPERTIES
+  IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
+  IMPORTED_LOCATION "${gmock_location}"
+)
+
+set_target_properties(gmock_main PROPERTIES
+  IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "gtest"
+  IMPORTED_LOCATION "${gmock_main_location}"
+)
 #
 #  Setup configuration-specific locations for Win
 #  TODO: Should the same be done for OSX?
@@ -139,6 +171,20 @@ IF(WIN32)
     IMPORTED_LOCATION_${CONFIG} "${GTEST_BINDIR}/${Config}/gtest_main.lib"
     )
 
+  set(GMOCK_BINDIR "${WITH_GTEST}")
+
+  set_property(TARGET gmock APPEND PROPERTY IMPORTED_CONFIGURATIONS ${CONFIG})
+  set_target_properties(gmock PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_${CONFIG} "CXX"
+    IMPORTED_LOCATION_${CONFIG} "${GMOCK_BINDIR}/${Config}/gmock.lib"
+    )
+
+  set_property(TARGET gmock_main APPEND PROPERTY IMPORTED_CONFIGURATIONS ${CONFIG})
+  set_target_properties(gmock_main PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_${CONFIG} "CXX"
+    IMPORTED_LINK_INTERFACE_LIBRARIES_${CONFIG} "gtest"
+    IMPORTED_LOCATION_${CONFIG} "${GMOCK_BINDIR}/${Config}/gmock_main.lib"
+    )
   ENDFOREACH(Config)
 
 ELSE(WIN32)

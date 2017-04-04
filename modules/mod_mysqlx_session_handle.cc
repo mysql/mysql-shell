@@ -33,27 +33,42 @@ _case_sensitive_table_names(false), _connection_id(0), _expired_account(false) {
 
 void SessionHandle::open(const std::string &host, int port, const std::string &schema,
                           const std::string &user, const std::string &pass,
-                          const std::string &ssl_ca, const std::string &ssl_cert,
-                          const std::string &ssl_key, const std::string &ssl_ca_path,
-                          const std::string &ssl_crl, const std::string &ssl_crl_path,
-
-                          const std::string &ssl_tls_version, const std::string& ssl_ciphers, int ssl_mode,
+                          const mysqlshdk::utils::Ssl_info& ssl_info,
                           const std::size_t timeout,
                           const std::string &auth_method, const bool get_caps) {
   ::mysqlx::Ssl_config ssl;
   memset(&ssl, 0, sizeof(ssl));
 
-  std::string my_ssl_ca(ssl_ca);
+  std::string my_ssl_ca;
 
-  ssl.ca = my_ssl_ca.c_str();
-  ssl.cert = ssl_cert.c_str();
-  ssl.key = ssl_key.c_str();
-  ssl.ca_path = ssl_ca_path.c_str();
-  ssl.crl = ssl_crl.c_str();
-  ssl.crl_path = ssl_crl_path.c_str();
-  ssl.tls_version = ssl_tls_version.c_str();
-  ssl.cipher = ssl_ciphers.c_str();
-  ssl.mode = ssl_mode;
+  if (ssl_info.ca)
+    my_ssl_ca = ssl_info.ca;
+
+  if (ssl_info.ca)
+    ssl.ca = (*ssl_info.ca).c_str();
+
+  if (ssl_info.cert)
+    ssl.cert = (*ssl_info.cert).c_str();
+
+  if (ssl_info.key)
+    ssl.key = (*ssl_info.key).c_str();
+
+  if (ssl_info.capath)
+    ssl.ca_path = (*ssl_info.capath).c_str();
+
+  if (ssl_info.crl)
+    ssl.crl = (*ssl_info.crl).c_str();
+
+  if (ssl_info.crlpath)
+    ssl.crl_path = (*ssl_info.crlpath).c_str();
+
+  if (ssl_info.tls_version)
+    ssl.tls_version = (*ssl_info.tls_version).c_str();
+
+  if (ssl_info.ciphers)
+    ssl.cipher = (*ssl_info.ciphers).c_str();
+
+  ssl.mode = ssl_info.mode;
 
   // TODO: Define a proper timeout for the session creation
   try {

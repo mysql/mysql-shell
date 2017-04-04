@@ -26,7 +26,7 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "utils/utils_connection.h"
+#include "mysqlshdk/libs/db/ssl_info.h"
 
 namespace mysqlsh {
 #if DOXYGEN_CPP
@@ -98,7 +98,7 @@ protected:
   std::string _schema;
   std::string _auth_method;
   std::string _uri;
-  struct shcore::SslInfo _ssl_info;
+  struct mysqlshdk::utils::Ssl_info _ssl_info;
 
   void load_connection_data(const shcore::Argument_list &args);
 

@@ -116,7 +116,24 @@ protected:
 #define MY_EXPECT_STDERR_NOT_CONTAINS(x) output_handler.validate_stderr_content(x,false)
 #define MY_EXPECT_LOG_NOT_CONTAINS(x) output_handler.validate_log_content(x,false)
 
-class Shell_core_test_wrapper : public ::testing::Test, public shcore::NotificationObserver {
+class Shell_base_test: public ::testing::Test {
+protected:
+  virtual void SetUp();
+
+  std::string _host;
+  std::string _port;
+  std::string _user;
+  int _port_number;
+  std::string _uri;
+  std::string _uri_nopasswd;
+  std::string _pwd;
+  std::string _mysql_port;
+  int _mysql_port_number;
+  std::string _mysql_uri;
+  std::string _mysql_uri_nopasswd;
+};
+
+class Shell_core_test_wrapper : public Shell_base_test, public shcore::NotificationObserver {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
@@ -173,12 +190,6 @@ protected:
   void wipe_log() { output_handler.wipe_log(); }
   void wipe_all() { output_handler.wipe_all(); }
 
-  std::string _host;
-  std::string _port;
-  std::string _uri;
-  std::string _uri_nopasswd;
-  std::string _pwd;
-  std::string _mysql_port;
   std::string _mysql_sandbox_port1;
   std::string _mysql_sandbox_port2;
   std::string _mysql_sandbox_port3;
@@ -189,8 +200,6 @@ protected:
   std::string _sandbox_cnf_3;
   std::string _path_splitter;
 
-  std::string _mysql_uri;
-  std::string _mysql_uri_nopasswd;
   std::string _sandbox_dir;
 
   shcore::Value _returned_value;

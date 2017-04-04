@@ -26,7 +26,7 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "utils/utils_time.h"
-#include "utils/utils_connection.h"
+#include "mysqlshdk/libs/db/ssl_info.h"
 
 #if WIN32
 #  include <winsock2.h>
@@ -144,8 +144,8 @@ private:
 class SHCORE_PUBLIC Connection : public std::enable_shared_from_this<Connection> {
 public:
   Connection(const std::string &uri, const char *password = NULL);
-  Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema, 
-    const struct shcore::SslInfo& ssl_info);
+  Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
+    const struct mysqlshdk::utils::Ssl_info& ssl_info);
   Connection(const Connection& conn) : Connection(conn._uri, NULL) {}
   ~Connection();
 
@@ -163,7 +163,7 @@ public:
   const char* get_ssl_cipher() { _prev_result.reset(); return mysql_get_ssl_cipher(_mysql); }
 
 private:
-  bool setup_ssl(const struct shcore::SslInfo& ssl_info);
+  bool setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info);
   void throw_on_connection_fail();
   std::string _uri;
   MYSQL *_mysql;

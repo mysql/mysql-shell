@@ -18,7 +18,8 @@
  */
 
 #include "uri_parser.h"
-#include "utils/utils_connection.h"
+#include "mysqlshdk/libs/db/ssl_info.h"
+#include "utils_connection.h"
 #include <cctype>
 #include <boost/format.hpp>
 // Avoid warnings from protobuf and rapidjson
