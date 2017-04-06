@@ -14,7 +14,6 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 INCLUDE(install_macros)
-INCLUDE(msvc)
 
 INCLUDE_DIRECTORIES(
  ${CMAKE_BINARY_DIR}/include
@@ -60,9 +59,3 @@ ADD_CONVENIENCE_LIBRARY(yassl ${YASSL_SOURCES})
 RESTRICT_SYMBOL_EXPORTS(yassl)
 
 ADD_SUBDIRECTORY(taocrypt)
-
-if(WIN32)
-  if(NOT WINDOWS_RUNTIME_MD)
-    CHANGE_MD_2_MT()
-  endif()
-endif()

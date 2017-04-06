@@ -20,19 +20,9 @@
 #ifndef _TYPES_COMMON_H_
 #define _TYPES_COMMON_H_
 
-#ifdef _WIN32
-# ifdef _DLL
-#  ifdef SHCORE_EXPORT
-#   define TYPES_COMMON_PUBLIC __declspec(dllexport)
-#  else
-#   define TYPES_COMMON_PUBLIC __declspec(dllimport)
-#  endif
-# else
-#  define TYPES_COMMON_PUBLIC
-# endif
-#else
-# define TYPES_COMMON_PUBLIC
-#endif
+// TODO: This definition should be removed from here
+// The one on mysqlshdk_exports.h should be used for symbol exports
+#define TYPES_COMMON_PUBLIC
 
 #ifdef No_mysqlshtypes
 # undef TYPES_COMMON_PUBLIC

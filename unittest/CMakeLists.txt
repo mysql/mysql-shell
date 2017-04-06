@@ -14,11 +14,6 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 if(WITH_TESTS)
-    # disable optimization for boost error_code, otherwise we get link errors in Release builds
-    if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-      SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
-    endif()
-
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
 
@@ -47,7 +42,6 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/unittest/test_main.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils.cc"
         "${CMAKE_SOURCE_DIR}/unittest/shell_script_tester.cc"
-        "${CMAKE_SOURCE_DIR}/src/mysqlsh/boost_code.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/get_password.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/shell_cmdline_options.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/mysql_shell.cc"
@@ -93,7 +87,7 @@ if(WITH_TESTS)
     )
 
     if(HAVE_V8)
-      if(WINDOWS_RUNTIME_MD)
+      if(WIN32 AND NOT WITH_STATIC_MSVCRT)
         # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
         set(V8_DLL ${V8_LIBS})
         string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
@@ -115,7 +109,7 @@ if(WITH_TESTS)
 
     if(HAVE_PYTHON)
       if (WIN32)
-        if(CMAKE_BUILD_TYPE MATCHES Debug OR WINDOWS_RUNTIME_MD)
+        if(CMAKE_BUILD_TYPE MATCHES Debug OR NOT WITH_STATIC_PYTHON_LIB)
           set(PY_DLL ${PYTHON_LIBRARIES})
           string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
           get_filename_component(PY_FILE ${PY_DLL} NAME)
@@ -138,6 +132,3 @@ if(WITH_TESTS)
 else()
     message(WARNING "Skipping tests. To enable unit-tests use -DWITH_TESTS=1 -DWITH_GTEST=path")
 endif()
-
-
-add_definitions(-DBOOST_ALL_NO_LIB)

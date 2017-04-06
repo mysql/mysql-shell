@@ -428,7 +428,7 @@ shcore::Value Shell::set_session(const shcore::Argument_list &args) {
 shcore::Value Shell::get_session(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getSession").c_str());
 
-  return shcore::Value(_shell_core->get_dev_session());
+  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_shell_core->get_dev_session()));
 }
 
 shcore::Value Shell::reconnect(const shcore::Argument_list &args) {

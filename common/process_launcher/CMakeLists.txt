@@ -32,8 +32,6 @@ project (process_launcher)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/../cmake)
 
-include(msvc)
-
 # Common warning flags for GCC, G++, Clang and Clang++
 set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
 

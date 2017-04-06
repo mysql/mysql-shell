@@ -20,18 +20,20 @@
 #ifndef _MYSQLSHDK_EXPORT_H_
 #define _MYSQLSHDK_EXPORT_H_
 
-#ifdef _WIN32
-# ifdef _DLL
-#  ifdef SHCORE_EXPORT
-#   define SHCORE_PUBLIC __declspec(dllexport)
-#  else
-#   define SHCORE_PUBLIC __declspec(dllimport)
-#  endif
-# else
-#  define SHCORE_PUBLIC
-# endif
-#else
-# define SHCORE_PUBLIC
-#endif
+#define SHCORE_PUBLIC
+
+//#ifdef _WIN32
+//# ifdef _DLL
+//#  ifdef SHCORE_EXPORT
+//#   define SHCORE_PUBLIC __declspec(dllexport)
+//#  else
+//#   define SHCORE_PUBLIC __declspec(dllimport)
+//#  endif
+//# else
+//#  define SHCORE_PUBLIC
+//# endif
+//#else
+//# define SHCORE_PUBLIC
+//#endif
 
 #endif

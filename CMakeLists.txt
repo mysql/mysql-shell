@@ -13,7 +13,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8.12)
 
 project(mysqlsh)
 
@@ -42,7 +42,6 @@ INCLUDE(version.cmake)
 
 INCLUDE(install_macros)
 INCLUDE(libutils)
-INCLUDE(msvc)
 INCLUDE(ssl)
 INCLUDE(readline)
 INCLUDE(compiler)
@@ -88,6 +87,13 @@ IF ( PYTHONLIBS_FOUND )
   add_definitions(-DHAVE_PYTHON) # Preprocessor variable for generated projects
   message(STATUS "Python ${PYTHONLIBS_VERSION_STRING}")
   message(STATUS "PYTHON_LIRARIES: ${PYTHON_LIBRARIES}")
+
+  # TODO: Temporary flag indicating python is static as well
+  # Proper logic should be added to correctly configure this
+  IF(WITH_STATIC_MSVCRT)
+    SET(WITH_STATIC_PYTHON_LIB 1)
+  ENDIF()
+
 ELSE()
   message(WARNING "Python is unavailable: building without Python support.")
 ENDIF()
@@ -108,6 +114,7 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 # Check whether boost::system can be compiled into the binary
 include(CheckCXXSourceCompiles)
 SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
+add_definitions(-DBOOST_ALL_NO_LIB)
 
 SET(CMAKE_REQUIRED_INCLUDES ${Boost_INCLUDE_DIRS})
 
@@ -125,18 +132,6 @@ int main()
 SET(BOOST_SYSTEM_COMPILES "BOOST_SYSTEM_COMPILES")
 
 CHECK_CXX_SOURCE_COMPILES("${BOOST_SOURCE}" BOOST_SYSTEM_COMPILES)
-
-if (BOOST_SYSTEM_COMPILES)
-  set(BOOST_SOURCE_CODE "${PROJECT_SOURCE_DIR}/src/mysqlsh/boost_code.cc")
-else()
-  message(STATUS "Boost requires linkage")
-  set(BOOST_LIBRARIES boost_system)
-endif()
-
-# disable optimization for boost error_code, otherwise we get link errors in Release builds
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/shell/mysqlsh/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
-endif ()
 
 ##
 ## Installation location
@@ -165,6 +160,20 @@ MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
     )
   SET(CMAKE_REQUIRED_FLAGS "${SAVE_CMAKE_REQUIRED_FLAGS}")
 ENDMACRO()
+
+# By default the shell uses Multi-threaded Dynamic RunTime
+# Only sets Static if needed
+IF(WIN32)
+  IF(WITH_STATIC_MSVCRT)
+    FOREACH(flag_var
+          CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+          CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+       IF(${flag_var} MATCHES "/MD")
+          STRING(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+       ENDIF(${flag_var} MATCHES "/MD")
+    ENDFOREACH(flag_var)
+  ENDIF()
+ENDIF()
 
 # Must be before MYSQL_CHECK_SSL()
 include_directories(${CMAKE_BINARY_DIR}/include/ ${PROJECT_SOURCE_DIR}/include)
@@ -270,7 +279,7 @@ if(WIN32)
   ENDIF()
 
   # Copies the mysqlshcore dll to the binary location to enable running the UTs
-  if(WINDOWS_RUNTIME_MD)
+  if(NOT WITH_STATIC_MSVCRT)
     add_custom_command(TARGET mysqlsh PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
                         $<TARGET_FILE:mysqlshcore> $<TARGET_FILE_DIR:mysqlsh>)
@@ -287,7 +296,7 @@ if(WITH_DEV)
     install(FILES "${CMAKE_SOURCE_DIR}/common/logger/logger.h" DESTINATION "${INSTALL_INCLUDEDIR}/logger" COMPONENT dev)
 endif()
 
-if(WINDOWS_RUNTIME_MD AND HAVE_V8)
+if(WIN32 AND NOT WITH_STATIC_MSVCRT AND HAVE_V8)
   # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
   set(V8_DLL ${V8_LIBS})
   string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})

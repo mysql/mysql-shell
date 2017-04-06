@@ -37,8 +37,13 @@ file(GLOB libmysqlxtest_SRC
       "*.h"
       "${CMAKE_SOURCE_DIR}/common/mysqlx/auth_mysql41.h"
       "${CMAKE_SOURCE_DIR}/common/mysqlx/auth_mysql41.cc"
+      boost_code.cc
 )
 
+# disable optimization for boost error_code, otherwise we get link errors in Release builds
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    SET_SOURCE_FILES_PROPERTIES(boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
+endif()
 
 file(GLOB proto_SRC
       "${CMAKE_SOURCE_DIR}/common/protocol/*.proto"
@@ -59,20 +64,6 @@ target_link_libraries(mysqlxtest ${PROTOBUF_LIBRARY})
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   set_target_properties(mysqlxtest PROPERTIES COMPILE_FLAGS "-fPIC -Wno-error=unused-value")
 endif()
-
-
-if( WIN32 )
-  add_definitions(-DMYSQLXTEST_EXPORTS )
-#  if(NOT WINDOWS_RUNTIME_MD)
-#    add_definitions(-DPy_NO_ENABLE_SHARED)
-#  endif()
-  include(msvc)
-  if(NOT WINDOWS_RUNTIME_MD)
-    CHANGE_MD_2_MT()
-  endif()
-endif()
-
-add_definitions(-DBOOST_ALL_NO_LIB)
 
 if (WITH_DEV)
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/" DESTINATION "${INSTALL_INCLUDEDIR}/mysqlxtest/" COMPONENT dev FILES_MATCHING PATTERN "*.h" )

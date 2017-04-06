@@ -14,7 +14,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 if(NOT WIN32)
-  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/libedit")
+  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/mysqlsh/libedit")
 endif()
 include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
                     "${CMAKE_SOURCE_DIR}/mysqlshdk/include"
@@ -49,19 +49,18 @@ if(WIN32)
       )
 endif()
 
-add_executable(mysqlsh ${mysh_SRC} ${BOOST_SOURCE_CODE})
+add_executable(mysqlsh ${mysh_SRC})
 set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-if(WIN32)
-  if(NOT WINDOWS_RUNTIME_MD)
-    add_dependencies(mysqlsh boost_code.obj)
-  endif()
-else()
-  target_link_libraries(mysqlsh edit)
-endif()
+IF(NOT WIN32)
+  TARGET_LINK_LIBRARIES(mysqlsh edit)
+ENDIF()
 
 # Last, to make -lrt -lpthread last, v8 needs it
-target_link_libraries(mysqlsh api_modules mysqlshdk-static ${GCOV_LDFLAGS})
+target_link_libraries(mysqlsh
+    api_modules
+    mysqlshdk-static
+    ${GCOV_LDFLAGS})
 
 install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
 

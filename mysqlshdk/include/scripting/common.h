@@ -23,19 +23,9 @@
 #include "scripting/types_common.h"
 #include "logger/logger.h"
 
-#ifdef _WIN32
-# ifdef _DLL
-#  ifdef SHCORE_EXPORT
-#   define SHCORE_PUBLIC __declspec(dllexport)
-#  else
-#   define SHCORE_PUBLIC __declspec(dllimport)
-#  endif
-# else
-#  define SHCORE_PUBLIC
-# endif
-#else
-# define SHCORE_PUBLIC
-#endif
+// TODO: This definition should be removed from here
+// The one on mysqlshdk_exports.h should be used instead for symbol exports
+#define SHCORE_PUBLIC
 
 #ifdef UNUSED
 #  elif defined(__GNUC__)

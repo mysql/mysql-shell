@@ -27,7 +27,7 @@
 #include "modules/adminapi/mod_dba_common.h"
 
 namespace shcore {
-class SHCORE_PUBLIC Interactive_dba_cluster : public Interactive_object_wrapper {
+class Interactive_dba_cluster : public Interactive_object_wrapper {
 public:
   Interactive_dba_cluster(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core) { init(); }
 

@@ -14,7 +14,6 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 INCLUDE(install_macros)
-INCLUDE(msvc)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/mySTL
                       ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -38,9 +37,3 @@ ENDIF()
 
 ADD_CONVENIENCE_LIBRARY(taocrypt ${TAOCRYPT_SOURCES})
 RESTRICT_SYMBOL_EXPORTS(taocrypt)
-
-if(WIN32)
-  if(NOT WINDOWS_RUNTIME_MD)
-    CHANGE_MD_2_MT()
-  endif()
-endif()

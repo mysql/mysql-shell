@@ -24,7 +24,7 @@
 
 namespace shcore {
   //! Interactive wrapper for the global session
-  class SHCORE_PUBLIC Global_shell : public Interactive_object_wrapper {
+  class Global_shell : public Interactive_object_wrapper {
   public:
     Global_shell(Shell_core& shell_core) : Interactive_object_wrapper("shell", shell_core) { init(); }
 

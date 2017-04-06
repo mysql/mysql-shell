@@ -32,8 +32,6 @@ project (logger)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/../cmake)
 
-include(msvc)
-
 find_package(Boost)
 
 # Common warning flags for GCC, G++, Clang and Clang++
@@ -84,9 +82,3 @@ if(WITH_GTEST)
   target_link_libraries(logger.tests ${GMOCK_LIBRARIES})
 endif()
 
-# Force project be use MT, so they dont conflict a link time with clients of process_launcher library.
-if(WIN32)
-  CHANGE_MD_2_MT()
-endif()
-
-add_definitions(-DBOOST_ALL_NO_LIB )
