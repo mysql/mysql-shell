@@ -89,7 +89,6 @@ _options(new shcore::Value::Map_type) {
   (*_options)[SHCORE_INTERACTIVE] = Value::True();
   (*_options)[SHCORE_SHOW_WARNINGS] = Value::True();
   (*_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
-  (*_options)[SHCORE_MULTIPLE_INSTANCES] = Value::False();
   (*_options)[SHCORE_USE_WIZARDS] = Value::True();
 
   std::string home = shcore::get_home_dir();
@@ -111,8 +110,6 @@ void Shell_core_options::init() {
   option.assign(SHCORE_SHOW_WARNINGS);
   add_property(option + "|" + option);
   option.assign(SHCORE_BATCH_CONTINUE_ON_ERROR);
-  add_property(option + "|" + option);
-  option.assign(SHCORE_MULTIPLE_INSTANCES);
   add_property(option + "|" + option);
   option.assign(SHCORE_USE_WIZARDS);
   add_property(option + "|" + option);

@@ -53,7 +53,7 @@ Dynamic_object(), _session(owner) {
 // Documentation of sql function
 REGISTER_HELP(SQLEXECUTE_SQL_BRIEF, "Sets the sql statement to be executed by this handler.");
 REGISTER_HELP(SQLEXECUTE_SQL_PARAM, "@param statement A string containing the SQL statement to be executed.");
-REGISTER_HELP(SQLEXECUTE_SQL_RETURN, "@return This SqlExecute object.");
+REGISTER_HELP(SQLEXECUTE_SQL_RETURNS, "@returns This SqlExecute object.");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL, "This function is called automatically when NodeSession.sql(sql) is called.");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL1, "Parameter binding is supported and can be done by using the \\b ? placeholder instead of passing values directly on the SQL statement.");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL2, "Parameters are bound in positional order.");
@@ -67,7 +67,7 @@ REGISTER_HELP(SQLEXECUTE_SQL_DETAIL7, "@li execute().");
 * $(SQLEXECUTE_SQL_BRIEF)
 *
 * $(SQLEXECUTE_SQL_PARAM)
-* $(SQLEXECUTE_SQL_RETURN)
+* $(SQLEXECUTE_SQL_RETURNS)
 *
 * $(SQLEXECUTE_SQL_DETAIL)
 *
@@ -107,7 +107,7 @@ REGISTER_HELP(SQLEXECUTE_BIND_BRIEF, "Registers a parameter to be bound on the e
 REGISTER_HELP(SQLEXECUTE_BIND_BRIEF1, "Registers a list of parameter to be bound on the execution of the SQL statement.");
 REGISTER_HELP(SQLEXECUTE_BIND_PARAM, "@param value the value to be bound.");
 REGISTER_HELP(SQLEXECUTE_BIND_PARAM1, "@param values the value list to be bound.");
-REGISTER_HELP(SQLEXECUTE_BIND_RETURN, "@return This SqlExecute object.");
+REGISTER_HELP(SQLEXECUTE_BIND_RETURNS, "@returns This SqlExecute object.");
 REGISTER_HELP(SQLEXECUTE_BIND_DETAIL, "This method can be invoked any number of times, each time the received parameter "\
 "will be added to an internal binding list.");
 REGISTER_HELP(SQLEXECUTE_BIND_DETAIL1, "This function can be invoked after:");
@@ -123,7 +123,7 @@ REGISTER_HELP(SQLEXECUTE_BIND_DETAIL8, "@li execute().");
 * $(SQLEXECUTE_BIND_BRIEF)
 *
 * $(SQLEXECUTE_BIND_PARAM)
-* $(SQLEXECUTE_BIND_RETURN)
+* $(SQLEXECUTE_BIND_RETURNS)
 *
 * $(SQLEXECUTE_BIND_DETAIL)
 *
@@ -147,7 +147,7 @@ SqlExecute SqlExecute::bind(Value value) {}
 * $(SQLEXECUTE_BIND_BRIEF1)
 *
 * $(SQLEXECUTE_BIND_PARAM1)
-* $(SQLEXECUTE_BIND_RETURN)
+* $(SQLEXECUTE_BIND_RETURNS)
 *
 * $(SQLEXECUTE_BIND_DETAIL)
 *
@@ -184,7 +184,7 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args) {
 
 // Documentation of execute function
 REGISTER_HELP(SQLEXECUTE_EXECUTE_BRIEF, "Executes the sql statement.");
-REGISTER_HELP(SQLEXECUTE_EXECUTE_RETURN, "@return A SqlResult object.");
+REGISTER_HELP(SQLEXECUTE_EXECUTE_RETURNS, "@returns A SqlResult object.");
 REGISTER_HELP(SQLEXECUTE_EXECUTE_DETAIL, "This function can be invoked after:");
 REGISTER_HELP(SQLEXECUTE_EXECUTE_DETAIL1, "@li sql(String statement)");
 REGISTER_HELP(SQLEXECUTE_EXECUTE_DETAIL2, "@li bind(Value value)");
@@ -193,7 +193,7 @@ REGISTER_HELP(SQLEXECUTE_EXECUTE_DETAIL3, "@li bind(List values)");
 /**
 * $(SQLEXECUTE_EXECUTE_BRIEF)
 *
-* $(SQLEXECUTE_EXECUTE_RETURN)
+* $(SQLEXECUTE_EXECUTE_RETURNS)
 *
 * $(SQLEXECUTE_EXECUTE_DETAIL)
 * $(SQLEXECUTE_EXECUTE_DETAIL1)

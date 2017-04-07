@@ -184,7 +184,7 @@ Value ClassicSchema::get_member(const std::string &prop) const {
 // Documentation of the getTable function
 REGISTER_HELP(CLASSICSCHEMA_GETTABLE_BRIEF, "Returns the table of the given name for this schema.");
 REGISTER_HELP(CLASSICSCHEMA_GETTABLE_PARAM, "@param name the name of the table to look for.");
-REGISTER_HELP(CLASSICSCHEMA_GETTABLE_RETURN, "@return the ClassicTable object matching the name.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLE_RETURNS, "@returns the ClassicTable object matching the name.");
 REGISTER_HELP(CLASSICSCHEMA_GETTABLE_DETAIL, "Verifies if the requested Table exist on the database, "\
 "if exists, returns the corresponding ClassicTable object.");
 REGISTER_HELP(CLASSICSCHEMA_GETTABLE_DETAIL1, "Updates the Tables cache.");
@@ -196,7 +196,7 @@ REGISTER_HELP(CLASSICSCHEMA_GETTABLE_DETAIL1, "Updates the Tables cache.");
 //! $(CLASSICSCHEMA_GETTABLE_PARAM)
 #endif
 /**
-* $(CLASSICSCHEMA_GETTABLE_RETURN)
+* $(CLASSICSCHEMA_GETTABLE_RETURNS)
 *
 * $(CLASSICSCHEMA_GETTABLE_DETAIL)
 *
@@ -254,7 +254,7 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args) {
 
 // Documentation of the getTables function
 REGISTER_HELP(CLASSICSCHEMA_GETTABLES_BRIEF, "Returns a list of Tables for this Schema.");
-REGISTER_HELP(CLASSICSCHEMA_GETTABLES_RETURN, "@return A List containing the Table objects available for the Schema.");
+REGISTER_HELP(CLASSICSCHEMA_GETTABLES_RETURNS, "@returns A List containing the Table objects available for the Schema.");
 REGISTER_HELP(CLASSICSCHEMA_GETTABLES_DETAIL, "Pulls from the database the available Tables and Views.");
 REGISTER_HELP(CLASSICSCHEMA_GETTABLES_DETAIL1, "Does a full refresh of the Tables and Views cache.");
 REGISTER_HELP(CLASSICSCHEMA_GETTABLES_DETAIL2, "Returns a List of available Table objects.");
@@ -262,7 +262,7 @@ REGISTER_HELP(CLASSICSCHEMA_GETTABLES_DETAIL2, "Returns a List of available Tabl
 /**
 * $(CLASSICSCHEMA_GETTABLES_BRIEF)
 * \sa ClassicTable
-* $(CLASSICSCHEMA_GETTABLES_RETURN)
+* $(CLASSICSCHEMA_GETTABLES_RETURNS)
 *
 * $(CLASSICSCHEMA_GETTABLES_DETAIL)
 *

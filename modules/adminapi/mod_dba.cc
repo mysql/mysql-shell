@@ -151,17 +151,36 @@ std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session() const {
 
 // Documentation of the getCluster function
 REGISTER_HELP(DBA_GETCLUSTER_BRIEF, "Retrieves a cluster from the Metadata Store.");
-REGISTER_HELP(DBA_GETCLUSTER_PARAM, "@param name Optional parameter to specify the name of the cluster to be returned.");
-REGISTER_HELP(DBA_GETCLUSTER_RETURN, "@return The cluster identified with the given name or the default cluster.");
-REGISTER_HELP(DBA_GETCLUSTER_DETAIL, "If name is not specified, the default cluster will be returned.");
-REGISTER_HELP(DBA_GETCLUSTER_DETAIL1, "If name is specified, and no cluster with the indicated name is found, an error will be raised.");
+REGISTER_HELP(DBA_GETCLUSTER_PARAM, "@param name Optional parameter to specify "\
+                                    "the name of the cluster to be returned.");
+
+REGISTER_HELP(DBA_GETCLUSTER_THROWS, "@throws MetadataError if the Metadata is inaccessible.");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS1, "@throws MetadataError if the Metadata update operation failed.");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS2, "@throws ArgumentError if the Cluster name is empty.");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS3, "@throws ArgumentError if the Cluster name is invalid.");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS4, "@throws ArgumentError if the Cluster does not exist.");
+
+REGISTER_HELP(DBA_GETCLUSTER_RETURNS, "@returns The cluster object identified "\
+                                      " by the given name or the default "\
+                                      " cluster.");
+REGISTER_HELP(DBA_GETCLUSTER_DETAIL, "If name is not specified, the default "\
+                                      "cluster will be returned.");
+REGISTER_HELP(DBA_GETCLUSTER_DETAIL1, "If name is specified, and no cluster "\
+                                      "with the indicated name is found, an "\
+                                      "error will be raised.");
 
 /**
 * $(DBA_GETCLUSTER_BRIEF)
 *
 * $(DBA_GETCLUSTER_PARAM)
 *
-* $(DBA_GETCLUSTER_RETURN)
+* $(DBA_GETCLUSTER_THROWS)
+* $(DBA_GETCLUSTER_THROWS1)
+* $(DBA_GETCLUSTER_THROWS2)
+* $(DBA_GETCLUSTER_THROWS3)
+* $(DBA_GETCLUSTER_THROWS4)
+*
+* $(DBA_GETCLUSTER_RETURNS)
 *
 * $(DBA_GETCLUSTER_DETAIL)
 *
@@ -223,44 +242,93 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
 
 REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
 REGISTER_HELP(DBA_CREATECLUSTER_PARAM, "@param name The name of the cluster object to be created.");
-REGISTER_HELP(DBA_CREATECLUSTER_PARAM1, "@param options Optional dictionary with options that modify the behavior of this function.");
-REGISTER_HELP(DBA_CREATECLUSTER_RETURN, "@return The created cluster object.");
+REGISTER_HELP(DBA_CREATECLUSTER_PARAM1, "@param options Optional dictionary "\
+                                        "with options that modify the behavior "\
+                                        "of this function.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL, "Creates a MySQL InnoDB cluster taking as seed instance the active global session.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS, "@throws MetadataError if the Metadata is inaccessible.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS1, "@throws MetadataError if the Metadata update operation failed.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS2, "@throws ArgumentError if the Cluster name is empty.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS3, "@throws ArgumentError if the Cluster name is not valid.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS4, "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS5, "@throws ArgumentError if adoptFromGR "\
+                                         "is true and the memberSslMode option "\
+                                         "is used.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS6, "@throws ArgumentError if the value "\
+                                         "for the memberSslMode option is not "\
+                                         "one of the allowed.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_RETURNS, "@returns The created cluster object.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL, "Creates a MySQL InnoDB cluster taking "\
+                                        "as seed instance the active global "\
+                                        "session.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1, "The options dictionary can contain the next values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li clusterAdminType: defines the type of management to be done on the cluster instances.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li multiMaster: boolean value used to define an InnoDB cluster with multiple writable instances.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li force: boolean, confirms that the multiMaster option must be applied.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li adoptFromGR: boolean value used to create the InnoDB cluster based on existing replication group.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li memberSslMode: SSL mode used to configure the members of the cluster.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li ipWhitelist: The list of hosts allowed to connect to the instance for group replication.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li clusterAdminType: defines the "\
+                                         "type of management to be done on the "\
+                                         "cluster instances.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li multiMaster: boolean value used "\
+                                         "to define an InnoDB cluster with "\
+                                         "multiple writable instances.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li force: boolean, confirms that "\
+                                         "the multiMaster option must be "\
+                                         "applied.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li adoptFromGR: boolean value used "\
+                                         "to create the InnoDB cluster based "\
+                                         "on existing replication group.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li memberSslMode: SSL mode used to "\
+                                         "configure the members of the "\
+                                         "cluster.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li ipWhitelist: The list of hosts "\
+                                         "allowed to connect to the instance "\
+                                         "for group replication.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "The values for clusterAdminType options include: local, manual, guided or ssh, however, at the moment only "\
-"local is supported and is used as default value if this attribute is not specified.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "The values for clusterAdminType options include: local, manual, "\
+                                         "guided or ssh, however, at the moment only "\
+                                         "local is supported and is used as default value if this "\
+                                         "attribute is not specified.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9, "A InnoDB cluster may be setup in two ways:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10, "@li Single Master: One member of the cluster allows write operations while the rest are in read only mode.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11, "@li Multi Master: All the members in the cluster support both read and write operations.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "By default this function create a Single Master cluster, use the multiMaster option set to true "\
-"if a Multi Master cluster is required.");
-
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9,"A InnoDB cluster may be setup in two ways:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10, "@li Single Master: One member of the cluster allows write "\
+                                          "operations while the rest are in read only mode.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11, "@li Multi Master: All the members "\
+                                          "in the cluster support both read "\
+                                          "and write operations.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "By default this function create a Single Master cluster, use "\
+                                          "the multiMaster option set to true "\
+                                          "if a Multi Master cluster is required.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13, "The memberSslMode option supports these values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14, "@li REQUIRED: if used, SSL (encryption) will be enabled for the instances to communicate with other members of the cluster");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14, "@li REQUIRED: if used, SSL (encryption) will be enabled for the "\
+                                          "instances to communicate with other members of the cluster");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15, "@li DISABLED: if used, SSL (encryption) will be disabled");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16, "@li AUTO: if used, SSL (encryption) will be enabled if supported by the instance, otherwise disabled");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16, "@li AUTO: if used, SSL (encryption) "\
+                                          "will be enabled if supported by the "\
+                                          "instance, otherwise disabled");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17, "If memberSslMode is not specified AUTO will be used by default.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18, "The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR "\
-"notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to AUTOMATIC, allowing addresses "\
-"from the instance private network to be automatically set for the whitelist.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18, "The ipWhitelist format is a comma separated list of IP "\
+                                          "addresses or subnet CIDR "\
+                                          "notation, for example: 192.168.1.0/24,10.0.0.1. By default the "\
+                                          "value is set to AUTOMATIC, allowing addresses "\
+                                          "from the instance private network to be automatically set for "\
+                                          "the whitelist.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
  *
  * $(DBA_CREATECLUSTER_PARAM)
  * $(DBA_CREATECLUSTER_PARAM1)
- * $(DBA_CREATECLUSTER_RETURN)
+ *
+ * $(DBA_CREATECLUSTER_THROWS)
+ * $(DBA_CREATECLUSTER_THROWS1)
+ * $(DBA_CREATECLUSTER_THROWS2)
+ * $(DBA_CREATECLUSTER_THROWS3)
+ * $(DBA_CREATECLUSTER_THROWS4)
+ * $(DBA_CREATECLUSTER_THROWS5)
+ * $(DBA_CREATECLUSTER_THROWS6)
+ *
+ * $(DBA_CREATECLUSTER_RETURNS)
  *
  * $(DBA_CREATECLUSTER_DETAIL)
  *
@@ -487,12 +555,22 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_BRIEF, "Drops the Metadata Schema.");
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM, "@param options Dictionary containing an option to confirm the drop operation.");
-REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL, "The next is the only option supported:");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM, "@param options Dictionary "\
+                                            "containing an option to confirm "\
+                                            "the drop operation.");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS, "@throws MetadataError if the Metadata is inaccessible.");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_RETURNS, "@returns nothing.");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL, "The options dictionary may contain the following options:");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL1, "@li force: boolean, confirms that the drop operation must be executed.");
 
 /**
 * $(DBA_DROPMETADATASCHEMA_BRIEF)
+*
+* $(DBA_DROPMETADATASCHEMA_PARAM)
+*
+* $(DBA_DROPMETADATASCHEMA_THROWS)
+*
+* $(DBA_DROPMETADATASCHEMA_RETURNS)
 *
 * $(DBA_DROPMETADATASCHEMA_PARAM)
 *
@@ -575,27 +653,88 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
   return Value();
 }
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_BRIEF, "Validates an instance for usage in Group Replication.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_BRIEF, "Validates an instance for cluster usage.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM, "@param instance An instance definition.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM1, "@param options Optional data for the operation.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
-"for usage in group replication.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS, "@throws ArgumentError if the instance parameter is empty.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS1, "@throws ArgumentError if the instance definition is invalid.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS2, "@throws ArgumentError if the instance definition is a "\
+                                                      "connection dictionary but empty.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS3, "@throws RuntimeError if the instance accounts are invalid.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS4, "@throws RuntimeError if the instance is offline.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS5, "@throws RuntimeError if the instance is already part of a "\
+                                                      "Replication Group.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS6, "@throws RuntimeError if the instance is already part of an "\
+                                                      "InnoDB Cluster.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_RETURNS, "@returns A JSON object with the status.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL, "This function reviews the instance configuration to identify if "\
+                                                     "it is valid "\
+                                                     "for usage in group replication.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL1, "The instance definition can be any of:");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2, "@li URI string.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL3, "@li Connection data dictionary.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4, "The options dictionary may contain the next options:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5, "@li mycnfPath: The path of the MySQL configuration file for the instance.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL6, "@li password: The password to get connected to the instance.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7, "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8, "@li clusterAdminPassword: The password for the InnoDB cluster administrator account.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9, "The password may be contained on the instance definition, however, it can be overwritten "\
-"if it is specified on the options.");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4, "A basic URI string has the following format:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5, "[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL6, "The connection data dictionary may contain the following attributes:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7, "@li user/dbUser: username");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8, "@li password/dbPassword: username password");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9, "@li host: hostname or IP address");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL10, "@li port: port number");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL11, "@li sslCat: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14, "The options dictionary may contain the following options:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL15, "@li mycnfPath: The path of the MySQL configuration file for the instance.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL16, "@li password: The password to get connected to the instance.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL17, "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL18, "@li clusterAdminPassword: The password for the InnoDB cluster "\
+                                                       "administrator account.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19, "The connection password may be contained on the instance "\
+                                                       "definition, however, it can be overwritten "\
+                                                       "if it is specified on the options.");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL20, "The returned JSON object contains the following attributes:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL21, "@li status: the final status of the command, either \"ok\" or \"error\"");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22, "@li config_errors: a list of dictionaries containing the failed requirements");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL23, "@li errors: a list of errors of the operation");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL24, "@li restart_required: a boolean value indicating whether a "\
+                                                       "restart is required");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL25, "Each dictionary of the list of config_errors includes the "\
+                                                       "following attributes:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL26, "@li option: The configuration option for which the requirement "\
+                                                       "wasn't met");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL27, "@li current: The current value of the configuration option");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL28, "@li required: The configuration option required value");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL29, "@li action: The action to be taken in order to meet the requirement");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL30, "The action can be one of the following:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL31, "@li server_update+config_update: Both the server and the "\
+                                                       "configuration need to be updated");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL32, "@li config_update+restart: The configuration needs to be "\
+                                                       "updated and the server restarted");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL33, "@li config_update: The configuration needs to be updated");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL34, "@li server_update: The server needs to be updated");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL35, "@li restart: The server needs to be restarted");
 
 /**
 * $(DBA_CHECKINSTANCECONFIGURATION_BRIEF)
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_PARAM)
 * $(DBA_CHECKINSTANCECONFIGURATION_PARAM1)
+*
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS1)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS2)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS3)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS4)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS5)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS6)
+*
+* $(DBA_CHECKINSTANCECONFIGURATION_RETURNS)
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL)
 *
@@ -605,11 +744,42 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9, "The password may be conta
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL4)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL5)
+
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL6)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL7)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL8)
-*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL9)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL10)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL11)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL12)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL13)
+
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL14)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL15)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL16)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL17)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL18)
+
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL19)
+*
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL20)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL21)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL22)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL23)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL24)
+*
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL25)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL26)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL27)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL28)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL29)
+*
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL30)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL31)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL32)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL33)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL34)
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL35)
 */
 #if DOXYGEN_JS
 Undefined Dba::checkInstanceConfiguration(InstanceDef instance, Dictionary options) {}
@@ -740,33 +910,58 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the new deployed instance.");
-//REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURN, "@returns The deployed Instance.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the "\
+                                                "new deployed instance.");
+
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS, "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS1, "@throws ArgumentError if the root password is missing on the options.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS2, "@throws ArgumentError if the port value is < 1024 or > 65535.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS3, "@throws RuntimeError f SSL "\
+                                                 "support can be provided and "\
+                                                 "ignoreSslError: false.");
+
+// REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURNS, "@returns The deployed
+// Instance.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_RETURNS, "@returns nothing.");
+
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL, "This function will deploy a new MySQL Server instance, the result may be "\
-"affected by the provided options: ");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1, "@li portx: port where the new instance will listen for X Protocol connections.");
+                                                "affected by the provided options: ");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL1, "@li portx: port where the "\
+                                                 "new instance will listen for "\
+                                                 "X Protocol connections.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL2, "@li sandboxDir: path where the new instance will be deployed.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the new instance.");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4, "@li allowRootFrom: create remote root account, restricted to the given address pattern (eg %).");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL4, "@li allowRootFrom: create remote root account, restricted to "\
+                                                 "the given address pattern (eg %).");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL5, "@li ignoreSslError: Ignore errors when adding SSL support for the new "\
-    "instance, by default: true.");
+                                                 "instance, by default: true.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL6, "If the portx option is not specified, it will be automatically calculated "\
-"as 10 times the value of the provided MySQL port.");
+                                                 "as 10 times the value of the provided MySQL port.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7, "The password or dbPassword options specify the MySQL root "\
-"password on the new instance.");
+                                                 "password on the new instance.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL8, "The sandboxDir must be an existing folder where the new instance will be "\
-"deployed. If not specified the new instance will be deployed at:");
-REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+                                                 "deployed. If not specified the new instance will be deployed at:");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL9, "  ~/mysql-sandboxes on Unix-like systems or "\
+                                                 "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL10, "SSL support is added by "\
-    "default if not already available for the new instance, but if it fails to be "\
-    "added then the error is ignored. Set the ignoreSslError option to false to ensure the new instance is "\
-    "deployed with SSL support.");
+              "default if not already available for the new instance, but if "\
+              "it fails to be "\
+              "added then the error is ignored. Set the ignoreSslError option "\
+              "to false to ensure the new instance is "\
+              "deployed with SSL support.");
 
 /**
 * $(DBA_DEPLOYSANDBOXINSTANCE_BRIEF)
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_PARAM)
 * $(DBA_DEPLOYSANDBOXINSTANCE_PARAM1)
+*
+* $(DBA_DEPLOYSANDBOXINSTANCE_THROWS)
+* $(DBA_DEPLOYSANDBOXINSTANCE_THROWS1)
+* $(DBA_DEPLOYSANDBOXINSTANCE_THROWS2)
+* $(DBA_DEPLOYSANDBOXINSTANCE_THROWS3)
+*
+* $(DBA_DEPLOYSANDBOXINSTANCE_RETURNS)
 *
 * $(DBA_DEPLOYSANDBOXINSTANCE_DETAIL)
 *
@@ -850,7 +1045,13 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, co
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_BRIEF, "Deletes an existing MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM, "@param port The port of the instance to be deleted.");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options that modify the way this function is executed.");
-REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL, "This function will delete an existing MySQL Server instance on the local host. The next options affect the result:");
+
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_THROWS, "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_THROWS1, "@throws ArgumentError if the port value is < 1024 or > 65535.");
+
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_RETURNS, "@returns nothing.");
+
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL, "This function will delete an existing MySQL Server instance on the local host. The following options affect the result:");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
@@ -861,6 +1062,11 @@ REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_DETAIL4, "If the instance is not located
 *
 * $(DBA_DELETESANDBOXINSTANCE_PARAM)
 * $(DBA_DELETESANDBOXINSTANCE_PARAM1)
+*
+* $(DBA_DELETESANDBOXINSTANCE_THROWS)
+* $(DBA_DELETESANDBOXINSTANCE_THROWS1)
+*
+* $(DBA_DELETESANDBOXINSTANCE_RETURNS)
 *
 * $(DBA_DELETESANDBOXINSTANCE_DETAIL)
 *
@@ -891,11 +1097,19 @@ shcore::Value Dba::delete_sandbox_instance(const shcore::Argument_list &args) {
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_BRIEF, "Kills a running MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_PARAM, "@param port The port of the instance to be killed.");
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_THROWS, "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_THROWS1, "@throws ArgumentError if the port value is < 1024 or > 65535.");
+
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_RETURNS, "@returns nothing.");
+
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL, "This function will kill the process of a running MySQL Server instance "\
-"on the local host. The next options affect the result:");
+                                              "on the local host. The following options affect the result:");
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was "\
+                                               "deployed. If not specified it will use:");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or "\
+                                               "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL4, "If the instance is not located on the used path an error will occur.");
 
 /**
@@ -903,6 +1117,11 @@ REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_DETAIL4, "If the instance is not located o
 *
 * $(DBA_KILLSANDBOXINSTANCE_PARAM)
 * $(DBA_KILLSANDBOXINSTANCE_PARAM1)
+*
+* $(DBA_KILLSANDBOXINSTANCE_THROWS)
+* $(DBA_KILLSANDBOXINSTANCE_THROWS1)
+*
+* $(DBA_KILLSANDBOXINSTANCE_RETURNS)
 *
 * $(DBA_KILLSANDBOXINSTANCE_DETAIL)
 *
@@ -933,12 +1152,21 @@ shcore::Value Dba::kill_sandbox_instance(const shcore::Argument_list &args) {
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_BRIEF, "Stops a running MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM, "@param port The port of the instance to be stopped.");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS, "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS1, "@throws ArgumentError if the root password is missing on the options.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS2, "@throws ArgumentError if the port value is < 1024 or > 65535.");
+
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_RETURNS, "@returns nothing.");
+
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL, "This function will gracefully stop a running MySQL Server instance "\
-"on the local host. The next options affect the result:");
+                                              "on the local host. The following options affect the result:");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL2, "@li password: password for the MySQL root user on the instance.");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL3, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL3, "The sandboxDir must be the one where the MySQL instance was "\
+                                               "deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL4, "  ~/mysql-sandboxes on Unix-like systems or "\
+                                               "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL5, "If the instance is not located on the used path an error will occur.");
 
 /**
@@ -946,6 +1174,12 @@ REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_DETAIL5, "If the instance is not located o
 *
 * $(DBA_STOPSANDBOXINSTANCE_PARAM)
 * $(DBA_STOPSANDBOXINSTANCE_PARAM1)
+*
+* $(DBA_STOPSANDBOXINSTANCE_THROWS)
+* $(DBA_STOPSANDBOXINSTANCE_THROWS1)
+* $(DBA_STOPSANDBOXINSTANCE_THROWS2)
+*
+* $(DBA_STOPSANDBOXINSTANCE_RETURNS)
 *
 * $(DBA_STOPSANDBOXINSTANCE_DETAIL)
 *
@@ -977,11 +1211,19 @@ shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_BRIEF, "Starts an existing MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_PARAM, "@param port The port where the instance listens for MySQL connections.");
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_THROWS, "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_THROWS1, "@throws ArgumentError if the port value is < 1024 or > 65535.");
+
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_RETURNS, "@returns nothing.");
+
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL, "This function will start an existing MySQL Server instance on the local "\
-              "host. The next options affect the result:");
+                                               "host. The following options affect the result:");
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL1, "@li sandboxDir: path where the instance is located.");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
-REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or %userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL2, "The sandboxDir must be the one where the MySQL instance was "\
+                                                "deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL3, "  ~/mysql-sandboxes on Unix-like systems or "\
+                                                "%userprofile%\\MySQL\\mysql-sandboxes on Windows systems.");
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL4, "If the instance is not located on the used path an error will occur.");
 
 /**
@@ -989,6 +1231,11 @@ REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_DETAIL4, "If the instance is not located 
 *
 * $(DBA_STARTSANDBOXINSTANCE_PARAM)
 * $(DBA_STARTSANDBOXINSTANCE_PARAM1)
+*
+* $(DBA_STARTSANDBOXINSTANCE_THROWS)
+* $(DBA_STARTSANDBOXINSTANCE_THROWS1)
+*
+* $(DBA_STARTSANDBOXINSTANCE_RETURNS)
 *
 * $(DBA_STARTSANDBOXINSTANCE_DETAIL)
 *
@@ -1018,23 +1265,76 @@ shcore::Value Dba::start_sandbox_instance(const shcore::Argument_list &args) {
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_BRIEF, "Validates and configures an instance for cluster usage.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM1, "@param options Additional options for the operation.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_RETURN, "@returns A JSON object with the status.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
-"for usage in group replication and cluster. A JSON object is returned containing the result of the operation.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM1, "@param options Optional Additional options for the operation.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS, "@throws ArgumentError if the instance parameter is empty.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS1, "@throws ArgumentError if the instance definition is invalid.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS2, "@throws ArgumentError if the instance definition is a "\
+                                                  "connection dictionary but empty.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS3, "@throws RuntimeError if the instance accounts are invalid.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS4, "@throws RuntimeError if the instance is offline.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS5, "@throws RuntimeError if the "\
+                                                  "instance is already part of "\
+                                                  "a Replication Group.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS6, "@throws RuntimeError if the "\
+                                                  "instance is already part of "\
+                                                  "an InnoDB Cluster.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_RETURNS, "@returns resultset A JSON object with the status.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL, "This function reviews the instance configuration to identify if "\
+                                                 "it is valid "\
+                                                 "for usage in group replication and cluster. A JSON object is "\
+                                                 "returned containing the result of the operation.");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL1, "The instance definition can be any of:");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2, "@li URI string.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL3, "@li Connection data dictionary.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL4, "The options parameter may include:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL5, "@li mycnfPath: The path to the MySQL configuration file of the instance.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL6, "@li password: The password to be used on the connection.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7, "@li clusterAdmin: The name of the InnoDB cluster administrator user to be created.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8, "@li clusterAdminPassword: The password for the InnoDB cluster administrator account.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL4, "A basic URI string has the following format:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL5, "[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9, "The connection password may be contained on the instance definition, however, it can be overwritten "\
-"if it is specified on the options.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL6, "The connection data dictionary may contain the following attributes:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7, "@li user/dbUser: username");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8, "@li password/dbPassword: username password");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9, "@li host: hostname or IP address");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL10, "@li port: port number");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL11, "@li sslCat: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
+
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL14, "The options dictionary may contain the following options:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL15, "@li mycnfPath: The path to the MySQL configuration file of the instance.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL16, "@li password: The password to be used on the connection.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL17, "@li clusterAdmin: The name of the InnoDB cluster administrator "\
+                                                   "user to be created.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL18, "@li clusterAdminPassword: The password for the InnoDB cluster administrator account.");
+
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL19, "The connection password may be contained on the instance "\
+                                                   "definition, however, it can be overwritten "\
+                                                   "if it is specified on the options.");
+
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL20, "The returned JSON object contains the following attributes:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL21, "@li status: the final status of the command, either \"ok\" or \"error\"");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL22, "@li config_errors: a list "\
+                                                   "of dictionaries containing "\
+                                                   "the failed requirements");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL23, "@li errors: a list of errors of the operation");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL24, "@li restart_required: a boolean value indicating whether a restart is required");
+
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL25, "Each dictionary of the list of config_errors includes the "\
+                                                   "following attributes:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL26, "@li option: The configuration option for which the requirement "\
+                                                   "wasn't met");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL27, "@li current: The current value of the configuration option");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL28, "@li required: The configuration option required value");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL29, "@li action: The action to be taken in order to meet the requirement");
+
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL30, "The action can be one of the following:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL31, "@li server_update+config_update: Both the server and the "\
+                                                   "configuration need to be updated");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL32, "@li config_update+restart: The configuration needs to be "\
+                                                   "updated and the server restarted");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL33, "@li config_update: The configuration needs to be updated");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL34, "@li server_update: The server needs to be updated");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL35, "@li restart: The server needs to be restarted");
 
 /**
 * $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
@@ -1042,7 +1342,15 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9, "The connection password may b
 * $(DBA_CONFIGURELOCALINSTANCE_PARAM)
 * $(DBA_CONFIGURELOCALINSTANCE_PARAM1)
 *
-* $(DBA_CONFIGURELOCALINSTANCE_RETURN)
+* $(DBA_CONFIGURELOCALINSTANCE_THROWS)
+* $(DBA_CONFIGURELOCALINSTANCE_THROWS1)
+* $(DBA_CONFIGURELOCALINSTANCE_THROWS2)
+* $(DBA_CONFIGURELOCALINSTANCE_THROWS3)
+* $(DBA_CONFIGURELOCALINSTANCE_THROWS4)
+* $(DBA_CONFIGURELOCALINSTANCE_THROWS5)
+* $(DBA_CONFIGURELOCALINSTANCE_THROWS6)
+*
+* $(DBA_CONFIGURELOCALINSTANCE_RETURNS)
 *
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL)
 *
@@ -1052,11 +1360,41 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9, "The connection password may b
 *
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL5)
+*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL6)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL7)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL8)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL10)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL11)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL12)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL13)
 
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL9)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL14)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL15)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL16)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL17)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL18)
+*
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL19)
+*
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL20)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL21)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL22)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL23)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL24)
+*
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL25)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL26)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL27)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL28)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL29)
+*
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL30)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL31)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL32)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL33)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL34)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL35)
 */
 #if DOXYGEN_JS
 Instance Dba::configureLocalInstance(InstanceDef instance, Dictionary options) {}
@@ -1334,15 +1672,31 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
 
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF, "Brings a cluster back ONLINE when all members are OFFLINE.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM, "@param clusterName Optional The name of the cluster to be rebooted.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1, "@param options Optional dictionary with options that modify the behavior of this function.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN, "@return The rebooted cluster object.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1, "@param options Optional dictionary with options that modify the "\
+                                                          "behavior of this function.");
+
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS, "@throws MetadataError  if the Metadata is inaccessible.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1, "@throws ArgumentError if the Cluster name is empty.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2, "@throws ArgumentError if the Cluster name is not valid.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3, "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4, "@throws RuntimeError if the Cluster does not exist on the Metadata.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5, "@throws RuntimeError if some instance of the Cluster belongs to "\
+                                                           "a Replication Group.");
+
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS, "@returns The rebooted cluster object.");
+
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL, "The options dictionary can contain the next values:");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1, "@li password: The password used for the instances sessions required operations.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2, "@li removeInstances: The list of instances to be removed from the cluster.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3, "@li rejoinInstances: The list of instances to be rejoined on the cluster.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1, "@li password: The password used for the instances sessions "\
+                                                           "required operations.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2, "@li removeInstances: The list of instances to be removed from "\
+                                                           "the cluster.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3, "@li rejoinInstances: The list of instances to be rejoined on "\
+                                                           "the cluster.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4, "This function reboots a cluster from complete outage. "\
-  "It picks the instance the MySQL Shell is connected to as new seed instance and recovers the cluster. "\
-  "Optionally it also updates the cluster configuration based on user provided options.");
+                                                           "It picks the instance the MySQL Shell is connected to as new "\
+                                                           "seed instance and recovers the cluster. "\
+                                                           "Optionally it also updates the cluster configuration based on "\
+                                                           "user provided options.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5, "On success, the restored cluster object is returned by the function.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6, "The current session must be connected to a former instance of the cluster.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7, "If name is not specified, the default cluster will be returned.");
@@ -1352,13 +1706,23 @@ REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7, "If name is not speci
 *
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURN)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS)
 *
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7)
 */

@@ -63,6 +63,11 @@ protected:
     set_setup_script("setup.py");
   }
 };
+
+TEST_F(Shell_py_mysql_tests, shell_help) {
+  validate_interactive("shell_help.py");
+}
+
 TEST_F(Shell_py_mysql_tests, mysql_module) {
   validate_interactive("mysql_module.py");
 }

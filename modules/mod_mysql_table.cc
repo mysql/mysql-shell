@@ -48,12 +48,12 @@ void ClassicTable::init() {
 
 // Documentation of isView function
 REGISTER_HELP(CLASSICTABLE_ISVIEW_BRIEF, "Indicates whether this ClassicTable object represents a View on the database.");
-REGISTER_HELP(CLASSICTABLE_ISVIEW_RETURN, "@return True if the Table represents a View on the database, False if represents a Table.");
+REGISTER_HELP(CLASSICTABLE_ISVIEW_RETURNS, "@returns True if the Table represents a View on the database, False if represents a Table.");
 
 /**
 * $(CLASSICTABLE_ISVIEW_BRIEF)
 *
-* $(CLASSICTABLE_ISVIEW_RETURN)
+* $(CLASSICTABLE_ISVIEW_RETURNS)
 */
 #if DOXYGEN_JS
 Bool ClassicTable::isView() {}

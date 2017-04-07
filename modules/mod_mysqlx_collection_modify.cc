@@ -71,7 +71,7 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_BRIEF, "Sets the search condition to identify the Documents to be updated on the owner Collection.");
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_PARAM, "@param searchCondition: An optional expression to identify the documents to be updated.");
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL, "if not specified all the documents will be updated on the collection unless a limit is set.");
-REGISTER_HELP(COLLECTIONMODIFY_MODIFY_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL1, "<b> Using Expressions for Values </b>");
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL2, "Tipically, the received values are set into the document in a literal way.");
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL3, "An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.");
@@ -83,7 +83,7 @@ REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL3, "An additional option is to pass 
 *
 * $(COLLECTIONMODIFY_MODIFY_DETAIL)
 *
-* $(COLLECTIONMODIFY_MODIFY_RETURN)
+* $(COLLECTIONMODIFY_MODIFY_RETURNS)
 *
 * $(COLLECTIONMODIFY_MODIFY_DETAIL1)
 *
@@ -146,7 +146,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
 REGISTER_HELP(COLLECTIONMODIFY_SET_BRIEF, "Sets or updates attributes on documents in a collection.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_PARAM, "@param attribute A string with the document path of the item to be set.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_PARAM1, "@param value The value to be set on the specified attribute.");
-REGISTER_HELP(COLLECTIONMODIFY_SET_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL, "Adds an opertion into the modify handler to set an attribute on the documents that were included on the selection filter and limit.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL1, "@li If the attribute is not present on the document, it will be added with the given value.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL2, "@li If the attribute already exists on the document, it will be updated with the given value.");
@@ -161,7 +161,7 @@ REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL5, "An additional option is to pass an 
 *
 * $(COLLECTIONMODIFY_SET_PARAM1)
 *
-* $(COLLECTIONMODIFY_SET_RETURN)
+* $(COLLECTIONMODIFY_SET_RETURNS)
 *
 * $(COLLECTIONMODIFY_SET_DETAIL)
 * $(COLLECTIONMODIFY_SET_DETAIL1)
@@ -237,7 +237,7 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_SYNTAX, "unset(String attribute)");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_SYNTAX1, "unset(List attributes)");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM, "@param attribute A string with the document path of the attribute to be removed.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM1, "@param attributes A list with the document paths of the attributes to be removed.");
-REGISTER_HELP(COLLECTIONMODIFY_UNSET_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL, "The attribute removal will be done on the collection's documents once the execute method is called.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL1, "For each attribute on the attributes list, adds an opertion into the modify handler");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2, "to remove the attribute on the documents that were included on the selection filter and limit.");
@@ -247,7 +247,7 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2, "to remove the attribute on the do
 *
 * $(COLLECTIONMODIFY_UNSET_PARAM)
 *
-* $(COLLECTIONMODIFY_UNSET_RETURN)
+* $(COLLECTIONMODIFY_UNSET_RETURNS)
 *
 * $(COLLECTIONMODIFY_UNSET_DETAIL)
 *
@@ -293,7 +293,7 @@ CollectionModify CollectionModify::unset(str attribute) {}
 *
 * $(COLLECTIONMODIFY_UNSET_PARAM1)
 *
-* $(COLLECTIONMODIFY_UNSET_RETURN)
+* $(COLLECTIONMODIFY_UNSET_RETURNS)
 *
 * $(COLLECTIONMODIFY_UNSET_DETAIL1)
 * $(COLLECTIONMODIFY_UNSET_DETAIL2)
@@ -388,7 +388,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
 // Documentation of merge function
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_BRIEF, "Adds attributes taken from a document into the documents in a collection.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_PARAM, "@param document The document from which the attributes will be merged.");
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL, "This function adds an operation to add into the documents of a collection, all the attribues defined in document that do not exist on the collection's documents.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1, "The attribute addition will be done on the collection's documents once the execute method is called.");
 
@@ -397,7 +397,7 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1, "The attribute addition will be do
 *
 * $(COLLECTIONMODIFY_MERGE_PARAM)
 *
-* $(COLLECTIONMODIFY_MERGE_RETURN)
+* $(COLLECTIONMODIFY_MERGE_RETURNS)
 *
 * $(COLLECTIONMODIFY_MERGE_DETAIL)
 *
@@ -459,7 +459,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_BRIEF, "Inserts a value into a specific position in an array attribute in documents of a collection.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM, "@param path A document path that identifies the array attribute and position where the value will be inserted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM1, "@param value The value to be inserted.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL, "Adds an opertion into the modify handler to insert a value into an array attribute on the documents that were included on the selection filter and limit.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1, "The insertion of the value will be done on the collection's documents once the execute method is called.");
 
@@ -469,7 +469,7 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1, "The insertion of the value 
 * $(COLLECTIONMODIFY_ARRAYINSERT_PARAM)
 * $(COLLECTIONMODIFY_ARRAYINSERT_PARAM1)
 *
-* $(COLLECTIONMODIFY_ARRAYINSERT_RETURN)
+* $(COLLECTIONMODIFY_ARRAYINSERT_RETURNS)
 *
 * $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL)
 *
@@ -528,7 +528,7 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args) 
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_BRIEF, "Appends a value into an array attribute in documents of a collection.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM, "@param path A document path that identifies the array attribute where the value will be appended.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1, "@param value The value to be appended.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL, "Adds an opertion into the modify handler to append a value into an array attribute on the documents that were included on the selection filter and limit.");
 
 /**
@@ -537,7 +537,7 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL, "Adds an opertion into the mo
 * $(COLLECTIONMODIFY_ARRAYAPPEND_PARAM)
 * $(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1)
 *
-* $(COLLECTIONMODIFY_ARRAYAPPEND_RETURN)
+* $(COLLECTIONMODIFY_ARRAYAPPEND_RETURNS)
 *
 * $(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL)
 *
@@ -596,7 +596,7 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args) 
 // Documentation of arrayDelete function
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_BRIEF, "Deletes the value at a specific position in an array attribute in documents of a collection.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_PARAM, "@param path A document path that identifies the array attribute and position of the value to be deleted.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL, "Adds an opertion into the modify handler to delete a value from an array attribute on the documents that were included on the selection filter and limit.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1, "The attribute deletion will be done on the collection's documents once the execute method is called.");
 
@@ -605,7 +605,7 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1, "The attribute deletion will
 *
 * $(COLLECTIONMODIFY_ARRAYDELETE_PARAM)
 *
-* $(COLLECTIONMODIFY_ARRAYDELETE_RETURN)
+* $(COLLECTIONMODIFY_ARRAYDELETE_RETURNS)
 *
 * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
 *
@@ -663,7 +663,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args) 
 // Documentation of sort function
 REGISTER_HELP(COLLECTIONMODIFY_SORT_BRIEF, "Sets the document order in which the update operations added to the handler should be done.");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_PARAM, "@param sortExprStr: A list of expression strings defining a collection sort criteria.");
-REGISTER_HELP(COLLECTIONMODIFY_SORT_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL, "The elements of sortExprStr list are usually strings defining the attribute name on which the collection sorting will be based. Each criterion could be followed by asc or desc to indicate ascending");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL1, "or descending order respectivelly. If no order is specified, ascending will be used by default.");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL2, "This method is usually used in combination with limit to fix the amount of documents to be updated.");
@@ -673,7 +673,7 @@ REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL2, "This method is usually used in com
 *
 * $(COLLECTIONMODIFY_SORT_PARAM)
 *
-* $(COLLECTIONMODIFY_SORT_RETURN)
+* $(COLLECTIONMODIFY_SORT_RETURNS)
 *
 * $(COLLECTIONMODIFY_SORT_DETAIL)
 * $(COLLECTIONMODIFY_SORT_DETAIL1)
@@ -728,7 +728,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
 // Documentation of limit function
 REGISTER_HELP(COLLECTIONMODIFY_LIMIT_BRIEF, "Sets a limit for the documents to be updated by the operations added to the handler.");
 REGISTER_HELP(COLLECTIONMODIFY_LIMIT_PARAM, "@param numberOfDocs the number of documents to affect on the update operations.");
-REGISTER_HELP(COLLECTIONMODIFY_LIMIT_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_RETURNS, "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL, "This method is usually used in combination with sort to fix the amount of documents to be updated.");
 
 /**
@@ -736,7 +736,7 @@ REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL, "This method is usually used in com
 *
 * $(COLLECTIONMODIFY_LIMIT_PARAM)
 *
-* $(COLLECTIONMODIFY_LIMIT_RETURN)
+* $(COLLECTIONMODIFY_LIMIT_RETURNS)
 *
 * $(COLLECTIONMODIFY_LIMIT_DETAIL)
 *
@@ -782,7 +782,7 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args) {
 REGISTER_HELP(COLLECTIONMODIFY_BIND_BRIEF, "Binds a value to a specific placeholder used on this CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_BIND_PARAM, "@param name: The name of the placeholder to which the value will be bound.");
 REGISTER_HELP(COLLECTIONMODIFY_BIND_PARAM1, "@param value: The value to be bound on the placeholder.");
-REGISTER_HELP(COLLECTIONMODIFY_BIND_RETURN, "@return This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_BIND_RETURNS, "@returns This CollectionModify object.");
 
 /**
 * $(COLLECTIONMODIFY_BIND_BRIEF)
@@ -791,7 +791,7 @@ REGISTER_HELP(COLLECTIONMODIFY_BIND_RETURN, "@return This CollectionModify objec
 *
 * $(COLLECTIONMODIFY_BIND_PARAM1)
 *
-* $(COLLECTIONMODIFY_BIND_RETURN)
+* $(COLLECTIONMODIFY_BIND_RETURNS)
 *
 * #### Method Chaining
 *
@@ -829,12 +829,12 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args) {
 
 // Documentation of execute function
 REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_BRIEF, "Executes the update operations added to the handler with the configured filter and limit.");
-REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_RETURN, "@return CollectionResultset A Result object that can be used to retrieve the results of the update operation.");
+REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_RETURNS, "@returns CollectionResultset A Result object that can be used to retrieve the results of the update operation.");
 
 /**
 * $(COLLECTIONMODIFY_EXECUTE_BRIEF)
 *
-* $(COLLECTIONMODIFY_EXECUTE_RETURN)
+* $(COLLECTIONMODIFY_EXECUTE_RETURNS)
 *
 * #### Method Chaining
 *

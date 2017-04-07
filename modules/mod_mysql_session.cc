@@ -151,7 +151,7 @@ Value ClassicSession::close(const shcore::Argument_list &args) {
 //Documentation of runSql function
 REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query against the database and returns a  ClassicResult object wrapping the result.");
 REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM, "@param query the SQL query to execute against the database.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURN, "@return A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS, "@returns A ClassicResult object.");
 REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is thrown if an error occurs on the SQL execution.");
 
 //! $(CLASSICSESSION_RUNSQL_BRIEF)
@@ -161,7 +161,7 @@ REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is throw
 //! $(CLASSICSESSION_RUNSQL_PARAM)
 #endif
 /**
-* $(CLASSICSESSION_RUNSQL_RETURN)
+* $(CLASSICSESSION_RUNSQL_RETURNS)
 *
 * $(CLASSICSESSION_RUNSQL_EXCEPTION)
 */
@@ -226,7 +226,7 @@ std::shared_ptr<ClassicResult> ClassicSession::execute_sql(const std::string& qu
 //Documentation of createSchema function
 REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_BRIEF, "Creates a schema on the database and returns the corresponding object.");
 REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_PARAM, "@param name A string value indicating the schema name.");
-REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_RETURN, "@return The created schema object.");
+REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_RETURNS, "@returns The created schema object.");
 REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_EXCEPTION, "@exception An exception is thrown if an error occurs creating the Session.");
 
 /**
@@ -234,7 +234,7 @@ REGISTER_HELP(CLASSICSESSION_CREATESCHEMA_EXCEPTION, "@exception An exception is
 *
 * $(CLASSICSESSION_CREATESCHEMA_PARAM)
 *
-* $(CLASSICSESSION_CREATESCHEMA_RETURN)
+* $(CLASSICSESSION_CREATESCHEMA_RETURNS)
 *
 * $(CLASSICSESSION_CREATESCHEMA_EXCEPTION)
 */
@@ -273,13 +273,13 @@ Value ClassicSession::create_schema(const shcore::Argument_list &args) {
 
 // Documentation of getDefaultSchema function
 REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the ClassicSchema configured as default for the session.");
-REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_RETURN, "@return A ClassicSchema object or Null");
+REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_RETURNS, "@returns A ClassicSchema object or Null");
 REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_DETAIL, "If the configured schema is not valid anymore Null wil be returned.");
 
 /**
 * $(CLASSICSESSION_GETDEFAULTSCHEMA_BRIEF)
 *
-* $(CLASSICSESSION_GETDEFAULTSCHEMA_RETURN)
+* $(CLASSICSESSION_GETDEFAULTSCHEMA_RETURNS)
 *
 * $(CLASSICSESSION_GETDEFAULTSCHEMA_DETAIL)
 */
@@ -291,13 +291,13 @@ ClassicSchema ClassicSession::get_default_schema() {}
 
 // Documentation of getCurrentSchema function
 REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the ClassicSchema that is active as current on the session.");
-REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_RETURN, "@return A ClassicSchema object or Null");
+REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_RETURNS, "@returns A ClassicSchema object or Null");
 REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_DETAIL, "The current schema is configured either throu setCurrentSchema(String name) or by using the USE statement.");
 
 /**
 * $(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF)
 *
-* $(CLASSICSESSION_GETCURRENTSCHEMA_RETURN)
+* $(CLASSICSESSION_GETCURRENTSCHEMA_RETURNS)
 *
 * $(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF)
 */
@@ -309,12 +309,12 @@ ClassicSchema ClassicSession::get_current_schema() {}
 
 // Documentation of getCurrentSchema function
 REGISTER_HELP(CLASSICSESSION_GETURI_BRIEF, "Returns the connection string passed to connect() method.");
-REGISTER_HELP(CLASSICSESSION_GETURI_RETURN, "@return A string representation of the connection data in URI format (excluding the password or the database).");
+REGISTER_HELP(CLASSICSESSION_GETURI_RETURNS, "@returns A string representation of the connection data in URI format (excluding the password or the database).");
 
 /**
 * $(CLASSICSESSION_GETURI_BRIEF)
 *
-* $(CLASSICSESSION_GETURI_RETURN)
+* $(CLASSICSESSION_GETURI_RETURNS)
 */
 #if DOXYGEN_JS
 String ClassicSession::getUri() {}
@@ -374,7 +374,7 @@ void ClassicSession::_remove_schema(const std::string& name) {
 // Documentation of getSchema function
 REGISTER_HELP(CLASSICSESSION_GETSCHEMA_BRIEF, "Retrieves a ClassicSchema object from the current session through it's name.");
 REGISTER_HELP(CLASSICSESSION_GETSCHEMA_PARAM, "@param name The name of the ClassicSchema object to be retrieved.");
-REGISTER_HELP(CLASSICSESSION_GETSCHEMA_RETURN, "@return The ClassicSchema object with the given name.");
+REGISTER_HELP(CLASSICSESSION_GETSCHEMA_RETURNS, "@returns The ClassicSchema object with the given name.");
 REGISTER_HELP(CLASSICSESSION_GETSCHEMA_EXCEPTION, "@exception An exception is thrown if the given name is not a valid schema on the Session.");
 
 //! $(CLASSICSESSION_GETSCHEMA_BRIEF)
@@ -384,7 +384,7 @@ REGISTER_HELP(CLASSICSESSION_GETSCHEMA_EXCEPTION, "@exception An exception is th
 //! $(CLASSICSESSION_GETSCHEMA_PARAM)
 #endif
 /**
-* $(CLASSICSESSION_GETSCHEMA_RETURN)
+* $(CLASSICSESSION_GETSCHEMA_RETURNS)
 *
 * $(CLASSICSESSION_GETSCHEMA_EXCEPTION)
 *
@@ -423,12 +423,12 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
 
 // Documentation of getSchemas function
 REGISTER_HELP(CLASSICSESSION_GETSCHEMAS_BRIEF, "Retrieves the Schemas available on the session.");
-REGISTER_HELP(CLASSICSESSION_GETSCHEMAS_RETURN, "@return A List containing the ClassicSchema objects available on the session.");
+REGISTER_HELP(CLASSICSESSION_GETSCHEMAS_RETURNS, "@returns A List containing the ClassicSchema objects available on the session.");
 
 /**
 * $(CLASSICSESSION_GETSCHEMAS_BRIEF)
 *
-* $(CLASSICSESSION_GETSCHEMAS_RETURN)
+* $(CLASSICSESSION_GETSCHEMAS_RETURNS)
 */
 #if DOXYGEN_JS
 List ClassicSession::getSchemas() {}
@@ -467,12 +467,12 @@ shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) con
 
 // Documentation of setCurrentSchema function
 REGISTER_HELP(CLASSICSESSION_SETCURRENTSCHEMA_BRIEF, "Sets the selected schema for this session's connection.");
-REGISTER_HELP(CLASSICSESSION_SETCURRENTSCHEMA_RETURN, "@return The new schema.");
+REGISTER_HELP(CLASSICSESSION_SETCURRENTSCHEMA_RETURNS, "@returns The new schema.");
 
 /**
 * $(CLASSICSESSION_SETCURRENTSCHEMA_BRIEF)
 *
-* $(CLASSICSESSION_SETCURRENTSCHEMA_RETURN)
+* $(CLASSICSESSION_SETCURRENTSCHEMA_RETURNS)
 */
 #if DOXYGEN_JS
 ClassicSchema ClassicSession::setCurrentSchema(String schema) {}
@@ -501,13 +501,13 @@ std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argu
 
 // Documentation of dropSchema function
 REGISTER_HELP(CLASSICSESSION_DROPSCHEMA_BRIEF, "Drops the schema with the specified name.");
-REGISTER_HELP(CLASSICSESSION_DROPSCHEMA_RETURN, "@return A ClassicResult object if succeeded.");
+REGISTER_HELP(CLASSICSESSION_DROPSCHEMA_RETURNS, "@returns A ClassicResult object if succeeded.");
 REGISTER_HELP(CLASSICSESSION_DROPSCHEMA_EXCEPTION, "@exception An error is raised if the schema did not exist.");
 
 /**
 * $(CLASSICSESSION_DROPSCHEMA_BRIEF)
 *
-* $(CLASSICSESSION_DROPSCHEMA_RETURN)
+* $(CLASSICSESSION_DROPSCHEMA_RETURNS)
 *
 * $(CLASSICSESSION_DROPSCHEMA_EXCEPTION)
 */
@@ -535,7 +535,7 @@ shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args) {
 
 // Documentation of dropTable function
 REGISTER_HELP(CLASSICSESSION_DROPTABLE_BRIEF, "Drops a table from the specified schema.");
-REGISTER_HELP(CLASSICSESSION_DROPTABLE_RETURN, "@return A ClassicResult object if succeeded.");
+REGISTER_HELP(CLASSICSESSION_DROPTABLE_RETURNS, "@returns A ClassicResult object if succeeded.");
 REGISTER_HELP(CLASSICSESSION_DROPTABLE_EXCEPTION, "@exception An error is raised if the table did not exist.");
 
 #if DOXYGEN_CPP
@@ -552,7 +552,7 @@ REGISTER_HELP(CLASSICSESSION_DROPTABLE_EXCEPTION, "@exception An error is raised
 /**
 * $(CLASSICSESSION_DROPTABLE_BRIEF)
 *
-* $(CLASSICSESSION_DROPTABLE_RETURN)
+* $(CLASSICSESSION_DROPTABLE_RETURNS)
 *
 * $(CLASSICSESSION_DROPTABLE_EXCEPTION)
 */
@@ -564,13 +564,13 @@ ClassicResult ClassicSession::drop_table(str schema, str name) {}
 
 // Documentation of dropView function
 REGISTER_HELP(CLASSICSESSION_DROPVIEW_BRIEF, "Drops a view from the specified schema.");
-REGISTER_HELP(CLASSICSESSION_DROPVIEW_RETURN, "@return A ClassicResult object if succeeded.");
+REGISTER_HELP(CLASSICSESSION_DROPVIEW_RETURNS, "@returns A ClassicResult object if succeeded.");
 REGISTER_HELP(CLASSICSESSION_DROPVIEW_EXCEPTION, "@exception An error is raised if the view did not exist.");
 
 /**
 * $(CLASSICSESSION_DROPVIEW_BRIEF)
 *
-* $(CLASSICSESSION_DROPVIEW_RETURN)
+* $(CLASSICSESSION_DROPVIEW_RETURNS)
 *
 * $(CLASSICSESSION_DROPVIEW_EXCEPTION)
 */
@@ -663,7 +663,7 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
 
 // Documentation of startTransaction function
 REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_BRIEF, "Starts a transaction context on the server.");
-REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_RETURN, "@return A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_RETURNS, "@returns A ClassicResult object.");
 REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL, "Calling this function will turn off the autocommit mode on the server.");
 REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL1, "All the operations executed after calling this function will take place only when commit() is called.");
 REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL2, "All the operations executed after calling this function, will be discarded is rollback() is called.");
@@ -672,7 +672,7 @@ REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL3, "When commit() or rollbac
 /**
 * $(CLASSICSESSION_STARTTRANSACTION_BRIEF)
 *
-* $(CLASSICSESSION_STARTTRANSACTION_RETURN)
+* $(CLASSICSESSION_STARTTRANSACTION_RETURNS)
 *
 * $(CLASSICSESSION_STARTTRANSACTION_DETAIL)
 *
@@ -695,14 +695,14 @@ shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args
 
 // Documentation of commit function
 REGISTER_HELP(CLASSICSESSION_COMMIT_BRIEF, "Commits all the operations executed after a call to startTransaction().");
-REGISTER_HELP(CLASSICSESSION_COMMIT_RETURN, "@return A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_COMMIT_RETURNS, "@returns A ClassicResult object.");
 REGISTER_HELP(CLASSICSESSION_COMMIT_DETAIL, "All the operations executed after calling startTransaction() will take place when this function is called.");
 REGISTER_HELP(CLASSICSESSION_COMMIT_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
 
 /**
 * $(CLASSICSESSION_COMMIT_BRIEF)
 *
-* $(CLASSICSESSION_COMMIT_RETURN)
+* $(CLASSICSESSION_COMMIT_RETURNS)
 *
 * $(CLASSICSESSION_COMMIT_DETAIL)
 *
@@ -721,14 +721,14 @@ shcore::Value ClassicSession::commit(const shcore::Argument_list &args) {
 
 // Documentation of rollback function
 REGISTER_HELP(CLASSICSESSION_ROLLBACK_BRIEF, "Discards all the operations executed after a call to startTransaction().");
-REGISTER_HELP(CLASSICSESSION_ROLLBACK_RETURN, "@return A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_ROLLBACK_RETURNS, "@returns A ClassicResult object.");
 REGISTER_HELP(CLASSICSESSION_ROLLBACK_DETAIL, "All the operations executed after calling startTransaction() will be discarded when this function is called.");
 REGISTER_HELP(CLASSICSESSION_ROLLBACK_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
 
 /**
 * $(CLASSICSESSION_ROLLBACK_BRIEF)
 *
-* $(CLASSICSESSION_ROLLBACK_RETURN)
+* $(CLASSICSESSION_ROLLBACK_RETURNS)
 *
 * $(CLASSICSESSION_ROLLBACK_DETAIL)
 *

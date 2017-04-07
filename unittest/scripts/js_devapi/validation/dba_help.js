@@ -9,8 +9,7 @@ The following properties are currently supported.
 
 The following functions are currently supported.
 
- - checkInstanceConfiguration      Validates an instance for usage in Group
-                                   Replication.
+ - checkInstanceConfiguration      Validates an instance for cluster usage.
  - configureLocalInstance          Validates and configures an instance for
                                    cluster usage.
  - createCluster                   Creates a MySQL InnoDB cluster.
@@ -49,6 +48,21 @@ WHERE
 
   name: The name of the cluster object to be created.
   options: Dictionary with options that modify the behavior of this function.
+
+EXCEPTIONS
+
+  MetadataError: if the Metadata is inaccessible.
+  MetadataError: if the Metadata update operation failed.
+  ArgumentError: if the Cluster name is empty.
+  ArgumentError: if the Cluster name is not valid.
+  ArgumentError: if the options contain an invalid attribute.
+  ArgumentError: if adoptFromGR is true and the memberSslMode option is used.
+  ArgumentError: if the value for the memberSslMode option is not one of the
+                 allowed.
+
+RETURNS
+
+ The created cluster object.
 
 DESCRIPTION
 
@@ -111,10 +125,19 @@ WHERE
   options: Dictionary with options that modify the way this function is
            executed.
 
+EXCEPTIONS
+
+  ArgumentError: if the options contain an invalid attribute.
+  ArgumentError: if the port value is < 1024 or > 65535.
+
+RETURNS
+
+ nothing.
+
 DESCRIPTION
 
 This function will delete an existing MySQL Server instance on the local host.
-The next options affect the result:
+The following options affect the result:
 
  - sandboxDir: path where the instance is located.
 
@@ -138,6 +161,17 @@ WHERE
 
   port: The port where the new instance will listen for connections.
   options: Dictionary with options affecting the new deployed instance.
+
+EXCEPTIONS
+
+  ArgumentError: if the options contain an invalid attribute.
+  ArgumentError: if the root password is missing on the options.
+  ArgumentError: if the port value is < 1024 or > 65535.
+  RuntimeError: f SSL support can be provided and ignoreSslError: false.
+
+RETURNS
+
+ nothing.
 
 DESCRIPTION
 
@@ -180,9 +214,17 @@ WHERE
 
   options: Dictionary containing an option to confirm the drop operation.
 
+EXCEPTIONS
+
+  MetadataError: if the Metadata is inaccessible.
+
+RETURNS
+
+ nothing.
+
 DESCRIPTION
 
-The next is the only option supported:
+The options dictionary may contain the following options:
 
  - force: boolean, confirms that the drop operation must be executed.
 
@@ -196,6 +238,18 @@ SYNTAX
 WHERE
 
   name: Parameter to specify the name of the cluster to be returned.
+
+EXCEPTIONS
+
+  MetadataError: if the Metadata is inaccessible.
+  MetadataError: if the Metadata update operation failed.
+  ArgumentError: if the Cluster name is empty.
+  ArgumentError: if the Cluster name is invalid.
+  ArgumentError: if the Cluster does not exist.
+
+RETURNS
+
+ The cluster object identified  by the given name or the default  cluster.
 
 DESCRIPTION
 
@@ -217,10 +271,19 @@ WHERE
   port: The port of the instance to be killed.
   options: Dictionary with options affecting the result.
 
+EXCEPTIONS
+
+  ArgumentError: if the options contain an invalid attribute.
+  ArgumentError: if the port value is < 1024 or > 65535.
+
+RETURNS
+
+ nothing.
+
 DESCRIPTION
 
 This function will kill the process of a running MySQL Server instance on the
-local host. The next options affect the result:
+local host. The following options affect the result:
 
  - sandboxDir: path where the instance is located.
 
@@ -266,10 +329,19 @@ WHERE
   port: The port where the instance listens for MySQL connections.
   options: Dictionary with options affecting the result.
 
+EXCEPTIONS
+
+  ArgumentError: if the options contain an invalid attribute.
+  ArgumentError: if the port value is < 1024 or > 65535.
+
+RETURNS
+
+ nothing.
+
 DESCRIPTION
 
 This function will start an existing MySQL Server instance on the local host.
-The next options affect the result:
+The following options affect the result:
 
  - sandboxDir: path where the instance is located.
 
@@ -282,7 +354,7 @@ on Windows systems.
 If the instance is not located on the used path an error will occur.
 
 //@<OUT> Check Instance Configuration
-Validates an instance for usage in Group Replication.
+Validates an instance for cluster usage.
 
 SYNTAX
 
@@ -292,6 +364,21 @@ WHERE
 
   instance: An instance definition.
   options: Data for the operation.
+
+EXCEPTIONS
+
+  ArgumentError: if the instance parameter is empty.
+  ArgumentError: if the instance definition is invalid.
+  ArgumentError: if the instance definition is a connection dictionary but
+                 empty.
+  RuntimeError: if the instance accounts are invalid.
+  RuntimeError: if the instance is offline.
+  RuntimeError: if the instance is already part of a Replication Group.
+  RuntimeError: if the instance is already part of an InnoDB Cluster.
+
+RETURNS
+
+ A JSON object with the status.
 
 DESCRIPTION
 
@@ -303,7 +390,21 @@ The instance definition can be any of:
  - URI string.
  - Connection data dictionary.
 
-The options dictionary may contain the next options:
+A basic URI string has the following format:
+
+[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+
+The connection data dictionary may contain the following attributes:
+
+ - user/dbUser: username
+ - password/dbPassword: username password
+ - host: hostname or IP address
+ - port: port number
+ - sslCat: the path to the X509 certificate authority in PEM format.
+ - sslCert: The path to the X509 certificate in PEM format.
+ - sslKey: The path to the X509 key in PEM format.
+
+The options dictionary may contain the following options:
 
  - mycnfPath: The path of the MySQL configuration file for the instance.
  - password: The password to get connected to the instance.
@@ -311,8 +412,32 @@ The options dictionary may contain the next options:
  - clusterAdminPassword: The password for the InnoDB cluster administrator
    account.
 
-The password may be contained on the instance definition, however, it can be
-overwritten if it is specified on the options.
+The connection password may be contained on the instance definition, however,
+it can be overwritten if it is specified on the options.
+
+The returned JSON object contains the following attributes:
+
+ - status: the final status of the command, either "ok" or "error"
+ - config_errors: a list of dictionaries containing the failed requirements
+ - errors: a list of errors of the operation
+ - restart_required: a boolean value indicating whether a restart is required
+
+Each dictionary of the list of config_errors includes the following attributes:
+
+ - option: The configuration option for which the requirement wasn't met
+ - current: The current value of the configuration option
+ - required: The configuration option required value
+ - action: The action to be taken in order to meet the requirement
+
+The action can be one of the following:
+
+ - server_update+config_update: Both the server and the configuration need to
+   be updated
+ - config_update+restart: The configuration needs to be updated and the server
+   restarted
+ - config_update: The configuration needs to be updated
+ - server_update: The server needs to be updated
+ - restart: The server needs to be restarted
 
 
 //@<OUT> Stop Sandbox
@@ -327,10 +452,20 @@ WHERE
   port: The port of the instance to be stopped.
   options: Dictionary with options affecting the result.
 
+EXCEPTIONS
+
+  ArgumentError: if the options contain an invalid attribute.
+  ArgumentError: if the root password is missing on the options.
+  ArgumentError: if the port value is < 1024 or > 65535.
+
+RETURNS
+
+ nothing.
+
 DESCRIPTION
 
 This function will gracefully stop a running MySQL Server instance on the local
-host. The next options affect the result:
+host. The following options affect the result:
 
  - sandboxDir: path where the instance is located.
  - password: password for the MySQL root user on the instance.
@@ -349,12 +484,27 @@ Validates and configures an instance for cluster usage.
 
 SYNTAX
 
-  <Dba>.configureLocalInstance(instance, options)
+  <Dba>.configureLocalInstance(instance[, options])
 
 WHERE
 
   instance: An instance definition.
   options: Additional options for the operation.
+
+EXCEPTIONS
+
+  ArgumentError: if the instance parameter is empty.
+  ArgumentError: if the instance definition is invalid.
+  ArgumentError: if the instance definition is a connection dictionary but
+                 empty.
+  RuntimeError: if the instance accounts are invalid.
+  RuntimeError: if the instance is offline.
+  RuntimeError: if the instance is already part of a Replication Group.
+  RuntimeError: if the instance is already part of an InnoDB Cluster.
+
+RETURNS
+
+ resultset A JSON object with the status.
 
 DESCRIPTION
 
@@ -367,7 +517,21 @@ The instance definition can be any of:
  - URI string.
  - Connection data dictionary.
 
-The options parameter may include:
+A basic URI string has the following format:
+
+[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+
+The connection data dictionary may contain the following attributes:
+
+ - user/dbUser: username
+ - password/dbPassword: username password
+ - host: hostname or IP address
+ - port: port number
+ - sslCat: the path to the X509 certificate authority in PEM format.
+ - sslCert: The path to the X509 certificate in PEM format.
+ - sslKey: The path to the X509 key in PEM format.
+
+The options dictionary may contain the following options:
 
  - mycnfPath: The path to the MySQL configuration file of the instance.
  - password: The password to be used on the connection.
@@ -379,6 +543,29 @@ The options parameter may include:
 The connection password may be contained on the instance definition, however,
 it can be overwritten if it is specified on the options.
 
+The returned JSON object contains the following attributes:
+
+ - status: the final status of the command, either "ok" or "error"
+ - config_errors: a list of dictionaries containing the failed requirements
+ - errors: a list of errors of the operation
+ - restart_required: a boolean value indicating whether a restart is required
+
+Each dictionary of the list of config_errors includes the following attributes:
+
+ - option: The configuration option for which the requirement wasn't met
+ - current: The current value of the configuration option
+ - required: The configuration option required value
+ - action: The action to be taken in order to meet the requirement
+
+The action can be one of the following:
+
+ - server_update+config_update: Both the server and the configuration need to
+   be updated
+ - config_update+restart: The configuration needs to be updated and the server
+   restarted
+ - config_update: The configuration needs to be updated
+ - server_update: The server needs to be updated
+ - restart: The server needs to be restarted
 
 //@<OUT> Verbose
 Enables verbose mode on the Dba operations.
@@ -405,6 +592,19 @@ WHERE
 
   clusterName: The name of the cluster to be rebooted.
   options: Dictionary with options that modify the behavior of this function.
+
+EXCEPTIONS
+
+  MetadataError:  if the Metadata is inaccessible.
+  ArgumentError: if the Cluster name is empty.
+  ArgumentError: if the Cluster name is not valid.
+  ArgumentError: if the options contain an invalid attribute.
+  RuntimeError: if the Cluster does not exist on the Metadata.
+  RuntimeError: if some instance of the Cluster belongs to a Replication Group.
+
+RETURNS
+
+ The rebooted cluster object.
 
 DESCRIPTION
 

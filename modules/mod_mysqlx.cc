@@ -77,7 +77,7 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 REGISTER_HELP(MYSQLX_GETNODESESSION_BRIEF, "Creates a NodeSession instance using the provided connection data.");
 REGISTER_HELP(MYSQLX_GETNODESESSION_PARAM,  "@param connectionData The connection data for the session");
 REGISTER_HELP(MYSQLX_GETNODESESSION_PARAM1, "@param password Optional password for the session");
-REGISTER_HELP(MYSQLX_GETNODESESSION_RETURN, "@return A NodeSession");
+REGISTER_HELP(MYSQLX_GETNODESESSION_RETURNS, "@returns A NodeSession");
 REGISTER_HELP(MYSQLX_GETNODESESSION_DETAIL, "A NodeSession object uses the traditional MySQL Protocol to allow executing operations on the "\
 "connected MySQL Server.");
 REGISTER_HELP(MYSQLX_GETNODESESSION_DETAIL1,"The connection data can be any of:");
@@ -90,7 +90,7 @@ REGISTER_HELP(MYSQLX_GETNODESESSION_DETAIL3,"@li A Dictionary with the connectio
  * $(MYSQLX_GETNODESESSION_PARAM)
  * $(MYSQLX_GETNODESESSION_PARAM1)
  *
- * $(MYSQLX_GETNODESESSION_RETURN)
+ * $(MYSQLX_GETNODESESSION_RETURNS)
  *
  * $(MYSQLX_GETNODESESSION_DETAIL)
  *

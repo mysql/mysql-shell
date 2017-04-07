@@ -61,18 +61,7 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
   _global_namespace = PyImport_AddModule("__main__");
   _globals = PyModule_GetDict(_global_namespace);
 
-  if ((*shcore::Shell_core_options::get())[SHCORE_MULTIPLE_INSTANCES] == shcore::Value::True()) {
-    // create a local namespace
-    std::string mod_name(Python_init_singleton::get_new_scope_name());
-    PyObject *local = PyImport_AddModule(mod_name.c_str());
-    _locals = PyModule_GetDict(local);
-    if (!_locals) {
-      throw Exception::runtime_error("Error initializing python context (locals).");
-      PyErr_Print();
-    }
-  } else {
-    _locals = _globals;
-  }
+  _locals = _globals;
 
   if (!_global_namespace || !_globals) {
     throw Exception::runtime_error("Error initializing python context.");
