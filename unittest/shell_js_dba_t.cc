@@ -445,6 +445,10 @@ TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
   validate_interactive("dba_cluster_add_instance.js");
 }
 
+TEST_F(Shell_js_dba_tests, dba_cluster_check_instance_state) {
+  validate_interactive("dba_cluster_check_instance_state.js");
+}
+
 TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {
   //@# drop metadata: no user response
   output_handler.prompts.push_back("");
