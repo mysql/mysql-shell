@@ -32,7 +32,8 @@ set(SCRIPTING_SOURCES
     object_registry.cc
     proxy_object.cc
     types.cc
-    types_cpp.cc)
+    types_cpp.cc
+    shexcept.cc)
 
 # Will generate the js_core_definitions file which will contain the
 # core.js file in a variable.
