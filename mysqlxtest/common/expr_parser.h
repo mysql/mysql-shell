@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -57,7 +57,7 @@ namespace mysqlx
     static Mysqlx::Datatypes::Scalar* build_string_scalar(const std::string& s);
     static Mysqlx::Datatypes::Scalar* build_bool_scalar(bool b);
     static Mysqlx::Expr::Expr* build_literal_expr(Mysqlx::Datatypes::Scalar* sc);
-    static Mysqlx::Expr::Expr* build_unary_op(const std::string& name, Mysqlx::Expr::Expr* param);
+    static Mysqlx::Expr::Expr* build_unary_op(const std::string& name, std::unique_ptr<Mysqlx::Expr::Expr> param);
   };
 
   class Expr_parser
@@ -65,29 +65,29 @@ namespace mysqlx
   public:
     Expr_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = false, std::vector<std::string>* place_holders = NULL);
 
-    typedef std::function<Mysqlx::Expr::Expr*(void)> inner_parser_t;
+    typedef std::function<std::unique_ptr<Mysqlx::Expr::Expr> (void)> inner_parser_t;
 
     void paren_expr_list(::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* expr_list);
-    Mysqlx::Expr::Identifier* identifier();
-    Mysqlx::Expr::Expr* function_call();
+    std::unique_ptr<Mysqlx::Expr::Identifier> identifier();
+    std::unique_ptr<Mysqlx::Expr::Expr> function_call();
     void docpath_member(Mysqlx::Expr::DocumentPathItem& item);
     void docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item);
     void document_path(Mysqlx::Expr::ColumnIdentifier& colid);
     const std::string& id();
-    Mysqlx::Expr::Expr* column_field();
-    Mysqlx::Expr::Expr* document_field();
-    Mysqlx::Expr::Expr* atomic_expr();
-    Mysqlx::Expr::Expr* array_();
-    Mysqlx::Expr::Expr* parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser);
-    Mysqlx::Expr::Expr* mul_div_expr();
-    Mysqlx::Expr::Expr* add_sub_expr();
-    Mysqlx::Expr::Expr* shift_expr();
-    Mysqlx::Expr::Expr* bit_expr();
-    Mysqlx::Expr::Expr* comp_expr();
-    Mysqlx::Expr::Expr* ilri_expr();
-    Mysqlx::Expr::Expr* and_expr();
-    Mysqlx::Expr::Expr* or_expr();
-    Mysqlx::Expr::Expr* expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> column_field();
+    std::unique_ptr<Mysqlx::Expr::Expr> document_field();
+    std::unique_ptr<Mysqlx::Expr::Expr> atomic_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> array_();
+    std::unique_ptr<Mysqlx::Expr::Expr> parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser);
+    std::unique_ptr<Mysqlx::Expr::Expr> mul_div_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> add_sub_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> shift_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> bit_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> comp_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> ilri_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> and_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> or_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> expr();
 
     std::vector<Token>::const_iterator begin() const { return _tokenizer.begin(); }
     std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
@@ -137,15 +137,15 @@ namespace mysqlx
 
     // json
     void json_key_value(Mysqlx::Expr::Object* obj);
-    Mysqlx::Expr::Expr* json_doc();
+    std::unique_ptr<Mysqlx::Expr::Expr> json_doc();
     // placeholder
     std::vector<std::string> _place_holders;
     std::vector<std::string>* _place_holder_ref;
-    Mysqlx::Expr::Expr* placeholder();
+    std::unique_ptr<Mysqlx::Expr::Expr> placeholder();
     // cast
-    Mysqlx::Expr::Expr* my_expr();
-    Mysqlx::Expr::Expr* cast();
-    Mysqlx::Expr::Expr *binary();
+    std::unique_ptr<Mysqlx::Expr::Expr> my_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> cast();
+    std::unique_ptr<Mysqlx::Expr::Expr> binary();
     std::string cast_data_type();
     std::string cast_data_type_dimension(bool double_dimension = false);
     std::string opt_binary();

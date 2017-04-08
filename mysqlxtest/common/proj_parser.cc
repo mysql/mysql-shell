@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -20,8 +20,6 @@
 #include "proj_parser.h"
 #include "ngs_common/protocol_protobuf.h"
 
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
 
 using namespace mysqlx;
 
@@ -59,7 +57,7 @@ void Proj_parser::source_expression(Mysqlx::Crud::Projection &col)
     document_path(*colid);
   }
   else
-    col.set_allocated_source(my_expr());
+    col.set_allocated_source(my_expr().release());
 
   // Sets the alias token
   if (_allow_alias)

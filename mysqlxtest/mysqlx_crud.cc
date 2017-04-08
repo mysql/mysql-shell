@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -22,9 +22,9 @@
 #include "ngs_common/protocol_protobuf.h"
 
 #include "mysqlx_parser.h"
+#include <boost/algorithm/string.hpp>
 
 #include "compilerutils.h"
-#include <boost/algorithm/string.hpp>
 
 #define CONTENT_TYPE_GEOMETRY 0x0001
 #define CONTENT_TYPE_JSON 0x0002
@@ -304,9 +304,7 @@ Find_GroupBy &FindStatement::fields(const std::string& projection)
 {
   ::mysqlx::Expr_parser parser(projection, true, false, &m_placeholders);
 
-  Mysqlx::Expr::Expr *expr_obj = parser.expr();
-
-  m_find->mutable_projection()->Add()->set_allocated_source(expr_obj);
+  m_find->mutable_projection()->Add()->set_allocated_source(parser.expr().release());
 
   return *this;
 }
@@ -395,7 +393,7 @@ AddStatement::AddStatement(std::shared_ptr<Collection> coll, const Document &doc
 AddStatement &AddStatement::add(const Document &doc)
 {
   ::mysqlx::Expr_parser parser(doc.str(), true, false, &m_placeholders);
-  Mysqlx::Expr::Expr *expr_obj = parser.expr();
+  std::unique_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
 
   if (expr_obj->type() == Mysqlx::Expr::Expr_Type_OBJECT)
   {
@@ -424,7 +422,7 @@ AddStatement &AddStatement::add(const Document &doc)
     else
       throw std::logic_error("Missing document _id");
 
-    m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(expr_obj);
+    m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(expr_obj.release());
   }
 
   return *this;
@@ -576,7 +574,7 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
     {
       DocumentValue expression(*value);
       Expr_parser parser(expression, true, false, &m_placeholders);
-      operation->set_allocated_value(parser.expr());
+      operation->set_allocated_value(parser.expr().release());
     }
     else
     {
@@ -857,7 +855,7 @@ Update_Set &Update_Set::set(const std::string &field, const std::string& express
   operation->set_operation(Mysqlx::Crud::UpdateOperation::SET);
 
   Expr_parser parser(expression, false, false, &m_placeholders);
-  operation->set_allocated_value(parser.expr());
+  operation->set_allocated_value(parser.expr().release());
 
   return *this;
 }
@@ -1017,7 +1015,7 @@ Insert_Values &Insert_Values::values(const std::vector<TableValue> &row_data)
     {
       TableValue expression(*index);
       Expr_parser parser(expression, false, false, &m_placeholders);
-      row->mutable_field()->AddAllocated(parser.expr());
+      row->mutable_field()->AddAllocated(parser.expr().release());
     }
     else
     {
