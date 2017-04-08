@@ -131,14 +131,12 @@ void Expr_parser::paren_expr_list(::google::protobuf::RepeatedPtrField< ::Mysqlx
   if (!_tokenizer.cur_token_type_is(Token::RPAREN))
   {
     Memory_new<Mysqlx::Expr::Expr>::Unique_ptr ptr(my_expr());
-    expr_list->AddAllocated(ptr.get());
-    ptr.release();
+    expr_list->AddAllocated(ptr.release());
     while (_tokenizer.cur_token_type_is(Token::COMMA))
     {
       _tokenizer.inc_pos_token();
       ptr.reset(my_expr());
-      expr_list->AddAllocated(ptr.get());
-      ptr.release();
+      expr_list->AddAllocated(ptr.release());
     }
   }
   _tokenizer.consume_token(Token::RPAREN);
@@ -170,9 +168,7 @@ Mysqlx::Expr::Expr* Expr_parser::function_call()
   Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
   e->set_type(Mysqlx::Expr::Expr::FUNC_CALL);
   Mysqlx::Expr::FunctionCall* func = e->mutable_function_call();
-  Memory_new<Mysqlx::Expr::Identifier>::Unique_ptr id(identifier());
-  func->set_allocated_name(id.get());
-  id.release();
+  func->set_allocated_name(identifier());
 
   paren_expr_list(func->mutable_param());
   return e.release();
@@ -398,8 +394,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   else if (type == Token::PLUS || type == Token::MINUS || type == Token::NOT || type == Token::NEG)
   {
     Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(atomic_expr());
-    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(Expr_builder::build_unary_op(t.get_text(), tmp.get()));
-    tmp.release();
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(Expr_builder::build_unary_op(t.get_text(), tmp.release()));
     return result.release();
   }
   else if (type == Token::LSTRING)
@@ -435,8 +430,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
 
     Mysqlx::Expr::Operator* op = e->mutable_operator_();
     op->set_name("interval");
-    op->mutable_param()->AddAllocated(operand.get());
-    operand.release();
+    op->mutable_param()->AddAllocated(operand.release());
     // validate the interval units
     if (!_tokenizer.tokens_available() || !_tokenizer.is_interval_units_type())
     {
@@ -445,8 +439,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
     }
     const Token& val = _tokenizer.consume_any_token();
     Memory_new<Mysqlx::Expr::Expr>::Unique_ptr param(Expr_builder::build_literal_expr(Expr_builder::build_string_scalar(val.get_text())));
-    e->mutable_operator_()->mutable_param()->AddAllocated(param.get());
-    param.release();
+    e->mutable_operator_()->mutable_param()->AddAllocated(param.release());
     return e.release();
   }
   else if (type == Token::MUL)
@@ -847,13 +840,9 @@ Mysqlx::Expr::Expr* Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token:
     Mysqlx::Expr::Operator* op = e->mutable_operator_();
     std::string& op_normalized = _tokenizer.map.operator_names.at(op_val);
     op->set_name(op_normalized.c_str(), op_normalized.size());
-    op->mutable_param()->AddAllocated(lhs.get());
-    lhs.release();
+    op->mutable_param()->AddAllocated(lhs.release());
 
-    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(inner_parser());
-    op->mutable_param()->AddAllocated(tmp.get());
-    tmp.release();
-    lhs.release();
+    op->mutable_param()->AddAllocated(inner_parser());
     lhs.reset(e.release());
   }
   return lhs.release();
@@ -930,26 +919,21 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
         _tokenizer.consume_token(Token::NOT);
       }
       Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(comp_expr());
-      params->AddAllocated(lhs.get());
-      params->AddAllocated(tmp.get());
-      tmp.release();
+      params->AddAllocated(lhs.release());
+      params->AddAllocated(tmp.release());
     }
     else if (_tokenizer.cur_token_type_is(Token::IN_))
     {
       _tokenizer.consume_token(Token::IN_);
-      params->AddAllocated(lhs.get());
+      params->AddAllocated(lhs.release());
       if (_tokenizer.cur_token_type_is(Token::LSQBRACKET))
       {
         _tokenizer.consume_token(Token::LSQBRACKET);
-        Memory_new<Mysqlx::Expr::Expr>::Unique_ptr ptr(my_expr());
-        params->AddAllocated(ptr.get());
-        ptr.release();
+        params->AddAllocated(my_expr());
         while (_tokenizer.cur_token_type_is(Token::COMMA))
         {
           _tokenizer.inc_pos_token();
-          ptr.reset(my_expr());
-          params->AddAllocated(ptr.get());
-          ptr.release();
+          params->AddAllocated(my_expr());
         }
         _tokenizer.consume_token(Token::RSQBRACKET);
       }
@@ -961,37 +945,27 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
     else if (_tokenizer.cur_token_type_is(Token::LIKE))
     {
       _tokenizer.consume_token(Token::LIKE);
-      Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(comp_expr());
-      params->AddAllocated(lhs.get());
-      params->AddAllocated(tmp.get());
-      tmp.release();
+      params->AddAllocated(lhs.release());
+      params->AddAllocated(comp_expr());
       if (_tokenizer.cur_token_type_is(Token::ESCAPE))
       {
         _tokenizer.consume_token(Token::ESCAPE);
-        tmp.reset(comp_expr());
-        params->AddAllocated(tmp.get());
-        tmp.release();
+        params->AddAllocated(comp_expr());
       }
     }
     else if (_tokenizer.cur_token_type_is(Token::BETWEEN))
     {
       _tokenizer.consume_token(Token::BETWEEN);
-      params->AddAllocated(lhs.get());
-      Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(comp_expr());
-      params->AddAllocated(tmp.get());
-      tmp.release();
+      params->AddAllocated(lhs.release());
+      params->AddAllocated(comp_expr());
       _tokenizer.consume_token(Token::AND);
-      tmp.reset(comp_expr());
-      params->AddAllocated(tmp.get());
-      tmp.release();
+      params->AddAllocated(comp_expr());
     }
     else if (_tokenizer.cur_token_type_is(Token::REGEXP))
     {
       _tokenizer.consume_token(Token::REGEXP);
-      Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(comp_expr());
-      params->AddAllocated(lhs.get());
-      params->AddAllocated(tmp.get());
-      tmp.release();
+      params->AddAllocated(lhs.release());
+      params->AddAllocated(comp_expr());
     }
     else
     {
@@ -1007,14 +981,11 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
       if (is_not)
       {
         // wrap if `NOT'-prefixed
-        Mysqlx::Expr::Expr* expr_ = Expr_builder::build_unary_op("not", e.get());
-        e.release();
-        lhs.release();
+        Mysqlx::Expr::Expr* expr_ = Expr_builder::build_unary_op("not", e.release());
         lhs.reset(expr_);
       }
       else
       {
-        lhs.release();
         lhs.reset(e.release());
       }
     }

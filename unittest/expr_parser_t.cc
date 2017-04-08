@@ -249,5 +249,13 @@ TEST(Expr_parser_tests, x_test_6) {
   EXPECT_ANY_THROW(parse_and_assert_expr("$.geography.Region = :geo and $.geography.SurfaceArea = :area", "[77, 22, 19, 22, 19, 25, 79, 19, 2, 77, 22, 19, 22, 19, 25, 79, 19]", "(($.geography.Region == :0) && ($.geography.SurfaceArea == :1))", false));
   parse_and_assert_expr("geography.Region = :geo and geography.SurfaceArea = :area", "[19, 22, 19, 25, 79, 19, 2, 19, 22, 19, 25, 79, 19]", "((geography.Region == :0) && (geography.SurfaceArea == :1))", false);
 }
+
+TEST(Expr_parser_tests, regression) {
+  // Bug#25754078
+
+  Expr_parser p("1 in 1", true);
+  EXPECT_THROW(p.expr(), std::exception); // no crash = ok
+}
+
 };
 };
