@@ -20,7 +20,6 @@
 #ifndef _LANG_BASE_H_
 #define _LANG_BASE_H_
 
-#include <boost/system/error_code.hpp>
 #include <string>
 
 #include "scripting/types.h"
@@ -55,7 +54,7 @@ struct TYPES_COMMON_PUBLIC Interpreter_delegate {
   void(*print_value)(void *user_data, const shcore::Value &value, const char *tag);
 
   void(*print_error)(void *user_data, const char *text);
-  void(*print_error_code)(void *user_data, const char *message, const boost::system::error_code &error);
+  void(*print_error_code)(void *user_data, const char *message, const std::error_code &error);
 };
 };
 

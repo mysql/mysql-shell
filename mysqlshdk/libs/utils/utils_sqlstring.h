@@ -28,8 +28,7 @@
 
 #include "scripting/common.h"
 
-#include <boost/utility/enable_if.hpp>
-#include <boost/type_traits/is_signed.hpp>
+#include <type_traits>
 #include <stdexcept>
 
 namespace shcore {
@@ -75,7 +74,7 @@ public:
 
   //! replaces a ? in the format string with any integer numeric value
   template<typename T>
-  typename boost::enable_if_c<boost::is_integral<T>::value, sqlstring &>::type
+  typename std::enable_if<std::is_integral<T>::value, sqlstring &>::type
   operator <<(const T value) {
     int esc = next_escape();
     if (esc != '?')

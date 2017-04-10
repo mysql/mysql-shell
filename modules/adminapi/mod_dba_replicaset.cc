@@ -16,9 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-
-#include <boost/algorithm/string.hpp>
-
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 //#include "modules/adminapi/mod_dba_instance.h"
@@ -40,7 +37,7 @@
 #include "utils/utils_time.h"
 #include "logger/logger.h"
 #include "utils/utils_sqlstring.h"
-
+#include "utils/utils_string.h"
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -422,7 +419,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   validate_replication_filters(session.get());
 
   // Resolve the SSL Mode to use to configure the instance.
-  boost::to_upper(ssl_mode);
+  ssl_mode = str_upper(ssl_mode);
   if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
     if (seed_instance) {
       ssl_mode = resolve_ssl_mode(session.get(), nullptr);
@@ -763,7 +760,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     // Check replication filters before creating the Metadata.
     validate_replication_filters(classic);
 
-    boost::to_upper(ssl_mode);
+    ssl_mode = str_upper(ssl_mode);
 
     auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
       _metadata_storage->get_dba()->get_active_session().get());

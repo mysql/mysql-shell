@@ -25,6 +25,7 @@
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
+#include "utils/utils_string.h"
 
 #ifndef WIN32
 #  include <strings.h>
@@ -49,8 +50,6 @@
 #pragma warning (push)
 #pragma warning (disable : 4018 4996) //TODO: add MSVC code for pedantic
 #endif
-
-#include <boost/format.hpp>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -95,7 +94,7 @@ void BaseTokenizer::assert_cur_token(const std::string& type) {
   const BaseToken& tok = _tokens.at(_pos);
   std::string tok_type = tok.get_type();
   if (tok_type != type)
-    throw std::runtime_error((boost::format("Expected token type %1% at position %2% but found type %3% (%4%)") % type % tok.get_pos() % tok_type % tok.get_text()).str());
+    throw std::runtime_error(str_format("Expected token type %s at position %u but found type %s (%s)", type.c_str(), tok.get_pos(), tok_type.c_str(), tok.get_text().c_str()));
 }
 
 bool BaseTokenizer::cur_token_type_is(const std::string& type) {
@@ -140,7 +139,7 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
       break;
 
     if (std::isspace(_input[i]) && !_allow_spaces)
-        throw std::runtime_error((boost::format("Illegal space found at position %1%") % (_parent_offset + i)).str());
+        throw std::runtime_error(str_format("Illegal space found at position %zu", (_parent_offset + i)));
     else {
       std::string type(&_input[i], 1);
       if (_base_tokens.find(type) != _base_tokens.end())
@@ -206,7 +205,7 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
           if ( _allow_unknown_tokens)
             _unknown_token += _input[i];
           else
-            throw std::runtime_error((boost::format("Illegal character [%1%] found at position %2%") % _input[i] % (_parent_offset + i)).str());
+            throw std::runtime_error(str_format("Illegal character [%c] found at position %zu", _input[i], (_parent_offset + i)));
         }
       }
     }
@@ -246,7 +245,7 @@ const BaseToken& BaseTokenizer::consume_any_token() {
 
 void BaseTokenizer::assert_tok_position() {
   if (_pos >= _tokens.size())
-    throw std::runtime_error((boost::format("Expected token at position %d but no tokens left.") % _pos).str());
+    throw std::runtime_error(str_format("Expected token at position %zu but no tokens left.", _pos));
 }
 
 bool BaseTokenizer::tokens_available() {

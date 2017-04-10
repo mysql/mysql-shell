@@ -24,7 +24,6 @@
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h"
 #include "shellcore/shell_notifications.h"
-#include <boost/system/error_code.hpp>
 #include <list>
 
 #include <iostream>

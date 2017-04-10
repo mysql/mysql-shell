@@ -19,14 +19,12 @@
 
 #include "scripting/types.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/range/iterator_range_core.hpp>
 #include "logger/logger.h"
 #include <stdexcept>
 #include <cstdarg>
-#include <boost/format.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/range/iterator_range_core.hpp>
-#include <boost/lexical_cast.hpp>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -205,7 +203,7 @@ std::string Exception::format() {
       error_message += type;
 
     if (code != -1)
-      error_message += (boost::format(" (%1%)") % code).str();
+      error_message += str_format(" (%lld)", (long long int)code);
 
     if (!error_message.empty())
       error_message += ": ";
@@ -734,8 +732,8 @@ Value Value::parse_number(char **pcc) {
   if (is_integer) {
     int64_t ll = 0;
     try {
-      ll = boost::lexical_cast<int64_t>(number.c_str());
-    } catch (boost::bad_lexical_cast &e) {
+      ll = std::atoll(number.c_str());
+    } catch (const std::invalid_argument &e) {
       std::string s = "Error parsing int: ";
       s += e.what();
       throw Exception::parser_error(s);
@@ -744,10 +742,10 @@ Value Value::parse_number(char **pcc) {
   } else {
     double d = 0;
     try {
-      d = boost::lexical_cast<double>(number.c_str());
-    } catch (boost::bad_lexical_cast &e) {
+      d = std::stod(number.c_str());
+    } catch (const std::invalid_argument &e) {
       std::string s = "Error parsing float: ";
-      s += +e.what();
+      s += e.what();
       throw Exception::parser_error(s);
     }
 
@@ -940,23 +938,17 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       break;
     case Integer:
     {
-      boost::format fmt("%ld");
-      fmt % value.i;
-      s_out += fmt.str();
+      s_out += str_format("%ld", value.i);
     }
     break;
     case UInteger:
     {
-      boost::format fmt("%ld");
-      fmt % value.ui;
-      s_out += fmt.str();
+      s_out += str_format("%ld", value.ui);
     }
     break;
     case Float:
     {
-      boost::format fmt("%g");
-      fmt % value.d;
-      s_out += fmt.str();
+      s_out += str_format("%g", value.d);
     }
     break;
     case String:
@@ -1053,23 +1045,17 @@ std::string &Value::append_repr(std::string &s_out) const {
       break;
     case Integer:
     {
-      boost::format fmt("%ld");
-      fmt % value.i;
-      s_out += fmt.str();
+      s_out += str_format("%ld", value.i);
     }
     break;
     case UInteger:
     {
-      boost::format fmt("%ld");
-      fmt % value.ui;
-      s_out += fmt.str();
+      s_out += str_format("%ld", value.ui);
     }
     break;
     case Float:
     {
-      boost::format fmt("%g");
-      fmt % value.d;
-      s_out += fmt.str();
+      s_out += str_format("%g", value.d);
     }
     break;
     case String:
@@ -1248,7 +1234,7 @@ const std::string &Argument_list::string_at(unsigned int i) const {
     case String:
       return *at(i).value.s;
     default:
-      throw Exception::type_error((boost::format("Argument #%1% is expected to be a string") % (i + 1)).str());
+      throw Exception::type_error(str_format("Argument #%u is expected to be a string", (i + 1)));
   };
 }
 
@@ -1265,7 +1251,7 @@ bool Argument_list::bool_at(unsigned int i) const {
     case Float:
       return at(i).value.d != 0.0;
     default:
-      throw Exception::type_error((boost::format("Argument #%1% is expected to be a bool") % (i + 1)).str());
+      throw Exception::type_error(str_format("Argument #%u is expected to be a bool", (i + 1)));
   }
 }
 
@@ -1279,7 +1265,7 @@ int64_t Argument_list::int_at(unsigned int i) const {
   else if (at(i).type == Bool)
     return at(i).value.b ? 1 : 0;
   else
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be an int") % (i + 1)).str());
+    throw Exception::type_error(str_format("Argument #%u is expected to be an int", (i + 1)));
 }
 
 uint64_t Argument_list::uint_at(unsigned int i) const {
@@ -1292,7 +1278,7 @@ uint64_t Argument_list::uint_at(unsigned int i) const {
   else if (at(i).type == Bool)
     return at(i).value.b ? 1 : 0;
   else
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be an unsigned int") % (i + 1)).str());
+    throw Exception::type_error(str_format("Argument #%u is expected to be an unsigned int", (i + 1)));
 }
 
 double Argument_list::double_at(unsigned int i) const {
@@ -1308,14 +1294,14 @@ double Argument_list::double_at(unsigned int i) const {
   else if (at(i).type == Bool)
     return at(i).value.b ? 1.0 : 0.0;
   else
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be a double") % (i + 1)).str());
+    throw Exception::type_error(str_format("Argument #%u is expected to be a double", (i + 1)));
 }
 
 std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Object)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be an object") % (i + 1)).str());
+    throw Exception::type_error(str_format("Argument #%u is expected to be an object", (i + 1)));
   return *at(i).value.o;
 }
 
@@ -1323,7 +1309,7 @@ std::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Map)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be a map") % (i + 1)).str());
+    throw Exception::type_error(str_format("Argument #%u is expected to be a map", (i + 1)));
   return *at(i).value.map;
 }
 
@@ -1331,23 +1317,23 @@ std::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Array)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be an array") % (i + 1)).str());
+    throw Exception::type_error(str_format("Argument #%u is expected to be an array", (i + 1)));
   return *at(i).value.array;
 }
 
 void Argument_list::ensure_count(unsigned int c, const char *context) const {
   if (c != size())
-    throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% but got %3%") % context % c % size()).str());
+    throw Exception::argument_error(str_format("Invalid number of arguments in %s, expected %u but got %zu", context, c, size()));
 }
 
 void Argument_list::ensure_count(unsigned int minc, unsigned int maxc, const char *context) const {
   if (size() < minc || size() > maxc)
-    throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% to %3% but got %4%") % context % minc % maxc % size()).str());
+    throw Exception::argument_error(str_format("Invalid number of arguments in %s, expected %u to %u but got %zu", context, minc, maxc, size()));
 }
 
 void Argument_list::ensure_at_least(unsigned int minc, const char *context) const {
   if (size() < minc)
-    throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %3%") % context % minc % size()).str());
+    throw Exception::argument_error(str_format("Invalid number of arguments in %s, expected at least %u but got %zu", context, minc, size()));
 }
 
 //--

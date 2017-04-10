@@ -17,9 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
@@ -30,7 +27,10 @@
 #include "test_utils.h"
 #include "scripting/common.h"
 #include "modules/mod_sys.h"
+#include "utils/utils_string.h"
+
 using namespace std::placeholders;
+using namespace shcore;
 
 extern void JScript_context_init();
 
@@ -43,7 +43,7 @@ public:
   virtual std::string class_name() const { return "Test"; }
 
   virtual std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1, int UNUSED(quote_strings) = 0) const {
-    s_out.append((boost::format("<Test:%1%>") % _value).str());
+    s_out.append(str_format("<Test:%d>", _value));
     return s_out;
   }
 
@@ -98,7 +98,7 @@ public:
   virtual std::string class_name() const { return "MapArray"; }
 
   virtual std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1, int UNUSED(quote_strings) = 0) const {
-    s_out.append((boost::format("<MapArray>")).str());
+    s_out.append(str_format("<MapArray>"));
     return s_out;
   }
 
@@ -383,7 +383,7 @@ TEST_F(JavaScript, maparray_to_js) {
 
 shcore::Value do_test(const Argument_list &args) {
   args.ensure_count(1, "do_test");
-  return Value(boost::to_upper_copy(args.string_at(0)));
+  return Value(str_upper(args.string_at(0)));
 }
 
 TEST_F(JavaScript, function_to_js) {

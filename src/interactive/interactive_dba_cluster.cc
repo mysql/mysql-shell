@@ -24,7 +24,6 @@
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "modules/adminapi/mod_dba_common.h"
-#include <boost/format.hpp>
 #include <string>
 #include <vector>
 

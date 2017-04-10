@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,13 +23,13 @@
 //#include "modules/base_constants.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
 #include "scripting/object_factory.h"
 #include "scripting/python_type_conversion.h"
 
 #include "shellcore/shell_core_options.h"//XXX
 
-#include <boost/format.hpp>
 #include <exception>
 
 #ifdef _WINDOWS
@@ -46,7 +46,7 @@ std::unique_ptr<Python_init_singleton> Python_init_singleton::_instance((Python_
 int Python_init_singleton::cnt = 0;
 
 std::string Python_init_singleton::get_new_scope_name() {
-  return (boost::format("__main__%d") % ++cnt).str();
+  return shcore::str_format("__main__%d", ++cnt);
 }
 
 void Python_init_singleton::init_python() {
@@ -319,7 +319,7 @@ void Python_context::set_python_error(const shcore::Exception &exc, const std::s
       error_message += type;
 
     if (code != -1)
-      error_message += (boost::format(" (%1%)") % code).str();
+      error_message += shcore::str_format(" (%lld)", (long long int)code);
 
     if (!error_message.empty())
       error_message += ": ";

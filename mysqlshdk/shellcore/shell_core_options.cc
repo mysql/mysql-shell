@@ -17,10 +17,10 @@
  * 02110-1301  USA
  */
 
-#include <boost/format.hpp>
 #include "shellcore/shell_core_options.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
 using namespace shcore;
 
@@ -67,13 +67,13 @@ void Shell_core_options::set_member(const std::string &prop, Value value) {
     if (prop == SHCORE_OUTPUT_FORMAT) {
       std::string format = value.as_string();
       if (format != "table" && format != "json" && format != "json/raw" && format != "vertical")
-        throw shcore::Exception::value_error((boost::format(
-            "The option %s must be one of: table, vertical, json or json/raw.") % prop).str());
+        throw shcore::Exception::value_error(str_format(
+            "The option %s must be one of: table, vertical, json or json/raw.", prop.c_str()));
     } else if (prop == SHCORE_INTERACTIVE || prop == SHCORE_BATCH_CONTINUE_ON_ERROR)
-      throw shcore::Exception::value_error((boost::format("The option %s is read only.") % prop).str());
+      throw shcore::Exception::value_error(str_format("The option %s is read only.", prop.c_str()));
 
     else if (prop == SHCORE_SHOW_WARNINGS && value.type != shcore::Bool)
-        throw shcore::Exception::value_error((boost::format("The option %s requires a boolean value.") % prop).str());
+        throw shcore::Exception::value_error(str_format("The option %s requires a boolean value.", prop.c_str()));
 
     (*_options)[prop] = value;
   } else

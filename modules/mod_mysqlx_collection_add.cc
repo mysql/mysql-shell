@@ -23,11 +23,11 @@
 #include "mysqlxtest/common/expr_parser.h"
 #include "mod_mysqlx_expression.h"
 #include "utils/utils_time.h"
+#include "utils/utils_string.h"
 #include "shellcore/utils_help.h"
 
 #include <iomanip>
 #include <sstream>
-#include <boost/format.hpp>
 #include <boost/random.hpp>
 
 struct Init_uuid_gen {
@@ -170,9 +170,9 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
               if (document.type == Map)
                 shell_doc = document.as_map();
               else
-                throw shcore::Exception::argument_error((boost::format("%1% #%2% is expected to be a JSON expression") % error_prefix % (index + 1)).str());
+                throw shcore::Exception::argument_error(str_format("%s #%zu is expected to be a JSON expression", error_prefix.c_str(), (index + 1)));
             } else
-              throw shcore::Exception::argument_error((boost::format("%1% #%2% is expected to be a document or a JSON expression") % error_prefix % (index + 1)).str());
+              throw shcore::Exception::argument_error(str_format("%s #%zu is expected to be a document or a JSON expression", error_prefix.c_str(), (index + 1)));
 
             // Verification of the _id existence
             if (shell_doc) {

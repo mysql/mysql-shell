@@ -39,13 +39,13 @@
 #include "scripting/jscript_map_wrapper.h"
 #include "scripting/jscript_array_wrapper.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
 #include "scripting/jscript_type_conversion.h"
 #include "scripting/jscript_core_definitions.h"
 
 #include "shellcore/shell_core_options.h"//XXX
 
-#include <boost/format.hpp>
 #include <cerrno>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -56,7 +56,6 @@
 #include "utils/utils_file.h"
 
 using namespace shcore;
-using namespace boost::system;
 
 struct JScript_context::JScript_context_impl {
   JScript_context *owner;
@@ -795,7 +794,7 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc, bool interactive
   if (!message.IsEmpty()) {
     // location
     v8::String::Utf8Value filename(message->GetScriptOrigin().ResourceName());
-    std::string text = (boost::format("%s:%i:%i\n") % *filename % message->GetLineNumber() % message->GetStartColumn()).str();
+    std::string text = shcore::str_format("%s:%i:%i\n", *filename, message->GetLineNumber(), message->GetStartColumn());
     v8::String::Utf8Value code(message->GetSourceLine());
     text.append("in ");
     text.append(*code ? *code : "").append("\n");

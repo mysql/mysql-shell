@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/pointer_cast.hpp>
 #include <stack>
 
 #include "gtest/gtest.h"

@@ -22,7 +22,7 @@
 
 #define _EXPR_PARSER_HAS_PROJECTION_KEYWORDS_ 1
 
-#include <boost/format.hpp>
+#include "utils/utils_string.h"
 #include "expr_parser.h"
 #include "ngs_common/protocol_protobuf.h"
 #include "../compilerutils.h"
@@ -45,8 +45,8 @@ namespace mysqlx
       if (_tokenizer.tokens_available())
       {
         const mysqlx::Token& tok = _tokenizer.peek_token();
-        throw Parser_error((boost::format("Projection parser: Expression '%s' has unexpected token '%s' at position %d") % _tokenizer.get_input() % tok.get_text() %
-          tok.get_pos()).str());
+        throw Parser_error(shcore::str_format("Projection parser: Expression '%s' has unexpected token '%s' at position %d", _tokenizer.get_input().c_str(), tok.get_text().c_str(),
+          tok.get_pos()));
       }
     }
 

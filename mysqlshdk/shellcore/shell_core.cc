@@ -23,13 +23,12 @@
 #include "shellcore/shell_python.h"
 #include "scripting/object_registry.h"
 #include "shellcore/base_session.h"
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
 #include "utils/utils_general.h"
 #include "utils/base_tokenizer.h"
 #include "scripting/lang_base.h"
 #include <fstream>
 #include <locale>
+#include "utils/utils_string.h"
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -642,7 +641,7 @@ void Shell_command_handler::add_command(const std::string& triggers, const std::
   _commands.push_back(command);
 
   std::vector<std::string> tokens;
-  boost::algorithm::split(tokens, triggers, boost::is_any_of("|"), boost::token_compress_on);
+  tokens = split_string(triggers, "|", true);
 
   std::vector<std::string>::iterator index = tokens.begin(), end = tokens.end();
 
@@ -664,13 +663,13 @@ std::string Shell_command_handler::get_commands(const std::string& title) {
 
   for (index = _commands.begin(); index != end; index++) {
     std::vector<std::string> tokens;
-    boost::algorithm::split(tokens, (*index).triggers, boost::is_any_of("|"), boost::token_compress_on);
+    tokens = split_string((*index).triggers, "|", true);
 
     tmp_commands.push_back(tokens[0]);
     tokens.erase(tokens.begin());
 
     if (!tokens.empty())
-      tmp_alias.push_back("(" + boost::algorithm::join(tokens, ",") + ")");
+      tmp_alias.push_back("(" + join_strings(tokens, ",") + ")");
     else
       tmp_alias.push_back(" ");
 
@@ -690,16 +689,16 @@ std::string Shell_command_handler::get_commands(const std::string& title) {
 
   // Prints the command list
   std::string format = "%-";
-  format += (boost::format("%d") % (max_length)).str();
+  format += str_format("%d", max_length);
   format += "s %-";
-  format += (boost::format("%d") % (max_alias_length)).str();
+  format += str_format("%d", max_alias_length);
   format += "s %s\n";
 
   ret_val += "\n";
 
   size_t tmpindex = 0;
   for (index = _commands.begin(); index != end; index++, tmpindex++) {
-    ret_val += (boost::format(format.c_str()) % tmp_commands[tmpindex] % tmp_alias[tmpindex] % (*index).description.c_str()).str();
+    ret_val += str_format(format.c_str(), tmp_commands[tmpindex].c_str(), tmp_alias[tmpindex].c_str(), (*index).description.c_str());
   }
 
   return ret_val;
@@ -727,8 +726,8 @@ bool Shell_command_handler::get_command_help(const std::string& command, std::st
     // Prints additional triggers if any
     if (item->second->triggers != command) {
       std::vector<std::string> triggers;
-      boost::algorithm::split(triggers, item->second->triggers, boost::is_any_of("|"), boost::token_compress_on);
-      help += "\n\nTRIGGERS: " + boost::algorithm::join(triggers, " or ");
+      triggers = split_string(item->second->triggers, "|", true);
+      help += "\n\nTRIGGERS: " + join_strings(triggers, " or ");
     }
 
     // Prints the additional help

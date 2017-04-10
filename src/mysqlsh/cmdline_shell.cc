@@ -27,10 +27,6 @@
 #include "shellcore/utils_help.h"
 #include "logger/logger.h"
 
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
-
 // TODO: This should be ported from the server, not used from there (see comment below)
 //const int MAX_READLINE_BUF = 65536;
 extern char *mysh_get_tty_password(const char *opt_message);

@@ -28,8 +28,6 @@
 #include "shellcore/base_session.h"
 #include "mysqlxtest_utils.h"
 
-#include <boost/lexical_cast.hpp>
-#include <boost/format.hpp>
 #include <set>
 
 using namespace std::placeholders;

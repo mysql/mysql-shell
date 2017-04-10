@@ -18,6 +18,7 @@
 */
 
 #include "utils_time.h"
+#include "utils/utils_string.h"
 #include <boost/format.hpp>
 #include <cmath>
 
@@ -30,6 +31,8 @@
 #define CLOCKS_PER_SEC (sysconf(_SC_CLK_TCK))
 #endif
 #endif
+
+using namespace shcore;
 
 unsigned long MySQL_timer::get_time() {
 #if defined(WIN32)
@@ -71,18 +74,18 @@ std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds,
   MySQL_timer::parse_duration(raw_time, days, hours, minutes, seconds, in_seconds);
 
   if (days)
-    str_duration.append((boost::format("%d %s") % days % (days == 1 ? "day" : "days")).str());
+    str_duration.append(str_format("%d %s", days, (days == 1 ? "day" : "days")));
 
   if (days || hours)
-    str_duration.append((boost::format("%s%d %s") % (str_duration.empty() ? "" : ", ") % hours % (hours == 1 ? "hour" : "hours")).str());
+    str_duration.append(str_format("%s%d %s", (str_duration.empty() ? "" : ", "), hours, (hours == 1 ? "hour" : "hours")));
 
   if (days || hours || minutes)
-    str_duration.append((boost::format("%s%d %s") % (str_duration.empty() ? "" : ", ") % minutes % (minutes == 1 ? "minute" : "minutes")).str());
+    str_duration.append(str_format("%s%d %s", (str_duration.empty() ? "" : ", "), minutes, (minutes == 1 ? "minute" : "minutes")));
 
   if (part_seconds)
-    str_duration.append((boost::format("%s%.2f sec") % (str_duration.empty() ? "" : ", ") % seconds).str());
+    str_duration.append(str_format("%s%.2f sec", (str_duration.empty() ? "" : ", "), seconds));
   else
-    str_duration.append((boost::format("%s%d sec") % (str_duration.empty() ? "" : ", ") % (int)seconds).str());
+    str_duration.append(str_format("%s%d sec", (str_duration.empty() ? "" : ", "), (int)seconds));
 
   return str_duration;
 }

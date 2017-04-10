@@ -21,6 +21,7 @@
 #include "shellcore/base_session.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h" // <---
 #include "shellcore/shell_notifications.h"
@@ -28,10 +29,6 @@
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_time.h"
 #include "logger/logger.h"
-
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
 
 // TODO: This should be ported from the server, not used from there (see comment bellow)
 //const int MAX_READLINE_BUF = 65536;
@@ -373,7 +370,7 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
       s.close();
     } else {
       // TODO: add a log entry once logging is
-      print_error((boost::format("Failed to open file '%s', error: %d\n") % file % errno).str());
+      print_error(shcore::str_format("Failed to open file '%s', error: %d\n", file, errno));
     }
   }
 

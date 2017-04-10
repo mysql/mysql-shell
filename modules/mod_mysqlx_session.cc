@@ -35,9 +35,6 @@
 
 #include "mysqlxtest_utils.h"
 
-#include <boost/lexical_cast.hpp>
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
 #include "mysqlx_connection.h"
 #include "logger/logger.h"
 

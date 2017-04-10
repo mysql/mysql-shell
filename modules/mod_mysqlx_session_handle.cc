@@ -22,7 +22,7 @@
 #include "mysqlxtest_utils.h"
 #include "mysqlx_connection.h"
 #include "utils/utils_general.h"
-#include <boost/algorithm/string.hpp>
+#include "utils/utils_string.h"
 
 using namespace mysqlsh;
 using namespace shcore;
@@ -190,7 +190,7 @@ std::string SessionHandle::db_object_exists(std::string &type, const std::string
         type = object_type;
         ret_val = object_name;
       } else {
-        boost::algorithm::to_upper(type);
+        type = str_upper(type);
 
         if (type == object_type)
           ret_val = object_name;

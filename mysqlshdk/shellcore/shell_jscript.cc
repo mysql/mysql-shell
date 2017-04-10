@@ -21,7 +21,6 @@
 #include "scripting/jscript_context.h"
 #include "shellcore/base_session.h"
 #include "../modules/mod_mysqlx_session.h"
-#include <boost/format.hpp>
 
 using namespace shcore;
 

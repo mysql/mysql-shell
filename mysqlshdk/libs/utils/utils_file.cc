@@ -20,10 +20,10 @@
 #include "utils_file.h"
 
 #include <stdexcept>
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <iostream>
+#include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
 #ifdef WIN32
 #  include <ShlObj.h>
@@ -65,7 +65,7 @@ std::string get_user_config_path() {
     path.assign(szPath);
   else {
     _com_error err(hr);
-    throw std::runtime_error((boost::format("Error when gathering the APPDATA folder path: %s") % err.ErrorMessage()).str());
+    throw std::runtime_error(str_format("Error when gathering the APPDATA folder path: %s", err.ErrorMessage()));
   }
 
   to_append.push_back("MySQL");
@@ -111,7 +111,7 @@ std::string get_global_config_path() {
     path.assign(szPath);
   else {
     _com_error err(hr);
-    throw std::runtime_error((boost::format("Error when gathering the PROGRAMDATA folder path: %s") % err.ErrorMessage()).str());
+    throw std::runtime_error(str_format("Error when gathering the PROGRAMDATA folder path: %s", err.ErrorMessage()));
   }
 
   to_append.push_back("MySQL");
@@ -149,9 +149,9 @@ std::string get_binary_folder() {
       exe_path.assign(path);
       path_separator = "\\";
     } else
-      throw std::runtime_error((boost::format("get_binary_folder: GetModuleFileNameA failed with error %1%\n") % GetLastError()).str());
+      throw std::runtime_error(str_format("get_binary_folder: GetModuleFileNameA failed with error %s\n", GetLastError()));
   } else
-    throw std::runtime_error((boost::format("get_binary_folder: GetModuleHandleA failed with error %1%\n") % GetLastError()).str());
+    throw std::runtime_error(str_format("get_binary_folder: GetModuleHandleA failed with error %s\n", GetLastError()));
 #else
   path_separator = "/";
 #ifdef __APPLE__
@@ -165,7 +165,7 @@ std::string get_binary_folder() {
     if (realpath(path, real_path))
       exe_path.assign(real_path);
     else
-      throw std::runtime_error((boost::format("get_binary_folder: Readlink failed with error %1%\n") % errno).str());
+      throw std::runtime_error(str_format("get_binary_folder: Readlink failed with error %d\n", errno));
   } else
     throw std::runtime_error("get_binary_folder: _NSGetExecutablePath failed.\n");
 
@@ -178,7 +178,7 @@ std::string get_binary_folder() {
     exe_path.assign(path);
   }
   else
-    throw std::runtime_error((boost::format("get_binary_folder: Readlink failed with error %1%\n") % errno).str());
+    throw std::runtime_error(str_format("get_binary_folder: Readlink failed with error %d\n", errno));
 #endif
 #endif
 #endif
@@ -186,10 +186,10 @@ std::string get_binary_folder() {
   // by checking the parent folder is "bin"
   if (!exe_path.empty()) {
     std::vector<std::string> tokens;
-    boost::algorithm::split(tokens, exe_path, boost::is_any_of(path_separator), boost::token_compress_on);
+    tokens = split_string(exe_path, path_separator, true);
     tokens.erase(tokens.end() - 1);
 
-    ret_val = boost::algorithm::join(tokens, path_separator);
+    ret_val = join_strings(tokens, path_separator);
   }
 
   return ret_val;
@@ -226,13 +226,13 @@ std::string get_mysqlx_home_path() {
     // by checking the parent folder is "bin"
     if (!binary_folder.empty()) {
       std::vector<std::string> tokens;
-      boost::algorithm::split(tokens, binary_folder, boost::is_any_of(path_separator), boost::token_compress_on);
+      tokens = split_string(binary_folder, path_separator, true);
 
       if (tokens.at(tokens.size() - 1) == "bin") {
         // It seems to be a standard installation so re remove the bin folder
         // and the parent is MYSQLX_HOME!
         tokens.erase(tokens.end() - 1);
-        ret_val = boost::algorithm::join(tokens, path_separator);
+        ret_val = join_strings(tokens, path_separator);
       }
     }
   }
@@ -295,7 +295,7 @@ void ensure_dir_exists(const std::string& path) {
   if (dwAttrib != INVALID_FILE_ATTRIBUTES)
     return;
   else if (!CreateDirectoryA(dir_path, NULL)) {
-    throw std::runtime_error((boost::format("Error when creating directory %s with error: %s") % dir_path % shcore::get_last_error()).str());
+    throw std::runtime_error(str_format("Error when creating directory %s with error: %s", dir_path, shcore::get_last_error().c_str()));
   }
 #else
   DIR* dir = opendir(dir_path);
@@ -305,9 +305,9 @@ void ensure_dir_exists(const std::string& path) {
   } else if (ENOENT == errno) {
     /* Directory does not exist. */
     if (mkdir(dir_path, 0700) != 0)
-      throw std::runtime_error((boost::format("Error when verifying dir %s exists: %s") % dir_path % shcore::get_last_error()).str());
+      throw std::runtime_error(str_format("Error when verifying dir %s exists: %s", dir_path, shcore::get_last_error().c_str()));
   } else {
-    throw std::runtime_error((boost::format("Error when verifying dir %s exists: %s") % dir_path % shcore::get_last_error()).str());
+    throw std::runtime_error(str_format("Error when verifying dir %s exists: %s", dir_path, shcore::get_last_error().c_str()));
   }
 #endif
 }
@@ -332,9 +332,8 @@ std::string get_last_error() {
   std::string msgerr = "SystemError: ";
   msgerr += lpMsgBuf;
   msgerr += "with error code %d.";
-  boost::format fmt(msgerr);
-  fmt % dwCode;
-  return fmt.str();
+  std::string fmt = str_format(msgerr, dwCode);
+  return fmt;
 #else
   char sys_err[64];
   int errnum = errno;
@@ -353,9 +352,8 @@ std::string get_last_error() {
 
   std::string s = sys_err;
   s += "with errno %d.";
-  boost::format fmt(s);
-  fmt % errnum;
-  return fmt.str();
+  std::string fmt = str_format(s.c_str(), errnum);
+  return fmt;
 #endif
 }
 
@@ -393,10 +391,10 @@ void SHCORE_PUBLIC delete_file(const std::string& filename) {
     return;
 #ifdef WIN32
   if (!DeleteFile(filename.c_str()))
-    throw std::runtime_error((boost::format("Error when deleting file  %s exists: %s") % filename % shcore::get_last_error()).str());
+    throw std::runtime_error(str_format("Error when deleting file  %s exists: %s", filename.c_str(), shcore::get_last_error().c_str()));
 #else
   if (remove(filename.c_str()))
-    throw std::runtime_error((boost::format("Error when deleting file  %s exists: %s") % filename % shcore::get_last_error()).str());
+    throw std::runtime_error(str_format("Error when deleting file  %s exists: %s", filename.c_str(), shcore::get_last_error().c_str()));
 #endif
 }
 
@@ -417,7 +415,7 @@ std::string get_home_dir() {
     path.assign(szPath);
   else {
     _com_error err(hr);
-    throw std::runtime_error((boost::format("Error when gathering the PROFILE folder path: %s") % err.ErrorMessage()).str());
+    throw std::runtime_error(str_format("Error when gathering the PROFILE folder path: %s", err.ErrorMessage()));
   }
 #else
   path_separator = "/";

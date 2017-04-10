@@ -19,8 +19,8 @@
 
 #include "scripting/obj_date.h"
 #include "scripting/common.h"
+#include "utils/utils_string.h"
 
-#include <boost/format.hpp>
 #include <cstdio>
 
 using namespace shcore;
@@ -54,9 +54,9 @@ std::string &Date::append_descr(std::string &s_out, int UNUSED(indent), int quot
     s_out.push_back((char)quote_strings);
   if ((double)(int)_sec != _sec)
 
-    s_out.append((boost::format("%04i-%02i-%02i %i:%02i:%02.10g") % _year % (_month + 1) % _day % _hour % _min % _sec).str());
+    s_out.append(str_format("%04d-%02d-%02d %d:%02d:%02.10g", _year, (_month + 1), _day, _hour, _min, _sec));
   else
-    s_out.append((boost::format("%1$04d-%2$02i-%3$02i %4$i:%5$02i:%6$02i") % _year % (_month + 1) % _day % _hour % _min % (int)_sec).str());
+    s_out.append(str_format("%04d-%02d-%02d %d:%02d:%02d", _year, (_month + 1), _day, _hour, _min, (int)_sec));
   if (quote_strings)
     s_out.push_back((char)quote_strings);
   return s_out;

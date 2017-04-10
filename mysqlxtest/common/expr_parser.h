@@ -27,8 +27,6 @@
 #include <memory>
 #include <stdexcept>
 
-#include <boost/function.hpp>
-
 // Avoid warnings from includes of other project and protobuf
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic push

@@ -16,9 +16,9 @@
 #include "process_launcher.h"
 #include "exception.h"
 
-#include <boost/format.hpp>
 #include <string>
 #include <system_error>
+#include <utils/utils_string.h>
 
 #ifdef WIN32
 #  include <windows.h>
@@ -43,6 +43,7 @@
 #endif
 
 using namespace ngcommon;
+using namespace shcore;
 
 #ifdef WIN32
 
@@ -247,9 +248,8 @@ void Process_launcher::report_error(const char *msg) {
     std::string msgerr = "SystemError: ";
     msgerr += lpMsgBuf;
     msgerr += "with error code %d.";
-    boost::format fmt(msgerr);
-    fmt % dwCode;
-    throw std::system_error(dwCode, std::generic_category(), fmt.str());
+    fmt = str_format(msgerr, dwCode);
+    throw std::system_error(dwCode, std::generic_category(), fmt);
   }
 }
 
@@ -432,9 +432,8 @@ void Process_launcher::report_error(const char *msg)
     auto dummy = strerror_r(errno, sys_err, sizeof(sys_err));
     std::string s = sys_err;
     s += "with errno %d.";
-    boost::format fmt(s);
-    fmt % errnum;
-    throw std::system_error(errnum, std::generic_category(), fmt.str());
+    std::string fmt = str_format(s.c_str(), errnum);
+    throw std::system_error(errnum, std::generic_category(), fmt);
   }
   else
   {

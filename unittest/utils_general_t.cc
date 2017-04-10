@@ -116,4 +116,57 @@ TEST(utils_general, make_account) {
     EXPECT_EQ(t.account, make_account(t.user, t.host));
   }
 }
+
+TEST(utils_general, split_string_chars) {
+  std::vector<std::string> strs = split_string_chars("aaaa-vvvvv>bbbbb", "->", true);
+  EXPECT_EQ("aaaa", strs[0]);
+  EXPECT_EQ("vvvvv", strs[1]);
+  EXPECT_EQ("bbbbb", strs[2]);
+
+  std::vector<std::string> strs1 = split_string_chars("aaaa->bbbbb", "->", true);
+  EXPECT_EQ("aaaa", strs1[0]);
+  EXPECT_EQ("bbbbb", strs1[1]);
+
+  std::vector<std::string> strs2 = split_string_chars("aaaa->bbbbb", "->", false);
+  EXPECT_EQ("aaaa", strs2[0]);
+  EXPECT_EQ("", strs2[1]);
+  EXPECT_EQ("bbbbb", strs2[2]);
+
+  std::vector<std::string> strs3 = split_string_chars(",aaaa-bbb-bb," , "-,", true);
+  EXPECT_EQ("", strs3[0]);
+  EXPECT_EQ("aaaa", strs3[1]);
+  EXPECT_EQ("bbb", strs3[2]);
+  EXPECT_EQ("bb", strs3[3]);
+  EXPECT_EQ("", strs3[4]);
+
+  std::vector<std::string> strs4 = split_string_chars("aa;a\\a-bbb-bb," , "\\-;", true);
+  EXPECT_EQ("aa", strs4[0]);
+  EXPECT_EQ("a", strs4[1]);
+  EXPECT_EQ("a", strs4[2]);
+  EXPECT_EQ("bbb", strs4[3]);
+  EXPECT_EQ("bb,", strs4[4]);
+
+  std::vector<std::string> strs5 = split_string_chars("!.", "!.", false);
+  EXPECT_EQ("", strs5[0]);
+  EXPECT_EQ("", strs5[1]);
+
+  std::vector<std::string> strs6 = split_string_chars("aa.a.aaa.a", ".", true);
+  EXPECT_EQ("aa", strs6[0]);
+  EXPECT_EQ("a", strs6[1]);
+  EXPECT_EQ("aaa", strs6[2]);
+  EXPECT_EQ("a", strs6[3]);
+
+  std::vector<std::string> strs7 = split_string_chars("", ".", false);
+  EXPECT_EQ("", strs7[0]);
+
+  std::vector<std::string> strs8 = split_string_chars(".", ".", false);
+  EXPECT_EQ("", strs8[0]);
+  EXPECT_EQ("", strs8[1]);
+
+  std::vector<std::string> strs9 = split_string_chars("....", ".", false);
+  EXPECT_EQ("", strs9[0]);
+  EXPECT_EQ("", strs9[1]);
+  EXPECT_EQ("", strs9[2]);
+  EXPECT_EQ("", strs9[3]);
+}
 }

@@ -23,8 +23,7 @@
 
 #include "scripting/obj_date.h"
 
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
+#include <sstream>
 
 using namespace mysqlsh::mysql;
 
@@ -165,11 +164,11 @@ shcore::Value Row::get_value(int index) {
       case MYSQL_TYPE_INT24:
       case MYSQL_TYPE_LONG:
       case MYSQL_TYPE_LONGLONG:
-        return shcore::Value(boost::lexical_cast<int64_t>(_row[index]));
+        return shcore::Value(static_cast<int64_t> (std::atoll(_row[index])));
 
       case MYSQL_TYPE_FLOAT:
       case MYSQL_TYPE_DOUBLE:
-        return shcore::Value(boost::lexical_cast<double>(_row[index]));
+        return shcore::Value(std::stod(_row[index]));
         break;
 
       case MYSQL_TYPE_DATETIME:

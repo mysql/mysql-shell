@@ -20,8 +20,9 @@
 #include "uri_parser.h"
 #include "mysqlshdk/libs/db/ssl_info.h"
 #include "utils_connection.h"
+#include "utils/utils_string.h"
 #include <cctype>
-#include <boost/format.hpp>
+
 // Avoid warnings from protobuf and rapidjson
 #if defined __GNUC__
 #pragma GCC diagnostic push
@@ -47,7 +48,6 @@
 #pragma warning (pop)
 #endif
 
-#include <boost/lexical_cast.hpp>
 using namespace shcore::uri;
 
 std::string Uri_parser::DELIMITERS = ":/?#[]@";
@@ -136,15 +136,15 @@ void Uri_parser::parse_scheme() {
       _data->_scheme_ext = _tokenizer.consume_token("alphanumeric");
 
       if (_tokenizer.tokens_available())
-        throw Parser_error((boost::format("Invalid scheme format [%1%], only one extension is supported") % get_input_chunk(_chunks[URI_SCHEME])).str());
+        throw Parser_error(str_format("Invalid scheme format [%s], only one extension is supported", get_input_chunk(_chunks[URI_SCHEME]).c_str()));
       else
-        throw Parser_error((boost::format("Scheme extension [%1%] is not supported") % _data->_scheme_ext).str());
+        throw Parser_error(str_format("Scheme extension [%s] is not supported", _data->_scheme_ext.c_str()));
     }
 
     // Validate on unique supported schema formats
     // In the future we may support additional stuff, like extensions
     if (_data->_scheme != "mysql" && _data->_scheme != "mysqlx")
-      throw Parser_error((boost::format("Invalid scheme [%1%], supported schemes include: mysql, mysqlx") % _data->_scheme).str());
+      throw Parser_error(str_format("Invalid scheme [%s], supported schemes include: mysql, mysqlx", _data->_scheme.c_str()));
   }
 }
 
@@ -231,7 +231,15 @@ bool Uri_parser::parse_ipv4(shcore::BaseTokenizer &tok, size_t &offset) {
       tok.next_token_type("digits", 6)) {
     for (size_t index = 0; index < 4; index++) {
       std::string octet = tok.consume_token("digits");
-      int value = boost::lexical_cast<int>(octet);
+      int value;
+      try {
+        value = std::stoi(octet);
+      }
+      catch (const std::invalid_argument &e) {
+        std::string s = "Error parsing IPV4 address: ";
+        s += e.what();
+        throw Exception::parser_error(s);
+      }
       if (value < 0 || value >255)
         throw Parser_error("Octect value out of bounds [" + octet + "], valid range for IPv4 is 0 to 255 at position " + std::to_string(offset));
       else {
@@ -332,7 +340,7 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range, size_t &offs
             token = _tokenizer.peek_token();
           }
           if (value.empty())
-            throw Parser_error((boost::format("Unexpected data [" + _tokenizer.peek_token().get_text() + "] found at position %1%") % offset).str());
+            throw Parser_error(str_format("Unexpected data [%s] found at position %zu", _tokenizer.peek_token().get_text().c_str(), offset));
           else if (value.length() > 4)
             throw Parser_error("Invalid IPv6 value [" + value + "], maximum 4 hexadecimal digits accepted");
 
@@ -383,7 +391,7 @@ void Uri_parser::parse_port(const std::pair<size_t, size_t> &range, size_t &offs
   if (_tokenizer.tokens_available()) {
     std::string port = _tokenizer.consume_token("digits");
     offset += port.length();
-    _data->_port = boost::lexical_cast<int>(port);
+    _data->_port = std::stoi(port);
 
     if (_data->_port < 0 || _data->_port > 65535)
       throw Parser_error("Port is out of the valid range: 0 - 65535");
@@ -393,7 +401,7 @@ void Uri_parser::parse_port(const std::pair<size_t, size_t> &range, size_t &offs
     throw Parser_error("Missing port number");
 
   if (_tokenizer.tokens_available())
-    throw Parser_error((boost::format("Unexpected data [" + get_input_chunk({offset, range.second}) + "] found at position %1%") % offset).str());
+    throw Parser_error(str_format("Unexpected data [%s] found at position %zu", get_input_chunk({offset, range.second}).c_str(), offset));
 }
 
 void Uri_parser::parse_host() {
@@ -725,9 +733,8 @@ void Uri_parser::normalize_ssl_mode() {
       _data->_ssl_mode = mode;
     }
     else {
-        throw Parser_error((boost::format(
-        "Invalid value for '%s' (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] ) ")
-        % "").str());
+        throw Parser_error(str_format(
+        "Invalid value for '%s' (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] ) ",        _data->_attributes[kSslMode][0].c_str()));
     }
   }
 }

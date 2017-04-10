@@ -22,9 +22,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
@@ -36,6 +33,9 @@
 
 #include "scripting/python_array_wrapper.h"
 #include "test_utils.h"
+#include "utils/utils_string.h"
+
+using namespace shcore;
 
 /*extern void Python_context_init();
 extern void Python_context_finish();*/
@@ -49,7 +49,7 @@ public:
   virtual std::string class_name() const { return "Test"; }
 
   virtual std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1, int UNUSED(quote_strings) = 0) const {
-    s_out.append((boost::format("<Test:%1%>") % _value).str());
+    s_out.append(str_format("<Test:%d>", _value));
     return s_out;
   }
 
@@ -192,7 +192,7 @@ TEST_F(Python, globals) {
 }
 
 TEST_F(Python, array_to_py) {
-  boost::system::error_code error;
+  std::error_code error;
   std::shared_ptr<Value::Array_type> arr2(new Value::Array_type);
   arr2->push_back(Value(444));
 
@@ -222,7 +222,7 @@ TEST_F(Python, array_to_py) {
 }
 
 TEST_F(Python, map_to_py) {
-  boost::system::error_code error;
+  std::error_code error;
   std::shared_ptr<Value::Map_type> map2(new Value::Map_type);
   (*map2)["submap"] = Value(444);
 
@@ -261,7 +261,7 @@ TEST_F(Python, map_to_py) {
 }
 
 TEST_F(Python, object_to_py) {
-  boost::system::error_code error;
+  std::error_code error;
   std::shared_ptr<Test_object> obj = std::shared_ptr<Test_object>(new Test_object(1234));
   std::shared_ptr<Test_object> obj2 = std::shared_ptr<Test_object>(new Test_object(1234));
   std::shared_ptr<Test_object> obj3 = std::shared_ptr<Test_object>(new Test_object(123));
@@ -290,11 +290,11 @@ TEST_F(Python, object_to_py) {
 
 shcore::Value do_tests(const Argument_list &args) {
   args.ensure_count(1, "do_tests");
-  return Value(boost::to_upper_copy(args.string_at(0)));
+  return Value(str_upper(args.string_at(0).c_str()));
 }
 
 TEST_F(Python, function_to_py) {
-  boost::system::error_code error;
+  std::error_code error;
   std::shared_ptr<Function_base> func(Cpp_function::create("do_tests",
   std::bind(do_tests, _1), "bla", String, NULL));
 

@@ -18,7 +18,7 @@
  */
 
 #include "interactive_object_wrapper.h"
-#include <boost/algorithm/string.hpp>
+#include "utils/utils_string.h"
 
 using namespace shcore;
 
@@ -188,7 +188,7 @@ void Interactive_object_wrapper::print_value(const shcore::Value& value, const s
 bool Interactive_object_wrapper::prompt(const std::string& prompt, std::string &ret_val, bool trim_answer) const {
   bool ret = _shell_core.prompt(prompt, ret_val);
   if (trim_answer)
-    boost::trim(ret_val);
+    ret_val = shcore::str_strip(ret_val, " ");
   return ret;
 }
 

@@ -20,7 +20,7 @@
 #ifndef _ORDERBY_PARSER_H_
 #define _ORDERBY_PARSER_H_
 
-#include <boost/format.hpp>
+#include "utils/utils_string.h"
 #include "expr_parser.h"
 #include "ngs_common/protocol_protobuf.h"
 #include "../compilerutils.h"
@@ -43,8 +43,8 @@ namespace mysqlx
       if (_tokenizer.tokens_available())
       {
         const mysqlx::Token& tok = _tokenizer.peek_token();
-        throw Parser_error((boost::format("Orderby parser: Expected EOF, instead stopped at token '%s' at position %d") % tok.get_text()
-          % tok.get_pos()).str());
+        throw Parser_error(shcore::str_format("Orderby parser: Expected EOF, instead stopped at token '%s' at position %d", tok.get_text().c_str()
+          , tok.get_pos()));
       }
     }
 

@@ -18,8 +18,7 @@
  */
 
 #include "utils_sqlstring.h"
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string.hpp>
+#include "utils/utils_string.h"
 
 // updated as of 5.7
 static const char *reserved_keywords[] = {
@@ -354,8 +353,7 @@ std::string escape_backticks(const std::string &s) {
 //--------------------------------------------------------------------------------------------------
 
 bool is_reserved_word(const std::string &word) {
-  std::string upper(word);
-  boost::to_upper(upper);
+  std::string upper = str_upper(word);
   for (const char **kw = reserved_keywords; *kw != NULL; ++kw) {
     if (upper.compare(*kw) == 0)
       return true;
@@ -464,7 +462,7 @@ sqlstring &sqlstring::operator <<(const double v) {
   if (esc != '?')
     throw std::invalid_argument("Error formatting SQL query: invalid escape for numeric argument");
 
-  append(boost::lexical_cast<std::string>(v));
+  append(std::to_string(v));
   append(consume_until_next_escape());
 
   return *this;

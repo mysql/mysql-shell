@@ -20,7 +20,6 @@
 #include <sstream>
 #include <vector>
 #include <memory>
-#include <boost/lexical_cast.hpp>
 
 #include <gtest/gtest.h>
 #include "../mysqlxtest/common/orderby_parser.h"

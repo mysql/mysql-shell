@@ -20,7 +20,6 @@
 #include "scripting/jscript_object_wrapper.h"
 #include "scripting/jscript_context.h"
 
-#include <boost/format.hpp>
 #include <iostream>
 
 using namespace shcore;

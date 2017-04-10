@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/lexical_cast.hpp>
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
@@ -169,7 +168,7 @@ TEST(Parsing, Float) {
   std::string myrepr = v.repr();
 
   EXPECT_EQ(shcore::Float, v.type);
-  double d = boost::lexical_cast<double>(myrepr);
+  double d = std::stod(myrepr);
   EXPECT_EQ(3.1, d);
 }
 

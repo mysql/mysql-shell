@@ -25,7 +25,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/shared_ptr.hpp>
 
 #include "process_launcher.h"
 #include "gtest/gtest.h"

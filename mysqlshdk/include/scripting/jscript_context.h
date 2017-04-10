@@ -21,7 +21,6 @@
 #define _JSCRIPT_CONTEXT_H_
 
 #include <string>
-#include <boost/system/error_code.hpp>
 #include "scripting/include_v8.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"

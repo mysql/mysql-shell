@@ -14,11 +14,12 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "shell_script_tester.h"
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 #include "shellcore/ishell_core.h"
+
+using namespace shcore;
 
 Shell_script_tester::Shell_script_tester() {
   _shell_scripts_home = MYSQLX_SOURCE_HOME;
@@ -67,7 +68,7 @@ std::string Shell_script_tester::resolve_string(const std::string& source) {
 
     std::string value = output_handler.std_out;
 
-    boost::trim(value);
+    value = str_strip(value);
 
     updated.replace(start, end - start + 3, value);
 
@@ -145,8 +146,8 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context, cons
         break;
       }
 
-      auto act_str = boost::trim_right_copy(actual_lines[actual_index + expected_index]);
-      auto exp_str = boost::trim_right_copy(expected_lines[expected_index]);
+      auto act_str = str_rstrip(actual_lines[actual_index + expected_index]);
+      auto exp_str = str_rstrip(expected_lines[expected_index]);
       if (!multi_value_compare(exp_str, act_str)) {
         SCOPED_TRACE("File: " + context);
         SCOPED_TRACE("Executing: " + chunk_id);
@@ -299,7 +300,7 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
     std::string line;
     std::getline(stream, line);
 
-    boost::trim_right_if(line, boost::is_any_of("\r\n"));
+    line = str_rstrip(line, "\r\n");
 
     if (line.find(get_chunk_token()) == 0) {
       if (!current_chunk.empty()) {
@@ -310,11 +311,11 @@ void Shell_script_tester::load_source_chunks(std::istream & stream) {
       chunk_id = line.substr(get_chunk_token().size());
       if (chunk_id[0] == '#')
         chunk_id = chunk_id.substr(1);
-      boost::trim(chunk_id);
+      chunk_id = str_strip(chunk_id);
 
       if (chunk_id.find("<OUT>") == 0 || chunk_id.find("<ERR>") == 0) {
         chunk_id = chunk_id.substr(5);
-        boost::trim(chunk_id);
+        chunk_id = str_strip(chunk_id);
       }
 
       current_chunk = {};
@@ -376,7 +377,7 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
         if (format_lines.size()) {
           std::string value = shcore::join_strings(format_lines, "\n");
 
-          boost::trim(value);
+          value = str_strip(value);
 
           if (format == "OUT")
             add_validation(chunk_id, {"", value, ""}, ValidationType::LineByLine);
@@ -390,25 +391,25 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
           if (chunk_id[0] == '#')
             chunk_id = chunk_id.substr(1);
 
-          boost::trim(chunk_id);
+          chunk_id = str_strip(chunk_id);
 
           if (chunk_id.find("<OUT>") == 0) {
             format = "OUT";
             chunk_id = chunk_id.substr(5);
-            boost::trim(chunk_id);
+            chunk_id = str_strip(chunk_id);
           } else if (chunk_id.find("<ERR>") == 0) {
             format = "ERR";
             chunk_id = chunk_id.substr(5);
-            boost::trim(chunk_id);
+            chunk_id = str_strip(chunk_id);
           } else
             format = "";
         }
       } else {
         if (format.empty()) {
-          boost::trim(line);
+          line = str_strip(line);
           if (!line.empty()) {
             std::vector<std::string> tokens;
-            boost::split(tokens, line, boost::is_any_of("|"), boost::token_compress_off);
+            tokens = split_string(line, "|", false);
             add_validation(chunk_id, tokens);
           }
         } else {
@@ -421,7 +422,7 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
     if (format_lines.size()) {
       std::string value = shcore::join_strings(format_lines, "\n");
 
-      boost::trim(value);
+      value = str_strip(value);
 
       if (format == "OUT")
         add_validation(chunk_id, {"", value, ""}, ValidationType::LineByLine);
@@ -556,20 +557,20 @@ void Shell_script_tester::process_setup(std::istream & stream) {
     if (line.find(get_assumptions_token()) == 0) {
       // Removes the assumptions header and parses the rest
       std::vector<std::string> tokens;
-      boost::split(tokens, line, boost::is_any_of(":"), boost::token_compress_on);
+      tokens = split_string(line, ":", true);
 
       // Now parses the real assumptions
       std::string assumptions = tokens[1];
-      boost::split(tokens, assumptions, boost::is_any_of(","), boost::token_compress_on);
+      tokens = split_string(assumptions, ",", true);
 
       // Now quotes the assumptions
       for (size_t index = 0; index < tokens.size(); index++) {
-        boost::trim(tokens[index]);
+        tokens[index] = str_strip(tokens[index]);
         tokens[index] = "'" + tokens[index] + "'";
       }
 
       // Creates an assumptions array to be processed on the setup script
-      std::string code = get_variable_prefix() + "__assumptions__ = [" + boost::join(tokens, ",") + "];";
+      std::string code = get_variable_prefix() + "__assumptions__ = [" + join_strings(tokens, ",") + "];";
       execute(code);
 
       if (_setup_script.empty())

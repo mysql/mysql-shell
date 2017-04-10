@@ -29,9 +29,8 @@
 
 #include "scripting/proxy_object.h"
 
-#include <boost/lexical_cast.hpp>
-#include <boost/format.hpp>
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 #include "logger/logger.h"
 #include "shellcore/utils_help.h"
 #include "mysqlxtest_utils.h"
@@ -115,7 +114,7 @@ void ClassicSchema::update_cache() {
         else if (object_type == "VIEW" || object_type == "SYSTEM VIEW")
           views.push_back(object_name);
         else
-          others.push_back((boost::format("Unexpected Object Retrieved from Database: %s% of type %s%") % object_name % object_type).str());;
+          others.push_back(str_format("Unexpected Object Retrieved from Database: %s of type %s", object_name.c_str(), object_type.c_str()));
 
         row.reset();
         val_row = result->fetch_one(shcore::Argument_list());

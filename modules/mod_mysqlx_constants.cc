@@ -27,8 +27,6 @@
 #pragma clang diagnostic ignored "-Wunused-private-field"
 #endif
 
-#include <boost/algorithm/string.hpp>
-
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

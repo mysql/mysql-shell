@@ -21,6 +21,7 @@
 #include "utils/uri_parser.h"
 #include "utils/utils_file.h"
 #include "utils/utils_sqlstring.h"
+#include "utils/utils_string.h"
 #include <locale>
 #ifdef WIN32
 #include <WinSock2.h>
@@ -36,8 +37,8 @@
 #include "utils/utils_connection.h"
 #include <cctype>
 
-#include <boost/format.hpp>
 #include "utils_connection.h"
+#include "shellcore/utils_help.h"
 
 namespace shcore {
 bool is_valid_identifier(const std::string& name) {
@@ -285,9 +286,9 @@ void parse_mysql_connstring(const std::string &connstring,
         ssl_info.mode = mode;
       }
       else {
-        throw std::runtime_error((boost::format(
-          "Invalid value for '%s' (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] ) ")
-          % "").str());
+        throw std::runtime_error(shcore::str_format(
+          "Invalid value for '%s' (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] ) ",
+          data.get_attribute(kSslMode).c_str()));
       }
     }
 
@@ -592,7 +593,7 @@ std::vector<std::string> split_string(const std::string& input, const std::strin
     if (new_find != std::string::npos) {
       // When compress is enabled, consecutive separators
       // do not generate new elements
-      if (new_find > index || !compress)
+      if (new_find > index || !compress || new_find == 0)
         ret_val.push_back(input.substr(index, new_find - index));
 
       index = new_find + separator.length();
@@ -631,6 +632,37 @@ std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, st
     chunks.push_back(input.substr(start));
 
   return chunks;
+}
+
+/**
+* Splits string based on each of the individual characters of the separator string
+*
+* @param input The string to be split
+* @param separator_chars String containing characters wherein the input string is split on any of the characters
+* @param compress Boolean value which when true ensures consecutive separators do not generate new elements in the split
+*
+* @returns vector of splitted strings
+*/
+std::vector<std::string> split_string_chars(const std::string& input, const std::string& separator_chars, bool compress) {
+  std::vector<std::string> ret_val;
+
+  size_t index = 0, new_find = 0;
+
+  while (new_find != std::string::npos) {
+    new_find = input.find_first_of(separator_chars, index);
+
+    if (new_find != std::string::npos) {
+      // When compress is enabled, consecutive separators
+      // do not generate new elements
+      if (new_find > index || !compress || new_find == 0)
+        ret_val.push_back(input.substr(index, new_find - index));
+
+      index = new_find + 1;
+    } else
+      ret_val.push_back(input.substr(index));
+  }
+
+  return ret_val;
 }
 
 std::string join_strings(const std::set<std::string>& strings, const std::string& separator) {

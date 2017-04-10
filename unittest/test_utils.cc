@@ -14,10 +14,10 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "test_utils.h"
-#include <boost/algorithm/string.hpp>
 #include "shellcore/shell_core_options.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 #include "utils/utils_file.h"
 #include "shellcore/base_session.h"
 
@@ -432,8 +432,8 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& co
 
   shcore::Value ret_val = execute(code);
 
-  boost::trim(output_handler.std_out);
-  boost::trim(output_handler.std_err);
+  output_handler.std_out = str_strip(output_handler.std_out, " ");
+  output_handler.std_err = str_strip(output_handler.std_err, " ");
 
   if (expected_output != "*")
     EXPECT_EQ(expected_output, output_handler.std_out);
@@ -467,15 +467,16 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_contains(const std::string& 
 }
 
 void Crud_test_wrapper::set_functions(const std::string &functions) {
-  boost::algorithm::split(_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
+  std::vector<std::string> str_spl = split_string_chars(functions, ", ", true);
+  std::copy(str_spl.begin(), str_spl.end(), std::inserter(_functions, _functions.end()));
 }
 
 // Validates only the specified functions are available
 // non listed functions are validated for unavailability
 void Crud_test_wrapper::ensure_available_functions(const std::string& functions) {
   bool is_js = _interactive_shell->interactive_mode() == shcore::Shell_core::Mode::JScript;
-  std::set<std::string> valid_functions;
-  boost::algorithm::split(valid_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
+  std::vector<std::string> v = split_string_chars(functions, ", ", true);
+  std::set<std::string> valid_functions(v.begin(), v.end());
 
   // Retrieves the active functions on the crud operation
   if (is_js)

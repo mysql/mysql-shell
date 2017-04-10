@@ -20,11 +20,11 @@
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 #include "utils/utils_time.h"
+#include "utils/utils_string.h"
 #include "shellcore/utils_help.h"
 
 #include "scripting/common.h"
 #include <sstream>
-#include <boost/format.hpp>
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
@@ -353,7 +353,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
         if (index->type == shcore::String)
           _modify_statement->remove(index->as_string());
         else
-          throw shcore::Exception::type_error((boost::format("Element #%1% is expected to be a string") % (int_index)).str());
+          throw shcore::Exception::type_error(str_format("Element #%d is expected to be a string", int_index));
       }
 
       unset_count = items->size();
@@ -365,9 +365,9 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
           std::string error;
 
           if (args.size() == 1)
-            error = (boost::format("Argument #%1% is expected to be either string or list of strings") % (index + 1)).str();
+            error = str_format("Argument #%zu is expected to be either string or list of strings", (index + 1));
           else
-            error = (boost::format("Argument #%1% is expected to be a string") % (index + 1)).str();
+            error = str_format("Argument #%zu is expected to be a string", (index + 1));
 
           throw shcore::Exception::type_error(error);
         }

@@ -25,7 +25,6 @@
 
 #include <iomanip>
 #include <sstream>
-#include <boost/format.hpp>
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;

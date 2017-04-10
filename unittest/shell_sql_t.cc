@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
 #include "scripting/types.h"
@@ -31,7 +30,6 @@
 //#include "../modules/mod_schema.h"
 #include "scripting/common.h"
 #include "test_utils.h"
-#include <boost/algorithm/string.hpp>
 
 using namespace std::placeholders;
 

@@ -17,9 +17,6 @@
  * 02110-1301  USA
  */
 
-#include <boost/asio.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include <string>
 #include <iomanip>
 #include "mod_mysql_resultset.h"

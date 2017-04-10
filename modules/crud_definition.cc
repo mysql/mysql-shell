@@ -18,11 +18,11 @@
  */
 
 #include "proj_parser.h"
-#include <boost/algorithm/string.hpp>
 
 #include "crud_definition.h"
 #include "base_database_object.h"
 #include "mod_mysqlx_expression.h"
+#include "utils/utils_string.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -64,7 +64,7 @@ void Crud_definition::parse_string_list(const shcore::Argument_list &args, std::
     for (index = shell_fields->begin(); index != end; index++) {
       count++;
       if (index->type != shcore::String)
-        throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
+        throw shcore::Exception::argument_error(str_format("Element #%d is expected to be a string", count));
       else
         data.push_back(index->as_string());
     }

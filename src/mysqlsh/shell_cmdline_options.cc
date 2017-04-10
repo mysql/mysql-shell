@@ -24,9 +24,9 @@
 #include "utils/utils_general.h"
 #include "utils/utils_connection.h"
 #include "mysqlshdk/libs/db/ssl_info.h"
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string.hpp>
+#include "utils/utils_string.h"
+
+using namespace shcore;
 
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   : Command_line_options(argc, argv) {
@@ -200,9 +200,9 @@ _options.ssl_info.skip = false;
       if (!value)
         _options.ssl_info.skip = false;
       else {
-        if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
+        if (str_caseeq(value, "yes") || str_caseeq(value, "1"))
           _options.ssl_info.skip = false;
-        else if (boost::iequals(value, "no") || boost::iequals(value, "0"))
+        else if (str_caseeq(value, "no") || str_caseeq(value, "0"))
           _options.ssl_info.skip = true;
         else {
           std::cerr << "Value for --ssl must be any of 1|0|yes|no";

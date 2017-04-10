@@ -20,7 +20,6 @@
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
 #include "mysqlshdk/libs/db/ssl_info.h"
-#include <boost/lexical_cast.hpp>
 
 namespace shcore {
 class Shell_py_mysql_tests : public Shell_py_script_tester {

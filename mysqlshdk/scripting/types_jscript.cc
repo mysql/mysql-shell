@@ -22,7 +22,6 @@
 #include "scripting/common.h"
 
 #include <v8.h>
-#include <boost/weak_ptr.hpp>
 
 using namespace shcore;
 

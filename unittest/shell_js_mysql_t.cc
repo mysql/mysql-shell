@@ -17,7 +17,6 @@
 * 02110-1301  USA
 */
 #include "shell_script_tester.h"
-#include <boost/lexical_cast.hpp>
 #include "utils/utils_general.h"
 #include "mysqlshdk/libs/db/ssl_info.h"
 

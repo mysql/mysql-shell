@@ -18,7 +18,8 @@
  */
 //--------------------------------------------------------------------------------------------------
 #include "utils_mysql_parsing.h"
-#include <boost/algorithm/string/trim.hpp>
+#include "utils/utils_string.h"
+#include <assert.h>
 
 namespace shcore {
 namespace mysql {
@@ -286,7 +287,7 @@ std::vector<Statement_range> determineStatementRanges(
               run++;
 
             std::string delimiter = std::string((char *)tail, run - tail);
-            boost::trim(delimiter);
+            delimiter = str_strip(delimiter);
             delimiters.set_main_delimiter(delimiter);
 
             // Skip over the delimiter statement and any following line breaks.

@@ -21,8 +21,7 @@
 #include "interactive_global_shell.h"
 #include "utils/utils_general.h"
 #include "modules/mod_shell.h"
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
+#include "utils/utils_string.h"
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -96,7 +95,7 @@ shcore::Value Global_session::get_schema(const shcore::Argument_list &args) {
     std::string error(e.what());
     if (error.find("Unknown database") != std::string::npos) {
       std::string answer;
-      if (prompt((boost::format("The schema %1% does not exist, do you want to create it? [y/N]: ") % args.string_at(0)).str().c_str(), answer)) {
+      if (prompt(str_format("The schema %s does not exist, do you want to create it? [y/N]: ", args.string_at(0).c_str()), answer)) {
         if (!answer.compare("y") || !answer.compare("Y")) {
           ret_val = call_target("createSchema", args);
         }

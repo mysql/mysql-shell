@@ -29,9 +29,7 @@
 
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
-
-#include <boost/lexical_cast.hpp>
-#include <boost/format.hpp>
+#include "utils/utils_string.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -222,12 +220,12 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
   if (_port == 0 && _sock.empty())
     _port = get_default_port();
 
-  std::string sock_port = (_port == 0) ? _sock : boost::lexical_cast<std::string>(_port);
+  std::string sock_port = (_port == 0) ? _sock : std::to_string(_port);
 
   if (_schema.empty())
-    _uri = (boost::format("%1%@%2%:%3%") % _user % _host % sock_port).str();
+    _uri = str_format("%s@%s:%s", _user.c_str(), _host.c_str(), sock_port.c_str());
   else
-    _uri = (boost::format("%1%@%2%:%3%/%4%") % _user % _host % sock_port % _schema).str();
+    _uri = str_format("%s@%s:%s/%s", _user.c_str(), _host.c_str(), sock_port.c_str(), _schema.c_str());
 }
 
 bool ShellBaseSession::operator == (const Object_bridge &other) const {

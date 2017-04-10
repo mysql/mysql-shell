@@ -28,7 +28,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
 #include "shellcore/utils_help.h"
-#include <boost/format.hpp>
+#include "utils/utils_string.h"
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -417,7 +417,7 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
   if (args.size() < 1) {
     std::string answer;
 
-    if (prompt((boost::format("Are you sure you want to remove the Metadata? [y|N]: ")).str().c_str(), answer)) {
+    if (prompt("Are you sure you want to remove the Metadata? [y|N]: ", answer)) {
       if (!answer.compare("y") || !answer.compare("Y")) {
         Value::Map_type_ref options(new shcore::Value::Map_type);
 
@@ -1359,7 +1359,7 @@ void Global_dba::dump_table(const std::vector<std::string>& column_names, const 
   print("| ");
 
   for (index = 0; index < field_count; index++) {
-    std::string data = (boost::format(formats[index]) % column_labels[index]).str();
+    std::string data = str_format(formats[index].c_str(), column_labels[index].c_str());
     print(data.c_str());
 
     // Once the header is printed, updates the numeric fields formats
@@ -1379,7 +1379,7 @@ void Global_dba::dump_table(const std::vector<std::string>& column_names, const 
 
       for (size_t field_index = 0; field_index < field_count; field_index++) {
         std::string raw_value = document->get_string(column_names[field_index]);
-        std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
+        std::string data = str_format(formats[field_index].c_str(), raw_value.c_str());
 
         print(data.c_str());
       }

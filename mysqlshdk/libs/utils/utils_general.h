@@ -63,6 +63,7 @@ std::string SHCORE_PUBLIC join_strings(const std::set<std::string>& strings, con
 std::string SHCORE_PUBLIC join_strings(const std::vector<std::string>& strings, const std::string& separator);
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, const std::string& separator, bool compress = false);
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, std::vector<size_t> max_lengths);
+std::vector<std::string> SHCORE_PUBLIC split_string_chars(const std::string& input, const std::string& separator_chars, bool compress = false);
 
 void SHCORE_PUBLIC split_account(const std::string& account, std::string *out_user, std::string *out_host);
 std::string SHCORE_PUBLIC make_account(const std::string& user, const std::string &host);

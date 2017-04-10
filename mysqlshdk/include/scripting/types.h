@@ -27,6 +27,7 @@
 #include <set>
 #include <string>
 #include <stdexcept>
+#include <memory>
 
 #include <boost/function.hpp>
 

@@ -18,11 +18,11 @@
  */
 
 #include "proj_parser.h"
-#include <boost/algorithm/string.hpp>
 
 #include "crud_definition.h"
 #include "base_database_object.h"
 #include "mod_mysqlx_expression.h"
+#include "utils/utils_general.h"
 
 using namespace mysqlsh;
 using namespace mysqlsh::mysqlx;
@@ -95,8 +95,7 @@ void Dynamic_object::register_dynamic_function(const std::string& name, const st
   _enabled_functions[name] = true;
 
   // Splits the 'enable' states and associates them to the function
-  std::vector<std::string> tokens;
-  boost::algorithm::split(tokens, enable_after, boost::is_any_of(", "), boost::token_compress_on);
+  std::vector<std::string> tokens = shcore::split_string_chars(enable_after, ", ", true);
   std::set<std::string> after(tokens.begin(), tokens.end());
   _enable_paths[name] = after;
 }

@@ -19,10 +19,9 @@
 
 #include "shellcore/shell_resultset_dumper.h"
 #include "shellcore/shell_core_options.h"
-#include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysqlx_resultset.h"
+#include "utils/utils_string.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -171,7 +170,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysqlsh::mysqlx::DocResult> re
     _output_handler->print_value(_output_handler->user_data, documents, "");
 
     int row_count = int(array_docs->size());
-    output = (boost::format("%lld %s in set") % row_count % (row_count == 1 ? "document" : "documents")).str();
+    output = shcore::str_format("%d %s in set", row_count, (row_count == 1 ? "document" : "documents"));
   } else
     output = "Empty set";
 
@@ -298,7 +297,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   std::string separator("+");
   for (index = 0; index < field_count; index++) {
     // Creates the format string to print each field
-    formats[index].append(boost::lexical_cast<std::string>(max_lengths[index]));
+    formats[index].append(std::to_string(max_lengths[index]));
     if (index == field_count - 1)
       formats[index].append("s |");
     else
@@ -315,7 +314,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   _output_handler->print(_output_handler->user_data, separator.c_str());
   _output_handler->print(_output_handler->user_data, +"| ");
   for (index = 0; index < field_count; index++) {
-    std::string data = (boost::format(formats[index]) % column_names[index]).str();
+    std::string data = shcore::str_format(formats[index].c_str(), column_names[index].c_str());
     _output_handler->print(_output_handler->user_data, data.c_str());
 
     // Once the header is printed, updates the numeric fields formats
@@ -334,7 +333,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
       std::string raw_value = row->get_member(field_index).descr();
-      std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
+      std::string data = shcore::str_format(formats[field_index].c_str(), raw_value.c_str());
 
       _output_handler->print(_output_handler->user_data, data.c_str());
     }
@@ -354,7 +353,7 @@ std::string ResultsetDumper::get_affected_stats(const std::string& member, const
     output = "Query OK";
   else
     // In case of Query OK, prints the actual number of affected rows.
-    output = (boost::format("Query OK, %lld %s affected") % affected_items % (affected_items == 1 ? legend : legend + "s")).str();
+    output = shcore::str_format("Query OK, %lld %s affected", (long long int)affected_items, (affected_items == 1 ? legend : legend + "s").c_str());
 
   return output;
 }
@@ -366,10 +365,10 @@ int ResultsetDumper::get_warning_and_execution_time_stats(std::string& output_st
     warning_count = _resultset->get_member("warningCount").as_uint();
 
     if (warning_count)
-      output_stats.append((boost::format(", %d warning%s") % warning_count % (warning_count == 1 ? "" : "s")).str());
+      output_stats.append(shcore::str_format(", %d warning%s", warning_count, (warning_count == 1 ? "" : "s")));
 
     output_stats.append(" ");
-    output_stats.append((boost::format("(%s)") % _resultset->get_member("executionTime").as_string()).str());
+    output_stats.append(shcore::str_format("(%s)", _resultset->get_member("executionTime").as_string().c_str()));
     output_stats.append("\n");
   }
 
@@ -390,7 +389,7 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
       dump_tabbed(array_records);
 
     int row_count = int(array_records->size());
-    output_stats = (boost::format("%lld %s in set") % row_count % (row_count == 1 ? "row" : "rows")).str();
+    output_stats = shcore::str_format("%d %s in set", row_count, (row_count == 1 ? "row" : "rows"));
   } else
     output_stats = "Empty set";
 }
@@ -420,7 +419,7 @@ void ResultsetDumper::dump_warnings(bool classic) {
 
       std::string type = row->get_member(level).as_string();
       std::string msg = row->get_member(message).as_string();
-      _output_handler->print(_output_handler->user_data, (boost::format("%s (code %ld): %s\n") % type % error % msg).str().c_str());
+      _output_handler->print(_output_handler->user_data, (shcore::str_format("%s (code %ld): %s\n", type.c_str(), error, msg.c_str())).c_str());
 
       index++;
     }

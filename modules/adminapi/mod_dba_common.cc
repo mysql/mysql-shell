@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/algorithm/string.hpp>
 #include <string>
 #include <algorithm>
 
 #include "modules/adminapi/mod_dba_common.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 #include "utils/utils_sqlstring.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
@@ -320,9 +320,9 @@ void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options) {
 
   if (opt_map.has_key("memberSslMode")) {
     std::string ssl_mode = opt_map.string_at("memberSslMode");
-    boost::to_upper(ssl_mode);
+    ssl_mode = shcore::str_upper(ssl_mode);
     if (kMemberSSLModeValues.count(ssl_mode) == 0) {
-      std::string valid_values = boost::join(kMemberSSLModeValues, ",");
+      std::string valid_values = shcore::join_strings(kMemberSSLModeValues, ",");
       throw shcore::Exception::argument_error(
           "Invalid value for memberSslMode option. "
               "Supported values: " + valid_values + ".");
@@ -339,7 +339,7 @@ void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options) {
   // to the ipWhitelist option.
   if (opt_map.has_key("ipWhitelist")) {
     std::string ip_whitelist = options->get_string("ipWhitelist");
-    boost::trim(ip_whitelist);
+    ip_whitelist = shcore::str_strip(ip_whitelist);
     if (ip_whitelist.empty())
       throw shcore::Exception::argument_error(
           "Invalid value for ipWhitelist, string value cannot be empty.");

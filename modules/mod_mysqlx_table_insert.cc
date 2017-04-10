@@ -20,7 +20,6 @@
 #include "mod_mysqlx_table.h"
 #include "scripting/common.h"
 #include "mod_mysqlx_resultset.h"
-#include <boost/format.hpp>
 #include "utils/utils_time.h"
 
 using namespace std::placeholders;
