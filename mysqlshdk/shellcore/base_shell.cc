@@ -370,7 +370,7 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
       s.close();
     } else {
       // TODO: add a log entry once logging is
-      print_error(shcore::str_format("Failed to open file '%s', error: %d\n", file, errno));
+      print_error(shcore::str_format("Failed to open file '%s', error: %d\n", file.c_str(), errno));
     }
   }
 

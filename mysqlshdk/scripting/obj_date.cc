@@ -20,6 +20,7 @@
 #include "scripting/obj_date.h"
 #include "scripting/common.h"
 #include "utils/utils_string.h"
+#include <time.h>
 
 #include <cstdio>
 

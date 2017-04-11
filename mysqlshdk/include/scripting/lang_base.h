@@ -21,6 +21,7 @@
 #define _LANG_BASE_H_
 
 #include <string>
+#include <system_error>
 
 #include "scripting/types.h"
 #include "scripting/types_common.h"
