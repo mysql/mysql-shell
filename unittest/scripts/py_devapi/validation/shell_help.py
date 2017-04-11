@@ -9,11 +9,14 @@ The following properties are currently supported.
 
 The following functions are currently supported.
 
- - connect   Establishes the shell global session.
- - help      Provides help about this class and it's members
- - parse_uri Utility function to parse a URI string.
- - prompt    Utility function to prompt data from the user.
-
+ - connect            Establishes the shell global session.
+ - get_session
+ - help               Provides help about this class and it's members
+ - parse_uri          Utility function to parse a URI string.
+ - prompt             Utility function to prompt data from the user.
+ - reconnect
+ - set_current_schema
+ - set_session
 
 
 #@<OUT> Options
