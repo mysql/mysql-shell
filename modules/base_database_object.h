@@ -35,6 +35,7 @@ namespace mysqlsh {
 class ShellBaseSession;
 class CoreSchema;
 /**
+* \ingroup ShellAPI
 * Provides base functionality for database objects.
 */
 class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {

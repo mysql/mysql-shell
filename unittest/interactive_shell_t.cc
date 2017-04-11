@@ -422,7 +422,7 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_js) {
   execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
   MY_EXPECT_STDOUT_CONTAINS("db         Used to work with database schema objects.");
-  MY_EXPECT_STDOUT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
+  MY_EXPECT_STDOUT_CONTAINS("dba        Enables you to administer InnoDB clusters using the AdminAPI.");
   MY_EXPECT_STDOUT_CONTAINS("mysql      Used to work with classic MySQL sessions using SQL.");
   MY_EXPECT_STDOUT_CONTAINS("mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.");
   MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
@@ -440,7 +440,7 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_py) {
   execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
   MY_EXPECT_STDOUT_CONTAINS("db         Used to work with database schema objects.");
-  MY_EXPECT_STDOUT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
+  MY_EXPECT_STDOUT_CONTAINS("dba        Enables you to administer InnoDB clusters using the AdminAPI.");
   MY_EXPECT_STDOUT_CONTAINS("mysql      Used to work with classic MySQL sessions using SQL.");
   MY_EXPECT_STDOUT_CONTAINS("mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.");
   MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");

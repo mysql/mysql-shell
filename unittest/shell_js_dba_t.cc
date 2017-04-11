@@ -181,6 +181,10 @@ TEST_F(Shell_js_dba_tests, dba_help) {
   validate_interactive("dba_help.js");
 }
 
+TEST_F(Shell_js_dba_tests, dba_cluster_help) {
+  validate_interactive("dba_cluster_help.js");
+}
+
 TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
   _options->wizards = false;
   reset_shell();
@@ -442,6 +446,10 @@ TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
   _options->wizards = false;
   reset_shell();
   validate_interactive("dba_cluster_add_instance.js");
+}
+
+TEST_F(Shell_js_dba_tests, dba_cluster_check_instance_state) {
+  validate_interactive("dba_cluster_check_instance_state.js");
 }
 
 TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {

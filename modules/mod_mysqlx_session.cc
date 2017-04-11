@@ -253,14 +253,14 @@ Value BaseSession::sql(const Argument_list &args) {
 // Documentation of createSchema function
 REGISTER_HELP(BASESESSION_CREATESCHEMA_BRIEF, "Creates a schema on the database and returns the corresponding object.");
 REGISTER_HELP(BASESESSION_CREATESCHEMA_PARAM, "@param name A string value indicating the schema name.");
-REGISTER_HELP(BASESESSION_CREATESCHEMA_RETURN, "@return The created schema object.");
+REGISTER_HELP(BASESESSION_CREATESCHEMA_RETURNS, "@returns The created schema object.");
 REGISTER_HELP(BASESESSION_CREATESCHEMA_EXCEPTION, "@exception An exception is thrown if an error occurs creating the XSession.");
 
 /**
 * $(BASESESSION_CREATESCHEMA_BRIEF)
 *
 * $(BASESESSION_CREATESCHEMA_PARAM)
-* $(BASESESSION_CREATESCHEMA_RETURN)
+* $(BASESESSION_CREATESCHEMA_RETURNS)
 *
 * $(BASESESSION_CREATESCHEMA_EXCEPTION)
 */
@@ -299,7 +299,7 @@ void BaseSession::set_current_schema(const std::string &name) {
 
 // Documentation of startTransaction function
 REGISTER_HELP(BASESESSION_STARTTRANSACTION_BRIEF, "Starts a transaction context on the server.");
-REGISTER_HELP(BASESESSION_STARTTRANSACTION_RETURN, "@return A SqlResult object.");
+REGISTER_HELP(BASESESSION_STARTTRANSACTION_RETURNS, "@returns A SqlResult object.");
 REGISTER_HELP(BASESESSION_STARTTRANSACTION_DETAIL, "Calling this function will turn off the autocommit mode on the server.");
 REGISTER_HELP(BASESESSION_STARTTRANSACTION_DETAIL1, "All the operations executed after calling this function will take place only when commit() is called.");
 REGISTER_HELP(BASESESSION_STARTTRANSACTION_DETAIL2, "All the operations executed after calling this function, will be discarded is rollback() is called.");
@@ -309,7 +309,7 @@ REGISTER_HELP(BASESESSION_STARTTRANSACTION_DETAIL3, "When commit() or rollback()
 /**
 * $(BASESESSION_STARTTRANSACTION_BRIEF)
 *
-* $(BASESESSION_STARTTRANSACTION_RETURN)
+* $(BASESESSION_STARTTRANSACTION_RETURNS)
 *
 * $(BASESESSION_STARTTRANSACTION_DETAIL)
 *
@@ -336,14 +336,14 @@ shcore::Value BaseSession::_start_transaction(const shcore::Argument_list &args)
 
 // Documentation of commit function
 REGISTER_HELP(BASESESSION_COMMIT_BRIEF, "Commits all the operations executed after a call to startTransaction().");
-REGISTER_HELP(BASESESSION_COMMIT_RETURN, "@return A SqlResult object.");
+REGISTER_HELP(BASESESSION_COMMIT_RETURNS, "@returns A SqlResult object.");
 REGISTER_HELP(BASESESSION_COMMIT_DETAIL, "All the operations executed after calling startTransaction() will take place when this function is called.");
 REGISTER_HELP(BASESESSION_COMMIT_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
 
 /**
 * $(BASESESSION_COMMIT_BRIEF)
 *
-* $(BASESESSION_COMMIT_RETURN)
+* $(BASESESSION_COMMIT_RETURNS)
 *
 * $(BASESESSION_COMMIT_DETAIL)
 *
@@ -369,14 +369,14 @@ shcore::Value BaseSession::_commit(const shcore::Argument_list &args) {
 
 // Documentation of rollback function
 REGISTER_HELP(BASESESSION_ROLLBACK_BRIEF, "Discards all the operations executed after a call to startTransaction().");
-REGISTER_HELP(BASESESSION_ROLLBACK_RETURN, "@return A SqlResult object.");
+REGISTER_HELP(BASESESSION_ROLLBACK_RETURNS, "@returns A SqlResult object.");
 REGISTER_HELP(BASESESSION_ROLLBACK_DETAIL, "All the operations executed after calling startTransaction() will be discarded when this function is called.");
 REGISTER_HELP(BASESESSION_ROLLBACK_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
 
 /**
 * $(BASESESSION_ROLLBACK_BRIEF)
 *
-* $(BASESESSION_ROLLBACK_RETURN)
+* $(BASESESSION_ROLLBACK_RETURNS)
 *
 * $(BASESESSION_ROLLBACK_DETAIL)
 *
@@ -470,13 +470,13 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 
 // Documentation of getDefaultSchema function
 REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the Schema configured as default for the session.");
-REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_RETURN, "@return A Schema object or Null");
+REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_RETURNS, "@returns A Schema object or Null");
 
 #if DOXYGEN_JS || DOXYGEN_PY
 /**
 * $(BASESESSION_GETDEFAULTSCHEMA_BRIEF)
 *
-* $(BASESESSION_GETDEFAULTSCHEMA_RETURN)
+* $(BASESESSION_GETDEFAULTSCHEMA_RETURNS)
 */
 #if DOXYGEN_JS
 Schema BaseSession::getDefaultSchema() {}
@@ -486,12 +486,12 @@ Schema BaseSession::get_default_schema() {}
 
 // Documentation of getUri function
 REGISTER_HELP(BASESESSION_GETURI_BRIEF, "Retrieves the connection data for this session in string format.");
-REGISTER_HELP(BASESESSION_GETURI_RETURN, "@return A string representing the connection data.");
+REGISTER_HELP(BASESESSION_GETURI_RETURNS, "@returns A string representing the connection data.");
 
 /**
 * $(BASESESSION_GETURI_BRIEF)
 *
-* $(BASESESSION_GETURI_RETURN)
+* $(BASESESSION_GETURI_RETURNS)
 */
 #if DOXYGEN_JS
 String BaseSession::getUri() {}
@@ -522,14 +522,14 @@ std::string BaseSession::_retrieve_current_schema() {
 // Documentation of getSchema function
 REGISTER_HELP(BASESESSION_GETSCHEMA_BRIEF, "Retrieves a Schema object from the current session through it's name.");
 REGISTER_HELP(BASESESSION_GETSCHEMA_PARAM, "@param name The name of the Schema object to be retrieved.");
-REGISTER_HELP(BASESESSION_GETSCHEMA_RETURN, "@return The Schema object with the given name.");
+REGISTER_HELP(BASESESSION_GETSCHEMA_RETURNS, "@returns The Schema object with the given name.");
 REGISTER_HELP(BASESESSION_GETSCHEMA_EXCEPTION, "@exception An exception is thrown if the given name is not a valid schema on the XSession.");
 
 /**
 * $(BASESESSION_GETSCHEMA_BRIEF)
 *
 * $(BASESESSION_GETSCHEMA_PARAM)
-* $(BASESESSION_GETSCHEMA_RETURN)
+* $(BASESESSION_GETSCHEMA_RETURNS)
 * $(BASESESSION_GETSCHEMA_EXCEPTION)
 * \sa Schema
 */
@@ -561,11 +561,11 @@ shcore::Value BaseSession::_get_schema(const shcore::Argument_list &args) const 
 
 // Documentation of  function
 REGISTER_HELP(BASESESSION_GETSCHEMAS_BRIEF, "Retrieves the Schemas available on the session.");
-REGISTER_HELP(BASESESSION_GETSCHEMAS_RETURN, "@return A List containing the Schema objects available on the session.");
+REGISTER_HELP(BASESESSION_GETSCHEMAS_RETURNS, "@returns A List containing the Schema objects available on the session.");
 /**
 * $(BASESESSION_GETSCHEMAS_BRIEF)
 *
-* $(BASESESSION_GETSCHEMAS_RETURN)
+* $(BASESESSION_GETSCHEMAS_RETURNS)
 */
 #if DOXYGEN_JS
 List BaseSession::getSchemas() {}
@@ -624,13 +624,13 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 
 // Documentation of dropSchema function
 REGISTER_HELP(BASESESSION_DROPSCHEMA_BRIEF, "Drops the schema with the specified name.");
-REGISTER_HELP(BASESESSION_DROPSCHEMA_RETURN, "@return A SqlResult object if succeeded.");
+REGISTER_HELP(BASESESSION_DROPSCHEMA_RETURNS, "@returns A SqlResult object if succeeded.");
 REGISTER_HELP(BASESESSION_DROPSCHEMA_EXCEPTION, "@exception An error is raised if the schema did not exist.");
 
 /**
 * $(BASESESSION_DROPSCHEMA_BRIEF)
 *
-* $(BASESESSION_DROPSCHEMA_RETURN)
+* $(BASESESSION_DROPSCHEMA_RETURNS)
 *
 * $(BASESESSION_DROPSCHEMA_EXCEPTION)
 */
@@ -661,13 +661,13 @@ shcore::Value BaseSession::_drop_schema(const shcore::Argument_list &args) {
 
 // Documentation of dropTable function
 REGISTER_HELP(BASESESSION_DROPTABLE_BRIEF, "Drops a table from the specified schema.");
-REGISTER_HELP(BASESESSION_DROPTABLE_RETURN, "@return A SqlResult object if succeeded.");
+REGISTER_HELP(BASESESSION_DROPTABLE_RETURNS, "@returns A SqlResult object if succeeded.");
 REGISTER_HELP(BASESESSION_DROPTABLE_EXCEPTION, "@exception An error is raised if the table did not exist.");
 
 /**
 * $(BASESESSION_DROPTABLE_BRIEF)
 *
-* $(BASESESSION_DROPTABLE_RETURN)
+* $(BASESESSION_DROPTABLE_RETURNS)
 *
 * $(BASESESSION_DROPTABLE_EXCEPTION)
 */
@@ -679,13 +679,13 @@ Result BaseSession::drop_table(str schema, str name) {}
 
 // Documentation of dropCollection function
 REGISTER_HELP(BASESESSION_DROPCOLLECTION_BRIEF, "Drops a collection from the specified schema.");
-REGISTER_HELP(BASESESSION_DROPCOLLECTION_RETURN, "@return A SqlResult object if succeeded.");
+REGISTER_HELP(BASESESSION_DROPCOLLECTION_RETURNS, "@returns A SqlResult object if succeeded.");
 REGISTER_HELP(BASESESSION_DROPCOLLECTION_EXCEPTION, "@exception An error is raised if the collection did not exist.");
 
 /**
 * $(BASESESSION_DROPCOLLECTION_BRIEF)
 *
-* $(BASESESSION_DROPCOLLECTION_RETURN)
+* $(BASESESSION_DROPCOLLECTION_RETURNS)
 *
 * $(BASESESSION_DROPCOLLECTION_EXCEPTION)
 */
@@ -697,13 +697,13 @@ Result BaseSession::drop_collection(str schema, str name) {}
 
 // Documentation of dropView function
 REGISTER_HELP(BASESESSION_DROPVIEW_BRIEF, "Drops a view from the specified schema.");
-REGISTER_HELP(BASESESSION_DROPVIEW_RETURN, "@return A SqlResult object if succeeded.");
+REGISTER_HELP(BASESESSION_DROPVIEW_RETURNS, "@returns A SqlResult object if succeeded.");
 REGISTER_HELP(BASESESSION_DROPVIEW_EXCEPTION, "@exception An error is raised if the view did not exist.");
 
 /**
 * $(BASESESSION_DROPVIEW_BRIEF)
 *
-* $(BASESESSION_DROPVIEW_RETURN)
+* $(BASESESSION_DROPVIEW_RETURNS)
 *
 * $(BASESESSION_DROPVIEW_EXCEPTION)
 */
@@ -915,7 +915,7 @@ std::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argumen
 // Documentation of sql function
 REGISTER_HELP(BASESESSION_SQL_BRIEF, "Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.");
 REGISTER_HELP(BASESESSION_SQL_PARAM, "@param sql A string containing the SQL statement to be executed.");
-REGISTER_HELP(BASESESSION_SQL_RETURN, "@return A SqlExecute object.");
+REGISTER_HELP(BASESESSION_SQL_RETURNS, "@returns A SqlExecute object.");
 REGISTER_HELP(BASESESSION_SQL_DETAIL, "This method creates an SqlExecute object which is a SQL execution handler.");
 REGISTER_HELP(BASESESSION_SQL_DETAIL1, "The SqlExecute class has functions that allow defining the way the statement will be executed "\
 "and allows doing parameter binding.");
@@ -926,7 +926,7 @@ REGISTER_HELP(BASESESSION_SQL_DETAIL2, "The received SQL is set on the execution
 *
 * $(BASESESSION_SQL_PARAM)
 *
-* $(BASESESSION_SQL_RETURN)
+* $(BASESESSION_SQL_RETURNS)
 *
 * $(BASESESSION_SQL_DETAIL)
 *
@@ -954,12 +954,12 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args) {
 
 // Documentation of getCurrentSchema function
 REGISTER_HELP(BASESESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the Schema set as active on the session.");
-REGISTER_HELP(BASESESSION_GETCURRENTSCHEMA_RETURN, "@return A Schema object or Null");
+REGISTER_HELP(BASESESSION_GETCURRENTSCHEMA_RETURNS, "@returns A Schema object or Null");
 
 /**
 * $(BASESESSION_GETCURRENTSCHEMA_BRIEF)
 *
-* $(BASESESSION_GETCURRENTSCHEMA_RETURN)
+* $(BASESESSION_GETCURRENTSCHEMA_RETURNS)
 */
 #if DOXYGEN_JS
 Schema NodeSession::getCurrentSchema() {}
@@ -994,12 +994,12 @@ Value NodeSession::get_member(const std::string &prop) const {
 
 // Documentation of quoteName function
 REGISTER_HELP(BASESESSION_QUOTENAME_BRIEF, "Escapes the passed identifier.");
-REGISTER_HELP(BASESESSION_QUOTENAME_RETURN, "@return A String containing the escaped identifier.");
+REGISTER_HELP(BASESESSION_QUOTENAME_RETURNS, "@returns A String containing the escaped identifier.");
 
 /**
 * $(BASESESSION_QUOTENAME_BRIEF)
 *
-* $(BASESESSION_QUOTENAME_RETURN)
+* $(BASESESSION_QUOTENAME_RETURNS)
 */
 #if DOXYGEN_JS
 String NodeSession::quoteName(String id) {}
@@ -1020,7 +1020,7 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args) {
 // Documentation of setCurrentSchema function
 REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_BRIEF, "Sets the current schema for this session, and returns the schema object for it.");
 REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_PARAM, "@param name the name of the new schema to switch to.");
-REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_RETURN, "@return the Schema object for the new schema.");
+REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_RETURNS, "@returns the Schema object for the new schema.");
 REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_DETAIL, "At the database level, this is equivalent at issuing the following SQL query:");
 REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_DETAIL1, "  use <new-default-schema>;");
 
@@ -1028,7 +1028,7 @@ REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_DETAIL1, "  use <new-default-schema>;
 * $(BASESESSION_SETCURRENTSCHEMA_BRIEF)
 *
 * $(BASESESSION_SETCURRENTSCHEMA_PARAM)
-* $(BASESESSION_SETCURRENTSCHEMA_RETURN)
+* $(BASESESSION_SETCURRENTSCHEMA_RETURNS)
 *
 * $(BASESESSION_SETCURRENTSCHEMA_DETAIL)
 * $(BASESESSION_SETCURRENTSCHEMA_DETAIL1)

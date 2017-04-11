@@ -45,7 +45,7 @@ REGISTER_MODULE(Mysql, mysql) {
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_BRIEF, "Creates a ClassicSession instance using the provided connection data.");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM,  "@param connectionData The connection data for the session");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM1, "@param password Optional password for the session");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_RETURN, "@return A ClassicSession");
+REGISTER_HELP(MYSQL_GETCLASSICSESSION_RETURNS, "@returns A ClassicSession");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL, "A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the "\
                                               "connected MySQL Server.");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL1,"The connection data can be any of:");
@@ -58,7 +58,7 @@ REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL3,"@li A Dictionary with the connect
  * $(MYSQL_GETCLASSICSESSION_PARAM)
  * $(MYSQL_GETCLASSICSESSION_PARAM1)
  *
- * $(MYSQL_GETCLASSICSESSION_RETURN)
+ * $(MYSQL_GETCLASSICSESSION_RETURNS)
  *
  * $(MYSQL_GETCLASSICSESSION_DETAIL)
  *

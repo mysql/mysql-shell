@@ -38,6 +38,7 @@ class ClassicSession;
 class ClassicTable;
 
 /**
+* \ingroup ShellAPI
 * $(CLASSICSCHEMA_BRIEF)
 *
 * $(CLASSICSCHEMA_DETAIL)

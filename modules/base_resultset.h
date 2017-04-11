@@ -53,6 +53,7 @@ public:
 };
 
 /**
+* \ingroup ShellAPI
 * Represents the a Column definition on a result.
 */
 class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
@@ -245,8 +246,9 @@ private:
 };
 
 /**
- * Represents the a Row in a Result.
- */
+* \ingroup ShellAPI
+* Represents the a Row in a Result.
+*/
 #if !DOXYGEN_CPP
 /**
  * \b Dynamic \b Properties

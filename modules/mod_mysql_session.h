@@ -42,6 +42,7 @@ namespace mysql {
 class ClassicSchema;
 class ClassicResult;
 /**
+* \ingroup ShellAPI
 * $(CLASSICSESSION_BRIEF)
 *
 * $(CLASSICSESSION_DETAIL)

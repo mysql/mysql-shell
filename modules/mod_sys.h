@@ -26,6 +26,7 @@
 
 namespace mysqlsh {
   /**
+   * \ingroup ShellAPI
    * $(SYS_BRIEF)
    */
   class SHCORE_PUBLIC Sys : public shcore::Cpp_object_bridge {

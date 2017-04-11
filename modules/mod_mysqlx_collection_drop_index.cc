@@ -53,14 +53,14 @@ CollectionDropIndex::CollectionDropIndex(std::shared_ptr<Collection> owner)
 // Documentation of dropIndex function
 REGISTER_HELP(COLLECTIONDROPINDEX_DROPINDEX_BRIEF, "Drops an index from a collection.");
 REGISTER_HELP(COLLECTIONDROPINDEX_DROPINDEX_PARAM, "@param indexName The name of the index to be dropped.");
-REGISTER_HELP(COLLECTIONDROPINDEX_DROPINDEX_RETURN, "@return This CollectionDropIndex object.");
+REGISTER_HELP(COLLECTIONDROPINDEX_DROPINDEX_RETURNS, "@returns This CollectionDropIndex object.");
 
 /**
 * $(COLLECTIONDROPINDEX_DROPINDEX_BRIEF)
 *
 * $(COLLECTIONDROPINDEX_DROPINDEX_PARAM)
 *
-* $(COLLECTIONDROPINDEX_DROPINDEX_RETURN)
+* $(COLLECTIONDROPINDEX_DROPINDEX_RETURNS)
 *
 * #### Method Chaining
 *
@@ -100,12 +100,12 @@ shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args)
 
 // Documentation of execute function
 REGISTER_HELP(COLLECTIONDROPINDEX_EXECUTE_BRIEF, "Executes the drop index operation for the index indicated in dropIndex.");
-REGISTER_HELP(COLLECTIONDROPINDEX_EXECUTE_RETURN, "@return A Result object.");
+REGISTER_HELP(COLLECTIONDROPINDEX_EXECUTE_RETURNS, "@returns A Result object.");
 
 /**
 * $(COLLECTIONDROPINDEX_EXECUTE_BRIEF)
 *
-* $(COLLECTIONDROPINDEX_EXECUTE_RETURN)
+* $(COLLECTIONDROPINDEX_EXECUTE_RETURNS)
 *
 * This function can be invoked once after:
 */

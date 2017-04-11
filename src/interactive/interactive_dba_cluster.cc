@@ -335,7 +335,7 @@ shcore::Value Interactive_dba_cluster::check_instance_state(const shcore::Argume
   // Throw an error if the cluster has already been dissolved
   assert_not_dissolved("checkInstanceState");
 
-  args.ensure_count(0, 1, get_function_name("checkInstanceState").c_str());
+  args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
 
   check_preconditions("checkInstanceState");
 

@@ -73,12 +73,12 @@ shcore::Value ClassicResult::has_data(const shcore::Argument_list &args) const {
 
 // Documentation of the fetchOne function
 REGISTER_HELP(CLASSICRESULT_FETCHONE_BRIEF, "Retrieves the next Row on the ClassicResult.");
-REGISTER_HELP(CLASSICRESULT_FETCHONE_RETURN, "@return A Row object representing the next record in the result.");
+REGISTER_HELP(CLASSICRESULT_FETCHONE_RETURNS, "@returns A Row object representing the next record in the result.");
 
 /**
 * $(CLASSICRESULT_FETCHONE_BRIEF)
 *
-* $(CLASSICRESULT_FETCHONE_RETURN)
+* $(CLASSICRESULT_FETCHONE_RETURNS)
 */
 #if DOXYGEN_JS
 Row ClassicResult::fetchOne() {}
@@ -108,13 +108,13 @@ std::shared_ptr<mysql::Row> ClassicResult::fetch_one() const {
 
 // Documentation of the nextDataSet function
 REGISTER_HELP(CLASSICRESULT_NEXTDATASET_BRIEF, "Prepares the SqlResult to start reading data from the next Result (if many results were returned).");
-REGISTER_HELP(CLASSICRESULT_NEXTDATASET_RETURN, "@return A boolean value indicating whether "\
+REGISTER_HELP(CLASSICRESULT_NEXTDATASET_RETURNS, "@returns A boolean value indicating whether "\
 "there is another result or not.");
 
 /**
 * $(CLASSICRESULT_NEXTDATASET_BRIEF)
 *
-* $(CLASSICRESULT_NEXTDATASET_RETURN)
+* $(CLASSICRESULT_NEXTDATASET_RETURNS)
 */
 #if DOXYGEN_JS
 Bool ClassicResult::nextDataSet() {}
@@ -129,7 +129,7 @@ shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args) {
 
 // Documentation of the fetchAll function
 REGISTER_HELP(CLASSICRESULT_FETCHALL_BRIEF, "Returns a list of Row objects which contains an element for every record left on the result.");
-REGISTER_HELP(CLASSICRESULT_FETCHALL_RETURN, "@return A List of Row objects.");
+REGISTER_HELP(CLASSICRESULT_FETCHALL_RETURNS, "@returns A List of Row objects.");
 REGISTER_HELP(CLASSICRESULT_FETCHALL_DETAIL, "If this function is called right after executing a query, "\
 "it will return a Row for every record on the resultset.");
 REGISTER_HELP(CLASSICRESULT_FETCHALL_DETAIL1, "If fetchOne is called before this function, when this function is called it will return a Row for each of the remaining records on the resultset.");
@@ -137,7 +137,7 @@ REGISTER_HELP(CLASSICRESULT_FETCHALL_DETAIL1, "If fetchOne is called before this
 /**
 * $(CLASSICRESULT_FETCHALL_BRIEF)
 *
-* $(CLASSICRESULT_FETCHALL_RETURN)
+* $(CLASSICRESULT_FETCHALL_RETURNS)
 *
 * $(CLASSICRESULT_FETCHALL_DETAIL)
 *
@@ -175,14 +175,14 @@ std::vector<std::shared_ptr<mysql::Row>> ClassicResult::fetch_all() const {
 
 // Documentation of the getAffectedRowCount function
 REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF, "The number of affected rows for the last operation.");
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURN, "@return the number of affected rows.");
+REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURNS, "@returns the number of affected rows.");
 REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL, "This is the value of the C API mysql_affected_rows(), "\
 "see https://dev.mysql.com/doc/refman/5.7/en/mysql-affected-rows.html");
 
 /**
 * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF)
 *
-* $(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURN)
+* $(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURNS)
 *
 * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL)
 */
@@ -194,12 +194,12 @@ int ClassicResult::get_affected_row_count() {}
 
 // Documentation of the getColumnCount function
 REGISTER_HELP(CLASSICRESULT_GETCOLUMNCOUNT_BRIEF, "Retrieves the number of columns on the current result.");
-REGISTER_HELP(CLASSICRESULT_GETCOLUMNCOUNT_RETURN, "@return the number of columns on the current result.");
+REGISTER_HELP(CLASSICRESULT_GETCOLUMNCOUNT_RETURNS, "@returns the number of columns on the current result.");
 
 /**
 * $(CLASSICRESULT_GETCOLUMNCOUNT_BRIEF)
 *
-* $(CLASSICRESULT_GETCOLUMNCOUNT_RETURN)
+* $(CLASSICRESULT_GETCOLUMNCOUNT_RETURNS)
 */
 #if DOXYGEN_JS
 Integer ClassicResult::getColumnCount() {}
@@ -209,12 +209,12 @@ int ClassicResult::get_column_count() {}
 
 // Documentation of the getColumnCount function
 REGISTER_HELP(CLASSICRESULT_GETCOLUMNNAMES_BRIEF, "Gets the columns on the current result.");
-REGISTER_HELP(CLASSICRESULT_GETCOLUMNNAMES_RETURN, "@return A list with the names of the columns returned on the active result.");
+REGISTER_HELP(CLASSICRESULT_GETCOLUMNNAMES_RETURNS, "@returns A list with the names of the columns returned on the active result.");
 
 /**
 * $(CLASSICRESULT_GETCOLUMNNAMES_BRIEF)
 *
-* $(CLASSICRESULT_GETCOLUMNNAMES_RETURN)
+* $(CLASSICRESULT_GETCOLUMNNAMES_RETURNS)
 */
 #if DOXYGEN_JS
 List ClassicResult::getColumnNames() {}
@@ -224,13 +224,13 @@ list ClassicResult::get_column_names() {}
 
 // Documentation of the getColumns function
 REGISTER_HELP(CLASSICRESULT_GETCOLUMNS_BRIEF, "Gets the column metadata for the columns on the active result.");
-REGISTER_HELP(CLASSICRESULT_GETCOLUMNS_RETURN, "@return a list of column metadata objects "\
+REGISTER_HELP(CLASSICRESULT_GETCOLUMNS_RETURNS, "@returns a list of column metadata objects "\
 "containing information about the columns included on the active result.");
 
 /**
 * $(CLASSICRESULT_GETCOLUMNS_BRIEF)
 *
-* $(CLASSICRESULT_GETCOLUMNS_RETURN)
+* $(CLASSICRESULT_GETCOLUMNS_RETURNS)
 */
 #if DOXYGEN_JS
 List ClassicResult::getColumns() {}
@@ -252,12 +252,12 @@ str ClassicResult::get_execution_time() {}
 
 // Documentation of the getInfo function
 REGISTER_HELP(CLASSICRESULT_GETINFO_BRIEF, "Retrieves a string providing information about the most recently executed statement.");
-REGISTER_HELP(CLASSICRESULT_GETINFO_RETURN, "@return a string with the execution information");
+REGISTER_HELP(CLASSICRESULT_GETINFO_RETURNS, "@returns a string with the execution information");
 
 /**
 * $(CLASSICRESULT_GETINFO_BRIEF)
 *
-* $(CLASSICRESULT_GETINFO_RETURN)
+* $(CLASSICRESULT_GETINFO_RETURNS)
 *
 * For more details, see: https://dev.mysql.com/doc/refman/5.7/en/mysql-info.html
 */
@@ -269,13 +269,13 @@ str ClassicResult::get_info() {}
 
 // Documentation of the getAutoIncrementValue function
 REGISTER_HELP(CLASSICRESULT_GETAUTOINCREMENTVALUE_BRIEF, "Returns the last insert id auto generated (from an insert operation)");
-REGISTER_HELP(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURN, "@return the integer "\
+REGISTER_HELP(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURNS, "@returns the integer "\
 "representing the last insert id");
 
 /**
 * $(CLASSICRESULT_GETAUTOINCREMENTVALUE_BRIEF)
 *
-* $(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURN)
+* $(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURNS)
 *
 * For more details, see https://dev.mysql.com/doc/refman/5.7/en/information-functions.html#function_last-insert-id
 */
@@ -287,12 +287,12 @@ int ClassicResult::get_auto_increment_value() {}
 
 // Documentation of the getWarningCount function
 REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_BRIEF, "The number of warnings produced by the last statement execution.");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_RETURN, "@return the number of warnings.");
+REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_RETURNS, "@returns the number of warnings.");
 
 /**
 * $(CLASSICRESULT_GETWARNINGCOUNT_BRIEF)
 *
-* $(CLASSICRESULT_GETWARNINGCOUNT_RETURN)
+* $(CLASSICRESULT_GETWARNINGCOUNT_RETURNS)
 *
 * This is the same value than C API mysql_warning_count, see https://dev.mysql.com/doc/refman/5.7/en/mysql-warning-count.html
 */
@@ -304,7 +304,7 @@ int ClassicResult::get_warning_count() {}
 
 // Documentation of the getWarnings function
 REGISTER_HELP(CLASSICRESULT_GETWARNINGS_BRIEF, "Retrieves the warnings generated by the executed operation.");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGS_RETURN, "A list containing a warning object "\
+REGISTER_HELP(CLASSICRESULT_GETWARNINGS_RETURNS, "@returns a list containing a warning object "\
 "for each generated warning.");
 REGISTER_HELP(CLASSICRESULT_GETWARNINGS_DETAIL, "Each warning object contains a "\
 "key/value pair describing the information related to a specific warning.");
@@ -314,7 +314,7 @@ REGISTER_HELP(CLASSICRESULT_GETWARNINGS_DETAIL1, "This information includes: "\
 /**
 * $(CLASSICRESULT_GETWARNINGS_BRIEF)
 *
-* $(CLASSICRESULT_GETWARNINGS_RETURN)
+* $(CLASSICRESULT_GETWARNINGS_RETURNS)
 *
 * This is the same value than C API mysql_warning_count, see https://dev.mysql.com/doc/refman/5.7/en/mysql-warning-count.html
 *

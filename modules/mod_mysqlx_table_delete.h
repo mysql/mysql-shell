@@ -30,6 +30,7 @@ namespace mysqlx {
 class Table;
 
 /**
+* \ingroup XDevAPI
 * Handler for Delete operation on Tables.
 */
 class TableDelete : public Table_crud_definition, public std::enable_shared_from_this<TableDelete> {

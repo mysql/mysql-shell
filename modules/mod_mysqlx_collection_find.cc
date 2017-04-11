@@ -61,7 +61,7 @@ REGISTER_HELP(COLLECTIONFIND_FIND_BRIEF, "Sets the search condition to identify 
 REGISTER_HELP(COLLECTIONFIND_FIND_PARAM, "@param searchCondition Optional String expression defining the condition to be used on the selection.");
 REGISTER_HELP(COLLECTIONFIND_FIND_SYNTAX, "find()");
 REGISTER_HELP(COLLECTIONFIND_FIND_SYNTAX1, "find(searchCondition)");
-REGISTER_HELP(COLLECTIONFIND_FIND_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_FIND_RETURNS, "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL, "Sets the search condition to identify the Documents to be retrieved from the owner Collection. "\
 "If the search condition is not specified the find operation will be executed over all the documents in the collection.");
 REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL1, "The search condition supports parameter binding.");
@@ -123,7 +123,7 @@ REGISTER_HELP(COLLECTIONFIND_FIELDS_PARAM, "@param fieldDefinition Definition of
 REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX, "fields(field[, field, ...])");
 REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX1, "fields(fieldList)");
 REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX2, "fields(projectionExpression)");
-REGISTER_HELP(COLLECTIONFIND_FIELDS_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_RETURNS, "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL, "This function sets the fields to be retrieved from each document matching the criteria on this find operation.");
 REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL1, "A field is defined as a string value containing an expression defining the field to be retrieved.");
 REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL2, "The fields to be retrieved can be set using any of the next methods:");
@@ -219,7 +219,7 @@ REGISTER_HELP(COLLECTIONFIND_GROUPBY_BRIEF, "Sets a grouping criteria for the re
 REGISTER_HELP(COLLECTIONFIND_GROUPBY_PARAM, "@param groupCriteria A list of string expressions defining the grouping criteria.");
 REGISTER_HELP(COLLECTIONFIND_GROUPBY_SYNTAX, "groupBy(fieldList)");
 REGISTER_HELP(COLLECTIONFIND_GROUPBY_SYNTAX1, "groupBy(field[, field, ...])");
-REGISTER_HELP(COLLECTIONFIND_GROUPBY_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_RETURNS, "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_GROUPBY_DETAIL, "Sets a grouping criteria for the resultset.");
 /**
 * $(COLLECTIONFIND_GROUPBY_BRIEF)
@@ -276,7 +276,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
 REGISTER_HELP(COLLECTIONFIND_HAVING_BRIEF, "Sets a condition for records to be considered in agregate function operations.");
 REGISTER_HELP(COLLECTIONFIND_HAVING_PARAM, "@param searchCondition A condition on the agregate functions used on the grouping criteria.");
 REGISTER_HELP(COLLECTIONFIND_HAVING_SYNTAX, "having(searchCondition)");
-REGISTER_HELP(COLLECTIONFIND_HAVING_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_HAVING_RETURNS, "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL, "Sets a condition for records to be considered in agregate function operations.");
 
 /**
@@ -325,7 +325,7 @@ REGISTER_HELP(COLLECTIONFIND_SORT_BRIEF, "Sets the sorting criteria to be used o
 REGISTER_HELP(COLLECTIONFIND_SORT_PARAM, "@param sortCriteria The sort criteria for the returned documents.");
 REGISTER_HELP(COLLECTIONFIND_SORT_SYNTAX, "sort(sortCriterion[, sortCriterion, ...])");
 REGISTER_HELP(COLLECTIONFIND_SORT_SYNTAX1, "sort(sortCritera)");
-REGISTER_HELP(COLLECTIONFIND_SORT_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_SORT_RETURNS, "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL, "If used the CollectionFind operation will return the records sorted with the defined criteria.");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL1, "Every defined sort criterion sollows the next format:");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL2, "name [ ASC | DESC ]");
@@ -392,7 +392,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
 
 REGISTER_HELP(COLLECTIONFIND_LIMIT_BRIEF, "Sets the maximum number of documents to be returned on the find operation.");
 REGISTER_HELP(COLLECTIONFIND_LIMIT_PARAM, "@param numberOfRows The maximum number of documents to be retrieved.");
-REGISTER_HELP(COLLECTIONFIND_LIMIT_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_LIMIT_RETURNS, "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_LIMIT_SYNTAX, "limit(numberOfRows)");
 REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL, "If used, the CollectionFind operation will return at most numberOfRows documents.");
 
@@ -443,7 +443,7 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
 
 REGISTER_HELP(COLLECTIONFIND_SKIP_BRIEF, "Sets number of documents to skip on the resultset when a limit has been defined.");
 REGISTER_HELP(COLLECTIONFIND_SKIP_PARAM, "@param offset The number of documents to skip before start including them on the DocResult.");
-REGISTER_HELP(COLLECTIONFIND_SKIP_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_SKIP_RETURNS, "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_SKIP_SYNTAX, "skip(offset)");
 REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL, "If used, the first 'offset' records will not be included on the result.");
 
@@ -490,7 +490,7 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
 REGISTER_HELP(COLLECTIONFIND_BIND_BRIEF, "Binds a value to a specific placeholder used on this CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_BIND_PARAM, "@param name The name of the placeholder to which the value will be bound.");
 REGISTER_HELP(COLLECTIONFIND_BIND_PARAM1, "@param value The value to be bound on the placeholder.");
-REGISTER_HELP(COLLECTIONFIND_BIND_RETURNS, "@return This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_BIND_RETURNS, "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_BIND_SYNTAX, "bind(placeHolder, value)[.bind(...)]");
 REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL, "Binds a value to a specific placeholder used on this CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL1, "An error will be raised if the placeholder indicated by name does not exist.");
@@ -541,7 +541,7 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(COLLECTIONFIND_EXECUTE_BRIEF, "Executes the find operation with all the configured options.");
-REGISTER_HELP(COLLECTIONFIND_EXECUTE_RETURNS, "@return A DocResult object that can be used to traverse the documents returned by this operation.");
+REGISTER_HELP(COLLECTIONFIND_EXECUTE_RETURNS, "@returns A DocResult object that can be used to traverse the documents returned by this operation.");
 REGISTER_HELP(COLLECTIONFIND_EXECUTE_SYNTAX, "execute()");
 
 /**

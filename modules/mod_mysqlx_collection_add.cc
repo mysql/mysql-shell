@@ -65,7 +65,7 @@ CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
 REGISTER_HELP(COLLECTIONADD_ADD_BRIEF, "Adds documents into a collection.");
 REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX, "add(document[, document, ...])[.add(...)]");
 REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX1, "add(documentList)[.add(...)]");
-REGISTER_HELP(COLLECTIONADD_ADD_RETURNS, "@return This CollectionAdd object.");
+REGISTER_HELP(COLLECTIONADD_ADD_RETURNS, "@returns This CollectionAdd object.");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL, "This function receives one or more document definitions to be added into a collection.");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL1, "A document definition may be provided in two ways:");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL2, "@li Using a dictionary containing the document fields.");
@@ -220,13 +220,13 @@ std::string CollectionAdd::get_new_uuid() {
 }
 
 REGISTER_HELP(COLLECTIONADD_EXECUTE_BRIEF, "Executes the add operation, the documents are added to the target collection.");
-REGISTER_HELP(COLLECTIONADD_EXECUTE_RETURN, "@return A Result object.");
+REGISTER_HELP(COLLECTIONADD_EXECUTE_RETURNS, "@returns A Result object.");
 REGISTER_HELP(COLLECTIONADD_EXECUTE_SYNTAX, "execute()");
 
 /**
 * $(COLLECTIONADD_EXECUTE_BRIEF)
 *
-* $(COLLECTIONADD_EXECUTE_RETURN)
+* $(COLLECTIONADD_EXECUTE_RETURNS)
 *
 * #### Method Chaining
 *

@@ -23,8 +23,9 @@
 #include "scripting/module_registry.h"
 
 namespace mysqlsh {
-
 /**
+* \defgroup mysql mysql
+* \ingroup ShellAPI
 * $(MYSQL_BRIEF)
 *
 * $(MYSQL_DETAIL)

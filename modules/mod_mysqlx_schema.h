@@ -41,6 +41,7 @@ class Table;
 class Collection;
 
 /**
+* \ingroup XDevAPI
 * $(SCHEMA_BRIEF)
 *
 * $(SCHEMA_DETAIL)

@@ -30,6 +30,7 @@ namespace mysqlx {
 class Collection;
 
 /**
+* \ingroup XDevAPI
 * Handler for document addition on a Collection.
 *
 * This object provides the necessary functions to allow adding documents into a collection.

@@ -63,7 +63,7 @@ REGISTER_HELP(TABLE_INSERT_BRIEF1, "Creates a record insertion handler using a c
 REGISTER_HELP(TABLE_INSERT_PARAM, "@param columns The column list that will determine the order of the values to be inserted on the table.");
 REGISTER_HELP(TABLE_INSERT_PARAM1, "@param col1 The first column name.");
 REGISTER_HELP(TABLE_INSERT_PARAM2, "@param col2 The second column name.");
-REGISTER_HELP(TABLE_INSERT_RETURN, "@return A TableInsert object.");
+REGISTER_HELP(TABLE_INSERT_RETURNS, "@returns A TableInsert object.");
 REGISTER_HELP(TABLE_INSERT_DETAIL, "This function creates a TableInsert object which is a record insertion handler.");
 REGISTER_HELP(TABLE_INSERT_DETAIL1, "The TableInsert class has other functions that allow specifying the way the insertion occurs.");
 REGISTER_HELP(TABLE_INSERT_DETAIL2, "The insertion is done when the execute method is called on the handler.");
@@ -71,7 +71,7 @@ REGISTER_HELP(TABLE_INSERT_DETAIL2, "The insertion is done when the execute meth
 /**
  * $(TABLE_INSERT_BRIEF)
  *
- * $(TABLE_INSERT_RETURN)
+ * $(TABLE_INSERT_RETURNS)
  *
  * $(TABLE_INSERT_DETAIL)
  *
@@ -94,7 +94,7 @@ REGISTER_HELP(TABLE__BRIEF, "");
  * $(TABLE_INSERT_BRIEF1)
  *
  * $(TABLE_INSERT_PARAM)
- * $(TABLE_INSERT_RETURN)
+ * $(TABLE_INSERT_RETURNS)
  *
  * $(TABLE_INSERT_DETAIL)
  *
@@ -115,7 +115,7 @@ TableInsert Table::insert(list columns) {}
  *
  * $(TABLE_INSERT_PARAM1)
  * $(TABLE_INSERT_PARAM2)
- * $(TABLE_INSERT_RETURN)
+ * $(TABLE_INSERT_RETURNS)
  *
  * $(TABLE_INSERT_DETAIL)
  *
@@ -139,7 +139,7 @@ shcore::Value Table::insert_(const shcore::Argument_list &args) {
 
 // Documentation of update function
 REGISTER_HELP(TABLE_UPDATE_BRIEF, "Creates a record update handler.");
-REGISTER_HELP(TABLE_UPDATE_RETURN, "@return A TableUpdate object.");
+REGISTER_HELP(TABLE_UPDATE_RETURNS, "@returns A TableUpdate object.");
 REGISTER_HELP(TABLE_UPDATE_DETAIL, "This function creates a TableUpdate object which is a record update handler.");
 REGISTER_HELP(TABLE_UPDATE_DETAIL1, "The TableUpdate class has several functions that allow specifying the way the update occurs, "\
 "if a searchCondition was specified, it will be set on the handler.");
@@ -148,7 +148,7 @@ REGISTER_HELP(TABLE_UPDATE_DETAIL2, "The update is done when the execute functio
 /**
 * $(TABLE_UPDATE_BRIEF)
 *
-* $(TABLE_UPDATE_RETURN)
+* $(TABLE_UPDATE_RETURNS)
 *
 * $(TABLE_UPDATE_DETAIL)
 *
@@ -171,7 +171,7 @@ shcore::Value Table::update_(const shcore::Argument_list &args) {
 
 // Documentation of delete function
 REGISTER_HELP(TABLE_DELETE_BRIEF, "Creates a record deletion handler.");
-REGISTER_HELP(TABLE_DELETE_RETURN, "@return A TableDelete object.");
+REGISTER_HELP(TABLE_DELETE_RETURNS, "@returns A TableDelete object.");
 REGISTER_HELP(TABLE_DELETE_DETAIL, "This function creates a TableDelete object which is a record deletion handler.");
 REGISTER_HELP(TABLE_DELETE_DETAIL1, "The TableDelete class has several functions that allow specifying what should be deleted and how, "\
 "if a searchCondition was specified, it will be set on the handler.");
@@ -180,7 +180,7 @@ REGISTER_HELP(TABLE_DELETE_DETAIL2, "The deletion is done when the execute funct
 /**
 * $(TABLE_DELETE_BRIEF)
 *
-* $(TABLE_DELETE_RETURN)
+* $(TABLE_DELETE_RETURNS)
 *
 * $(TABLE_DELETE_DETAIL)
 *
@@ -205,7 +205,7 @@ shcore::Value Table::delete_(const shcore::Argument_list &args) {
 REGISTER_HELP(TABLE_SELECT_BRIEF, "Creates a full record retrieval handler.");
 REGISTER_HELP(TABLE_SELECT_BRIEF1, "Creates a partial record retrieval handler.");
 REGISTER_HELP(TABLE_SELECT_PARAM, "@param columns A list of strings defining the columns to be retrieved.");
-REGISTER_HELP(TABLE_SELECT_RETURN, "@return A TableSelect object.");
+REGISTER_HELP(TABLE_SELECT_RETURNS, "@returns A TableSelect object.");
 REGISTER_HELP(TABLE_SELECT_DETAIL, "This function creates a TableSelect object which is a record selection handler.");
 REGISTER_HELP(TABLE_SELECT_DETAIL1, "This handler will retrieve all the columns for each included record.");
 REGISTER_HELP(TABLE_SELECT_DETAIL2, "The TableSelect class has several functions that allow specifying what records should be retrieved "\
@@ -217,7 +217,7 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5, "Each column on the list should be a string 
 /**
 * $(TABLE_SELECT_BRIEF)
 *
-* $(TABLE_SELECT_RETURN)
+* $(TABLE_SELECT_RETURNS)
 *
 * $(TABLE_SELECT_DETAIL)
 *
@@ -239,7 +239,7 @@ TableSelect Table::select() {}
 * $(TABLE_SELECT_BRIEF1)
 *
 * $(TABLE_SELECT_PARAM)
-* $(TABLE_SELECT_RETURN)
+* $(TABLE_SELECT_RETURNS)
 *
 * $(TABLE_SELECT_DETAIL)
 *
@@ -267,12 +267,12 @@ shcore::Value Table::select_(const shcore::Argument_list &args) {
 
 // Documentation of isView function
 REGISTER_HELP(TABLE_ISVIEW_BRIEF, "Indicates whether this Table object represents a View on the database.");
-REGISTER_HELP(TABLE_ISVIEW_RETURN, "@return True if the Table represents a View on the database, False if represents a Table.");
+REGISTER_HELP(TABLE_ISVIEW_RETURNS, "@returns True if the Table represents a View on the database, False if represents a Table.");
 
 /**
 * $(TABLE_ISVIEW_BRIEF)
 *
-* $(TABLE_ISVIEW_RETURN)
+* $(TABLE_ISVIEW_RETURNS)
 */
 #if DOXYGEN_JS
 Bool Table::isView() {}

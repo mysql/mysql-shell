@@ -30,6 +30,7 @@ namespace mysqlx {
 class Collection;
 
 /**
+* \ingroup XDevAPI
 * Handler for document selection on a Collection.
 *
 * This object provides the necessary functions to allow selecting document data from a collection.

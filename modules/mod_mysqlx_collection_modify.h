@@ -30,6 +30,7 @@ namespace mysqlx {
 class Collection;
 
 /**
+* \ingroup XDevAPI
 * $(COLLECTIONMODIFY_BRIEF)
 *
 * $(COLLECTIONMODIFY_DETAIL)

@@ -38,6 +38,7 @@ namespace dba {
 class MetadataStorage;
 
 /**
+ * \ingroup AdminAPI
  * $(CLUSTER_BRIEF)
  */
 class Cluster : public std::enable_shared_from_this<Cluster>, public shcore::Cpp_object_bridge {

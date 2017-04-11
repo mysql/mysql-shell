@@ -180,7 +180,7 @@ Value Schema::get_member(const std::string &prop) const {
 
 // Documentation of getTables function
 REGISTER_HELP(SCHEMA_GETTABLES_BRIEF, "Returns a list of Tables for this Schema.");
-REGISTER_HELP(SCHEMA_GETTABLES_RETURN, "@return A List containing the Table objects available for the Schema.");
+REGISTER_HELP(SCHEMA_GETTABLES_RETURNS, "@returns A List containing the Table objects available for the Schema.");
 REGISTER_HELP(SCHEMA_GETTABLES_DETAIL, "Pulls from the database the available Tables, Views and Collections.");
 REGISTER_HELP(SCHEMA_GETTABLES_DETAIL1, "Does a full refresh of the Tables, Views and Collections cache.");
 REGISTER_HELP(SCHEMA_GETTABLES_DETAIL2, "Returns a List of available Table objects.");
@@ -190,7 +190,7 @@ REGISTER_HELP(SCHEMA_GETTABLES_DETAIL2, "Returns a List of available Table objec
 *
 * \sa Table
 *
-* $(SCHEMA_GETTABLES_RETURN)
+* $(SCHEMA_GETTABLES_RETURNS)
 *
 * $(SCHEMA_GETTABLES_DETAIL)
 *
@@ -218,7 +218,7 @@ shcore::Value Schema::get_tables(const shcore::Argument_list &args) {
 
 // Documentation of getCollections function
 REGISTER_HELP(SCHEMA_GETCOLLECTIONS_BRIEF, "Returns a list of Collections for this Schema.");
-REGISTER_HELP(SCHEMA_GETCOLLECTIONS_RETURN, "@return A List containing the Collection objects available for the Schema.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONS_RETURNS, "@returns A List containing the Collection objects available for the Schema.");
 REGISTER_HELP(SCHEMA_GETCOLLECTIONS_DETAIL, "Pulls from the database the available Tables, Views and Collections.");
 REGISTER_HELP(SCHEMA_GETCOLLECTIONS_DETAIL1, "Does a full refresh of the Tables, Views and Collections cache.");
 REGISTER_HELP(SCHEMA_GETCOLLECTIONS_DETAIL2, "Returns a List of available Collection objects.");
@@ -228,7 +228,7 @@ REGISTER_HELP(SCHEMA_GETCOLLECTIONS_DETAIL2, "Returns a List of available Collec
 *
 * \sa Collection
 *
-* $(SCHEMA_GETCOLLECTIONS_RETURN)
+* $(SCHEMA_GETCOLLECTIONS_RETURNS)
 *
 * $(SCHEMA_GETCOLLECTIONS_DETAIL)
 *
@@ -256,7 +256,7 @@ shcore::Value Schema::get_collections(const shcore::Argument_list &args) {
 // Documentation of getTable function
 REGISTER_HELP(SCHEMA_GETTABLE_BRIEF, "Returns the Table of the given name for this schema.");
 REGISTER_HELP(SCHEMA_GETTABLE_PARAM, "@param name the name of the Table to look for.");
-REGISTER_HELP(SCHEMA_GETTABLE_RETURN, "@return the Table object matching the name.");
+REGISTER_HELP(SCHEMA_GETTABLE_RETURNS, "@returns the Table object matching the name.");
 REGISTER_HELP(SCHEMA_GETTABLE_DETAIL, "Verifies if the requested Table exist on the database, if exists, returns the corresponding Table object.");
 REGISTER_HELP(SCHEMA_GETTABLE_DETAIL1, "Updates the Tables cache.");
 
@@ -265,7 +265,7 @@ REGISTER_HELP(SCHEMA_GETTABLE_DETAIL1, "Updates the Tables cache.");
 *
 * $(SCHEMA_GETTABLE_PARAM)
 *
-* $(SCHEMA_GETTABLE_RETURN)
+* $(SCHEMA_GETTABLE_RETURNS)
 *
 * $(SCHEMA_GETTABLE_DETAIL)
 *
@@ -328,7 +328,7 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args) {
 // Documentation of getCollection function
 REGISTER_HELP(SCHEMA_GETCOLLECTION_BRIEF, "Returns the Collection of the given name for this schema.");
 REGISTER_HELP(SCHEMA_GETCOLLECTION_PARAM, "@param name the name of the Collection to look for.");
-REGISTER_HELP(SCHEMA_GETCOLLECTION_RETURN, "@return the Collection object matching the name.");
+REGISTER_HELP(SCHEMA_GETCOLLECTION_RETURNS, "@returns the Collection object matching the name.");
 REGISTER_HELP(SCHEMA_GETCOLLECTION_DETAIL, "Verifies if the requested Collection exist on the database, if exists, "\
 "returns the corresponding Collection object.");
 REGISTER_HELP(SCHEMA_GETCOLLECTION_DETAIL1, "Updates the Collections cache.");
@@ -338,7 +338,7 @@ REGISTER_HELP(SCHEMA_GETCOLLECTION_DETAIL1, "Updates the Collections cache.");
 *
 * $(SCHEMA_GETCOLLECTION_PARAM)
 *
-* $(SCHEMA_GETCOLLECTION_RETURN)
+* $(SCHEMA_GETCOLLECTION_RETURNS)
 *
 * $(SCHEMA_GETCOLLECTION_DETAIL)
 *
@@ -390,14 +390,14 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args) {
 // Documentation of getCollectionAsTable function
 REGISTER_HELP(SCHEMA_GETCOLLECTIONASTABLE_BRIEF, "Returns a Table object representing a Collection on the database.");
 REGISTER_HELP(SCHEMA_GETCOLLECTIONASTABLE_PARAM, "@param name the name of the collection to be retrieved as a table.");
-REGISTER_HELP(SCHEMA_GETCOLLECTIONASTABLE_RETURN, "@return the Table object representing the collection or undefined.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONASTABLE_RETURNS, "@returns the Table object representing the collection or undefined.");
 
 /**
 * $(SCHEMA_GETCOLLECTIONASTABLE_BRIEF)
 *
 * $(SCHEMA_GETCOLLECTIONASTABLE_PARAM)
 *
-* $(SCHEMA_GETCOLLECTIONASTABLE_RETURN)
+* $(SCHEMA_GETCOLLECTIONASTABLE_RETURNS)
 */
 #if DOXYGEN_JS
 Collection Schema::getCollectionAsTable(String name) {}
@@ -421,7 +421,7 @@ shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
 REGISTER_HELP(SCHEMA_CREATECOLLECTION_BRIEF, "Creates in the current schema a new collection with the specified name and "\
 "retrieves an object representing the new collection created.");
 REGISTER_HELP(SCHEMA_CREATECOLLECTION_PARAM, "@param name the name of the collection.");
-REGISTER_HELP(SCHEMA_CREATECOLLECTION_RETURN, "@return the new created collection.");
+REGISTER_HELP(SCHEMA_CREATECOLLECTION_RETURNS, "@returns the new created collection.");
 REGISTER_HELP(SCHEMA_CREATECOLLECTION_DETAIL, "To specify a name for a collection, follow the naming conventions in MySQL.");
 
 /**
@@ -429,7 +429,7 @@ REGISTER_HELP(SCHEMA_CREATECOLLECTION_DETAIL, "To specify a name for a collectio
 *
 * $(SCHEMA_CREATECOLLECTION_PARAM)
 *
-* $(SCHEMA_CREATECOLLECTION_RETURN)
+* $(SCHEMA_CREATECOLLECTION_RETURNS)
 *
 * $(SCHEMA_CREATECOLLECTION_DETAIL)
 */

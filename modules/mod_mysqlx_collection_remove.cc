@@ -56,7 +56,7 @@ CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
 // Documentation of remove function
 REGISTER_HELP(COLLECTIONREMOVE_REMOVE_BRIEF, "Sets the search condition to filter the Documents to be deleted from the owner Collection.");
 REGISTER_HELP(COLLECTIONREMOVE_REMOVE_PARAM, "@param searchCondition: An optional expression to filter the documents to be deleted.");
-REGISTER_HELP(COLLECTIONREMOVE_REMOVE_RETURN, "@return This CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_RETURNS, "@returns This CollectionRemove object.");
 REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL, "if not specified all the documents will be deleted from the collection unless a limit is set.");
 REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL1, "The searchCondition supports parameter binding.");
 REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL2, "This function is called automatically when Collection.remove(searchCondition) is called.");
@@ -67,7 +67,7 @@ REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL3, "The actual deletion of the docum
 *
 * $(COLLECTIONREMOVE_REMOVE_PARAM)
 *
-* $(COLLECTIONREMOVE_REMOVE_RETURN)
+* $(COLLECTIONREMOVE_REMOVE_RETURNS)
 *
 * $(COLLECTIONREMOVE_REMOVE_DETAIL)
 *
@@ -122,7 +122,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
 REGISTER_HELP(COLLECTIONREMOVE_SORT_BRIEF, "Sets the order in which the deletion should be done.");
 REGISTER_HELP(COLLECTIONREMOVE_SORT_PARAM, "@param sortExprStr: A list of expression strings defining a sort criteria, "\
 "the deletion will be done following the order defined by this criteria.");
-REGISTER_HELP(COLLECTIONREMOVE_SORT_RETURN, "@return This CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_RETURNS, "@returns This CollectionRemove object.");
 REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL, "The elements of sortExprStr list are strings defining the column name on which "\
 "the sorting will be based in the form of 'columnIdentifier [ ASC | DESC ]'.");
 REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL1, "If no order criteria is specified, ascending will be used by default.");
@@ -133,7 +133,7 @@ REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL2, "This method is usually used in com
 *
 * $(COLLECTIONREMOVE_SORT_PARAM)
 *
-* $(COLLECTIONREMOVE_SORT_RETURN)
+* $(COLLECTIONREMOVE_SORT_RETURNS)
 *
 * $(COLLECTIONREMOVE_SORT_DETAIL)
 *
@@ -183,7 +183,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
 // Documentation of limit function
 REGISTER_HELP(COLLECTIONREMOVE_LIMIT_BRIEF, "Sets a limit for the documents to be deleted.");
 REGISTER_HELP(COLLECTIONREMOVE_LIMIT_PARAM, "@param numberOfDocs the number of documents to affect in the remove execution.");
-REGISTER_HELP(COLLECTIONREMOVE_LIMIT_RETURN, "@return This CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_LIMIT_RETURNS, "@returns This CollectionRemove object.");
 REGISTER_HELP(COLLECTIONREMOVE_LIMIT_DETAIL, "This method is usually used in combination with sort to fix the amount of documents to be deleted.");
 
 /**
@@ -191,7 +191,7 @@ REGISTER_HELP(COLLECTIONREMOVE_LIMIT_DETAIL, "This method is usually used in com
 *
 * $(COLLECTIONREMOVE_LIMIT_PARAM)
 *
-* $(COLLECTIONREMOVE_LIMIT_RETURN)
+* $(COLLECTIONREMOVE_LIMIT_RETURNS)
 *
 * $(COLLECTIONREMOVE_LIMIT_DETAIL)
 *
@@ -233,7 +233,7 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args) {
 REGISTER_HELP(COLLECTIONREMOVE_BIND_BRIEF, "Binds a value to a specific placeholder used on this CollectionRemove object.");
 REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM1, "@param name: The name of the placeholder to which the value will be bound.");
 REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM2, "@param value: The value to be bound on the placeholder.");
-REGISTER_HELP(COLLECTIONREMOVE_BIND_RETURN, "@return This CollectionRemove object.");
+REGISTER_HELP(COLLECTIONREMOVE_BIND_RETURNS, "@returns This CollectionRemove object.");
 REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL, "An error will be raised if the placeholder indicated by name does not exist.");
 REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL1, "This function must be called once for each used placeohlder or an error will be raised when the execute method is called.");
 
@@ -243,7 +243,7 @@ REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL1, "This function must be called once 
 * $(COLLECTIONREMOVE_BIND_PARAM1)
 * $(COLLECTIONREMOVE_BIND_PARAM2)
 *
-* $(COLLECTIONREMOVE_BIND_RETURN)
+* $(COLLECTIONREMOVE_BIND_RETURNS)
 *
 * $(COLLECTIONREMOVE_BIND_DETAIL)
 *
@@ -282,12 +282,12 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args) {
 
 // Documentation of function
 REGISTER_HELP(COLLECTIONREMOVE_EXECUTE_BRIEF, "Executes the document deletion with the configured filter and limit.");
-REGISTER_HELP(COLLECTIONREMOVE_EXECUTE_RETURN, "@return Result A Result object that can be used to retrieve the results of the deletion operation.");
+REGISTER_HELP(COLLECTIONREMOVE_EXECUTE_RETURNS, "@returns Result A Result object that can be used to retrieve the results of the deletion operation.");
 
 /**
 * $(COLLECTIONREMOVE_EXECUTE_BRIEF)
 *
-* $(COLLECTIONREMOVE_EXECUTE_RETURN)
+* $(COLLECTIONREMOVE_EXECUTE_RETURNS)
 *
 * #### Method Chaining
 *

@@ -34,6 +34,7 @@
 namespace mysqlsh {
 namespace dba {
 /**
+* \ingroup AdminAPI
 * $(DBA_BRIEF)
 */
 class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Dba> {
