@@ -248,7 +248,7 @@ void Process_launcher::report_error(const char *msg) {
     std::string msgerr = "SystemError: ";
     msgerr += lpMsgBuf;
     msgerr += "with error code %d.";
-    fmt = str_format(msgerr, dwCode);
+    std::string fmt = str_format(msgerr.c_str(), dwCode);
     throw std::system_error(dwCode, std::generic_category(), fmt);
   }
 }

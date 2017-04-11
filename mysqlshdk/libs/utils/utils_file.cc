@@ -332,7 +332,7 @@ std::string get_last_error() {
   std::string msgerr = "SystemError: ";
   msgerr += lpMsgBuf;
   msgerr += "with error code %d.";
-  std::string fmt = str_format(msgerr, dwCode);
+  std::string fmt = str_format(msgerr.c_str(), dwCode);
   return fmt;
 #else
   char sys_err[64];
