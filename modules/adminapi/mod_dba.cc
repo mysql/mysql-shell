@@ -53,8 +53,8 @@ std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMas
 std::set<std::string> Dba::_reboot_cluster_opts = {"user", "dbUser", "password", "dbPassword", "removeInstances", "rejoinInstances"};
 
 // Documentation of the DBA Class
-REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL X AdminAPI.");
-REGISTER_HELP(DBA_DETAIL, "The global variable 'dba' is used to access the MySQL AdminAPI functionality "\
+REGISTER_HELP(DBA_BRIEF, "Enables you to administer InnoDB clusters using the AdminAPI.");
+REGISTER_HELP(DBA_DETAIL, "The global variable 'dba' is used to access the AdminAPI functionality "\
 "and perform DBA operations. It is used for managing MySQL InnoDB clusters.");
 REGISTER_HELP(DBA_CLOSING, "For more help on a specific function use: dba.help('<functionName>')");
 REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deploySandboxInstance')");
