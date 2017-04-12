@@ -212,15 +212,16 @@ ReplicationGroupState check_function_preconditions(const std::string &class_name
   std::string precondition_key = class_name + "." + base_function_name;
   assert(AdminAPI_function_availability.find(precondition_key) != AdminAPI_function_availability.end());
   FunctionAvailability availability = AdminAPI_function_availability.at(precondition_key);
-
   std::string error;
   ReplicationGroupState state;
+  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(metadata->get_session());
 
   // A classic session is required to perform any of the AdminAPI operations
-  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(metadata->get_dba()->get_active_session());
   if (!session)
     error = "a Classic Session is required to perform this operation";
-  else {
+  else if (!session->is_connected())
+      error = "The session was closed. An open session is required to perform this operation";
+  else{
     // Retrieves the instance configuration type from the perspective of the active session
     auto instance_type = get_gr_instance_type(session->connection());
     state.source_type = instance_type;

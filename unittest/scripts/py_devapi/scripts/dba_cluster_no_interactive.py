@@ -7,8 +7,12 @@ import time
 #@ Cluster: validating members
 cluster = dba.get_cluster('devCluster')
 
-desc = cluster.describe();
-localhost = desc.defaultReplicaSet.instances[0].label.split(':')[0];
+# session is stored on the cluster object so changing the global session should not affect cluster operations
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
+session.close()
+
+desc = cluster.describe()
+localhost = desc.defaultReplicaSet.instances[0].label.split(':')[0]
 
 
 all_members = dir(cluster)
@@ -26,14 +30,14 @@ validateMember(members, 'admin_type')
 validateMember(members, 'get_admin_type')
 validateMember(members, 'add_instance')
 validateMember(members, 'remove_instance')
-validateMember(members, 'rejoin_instance');
-validateMember(members, 'check_instance_state');
-validateMember(members, 'describe');
-validateMember(members, 'status');
-validateMember(members, 'help');
-validateMember(members, 'dissolve');
-validateMember(members, 'rescan');
-validateMember(members, 'force_quorum_using_partition_of');
+validateMember(members, 'rejoin_instance')
+validateMember(members, 'check_instance_state')
+validateMember(members, 'describe')
+validateMember(members, 'status')
+validateMember(members, 'help')
+validateMember(members, 'dissolve')
+validateMember(members, 'rescan')
+validateMember(members, 'force_quorum_using_partition_of')
 
 #@# Cluster: add_instance errors
 cluster.add_instance()
@@ -41,7 +45,7 @@ cluster.add_instance(5,6,7,1)
 cluster.add_instance(5,5)
 cluster.add_instance('',5)
 cluster.add_instance({"user":"sample", "weird":1},{})
-cluster.add_instance({'host': 'localhost', 'schema': 'abs', 'user':"sample", 'authMethod':56, "memberSslMode": "foo", "ipWhitelist": " "})
+cluster.add_instance({'host': 'localhost', 'schema': 'abs', 'user':"sample", 'authMethod': 56, "memberSslMode": "foo", "ipWhitelist": " "})
 cluster.add_instance({'port': __mysql_sandbox_port1})
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2}, "root")
 cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2}, {"memberSslMode": "foo", "password": "root"})
@@ -56,14 +60,14 @@ uri2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
 uri3 = "%s:%s" % (localhost, __mysql_sandbox_port3)
 
 #@ Cluster: add_instance 2
-add_instance_to_cluster(cluster, __mysql_sandbox_port2, 'second');
+add_instance_to_cluster(cluster, __mysql_sandbox_port2, 'second')
 
 # Third instance will be added while the second is still on RECOVERY
 #@ Cluster: add_instance 3
-add_instance_to_cluster(cluster, __mysql_sandbox_port3);
+add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
-wait_slave_state(cluster, 'second', "ONLINE");
-wait_slave_state(cluster, uri3, "ONLINE");
+wait_slave_state(cluster, 'second', "ONLINE")
+wait_slave_state(cluster, uri3, "ONLINE")
 
 #@<OUT> Cluster: describe cluster with instance
 cluster.describe()
@@ -72,13 +76,13 @@ cluster.describe()
 cluster.status()
 
 #@ Cluster: remove_instance errors
-cluster.remove_instance();
-cluster.remove_instance(1,2,3);
-cluster.remove_instance(1);
-cluster.remove_instance({"host": "localhost"});
-cluster.remove_instance({"host": "localhost", "schema": 'abs', "user":"sample", "authMethod":56});
-cluster.remove_instance("somehost:3306");
-cluster.remove_instance("second");
+cluster.remove_instance()
+cluster.remove_instance(1,2,3)
+cluster.remove_instance(1)
+cluster.remove_instance({"host": "localhost"})
+cluster.remove_instance({"host": "localhost", "schema": 'abs', "user": "sample", "authMethod": 56})
+cluster.remove_instance("somehost:3306")
+cluster.remove_instance("second")
 
 #@ Cluster: remove_instance read only
 cluster.remove_instance({"host": "localhost", "port":__mysql_sandbox_port2})
@@ -90,9 +94,9 @@ cluster.describe()
 cluster.status()
 
 #@ Cluster: addInstance read only back
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
-wait_slave_state(cluster, uri2, "ONLINE");
+wait_slave_state(cluster, uri2, "ONLINE")
 
 #@<OUT> Cluster: describe after adding read only instance back
 cluster.describe()
@@ -108,12 +112,12 @@ cluster.remove_instance(uri1)
 
 #@ Connecting to new master
 from mysqlsh import mysql
-customSession = mysql.get_classic_session({"host":localhost, "port":__mysql_sandbox_port2, "user":'root', "password": 'root'})
+customSession = mysql.get_classic_session({"host": localhost, "port": __mysql_sandbox_port2, "user": 'root', "password": 'root'})
 dba.reset_session(customSession)
 cluster = dba.get_cluster()
 
 # Add back uri3
-add_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox');
+add_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox')
 
 wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 
@@ -124,7 +128,7 @@ cluster.describe()
 cluster.status()
 
 #@ Cluster: addInstance adding old master as read only
-add_instance_to_cluster(cluster, __mysql_sandbox_port1, 'first_sandbox');
+add_instance_to_cluster(cluster, __mysql_sandbox_port1, 'first_sandbox')
 
 wait_slave_state(cluster, 'first_sandbox', "ONLINE")
 
@@ -171,7 +175,7 @@ if __have_ssl:
 else:
   cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, {"password": "root"})
 
-wait_slave_state(cluster, 'third_sandbox', "ONLINE");
+wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 
 # Verify if the cluster is OK
 
@@ -181,7 +185,7 @@ cluster.status()
 #@ Cluster: dissolve errors
 cluster.dissolve()
 cluster.dissolve(1)
-cluster.dissolve(1,2)
+cluster.dissolve(1, 2)
 cluster.dissolve("")
 cluster.dissolve({'foobar': True})
 cluster.dissolve({'force': "whatever"})

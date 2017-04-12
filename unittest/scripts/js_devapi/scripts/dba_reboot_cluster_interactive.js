@@ -3,12 +3,16 @@
 var deployed_here = reset_or_deploy_sandboxes();
 
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+var clusterSession = session;
 
 //@<OUT> create cluster
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED'});
 else
   var cluster = dba.createCluster('dev');
+
+// session is stored on the cluster object so changing the global session should not affect cluster operations
+shell.connect({scheme: 'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 
 cluster.status();
 
@@ -25,8 +29,8 @@ add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 wait_slave_state(cluster, uri3, "ONLINE");
 
 //@ Dba.rebootClusterFromCompleteOutage errors
-dba.rebootClusterFromCompleteOutage("dev")
-dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"})
+dba.rebootClusterFromCompleteOutage("dev");
+dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
 
 // Kill all the instances
 
@@ -70,19 +74,23 @@ if (__sandbox_dir)
 else
   dba.startSandboxInstance(__mysql_sandbox_port1);
 
+session.close();
+
 // Re-establish the connection to instance 1
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ Dba.rebootClusterFromCompleteOutage success
-cluster = dba.rebootClusterFromCompleteOutage("dev")
+cluster = dba.rebootClusterFromCompleteOutage("dev");
 
 // Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE");
 
 //@<OUT> cluster status after reboot
 cluster.status();
+session.close();
 
 //@ Finalization
-// Will delete the sandboxes ONLY if this test was executed standalone
+//  Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone
+clusterSession.close();
 if (deployed_here)
   cleanup_sandboxes(true);

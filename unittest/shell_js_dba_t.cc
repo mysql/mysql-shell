@@ -536,6 +536,13 @@ TEST_F(Shell_js_dba_tests, dba_cluster_change_topology_type) {
   validate_interactive("dba_cluster_change_topology_type.js");
 }
 
+TEST_F(Shell_js_dba_tests, dba_cluster_session){
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_cluster_session.js");
+}
+
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
   reset_shell();

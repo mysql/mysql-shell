@@ -95,7 +95,7 @@ void Dba::init() {
   add_varargs_method("rebootClusterFromCompleteOutage", std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
-  _metadata_storage.reset(new MetadataStorage(this));
+  _metadata_storage.reset(new MetadataStorage(_shell_core->get_dev_session()));
   _provisioning_interface.reset(new ProvisioningInterface(_shell_core->get_delegate()));
 }
 
@@ -193,6 +193,9 @@ Cluster Dba::get_cluster(str name) {}
 #endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   args.ensure_count(0, 1, get_function_name("getCluster").c_str());
+
+  // Point the metadata session to the dba session
+  _metadata_storage->set_session(get_active_session());
 
   check_preconditions("getCluster");
 
@@ -364,6 +367,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
   ReplicationGroupState state;
+
+  // Point the metadata session to the dba session
+  _metadata_storage->set_session(get_active_session());
 
   try {
     state = check_preconditions("createCluster");
@@ -586,6 +592,9 @@ None Dba::drop_metadata_schema(dict options) {}
 shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("dropMetadataSchema").c_str());
 
+  // Point the metadata session to the dba session
+  _metadata_storage->set_session(get_active_session());
+
   check_preconditions("dropMetadataSchema");
 
   try {
@@ -788,6 +797,9 @@ None Dba::check_instance_configuration(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Dba::check_instance_configuration(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("checkInstanceConfiguration").c_str());
+
+  // Point the metadata session to the dba session
+  _metadata_storage->set_session(get_active_session());
 
   shcore::Value ret_val;
 
@@ -1200,6 +1212,7 @@ shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   args.ensure_count(1, 2, get_function_name("stopSandboxInstance").c_str());
+
   try {
     ret_val = exec_instance_op("stop", args);
   }
@@ -1735,6 +1748,9 @@ None Dba::reboot_cluster_from_complete_outage(str clusterName, dict options) {}
 shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_list &args) {
   args.ensure_count(0, 2, get_function_name("rebootClusterFromCompleteOutage").c_str());
 
+  // Point the metadata session to the dba session
+  _metadata_storage->set_session(get_active_session());
+
   shcore::Value ret_val;
   bool default_cluster = false;
   std::string cluster_name, password, user, group_replication_group_name,
@@ -1761,7 +1777,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
     }
 
     // get the current session information
-    auto instance_session(_metadata_storage->get_dba()->get_active_session());
+    auto instance_session(_metadata_storage->get_session());
 
     Value::Map_type_ref current_session_options = get_connection_data(instance_session->uri(), false);
 
@@ -1982,6 +1998,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
 }
 
 ReplicationGroupState Dba::check_preconditions(const std::string& function_name) const {
+  // Point the metadata session to the dba session
+  _metadata_storage->set_session(get_active_session());
   return check_function_preconditions(class_name(), function_name, get_function_name(function_name), _metadata_storage);
 }
 
@@ -1999,6 +2017,9 @@ std::vector<std::pair<std::string, std::string>> Dba::get_replicaset_instances_s
   std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
   std::string user, password, host, port, active_session_address, instance_address, conn_status;
 
+  // Point the metadata session to the dba session
+  _metadata_storage->set_session(get_active_session());
+
   if (out_cluster_name->empty())
     *out_cluster_name = _metadata_storage->get_default_cluster()->get_name();
 
@@ -2007,7 +2028,7 @@ std::vector<std::pair<std::string, std::string>> Dba::get_replicaset_instances_s
   std::shared_ptr<shcore::Value::Array_type> instances = _metadata_storage->get_replicaset_instances(rs_id);
 
   // get the current session information
-  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  auto instance_session(_metadata_storage->get_session());
 
   Value::Map_type_ref current_session_options = get_connection_data(instance_session->uri(), false);
 
@@ -2106,8 +2127,11 @@ void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &
     options = args.map_at(1);
   }
 
+  // Point the metadata session to the dba session
+  _metadata_storage->set_session(get_active_session());
+
   // get the current session information
-  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  auto instance_session(_metadata_storage->get_session());
   classic_current = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
 
   Value::Map_type_ref current_session_options = get_connection_data(instance_session->uri(), false);

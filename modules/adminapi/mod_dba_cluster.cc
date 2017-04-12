@@ -54,6 +54,7 @@ REGISTER_HELP(CLUSTER_ADMINTYPE_BRIEF, "Cluster Administration type.");
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
 _name(name), _metadata_storage(metadata_storage), _dissolved(false) {
+  _session = _metadata_storage->get_session();
  init();
 }
 
@@ -382,6 +383,9 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
+
   check_preconditions("addInstance");
 
   // Add the Instance to the Default ReplicaSet
@@ -553,6 +557,9 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
 
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
+
   check_preconditions("rejoinInstance");
 
   // rejoin the Instance to the Default ReplicaSet
@@ -657,6 +664,9 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
   assert_not_dissolved("removeInstance");
 
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
+
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
 
   check_preconditions("removeInstance");
 
@@ -772,6 +782,9 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
 
   args.ensure_count(0, get_function_name("describe").c_str());
 
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
+
   auto state = check_preconditions("describe");
 
   bool warning = (state.source_state != ManagedInstance::OnlineRW &&
@@ -870,6 +883,9 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
 
   args.ensure_count(0, get_function_name("status").c_str());
 
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
+
   auto state = check_preconditions("status");
 
   bool warning = (state.source_state != ManagedInstance::OnlineRW &&
@@ -945,6 +961,9 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
+
   check_preconditions("dissolve");
 
   try {
@@ -970,8 +989,8 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     // We need to check if the group has quorum and if not we must abort the operation
     // otherwise we GR blocks the writes to preserve the consistency of the group and we end up
     // with a hang.
-    auto session = _metadata_storage->get_dba()->get_active_session();
-    mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+
+    mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(_session.get());
 
     // check if the Cluster is empty
     if (_metadata_storage->is_cluster_empty(get_id())) {
@@ -1044,6 +1063,9 @@ shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
   assert_not_dissolved("rescan");
 
   args.ensure_count(0, get_function_name("rescan").c_str());
+
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
 
   check_preconditions("rescan");
 
@@ -1175,6 +1197,10 @@ shcore::Value Cluster::force_quorum_using_partition_of(const shcore::Argument_li
   assert_not_dissolved("forceQuorumUsingPartitionOf");
 
   args.ensure_count(1, 2, get_function_name("forceQuorumUsingPartitionOf").c_str());
+
+
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
 
   check_preconditions("forceQuorumUsingPartitionOf");
 
@@ -1310,6 +1336,9 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
 
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
+
   check_preconditions("checkInstanceState");
 
   shcore::Value ret_val;
@@ -1323,5 +1352,7 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
 }
 
 ReplicationGroupState Cluster::check_preconditions(const std::string& function_name) const {
+  // Point the metadata session to the cluster session
+  _metadata_storage->set_session(_session);
   return check_function_preconditions(class_name(), function_name, get_function_name(function_name), _metadata_storage);
 }

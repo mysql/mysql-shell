@@ -34,14 +34,14 @@
 //@ Standalone Instance: Failed preconditions
 ||Dba.getCluster: This function is not available through a session to a standalone instance (RuntimeError)
 ||Dba.dropMetadataSchema: This function is not available through a session to a standalone instance (RuntimeError)
-||Cluster.addInstance: This function is not available through a session to a standalone instance (RuntimeError)
-||Cluster.rejoinInstance: This function is not available through a session to a standalone instance (RuntimeError)
-||Cluster.removeInstance: This function is not available through a session to a standalone instance (RuntimeError)
-||Cluster.describe: This function is not available through a session to a standalone instance (RuntimeError)
-||Cluster.status: This function is not available through a session to a standalone instance (RuntimeError)
-||Cluster.dissolve: This function is not available through a session to a standalone instance (RuntimeError)
-||Cluster.checkInstanceState: This function is not available through a session to a standalone instance (RuntimeError)
-||Cluster.rescan: This function is not available through a session to a standalone instance (RuntimeError)
+||Cluster.addInstance: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.rejoinInstance: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.removeInstance: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.describe: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.status: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.dissolve: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.checkInstanceState: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.rescan: The session was closed. An open session is required to perform this operation (RuntimeError)
 
 //@ Preparation for read only tests
 ||
@@ -241,14 +241,14 @@
 ||Dba.createCluster: a Classic Session is required to perform this operation (RuntimeError)
 ||Dba.getCluster: a Classic Session is required to perform this operation (RuntimeError)
 ||Dba.dropMetadataSchema: a Classic Session is required to perform this operation (RuntimeError)
-||Cluster.addInstance: a Classic Session is required to perform this operation (RuntimeError)
-||Cluster.rejoinInstance: a Classic Session is required to perform this operation (RuntimeError)
-||Cluster.removeInstance: a Classic Session is required to perform this operation (RuntimeError)
-||Cluster.describe: a Classic Session is required to perform this operation (RuntimeError)
-||Cluster.status: a Classic Session is required to perform this operation (RuntimeError)
-||Cluster.dissolve: a Classic Session is required to perform this operation (RuntimeError)
-||Cluster.checkInstanceState: a Classic Session is required to perform this operation (RuntimeError)
-||Cluster.rescan: a Classic Session is required to perform this operation (RuntimeError)
+||Cluster.addInstance: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.rejoinInstance: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.removeInstance: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.describe: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.status: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.dissolve: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.checkInstanceState: The session was closed. An open session is required to perform this operation (RuntimeError)
+||Cluster.rescan: The session was closed. An open session is required to perform this operation (RuntimeError)
 
 //@ Finalization
 ||
