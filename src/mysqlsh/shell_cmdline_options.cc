@@ -256,6 +256,10 @@ _options.ssl_info.skip = false;
     else if (check_arg(argv, i, "--help", "-?")) {
       _options.print_cmd_line_helper = true;
       exit_code = 0;
+    } else if (check_arg(argv, i, nullptr, "-VV")) {
+      _options.print_version = true;
+      _options.print_version_extra = true;
+      exit_code = 0;
     } else if (check_arg(argv, i, "--version", "-V")) {
       _options.print_version = true;
       exit_code = 0;

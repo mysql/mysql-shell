@@ -13,9 +13,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-SET(MYSH_MAJOR 1)
+SET(MYSH_MAJOR 8)
 SET(MYSH_MINOR 0)
-SET(MYSH_PATCH 10)
+SET(MYSH_PATCH 0)
 SET(MYSH_SPRINT 0)# Merge/Sprint Number (QA Tracking): 0 on Release
 SET(MYSH_LEVEL "") # Strings like "-m1" and "-labs"
 
@@ -26,6 +26,7 @@ ENDIF()
 SET(MYSH_BASE_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}")
 SET(MYSH_VERSION      "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
 SET(MYSH_NO_DASH_VERSION     "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}")
+SET(MYSH_BUILD_ID     "$ENV{PARENT_ID}")
 
 # On Windows, AssemblyVersion does not allow slashes. Example: 1.0.5-labs
 IF(WIN32)

@@ -232,7 +232,7 @@ if(HAVE_V8)
   endif()
 endif()
 
-add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
+add_definitions(-DMYSH_VERSION="${MYSH_VERSION}" -DMYSH_BUILD_ID="${MYSH_BUILD_ID}")
 if(WIN32)
   add_definitions(-DMYSH_VERSION_WIN="${MYSH_VERSION_WIN}")
 endif()

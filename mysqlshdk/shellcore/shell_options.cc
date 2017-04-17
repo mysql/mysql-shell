@@ -38,6 +38,7 @@ Shell_options::Shell_options() {
   default_session_type = true;
   print_cmd_line_helper = false;
   print_version = false;
+  print_version_extra = false;
   force = false;
   interactive = false;
   full_interactive = false;

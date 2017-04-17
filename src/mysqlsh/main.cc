@@ -215,10 +215,18 @@ int main(int argc, char **argv) {
       ret_val = 1;
     } else if (options.print_version) {
       char version_msg[1024];
-      snprintf(version_msg, sizeof(version_msg),
-               "%s   Ver %s for %s on %s - for MySQL %s (%s)",
-               argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
-               LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT);
+      if (*MYSH_BUILD_ID && options.print_version_extra) {
+        snprintf(version_msg, sizeof(version_msg),
+                "%s   Ver %s for %s on %s - for MySQL %s (%s) - build %s",
+                argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
+                LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT,
+                MYSH_BUILD_ID);
+      } else {
+        snprintf(version_msg, sizeof(version_msg),
+                 "%s   Ver %s for %s on %s - for MySQL %s (%s)",
+                 argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
+                 LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT);
+      }
       shell.println(version_msg);
       ret_val = options.exit_code;
     } else if (options.print_cmd_line_helper) {

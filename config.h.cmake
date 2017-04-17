@@ -1,4 +1,4 @@
-/* Copyright (c) 2009, 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2009, 2017, Oracle and/or its affiliates. All rights reserved.
  
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -363,24 +363,6 @@
   forbids it.
  */
 #cmakedefine HAVE_IMPLICIT_DEPENDENT_NAME_TYPING 1
-
-
-/*
- * MySQL version
- */
-#cmakedefine DOT_FRM_VERSION @DOT_FRM_VERSION@
-#define MYSQL_VERSION_MAJOR @MAJOR_VERSION@
-#define MYSQL_VERSION_MINOR @MINOR_VERSION@
-#define MYSQL_VERSION_PATCH @PATCH_VERSION@
-#define MYSQL_VERSION_EXTRA "@EXTRA_VERSION@"
-#define PACKAGE "mysql"
-#define PACKAGE_BUGREPORT ""
-#define PACKAGE_NAME "MySQL Server"
-#define PACKAGE_STRING "MySQL Server @VERSION@"
-#define PACKAGE_TARNAME "mysql"
-#define PACKAGE_VERSION "@VERSION@"
-#define VERSION "@VERSION@"
-#define PROTOCOL_VERSION 10
 
 /*
  * CPU info

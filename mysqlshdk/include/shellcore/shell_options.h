@@ -55,6 +55,7 @@ public:
   bool default_session_type;
   bool print_cmd_line_helper;
   bool print_version;
+  bool print_version_extra;
   bool force;
   bool interactive;
   bool full_interactive;
