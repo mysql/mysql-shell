@@ -112,12 +112,12 @@ protected:
   static void log_hook(const char *message, ngcommon::Logger::LOG_LEVEL level, const char *domain);
 };
 
-#define MY_EXPECT_STDOUT_CONTAINS(x) output_handler.validate_stdout_content(x,true)
-#define MY_EXPECT_STDERR_CONTAINS(x) output_handler.validate_stderr_content(x,true)
-#define MY_EXPECT_LOG_CONTAINS(x) output_handler.validate_log_content(x,true)
-#define MY_EXPECT_STDOUT_NOT_CONTAINS(x) output_handler.validate_stdout_content(x,false)
-#define MY_EXPECT_STDERR_NOT_CONTAINS(x) output_handler.validate_stderr_content(x,false)
-#define MY_EXPECT_LOG_NOT_CONTAINS(x) output_handler.validate_log_content(x,false)
+#define MY_EXPECT_STDOUT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stdout_content(x,true); } while (0)
+#define MY_EXPECT_STDERR_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,true); } while (0)
+#define MY_EXPECT_LOG_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,true); } while (0)
+#define MY_EXPECT_STDOUT_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stdout_content(x,false); } while (0)
+#define MY_EXPECT_STDERR_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,false); } while (0)
+#define MY_EXPECT_LOG_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,false); } while (0)
 
 class Shell_core_test_wrapper : public tests::Shell_base_test,
                                 public shcore::NotificationObserver {

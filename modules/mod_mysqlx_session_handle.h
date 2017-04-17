@@ -57,6 +57,7 @@ public:
   void load_session_info() const;
 
   uint64_t get_client_id();
+  uint64_t get_connection_id() { return _connection_id; }
 
 private:
   mutable std::shared_ptr< ::mysqlx::Result> _last_result;

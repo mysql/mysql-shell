@@ -143,6 +143,7 @@ private:
   virtual void set_option(const char *option, int value);
 
   virtual uint64_t get_connection_id() const;
+  virtual std::string query_one_string(const std::string &query);
 
 protected:
   shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args) const;

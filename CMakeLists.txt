@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -155,6 +155,11 @@ SET(INSTALL_SHAREDIR "share/mysqlsh")
 ## Configure style system detection (generation of config.h)
 ##
 INCLUDE(configure.cmake)
+# This is used for the version_compile_machine variable.
+SET(MYSQL_MACHINE_TYPE ${CMAKE_SYSTEM_PROCESSOR})
+IF(CMAKE_SYSTEM_PROCESSOR MATCHES "i386" AND CMAKE_SIZEOF_VOID_P MATCHES 8)
+  SET(MYSQL_MACHINE_TYPE "x86_64")
+ENDIF()
 CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
 
 MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)

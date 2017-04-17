@@ -256,7 +256,7 @@ _options.ssl_info.skip = false;
       _options.output_format = "table";
     else if (check_arg(argv, i, "--trace-proto", NULL))
       _options.trace_protocol = true;
-    else if (check_arg(argv, i, "--help", "--help")) {
+    else if (check_arg(argv, i, "--help", "-?")) {
       _options.print_cmd_line_helper = true;
       exit_code = 0;
     } else if (check_arg(argv, i, "--version", "-V")) {

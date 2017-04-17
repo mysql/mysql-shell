@@ -32,13 +32,14 @@ namespace mysqlsh {
 class Command_line_shell :public mysqlsh::Base_shell, public shcore::NotificationObserver {
 public:
   Command_line_shell(const Shell_options &options);
+  void print_banner();
   void command_loop();
 
   void print_cmd_line_helper();
-  void print_banner();
 
 private:
   shcore::Interpreter_delegate _delegate;
+
   static char *readline(const char *prompt);
 
   static void deleg_print(void *self, const char *text);
@@ -46,7 +47,7 @@ private:
   static bool deleg_prompt(void *self, const char *text, std::string &ret);
   static bool deleg_password(void *self, const char *text, std::string &ret);
   static void deleg_source(void *self, const char *module);
-  
+
   virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data);
 };
 }

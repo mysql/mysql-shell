@@ -830,3 +830,17 @@ shcore::Value ClassicSession::get_status(const shcore::Argument_list &args) {
 
   return shcore::Value(status);
 }
+
+
+std::string ClassicSession::query_one_string(const std::string &query) {
+  shcore::Value val_result = execute_sql(query, shcore::Argument_list());
+  auto result = val_result.as_object<mysql::ClassicResult>();
+  shcore::Value val_row = result->fetch_one(shcore::Argument_list());
+  if (val_row) {
+    auto row = val_row.as_object<mysqlsh::Row>();
+    if (row) {
+      return row->get_member(0).as_string();
+    }
+  }
+  return "";
+}

@@ -169,7 +169,7 @@ void Command_line_shell::command_loop() {
 }
 
 void Command_line_shell::print_banner() {
-  std::string welcome_msg("Welcome to MySQL Shell ");
+  std::string welcome_msg("MySQL Shell ");
   welcome_msg += MYSH_VERSION;
   welcome_msg += "\n\n";
   welcome_msg += "Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.\n\n"\
@@ -178,7 +178,7 @@ void Command_line_shell::print_banner() {
                  "owners.";
   println(welcome_msg);
   println();
-  println("Type '\\help', '\\h' or '\\?' for help, type '\\quit' or '\\q' to exit.");
+  println("Type '\\help' or '\\?' for help; '\\quit' to exit.");
   println();
 }
 
