@@ -171,6 +171,8 @@ void BaseSession::connect(const Argument_list &args) {
     _session.open(_host, _port, _schema, _user, _password, _ssl_info, 60000,
       _auth_method, true);
 
+    _connection_id = _session.get_connection_id();
+
     _default_schema = _schema;
     if (!_default_schema.empty())
       update_schema_cache(_default_schema, true);
@@ -860,6 +862,16 @@ void BaseSession::rollback() {
   if (_tx_deep == 0)
     execute_sql("rollback", shcore::Argument_list());
 }
+
+std::string BaseSession::query_one_string(const std::string &query) {
+  std::shared_ptr<::mysqlx::Result> result = execute_sql(query);
+  std::shared_ptr<::mysqlx::Row> row(result->next());
+  if (row) {
+    return row->isNullField(0) ? "" : row->stringField(0);
+  }
+  return "";
+}
+
 
 std::shared_ptr<BaseSession> XSession::_get_shared_this() const {
   std::shared_ptr<const XSession> shared = shared_from_this();

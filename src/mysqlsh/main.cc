@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,6 +20,8 @@
 #include "cmdline_shell.h"
 #include "shell_cmdline_options.h"
 #include "shellcore/shell_options.h"
+#include "mysh_config.h"
+#include <mysql_version.h>
 #include <sys/stat.h>
 #include <sstream>
 
@@ -212,8 +214,11 @@ int main(int argc, char **argv) {
       shell.print_error(error);
       ret_val = 1;
     } else if (options.print_version) {
-      std::string version_msg("MySQL Shell Version ");
-      version_msg += MYSH_VERSION;
+      char version_msg[1024];
+      snprintf(version_msg, sizeof(version_msg),
+               "%s   Ver %s for %s on %s - for MySQL %s (%s)",
+               argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
+               LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT);
       shell.println(version_msg);
       ret_val = options.exit_code;
     } else if (options.print_cmd_line_helper) {

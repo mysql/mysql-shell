@@ -265,14 +265,22 @@ shcore::Value Mysql_shell::connect_session(const shcore::Argument_list &args, my
     std::string session_type = new_session->class_name();
     std::string message;
 
-    if (_options.session_type == mysqlsh::SessionType::Auto) {
-      if (session_type == "ClassicSession")
-        message = "Classic ";
-      else if (session_type == "NodeSession")
-        message = "Node ";
+    message = "Your MySQL connection id is " +
+              std::to_string(new_session->get_connection_id());
+    if (session_type == "NodeSession")
+      message += " (X protocol)";
+    try {
+      message += "\nServer version: " +
+                 new_session->query_one_string(
+                     "select concat(@@version, ' ', @@version_comment)");
+    } catch (shcore::Exception &e) {
+      // ignore password expired errors
+      if (e.is_mysql() && e.code() == 1820)
+        ;
+      else
+        throw;
     }
-
-    message += "Session successfully established. ";
+    message += "\n";
 
     // Any session could have a default schema after connection is done
     std::string default_schema_name = new_session->get_default_schema();
@@ -292,7 +300,7 @@ shcore::Value Mysql_shell::connect_session(const shcore::Argument_list &args, my
       else
         message += "Default schema `" + default_schema_name + "` accessible through db.";
     } else
-      message += "No default schema selected.";
+      message += "No default schema selected; type \\use <schema> to set one.";
 
     println(message);
   }
@@ -655,4 +663,3 @@ void Mysql_shell::process_line(const std::string &line) {
 }
 
 }
-

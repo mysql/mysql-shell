@@ -65,7 +65,9 @@ TEST_F(Interactive_shell_test, warning_insecure_password) {
 TEST_F(Interactive_shell_test, shell_command_connect_node) {
   execute("\\connect -n " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+  MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("session");
@@ -79,7 +81,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
 
   execute("\\connect -n " + _uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema `mysql` accessible through db.");
+  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+  MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
   output_handler.wipe_all();
 
   execute("session");
@@ -110,7 +114,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
 TEST_F(Interactive_shell_test, shell_command_connect_classic) {
   execute("\\connect -c " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("session");
@@ -124,7 +129,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
 
   execute("\\connect -c " + _mysql_uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema set to `mysql`.");
+  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
   output_handler.wipe_all();
 
   execute("session");
@@ -147,7 +153,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   {
     execute("\\connect " + _uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -161,7 +168,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   {
     execute("\\connect " + _mysql_uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Classic Session successfully established. No default schema selected.");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -175,7 +183,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   {
     execute("\\connect mysql://" + _mysql_uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -189,7 +198,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   {
     execute("\\connect mysqlx://" + _uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
+    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -203,7 +214,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
 TEST_F(Interactive_shell_test, shell_function_connect_node) {
   execute("shell.connect('mysqlx://" + _uri+"');");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("session");
@@ -217,7 +228,9 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
 
   execute("shell.connect('mysqlx://" + _uri + "/mysql');");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema `mysql` accessible through db.");
+  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+  MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
   output_handler.wipe_all();
 
   execute("session");
@@ -234,7 +247,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
 TEST_F(Interactive_shell_test, shell_function_connect_classic) {
   execute("shell.connect('mysql://" + _mysql_uri + "');");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("session");
@@ -248,7 +261,8 @@ TEST_F(Interactive_shell_test, shell_function_connect_classic) {
 
   execute("shell.connect('mysql://" + _mysql_uri + "/mysql');");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. Default schema set to `mysql`.");
+  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
   output_handler.wipe_all();
 
   execute("session");
@@ -267,7 +281,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
   {
     execute("shell.connect('" + _uri + "');");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Node Session successfully established. No default schema selected.");
+    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -281,7 +295,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
   {
     execute("shell.connect('" + _mysql_uri + "');");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Classic Session successfully established. No default schema selected.");
+    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -298,7 +312,7 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   output_handler.wipe_all();
 
   execute("\\connect " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("db");
@@ -324,7 +338,7 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   execute("session.close()");
 
   execute("\\connect -n " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("db");
@@ -342,7 +356,7 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   execute("session.close()");
 
   execute("\\connect -c " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("db");
@@ -711,7 +725,7 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   // Connects with the expired account
   execute("\\c mysql://expired:sample@localhost:" + _mysql_port);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to 'expired@localhost:" + _mysql_port + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   // Tests unable to execute any statement with an expired account
@@ -767,7 +781,7 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
   // Connects with the expired account
   execute("\\c mysqlx://expired:sample@localhost:" + _port);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to 'expired@localhost:" + _port + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Session successfully established. No default schema selected.");
+  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   // Tests unable to execute any statement with an expired account

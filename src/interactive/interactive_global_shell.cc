@@ -73,14 +73,11 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   message.clear();
 
-  if (stype == "a") {
-    if (session_type == "ClassicSession")
-      message = "Classic ";
-    else if (session_type == "NodeSession")
-      message = "Node ";
-  }
-
-  message += "Session successfully established. ";
+  message = "Your MySQL connection id is " +
+            std::to_string(new_session->get_connection_id());
+  if (new_session->class_name() == "NodeSession")
+    message += " (X protocol)";
+  message += "\n";
 
   shcore::Value default_schema = new_session->get_member("currentSchema");
 
@@ -90,7 +87,7 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
     else
       message += "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
   } else
-    message += "No default schema selected.";
+    message += "No default schema selected; type \\use <schema> to set one.";
 
   println(message);
 

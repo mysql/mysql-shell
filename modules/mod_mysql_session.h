@@ -116,6 +116,7 @@ public:
   Connection *connection();
 
   virtual uint64_t get_connection_id() const { return (uint64_t)_conn->get_thread_id(); }
+  virtual std::string query_one_string(const std::string &query);
 
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const;
   shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;

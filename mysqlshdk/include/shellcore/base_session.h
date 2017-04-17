@@ -68,6 +68,7 @@ public:
 
   virtual void set_option(const char *option, int value) {}
   virtual uint64_t get_connection_id() const { return 0; }
+  virtual std::string query_one_string(const std::string &query) = 0;
 
   std::string get_user() { return _user; }
   std::string get_password() { return _password; }

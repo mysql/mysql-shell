@@ -32,13 +32,14 @@ namespace mysqlsh {
 class Command_line_shell :public Mysql_shell, public shcore::NotificationObserver {
 public:
   Command_line_shell(const Shell_options &options);
+  void print_banner();
   void command_loop();
 
   void print_cmd_line_helper();
-  void print_banner();
 
 private:
   shcore::Interpreter_delegate _delegate;
+
   static char *readline(const char *prompt);
 
   static void deleg_print(void *self, const char *text);
