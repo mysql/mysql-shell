@@ -36,7 +36,7 @@
 #include "mysqlxtest_utils.h"
 
 #include "mysqlx_connection.h"
-#include "logger/logger.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 #include <stdlib.h>
 #include <string.h>

@@ -18,7 +18,6 @@ if(NOT WIN32)
 endif()
 include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
                     "${CMAKE_SOURCE_DIR}/mysqlshdk/include"
-                    "${CMAKE_SOURCE_DIR}/common"
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_SOURCE_DIR}/src"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"

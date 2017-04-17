@@ -35,7 +35,7 @@
 #include "shellcore/utils_help.h"
 #include "modules/adminapi/mod_dba_sql.h"
 
-#include "logger/logger.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"

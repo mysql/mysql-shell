@@ -24,8 +24,8 @@
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_general.h"
-#include "common/process_launcher/process_launcher.h"
-#include "utils/utils_file.h"
+#include "mysqlshdk/libs/utils/process_launcher.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 
 static const char *kRequiredMySQLProvisionInterfaceVersion = "2.0";
 

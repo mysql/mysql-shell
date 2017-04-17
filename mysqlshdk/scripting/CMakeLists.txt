@@ -18,8 +18,6 @@ include_directories(
 	"${CMAKE_SOURCE_DIR}/mysqlxtest"
 	"${CMAKE_SOURCE_DIR}/mysqlxtest/common"
 	"${CMAKE_SOURCE_DIR}/common/uuid/include"
-	"${CMAKE_SOURCE_DIR}/common/common"
-	"${CMAKE_SOURCE_DIR}/common/process_launcher"
 	"${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
 	${PYTHON_INCLUDE_DIR}
 	${V8_INCLUDE_DIR})

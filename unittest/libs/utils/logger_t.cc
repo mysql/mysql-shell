@@ -1,5 +1,6 @@
+// TODO(alfredo) this needs to be updated to be integrated into the rest of the tests
 
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,16 +20,12 @@
 #include <fstream>
 #include <string>
 
-#include "logger.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "gtest/gtest.h"
 
 
 using namespace ngcommon;
 
-
-#ifndef PROCESS_LAUNCHER_TESTS_DIR
-  #error Please rerun the cmake to have the available definition #define PROJECT_SOURCE_DIR "${PROCESS_LAUNCHER_TESTS_DIR}/tests/log"
-#endif
 
 namespace ngcommon
 {

@@ -22,7 +22,7 @@
 
 #include "mysqlshdk/libs/db/session.h"
 
-#include <gmock/gmock.h>
+#include "mocks/gmock_clean.h"
 #include <memory>
 
 namespace testing {

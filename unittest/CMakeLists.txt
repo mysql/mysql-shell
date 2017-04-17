@@ -17,7 +17,7 @@ if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
 
-    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/unittest/include
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/unittest
                 ${CMAKE_SOURCE_DIR}/mysqlxtest
                 ${CMAKE_SOURCE_DIR}/mysqlxtest/common
                 ${CMAKE_BINARY_DIR}/mysqlxtest
@@ -27,7 +27,6 @@ if(WITH_TESTS)
                 ${CMAKE_SOURCE_DIR}/include
                 ${CMAKE_SOURCE_DIR}/
                 ${CMAKE_SOURCE_DIR}/src
-                ${CMAKE_SOURCE_DIR}/common
                 ${MYSQL_INCLUDE_DIRS}
                 ${GTEST_INCLUDE_DIR}
                 ${GMOCK_INCLUDE_DIR}

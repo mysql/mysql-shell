@@ -19,7 +19,7 @@
 
 #include "unittest/mocks/mysqlshdk/libs/db/mock_session.h"
 
-#include <gmock/gmock.h>
+#include "mocks/gmock_clean.h"
 #include <memory>
 
 namespace testing {

@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 
 
 include_directories(${SSL_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/common
+    ${CMAKE_SOURCE_DIR}/
     ${CMAKE_SOURCE_DIR}/common/mysqlx
     ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/mySTL
     ${CMAKE_CURRENT_SOURCE_DIR}/common
@@ -35,8 +35,6 @@ file(GLOB libmysqlxtest_SRC
       "myasio/*.h"
       "*.cc"
       "*.h"
-      "${CMAKE_SOURCE_DIR}/common/mysqlx/auth_mysql41.h"
-      "${CMAKE_SOURCE_DIR}/common/mysqlx/auth_mysql41.cc"
       boost_code.cc
 )
 

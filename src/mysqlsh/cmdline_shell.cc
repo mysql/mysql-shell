@@ -25,7 +25,7 @@
 #include "modules/base_resultset.h"
 #include "utils/utils_time.h"
 #include "shellcore/utils_help.h"
-#include "logger/logger.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 // TODO: This should be ported from the server, not used from there (see comment below)
 //const int MAX_READLINE_BUF = 65536;

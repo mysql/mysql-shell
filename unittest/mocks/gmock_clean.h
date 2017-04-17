@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,25 +17,21 @@
  * 02110-1301  USA
  */
 
-#ifndef _SHCORE_COMMON_H_
-#define _SHCORE_COMMON_H_
+#ifndef UNITTEST_MOCKS_GMOCK_CLEAN_H_
+#define UNITTEST_MOCKS_GMOCK_CLEAN_H_
 
-#include "scripting/types_common.h"
-#include "mysqlshdk/libs/utils/logger.h"
+// Include gmock suppressing warnings
 
-// TODO: This definition should be removed from here
-// The one on mysqlshdk_exports.h should be used instead for symbol exports
-#define SHCORE_PUBLIC
-
-#ifdef UNUSED
-#  elif defined(__GNUC__)
-#    define UNUSED(x) UNUSED_ ## x __attribute__((unused))
-#  elif defined(__LCLINT__)
-#    define UNUSED(x) /*@unused@*/ x
-#  elif defined(__cplusplus)
-#    define UNUSED(x)
-#  else
-#    define UNUSED(x) x
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#pragma clang diagnostic ignored "-Wnull-dereference"
 #endif
 
+#include <gmock/gmock.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
+
+#endif  // UNITTEST_MOCKS_GMOCK_CLEAN_H_

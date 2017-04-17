@@ -1,5 +1,6 @@
+// TODO(alfredo) this needs to be updated to be integrated into the rest of the tests
 
-/* Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,12 +27,8 @@
 #include <fstream>
 #include <string>
 
-#include "process_launcher.h"
+#include "mysqlshdk/libs/utils/process_launcher.h"
 #include "gtest/gtest.h"
-
-#ifndef PROCESS_LAUNCHER_TESTS_DIR
-#error Please rerun the cmake to have the available definition #define PROJECT_SOURCE_DIR "${PROCESS_LAUNCHER_TESTS_DIR}/tests/scripts"
-#endif
 
 using namespace ngcommon;
 
@@ -94,7 +91,7 @@ namespace tests
 #else
     struct timeval start, end;
     double elapsed_time;
-    
+
     gettimeofday(&start, NULL);
 #endif
 

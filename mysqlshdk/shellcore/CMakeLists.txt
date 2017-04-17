@@ -17,7 +17,6 @@ include_directories(
         "${CMAKE_BINARY_DIR}"
         "${CMAKE_SOURCE_DIR}/mysqlxtest"
         "${CMAKE_SOURCE_DIR}/mysqlxtest/common"
-        "${CMAKE_SOURCE_DIR}/common/common"
         "${CMAKE_SOURCE_DIR}/common/uuid/include"
         "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 include_directories(${CMAKE_SOURCE_DIR}) # <--- TODO: REMOVE (something's including modules/*)

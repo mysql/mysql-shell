@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,7 +33,7 @@
 
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
-#include "logger/logger.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "shellcore/utils_help.h"
 
 using namespace mysqlsh;

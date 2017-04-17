@@ -41,7 +41,7 @@
 #include <boost/bind.hpp>
 
 #ifdef MYSQLXTEST_STANDALONE
-#include "mysqlx/auth_mysql41.h"
+#include "mysqlxtest/auth_mysql41.h"
 #else
 #include "password_hasher.h"
 namespace mysqlx {

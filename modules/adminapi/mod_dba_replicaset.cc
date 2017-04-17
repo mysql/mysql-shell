@@ -35,7 +35,7 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_resultset.h"
 #include "utils/utils_time.h"
-#include "logger/logger.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_string.h"
 #include <sstream>

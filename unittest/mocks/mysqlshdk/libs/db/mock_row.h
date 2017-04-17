@@ -23,7 +23,7 @@
 #include "mysqlshdk/libs/db/row.h"
 #include "mysqlshdk/libs/db/column.h"
 #include "unittest/mocks/mysqlshdk/libs/db/mock_result.h"
-#include <gmock/gmock.h>
+#include "mocks/gmock_clean.h"
 #include <vector>
 
 namespace testing {

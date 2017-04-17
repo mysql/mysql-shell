@@ -23,8 +23,6 @@ include_directories(BEFORE
      "${CMAKE_BINARY_DIR}/mysqlxtest" # for protobuf files
 	 "${CMAKE_SOURCE_DIR}/mysqlxtest/common"
 	 "${CMAKE_SOURCE_DIR}/common/uuid/include"
-	 "${CMAKE_SOURCE_DIR}/common"
-	 "${CMAKE_SOURCE_DIR}/common/process_launcher"
 	 "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
 	 ${MYSQL_INCLUDE_DIRS})
 

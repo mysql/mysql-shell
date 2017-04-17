@@ -22,7 +22,7 @@
 
 #include "mysqlshdk/libs/db/result.h"
 
-#include <gmock/gmock.h>
+#include "mocks/gmock_clean.h"
 
 namespace testing {
 /**
