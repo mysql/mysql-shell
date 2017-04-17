@@ -262,8 +262,8 @@ void SessionHandle::load_session_info() const {
       auto case_sensitive_table_names = (int)row->uInt64Field(0);
       _case_sensitive_table_names = (case_sensitive_table_names == 0);
 
-      if (!row->isNullField(0))
-        _connection_id = row->uInt64Field(0);
+      if (!row->isNullField(1))
+        _connection_id = row->uInt64Field(1);
 
       result->flush();
     }

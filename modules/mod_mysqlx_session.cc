@@ -161,6 +161,8 @@ Value BaseSession::connect(const Argument_list &args) {
       _ssl_info.cert, _ssl_info.key, _ssl_info.capath, _ssl_info.crl, _ssl_info.crlpath,
       _ssl_info.tls_version, _ssl_info.ciphers, ssl_mode, 60000, _auth_method, true);
 
+    _connection_id = _session.get_connection_id();
+
     _default_schema = _schema;
     if (!_default_schema.empty())
       update_schema_cache(_default_schema, true);
@@ -815,6 +817,16 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args) {
   return shcore::Value(status);
 }
 
+std::string BaseSession::query_one_string(const std::string &query) {
+  std::shared_ptr<::mysqlx::Result> result = execute_sql(query);
+  std::shared_ptr<::mysqlx::Row> row(result->next());
+  if (row) {
+    return row->isNullField(0) ? "" : row->stringField(0);
+  }
+  return "";
+}
+
+
 std::shared_ptr<BaseSession> XSession::_get_shared_this() const {
   std::shared_ptr<const XSession> shared = shared_from_this();
 
@@ -978,7 +990,7 @@ shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
   if (_session.is_connected()) {
     std::string name = args[0].as_string();
 
-    std::shared_ptr< ::mysqlx::Result> result = execute_sql(sqlstring("use !", 0) << name);
+    std::shared_ptr<::mysqlx::Result> result = execute_sql(sqlstring("use !", 0) << name);
     result->flush();
   } else
   throw Exception::runtime_error(class_name() + " not connected");
