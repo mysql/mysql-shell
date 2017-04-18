@@ -25,6 +25,7 @@
 #include <map>
 #include <set>
 #include <memory>
+#include <functional>
 #include <stdexcept>
 
 // Avoid warnings from includes of other project and protobuf

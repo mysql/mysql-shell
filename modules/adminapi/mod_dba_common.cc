@@ -16,8 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <string>
-#include <algorithm>
 
 #include "modules/adminapi/mod_dba_common.h"
 #include "utils/utils_general.h"
@@ -27,6 +25,10 @@
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 //#include "mod_dba_instance.h"
+
+#include <string>
+#include <iterator>
+#include <algorithm>
 
 namespace mysqlsh {
 namespace dba {

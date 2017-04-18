@@ -250,12 +250,11 @@ void Logger::out_to_stderr(const char* msg) {
     gmtime_s(&tm, &t);
 #else
     struct tm tm;
-    struct tm* ptm = &tm;
     gmtime_r(&t, &tm);
 #endif
 
     char date_format[] = "%Y-%m-%d %H:%M:%S: ";
-    strftime(timestamp, sizeof(timestamp), date_format, ptm);
+    strftime(timestamp, sizeof(timestamp), date_format, &tm);
   }
 
   // build return string

@@ -20,6 +20,7 @@
 #include "utils_mysql_parsing.h"
 #include "utils/utils_string.h"
 #include <assert.h>
+#include <iterator>
 
 namespace shcore {
 namespace mysql {
