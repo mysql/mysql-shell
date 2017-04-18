@@ -17,13 +17,15 @@
  * 02110-1301  USA
  */
 
+#include <mysql_version.h>
+#include <sys/stat.h>
+#include <cstdio>
+#include <sstream>
+
 #include "cmdline_shell.h"
 #include "shell_cmdline_options.h"
 #include "shellcore/shell_options.h"
 #include "mysh_config.h"
-#include <mysql_version.h>
-#include <sys/stat.h>
-#include <sstream>
 
 mysqlsh::Command_line_shell* shell_ptr = NULL;
 

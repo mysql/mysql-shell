@@ -278,9 +278,9 @@ void Logger::out_to_stderr(const char* msg) {
 
 void Logger::create_instance(const char* filename, bool use_stderr,
                              Logger::LOG_LEVEL log_level) {
-  if (instance)
-    delete instance;
-  instance = new Logger(filename, use_stderr, log_level);
+  if (!instance) {
+    instance = new Logger(filename, use_stderr, log_level);
+  }
 }
 
 /*static*/ const char* Logger::get_log_level_desc(
