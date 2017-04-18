@@ -33,6 +33,7 @@ mysqlsh::Command_line_shell* shell_ptr = NULL;
 #  include <io.h>
 #  include <windows.h>
 #  define isatty _isatty
+#  define snprintf _snprintf
 
 BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
   switch (fdwCtrlType) {
