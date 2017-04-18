@@ -255,7 +255,6 @@ ENDIF()
 ### Build Projects
 ###
 
-add_subdirectory(doc)
 add_subdirectory(python)
 add_subdirectory(mysqlxtest)
 add_subdirectory(mysqlshdk)
