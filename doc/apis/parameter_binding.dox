@@ -1,0 +1,56 @@
+/*!
+\page param_binding Parameter Binding
+# Parameter Binding
+
+It is good practice to not use values directly on expression strings. The way this is using a parameter or place holder on the expression to replace the real value, later the value is associated to the defined parameter or place holder.
+
+There are two ways to achieve this:
+
+## Anonymous Binding
+
+Available on SQL strings, allows removing values from expression through the use of place holders. To finally associate the corresponding value just call the .bind(<value>) function.
+
+\if DOXYGEN_JS
+\code{.js}
+nodeSession = mysqlx.getNodeSession('mike:s3cr3t!@localhost:33060')
+
+# Loads the adult customers whose name starts with S
+result = nodeSession.sql('select * from test.customers where name like ? and age < ?').bind('S%').bind(18).execute()
+
+The bind function must be called for each place holder on the expression, otherwise an error will occur.
+\endcode
+\elseif DOXYGEN_PY
+\code{.py}
+nodeSession = mysqlx.get_node_session('mike:s3cr3t!@localhost:33060')
+
+# Loads the adult customers whose name starts with S
+result = nodeSession.sql('select * from test.customers where name like ? and age < ?').bind('S%').bind(18).execute()
+
+The bind function must be called for each place holder on the expression, otherwise an error will occur.
+\endcode
+\endif
+
+## Named Binding
+
+Available on the CRUD operations, allows removing values from expressions through the use of named parameters. To finally associate the corresponding parameter values, call the .bind(<parameter>, <value>) function.
+
+\if DOXYGEN_JS
+\include "js_dev_api_examples/crud_operations/Parameter_Binding.js"
+\elseif DOXYGEN_PY
+\include "py_dev_api_examples/crud_operations/Parameter_Binding.py"
+\endif
+
+Each CRUD operation creates a binding context, in order to succeed all the defined parameters must have a value. A parameter could be used several times on the operation, even so, only one value can be assigned to it. If bind is called several times for the same parameter the last value will override the previous ones.
+
+\if DOXYGEN_JS
+\include "js_dev_api_examples/crud_operations/Parameter_Binding_1.js"
+\elseif DOXYGEN_PY
+\include "py_dev_api_examples/crud_operations/Parameter_Binding_1.py"
+\endif
+
+*/
+
+/** 
+ * This is an example of how to use the Example_Test class.
+ * More details about this example.
+ */
