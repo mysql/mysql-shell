@@ -17,20 +17,29 @@
  * 02110-1301  USA
  */
 
-#ifndef _UNITTEST_MOCKS_CORELIBS_DB_FAKE_ROW_H
-#define _UNITTEST_MOCKS_CORELIBS_DB_FAKE_ROW_H
+#ifndef UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_ROW_H_
+#define UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_ROW_H_
 
-#include "mysqlshdk/libs/db/row.h"
-#include "mysqlshdk/libs/db/column.h"
-#include "unittest/mocks/mysqlshdk/libs/db/mock_result.h"
-#include "mocks/gmock_clean.h"
+#include <string>
+#include <utility>
 #include <vector>
+
+#include "mocks/gmock_clean.h"
+#include "mysqlshdk/libs/db/column.h"
+#include "mysqlshdk/libs/db/row.h"
+#include "unittest/mocks/mysqlshdk/libs/db/mock_result.h"
 
 namespace testing {
 class Mock_row : public mysqlshdk::db::IRow {
-public:
+ public:
   Mock_row() {}
-  Mock_row(const std::vector<std::string>& names, const std::vector<mysqlshdk::db::Type>& types, const std::vector<std::string>&data);
+  Mock_row(const std::vector<std::string>& names,
+           const std::vector<mysqlshdk::db::Type>& types,
+           const std::vector<std::string>& data);
+  void init(const std::vector<std::string>& names,
+            const std::vector<mysqlshdk::db::Type>& types,
+            const std::vector<std::string>& data);
+
   MOCK_CONST_METHOD0(size, size_t());
   MOCK_CONST_METHOD1(get_int, int64_t(int index));
   MOCK_CONST_METHOD1(get_uint, uint64_t(int index));
@@ -47,7 +56,7 @@ public:
   MOCK_CONST_METHOD1(is_date, bool(int index));
   MOCK_CONST_METHOD1(is_binary, bool(int index));
 
-private:
+ private:
   std::vector<std::string> _names;
   std::vector<mysqlshdk::db::Type> _types;
   std::vector<std::string> _record;
@@ -71,6 +80,6 @@ private:
 
   void enable_fake_engine();
 };
-}
+}  // namespace testing
 
-#endif // MOCK_SESSION_H
+#endif  // UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_ROW_H_
