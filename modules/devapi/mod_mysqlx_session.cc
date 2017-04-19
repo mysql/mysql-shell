@@ -38,6 +38,7 @@
 #include "scripting/object_factory.h"
 #include "scripting/proxy_object.h"
 #include "shellcore/shell_core.h"
+#include "shellcore/base_shell.h"  // for options
 #include "shellcore/shell_notifications.h"
 #include "shellcore/utils_help.h"
 #include "utils/logger.h"
@@ -544,7 +545,8 @@ shcore::Object_bridge_ref Session::get_schema(const std::string &name) {
   auto ret_val = ShellBaseSession::get_schema(name);
 
   auto dbobject = std::dynamic_pointer_cast<DatabaseObject>(ret_val);
-  dbobject->update_cache();
+  if (Base_shell::options().devapi_schema_object_handles)
+    dbobject->update_cache();
 
   return ret_val;
 }

@@ -29,12 +29,8 @@
 using namespace shcore;
 
 Shell_python::Shell_python(Shell_core *shcore)
-  : Shell_language(shcore) {
-  _py = std::shared_ptr<Python_context>(new Python_context(shcore->get_delegate()));
-}
-
-Shell_python::~Shell_python() {
-  _py.reset();
+    : Shell_language(shcore),
+      _py(new Python_context(shcore->get_delegate())) {
 }
 
 std::string Shell_python::preprocess_input_line(const std::string &s) {

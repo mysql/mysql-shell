@@ -56,6 +56,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   bool cmd_nowarnings(const std::vector<std::string>& args);
   bool cmd_status(const std::vector<std::string>& args);
   bool cmd_use(const std::vector<std::string>& args);
+  bool cmd_rehash(const std::vector<std::string>& args);
   virtual bool cmd_process_file(const std::vector<std::string>& params);
 
   virtual void process_line(const std::string& line);
@@ -75,6 +76,10 @@ class Mysql_shell : public mysqlsh::Base_shell {
   static void set_sql_safe_for_logging(const std::string &patterns);
 
   virtual bool do_shell_command(const std::string& command);
+
+  void refresh_completion(bool force = false);
+  void refresh_schema_completion(bool force = false);
+  void add_devapi_completions();
 
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;

@@ -61,6 +61,8 @@ Shell_options::Storage::Storage() {
   wizards = true;
   admin_mode = false;
   log_to_stderr = false;
+  db_name_cache = true;
+  devapi_schema_object_handles = true;
 
   port = 0;
 
@@ -280,7 +282,12 @@ Shell_options::Shell_options(int argc, char** argv)
           return val;
         })
     (&storage.interactive, false, SHCORE_INTERACTIVE,
-        "Enables interactive mode", shcore::opts::Read_only<bool>());
+        "Enables interactive mode", shcore::opts::Read_only<bool>())
+    (&storage.db_name_cache, -1, SHCORE_DB_NAME_CACHE,
+        "Enable database name caching for autocompletion.")
+    (&storage.devapi_schema_object_handles, -1,
+        SHCORE_DEVAPI_DB_OBJECT_HANDLES,
+        "Enable table and collection name handles for the DevAPI db object.");
 
   add_startup_options()(
       cmdline("-i", "--interactive[=full]"),
@@ -298,6 +305,21 @@ Shell_options::Shell_options(int argc, char** argv)
           throw std::invalid_argument(
                     "Value for --interactive if any, must be full\n");
         }
+      })(
+      cmdline("--name-cache"),
+      "Enable database name caching for autocompletion and DevAPI (default).",
+      [this](const std::string&, const char*) {
+        storage.db_name_cache = true;
+        storage.db_name_cache_set = true;
+        storage.devapi_schema_object_handles = true;
+      })(
+      cmdline("-A", "--no-name-cache"),
+      "Disable automatic database name caching for autocompletion and DevAPI. "
+      "Use \\rehash to load DB names manually.",
+      [this](const std::string&, const char*) {
+        storage.db_name_cache = false;
+        storage.db_name_cache_set = true;
+        storage.devapi_schema_object_handles = false;
       });
 
   // make sure hack for accessing log_level via Value works

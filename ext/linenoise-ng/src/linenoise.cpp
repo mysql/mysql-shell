@@ -597,7 +597,7 @@ int mk_wcswidth(const char32_t* pwcs, size_t n);
 
 static int calculateColumnPosition(char32_t* buf32, int len) {
 #ifdef _WIN32
-  return len; // looks like accounting for dbl-width chars is not needed in win 
+  return len; // looks like accounting for dbl-width chars is not needed in win
 #endif
   int width = mk_wcswidth(reinterpret_cast<const char32_t*>(buf32), len);
   if (width == -1)
@@ -880,6 +880,36 @@ class InputBuffer {
     len = static_cast<int>(ucharCount);
     pos = static_cast<int>(ucharCount);
   }
+
+  // Show the completion text at the given startIndex offset
+  bool displayCompletion(size_t startIndex, size_t *oldTextLength,
+                         const Utf32String &text) {
+    //  __________|[_____________]________
+    //  startIndex^ oldTextLength tailLength
+    //  ^--            len             ---^
+    bool ok = true;
+    size_t tailLength = len - (startIndex + *oldTextLength);
+    size_t textLength = text.length();
+    size_t newlen = startIndex + textLength + tailLength;
+    size_t tailIndex = startIndex + textLength;
+
+    if (newlen > buflen) {  // truncate if bigger than buffer
+      textLength = buflen - (tailLength + startIndex);
+      newlen = buflen;
+      ok = false;
+    }
+    Utf32String displayText(newlen + 1);
+    memcpy(&displayText[0], buf32, sizeof(char32_t) * startIndex);
+    memcpy(&displayText[startIndex], &text[0], sizeof(char32_t) * textLength);
+    memcpy(&displayText[tailIndex], &buf32[startIndex + *oldTextLength],
+            sizeof(char32_t) * tailLength + 1);
+    copyString32(buf32, displayText.get(), newlen);
+    pos = startIndex + textLength;
+    len = newlen;
+    *oldTextLength = textLength;
+    return ok;
+  }
+
   int getInputLine(PromptBase& pi);
   int length(void) const { return len; }
 };
@@ -1977,6 +2007,8 @@ int InputBuffer::completeLine(PromptBase& pi) {
   completionCallback(bufferContents.get(), &startIndex, &lc);
   itemLength = pos - startIndex;
 
+  Utf32String original(buf32 + startIndex, itemLength);
+
   // if no completions, we are done
   if (lc.completionStrings.size() == 0) {
     beep();
@@ -1984,6 +2016,59 @@ int InputBuffer::completeLine(PromptBase& pi) {
     return 0;
   }
 
+#ifdef CYCLE_COMPLETIONS
+  // Instead of the default handling that will display all possibilities
+  // when completion is ambiguous, we implement an alternative model where:
+  // - hitting tab always displays 1st choice
+  // - hitting tab again will cycle to the next possibility
+  // - after the last possibility, goes back to the original text
+  // - hitting esc cancels and reverts original text from user
+  // - hitting any other key commits and exits the cycling
+  // TODO(alfredo) - make Esc key work (currently being eaten by esc processing)
+  int activeChoice = 0;
+  bool done = false;
+  size_t oldTextLength = itemLength;
+  while (!done) {
+    activeChoice = (activeChoice + 1) % (lc.completionStrings.size() + 1);
+
+    if (activeChoice == 0) {
+      // show original
+      if (!displayCompletion(startIndex, &oldTextLength, original))
+        beep();
+      refreshLine(pi);
+    } else {
+      if (!displayCompletion(startIndex, &oldTextLength,
+                             lc.completionStrings[activeChoice - 1]))
+        beep();
+      refreshLine(pi);
+    }
+
+    // we can't complete any further, wait for second tab
+    do {
+      c = linenoiseReadChar();
+      c = cleanupCtrl(c);
+    } while (c == static_cast<char32_t>(-1));
+    // if any character other than tab, pass it to the main loop
+    switch (c) {
+      case ctrlChar('I'):
+        // let it cycle to next option
+        break;
+      case 0x4000006e:  // ESC
+        beep();
+        // abort
+        done = true;
+        if (!displayCompletion(startIndex, &oldTextLength, original))
+          beep();
+        refreshLine(pi);
+        break;
+      default:
+        done = true;
+        break;
+    }
+  }
+  freeCompletions(&lc);
+  return 0;
+#else // !CYCLE_COMPLETIONS
   // at least one completion
   int longestCommonPrefix = 0;
   int displayLength = 0;
@@ -1995,7 +2080,7 @@ int InputBuffer::completeLine(PromptBase& pi) {
       for (size_t j = 0; j < lc.completionStrings.size() - 1; ++j) {
         char32_t c1 = lc.completionStrings[j][longestCommonPrefix];
         char32_t c2 = lc.completionStrings[j + 1][longestCommonPrefix];
-        if ((0 == c1) || (0 == c2) || (c1 != c2)) {
+        if ((0 == c1) || (0 == c2) || (towlower(c1) != towlower(c2))) {
           keepGoing = false;
           break;
         }
@@ -2181,6 +2266,7 @@ int InputBuffer::completeLine(PromptBase& pi) {
 #endif
   pi.promptCursorRowOffset = pi.promptExtraLines;
   refreshLine(pi);
+#endif // !CYCLE_COMPLETIONS
   return 0;
 }
 

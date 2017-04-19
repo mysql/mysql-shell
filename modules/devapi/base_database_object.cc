@@ -273,6 +273,15 @@ void DatabaseObject::update_cache(
   }
 }
 
+void DatabaseObject::flush_cache(Cache target_cache, DatabaseObject *target) {
+  if (target) {
+    for (const auto &iter : *target_cache) {
+        target->delete_property(iter.first);
+    }
+  }
+  target_cache->clear();
+}
+
 void DatabaseObject::get_object_list(Cache target_cache,
                                      shcore::Value::Array_type_ref list) {
   for (auto entry : *target_cache)

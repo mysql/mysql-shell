@@ -118,7 +118,8 @@ struct JScript_context::JScript_context_impl {
     globals->Set(v8::String::NewFromUtf8(isolate, "__build_module"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_build_module, client_data));
 
-    v8::Local<v8::Context> lcontext = v8::Context::New(isolate, NULL, globals);
+    v8::Local<v8::Context> lcontext = v8::Context::New(
+        isolate, NULL, globals);
     context.Reset(isolate, lcontext);
 
     // Loads the core module
@@ -634,6 +635,115 @@ Value JScript_context::get_global(const std::string &name) {
   v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
 
   return _impl->types.v8_value_to_shcore_value(_impl->get_global(name));
+}
+
+std::tuple<JSObject, std::string> JScript_context::get_global_js(
+    const std::string &name) {
+  // makes _isolate the default isolate for this context
+  v8::Isolate::Scope isolate_scope(_impl->isolate);
+  // creates a pool for all the handles that are created in this scope
+  // (except for persistent ones), which will be freed when the scope exits
+  v8::HandleScope handle_scope(_impl->isolate);
+  // catch everything that happens in this scope
+  v8::TryCatch try_catch;
+  // set _context to be the default context for everything in this scope
+  v8::Context::Scope context_scope(
+      v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+
+  v8::Local<v8::Value> global(_impl->get_global(name));
+  if (global->IsObject()) {
+    std::string obj_type =
+        *v8::String::Utf8Value(_impl->types.type_info(global));
+    if (shcore::str_beginswith(obj_type, "m."))
+      obj_type = obj_type.substr(2);
+    return std::tuple<JSObject, std::string>(JSObject(_impl->isolate, global->ToObject()), obj_type);
+  } else {
+    return std::tuple<JSObject, std::string>(JSObject(), "");
+  }
+}
+
+std::vector<std::pair<bool, std::string>> JScript_context::list_globals() {
+  Value globals(
+      execute("Object.keys(this).map(function(x) {"
+      " if (typeof this[x] == 'function') return '('+x; else return '.'+x;"
+      "})", {}));
+  assert(globals.type == shcore::Array);
+
+  std::vector<std::pair<bool, std::string>> ret;
+  for (shcore::Value g : *globals.as_array()) {
+    std::string n = g.as_string();
+    ret.push_back({n[0] == '(', n.substr(1)});
+  }
+  return ret;
+}
+
+std::tuple<bool, JSObject, std::string> JScript_context::get_member_of(
+    const JSObject *obj, const std::string &name) {
+  // makes _isolate the default isolate for this context
+  v8::Isolate::Scope isolate_scope(_impl->isolate);
+  // creates a pool for all the handles that are created in this scope
+  // (except for persistent ones), which will be freed when the scope exits
+  v8::HandleScope handle_scope(_impl->isolate);
+  // catch everything that happens in this scope
+  v8::TryCatch try_catch;
+  // set _context to be the default context for everything in this scope
+  v8::Context::Scope context_scope(
+      v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+
+  v8::Local<v8::Object> lobj(v8::Local<v8::Object>::New(_impl->isolate, *obj));
+
+  auto value = lobj->Get(v8::String::NewFromUtf8(_impl->isolate, name.c_str()));
+  if (!value.IsEmpty()) {
+    std::string obj_type;
+    if (value->IsFunction()) {
+    } else if (value->IsObject()) {
+      if (!value->ToObject()->IsCallable()) {
+        obj_type =
+            *v8::String::Utf8Value(_impl->types.type_info(value));
+        if (shcore::str_beginswith(obj_type, "m."))
+          obj_type = obj_type.substr(2);
+        return std::tuple<bool, JSObject, std::string>(false, JSObject(_impl->isolate, value->ToObject()), obj_type);
+      }
+    }
+  }
+  return std::tuple<bool, JSObject, std::string>(false, JSObject(), "");
+}
+
+std::vector<std::pair<bool, std::string>> JScript_context::get_members_of(
+    const JSObject *obj) {
+  // makes _isolate the default isolate for this context
+  v8::Isolate::Scope isolate_scope(_impl->isolate);
+  // creates a pool for all the handles that are created in this scope
+  // (except for persistent ones), which will be freed when the scope exits
+  v8::HandleScope handle_scope(_impl->isolate);
+  // catch everything that happens in this scope
+  v8::TryCatch try_catch;
+  // set _context to be the default context for everything in this scope
+  v8::Context::Scope context_scope(
+      v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+
+  v8::Local<v8::Object> lobj(v8::Local<v8::Object>::New(_impl->isolate, *obj));
+
+  std::vector<std::pair<bool, std::string>> keys;
+  if (*lobj) {
+    v8::Local<v8::Array> props(lobj->GetPropertyNames());
+    for (size_t i = 0; i < props->Length(); i++) {
+      auto value = lobj->Get(props->Get(i));
+      bool is_func;
+      if (!value.IsEmpty()) {
+        if (value->IsFunction()) {
+          is_func = true;
+        } else if (value->IsObject() && value->ToObject()->IsCallable()) {
+          is_func = true;
+        } else {
+          is_func = false;
+        }
+        keys.push_back(
+            {is_func, *v8::String::Utf8Value(props->Get(i)->ToString())});
+      }
+    }
+  }
+  return keys;
 }
 
 v8::Isolate *JScript_context::isolate() const {

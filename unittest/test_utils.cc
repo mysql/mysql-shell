@@ -360,7 +360,7 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
   }
 }
 
-shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
+void Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
 
   std::string executed_input = makeblue("mysql---> " + _code);
@@ -370,11 +370,17 @@ shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
     std::cout << executed_input << std::endl;
 
   _interactive_shell->process_line(_code);
-
-  return _returned_value;
 }
 
-shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& code, const std::string& out, const std::string& err) {
+void Shell_core_test_wrapper::execute_noerr(const std::string& code) {
+  ASSERT_EQ("", output_handler.std_err);
+  execute(code);
+  ASSERT_EQ("", output_handler.std_err);
+}
+
+void Shell_core_test_wrapper::exec_and_out_equals(const std::string &code,
+                                                  const std::string &out,
+                                                  const std::string &err) {
   std::string expected_output(out);
   std::string expected_error(err);
 
@@ -384,7 +390,7 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& co
   if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode::Python && err.length())
     expected_error += "\n";
 
-  shcore::Value ret_val = execute(code);
+  execute(code);
 
   output_handler.std_out = str_strip(output_handler.std_out, " ");
   output_handler.std_err = str_strip(output_handler.std_err, " ");
@@ -398,12 +404,12 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& co
   }
 
   output_handler.wipe_all();
-
-  return ret_val;
 }
 
-shcore::Value Shell_core_test_wrapper::exec_and_out_contains(const std::string& code, const std::string& out, const std::string& err) {
-  shcore::Value ret_val = execute(code);
+void Shell_core_test_wrapper::exec_and_out_contains(const std::string &code,
+                                                    const std::string &out,
+                                                    const std::string &err) {
+  execute(code);
 
   if (out.length()) {
     SCOPED_TRACE("STDOUT missing: " + out);
@@ -418,8 +424,6 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_contains(const std::string& 
   }
 
   output_handler.wipe_all();
-
-  return ret_val;
 }
 
 void Crud_test_wrapper::set_functions(const std::string &functions) {

@@ -705,6 +705,22 @@ void Shell_command_handler::add_command(const std::string &triggers,
   }
 }
 
+std::vector<std::string> Shell_command_handler::get_command_names_matching(
+    const std::string &prefix) const {
+  std::vector<std::string> names;
+
+  for (auto cmd : _commands) {
+    std::vector<std::string> tokens;
+    tokens = split_string(cmd.triggers, "|", true);
+    if (!tokens.empty()) {
+      if (shcore::str_beginswith(tokens.front(), prefix)) {
+        names.push_back(tokens.front());
+      }
+    }
+  }
+  return names;
+}
+
 std::string Shell_command_handler::get_commands(const std::string &title) {
   // Gets the length of the longest command
   Command_list::iterator index, end = _commands.end();

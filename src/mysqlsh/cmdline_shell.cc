@@ -21,6 +21,8 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <limits>
+#include <memory>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -55,28 +57,48 @@ extern char *mysh_get_tty_password(const char *opt_message);
 
 namespace mysqlsh {
 
-Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> cmdline_options)
-    : mysqlsh::Mysql_shell(cmdline_options, &_delegate) {
-  _delegate.user_data = this;
-  _delegate.print = &Command_line_shell::deleg_print;
-  _delegate.print_error = &Command_line_shell::deleg_print_error;
-  _delegate.prompt = &Command_line_shell::deleg_prompt;
-  _delegate.password = &Command_line_shell::deleg_password;
-  _delegate.source = &Command_line_shell::deleg_source;
-  _delegate.print_value = nullptr;
+static Command_line_shell *g_instance = nullptr;
 
-  _refresh_needed = false;
+static void auto_complete(const char *text, int *start_index,
+                          linenoiseCompletions *completions) {
+  size_t completion_offset = *start_index;
+  std::vector<std::string> options(
+      g_instance->completer()->complete(
+          g_instance->shell_context()->interactive_mode(), text,
+          &completion_offset));
+
+  std::sort(options.begin(), options.end(),
+            [](const std::string &a, const std::string &b) -> bool {
+              return shcore::str_casecmp(a, b) < 0;
+            });
+  auto last = std::unique(options.begin(), options.end());
+  options.erase(last, options.end());
+
+  *start_index = completion_offset;
+  for (auto &i : options) {
+    linenoiseAddCompletion(completions, i.c_str());
+  }
+}
+
+Command_line_shell::Command_line_shell(
+    std::shared_ptr<Shell_options> cmdline_options,
+    std::unique_ptr<shcore::Interpreter_delegate> delegate)
+    : mysqlsh::Mysql_shell(cmdline_options, delegate.get()),
+      _delegate(std::move(delegate)) {
   _output_printed = false;
+
+  g_instance = this;
 
   observe_notification("SN_STATEMENT_EXECUTED");
 
   finish_init();
-  observe_notification("SN_SESSION_CONNECTED");
 
   _history.set_limit(std::min<int64_t>(options().history_max_size,
       std::numeric_limits<int>::max()));
 
   observe_notification(SN_SHELL_OPTION_CHANGED);
+
+  linenoiseSetCompletionCallback(auto_complete);
 
   const std::string cmd_help_history =
       "SYNTAX:\n"
@@ -95,6 +117,18 @@ Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> cmdline_op
       "exits.";
   SET_SHELL_COMMAND("\\history", "View and edit command line history.",
                     cmd_help_history, Command_line_shell::cmd_history);
+}
+
+Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
+    : Command_line_shell(options,
+                         std::unique_ptr<shcore::Interpreter_delegate>(
+                             new shcore::Interpreter_delegate{
+                                 this, &Command_line_shell::deleg_print,
+                                 &Command_line_shell::deleg_prompt,
+                                 &Command_line_shell::deleg_password,
+                                 &Command_line_shell::deleg_source,
+                                 nullptr,  // print_value
+                                 &Command_line_shell::deleg_print_error})) {
 }
 
 void Command_line_shell::load_prompt_theme(const std::string &path) {
@@ -251,9 +285,6 @@ std::string Command_line_shell::prompt() {
   } else {
     _prompt.set_is_continuing(false);
   }
-  if (_refresh_needed) {
-    _refresh_needed = false;
-  }
   if (_update_variables_pending > 0) {
     update_prompt_variables(_update_variables_pending > 1);
   }
@@ -275,7 +306,16 @@ char *Command_line_shell::readline(const char *prompt) {
       std::cout << all_lines << std::flush;
   }
 
-  return linenoise(prompt_line.c_str());
+  char *tmp = linenoise(prompt_line.c_str());
+  if (!tmp) {
+    switch (linenoiseKeyType()) {
+      case 1:  // ^C
+        return strdup(CTRL_C_STR);
+      case 2:  // ^D
+        return nullptr;
+    }
+  }
+  return tmp;
 }
 
 void Command_line_shell::handle_interrupt() {
@@ -400,7 +440,6 @@ void Command_line_shell::command_loop() {
             free(tmp);
           }
           if (_interrupted) {
-            println("^C");
             clear_input();
             _interrupted = false;
             continue;
@@ -500,8 +539,6 @@ void Command_line_shell::handle_notification(
         sql_safe_for_logging(executed)) {
       _history.add(executed);
     }
-  } else if (name == "SN_SESSION_CONNECTED") {
-    _refresh_needed = true;
   } else if (name == SN_SHELL_OPTION_CHANGED) {
     if (data->get_string("option") == SHCORE_HISTORY_MAX_SIZE) {
       _history.set_limit(data->get_int("value"));

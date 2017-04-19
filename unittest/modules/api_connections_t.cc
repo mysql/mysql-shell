@@ -143,7 +143,7 @@ class Api_connections : public Shell_js_script_tester {
         shcore::split_string(get_sandbox_path(), _path_splitter);
 
     if (path_components.back().empty())
-      path_components.erase(path_components.end());
+      path_components.pop_back();
     path_components.push_back(get_sandbox_classic_port());
 
     std::vector<std::string> cnf_path_components(path_components);

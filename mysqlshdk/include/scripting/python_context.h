@@ -171,6 +171,10 @@ public:
   Value execute_interactive(const std::string &code,
                             Input_state &r_state) noexcept;
 
+  std::vector<std::pair<bool, std::string>> list_globals();
+  static void get_members_of(
+      PyObject *object, std::vector<std::pair<bool, std::string>> *out_keys);
+
   bool is_module(const std::string& file_name);
   Value execute_module(const std::string& file_name, const std::vector<std::string> &argv);
 
@@ -180,6 +184,8 @@ public:
   Value get_global(const std::string &value);
   void set_global(const std::string &name, const Value &value);
   void set_global_item(const std::string &global_name, const std::string &item_name, const Value &value);
+
+  PyObject *get_global_py(const std::string &value);
 
   static void set_python_error(const shcore::Exception &exc, const std::string &location = "");
   static void set_python_error(const std::exception &exc, const std::string &location = "");

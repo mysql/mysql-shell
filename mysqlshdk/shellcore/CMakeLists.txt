@@ -23,6 +23,8 @@ include_directories(${CMAKE_SOURCE_DIR}) # <--- TODO: REMOVE (something's includ
 set(SHELLCORE_SOURCES
   base_shell.cc
   base_session.cc
+  completer.cc
+  provider_script.cc
   interrupt_handler.cc
   ishell_core.cc
   shell_core.cc
@@ -30,12 +32,14 @@ set(SHELLCORE_SOURCES
   shell_options.cc
   shell_resultset_dumper.cc
   shell_sql.cc
+  provider_sql.cc
   utils_help.cc)
 
 if(HAVE_V8)
   include_directories("${V8_INCLUDE_DIR}")
   set(SHELLCORE_SOURCES
         ${SHELLCORE_SOURCES}
+        provider_javascript.cc
         shell_jscript.cc)
 endif()
 
@@ -43,6 +47,7 @@ if(HAVE_PYTHON)
   include_directories("${PYTHON_INCLUDE_DIR}")
   set(SHELLCORE_SOURCES
         ${SHELLCORE_SOURCES}
+        provider_python.cc
         shell_python.cc)
 endif()
 

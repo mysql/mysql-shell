@@ -36,7 +36,7 @@ enum class Input_state {
 };
 
 enum class Prompt_result {
-  Cancel = 0,   // ^C
+  Cancel = 0,  // ^C
   Ok = 1,
   CTRL_D = -1  // EOF / Abort / Cancel
 };
@@ -50,7 +50,25 @@ struct TYPES_COMMON_PUBLIC Interpreter_delegate {
     source = nullptr;
     print_value = nullptr;
     print_error = nullptr;
-    print_error_code = nullptr;
+  }
+
+  Interpreter_delegate(
+      void *user_data, void (*print)(void *user_data, const char *text),
+      Prompt_result (*prompt)(void *user_data, const char *prompt,
+                              std::string *ret_input),
+      Prompt_result (*password)(void *user_data, const char *prompt,
+                                std::string *ret_password),
+      void (*source)(void *user_data, const char *module),
+      void (*print_value)(void *user_data, const shcore::Value &value,
+                          const char *tag),
+      void (*print_error)(void *user_data, const char *text)) {
+    this->user_data = user_data;
+    this->print = print;
+    this->prompt = prompt;
+    this->password = password;
+    this->source = source;
+    this->print_value = print_value;
+    this->print_error = print_error;
   }
 
   void *user_data;

@@ -26,10 +26,14 @@
 #include <utility>
 #include <vector>
 #include "modules/devapi/mod_mysqlx.h"
-#include "modules/mod_mysql.h"
-#include "modules/mod_shell.h"
-#include "modules/mod_mysql_session.h"
+#include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/mod_mysql.h"
+#include "modules/mod_mysql_session.h"
+#include "modules/mod_shell.h"
+#include "modules/mod_utils.h"
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/session.h"
 #include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"
@@ -40,13 +44,65 @@
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
-#include "modules/mod_utils.h"
-#include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/db/session.h"
 
 DEBUG_OBJ_ENABLE(Mysql_shell);
 
 namespace mysqlsh {
+
+class Shell_command_provider : public shcore::completer::Provider {
+ public:
+  explicit Shell_command_provider(Mysql_shell *shell) : shell_(shell) {
+  }
+
+  shcore::completer::Completion_list complete(const std::string &text,
+                                              size_t *compl_offset) {
+    shcore::completer::Completion_list options;
+    size_t cmdend;
+    if (text[0] == '\\' && (cmdend = text.find(' ')) != std::string::npos) {
+      // check if we're completing params for a \command
+
+      // keep it simple for now just and handle \command completions here...
+      options =
+          complete_command(text.substr(0, cmdend), text.substr(*compl_offset));
+    } else if ((*compl_offset > 0 && *compl_offset < text.length() &&
+                text[*compl_offset - 1] == '\\') ||
+               (*compl_offset == 0 && text.length() > 1 && text[0] == '\\')) {
+      // handle escape commands
+      if (*compl_offset > 0) {
+        // extend the completed string beyond the default, which will break
+        // on the \\ .. this requires that this provider be the 1st in the list
+        *compl_offset -= 1;
+      }
+      auto names = shell_->command_handler()->get_command_names_matching(
+          text.substr(*compl_offset));
+      std::copy(names.begin(), names.end(), std::back_inserter(options));
+    } else if (text == "\\") {
+      auto names = shell_->command_handler()->get_command_names_matching("");
+      if (*compl_offset > 0) {
+        // extend the completed string beyond the default, which will break
+        // on the \\ .. this requires that this provider be the 1st in the list
+        *compl_offset -= 1;
+      }
+      std::copy(names.begin(), names.end(), std::back_inserter(options));
+    }
+    return options;
+  }
+
+ private:
+  Mysql_shell *shell_;
+
+  shcore::completer::Completion_list complete_command(const std::string &cmd,
+                                                      const std::string &arg) {
+    if (cmd == "\\u" || cmd == "\\use") {
+      // complete schema names
+      auto provider = shell_->provider_sql();
+      assert(provider);
+      return provider->complete_schema(arg);
+    }
+
+    return {};
+  }
+};
 
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
@@ -54,8 +110,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   DEBUG_OBJ_ALLOC(Mysql_shell);
 
   // Registers the interactive objects if required
-  _global_shell =
-      std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
+  _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
   _global_js_sys =
       std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
   _global_dba =
@@ -101,6 +156,14 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
 
   set_sql_safe_for_logging(shell_options->get(SHCORE_HISTIGNORE).descr());
+  // completion provider for shell \commands (must be the 1st)
+  completer()->add_provider(shcore::IShell_core::Mode_mask::any(),
+                            std::unique_ptr<shcore::completer::Provider>(
+                                new Shell_command_provider(this)),
+                            true);
+
+  // Register custom auto-completion rules
+  add_devapi_completions();
 
   // clang-format off
   std::string cmd_help_connect =
@@ -142,6 +205,13 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
     "NOTE: This command works with the active session.\n"
     "If it is either an X protocol or a Classic session, the current schema will be updated (affects SQL mode).\n"
     "The global 'db' variable will be updated to hold the requested schema.\n";
+
+  std::string cmd_help_rehash =
+    "SYNTAX:\n"
+    "   \\rehash\n\n"
+    "Populate or refresh the schema object name cache used for SQL auto-completion and the DevAPI schema object.\n"
+    "A rehash is automatically done whenever the 'use' command is executed, unless the shell is started with --no-name-cache.\n"
+    "This may take a long time if you have many schemas or many objects in the default schema.\n";
   // clang-format on
 
   SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "",
@@ -149,7 +219,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_CUSTOM_SHELL_COMMAND(
       "\\sql", "Switch to SQL processing mode.", "",
       [this](const std::vector<std::string> &args) -> bool {
-        switch_shell_mode(shcore::Shell_core::Mode::SQL, args);
+        if (switch_shell_mode(shcore::Shell_core::Mode::SQL, args))
+          refresh_completion();
         return true;
       });
 #ifdef HAVE_V8
@@ -173,7 +244,9 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                     cmd_help_source, Mysql_shell::cmd_process_file);
   SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "",
                     Mysql_shell::cmd_start_multiline);
-  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "",
+  SET_SHELL_COMMAND("\\quit|\\q", "Quit MySQL Shell.", "",
+                    Mysql_shell::cmd_quit);
+  SET_SHELL_COMMAND("\\exit", "Exit MySQL Shell. Same as \\quit", "",
                     Mysql_shell::cmd_quit);
   SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect,
                     Mysql_shell::cmd_connect);
@@ -188,6 +261,9 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_SHELL_COMMAND("\\use|\\u",
                     "Set the current schema for the active session.",
                     cmd_help_use, Mysql_shell::cmd_use);
+  SET_SHELL_COMMAND("\\rehash",
+                    "Update the auto-completion cache with database names.",
+                    cmd_help_rehash, Mysql_shell::cmd_rehash);
 
   // clang-format off
   const std::string cmd_help_store_connection =
@@ -214,7 +290,6 @@ Mysql_shell::~Mysql_shell() {
   DEBUG_OBJ_DEALLOC(Mysql_shell);
 }
 
-
 static mysqlsh::SessionType get_session_type(
     const mysqlshdk::db::Connection_options &opt) {
   if (!opt.has_scheme()) {
@@ -226,7 +301,7 @@ static mysqlsh::SessionType get_session_type(
     else if (scheme == "mysql")
       return mysqlsh::SessionType::Classic;
     else
-      throw std::invalid_argument("Unknown MySQL URI type "+scheme);
+      throw std::invalid_argument("Unknown MySQL URI type " + scheme);
   }
 }
 
@@ -433,6 +508,13 @@ void Mysql_shell::connect(
     println(message);
   }
   _update_variables_pending = 2;
+
+  // Always refresh schema name completion cache because it can be used in \use
+  // in any mode
+  refresh_schema_completion();
+  if (_shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
+    refresh_completion();
+  }
 }
 
 bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {
@@ -486,8 +568,7 @@ bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {
     }
 
     // Inserts the default modules
-    if (shcore::IShell_core::all_scripting_modes().is_set(
-            interactive_mode())) {
+    if (shcore::IShell_core::all_scripting_modes().is_set(interactive_mode())) {
       global_names.push_back({"mysqlx", "mysqlx"});
       global_names.push_back({"mysql", "mysql"});
     }
@@ -582,9 +663,9 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
       try {
         connect(options.connection_options());
       } catch (shcore::Exception &e) {
-        print_error(std::string(e.format())+"\n");
+        print_error(std::string(e.format()) + "\n");
       } catch (std::exception &e) {
-        print_error(std::string(e.what())+"\n");
+        print_error(std::string(e.what()) + "\n");
       }
     }
   } else {
@@ -800,6 +881,7 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
           println(message);
 
           _update_variables_pending = 1;
+          refresh_completion();
         }
       } catch (shcore::Exception &e) {
         error = e.format();
@@ -809,13 +891,77 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
       }
     }
   } else {
-    error = "Not Connected.\n";
+    error = "Not connected.\n";
   }
 
   if (!error.empty())
     print_error(error);
 
   return true;
+}
+
+bool Mysql_shell::cmd_rehash(const std::vector<std::string> &args) {
+  if (_shell->get_dev_session()) {
+    refresh_schema_completion(true);
+    refresh_completion(true);
+
+    shcore::Value vdb(_shell->get_global("db"));
+    if (vdb) {
+      auto db(vdb.as_object<mysqlsh::mysqlx::Schema>());
+      if (db) {
+        db->update_cache();
+      }
+    }
+  } else {
+    println("Not connected.\n");
+  }
+  return true;
+}
+
+void Mysql_shell::refresh_schema_completion(bool force) {
+  if (options().db_name_cache || force) {
+    std::shared_ptr<mysqlsh::ShellBaseSession> session(
+        _shell->get_dev_session());
+    if (session && _provider_sql) {
+      println(
+          "Fetching schema names for autocompletion... "
+          "Press ^C to stop.");
+      try {
+        _provider_sql->refresh_schema_cache(session);
+      } catch (std::exception &e) {
+        print_error(
+            shcore::str_format(
+                "Error during auto-completion cache update: %s\n", e.what())
+                .c_str());
+      }
+    }
+  }
+}
+
+void Mysql_shell::refresh_completion(bool force) {
+  if (options().db_name_cache || force) {
+    std::shared_ptr<mysqlsh::ShellBaseSession> session(
+        _shell->get_dev_session());
+    std::string current_schema;
+    if (session && _provider_sql &&
+        !(current_schema = session->get_current_schema()).empty()) {
+      // Only refresh the full DB name cache if we're in SQL mode
+      if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
+        println("Fetching table and column names from `" + current_schema +
+                "` for auto-completion... Press ^C to stop.");
+        try {
+          _provider_sql->refresh_name_cache(session, current_schema,
+                                            nullptr,  // &table_names,
+                                            true);
+        } catch (std::exception &e) {
+          print_error(
+              shcore::str_format(
+                  "Error during auto-completion cache update: %s\n", e.what())
+                  .c_str());
+        }
+      }
+    }
+  }
 }
 
 bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
@@ -853,7 +999,7 @@ bool Mysql_shell::do_shell_command(const std::string &line) {
   // Special handling for use <db>, which in the classic client was overriden
   // as a built-in command and thus didn't need ; at the end
   if (options().interactive &&
-     _shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
+      _shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
     std::string tmp = shcore::str_rstrip(shcore::str_strip(line), ";");
     if (shcore::str_ibeginswith(tmp, "use ")) {
       return _shell_command_handler.process("\\" + tmp);
@@ -910,4 +1056,421 @@ void Mysql_shell::set_sql_safe_for_logging(const std::string &patterns) {
   g_patterns = shcore::split_string(patterns, ":");
 }
 
+void Mysql_shell::add_devapi_completions() {
+  std::shared_ptr<shcore::completer::Object_registry> registry(
+      completer_object_registry());
+
+  // These rules allow performing context-aware auto-completion
+  // They don't necessarily match 1:1 with real objects, they just
+  // represent possible productions in the chaining DevAPI syntax
+
+  // TODO(alfredo) add a meta-class system so that these can be determined
+  // dynamically/automatically
+
+  registry->add_completable_type(
+      "mysqlx", {{"getSession", "Session", true}});
+  registry->add_completable_type(
+      "mysql", {{"getClassicSession", "ClassicSession", true}});
+
+  registry->add_completable_type("Operation*", {{"execute", "Result", true}});
+  registry->add_completable_type(
+      "Bind*", {{"bind", "Bind*", true}, {"execute", "Result", true}});
+  registry->add_completable_type(
+      "SqlBind*", {{"bind", "SqlBind*", true}, {"execute", "SqlResult", true}});
+  registry->add_completable_type(
+      "SqlOperation*",
+      {{"bind", "SqlBind*", true}, {"execute", "SqlResult", true}});
+
+  registry->add_completable_type("Session",
+                                 {{"uri", "", false},
+                                  {"defaultSchema", "Schema", true},
+                                  {"currentSchema", "Schema", true},
+                                  {"close", "", true},
+                                  {"commit", "SqlResult", true},
+                                  {"createSchema", "Schema", true},
+                                  {"dropSchema", "", true},
+                                  {"getCurrentSchema", "Schema", true},
+                                  {"getDefaultSchema", "Schema", true},
+                                  {"getSchema", "Schema", true},
+                                  {"getSchemas", "", true},
+                                  {"getUri", "", true},
+                                  {"help", "", true},
+                                  {"isOpen", "", true},
+                                  {"quoteName", "", true},
+                                  {"rollback", "SqlResult", true},
+                                  {"setCurrentSchema", "Schema", true},
+                                  {"setFetchWarnings", "Result", true},
+                                  {"sql", "SqlOperation*", true},
+                                  {"startTransaction", "SqlResult", true}});
+
+  registry->add_completable_type("Schema",
+                                 {{"name", "name", false},
+                                  {"session", "session", false},
+                                  {"schema", "schema", false},
+                                  {"createCollection", "Collection", true},
+                                  {"dropCollection", "", true},
+                                  {"dropTable", "", true},
+                                  {"dropView", "", true},
+                                  {"existsInDatabase", "", true},
+                                  {"getCollection", "Collection", true},
+                                  {"getCollectionAsTable", "Table", true},
+                                  {"getCollections", "list", true},
+                                  {"getName", "string", true},
+                                  {"getSchema", "Schema", true},
+                                  {"getSession", "Session", true},
+                                  {"getTable", "Table", true},
+                                  {"getTables", "list", true},
+                                  {"help", "string", true}});
+
+  registry->add_completable_type("Collection",
+                                 {{"add", "CollectionAdd", true},
+                                  {"modify", "CollectionModify", true},
+                                  {"find", "CollectionFind", true},
+                                  {"remove", "CollectionRemove", true},
+                                  {"createIndex", "CollectionIndex*", true},
+                                  {"dropIndex", "", true},
+                                  {"existsInDatabase", "", true},
+                                  {"session", "Session", false},
+                                  {"schema", "Schema", false},
+                                  {"getSchema", "Schema", true},
+                                  {"getSession", "Session", true},
+                                  {"getName", "", true},
+                                  {"name", "", false},
+                                  {"help", "", true}});
+
+  registry->add_completable_type("CollectionIndex*", {{"field", "", true}});
+
+  registry->add_completable_type("CollectionFind",
+                                 {{"fields", "CollectionFind*fields", true},
+                                  {"groupBy", "CollectionFind*groupBy", true},
+                                  {"sort", "CollectionFind*sort", true},
+                                  {"limit", "CollectionFind*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "DocResult", true}});
+  registry->add_completable_type("CollectionFind*fields",
+                                 {{"groupBy", "CollectionFind*groupBy", true},
+                                  {"sort", "CollectionFind*sort", true},
+                                  {"limit", "CollectionFind*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "DocResult", true}});
+  registry->add_completable_type("CollectionFind*groupBy",
+                                 {{"having", "CollectionFind*having", true},
+                                  {"sort", "CollectionFind*sort", true},
+                                  {"limit", "CollectionFind*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "DocResult", true}});
+  registry->add_completable_type("CollectionFind*having",
+                                 {{"sort", "CollectionFind*sort", true},
+                                  {"limit", "CollectionFind*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "DocResult", true}});
+  registry->add_completable_type("CollectionFind*sort",
+                                 {{"limit", "CollectionFind*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "DocResult", true}});
+  registry->add_completable_type("CollectionFind*limit",
+                                 {{"skip", "CollectionFind*skip", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "DocResult", true}});
+  registry->add_completable_type("CollectionFind*skip",
+                                 {{"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "DocResult", true}});
+
+  registry->add_completable_type(
+      "CollectionAdd",
+      {{"add", "CollectionAdd", true}, {"execute", "Result", true}});
+
+  registry->add_completable_type("CollectionRemove",
+                                 {{"sort", "CollectionRemove*sort", true},
+                                  {"limit", "CollectionRemove*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type("CollectionRemove*sort",
+                                 {{"limit", "CollectionRemove*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type(
+      "CollectionRemove*limit",
+      {{"bind", "Bind*", true}, {"execute", "Result", true}});
+
+  registry->add_completable_type("CollectionModify",
+                                 {{"set", "CollectionModify*", true},
+                                  {"unset", "CollectionModify*", true},
+                                  {"merge", "CollectionModify*", true},
+                                  {"arrayInsert", "CollectionModify*", true},
+                                  {"arrayAppend", "CollectionModify*", true},
+                                  {"arrayDelete", "CollectionModify*", true}});
+
+  registry->add_completable_type("CollectionModify*",
+                                 {{"set", "CollectionModify*", true},
+                                  {"unset", "CollectionModify*", true},
+                                  {"merge", "CollectionModify*", true},
+                                  {"arrayInsert", "CollectionModify*", true},
+                                  {"arrayAppend", "CollectionModify*", true},
+                                  {"arrayDelete", "CollectionModify*", true},
+                                  {"sort", "CollectionModify*sort", true},
+                                  {"limit", "CollectionModify*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type("CollectionModify*sort",
+                                 {{"limit", "CollectionModify*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type(
+      "CollectionModify*limit",
+      {{"bind", "Bind*", true}, {"execute", "Result", true}});
+
+  // Table
+
+  registry->add_completable_type("Table", {{"select", "TableSelect", true},
+                                           {"update", "TableUpdate", true},
+                                           {"delete", "TableDelete", true},
+                                           {"insert", "TableInsert", true},
+                                           {"existsInDatabase", "", true},
+                                           {"session", "Session", false},
+                                           {"schema", "Schema", false},
+                                           {"getSchema", "Schema", true},
+                                           {"getSession", "Session", true},
+                                           {"getName", "", true},
+                                           {"isView", "", true},
+                                           {"name", "", false},
+                                           {"help", "", true}});
+
+  registry->add_completable_type("TableSelect",
+                                 {{"where", "TableSelect*where", true},
+                                  {"groupBy", "TableSelect*groupBy", true},
+                                  {"orderBy", "TableSelect*sort", true},
+                                  {"limit", "TableSelect*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "RowResult", true}});
+  registry->add_completable_type("TableSelect*where",
+                                 {{"groupBy", "TableSelect*groupBy", true},
+                                  {"orderBy", "TableSelect*sort", true},
+                                  {"limit", "TableSelect*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "RowResult", true}});
+  registry->add_completable_type("TableSelect*groupBy",
+                                 {{"having", "TableSelect*having", true},
+                                  {"orderBy", "TableSelect*sort", true},
+                                  {"limit", "TableSelect*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "RowResult", true}});
+  registry->add_completable_type("TableSelect*having",
+                                 {{"orderBy", "TableSelect*sort", true},
+                                  {"limit", "TableSelect*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "RowResult", true}});
+  registry->add_completable_type("TableSelect*sort",
+                                 {{"limit", "TableSelect*limit", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "RowResult", true}});
+  registry->add_completable_type("TableSelect*limit",
+                                 {{"offset", "TableSelect*skip", true},
+                                  {"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "RowResult", true}});
+  registry->add_completable_type("TableSelect*skip",
+                                 {{"lockShared", "Bind*", true},
+                                  {"lockExclusive", "Bind*", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "RowResult", true}});
+
+  registry->add_completable_type("TableInsert",
+                                 {{"values", "TableInsert*values", true}});
+
+  registry->add_completable_type(
+      "TableInsert*values",
+      {{"values", "TableInsert", true}, {"execute", "Result", true}});
+
+  registry->add_completable_type("TableDelete",
+                                 {{"where", "TableDelete*where", true},
+                                  {"orderBy", "TableDelete*sort", true},
+                                  {"limit", "TableDelete*limit", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type("TableDelete*where",
+                                 {{"orderBy", "TableDelete*sort", true},
+                                  {"limit", "TableDelete*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type("TableDelete*sort",
+                                 {{"limit", "TableDelete*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type(
+      "TableDelete*limit",
+      {{"bind", "Bind*", true}, {"execute", "Result", true}});
+
+  registry->add_completable_type("TableUpdate",
+                                 {{"set", "TableUpdate*set", true}});
+
+  registry->add_completable_type("TableUpdate*set",
+                                 {{"set", "TableUpdate*", true},
+                                  {"where", "TableUpdate*where", true},
+                                  {"orderBy", "TableUpdate*sort", true},
+                                  {"limit", "TableUpdate*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type("TableUpdate*where",
+                                 {{"orderBy", "TableUpdate*sort", true},
+                                  {"limit", "TableUpdate*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type("TableUpdate*sort",
+                                 {{"limit", "TableUpdate*limit", true},
+                                  {"bind", "Bind*", true},
+                                  {"execute", "Result", true}});
+
+  registry->add_completable_type(
+      "TableUpdate*limit",
+      {{"bind", "Bind*", true}, {"execute", "Result", true}});
+
+  // Results
+
+  registry->add_completable_type("DocResult", {{"fetchOne", "", true},
+                                               {"fetchAll", "", true},
+                                               {"help", "", true},
+                                               {"executionTime", "", false},
+                                               {"warningCount", "", false},
+                                               {"warnings", "", false},
+                                               {"getExecutionTime", "", true},
+                                               {"getWarningCount", "", true},
+                                               {"getWarnings", "", true}});
+
+  registry->add_completable_type("RowResult", {{"fetchOne", "Row", true},
+                                               {"fetchAll", "Row", true},
+                                               {"help", "", true},
+                                               {"columns", "", false},
+                                               {"columnCount", "", false},
+                                               {"columnNames", "", false},
+                                               {"getColumns", "", true},
+                                               {"getColumnCount", "", true},
+                                               {"getColumnNames", "", true},
+                                               {"executionTime", "", false},
+                                               {"warningCount", "", false},
+                                               {"warnings", "", false},
+                                               {"getExecutionTime", "", true},
+                                               {"getWarningCount", "", true},
+                                               {"getWarnings", "", true}});
+
+  registry->add_completable_type("Result", {{"executionTime", "", false},
+                                            {"warningCount", "", false},
+                                            {"warnings", "", false},
+                                            {"affectedItemCount", "", false},
+                                            {"autoIncrementValue", "", false},
+                                            {"lastDocumentId", "", false},
+                                            {"lastDocumentIds", "", false},
+                                            {"getAffectedItemCount", "", true},
+                                            {"getAutoIncrementValue", "", true},
+                                            {"getExecutionTime", "", true},
+                                            {"getLastDocumentId", "", true},
+                                            {"getLastDocumentIds", "", true},
+                                            {"getWarningCount", "", true},
+                                            {"getWarnings", "", true},
+                                            {"help", "", true}});
+
+  registry->add_completable_type("SqlResult",
+                                 {{"executionTime", "", true},
+                                  {"warningCount", "", true},
+                                  {"warnings", "", true},
+                                  {"columnCount", "", true},
+                                  {"columns", "", true},
+                                  {"columnNames", "", true},
+                                  {"autoIncrementValue", "", false},
+                                  {"affectedRowCount", "", false},
+                                  {"fetchAll", "", true},
+                                  {"fetchOne", "", true},
+                                  {"getAffectedRowCount", "", true},
+                                  {"getAutoIncrementValue", "", true},
+                                  {"getColumnCount", "", true},
+                                  {"getColumnNames", "", true},
+                                  {"getColumns", "", true},
+                                  {"getExecutionTime", "", true},
+                                  {"getWarningCount", "", true},
+                                  {"getWarnings", "", true},
+                                  {"hasData", "", true},
+                                  {"help", "", true},
+                                  {"nextDataSet", "", true}});
+
+  // ===
+  registry->add_completable_type("ClassicSession",
+                                 {{"close", "", true},
+                                  {"commit", "ClassicResult", true},
+                                  {"createSchema", "", true},
+                                  {"currentSchema", "", true},
+                                  {"defaultSchema", "", true},
+                                  {"dropSchema", "", true},
+                                  {"dropTable", "", true},
+                                  {"dropView", "", true},
+                                  {"getCurrentSchema", "", true},
+                                  {"getDefaultSchema", "", true},
+                                  {"getSchema", "", true},
+                                  {"getSchemas", "", true},
+                                  {"getUri", "", true},
+                                  {"help", "", true},
+                                  {"isOpen", "", true},
+                                  {"rollback", "ClassicResult", true},
+                                  {"runSql", "ClassicResult", true},
+                                  {"setCurrentSchema", "", true},
+                                  {"startTransaction", "ClassicResult", true},
+                                  {"uri", "", false}});
+
+  registry->add_completable_type("ClassicResult",
+                                 {{"executionTime", "", true},
+                                  {"warningCount", "", true},
+                                  {"warnings", "", true},
+                                  {"columnCount", "", true},
+                                  {"columns", "", true},
+                                  {"columnNames", "", true},
+                                  {"autoIncrementValue", "", false},
+                                  {"affectedRowCount", "", true},
+                                  {"fetchAll", "", true},
+                                  {"fetchOne", "", true},
+                                  {"getAffectedRowCount", "", true},
+                                  {"getAutoIncrementValue", "", true},
+                                  {"getColumnCount", "", true},
+                                  {"getColumnNames", "", true},
+                                  {"getColumns", "", true},
+                                  {"getExecutionTime", "", true},
+                                  {"getWarningCount", "", true},
+                                  {"getWarnings", "", true},
+                                  {"getInfo", "", true},
+                                  {"info", "", false},
+                                  {"hasData", "", true},
+                                  {"help", "", true},
+                                  {"nextDataSet", "", true}});
+}
 }  // namespace mysqlsh

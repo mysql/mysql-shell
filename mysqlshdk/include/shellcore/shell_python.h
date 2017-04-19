@@ -28,7 +28,6 @@ class Python_context;
 class Shell_python : public Shell_language {
 public:
   Shell_python(Shell_core *shcore);
-  virtual ~Shell_python();
 
   virtual void set_global(const std::string &name, const Value &value);
 
@@ -37,6 +36,9 @@ public:
 
   virtual bool is_module(const std::string& file_name);
   virtual void execute_module(const std::string& file_name, std::function<void(shcore::Value)> result_processor);
+
+  std::shared_ptr<Python_context> python_context() { return _py; }
+
 private:
   static int check_signals(void *);
   std::shared_ptr<Python_context> _py;

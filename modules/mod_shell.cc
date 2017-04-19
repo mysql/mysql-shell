@@ -111,6 +111,15 @@ REGISTER_HELP(\
 REGISTER_HELP(\
     SHELL_OPTIONS_DETAIL14, \
     "@li vertical: displays the outputs vertically, one line per column value");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL15,
+              "@li " SHCORE_DB_NAME_CACHE \
+              ": true if auto-refresh of DB object name cache is "\
+              "enabled. The \\rehash command can be used for manual refresh");
+REGISTER_HELP(
+    SHELL_OPTIONS_DETAIL16,
+    "@li " SHCORE_DEVAPI_DB_OBJECT_HANDLES\
+    ": true to enable schema collection and table name aliases in the db "\
+    "object, for DevAPI operations.");
 
 /**
  * $(SHELL_OPTIONS_BRIEF)
@@ -128,6 +137,10 @@ REGISTER_HELP(\
  * $(SHELL_OPTIONS_DETAIL10)
  * $(SHELL_OPTIONS_DETAIL11)
  * $(SHELL_OPTIONS_DETAIL12)
+ * $(SHELL_OPTIONS_DETAIL13)
+ * $(SHELL_OPTIONS_DETAIL14)
+ * $(SHELL_OPTIONS_DETAIL15)
+ * $(SHELL_OPTIONS_DETAIL16)
  */
 #if DOXYGEN_JS
 Dictionary Shell::options;

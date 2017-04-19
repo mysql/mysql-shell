@@ -30,6 +30,14 @@
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_time.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#ifdef HAVE_V8
+#include "shellcore/shell_jscript.h"
+#include "mysqlshdk/shellcore/provider_javascript.h"
+#endif
+#ifdef HAVE_PYTHON
+#include "shellcore/shell_python.h"
+#include "mysqlshdk/shellcore/provider_python.h"
+#endif
 
 namespace mysqlsh {
 
@@ -53,9 +61,8 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
     shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("table"));
 
   _shell.reset(new shcore::Shell_core(custom_delegate));
+  _completer_object_registry.reset(new shcore::completer::Object_registry());
 
-  bool lang_initialized;
-  _shell->switch_mode(shell_options->get().initial_mode, lang_initialized);
   _update_variables_pending = 1;
 
   _result_processor = std::bind(&Base_shell::process_result, this, _1);
@@ -66,6 +73,14 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
 }
 
 void Base_shell::finish_init() {
+  // Final initialization that must happen outside the constructor
+  switch_shell_mode(shell_options->get().initial_mode, {}, true);
+
+  // Pre-init the SQL completer, since it's used in places other than SQL mode
+  _provider_sql.reset(new shcore::completer::Provider_sql());
+  _completer.add_provider(
+      shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::SQL),
+      _provider_sql);
   load_default_modules(_shell->interactive_mode());
   init_scripts(_shell->interactive_mode());
 }
@@ -117,9 +132,9 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
     // Checks existence of startup script at MYSQLSH_HOME
     // Or the binary location if not a standard installation
     path = shcore::get_mysqlx_home_path();
-    if (!path.empty())
+    if (!path.empty()) {
       path.append("/share/mysqlsh/mysqlshrc");
-    else {
+    } else {
       path = shcore::get_binary_folder();
       path.append("/mysqlshrc");
     }
@@ -134,7 +149,8 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
     if (shcore::file_exists(path))
       scripts_paths.push_back(path);
 
-    for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i) {
+    for (std::vector<std::string>::iterator i = scripts_paths.begin();
+         i != scripts_paths.end(); ++i) {
       std::ifstream stream(*i);
       if (stream && stream.peek() != std::ifstream::traits_type::eof())
         process_file(*i, {*i});
@@ -216,7 +232,7 @@ void Base_shell::update_prompt_variables(bool reconnected) {
 
       _prompt_variables["ssl"] = session->get_ssl_cipher().empty() ? "" : "SSL";
       _prompt_variables["uri"] =
-          session->uri(mysqlshdk::db::uri::formats::scheme_user_transport());
+          session->uri(mysqlshdk::db::uri::formats::user_transport());
       _prompt_variables["user"] = options.has_user() ? options.get_user() : "";
       _prompt_variables["host"] =
           options.has_host() ? options.get_host() : "localhost";
@@ -281,7 +297,10 @@ void Base_shell::update_prompt_variables(bool reconnected) {
   }
 }
 
-bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args)) {
+bool Base_shell::switch_shell_mode(
+    shcore::Shell_core::Mode mode,
+    const std::vector<std::string> &/*args*/,
+    bool initializing) {
   shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
   bool lang_initialized = false;
 
@@ -293,21 +312,40 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
       case shcore::Shell_core::Mode::None:
         break;
       case shcore::Shell_core::Mode::SQL:
-        if (_shell->switch_mode(mode, lang_initialized))
+        if (_shell->switch_mode(mode, lang_initialized) && !initializing)
           println("Switching to SQL mode... Commands end with ;");
         break;
       case shcore::Shell_core::Mode::JavaScript:
 #ifdef HAVE_V8
-        if (_shell->switch_mode(mode, lang_initialized))
+        if (_shell->switch_mode(mode, lang_initialized) && !initializing)
           println("Switching to JavaScript mode...");
+        if (lang_initialized) {
+          auto js = static_cast<shcore::Shell_javascript *>(
+              _shell->language_object(mode));
+          _completer.add_provider(
+              shcore::IShell_core::Mode_mask(
+                  shcore::IShell_core::Mode::JavaScript),
+              std::unique_ptr<shcore::completer::Provider>(
+                  new shcore::completer::Provider_javascript(
+                      _completer_object_registry, js->javascript_context())));
+        }
 #else
         println("JavaScript mode is not supported, command ignored.");
 #endif
         break;
       case shcore::Shell_core::Mode::Python:
 #ifdef HAVE_PYTHON
-        if (_shell->switch_mode(mode, lang_initialized))
+        if (_shell->switch_mode(mode, lang_initialized) && !initializing)
           println("Switching to Python mode...");
+        if (lang_initialized) {
+          auto py = static_cast<shcore::Shell_python *>(
+              _shell->language_object(mode));
+          _completer.add_provider(
+              shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::Python),
+              std::unique_ptr<shcore::completer::Provider>(
+                  new shcore::completer::Provider_python(
+                      _completer_object_registry, py->python_context())));
+        }
 #else
         println("Python mode is not supported, command ignored.");
 #endif
@@ -323,7 +361,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
 
   _update_variables_pending = 1;
 
-  return true;
+  return lang_initialized;
 }
 
 void Base_shell::println(const std::string &str) {
@@ -347,7 +385,8 @@ void Base_shell::process_line(const std::string &line) {
   if (!_input_buffer.empty())
     _input_buffer.append("\n");
 
-  if (_input_mode != shcore::Input_state::ContinuedBlock && !_input_buffer.empty()) {
+  if (_input_mode != shcore::Input_state::ContinuedBlock &&
+      !_input_buffer.empty()) {
     try {
       _shell->handle_input(_input_buffer, _input_mode, _result_processor);
 
@@ -518,4 +557,4 @@ void Base_shell::set_global_object(
     _shell->set_global(name, shcore::Value(), modes);
   }
 }
-}
+}  // namespace mysqlsh

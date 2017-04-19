@@ -33,8 +33,6 @@ void SHCORE_PUBLIC set_color_capability(Color_capability cap);
 
 void SHCORE_PUBLIC cls();
 
-std::string SHCORE_PUBLIC escape_text(const std::string &text);
-
 bool SHCORE_PUBLIC parse_rgb(const std::string &color, uint8_t rgb[3]);
 int SHCORE_PUBLIC parse_color_set(const std::string &color_spec,
                                   uint8_t *color_16, uint8_t *color_256,

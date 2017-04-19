@@ -36,6 +36,7 @@
 
 #include "mysqlshdk/libs/utils/logger.h"
 #include "shellcore/utils_help.h"
+#include "shellcore/base_shell.h"  // for options
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "utils/utils_sqlstring.h"
@@ -121,28 +122,34 @@ void Schema::init() {
 
   update_table_cache = [table_generator, this](const std::string &name,
                                                bool exists) {
-    DatabaseObject::update_cache(name, table_generator, exists, _tables, this);
+    DatabaseObject::update_cache(name, table_generator, exists, _tables,
+                                 use_object_handles() ? this : nullptr);
   };
   update_view_cache = [view_generator, this](const std::string &name,
                                              bool exists) {
-    DatabaseObject::update_cache(name, view_generator, exists, _views, this);
+    DatabaseObject::update_cache(name, view_generator, exists, _views,
+                                 use_object_handles() ? this : nullptr);
   };
   update_collection_cache = [collection_generator, this](
-      const std::string &name, bool exists) {
+                                const std::string &name, bool exists) {
     DatabaseObject::update_cache(name, collection_generator, exists,
-                                 _collections, this);
+                                 _collections,
+                                 use_object_handles() ? this : nullptr);
   };
 
   update_full_table_cache = [table_generator,
                              this](const std::vector<std::string> &names) {
+    _using_object_handles = true;
     DatabaseObject::update_cache(names, table_generator, _tables, this);
   };
   update_full_view_cache = [view_generator,
                             this](const std::vector<std::string> &names) {
+    _using_object_handles = true;
     DatabaseObject::update_cache(names, view_generator, _views, this);
   };
   update_full_collection_cache = [collection_generator,
                                   this](const std::vector<std::string> &names) {
+    _using_object_handles = true;
     DatabaseObject::update_cache(names, collection_generator, _collections,
                                  this);
   };
@@ -209,11 +216,26 @@ void Schema::_remove_object(const std::string &name, const std::string &type) {
   }
 }
 
+bool Schema::use_object_handles() const {
+  return Base_shell::options().devapi_schema_object_handles;
+}
+
+std::vector<std::string> Schema::get_members() const {
+  // Flush the cache if we have it populated but it got disabled
+  if (!use_object_handles() && _using_object_handles) {
+    _using_object_handles = false;
+    flush_cache(_views, const_cast<Schema*>(this));
+    flush_cache(_tables, const_cast<Schema*>(this));
+    flush_cache(_collections, const_cast<Schema*>(this));
+  }
+  return DatabaseObject::get_members();
+}
+
 Value Schema::get_member(const std::string &prop) const {
   Value ret_val;
 
   // Only checks the cache if the requested member is not a base one
-  if (!is_base_member(prop)) {
+  if (!is_base_member(prop) && use_object_handles()) {
     // Searches prop as  a table
     ret_val = find_in_cache(prop, _tables);
 
@@ -268,7 +290,8 @@ list Schema::get_tables() {}
 shcore::Value Schema::get_tables(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getTables").c_str());
 
-  update_cache();
+  if (use_object_handles())
+    update_cache();
 
   shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
 
@@ -314,7 +337,8 @@ list Schema::get_collections() {}
 shcore::Value Schema::get_collections(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getCollections").c_str());
 
-  update_cache();
+  if (use_object_handles())
+    update_cache();
 
   shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
 
@@ -662,4 +686,3 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
 
   return shcore::Value();
 }
-

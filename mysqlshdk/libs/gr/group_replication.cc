@@ -407,22 +407,8 @@ void stop_group_replication(const mysqlshdk::mysql::IInstance &instance) {
  * @return A string with a new UUID to be used for the group name.
  */
 std::string generate_group_name() {
-  // Generate a random seed for the UUID generator to be used instead of the
-  // "hardware MAC address" in case it cannot be found.
-  // NOTE: Use the Mersenne Twister pseudo-random generator to create a random
-  //       seed number according to a uniform distribution.
-  std::random_device rd_seed;
-  std::mt19937 rnd_gen(rd_seed());
-  std::uniform_int_distribution<uint64_t> uni_dist(
-      0, std::numeric_limits<uint64_t>::max());
-  uint64_t seed = uni_dist(rnd_gen);
-
   // Generate a UUID.
-  init_uuid(seed);
-  std::string uuid = get_string_uuid();
-  end_uuid();
-
-  return uuid;
+  return get_string_uuid();
 }
 
 /**

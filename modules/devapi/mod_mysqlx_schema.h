@@ -61,6 +61,7 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
 
   virtual std::string class_name() const { return "Schema"; }
 
+  virtual std::vector<std::string> get_members() const;
   virtual shcore::Value get_member(const std::string &prop) const;
 
   virtual void update_cache();
@@ -103,8 +104,10 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
   shcore::Value create_collection(const shcore::Argument_list &args);
   shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string &type);
 
-private:
+ private:
   void init();
+  bool use_object_handles() const;
+  mutable bool _using_object_handles = false;
 
   // Object cache
   std::shared_ptr<shcore::Value::Map_type> _tables;
