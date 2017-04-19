@@ -23,6 +23,7 @@ add_subdirectory(libs/utils)
 add_subdirectory(libs/db)
 add_subdirectory(scripting)
 add_subdirectory(shellcore)
+add_subdirectory(libs/mysql)
 
 #TODO: ADD_VERSION_INFO
 #merge_libraries(mysqlshdk SHARED
@@ -34,6 +35,7 @@ add_subdirectory(shellcore)
 merge_libraries(mysqlshdk-static STATIC
     utils
     db
+    mysql
     scripting
     shellcore NOINSTALL)
 

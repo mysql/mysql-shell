@@ -35,7 +35,7 @@ if(WITH_TESTS)
 
     file(GLOB mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/mocks/mysqlshdk/libs/db/*.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/instance/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/mysql/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/db/mysql_session_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/utils/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"

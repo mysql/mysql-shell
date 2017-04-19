@@ -17,13 +17,14 @@
  * 02110-1301  USA
  */
 
-#ifndef _UNITTEST_MOCKS_CORELIBS_DB_MOCK_SESSION_H
-#define _UNITTEST_MOCKS_CORELIBS_DB_MOCK_SESSION_H
+#ifndef UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_SESSION_H_
+#define UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_SESSION_H_
+
+#include <memory>
+#include <string>
 
 #include "mysqlshdk/libs/db/session.h"
-
 #include "mocks/gmock_clean.h"
-#include <memory>
 
 namespace testing {
 /**
@@ -33,26 +34,39 @@ namespace testing {
  *
  * auto sresult = result.add_result("@@server_id", {MYSQL_TYPE_INT24});
  * auto row = sresult->add_row("1");
- * EXPECT_CALL(session, query("SELECT @@server_id", false)).WillOnce(Return(&result));
+ * EXPECT_CALL(session, query("SELECT @@server_id",
+ * false)).WillOnce(Return(&result));
  *
  * Where:
  *   - First parameter is this session object
- *   - Second parameter is the function and parameters that is expected to be called
- *   - After closing the EXPECT_CALL() some actions can be defined to return specific results
- *     Keep in mind that the returned data must match the return type of the function called
+ *   - Second parameter is the function and parameters that is expected to be
+ * called - After closing the EXPECT_CALL() some actions can be defined to
+ * return specific results Keep in mind that the returned data must match the
+ * return type of the function called
  *
  * Look at Mock_result to see how to to create a fake result to be returned.
  */
 class Mock_session : public mysqlshdk::db::ISession {
-public:
-  MOCK_METHOD2(connect, void(const std::string& URI, const char *password));
-  MOCK_METHOD7(connect, void(const std::string &host, int port, const std::string &socket,
-                              const std::string &user, const std::string &password, const std::string &schema,
-                              const mysqlshdk::utils::Ssl_info& ssl_info));
+ public:
+  Mock_session() : _throw_on_query(false) {}
+  MOCK_METHOD2(connect, void(const std::string &URI, const char *password));
+  MOCK_METHOD7(connect,
+               void(const std::string &host, int port,
+                    const std::string &socket, const std::string &user,
+                    const std::string &password, const std::string &schema,
+                    const mysqlshdk::utils::Ssl_info &ssl_info));
 
   // Execution
-  virtual std::unique_ptr<mysqlshdk::db::IResult> query(const std::string& sql, bool buffered) { return std::move(_result); }
-  MOCK_METHOD1(execute, void(const std::string& sql));
+  virtual std::unique_ptr<mysqlshdk::db::IResult> query(const std::string &sql,
+                                                        bool buffered) {
+    if (_throw_on_query) {
+      throw std::runtime_error("Error executing session.query");
+      _throw_on_query = false;
+    }
+
+    return std::move(_result);
+  }
+  MOCK_METHOD1(execute, void(const std::string &sql));
   MOCK_METHOD0(start_transaction, void());
   MOCK_METHOD0(commit, void());
   MOCK_METHOD0(rollback, void());
@@ -64,14 +78,12 @@ public:
   void set_result(mysqlshdk::db::IResult *result);
 
   // Exception Simulation
-  static mysqlshdk::db::IResult* throw_exception_on_sql() {
-    throw std::runtime_error("Exception while executing SQL");
-    return nullptr;
-  }
+  mysqlshdk::db::IResult *throw_exception_on_query() { _throw_on_query = true; }
 
-private:
+ private:
   std::unique_ptr<mysqlshdk::db::IResult> _result;
+  bool _throw_on_query;
 };
-}
+}  // namespace testing
 
-#endif // MOCK_SESSION_H
+#endif  // UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_SESSION_H_
