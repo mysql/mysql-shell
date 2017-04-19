@@ -51,7 +51,7 @@ class SHCORE_PUBLIC Mock_record {
       _instance = new Mock_record();
 
     return _instance->_file;
-  };
+  }
 };
 
 /**

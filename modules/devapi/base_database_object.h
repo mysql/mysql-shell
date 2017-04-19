@@ -114,6 +114,7 @@ class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
       const std::string &name,
       const std::function<shcore::Value(const std::string &name)> &generator,
       bool exists, Cache target_cache, DatabaseObject *target = NULL);
+  static void flush_cache(Cache target_cache, DatabaseObject *target = NULL);
   static void get_object_list(Cache target_cache,
                               shcore::Value::Array_type_ref list);
   static shcore::Value find_in_cache(const std::string &name,

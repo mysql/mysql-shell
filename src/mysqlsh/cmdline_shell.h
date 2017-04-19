@@ -40,7 +40,11 @@ namespace mysqlsh {
 class Command_line_shell : public Mysql_shell,
                            public shcore::NotificationObserver {
  public:
-  explicit Command_line_shell(std::shared_ptr<Shell_options> cmdline_options);
+  explicit Command_line_shell(std::shared_ptr<Shell_options> options);
+
+  Command_line_shell(std::shared_ptr<Shell_options> options,
+                     std::unique_ptr<shcore::Interpreter_delegate> delegate);
+
   void print_banner();
   void command_loop();
 
@@ -69,10 +73,9 @@ class Command_line_shell : public Mysql_shell,
   bool cmd_history(const std::vector<std::string> &args);
 
  private:
-  shcore::Interpreter_delegate _delegate;
+  std::unique_ptr<shcore::Interpreter_delegate> _delegate;
   Prompt_manager _prompt;
   bool _output_printed;
-  bool _refresh_needed;
 
   static char *readline(const char *prompt);
 

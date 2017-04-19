@@ -34,6 +34,9 @@
 #define SHCORE_HISTIGNORE "history.sql.ignorePattern"
 #define SHCORE_HISTORY_AUTOSAVE "history.autoSave"
 
+#define SHCORE_DB_NAME_CACHE "autocomplete.nameCache"
+#define SHCORE_DEVAPI_DB_OBJECT_HANDLES "devapi.dbObjectHandles"
+
 #include <stdlib.h>
 #include <iostream>
 #include <string>
@@ -85,6 +88,9 @@ class Shell_options : protected shcore::Options {
     bool show_warnings;
     bool trace_protocol;
     bool log_to_stderr;
+    bool devapi_schema_object_handles;
+    bool db_name_cache;
+    bool db_name_cache_set = false;
     std::string execute_statement;
     std::string execute_dba_statement;
     std::string sandbox_directory;
@@ -126,6 +132,10 @@ class Shell_options : protected shcore::Options {
 
   void set_wizards(bool value) {
     storage.wizards = value;
+  }
+
+  void set_db_name_cache(bool value) {
+    storage.db_name_cache = value;
   }
 
   std::vector<std::string> get_details() {

@@ -88,7 +88,7 @@ class Options_test : public Shell_core_test_wrapper, public Options {
 };
 
 TEST_F(Options_test, basic_type_validation) {
-  bool resb;
+  bool resb = false;
 
   // Boolean
   EXPECT_THROW(Basic_type<bool>()("foo", Source::User), std::invalid_argument);

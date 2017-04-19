@@ -578,7 +578,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_deprecated_options) {
 
 TEST_F(Interactive_shell_test, shell_command_use) {
   execute("\\use mysql");
-  MY_EXPECT_STDERR_CONTAINS("Not Connected.");
+  MY_EXPECT_STDERR_CONTAINS("Not connected.");
   output_handler.wipe_all();
 
   execute("\\connect " + _uri);
@@ -647,6 +647,77 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   execute("session.close()");
 }
 
+TEST_F(Interactive_shell_test, shell_command_sql_use) {
+  _options->interactive = true;
+  _options->db_name_cache = true;
+  reset_shell();
+  // check that SQL use command is overriden and will trigger
+  // internal actions, like updating the completion cache and setting the db
+  // variable
+  execute("\\sql");
+  output_handler.wipe_all();
+
+  execute("use mysql");
+  MY_EXPECT_STDERR_CONTAINS("Not connected.");
+  output_handler.wipe_all();
+
+  execute("use mysql;");
+  MY_EXPECT_STDERR_CONTAINS("Not connected.");
+  output_handler.wipe_all();
+
+  execute("\\connect " + _uri);
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
+  output_handler.wipe_all();
+
+  execute("use mysql");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching table and column names from `mysql` for auto-completion...");
+  output_handler.wipe_all();
+
+  execute("use mysql;");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching table and column names from `mysql` for auto-completion...");
+  output_handler.wipe_all();
+
+  execute("\\js");
+  output_handler.wipe_all();
+  execute("db");
+  EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
+  execute("\\sql");
+  output_handler.wipe_all();
+
+  execute("use unexisting");
+  MY_EXPECT_STDERR_CONTAINS("Unknown database 'unexisting'");
+  output_handler.wipe_all();
+
+  execute("use unexisting;");
+  MY_EXPECT_STDERR_CONTAINS("Unknown database 'unexisting'");
+  output_handler.wipe_all();
+
+  execute("\\connect -mx " + _uri);
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
+  output_handler.wipe_all();
+
+  execute("use mysql");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+  output_handler.wipe_all();
+
+  execute("\\connect -mc " + _mysql_uri);
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
+  output_handler.wipe_all();
+
+  execute("use mysql");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching table and column names from `mysql` for auto-completion...");
+  output_handler.wipe_all();
+}
+
 TEST_F(Interactive_shell_test, shell_command_warnings) {
   _options->interactive = true;
   reset_shell();
@@ -675,30 +746,31 @@ TEST_F(Interactive_shell_test, shell_command_help_js) {
   // Cleanup for the test
   execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Commands =====");
-  MY_EXPECT_STDOUT_CONTAINS("\\help       (\\?,\\h)    Print this help.");
+  MY_EXPECT_STDOUT_CONTAINS("\\help       (\\?,\\h) Print this help.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\sql                   Switch to SQL processing mode.");
+      "\\sql                Switch to SQL processing mode.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\js                    Switch to JavaScript processing mode.");
+      "\\js                 Switch to JavaScript processing mode.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\py                    Switch to Python processing mode.");
+      "\\py                 Switch to Python processing mode.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\source     (\\.)       Execute a script file. Takes a file name as an "
+      "\\source     (\\.)    Execute a script file. Takes a file name as an "
       "argument.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\                      Start multi-line input when in SQL mode.");
-  MY_EXPECT_STDOUT_CONTAINS("\\quit       (\\q,\\exit) Quit MySQL Shell.");
-  MY_EXPECT_STDOUT_CONTAINS("\\connect    (\\c)       Connect to a server.");
+      "\\                   Start multi-line input when in SQL mode.");
+  MY_EXPECT_STDOUT_CONTAINS("\\quit       (\\q)    Quit MySQL Shell.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\warnings   (\\W)       Show warnings after every statement.");
+      "\\exit               Exit MySQL Shell. Same as \\quit");
+  MY_EXPECT_STDOUT_CONTAINS("\\connect    (\\c)    Connect to a server.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\nowarnings (\\w)       Don't show warnings after every statement.");
+      "\\warnings   (\\W)    Show warnings after every statement.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\status     (\\s)       Print information about the current global "
+      "\\nowarnings (\\w)    Don't show warnings after every statement.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\status     (\\s)    Print information about the current global "
       "connection.");
   MY_EXPECT_STDOUT_CONTAINS(
-      "\\use        (\\u)       Set the current schema for the active "
-      "session.");
+      "\\use        (\\u)    Set the current schema for the active session.");
   MY_EXPECT_STDOUT_CONTAINS(
       "For help on a specific command use the command as \\? <command>");
 

@@ -190,14 +190,16 @@ PyObject *Python_context::get_shell_python_support_module() {
 }
 
 void Python_context::set_argv(const std::vector<std::string> &argv) {
-  std::vector<const char *> argvv;
+  if (!argv.empty()) {
+    std::vector<const char *> argvv;
 
-  for (const std::string &s : argv)
-    argvv.push_back(s.c_str());
+    for (const std::string &s : argv)
+      argvv.push_back(s.c_str());
 
-  argvv.push_back(nullptr);
+    argvv.push_back(nullptr);
 
-  PySys_SetArgv(argv.size(), const_cast<char **>(argvv.data()));
+    PySys_SetArgv(argv.size(), const_cast<char **>(argvv.data()));
+  }
 }
 
 Value Python_context::execute(
@@ -315,12 +317,59 @@ Value Python_context::execute_interactive(
   return Value::Null();
 }
 
+void Python_context::get_members_of(
+    PyObject *object, std::vector<std::pair<bool, std::string>> *out_keys) {
+  PyObject *members = PyObject_Dir(object);
+
+  if (members && PySequence_Check(members)) {
+    for (int i = 0, c = PySequence_Size(members); i < c; i++) {
+      PyObject *m = PySequence_ITEM(members, i);
+      if (m && PyString_Check(m)) {
+        const char *s = PyString_AsString(m);
+        if (*s != '_') {
+          PyObject *mem = PyObject_GetAttrString(object, s);
+          out_keys->push_back(std::make_pair(PyCallable_Check(mem), s));
+          Py_XDECREF(mem);
+        }
+      }
+      Py_XDECREF(m);
+    }
+  }
+  Py_XDECREF(members);
+}
+
+std::vector<std::pair<bool, std::string>> Python_context::list_globals() {
+  std::vector<std::pair<bool, std::string>> keys;
+  WillEnterPython lock;
+  Py_ssize_t pos = 0;
+  PyObject *key;
+  PyObject *obj;
+
+  while (PyDict_Next(_globals, &pos, &key, &obj)) {
+    keys.push_back(
+        std::make_pair(PyCallable_Check(obj), PyString_AsString(key)));
+  }
+
+  // get __builtins__
+  PyObject *builtins = PyDict_GetItemString(_globals, "__builtins__");
+  if (builtins) {
+    get_members_of(builtins, &keys);
+  }
+  return keys;
+}
+
 Value Python_context::get_global(const std::string &value) {
   PyObject *py_result;
 
   py_result = PyDict_GetItemString(_globals, value.c_str());
 
   return _types.pyobj_to_shcore_value(py_result);
+}
+
+PyObject *Python_context::get_global_py(const std::string &value) {
+  PyObject *tmp = PyDict_GetItemString(_globals, value.c_str());
+  Py_XINCREF(tmp);
+  return tmp;
 }
 
 void Python_context::set_global(const std::string &name, const Value &value) {
@@ -399,7 +448,7 @@ void Python_context::set_python_error(const shcore::Exception &exc,
 
 void Python_context::set_python_error(PyObject *obj,
                                       const std::string &location) {
-  log_error("%s", location.c_str());
+  log_info("Python error: %s", location.c_str());
   PyErr_SetString(obj, location.c_str());
 }
 

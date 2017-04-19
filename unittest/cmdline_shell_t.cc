@@ -134,9 +134,9 @@ TEST(Cmdline_shell, help) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
 
   shell.print_cmd_line_helper();
   EXPECT_TRUE(shcore::str_beginswith(capture, "MySQL Shell "));

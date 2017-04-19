@@ -214,14 +214,13 @@ int execute_dba_command(mysqlsh::Command_line_shell *shell,
 //
 // An error occurs when both --file and STDIN redirection are used
 std::string detect_interactive(mysqlsh::Shell_options *options,
-                               bool *from_stdin, bool *stdout_is_tty) {
+                               bool *stdin_is_tty, bool *stdout_is_tty) {
   assert(options);
-  assert(from_stdin);
 
   bool is_interactive = true;
   std::string error;
 
-  *from_stdin = false;
+  *stdin_is_tty = false;
   *stdout_is_tty = false;
 
   int __stdin_fileno;
@@ -234,16 +233,10 @@ std::string detect_interactive(mysqlsh::Shell_options *options,
   __stdin_fileno = STDIN_FILENO;
   __stdout_fileno = STDOUT_FILENO;
 #endif
-  *from_stdin = !isatty(__stdin_fileno);
-
-  if (!isatty(__stdin_fileno)) {
-    // Here we know the input comes from stdin
-    *from_stdin = true;
-  }
-
+  *stdin_is_tty = isatty(__stdin_fileno) != 0;
   *stdout_is_tty = isatty(__stdout_fileno) != 0;
 
-  if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
+  if (!*stdin_is_tty || !*stdout_is_tty)
     is_interactive = false;
   else
     is_interactive = options->get().run_file.empty() &&
@@ -369,6 +362,9 @@ std::string pick_prompt_theme(const char *argv0) {
 
 int main(int argc, char **argv) {
 #ifdef WIN32
+  UINT origcp = GetConsoleCP();
+  UINT origocp = GetConsoleOutputCP();
+
   // Enable UTF-8 input and output
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
@@ -392,10 +388,16 @@ int main(int argc, char **argv) {
 #endif
 
   try {
-    bool from_stdin = false;
+    bool stdin_is_tty = false;
     bool stdout_is_tty = false;
     std::string error =
-        detect_interactive(shell_options.get(), &from_stdin, &stdout_is_tty);
+        detect_interactive(shell_options.get(), &stdin_is_tty, &stdout_is_tty);
+
+    // If not a tty, then autocompletion can't be used, so we disable
+    // name cache for autocompletion... but keep it for db object from DevAPI
+    if (!options.db_name_cache_set &&
+        (!options.interactive || !stdin_is_tty || !stdout_is_tty))
+      shell_options->set_db_name_cache(false);
 
     // Usage of wizards will be disabled if running in non interactive mode
     if (!options.interactive)
@@ -455,10 +457,12 @@ int main(int argc, char **argv) {
           shell.connect(target, options.recreate_database);
         } catch (shcore::Exception &e) {
           std::cerr << e.format() << "\n";
-          return 1;
+          ret_val = 1;
+          goto end;
         } catch (std::exception &e) {
           std::cerr << e.what() << "\n";
-          return 1;
+          ret_val = 1;
+          goto end;
         }
       }
 
@@ -480,7 +484,7 @@ int main(int argc, char **argv) {
         ret_val = shell.process_file(options.run_file, options.script_argv);
       } else if (options.interactive) {
         shell.load_state(shcore::get_user_config_path());
-        if (!from_stdin)
+        if (stdin_is_tty)
           shell.print_banner();
 
         shell.command_loop();
@@ -504,5 +508,12 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     ret_val = 1;
   }
+
+  end:
+#ifdef _WIN32
+  // Restore original codepage
+  SetConsoleCP(origcp);
+  SetConsoleOutputCP(origocp);
+#endif
   return ret_val;
 }

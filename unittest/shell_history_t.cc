@@ -27,6 +27,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "modules/mod_shell_options.h"
 #include "src/mysqlsh/cmdline_shell.h"
+#include "modules/mod_shell.h"
 #include "unittest/test_utils.h"
 
 namespace mysqlsh {
@@ -422,9 +423,9 @@ TEST_F(Shell_history, history_linenoise) {
     EXPECT_STREQ("print(4);", linenoiseHistoryLine(0));
 
     std::string capture;
-    shell._delegate.print = print_capture;
-    shell._delegate.print_error = print_capture;
-    shell._delegate.user_data = &capture;
+    shell._delegate->print = print_capture;
+    shell._delegate->print_error = print_capture;
+    shell._delegate->user_data = &capture;
 
     capture.clear();
     shell.process_line("\\help history");
@@ -559,15 +560,15 @@ TEST_F(Shell_history, check_help_shows_history) {
   {
     // Expecting the Shell mention \history in \help
     std::string capture;
-    shell._delegate.print = print_capture;
-    shell._delegate.print_error = print_capture;
-    shell._delegate.user_data = &capture;
+    shell._delegate->print = print_capture;
+    shell._delegate->print_error = print_capture;
+    shell._delegate->user_data = &capture;
 
     capture.clear();
     shell.process_line("\\help");
     EXPECT_TRUE(
         strstr(capture.c_str(),
-               "\\history               View and edit command line history."));
+               "\\history            View and edit command line history."));
   }
 }
 
@@ -585,9 +586,9 @@ TEST_F(Shell_history, history_autosave_int) {
 
     // Expecting the Shell to print history.autoSave = true not 101
     std::string capture;
-    shell._delegate.print = print_capture;
-    shell._delegate.print_error = print_capture;
-    shell._delegate.user_data = &capture;
+    shell._delegate->print = print_capture;
+    shell._delegate->print_error = print_capture;
+    shell._delegate->user_data = &capture;
 
     capture.clear();
     shell.process_line("print(shell.options)");
@@ -616,9 +617,9 @@ TEST_F(Shell_history, check_history_source) {
 
   {
     std::string capture;
-    shell._delegate.print = print_capture;
-    shell._delegate.print_error = print_capture;
-    shell._delegate.user_data = &capture;
+    shell._delegate->print = print_capture;
+    shell._delegate->print_error = print_capture;
+    shell._delegate->user_data = &capture;
 
     shell.process_line("\\source test_source.js");
     EXPECT_EQ(1, linenoiseHistorySize());
@@ -654,9 +655,9 @@ TEST_F(Shell_history, check_history_overflow_del) {
     EXPECT_EQ(3, shell._history.size());
 
     std::string capture;
-    shell._delegate.print = print_capture;
-    shell._delegate.print_error = print_capture;
-    shell._delegate.user_data = &capture;
+    shell._delegate->print = print_capture;
+    shell._delegate->print_error = print_capture;
+    shell._delegate->user_data = &capture;
 
     // Note: history entries are added AFTER they are executed
     // that means if \history is called, it will print the stack up the
@@ -696,9 +697,9 @@ TEST_F(Shell_history, history_management) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
 
   shell.process_line("\\js\n");
   shell.process_line("\\history clear\n");
@@ -815,9 +816,9 @@ TEST_F(Shell_history, history_sizes) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
 
   shell.process_line("shell.options['history.maxSize'] = 4;");
   shell.process_line("print(1);");
@@ -893,9 +894,9 @@ TEST_F(Shell_history, history_del_invisible_entry) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
 
   // Trivial and should be covered elsewhere already
   shell.process_line("\\history del -1");
@@ -916,9 +917,9 @@ TEST_F(Shell_history, history_source_history) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
 
   shell.process_line("// 1");
   shell.process_line("// 2");
@@ -944,9 +945,9 @@ TEST_F(Shell_history, history_del_range) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
 
   shell.process_line("// 1");
   shell.process_line("// 2");
@@ -997,9 +998,9 @@ TEST_F(Shell_history, history_entry_number_reset) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
 
   shell.process_line("// 1");
   shell.process_line("// 2");
@@ -1024,9 +1025,9 @@ TEST_F(Shell_history, shell_options_help_history) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
 
   shell.process_line("print(shell.help('options'))");
 
@@ -1062,9 +1063,9 @@ TEST_F(Shell_history, history_delete_range) {
 
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
   using strv = std::vector<std::string>;
   shell._history.set_limit(10);
 
@@ -1226,9 +1227,9 @@ TEST_F(Shell_history, history_delete_range) {
 TEST_F(Shell_history, history_numbering) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
   std::string capture;
-  shell._delegate.print = print_capture;
-  shell._delegate.print_error = print_capture;
-  shell._delegate.user_data = &capture;
+  shell._delegate->print = print_capture;
+  shell._delegate->print_error = print_capture;
+  shell._delegate->user_data = &capture;
   using strv = std::vector<std::string>;
 
   shell._history.set_limit(10);

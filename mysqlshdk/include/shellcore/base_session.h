@@ -65,7 +65,7 @@ public:
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) = 0;
 
   std::string uri(mysqlshdk::db::uri::Tokens_mask format =
-                      mysqlshdk::db::uri::formats::full_no_password()) const;
+                  mysqlshdk::db::uri::formats::full_no_password()) const;
 
   virtual SessionType session_type() const = 0;
 

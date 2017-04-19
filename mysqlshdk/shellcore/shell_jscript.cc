@@ -27,8 +27,8 @@
 using namespace shcore;
 
 Shell_javascript::Shell_javascript(Shell_core *shcore)
-  : Shell_language(shcore) {
-  _js = std::shared_ptr<JScript_context>(new JScript_context(shcore->registry(), shcore->get_delegate()));
+    : Shell_language(shcore),
+      _js(new JScript_context(shcore->registry(), shcore->get_delegate())) {
 }
 
 void Shell_javascript::handle_input(std::string &code, Input_state &state,

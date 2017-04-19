@@ -117,3 +117,30 @@ TEST_F(Mysqlsh_misc, warning_insecure_password) {
       "insecure.");
   wipe_out();
 }
+
+TEST_F(Mysqlsh_misc, autocompletion_options) {
+  execute({_mysqlsh, "--js", "-e",
+      "println(shell.options['devapi.dbObjectHandles'], "
+      "        shell.options['autocomplete.nameCache'])", nullptr});
+  // disable autocomplete by default, if not running on tty or not interactive
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("true false");
+  wipe_out();
+
+  execute({_mysqlsh, "-A", "--js", "-e",
+      "println(shell.options['devapi.dbObjectHandles'], "
+      "        shell.options['autocomplete.nameCache'])", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("false false");
+  wipe_out();
+
+  execute({_mysqlsh, "--name-cache", "--js", "-e",
+      "println(shell.options['devapi.dbObjectHandles'], "
+      "        shell.options['autocomplete.nameCache'])", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("true true");
+  wipe_out();
+
+  execute({_mysqlsh, "--no-name-cache", "--js", "-e",
+      "println(shell.options['devapi.dbObjectHandles'], "
+      "        shell.options['autocomplete.nameCache'])", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("false false");
+  wipe_out();
+}

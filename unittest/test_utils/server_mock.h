@@ -32,6 +32,7 @@ namespace tests {
 class Server_mock {
 public:
   Server_mock();
+
   std::string map_column_type(mysqlshdk::db::Type type);
   std::string create_data_file(const std::vector<testing::Fake_result_data> &data);
   std::string get_path_to_binary();

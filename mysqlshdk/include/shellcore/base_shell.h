@@ -23,6 +23,9 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_core.h"
+#include "shellcore/completer.h"
+#include "mysqlshdk/shellcore/provider_script.h"
+#include "mysqlshdk/shellcore/provider_sql.h"
 
 #include <map>
 #include <memory>
@@ -75,7 +78,20 @@ class SHCORE_PUBLIC Base_shell {
                          std::shared_ptr<shcore::Cpp_object_bridge> object,
                          shcore::IShell_core::Mode_mask modes =
                              shcore::IShell_core::Mode_mask::any());
-  bool switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &args);
+  bool switch_shell_mode(shcore::Shell_core::Mode mode,
+                         const std::vector<std::string> &args,
+                         bool initializing = false);
+
+  shcore::completer::Completer *completer() { return &_completer; }
+
+  std::shared_ptr<shcore::completer::Object_registry>
+  completer_object_registry() {
+    return _completer_object_registry;
+  }
+
+  std::shared_ptr<shcore::completer::Provider_sql> provider_sql() {
+    return _provider_sql;
+  }
 
  protected:
   static std::shared_ptr<mysqlsh::Shell_options> shell_options;
@@ -83,6 +99,10 @@ class SHCORE_PUBLIC Base_shell {
   std::map<std::string, std::string> _prompt_variables;
   shcore::Input_state _input_mode;
   std::string _input_buffer;
+  shcore::completer::Completer _completer;
+  std::shared_ptr<shcore::completer::Object_registry>
+      _completer_object_registry;
+  std::shared_ptr<shcore::completer::Provider_sql> _provider_sql;
   int _update_variables_pending = 0;
 
   shcore::Input_state input_state() const { return _input_mode; }
@@ -99,8 +119,9 @@ class SHCORE_PUBLIC Base_shell {
   shcore::Shell_command_handler _shell_command_handler;
 
 #ifdef FRIEND_TEST
+  friend class Completion_cache_refresh;
   FRIEND_TEST(Interactive_shell_test, ssl_status);
 #endif
 };
-}
+}  // namespace mysqlsh
 #endif

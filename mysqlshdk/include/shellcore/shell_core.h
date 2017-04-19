@@ -76,6 +76,9 @@ public:
   void add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function);
   std::string get_commands(const std::string& title);
   bool get_command_help(const std::string& command, std::string& help);
+
+  std::vector<std::string> get_command_names_matching(
+      const std::string &prefix) const;
 };
 
 class SHCORE_PUBLIC Shell_language {
@@ -88,7 +91,9 @@ public:
 
   virtual std::string preprocess_input_line(const std::string &s) { return s; }
   virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) = 0;
-  virtual bool handle_shell_command(const std::string &code) { return _shell_command_handler.process(code); }
+  virtual bool handle_shell_command(const std::string &code) {
+    return _shell_command_handler.process(code);
+  }
   virtual std::string get_handled_input() { return _last_handled; }
 
   virtual void clear_input() {}
@@ -132,6 +137,13 @@ public:
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session();
 
   virtual Object_registry *registry() { return _registry; }
+
+  Shell_language *language_object(Mode mode) {
+    if (_langs.find(mode) != _langs.end())
+      return _langs[mode];
+    return nullptr;
+  }
+
 public:
   virtual std::string preprocess_input_line(const std::string &s);
   virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);

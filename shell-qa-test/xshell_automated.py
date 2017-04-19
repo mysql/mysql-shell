@@ -6369,12 +6369,10 @@ class XShell_TestCases(unittest.TestCase):
                             '--schema=sakila', '--mysqlx']
             p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
             stdin, stdout = p.communicate()
-            print "---->" + stdout
             if stdout.find(bytearray("ERROR", "ascii"), 0, len(stdout)) > -1 or stdout != '':
                 if "[Warning]" not in stdout:
                     results = "FAIL"
                     break
-            print "---->" + stdin
             if stdin.find(bytearray("Creating an X protocol session to", "ascii"), 0, len(stdin)) > -1 and stdin.find(
                     bytearray("mysql" + w + ">", "ascii"), 0, len(stdin)) > -1:
                 results = 'PASS'
@@ -8137,6 +8135,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Interactive_shell_test has the same test")
     def test_MYS_451(self):
         '''MYSQL SHELL HELP OUTPUT IS WRONG ABOUT MYSH; testing help outputs "global commands" section'''
         results = ''
@@ -8732,6 +8731,7 @@ class XShell_TestCases(unittest.TestCase):
                 break
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Interactive_shell_test has the same test")
     def test_MYS_796(self):
         '''MYS-796 \H DOES NOT LIST ALL GLOBAL OBJECTS/VARIABLES'''
         results = ''

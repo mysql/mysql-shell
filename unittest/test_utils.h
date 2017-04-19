@@ -35,40 +35,6 @@
 #ifndef UNITTEST_TEST_UTILS_H_
 #define UNITTEST_TEST_UTILS_H_
 
-#ifdef GTEST_TEST_
-#undef GTEST_TEST_
-// Our custom helper macro for defining tests.
-// Only change: we expose test case name and test name
-#define GTEST_TEST_(test_case_name, test_name, parent_class, parent_id)      \
-  class GTEST_TEST_CLASS_NAME_(test_case_name, test_name)                    \
-      : public parent_class {                                                \
-   public:                                                                   \
-    GTEST_TEST_CLASS_NAME_(test_case_name, test_name)() {                    \
-    }                                                                        \
-                                                                             \
-   private:                                                                  \
-    virtual ::testing::TestInfo *info();                                     \
-    virtual void TestBody();                                                 \
-    static ::testing::TestInfo *const test_info_ GTEST_ATTRIBUTE_UNUSED_;    \
-    GTEST_DISALLOW_COPY_AND_ASSIGN_(GTEST_TEST_CLASS_NAME_(test_case_name,   \
-                                                           test_name));      \
-  };                                                                         \
-                                                                             \
-  ::testing::TestInfo *const GTEST_TEST_CLASS_NAME_(test_case_name,          \
-                                                    test_name)::test_info_ = \
-      ::testing::internal::MakeAndRegisterTestInfo(                          \
-          #test_case_name, #test_name, NULL, NULL, (parent_id),              \
-          parent_class::SetUpTestCase, parent_class::TearDownTestCase,       \
-          new ::testing::internal::TestFactoryImpl<GTEST_TEST_CLASS_NAME_(   \
-              test_case_name, test_name)>);                                  \
-  ::testing::TestInfo *GTEST_TEST_CLASS_NAME_(test_case_name,                \
-                                              test_name)::info() {           \
-    return test_info_;                                                       \
-  }                                                                          \
-  void GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::TestBody()
-
-#endif
-
 #define EXPECT_BECOMES_TRUE(timeout, pred)    \
   do {                                        \
     auto t = time(nullptr);                   \
@@ -101,8 +67,8 @@ struct SharedDoNotDelete {
   template <typename T>
   void operator()(T *) {}
 };
+}  // namespace testing
 
-}
 inline std::string makered(const std::string &s) {
   if (!getenv("COLOR_DEBUG"))
     return s;
@@ -267,13 +233,13 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   std::string _custom_context;
 
   // void process_result(shcore::Value result);
-  shcore::Value execute(const std::string &code);
-  shcore::Value exec_and_out_equals(const std::string &code,
-                                    const std::string &out = "",
-                                    const std::string &err = "");
-  shcore::Value exec_and_out_contains(const std::string &code,
-                                      const std::string &out = "",
-                                      const std::string &err = "");
+  void execute(const std::string &code);
+  void execute_noerr(const std::string &code);
+  void exec_and_out_equals(const std::string &code, const std::string &out = "",
+                           const std::string &err = "");
+  void exec_and_out_contains(const std::string &code,
+                             const std::string &out = "",
+                             const std::string &err = "");
 
   virtual void handle_notification(const std::string &name,
                                    const shcore::Object_bridge_ref &sender,
@@ -286,6 +252,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
     _opts.reset(new mysqlsh::Shell_options());
     _options = const_cast<mysqlsh::Shell_options::Storage*>(&_opts->get());
     _options->gadgets_path = g_mppath;
+    _options->db_name_cache = false;
   }
 
   bool debug;
@@ -323,10 +290,6 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   void wipe_all() {
     output_handler.wipe_all();
   }
-
-  shcore::Value _returned_value;
-
-  shcore::Interpreter_delegate deleg;
 
  private:
   std::map<shcore::Object_bridge_ref, std::string> _open_sessions;

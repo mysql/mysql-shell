@@ -25,7 +25,6 @@
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
-
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -42,7 +41,8 @@ namespace db {
 
 class Error : public std::runtime_error {
  public:
-  Error(const char* what, int code) : std::runtime_error(what), code_(code) {}
+  Error(const char* what, int code) : std::runtime_error(what), code_(code) {
+  }
 
   int code() const { return code_; }
 
