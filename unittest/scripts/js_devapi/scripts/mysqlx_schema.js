@@ -17,6 +17,18 @@ result = mySession.getSchema('js_shell_test').createCollection('collection1');
 
 var schema = mySession.getSchema('js_shell_test');
 
+// We need to know the lower_case_table_names option to
+// properly handle the table shadowing unit tests
+var lcresult = mySession.sql('select @@lower_case_table_names').execute();
+var lcrow = lcresult.fetchOne();
+if (lcrow[0] == 1) {
+    var name_get_table="gettable";
+    var name_get_collection="getcollection";
+} else {
+    var name_get_table="getTable";
+    var name_get_collection="getCollection";
+}
+
 //@ Schema: validating members
 var members = dir(schema);
 

@@ -304,24 +304,6 @@ if(WITH_DEV)
     install(FILES "${CMAKE_SOURCE_DIR}/common/logger/logger.h" DESTINATION "${INSTALL_INCLUDEDIR}/logger" COMPONENT dev)
 endif()
 
-if(WIN32 AND NOT WITH_STATIC_MSVCRT AND HAVE_V8)
-  # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
-  set(V8_DLL ${V8_LIBS})
-  string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
-  get_filename_component(V8_FILE ${V8_DLL} NAME)
-  get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-  get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-  install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin COMPONENT main)
-  install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION lib COMPONENT dev)
-
-  if(CMAKE_BUILD_TYPE MATCHES Debug)
-    # Copies the dll to the binary location to enable debugging
-    add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:mysqlsh>/${V8_FILE})
-  endif()
-endif()
-
 # This should be there for both MD and non MD windows builds
 if (HAVE_PYTHON)
   if (WIN32)

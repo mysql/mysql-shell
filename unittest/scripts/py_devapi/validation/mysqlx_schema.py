@@ -101,20 +101,19 @@
 |<Table:session>|
 
 #@ Testing name shadowing: get_collection('getTable')
-|<Collection:getTable>|
+|<Collection:<<<name_get_table>>>>|
 
 #@ Testing name shadowing: getTable (not a python function)
-|<Collection:getTable>|
+|<Collection:<<<name_get_table>>>>|
 
 #@ Testing name shadowing: get_table('get_table')
 |<Table:get_table>|
 
 #@ Testing name shadowing: get_collection('getCollection')
-|<Collection:getCollection>|
+|<Collection:<<<name_get_collection>>>>|
 
 #@ Testing name shadowing: getCollection (not a python function)
-|<Collection:getCollection>|
+|<Collection:<<<name_get_collection>>>>|
 
 #@ Testing name shadowing: get_table('get_collection')
 |<Table:get_collection>|
-

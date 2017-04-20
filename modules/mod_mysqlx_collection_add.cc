@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -170,9 +170,13 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
               if (document.type == Map)
                 shell_doc = document.as_map();
               else
-                throw shcore::Exception::argument_error(str_format("%s #%zu is expected to be a JSON expression", error_prefix.c_str(), (index + 1)));
+                throw shcore::Exception::argument_error(str_format(
+                    "%s #%u is expected to be a JSON expression",
+                    error_prefix.c_str(), static_cast<uint32_t>(index + 1)));
             } else
-              throw shcore::Exception::argument_error(str_format("%s #%zu is expected to be a document or a JSON expression", error_prefix.c_str(), (index + 1)));
+              throw shcore::Exception::argument_error(str_format(
+                  "%s #%u is expected to be a document or a JSON expression",
+                  error_prefix.c_str(), static_cast<uint32_t>(index + 1)));
 
             // Verification of the _id existence
             if (shell_doc) {

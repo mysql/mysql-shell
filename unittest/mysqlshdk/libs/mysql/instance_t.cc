@@ -13,9 +13,6 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <mysql.h>
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/db/session_recorder.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "unittest/mocks/mysqlshdk/libs/db/mock_result.h"
 #include "unittest/mocks/mysqlshdk/libs/db/mock_session.h"
@@ -35,14 +32,9 @@ class Instance_test : public Shell_base_test {
  protected:
   // An Instance requires an ISession shared pointer
   std::shared_ptr<mysqlshdk::db::ISession> _session;
-
-  // mysqlshdk::db::mysql::Session session;
-  mysqlshdk::db::Session_recorder session_recorder;
   Mock_session session;
 
   virtual void SetUp() {
-    // session_recorder.set_target(&session);
-
     _session.reset(&session, DoNotDelete());
 
     Shell_base_test::SetUp();
