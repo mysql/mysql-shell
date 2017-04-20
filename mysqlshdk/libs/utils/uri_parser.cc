@@ -340,9 +340,13 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range, size_t &offs
             token = _tokenizer.peek_token();
           }
           if (value.empty())
-            throw Parser_error(str_format("Unexpected data [%s] found at position %zu", _tokenizer.peek_token().get_text().c_str(), offset));
+            throw Parser_error(
+                str_format("Unexpected data [%s] found at position %u",
+                           _tokenizer.peek_token().get_text().c_str(),
+                           static_cast<uint32_t>(offset)));
           else if (value.length() > 4)
-            throw Parser_error("Invalid IPv6 value [" + value + "], maximum 4 hexadecimal digits accepted");
+            throw Parser_error("Invalid IPv6 value [" + value +
+                               "], maximum 4 hexadecimal digits accepted");
 
           _data->_host += value;
           offset += value.length();
@@ -401,7 +405,10 @@ void Uri_parser::parse_port(const std::pair<size_t, size_t> &range, size_t &offs
     throw Parser_error("Missing port number");
 
   if (_tokenizer.tokens_available())
-    throw Parser_error(str_format("Unexpected data [%s] found at position %zu", get_input_chunk({offset, range.second}).c_str(), offset));
+    throw Parser_error(
+        str_format("Unexpected data [%s] found at position %u",
+                   get_input_chunk({offset, range.second}).c_str(),
+                   static_cast<uint32_t>(offset)));
 }
 
 void Uri_parser::parse_host() {

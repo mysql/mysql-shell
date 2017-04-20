@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -365,9 +365,13 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
           std::string error;
 
           if (args.size() == 1)
-            error = str_format("Argument #%zu is expected to be either string or list of strings", (index + 1));
+            error = str_format(
+                "Argument #%u is expected to be either string or list of "
+                "strings",
+                static_cast<uint32_t>(index + 1));
           else
-            error = str_format("Argument #%zu is expected to be a string", (index + 1));
+            error = str_format("Argument #%u is expected to be a string",
+            static_cast<uint32_t>(index + 1));
 
           throw shcore::Exception::type_error(error);
         }

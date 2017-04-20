@@ -91,27 +91,6 @@ if(WITH_TESTS)
             ${PYTHON_LIBRARIES}
     )
 
-    if(HAVE_V8)
-      if(WIN32 AND NOT WITH_STATIC_MSVCRT)
-        # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
-        set(V8_DLL ${V8_LIBS})
-        string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
-        get_filename_component(V8_FILE ${V8_DLL} NAME)
-        get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-        get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-        install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin COMPONENT main)
-
-        if (WITH_DEV)
-          install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION lib COMPONENT dev)
-        endif()
-
-        # Copies the dll to the binary location to enable debugging
-        add_custom_command(TARGET run_unit_tests PRE_BUILD
-                            COMMAND ${CMAKE_COMMAND} -E copy
-                            "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${V8_FILE})
-      endif()
-    endif()
-
     if(HAVE_PYTHON)
       if (WIN32)
         if(CMAKE_BUILD_TYPE MATCHES Debug OR NOT WITH_STATIC_PYTHON_LIB)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -139,7 +139,8 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
       break;
 
     if (std::isspace(_input[i]) && !_allow_spaces)
-        throw std::runtime_error(str_format("Illegal space found at position %zu", (_parent_offset + i)));
+      throw std::runtime_error(str_format("Illegal space found at position %u",
+        static_cast<uint32_t>(_parent_offset + i)));
     else {
       std::string type(&_input[i], 1);
       if (_base_tokens.find(type) != _base_tokens.end())
@@ -205,7 +206,9 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
           if ( _allow_unknown_tokens)
             _unknown_token += _input[i];
           else
-            throw std::runtime_error(str_format("Illegal character [%c] found at position %zu", _input[i], (_parent_offset + i)));
+            throw std::runtime_error(
+                str_format("Illegal character [%c] found at position %u",
+                _input[i], static_cast<uint32_t>(_parent_offset + i)));
         }
       }
     }
@@ -245,7 +248,9 @@ const BaseToken& BaseTokenizer::consume_any_token() {
 
 void BaseTokenizer::assert_tok_position() {
   if (_pos >= _tokens.size())
-    throw std::runtime_error(str_format("Expected token at position %zu but no tokens left.", _pos));
+    throw std::runtime_error(
+        str_format("Expected token at position %u but no tokens left.",
+                   static_cast<uint32_t>(_pos)));
 }
 
 bool BaseTokenizer::tokens_available() {

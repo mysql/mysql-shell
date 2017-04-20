@@ -101,7 +101,7 @@
 |<Table:session>|
 
 //@ Testing name shadowing: getCollection('getTable')
-|<Collection:getTable>|
+|<Collection:<<<name_get_table>>>>|
 
 //@ Testing name shadowing: get_table (not a JS function)
 |<Table:get_table>|
@@ -110,7 +110,7 @@
 |<Table:get_table>|
 
 //@ Testing name shadowing: getCollection('getCollection')
-|<Collection:getCollection>|
+|<Collection:<<<name_get_collection>>>>|
 
 //@ Testing name shadowing: get_collection (not a JS function)
 |<Table:get_collection>|

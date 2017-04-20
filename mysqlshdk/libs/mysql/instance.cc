@@ -88,7 +88,7 @@ Instance::get_system_variables(const std::vector<std::string>& names) const {
 
   if (!names.empty()) {
     std::string query_format =
-        "select * from performance_schema.global_variables where ! in (?";
+        "show variables where ! in (?";
 
     ret_val[names[0]] = utils::nullable<std::string>();
 
