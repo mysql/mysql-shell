@@ -331,7 +331,7 @@ void Shell_core_test_wrapper::SetUp() {
 
 #ifdef WIN32
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
-    _sandbox_dir = shcore::join_strings(tokens, "\\\\");
+    _sandbox_dir = shcore::str_join(tokens, "\\\\");
 #endif
   } else {
     // If not specified, the tests will create the sandboxes on the binary folder
@@ -346,11 +346,11 @@ void Shell_core_test_wrapper::SetUp() {
 #endif
 
   std::vector<std::string> path_components = {_sandbox_dir, _mysql_sandbox_port1, "my.cnf"};
-  _sandbox_cnf_1 = shcore::join_strings(path_components, _path_splitter);
+  _sandbox_cnf_1 = shcore::str_join(path_components, _path_splitter);
   path_components[1] = _mysql_sandbox_port2;
-  _sandbox_cnf_2 = shcore::join_strings(path_components, _path_splitter);
+  _sandbox_cnf_2 = shcore::str_join(path_components, _path_splitter);
   path_components[1] = _mysql_sandbox_port3;
-  _sandbox_cnf_3 = shcore::join_strings(path_components, _path_splitter);
+  _sandbox_cnf_3 = shcore::str_join(path_components, _path_splitter);
 
   // Initializes the interactive shell
   reset_shell();

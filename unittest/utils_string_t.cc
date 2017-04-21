@@ -204,3 +204,24 @@ TEST(UtilsString, partition) {
   EXPECT_EQ("#/ab", left);
   EXPECT_EQ("ab", right);
 }
+
+TEST(UtilsString, join) {
+  EXPECT_EQ("", shcore::str_join(std::vector<std::string>{}, ""));
+  EXPECT_EQ("", shcore::str_join(std::vector<std::string>{}, ","));
+  EXPECT_EQ("a", shcore::str_join(std::vector<std::string>{"a"}, ","));
+  EXPECT_EQ("a,b", shcore::str_join(std::vector<std::string>{"a", "b"}, ","));
+  EXPECT_EQ(",b", shcore::str_join(std::vector<std::string>{"", "b"}, ","));
+  EXPECT_EQ("a,", shcore::str_join(std::vector<std::string>{"a", ""}, ","));
+  EXPECT_EQ(",", shcore::str_join(std::vector<std::string>{"", ""}, ","));
+  EXPECT_EQ("a,b", shcore::str_join(std::set<std::string>({"a", "b"}), ","));
+
+  const char *args[] = {"a", "b", nullptr};
+  EXPECT_EQ("a,b", shcore::str_join(args, args+2, ","));
+  EXPECT_EQ("a", shcore::str_join(args, args+1, ","));
+
+  std::vector<std::string> v({"a", "b"});
+  EXPECT_EQ("a,b", shcore::str_join(v.begin(), v.end(), ","));
+
+  std::set<std::string> s({"a", "b"});
+  EXPECT_EQ("a,b", shcore::str_join(s.begin(), s.end(), ","));
+}

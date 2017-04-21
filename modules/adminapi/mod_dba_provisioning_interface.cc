@@ -19,14 +19,15 @@
 
 #include <string>
 #include <cstring>
-#include <vector>
 #include <system_error>
+#include <vector>
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
-#include "shellcore/base_session.h"
-#include "utils/utils_general.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "shellcore/base_session.h"
 
 static const char *kRequiredMySQLProvisionInterfaceVersion = "2.0";
 
@@ -34,14 +35,16 @@ using namespace mysqlsh;
 using namespace mysqlsh::dba;
 using namespace shcore;
 
-ProvisioningInterface::ProvisioningInterface(shcore::Interpreter_delegate* deleg) :
-_verbose(0), _delegate(deleg) {}
+ProvisioningInterface::ProvisioningInterface(
+    shcore::Interpreter_delegate *deleg)
+    : _verbose(0), _delegate(deleg) {}
 
 ProvisioningInterface::~ProvisioningInterface() {}
 
-int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
-                                     const std::vector<std::string> &passwords,
-                                     shcore::Value::Array_type_ref &errors, int verbose) {
+int ProvisioningInterface::execute_mysqlprovision(
+    const std::string &cmd, const std::vector<const char *> &args,
+    const std::vector<std::string> &passwords,
+    shcore::Value::Array_type_ref &errors, int verbose) {
   std::vector<const char *> args_script;
   std::string buf;
   char c;
@@ -55,7 +58,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     // 3rd set it to mysqlprovision and hope that it will be in $PATH
 
     if ((*shcore::Shell_core_options::get()).has_key(SHCORE_GADGETS_PATH))
-      _local_mysqlprovision_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+      _local_mysqlprovision_path =
+          (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
     if (_local_mysqlprovision_path.empty()) {
       std::string tmp(get_binary_folder());
@@ -88,12 +92,10 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
   args_script.push_back(NULL);
 
-  std::string cmdline;
-  for (auto s : args_script) {
-    if (s)
-      cmdline.append(s).append(" ");
-  }
-  std::string message = "DBA: mysqlprovision: Executing " + cmdline;
+  std::string message =
+      "DBA: mysqlprovision: Executing " +
+      shcore::str_join(&args_script[0], &args_script[args_script.size() - 1],
+                       " ");
   log_info("%s", message.c_str());
 
   if (verbose > 1) {
@@ -108,10 +110,11 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     _delegate->print(_delegate->user_data, header.c_str());
   }
 
-  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format =
+      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
   std::string stage_action;
 
-  ngcommon::Process_launcher p(&args_script[0]);
+  shcore::Process_launcher p(&args_script[0]);
   try {
     stage_action = "starting";
     p.start();
@@ -158,11 +161,11 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
             error += ": ";
             error += buf;
 
-            // Prints the bad formatted buffer, instead of trowing an exception and aborting
-            // This is because despite the problam parsing the MP output
-            // The work may have been completed there.
+            // Prints the bad formatted buffer, instead of trowing an exception
+            // and aborting This is because despite the problam parsing the MP
+            // output The work may have been completed there.
             _delegate->print(_delegate->user_data, buf.c_str());
-            //throw shcore::Exception::parser_error(error);
+            // throw shcore::Exception::parser_error(error);
 
             log_error("DBA: mysqlprovision: %s", error.c_str());
           }
@@ -185,11 +188,13 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
             info += data->get_string("msg") + "\n";
 
-            if (verbose && info.find("Enter the password for") == std::string::npos) {
+            if (verbose &&
+                info.find("Enter the password for") == std::string::npos) {
               if (format.find("json") == std::string::npos)
                 _delegate->print(_delegate->user_data, info.c_str());
               else
-                _delegate->print_value(_delegate->user_data, raw_data, "mysqlprovision");
+                _delegate->print_value(_delegate->user_data, raw_data,
+                                       "mysqlprovision");
             }
           }
 
@@ -218,7 +223,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     }
     stage_action = "terminating";
   } catch (const std::system_error &e) {
-    log_warning("DBA: %s while %s mysqlprovision", e.what(), stage_action.c_str());
+    log_warning("DBA: %s while %s mysqlprovision", e.what(),
+                stage_action.c_str());
   }
 
   exit_code = p.wait();
@@ -233,7 +239,9 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
    * process launcher returns 128 if an ENOENT happened.
    */
   if (exit_code == 128)
-    throw shcore::Exception::runtime_error("mysqlprovision not found. Please verify that mysqlsh is installed correctly.");
+    throw shcore::Exception::runtime_error(
+        "mysqlprovision not found. Please verify that mysqlsh is installed "
+        "correctly.");
 
   /*
    * mysqlprovision returns 1 as exit-code for internal behaviour errors.
@@ -241,47 +249,42 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
    */
   else if (exit_code == 1) {
     // Print full output if it wasn't already printed before because of verbose
-    log_error("DBA: mysqlprovision exited with error code (%s) : %s ", std::to_string(exit_code).c_str(), full_output.c_str());
+    log_error("DBA: mysqlprovision exited with error code (%s) : %s ",
+              std::to_string(exit_code).c_str(), full_output.c_str());
 
     /*
      * mysqlprovision returns 2 as exit-code for parameters parsing errors
      * The logged message starts with "mysqlprovision: error: "
      */
   } else if (exit_code == 2) {
-    log_error("DBA: mysqlprovision exited with error code (%s) : %s ", std::to_string(exit_code).c_str(), full_output.c_str());
+    log_error("DBA: mysqlprovision exited with error code (%s) : %s ",
+              std::to_string(exit_code).c_str(), full_output.c_str());
 
     // This error implies a wrong integratio nbetween the chell and MP
     std::string log_path = shcore::get_user_config_path();
     log_path += "mysqlsh.log";
 
-    throw shcore::Exception::runtime_error("Error calling mysqlprovision. For more details look at the log at: " + log_path);
-  } else
+    throw shcore::Exception::runtime_error(
+        "Error calling mysqlprovision. For more details look at the log at: " +
+        log_path);
+  } else {
     log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
-
+  }
   return exit_code;
 }
 
-
-void ProvisioningInterface::set_ssl_args(const std::string &prefix,
-                                         const shcore::Value::Map_type_ref &instance_ssl,
-                                         std::vector<const char *> &args){
+void ProvisioningInterface::set_ssl_args(
+    const std::string &prefix, const shcore::Value::Map_type_ref &instance_ssl,
+    std::vector<const char *> &args) {
   std::string ssl_ca, ssl_cert, ssl_key;
 
-#ifdef _WIN32
-  if (instance_ssl->has_key("sslCa"))
-      ssl_ca = "--" + prefix + "-ssl-ca=\"" + instance_ssl->get_string("sslCa") + "\"";
-    if (instance_ssl->has_key("sslCert"))
-      ssl_cert = "--" + prefix + "-ssl-cert=\"" + instance_ssl->get_string("sslCert") + "\"";
-    if (instance_ssl->has_key("sslKey"))
-      ssl_key = "--" + prefix + "-ssl-key=\"" + instance_ssl->get_string("sslKey") + "\"";
-#else
   if (instance_ssl->has_key("sslCa"))
     ssl_ca = "--" + prefix + "-ssl-ca=" + instance_ssl->get_string("sslCa");
   if (instance_ssl->has_key("sslCert"))
-    ssl_cert = "--" + prefix + "-ssl-cert=" + instance_ssl->get_string("sslCert");
+    ssl_cert =
+        "--" + prefix + "-ssl-cert=" + instance_ssl->get_string("sslCert");
   if (instance_ssl->has_key("sslKey"))
     ssl_key = "--" + prefix + "-ssl-key=" + instance_ssl->get_string("sslKey");
-#endif
 
   if (!ssl_ca.empty())
     args.push_back(strdup(ssl_ca.c_str()));
@@ -291,12 +294,13 @@ void ProvisioningInterface::set_ssl_args(const std::string &prefix,
     args.push_back(strdup(ssl_key.c_str()));
 }
 
-int ProvisioningInterface::check(const std::string &user, const std::string &host, int port,
-                                 const std::string &password,
-                                 const shcore::Value::Map_type_ref &instance_ssl,
-                                 const std::string &cnfpath, bool update,
-                                 shcore::Value::Array_type_ref &errors) {
-  std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
+int ProvisioningInterface::check(
+    const std::string &user, const std::string &host, int port,
+    const std::string &password,
+    const shcore::Value::Map_type_ref &instance_ssl, const std::string &cnfpath,
+    bool update, shcore::Value::Array_type_ref &errors) {
+  std::string instance_param =
+      "--instance=" + user + "@" + host + ":" + std::to_string(port);
   std::vector<std::string> passwords;
   std::string pwd = password;
 
@@ -312,9 +316,7 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
   if (!path.empty()) {
     args.push_back("--defaults-file");
 
-#ifdef _WIN32
-    path = "\"" + path + "\"";
-#endif
+    // quoting handled internally
     args.push_back(path.c_str());
   }
 
@@ -326,10 +328,10 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
   return execute_mysqlprovision("check", args, passwords, errors, _verbose);
 }
 
-int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int portx, const std::string &sandbox_dir,
-                                           const std::string &password,
-                                           const std::vector<std::string> &extra_args,
-                                           shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::exec_sandbox_op(
+    const std::string &op, int port, int portx, const std::string &sandbox_dir,
+    const std::string &password, const std::vector<std::string> &extra_args,
+    shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> sandbox_args, passwords;
   std::string arg, pwd = password;
 
@@ -348,7 +350,8 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
 
     sandbox_args.push_back(sandbox_dir);
   } else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
-    std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+    std::string dir =
+        (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
 
     try {
       shcore::ensure_dir_exists(dir);
@@ -356,7 +359,8 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
       sandbox_args.push_back("--sandboxdir");
       sandbox_args.push_back(dir);
     } catch (std::runtime_error &error) {
-      log_warning("DBA: Unable to create default sandbox directory at %s.", dir.c_str());
+      log_warning("DBA: Unable to create default sandbox directory at %s.",
+                  dir.c_str());
     }
   }
 
@@ -378,11 +382,10 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   return execute_mysqlprovision("sandbox", args, passwords, errors, _verbose);
 }
 
-int ProvisioningInterface::create_sandbox(int port, int portx, const std::string &sandbox_dir,
-                                          const std::string &password,
-                                          const shcore::Value &mycnf_options,
-                                          bool ignore_ssl_error,
-                                          shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::create_sandbox(
+    int port, int portx, const std::string &sandbox_dir,
+    const std::string &password, const shcore::Value &mycnf_options,
+    bool ignore_ssl_error, shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> extra_args;
   if (mycnf_options) {
     for (auto s : *mycnf_options.as_array()) {
@@ -397,38 +400,42 @@ int ProvisioningInterface::create_sandbox(int port, int portx, const std::string
                          extra_args, errors);
 }
 
-int ProvisioningInterface::delete_sandbox(int port, const std::string &sandbox_dir,
-                                          shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::delete_sandbox(
+    int port, const std::string &sandbox_dir,
+    shcore::Value::Array_type_ref &errors) {
   return exec_sandbox_op("delete", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 
-int ProvisioningInterface::kill_sandbox(int port, const std::string &sandbox_dir,
+int ProvisioningInterface::kill_sandbox(int port,
+                                        const std::string &sandbox_dir,
                                         shcore::Value::Array_type_ref &errors) {
   return exec_sandbox_op("kill", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 
-int ProvisioningInterface::stop_sandbox(int port, const std::string &sandbox_dir,
+int ProvisioningInterface::stop_sandbox(int port,
+                                        const std::string &sandbox_dir,
                                         const std::string &password,
                                         shcore::Value::Array_type_ref &errors) {
   return exec_sandbox_op("stop", port, 0, sandbox_dir, password,
                          std::vector<std::string>(), errors);
 }
 
-int ProvisioningInterface::start_sandbox(int port, const std::string &sandbox_dir,
-                                         shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::start_sandbox(
+    int port, const std::string &sandbox_dir,
+    shcore::Value::Array_type_ref &errors) {
   return exec_sandbox_op("start", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 
-int ProvisioningInterface::start_replicaset(const std::string &instance_url,
-                                      const shcore::Value::Map_type_ref &instance_ssl,
-                                      const std::string &repl_user,
-                                      const std::string &super_user_password, const std::string &repl_user_password,
-                                      bool multi_master, const std::string &ssl_mode,
-                                      const std::string &ip_whitelist,
-                                      shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::start_replicaset(
+    const std::string &instance_url,
+    const shcore::Value::Map_type_ref &instance_ssl,
+    const std::string &repl_user, const std::string &super_user_password,
+    const std::string &repl_user_password, bool multi_master,
+    const std::string &ssl_mode, const std::string &ip_whitelist,
+    shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -462,21 +469,19 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url,
   }
   args.push_back("--stdin");
 
-  return execute_mysqlprovision("start-replicaset", args, passwords, errors, _verbose);
+  return execute_mysqlprovision("start-replicaset", args, passwords, errors,
+                                _verbose);
 }
 
-int ProvisioningInterface::join_replicaset(const std::string &instance_url,
-                                      const shcore::Value::Map_type_ref &instance_ssl,
-                                      const std::string &repl_user,
-                                      const std::string &peer_instance_url,
-                                      const shcore::Value::Map_type_ref &peer_instance_ssl,
-                                      const std::string &super_user_password,
-                                      const std::string &repl_user_password,
-                                      const std::string &ssl_mode,
-                                      const std::string &ip_whitelist,
-                                      const std::string &gr_group_seeds,
-                                      bool skip_rpl_user,
-                                      shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::join_replicaset(
+    const std::string &instance_url,
+    const shcore::Value::Map_type_ref &instance_ssl,
+    const std::string &repl_user, const std::string &peer_instance_url,
+    const shcore::Value::Map_type_ref &peer_instance_ssl,
+    const std::string &super_user_password,
+    const std::string &repl_user_password, const std::string &ssl_mode,
+    const std::string &ip_whitelist, const std::string &gr_group_seeds,
+    bool skip_rpl_user, shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -527,13 +532,15 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url,
 
   args.push_back("--stdin");
 
-  return execute_mysqlprovision("join-replicaset", args, passwords, errors, _verbose);
+  return execute_mysqlprovision("join-replicaset", args, passwords, errors,
+                                _verbose);
 }
 
-int ProvisioningInterface::leave_replicaset(const std::string &instance_url,
-                                            const shcore::Value::Map_type_ref &instance_ssl,
-                                            const std::string &super_user_password,
-                                            shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::leave_replicaset(
+    const std::string &instance_url,
+    const shcore::Value::Map_type_ref &instance_ssl,
+    const std::string &super_user_password,
+    shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -549,5 +556,6 @@ int ProvisioningInterface::leave_replicaset(const std::string &instance_url,
 
   args.push_back("--stdin");
 
-  return execute_mysqlprovision("leave-replicaset", args, passwords, errors, _verbose);
+  return execute_mysqlprovision("leave-replicaset", args, passwords, errors,
+                                _verbose);
 }

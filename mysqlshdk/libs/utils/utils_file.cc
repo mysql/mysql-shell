@@ -202,7 +202,7 @@ std::string get_binary_folder() {
     tokens = split_string(exe_path, path_separator, true);
     tokens.erase(tokens.end() - 1);
 
-    ret_val = join_strings(tokens, path_separator);
+    ret_val = str_join(tokens, path_separator);
   }
 
   return ret_val;
@@ -245,7 +245,7 @@ std::string get_mysqlx_home_path() {
         // It seems to be a standard installation so re remove the bin folder
         // and the parent is MYSQLX_HOME!
         tokens.erase(tokens.end() - 1);
-        ret_val = join_strings(tokens, path_separator);
+        ret_val = str_join(tokens, path_separator);
       }
     }
   }

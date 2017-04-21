@@ -212,7 +212,7 @@ std::string get_mysqlprovision_error_string(
     str_errors.push_back(error_type + ": " + error_text);
   }
 
-  return shcore::join_strings(str_errors, "\n");
+  return shcore::str_join(str_errors, "\n");
 }
 
 ReplicationGroupState check_function_preconditions(const std::string &class_name, const std::string& base_function_name, const std::string &function_name, const std::shared_ptr<MetadataStorage>& metadata) {
@@ -331,7 +331,7 @@ void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options) {
     std::string ssl_mode = opt_map.string_at("memberSslMode");
     ssl_mode = shcore::str_upper(ssl_mode);
     if (kMemberSSLModeValues.count(ssl_mode) == 0) {
-      std::string valid_values = shcore::join_strings(kMemberSSLModeValues, ",");
+      std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
       throw shcore::Exception::argument_error(
           "Invalid value for memberSslMode option. "
               "Supported values: " + valid_values + ".");

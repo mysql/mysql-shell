@@ -140,7 +140,8 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context, cons
       if ((actual_index + expected_index) >= actual_lines.size()){
         SCOPED_TRACE(stream + " actual: " + actual);
         expected_lines[expected_index] += "<------ MISSING";
-        SCOPED_TRACE(stream + " expected lines missing: " + shcore::join_strings(expected_lines, "\n"));
+        SCOPED_TRACE(stream + " expected lines missing: " +
+                     shcore::str_join(expected_lines, "\n"));
         ADD_FAILURE();
         ret_val = false;
         break;
@@ -155,7 +156,8 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context, cons
 
         expected_lines[expected_index] += "<------ INCONSISTENCY";
 
-        SCOPED_TRACE(stream + " inconsistent: " + shcore::join_strings(expected_lines, "\n"));
+        SCOPED_TRACE(stream + " inconsistent: " +
+                     shcore::str_join(expected_lines, "\n"));
         ADD_FAILURE();
         ret_val = false;
         break;
@@ -375,7 +377,7 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
 
       if (line.find(get_chunk_token()) == 0) {
         if (format_lines.size()) {
-          std::string value = shcore::join_strings(format_lines, "\n");
+          std::string value = shcore::str_join(format_lines, "\n");
 
           value = str_strip(value);
 
@@ -420,7 +422,7 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
 
     // Adds final formatted value if any
     if (format_lines.size()) {
-      std::string value = shcore::join_strings(format_lines, "\n");
+      std::string value = shcore::str_join(format_lines, "\n");
 
       value = str_strip(value);
 
@@ -570,11 +572,14 @@ void Shell_script_tester::process_setup(std::istream & stream) {
       }
 
       // Creates an assumptions array to be processed on the setup script
-      std::string code = get_variable_prefix() + "__assumptions__ = [" + join_strings(tokens, ",") + "];";
+      std::string code = get_variable_prefix() + "__assumptions__ = [" +
+                         str_join(tokens, ",") + "];";
       execute(code);
 
       if (_setup_script.empty())
-        throw std::logic_error("A setup script must be specified when there are assumptions on the tested scripts.");
+        throw std::logic_error(
+            "A setup script must be specified when there are assumptions on "
+            "the tested scripts.");
       else
         execute_script(); // Executes the active setup script
     } else

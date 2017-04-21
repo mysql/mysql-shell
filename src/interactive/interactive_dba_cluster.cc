@@ -23,6 +23,7 @@
 //#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include <string>
 #include <vector>
@@ -532,7 +533,7 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(const shc
     if (online_instances_array.empty())
       throw shcore::Exception::logic_error("No online instances are visible from the given one.");
 
-    auto group_peers = shcore::join_strings(online_instances_array, ",");
+    auto group_peers = shcore::str_join(online_instances_array, ",");
 
     // Remove the trailing comma of group_peers
     if (group_peers.back() == ',')

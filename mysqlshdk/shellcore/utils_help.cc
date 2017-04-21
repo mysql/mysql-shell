@@ -21,6 +21,7 @@
 #include <cctype>
 #include <vector>
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
 namespace shcore {
 Shell_help* Shell_help::_instance = nullptr;
@@ -140,7 +141,7 @@ std::string get_function_help(shcore::NamingStyle style,
     // Creates the syntax
     ret_val.append("SYNTAX\n\n  ");
     ret_val.append("<" + class_name + ">." + fname);
-    ret_val.append("(" + shcore::join_strings(fpnames, ", ") + ")\n\n");
+    ret_val.append("(" + shcore::str_join(fpnames, ", ") + ")\n\n");
 
     // Describes the parameters
     ret_val.append("WHERE\n\n");

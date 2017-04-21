@@ -836,7 +836,7 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args,
   if (path_elements[path_elements.size() - 2] == std::to_string(port)) {
     path_elements[path_elements.size() - 1] = "my.cnf";
 
-    tmpPath = shcore::join_strings(path_elements, path_separator);
+    tmpPath = shcore::str_join(path_elements, path_separator);
     if (shcore::file_exists(tmpPath)) {
       println();
       println("Detected as sandbox instance.");
