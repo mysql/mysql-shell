@@ -24,7 +24,6 @@
 #include "mysqlshdk/libs/db/session_recorder.h"
 #include "utils/utils_general.h"
 
-
 namespace mysqlshdk {
 namespace db {
 Mock_record* Mock_record::_instance = NULL;
@@ -105,22 +104,26 @@ std::unique_ptr<IResult> Session_recorder::query(const std::string& sql,
   try {
     auto result = _target->query(sql, true);
 
+    Mock_record::get() << std::endl
+                       << "============= Stored Query ============="
+                       << std::endl
+                       << "session.expect_query(\"" << sql << "\")."
+                       << std::endl;
     ret_val.reset(new Result_recorder(result.get()));
-
-    Mock_record::get()
-        << "// Passes the result to the session, ownership included."
-        << std::endl;
-    Mock_record::get() << "session.set_result(result);" << std::endl;
+    Mock_record::get() << "========================================"
+                       << std::endl
+                       << std::endl;
   } catch (const std::exception& err) {
-    Mock_record::get() << "// An exception should be produced" << std::endl;
-    Mock_record::get() << "session.throw_exception_on_query();" << std::endl
-                       << std::endl;
-    Mock_record::get() << "// An exception was produced while calling:"
-                       << std::endl;
-    Mock_record::get() << "// session.query(\"" << sql << "\", "
-                       << (buffered ? "true" : "false") << ");" << std::endl;
     Mock_record::get()
+        << std::endl
+        << "============= Failed Query =============" << std::endl
+        << "session.expect_query(\"" << sql << "\").then_throw();" << std::endl
+        << std::endl
+        << "// An exception will be produced, enclose the failing code below"
+        << std::endl
         << "EXPECT_ANY_THROW(<Code that generated the above call>);"
+        << std::endl
+        << "========================================" << std::endl
         << std::endl;
     throw;
   }
@@ -171,10 +174,13 @@ Result_recorder::Result_recorder(IResult* target) : _target(target) {
 }
 
 void Result_recorder::save_result() {
-  Mock_record::get() << "Mock_result *result = new Mock_result();" << std::endl;
+  Mock_record::get() << "then_return({" << std::endl;
 
   bool first = true;
   while (first || _target->next_data_set()) {
+    if (!first)
+      Mock_record::get() << "," << std::endl;
+
     first = false;
 
     auto metadata = _target->get_metadata();
@@ -200,6 +206,8 @@ void Result_recorder::save_result() {
 
     _all_warnings.push_back(std::move(warnings));
   }
+
+  Mock_record::get() << "});" << std::endl;
 }
 
 void Result_recorder::save_current_result(
@@ -216,11 +224,23 @@ void Result_recorder::save_current_result(
   names.append("}");
   types.append("}");
 
-  Mock_record::get() << "auto fake_result = result->add_result(" << names
-                     << ", " << types << ");" << std::endl;
+  // Result Opening, names, types and Rows Opening
+  Mock_record::get() << "{ " << std::endl
+                     << "   " << names << "," << std::endl
+                     << "   " << types << "," << std::endl
+                     << "   {";
 
+  if (!rows.empty())
+    Mock_record::get() << std::endl;
+
+  bool first = true;
   for (auto& row : rows) {
-    Mock_record::get() << "fake_result->add_row({";
+    if (!first)
+      Mock_record::get() << "}," << std::endl;  // Row End (Not Last)
+    else
+      first = false;
+
+    Mock_record::get() << "     {";  // Row Start
 
     for (size_t index = 0; index < row->size(); index++) {
       if (row->is_date(index))
@@ -239,9 +259,19 @@ void Result_recorder::save_current_result(
       if (index < (row->size() - 1))
         Mock_record::get() << ", ";
     }
-
-    Mock_record::get() << "});" << std::endl;
   }
+
+  // Last Row Closing
+  if (!rows.empty())
+    Mock_record::get() << "}" << std::endl << "   ";
+
+  // Rows Closing and Result Closing
+  Mock_record::get() << "}";
+
+  if (rows.empty())
+    Mock_record::get() << "  // No Records...";
+
+  Mock_record::get() << std::endl << "}" << std::endl;
 }
 
 std::unique_ptr<IRow> Result_recorder::fetch_one() {
@@ -250,7 +280,7 @@ std::unique_ptr<IRow> Result_recorder::fetch_one() {
   if (_row_index < _all_results[_rset_index].size())
     ret_val.reset(_all_results[_rset_index][_row_index++].release());
 
-  return ret_val;
+  return std::move(ret_val);
 }
 
 bool Result_recorder::next_data_set() {

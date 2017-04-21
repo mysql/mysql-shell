@@ -29,6 +29,7 @@
 #include "utils/utils_general.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_string.h"
+#include "utils/utils_time.h"
 #include <string>
 
 namespace mysqlsh {
