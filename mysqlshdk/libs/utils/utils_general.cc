@@ -322,7 +322,7 @@ std::string strip_password(const std::string &connstring) {
   if (p == std::string::npos) {
     // by default, connect using the current OS username
 #ifdef _WIN32
-    //XXX find out current username here
+    // TODO(anyone) find out current username here
 #else
     const char *tmp = getenv("USER");
     user_part = tmp ? tmp : "";
@@ -660,36 +660,6 @@ std::vector<std::string> split_string_chars(const std::string& input, const std:
       index = new_find + 1;
     } else
       ret_val.push_back(input.substr(index));
-  }
-
-  return ret_val;
-}
-
-std::string join_strings(const std::set<std::string>& strings, const std::string& separator) {
-  std::set<std::string> input(strings);
-  std::string ret_val;
-
-  ret_val += *input.begin();
-
-  input.erase(input.begin());
-
-  for (auto item : input)
-    ret_val += separator + item;
-
-  return ret_val;
-}
-
-std::string join_strings(const std::vector<std::string>& strings, const std::string& separator) {
-  std::vector<std::string> input(strings);
-  std::string ret_val;
-
-  if (!input.empty()) {
-    ret_val += *input.begin();
-
-    input.erase(input.begin());
-
-    for (auto item : input)
-      ret_val += separator + item;
   }
 
   return ret_val;
@@ -1049,5 +1019,4 @@ void split_account(const std::string& account, std::string *out_user, std::strin
 std::string make_account(const std::string& user, const std::string &host) {
   return shcore::sqlstring("?@?", 0) << user << host;
 }
-
 } // namespace

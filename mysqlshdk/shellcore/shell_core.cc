@@ -677,7 +677,7 @@ std::string Shell_command_handler::get_commands(const std::string& title) {
     tokens.erase(tokens.begin());
 
     if (!tokens.empty())
-      tmp_alias.push_back("(" + join_strings(tokens, ",") + ")");
+      tmp_alias.push_back("(" + str_join(tokens, ",") + ")");
     else
       tmp_alias.push_back(" ");
 
@@ -735,7 +735,7 @@ bool Shell_command_handler::get_command_help(const std::string& command, std::st
     if (item->second->triggers != command) {
       std::vector<std::string> triggers;
       triggers = split_string(item->second->triggers, "|", true);
-      help += "\n\nTRIGGERS: " + join_strings(triggers, " or ");
+      help += "\n\nTRIGGERS: " + str_join(triggers, " or ");
     }
 
     // Prints the additional help

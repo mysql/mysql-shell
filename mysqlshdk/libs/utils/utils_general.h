@@ -27,6 +27,9 @@
 #include <string>
 #include <set>
 #include <vector>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace shcore {
 
@@ -59,8 +62,6 @@ std::string SHCORE_PUBLIC strip_ssl_args(const std::string &connstring);
 
 char SHCORE_PUBLIC *mysh_get_stdin_password(const char *prompt);
 
-std::string SHCORE_PUBLIC join_strings(const std::set<std::string>& strings, const std::string& separator);
-std::string SHCORE_PUBLIC join_strings(const std::vector<std::string>& strings, const std::string& separator);
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, const std::string& separator, bool compress = false);
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, std::vector<size_t> max_lengths);
 std::vector<std::string> SHCORE_PUBLIC split_string_chars(const std::string& input, const std::string& separator_chars, bool compress = false);
@@ -74,6 +75,50 @@ std::string SHCORE_PUBLIC format_markup_text(const std::vector<std::string>& lin
 std::string SHCORE_PUBLIC replace_text(const std::string& source, const std::string& from, const std::string& to);
 std::string get_my_hostname();
 bool is_local_host(const std::string &host, bool check_hostname);
+
+
+#ifdef _WIN32
+// We inline these functions to avoid trouble with memory and DLL boundaries
+inline LPSTR win_w_to_a_string(LPWSTR wstr, int wstrl) {
+  LPSTR str;
+  int r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wstr, -1, nullptr,
+                              0, nullptr, nullptr);
+  if (r <= 0)
+    return nullptr;
+  str = (LPSTR)malloc(r + 1);
+  if (!str)
+    return nullptr;
+
+  r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wstr, -1, str, r,
+                          nullptr, nullptr);
+  if (r <= 0) {
+    free(str);
+    return nullptr;
+  }
+  str[r] = 0;
+  return str;
 }
+
+inline LPWSTR win_a_to_w_string(LPSTR str) {
+  LPWSTR wstr;
+  int r =
+      MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, -1, nullptr, 0);
+  if (r <= 0)
+    return nullptr;
+  wstr = (LPWSTR)malloc(r + 1);
+  if (!str)
+    return nullptr;
+
+  r = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, -1, wstr, r);
+  if (r <= 0) {
+    free(wstr);
+    return nullptr;
+  }
+  wstr[r] = 0;
+  return wstr;
+}
+#endif
+
+}  // namespace shcore
 
 #endif /* defined(__mysh__utils_general__) */

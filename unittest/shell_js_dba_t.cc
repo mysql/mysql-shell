@@ -143,12 +143,13 @@ protected:
       tokens.push_back("");
     }
 
-    _sandbox_dir = shcore::join_strings(tokens, "\\\\");
+    _sandbox_dir = shcore::str_join(tokens, "\\\\");
     code = "var __sandbox_dir = '" + _sandbox_dir + "';";
     exec_and_out_equals(code);
 
     // output sandbox dir
-    code = "var __output_sandbox_dir = '" + shcore::join_strings(tokens, "\\") + "';";
+    code =
+        "var __output_sandbox_dir = '" + shcore::str_join(tokens, "\\") + "';";
     exec_and_out_equals(code);
 #else
     code = "var __path_splitter = '/';";

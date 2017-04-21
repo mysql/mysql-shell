@@ -18,10 +18,11 @@
  */
 
 #include "modules/adminapi/mod_dba_sql.h"
-#include "utils/utils_sqlstring.h"
+#include <algorithm>
 #include <random>
 #include <string>
 #include <utility>
+#include "utils/utils_sqlstring.h"
 
 namespace mysqlsh {
 namespace dba {

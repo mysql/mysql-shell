@@ -37,6 +37,7 @@
 #include "modules/adminapi/mod_dba_sql.h"
 
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
@@ -918,7 +919,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
       }
     }
 
-    throw shcore::Exception::runtime_error(shcore::join_strings(str_errors, "\n"));
+    throw shcore::Exception::runtime_error(shcore::str_join(str_errors, "\n"));
   }
 
   return ret_val;
@@ -1533,7 +1534,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
 
     if (type == GRInstanceType::InnoDBCluster) {
       auto seeds = get_peer_seeds(session->connection(), endpoint);
-      auto peer_seeds = shcore::join_strings(seeds, ",");
+      auto peer_seeds = shcore::str_join(seeds, ",");
       set_global_variable(session->connection(), "group_replication_group_seeds", peer_seeds);
     }
 
@@ -1857,7 +1858,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
     if (!instances_lists_intersection.empty()) {
       std::string list;
 
-      list = shcore::join_strings(instances_lists_intersection, ", ");
+      list = shcore::str_join(instances_lists_intersection, ", ");
 
       throw shcore::Exception::argument_error("The following instances: '" + list +
                 "' belong to both 'rejoinInstances' and 'removeInstances' lists.");

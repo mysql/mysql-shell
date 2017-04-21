@@ -13,38 +13,48 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include "process_launcher.h"
-
-#include "utils/utils_string.h"
+#include "mysqlshdk/libs/utils/process_launcher.h"
 
 #include <cassert>
 #include <string>
 #include <system_error>
 
 #ifdef WIN32
-#  include <windows.h>
-#  include <tchar.h>
-#  include <stdio.h>
+#include <stdio.h>
+#include <tchar.h>
+#include <windows.h>
 #else
-#  include <stdio.h>
-#  include <unistd.h>
-#  include <sys/types.h>
-#  include <stdlib.h>
-#  include <string.h>
-#  include <sys/wait.h>
-#  include <string.h>
-#  include <poll.h>
-#  include <errno.h>
-#  include <signal.h>
-#  include <fcntl.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 #ifdef LINUX
-#  include <sys/prctl.h>
+#include <sys/prctl.h>
 #endif
 
-using namespace ngcommon;
-using namespace shcore;
+#include "mysqlshdk/libs/utils/utils_string.h"
+
+namespace shcore {
+
+Process_launcher::Process_launcher(const char **argv, bool redirect_stderr)
+    : is_alive(false) {
+#ifdef WIN32
+  if (strstr(argv[0], "cmd.exe"))
+    throw std::logic_error("launching cmd.exe currently not supported");
+// To suport cmd.exe, we need to handle special quoting rules
+// required by it
+#endif
+  this->argv = argv;
+  this->redirect_stderr = redirect_stderr;
+}
 
 /** Joins list of strings into a command line that is suitable for Windows
 
@@ -94,6 +104,7 @@ std::string Process_launcher::make_windows_cmdline(const char **argv) {
   return cmd;
 }
 
+
 #ifdef WIN32
 
 void Process_launcher::start() {
@@ -111,7 +122,7 @@ void Process_launcher::start() {
 
   // force non blocking IO in Windows
   DWORD mode = PIPE_NOWAIT;
-  //BOOL res = SetNamedPipeHandleState(child_out_rd, &mode, NULL, NULL);
+  // BOOL res = SetNamedPipeHandleState(child_out_rd, &mode, NULL, NULL);
 
   if (!CreatePipe(&child_in_rd, &child_in_wr, &saAttr, 0))
     report_error("Failed to create child_in_rd");
@@ -174,7 +185,7 @@ int Process_launcher::wait() {
     if (dwError != ERROR_INVALID_HANDLE)  // not closed already?
       report_error(NULL);
     else
-      dwExit = 128; // Invalid handle
+      dwExit = 128;  // Invalid handle
   }
   return dwExit;
 }
@@ -213,7 +224,8 @@ int Process_launcher::read_one_char() {
 
   while (!(bSuccess = ReadFile(child_out_rd, buf, 1, &dwBytesRead, NULL))) {
     dwCode = GetLastError();
-    if (dwCode == ERROR_NO_DATA) continue;
+    if (dwCode == ERROR_NO_DATA)
+      continue;
     if (dwCode == ERROR_BROKEN_PIPE)
       return EOF;
     else
@@ -230,7 +242,8 @@ int Process_launcher::read(char *buf, size_t count) {
 
   while (!(bSuccess = ReadFile(child_out_rd, buf, count, &dwBytesRead, NULL))) {
     dwCode = GetLastError();
-    if (dwCode == ERROR_NO_DATA) continue;
+    if (dwCode == ERROR_NO_DATA)
+      continue;
     if (dwCode == ERROR_BROKEN_PIPE)
       return EOF;
     else
@@ -252,7 +265,7 @@ int Process_launcher::write_one_char(int c) {
   } else {
     return 1;
   }
-  return 0; // so the compiler does not cry
+  return 0;  // so the compiler does not cry
 }
 
 int Process_launcher::write(const char *buf, size_t count) {
@@ -266,7 +279,7 @@ int Process_launcher::write(const char *buf, size_t count) {
     // When child input buffer is full, this returns zero in NO_WAIT mode.
     return dwBytesWritten;
   }
-  return 0; // so the compiler does not cry
+  return 0;  // so the compiler does not cry
 }
 
 void Process_launcher::report_error(const char *msg) {
@@ -276,15 +289,10 @@ void Process_launcher::report_error(const char *msg) {
   if (msg != NULL) {
     throw std::system_error(dwCode, std::generic_category(), msg);
   } else {
-    FormatMessage(
-      FORMAT_MESSAGE_ALLOCATE_BUFFER |
-      FORMAT_MESSAGE_FROM_SYSTEM |
-      FORMAT_MESSAGE_IGNORE_INSERTS,
-      NULL,
-      dwCode,
-      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-      (LPTSTR)&lpMsgBuf,
-      0, NULL);
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                      FORMAT_MESSAGE_IGNORE_INSERTS,
+                  NULL, dwCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  (LPTSTR)&lpMsgBuf, 0, NULL);
     std::string msgerr = "SystemError: ";
     msgerr += lpMsgBuf;
     msgerr += "with error code %d.";
@@ -293,24 +301,21 @@ void Process_launcher::report_error(const char *msg) {
   }
 }
 
-uint64_t Process_launcher::get_fd_write() {
-  return (uint64_t)child_in_wr;
+HANDLE Process_launcher::get_fd_write() {
+  return child_in_wr;
 }
 
-uint64_t Process_launcher::get_fd_read() {
-  return (uint64_t)child_out_rd;
+HANDLE Process_launcher::get_fd_read() {
+  return child_out_rd;
 }
 
 #else
 
-void Process_launcher::start()
-{
-  if( pipe(fd_in) < 0 )
-  {
+void Process_launcher::start() {
+  if (pipe(fd_in) < 0) {
     report_error(NULL);
   }
-  if( pipe(fd_out) < 0 )
-  {
+  if (pipe(fd_out) < 0) {
     report_error(NULL);
   }
 
@@ -318,37 +323,37 @@ void Process_launcher::start()
   signal(SIGPIPE, SIG_IGN);
 
   childpid = fork();
-  if(childpid == -1)
-  {
+  if (childpid == -1) {
     report_error(NULL);
   }
 
-  if(childpid == 0)
-  {
+  if (childpid == 0) {
 #ifdef LINUX
     prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
 
     ::close(fd_out[0]);
     ::close(fd_in[1]);
-    while( dup2(fd_out[1], STDOUT_FILENO) == -1 )
-    {
-      if(errno == EINTR) continue;
-      else report_error(NULL);
+    while (dup2(fd_out[1], STDOUT_FILENO) == -1) {
+      if (errno == EINTR)
+        continue;
+      else
+        report_error(NULL);
     }
 
-    if(redirect_stderr)
-    {
-      while( dup2(fd_out[1], STDERR_FILENO) == -1 )
-      {
-        if(errno == EINTR) continue;
-        else report_error(NULL);
+    if (redirect_stderr) {
+      while (dup2(fd_out[1], STDERR_FILENO) == -1) {
+        if (errno == EINTR)
+          continue;
+        else
+          report_error(NULL);
       }
     }
-    while( dup2(fd_in[0], STDIN_FILENO) == -1 )
-    {
-      if(errno == EINTR) continue;
-      else report_error(NULL);
+    while (dup2(fd_in[0], STDIN_FILENO) == -1) {
+      if (errno == EINTR)
+        continue;
+      else
+        report_error(NULL);
     }
 
     fcntl(fd_out[1], F_SETFD, FD_CLOEXEC);
@@ -361,9 +366,10 @@ void Process_launcher::start()
     fprintf(stderr, "%s could not be executed: %s (errno %d)\n", argv[0],
             strerror(my_errno), my_errno);
 
-    // we need to identify an ENOENT and since some programs return 2 as exit-code
-    // we need to return a non-existent code, 128 is a general convention used to indicate
-    // a failure to execute another program in a subprocess
+    // we need to identify an ENOENT and since some programs return 2 as
+    // exit-code we need to return a non-existent code, 128 is a general
+    // convention used to indicate a failure to execute another program in a
+    // subprocess
     if (my_errno == 2)
       my_errno = 128;
 
@@ -384,14 +390,12 @@ void Process_launcher::start()
   }
 }
 
-void Process_launcher::close()
-{
-  if(::kill(childpid, SIGTERM) < 0 && errno != ESRCH)
+void Process_launcher::close() {
+  if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH)
     report_error(NULL);
-  if(errno != ESRCH)
-  {
+  if (errno != ESRCH) {
     sleep(1);
-    if(::kill(childpid, SIGKILL) < 0 && errno != ESRCH)
+    if (::kill(childpid, SIGKILL) < 0 && errno != ESRCH)
       report_error(NULL);
   }
 
@@ -413,116 +417,107 @@ void Process_launcher::close()
   is_alive = false;
 }
 
-int Process_launcher::read_one_char()
-{
+int Process_launcher::read_one_char() {
   int c;
-  do
-  {
-    if((c = ::read(fd_out[0], &c, 1)) >= 0)
+  do {
+    if ((c = ::read(fd_out[0], &c, 1)) >= 0)
       return c;
-    if(errno == EAGAIN || errno == EINTR) continue;
-    if(errno == EPIPE) return 0;
+    if (errno == EAGAIN || errno == EINTR)
+      continue;
+    if (errno == EPIPE)
+      return 0;
     break;
-  } while(true);
+  } while (true);
   report_error(NULL);
   return -1;
 }
 
-int Process_launcher::read(char *buf, size_t count)
-{
+int Process_launcher::read(char *buf, size_t count) {
   int n;
   do {
-    if((n = ::read(fd_out[0], buf, count)) >= 0)
+    if ((n = ::read(fd_out[0], buf, count)) >= 0)
       return n;
-    if(errno == EAGAIN || errno == EINTR) continue;
-    if(errno == EPIPE) return 0;
+    if (errno == EAGAIN || errno == EINTR)
+      continue;
+    if (errno == EPIPE)
+      return 0;
     break;
-  } while(true);
+  } while (true);
   report_error(NULL);
   return -1;
 }
 
-int Process_launcher::write_one_char(int c)
-{
+int Process_launcher::write_one_char(int c) {
   int n;
-  if((n = ::write(fd_in[1], &c, 1)) >= 0)
+  if ((n = ::write(fd_in[1], &c, 1)) >= 0)
     return n;
-  if (errno == EPIPE) return 0;
+  if (errno == EPIPE)
+    return 0;
   report_error(NULL);
   return -1;
 }
 
-int Process_launcher::write(const char *buf, size_t count)
-{
+int Process_launcher::write(const char *buf, size_t count) {
   int n;
-  if((n = ::write(fd_in[1], buf, count)) >= 0)
+  if ((n = ::write(fd_in[1], buf, count)) >= 0)
     return n;
-  if (errno == EPIPE) return 0;
+  if (errno == EPIPE)
+    return 0;
   report_error(NULL);
   return -1;
 }
 
-void Process_launcher::report_error(const char *msg)
-{
-  char sys_err[ 64 ];
+void Process_launcher::report_error(const char *msg) {
+  char sys_err[128];
   int errnum = errno;
-  if(msg == NULL)
-  {
+  if (msg == NULL) {
     strerror_r(errno, sys_err, sizeof(sys_err));
     std::string s = sys_err;
     s += "with errno %d.";
     std::string fmt = str_format(s.c_str(), errnum);
     throw std::system_error(errnum, std::generic_category(), fmt);
-  }
-  else
-  {
+  } else {
     throw std::system_error(errnum, std::generic_category(), msg);
   }
 }
 
-uint64_t Process_launcher::get_pid()
-{
+uint64_t Process_launcher::get_pid() {
   return (uint64_t)childpid;
 }
 
 /*
  * Waits for the child process to finish.
- * throws an error if the wait fails, or the child return code if wait syscall does not fail.
+ * throws an error if the wait fails, or the child return code if wait syscall
+ * does not fail.
  */
-int Process_launcher::wait()
-{
+int Process_launcher::wait() {
   int status;
   int exited;
   int exitstatus;
   pid_t ret;
 
-  do
-  {
+  do {
     ret = ::wait(&status);
     exited = WIFEXITED(status);
     exitstatus = WEXITSTATUS(status);
-    if(ret == -1)
-    {
-      if(errno == ECHILD) break;  // no children left
-      if((exited == 0) || (exitstatus != 0))
-      {
+    if (ret == -1) {
+      if (errno == ECHILD)
+        break;  // no children left
+      if ((exited == 0) || (exitstatus != 0)) {
         report_error(NULL);
       }
     }
-  }
-  while(ret == -1);
+  } while (ret == -1);
 
   return exitstatus;
 }
 
-uint64_t Process_launcher::get_fd_write()
-{
-  return (uint64_t)fd_in[1];
+int Process_launcher::get_fd_write() {
+  return fd_in[1];
 }
 
-uint64_t Process_launcher::get_fd_read()
-{
-  return (uint64_t)fd_out[0];
+int Process_launcher::get_fd_read() {
+  return fd_out[0];
 }
 
 #endif
@@ -530,3 +525,4 @@ uint64_t Process_launcher::get_fd_read()
 void Process_launcher::kill() {
   close();
 }
+}  // namespace shcore

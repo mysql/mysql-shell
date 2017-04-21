@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -13,47 +13,52 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _PROCESS_LAUNCHER_H_
-#define _PROCESS_LAUNCHER_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_PROCESS_LAUNCHER_H_
+#define MYSQLSHDK_LIBS_UTILS_PROCESS_LAUNCHER_H_
 
 #ifdef WIN32
-#  define _CRT_SECURE_NO_WARNINGS 1
-#  ifdef UNICODE
-#    #undef UNICODE
-#  endif
-#  include <windows.h>
+#define _CRT_SECURE_NO_WARNINGS 1
+#ifdef UNICODE
+# #undef UNICODE
+#endif
+#include <windows.h>
 #else
-#  include <unistd.h>
+#include <unistd.h>
 //#  include <poll.h>
 #endif
 #include <stdint.h>
 #include <string>
 
-namespace ngcommon {
-// Launches a process as child of current process and exposes the stdin & stdout of the child process
-// (implemented thru pipelines) so the client of this class can read from the child's stdout and write to the child's stdin.
-// For usage, see unit tests.
+namespace shcore {
+// Launches a process as child of current process and exposes the stdin & stdout
+// of the child process (implemented thru pipelines) so the client of this class
+// can read from the child's stdout and write to the child's stdin. For usage,
+// see unit tests.
 //
-// TODO: Make scenario 4 work correctly:
+// TODO(fer): Make scenario 4 work correctly:
 //   spawn
 //   while not eof :
 //     stdin.write
 //     stdout.read
 //   wait
 class Process_launcher {
-public:
-
+ public:
   /**
    * Creates a new process and launch it.
    * Argument 'args' must have a last entry that is NULL.
-   * If redirect_stderr is true, the child's stderr is redirected to the same stream than child's stdout.
+   * If redirect_stderr is true, the child's stderr is redirected to the same
+   * stream than child's stdout.
+   *
+   * NOTE: if the called process is cmd.exe, additional
+   * quoting would be required, which is currently not supported.
+   * For that reason, a logic_error will be thrown if cmd.exe is argv[0]
    */
-  Process_launcher(const char ** argv, bool redirect_stderr = true) : is_alive(false) {
-    this->argv = argv;
-    this->redirect_stderr = redirect_stderr;
-  }
+  explicit Process_launcher(const char **argv, bool redirect_stderr = true);
 
-  ~Process_launcher() { if (is_alive) close(); }
+  ~Process_launcher() {
+    if (is_alive)
+      close();
+  }
 
   /** Launches the child process, and makes pipes available for read/write. */
   void start();
@@ -62,7 +67,7 @@ public:
    * Reads a single byte (and returns it).
    * Throws an shcore::Exception in case of error when reading.
    */
-  int read_one_char();		// read from stdout of child process
+  int read_one_char();  // read from stdout of child process
 
   /**
    * Read up to a 'count' bytes from the stdout of the child process.
@@ -105,24 +110,33 @@ public:
   int wait();
 
   /**
-  * Returns the file descriptor write handle (to write child's stdin).
-  * In Linux this needs to be cast to int, in Windows to cast to HANDLE.
-  */
-  uint64_t get_fd_write();
+   * Returns the file descriptor write handle (to write child's stdin).
+   * In Linux this needs to be cast to int, in Windows to cast to HANDLE.
+   */
+#ifdef _WIN32
+  HANDLE get_fd_write();
+#else
+  int get_fd_write();
+#endif
 
   /**
-  * Returns the file descriptor read handle (to read child's stdout).
-  * In Linux this needs to be cast to int, in Windows to cast to HANDLE.
-  */
-  uint64_t get_fd_read();
+   * Returns the file descriptor read handle (to read child's stdout).
+   * In Linux this needs to be cast to int, in Windows to cast to HANDLE.
+   */
+#ifdef _WIN32
+  HANDLE get_fd_read();
+#else
+  int get_fd_read();
+#endif
 
   /** Perform Windows specific quoting of args and build a command line */
   static std::string make_windows_cmdline(const char **argv);
 
 private:
   /**
-   * Throws an exception with the specified message, if msg == NULL, the exception's message is specific of the platform error.
-   * (errno in Linux / GetLastError in Windows).
+   * Throws an exception with the specified message, if msg == NULL, the
+   * exception's message is specific of the platform error. (errno in Linux /
+   * GetLastError in Windows).
    */
   void report_error(const char *msg);
   /** Closes child process */
@@ -141,10 +155,10 @@ private:
   pid_t childpid;
   int fd_in[2];
   int fd_out[2];
-  //  struct pollfd _s_pollfd[2];
+//  struct pollfd _s_pollfd[2];
 #endif
   bool redirect_stderr;
 };
-}  // namespace ngcommon
+}  // namespace shcore
 
-#endif // _PROCESS_LAUNCHER_H_
+#endif  // MYSQLSHDK_LIBS_UTILS_PROCESS_LAUNCHER_H_

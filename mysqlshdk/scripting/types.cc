@@ -1533,15 +1533,15 @@ void Argument_map::ensure_keys(const std::set<std::string> &mandatory_keys,
     std::string msg;
     if (!invalid_keys.empty() && !missing_keys.empty()) {
       msg.append("Invalid and missing values in ").append(context).append(" ");
-      msg.append("(invalid: ").append(join_strings(invalid_keys, ", "));
-      msg.append("), (missing: ").append(join_strings(missing_keys, ", "));
+      msg.append("(invalid: ").append(str_join(invalid_keys, ", "));
+      msg.append("), (missing: ").append(str_join(missing_keys, ", "));
       msg.append(")");
     } else if (!invalid_keys.empty()) {
       msg.append("Invalid values in ").append(context).append(": ");
-      msg.append(join_strings(invalid_keys, ", "));
+      msg.append(str_join(invalid_keys, ", "));
     } else if (!missing_keys.empty()) {
       msg.append("Missing values in ").append(context).append(": ");
-      msg.append(join_strings(missing_keys, ", "));
+      msg.append(str_join(missing_keys, ", "));
     }
     if (!msg.empty())
       throw Exception::argument_error(msg);
