@@ -94,7 +94,7 @@ std::string Mock_row::def_get_date(int index) const {
 }
 
 bool Mock_row::def_is_null(int index) const {
-  return _record[index] == "null";
+  return _record[index] == "___NULL___";
 }
 
 bool Mock_row::def_is_int(int index) const {

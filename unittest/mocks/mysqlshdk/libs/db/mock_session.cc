@@ -19,11 +19,55 @@
 
 #include "unittest/mocks/mysqlshdk/libs/db/mock_session.h"
 
-#include "mocks/gmock_clean.h"
 #include <memory>
 
+#include "mocks/gmock_clean.h"
+
 namespace testing {
-void Mock_session::set_result(mysqlshdk::db::IResult* result) {
-  _result.reset(result);
+
+Mock_session& Mock_session::expect_query(const std::string& query) {
+  _last_query = _queries.size();
+  _queries.push_back(query);
+  _throws.push_back(false);
+
+  return *this;
 }
+
+void Mock_session::then_return(const std::vector<Fake_result_data>& data) {
+  if (_last_query < _queries.size()) {
+    auto result = std::unique_ptr<Mock_result>(new Mock_result());
+
+    result->set_data(data);
+
+    _results[_queries[_last_query++]] = std::move(result);
+  } else {
+    throw std::logic_error("Attempted to set result with no query.");
+  }
 }
+
+void Mock_session::then_throw() {
+  if (_last_query < _queries.size())
+    _throws[_last_query++] = true;
+  else
+    throw std::logic_error("Attempted to set throw condition with no query.");
+}
+
+std::unique_ptr<mysqlshdk::db::IResult> Mock_session::query(
+    const std::string& sql, bool buffered) {
+  // Ensures the expected query got received
+  EXPECT_EQ(sql, _queries[0]);
+
+  // Removes the query
+  _queries.erase(_queries.begin());
+
+  // Throws if that's the plan
+  if (_throws[0]) {
+    _throws.erase(_throws.begin());
+    throw std::runtime_error("Error executing session.query");
+  }
+
+  // Returns the assigned result if that's the plan
+  return std::move(_results[sql]);
+}
+
+}  // namespace testing

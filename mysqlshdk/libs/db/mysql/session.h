@@ -23,14 +23,13 @@
 #ifndef _CORELIBS_DB_MYSQL_SESSION_H_
 #define _CORELIBS_DB_MYSQL_SESSION_H_
 
+#include <mysql.h>
+#include <set>
+
 #include "utils/utils_time.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/ssl_info.h"
-#include <set>
-
-#include <mysql.h>
 
 namespace mysqlshdk {
 namespace db {

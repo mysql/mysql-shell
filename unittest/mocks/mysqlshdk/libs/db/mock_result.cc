@@ -125,13 +125,28 @@ bool Mock_result::fake_next_dataset() {
  *
  * Call add_row on the returned object to insert records into the resultset.
  */
-std::shared_ptr<Fake_result> Mock_result::add_result(
+void Mock_result::add_result(
     const std::vector<std::string>& names,
-    const std::vector<mysqlshdk::db::Type>& types) {
-  std::shared_ptr<Fake_result> result(new Fake_result(names, types));
+    const std::vector<mysqlshdk::db::Type>& types,
+    const std::vector<std::vector<std::string>>& rows) {
+  std::unique_ptr<Fake_result> result(new Fake_result(names, types));
 
-  _results.push_back(result);
+  for (auto row : rows)
+    result->add_row(row);
 
-  return result;
+  _results.push_back(std::move(result));
 }
+
+void Mock_result::set_data(const std::vector<Fake_result_data>& data) {
+  for (auto result : data) {
+    std::unique_ptr<Fake_result> fake_result(
+        new Fake_result(result.names, result.types));
+
+    for (auto row : result.rows)
+      fake_result->add_row(row);
+
+    _results.push_back(std::move(fake_result));
+  }
+}
+
 }  // namespace testing

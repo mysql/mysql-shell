@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,7 +27,6 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "mysql_connection.h"
 #include "shellcore/base_session.h"
 
 namespace shcore {
@@ -41,6 +40,7 @@ class DatabaseObject;
 namespace mysql {
 class ClassicSchema;
 class ClassicResult;
+class Connection;
 /**
 * \ingroup ShellAPI
 * $(CLASSICSESSION_BRIEF)
@@ -115,7 +115,7 @@ public:
 
   Connection *connection();
 
-  virtual uint64_t get_connection_id() const { return (uint64_t)_conn->get_thread_id(); }
+  virtual uint64_t get_connection_id() const;
   virtual std::string query_one_string(const std::string &query);
 
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const;
@@ -171,7 +171,7 @@ public:
 #elif DOXYGEN_PY
   bool is_open() {}
 #endif
-  virtual bool is_open() const { return _conn ? true : false; }
+  virtual bool is_open() const;
 
   virtual int get_default_port() { return 3306; };
 

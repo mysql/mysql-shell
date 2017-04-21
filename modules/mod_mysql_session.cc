@@ -873,6 +873,13 @@ void ClassicSession::rollback() {
     execute_sql("rollback", shcore::Argument_list());
 }
 
+uint64_t ClassicSession::get_connection_id() const {
+  return (uint64_t)_conn->get_thread_id();
+}
+
+bool ClassicSession::is_open() const {
+  return _conn ? true : false;
+}
 
 std::string ClassicSession::query_one_string(const std::string &query) {
   shcore::Value val_result = execute_sql(query, shcore::Argument_list());

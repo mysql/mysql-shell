@@ -17,11 +17,13 @@
  * 02110-1301  USA
  */
 
-#ifndef _UNITTEST_MOCKS_CORELIBS_DB_FAKE_RESULT_H
-#define _UNITTEST_MOCKS_CORELIBS_DB_FAKE_RESULT_H
+#ifndef UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_RESULT_H_
+#define UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_RESULT_H_
+
+#include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/db/result.h"
-
 #include "mocks/gmock_clean.h"
 
 namespace testing {
@@ -37,14 +39,16 @@ namespace testing {
  * This object is created when a fake result is added into a Mock_result object
  */
 class Fake_result {
-public:
-  Fake_result(const std::vector<std::string>& names, const std::vector<mysqlshdk::db::Type>& types);
+ public:
+  Fake_result(const std::vector<std::string>& names,
+              const std::vector<mysqlshdk::db::Type>& types);
   std::unique_ptr<mysqlshdk::db::IRow> fetch_one();
   std::unique_ptr<mysqlshdk::db::IRow> fetch_one_warning();
   void add_row(const std::vector<std::string>& data);
-  void add_warning(const std::string& message, int code, const std::string& level);
+  void add_warning(const std::string& message, int code,
+                   const std::string& level);
 
-private:
+ private:
   int _index;
   int _windex;
 
@@ -55,6 +59,12 @@ private:
   std::vector<std::string> _wnames;
   std::vector<mysqlshdk::db::Type> _wtypes;
   std::vector<std::unique_ptr<mysqlshdk::db::IRow> > _wrecords;
+};
+
+struct Fake_result_data {
+  std::vector<std::string> names;
+  std::vector<mysqlshdk::db::Type> types;
+  std::vector<std::vector<std::string> > rows;
 };
 
 /**
@@ -68,15 +78,16 @@ private:
  *
  * Where:
  *   - First parameter is this result object
- *   - Second parameter is the function and parameters that is expected to be called
- *   - After closing the EXPECT_CALL() some actions can be defined to return specific results
- *     Keep in mind that the returned data must match the return type of the function called
+ *   - Second parameter is the function and parameters that is expected to be
+ * called - After closing the EXPECT_CALL() some actions can be defined to
+ * return specific results Keep in mind that the returned data must match the
+ * return type of the function called
  *
  * This class allows defining fake resultsets to be returned, it means
  * they are created on the fly by calling: add_result
  */
 class Mock_result : public mysqlshdk::db::IResult {
-public:
+ public:
   Mock_result();
 
   MOCK_METHOD0(next_data_set, bool());
@@ -95,17 +106,21 @@ public:
   virtual std::unique_ptr<mysqlshdk::db::IRow> fetch_one();
   virtual std::unique_ptr<mysqlshdk::db::IRow> fetch_one_warning();
 
-  virtual ~Mock_result() {};
+  virtual ~Mock_result() {}
 
-  std::shared_ptr<Fake_result> add_result(const std::vector<std::string>& names, const std::vector<mysqlshdk::db::Type>& types);
+  void add_result(const std::vector<std::string>& names,
+                  const std::vector<mysqlshdk::db::Type>& types,
+                  const std::vector<std::vector<std::string> >& rows);
 
-private:
+  void set_data(const std::vector<Fake_result_data>& data);
+
+ private:
   int _index;
-  std::vector<std::shared_ptr<Fake_result> > _results;
+  std::vector<std::unique_ptr<Fake_result> > _results;
 
   std::unique_ptr<mysqlshdk::db::IRow> fake_fetch_one();
   bool fake_next_dataset();
 };
-}
+}  // namespace testing
 
-#endif // MOCK_SESSION_H
+#endif  // UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_RESULT_H_

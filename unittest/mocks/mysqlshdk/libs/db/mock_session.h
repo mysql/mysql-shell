@@ -20,11 +20,14 @@
 #ifndef UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_SESSION_H_
 #define UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_SESSION_H_
 
+#include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
-#include "mysqlshdk/libs/db/session.h"
 #include "mocks/gmock_clean.h"
+#include "mocks/mysqlshdk/libs/db/mock_result.h"
+#include "mysqlshdk/libs/db/session.h"
 
 namespace testing {
 /**
@@ -48,7 +51,6 @@ namespace testing {
  */
 class Mock_session : public mysqlshdk::db::ISession {
  public:
-  Mock_session() : _throw_on_query(false) {}
   MOCK_METHOD2(connect, void(const std::string &URI, const char *password));
   MOCK_METHOD7(connect,
                void(const std::string &host, int port,
@@ -58,14 +60,7 @@ class Mock_session : public mysqlshdk::db::ISession {
 
   // Execution
   virtual std::unique_ptr<mysqlshdk::db::IResult> query(const std::string &sql,
-                                                        bool buffered) {
-    if (_throw_on_query) {
-      throw std::runtime_error("Error executing session.query");
-      _throw_on_query = false;
-    }
-
-    return std::move(_result);
-  }
+                                                        bool buffered);
   MOCK_METHOD1(execute, void(const std::string &sql));
   MOCK_METHOD0(start_transaction, void());
   MOCK_METHOD0(commit, void());
@@ -75,14 +70,16 @@ class Mock_session : public mysqlshdk::db::ISession {
   // Disconnection
   MOCK_METHOD0(close, void());
 
-  void set_result(mysqlshdk::db::IResult *result);
-
   // Exception Simulation
-  mysqlshdk::db::IResult *throw_exception_on_query() { _throw_on_query = true; }
+  Mock_session &expect_query(const std::string &query);
+  void then_return(const std::vector<Fake_result_data> &data);
+  void then_throw();
 
  private:
-  std::unique_ptr<mysqlshdk::db::IResult> _result;
-  bool _throw_on_query;
+  size_t _last_query;
+  std::vector<std::string> _queries;
+  std::map<std::string, std::unique_ptr<mysqlshdk::db::IResult> > _results;
+  std::vector<bool> _throws;
 };
 }  // namespace testing
 
