@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License as
-* published by the Free Software Foundation; version 2 of the
-* License.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-* 02110-1301  USA
-*/
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; version 2 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301  USA
+ */
 
 #include "shellcore/utils_help.h"
-#include "utils/utils_general.h"
-#include <vector>
 #include <cctype>
+#include <vector>
+#include "utils/utils_general.h"
 
 namespace shcore {
-Shell_help *Shell_help::_instance = nullptr;
+Shell_help* Shell_help::_instance = nullptr;
 
-Shell_help *Shell_help::get() {
+Shell_help* Shell_help::get() {
   if (!_instance)
     _instance = new Shell_help();
 
@@ -40,14 +40,28 @@ std::string Shell_help::get_token(const std::string& token) {
   std::string ret_val;
 
   if (_help_data.find(token) != _help_data.end())
-      ret_val = _help_data[token];
+    ret_val = _help_data[token];
 
   return ret_val;
 }
 
-Help_register::Help_register(const std::string &token, const std::string &data) {
+Help_register::Help_register(const std::string& token,
+                             const std::string& data) {
   shcore::Shell_help::get()->add_help(token, data);
 };
+
+std::vector<std::string> resolve_help_text(
+    const std::vector<std::string>& prefixes, const std::string& suffix) {
+  std::vector<std::string> help_text;
+
+  for (auto help_prefix : prefixes) {
+    help_text = get_help_text(help_prefix + suffix);
+    if (!help_text.empty())
+      break;
+  }
+
+  return help_text;
+}
 
 std::vector<std::string> get_help_text(const std::string& token) {
   std::string real_token;
@@ -67,38 +81,55 @@ std::vector<std::string> get_help_text(const std::string& token) {
   return lines;
 }
 
-std::string get_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname) {
+std::string get_function_help(shcore::NamingStyle style,
+                              const std::string& class_name,
+                              const std::string& bfname) {
   std::string ret_val;
 
   std::string fname = shcore::get_member_name(bfname, style);
 
-  auto params = get_help_text(class_name + "_" + bfname + "_PARAM");
+  std::string parent_classes;
+  std::vector<std::string> parents = get_help_text(class_name + "_PARENTS");
+
+  if (!parents.empty())
+    parent_classes = parents[0];
+
+  std::vector<std::string> help_prefixes =
+      shcore::split_string(parent_classes, ",");
+  help_prefixes.insert(help_prefixes.begin(), class_name);
+
+  auto params = resolve_help_text(help_prefixes, "_" + bfname + "_PARAM");
 
   if (!params.empty()) {
-    std::vector<std::string> fpnames; // Parameter names as they will look in the signature
+    std::vector<std::string>
+        fpnames;  // Parameter names as they will look in the signature
     std::vector<std::string> pnames;  // Parameter names for the WHERE section
-    std::vector<std::string> pdescs;  // Parameter descriptions as they are defined
+    std::vector<std::string>
+        pdescs;  // Parameter descriptions as they are defined
 
     for (auto paramdef : params) {
       // 7 is the length of: "\param " or "@param "
       size_t start_index = 7;
-      auto pname = paramdef.substr(start_index, paramdef.find(" ", start_index) - start_index);
+      auto pname = paramdef.substr(
+          start_index, paramdef.find(" ", start_index) - start_index);
       pnames.push_back(pname);
 
       start_index += pname.size() + 1;
       auto desc = paramdef.substr(start_index);
       auto first_word = desc.substr(0, desc.find(" "));
 
-      // Updates paramete names to reflect the optional attribute on the signature
-      // Removed the optionsl word from the description
+      // Updates paramete names to reflect the optional attribute on the
+      // signature Removed the optionsl word from the description
       if (first_word == "Optional") {
         if (fpnames.empty())
-          fpnames.push_back("[" + pname + "]"); // First param, creates: [pname]
+          fpnames.push_back("[" + pname +
+                            "]");  // First param, creates: [pname]
         else {
           fpnames[fpnames.size() - 1].append("[");
-          fpnames.push_back(pname + "]"); // Non first param creates: pname[, pname]
+          fpnames.push_back(pname +
+                            "]");  // Non first param creates: pname[, pname]
         }
-        desc = desc.substr(first_word.size() + 1); // Deletes the optional word
+        desc = desc.substr(first_word.size() + 1);  // Deletes the optional word
         desc[0] = std::toupper(desc[0]);
       } else
         fpnames.push_back(pname);
@@ -120,7 +151,8 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
 
       size_t name_length = pnames[index].size() + 4;
 
-      ret_val.append(shcore::format_text({pdescs[index]}, 80, name_length, true) + "\n");
+      ret_val.append(
+          shcore::format_text({pdescs[index]}, 80, name_length, true) + "\n");
     }
 
     ret_val.append("\n");
@@ -135,12 +167,14 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
 
   if (!throws.empty()) {
     std::vector<std::string> enames;  // Exception names for the THROWS section
-    std::vector<std::string> edescs;  // Exception descriptions as they are defined
+    std::vector<std::string>
+        edescs;  // Exception descriptions as they are defined
 
     for (auto exceptiondef : throws) {
       // 8 is the length of: "\throws " or "@throws "
       size_t start_index = 8;
-      auto ename = exceptiondef.substr(start_index, exceptiondef.find(" ", start_index) - start_index);
+      auto ename = exceptiondef.substr(
+          start_index, exceptiondef.find(" ", start_index) - start_index);
       enames.push_back(ename);
 
       start_index += ename.size() + 1;
@@ -158,13 +192,15 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
 
       size_t exception_length = enames[index].size() + 4;
 
-      ret_val.append(shcore::format_text({edescs[index]}, 80, exception_length, true) + "\n");
+      ret_val.append(
+          shcore::format_text({edescs[index]}, 80, exception_length, true) +
+          "\n");
     }
 
     ret_val.append("\n");
   }
 
-  auto returns = get_help_text(class_name + "_" + bfname + "_RETURNS");
+  auto returns = resolve_help_text(help_prefixes, "_" + bfname + "_RETURNS");
   if (!returns.empty()) {
     ret_val.append("RETURNS\n\n");
     // Removes the @returns tag
@@ -172,7 +208,7 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
     ret_val.append(shcore::format_markup_text(returns, 80, 0) + "\n\n");
   }
 
-  auto details = get_help_text(class_name + "_" + bfname + "_DETAIL");
+  auto details = resolve_help_text(help_prefixes, "_" + bfname + "_DETAIL");
 
   if (!details.empty()) {
     ret_val.append("DESCRIPTION\n\n");
@@ -184,12 +220,24 @@ std::string get_function_help(shcore::NamingStyle style, const std::string& clas
   return ret_val;
 };
 
-std::string get_property_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bpname) {
+std::string get_property_help(shcore::NamingStyle style,
+                              const std::string& class_name,
+                              const std::string& bpname) {
   std::string ret_val;
 
   std::string fname = shcore::get_member_name(bpname, style);
 
-  auto details = get_help_text(class_name + "_" + bpname + "_DETAIL");
+  std::string parent_classes;
+  std::vector<std::string> parents = get_help_text(class_name + "_PARENTS");
+
+  if (!parents.empty())
+    parent_classes = parents[0];
+
+  std::vector<std::string> help_prefixes =
+      shcore::split_string(parent_classes, ",");
+  help_prefixes.insert(help_prefixes.begin(), class_name);
+
+  auto details = resolve_help_text(help_prefixes, "_" + bpname + "_DETAIL");
 
   if (!details.empty()) {
     ret_val.append("DESCRIPTION\n\n");
@@ -200,10 +248,18 @@ std::string get_property_help(shcore::NamingStyle style, const std::string& clas
   return ret_val;
 };
 
-std::string get_chained_function_help(shcore::NamingStyle style, const std::string& class_name, const std::string &bfname) {
+// Note: So far no chained functions are inherited, instead they belong to final
+// parent_classes
+//       Being that the case, there is no need for help resolution in class
+//       hierarchy and for that reason the calls to get_help_text were not
+//       replaced by calls to resolve_help_text
+std::string get_chained_function_help(shcore::NamingStyle style,
+                                      const std::string& class_name,
+                                      const std::string& bfname) {
   std::string ret_val;
 
-  auto chain_definition = shcore::get_help_text(class_name + "_" + bfname + "_CHAINED");
+  auto chain_definition =
+      shcore::get_help_text(class_name + "_" + bfname + "_CHAINED");
 
   ret_val.append("SYNTAX\n\n  ");
   auto cname = "<" + class_name + ">";
@@ -226,7 +282,8 @@ std::string get_chained_function_help(shcore::NamingStyle style, const std::stri
     std::string formatted_function;
     if (chained_function.find("[") == 0) {
       optional = true;
-      chained_function = chained_function.substr(1, chained_function.length() - 2);
+      chained_function =
+          chained_function.substr(1, chained_function.length() - 2);
     }
 
     auto child_functions = shcore::split_string(chained_function, "->");
@@ -249,7 +306,8 @@ std::string get_chained_function_help(shcore::NamingStyle style, const std::stri
 
       function_list.push_back(child_function);
 
-      auto syntaxes = get_help_text(tgtcname + "_" + child_function + "_SYNTAX");
+      auto syntaxes =
+          get_help_text(tgtcname + "_" + child_function + "_SYNTAX");
 
       auto style_child_fname = shcore::get_member_name(child_function, style);
 
@@ -258,7 +316,9 @@ std::string get_chained_function_help(shcore::NamingStyle style, const std::stri
 
       if (syntaxes.size() == 1) {
         if (child_function != style_child_fname)
-          formatted_child += "." + shcore::replace_text(syntaxes[0], child_function, style_child_fname);
+          formatted_child +=
+              "." + shcore::replace_text(syntaxes[0], child_function,
+                                         style_child_fname);
         else
           formatted_child += "." + syntaxes[0];
       } else
@@ -269,14 +329,17 @@ std::string get_chained_function_help(shcore::NamingStyle style, const std::stri
     }
 
     // This section will format the parent function
-    auto item_syntax = get_help_text(tgtcname + "_" + chained_function + "_SYNTAX");
+    auto item_syntax =
+        get_help_text(tgtcname + "_" + chained_function + "_SYNTAX");
     auto style_fname = shcore::get_member_name(chained_function, style);
     if (optional)
       formatted_function = "[";
 
     if (item_syntax.size() == 1) {
       if (chained_function != style_fname)
-        formatted_function += "." + shcore::replace_text(item_syntax[0], chained_function, style_fname);
+        formatted_function +=
+            "." +
+            shcore::replace_text(item_syntax[0], chained_function, style_fname);
       else
         formatted_function += "." + item_syntax[0];
     } else
@@ -291,7 +354,8 @@ std::string get_chained_function_help(shcore::NamingStyle style, const std::stri
     full_syntax.push_back(formatted_function);
   }
 
-  ret_val += shcore::format_text(full_syntax, 80, cname.length() + 2, false) + "\n\n";
+  ret_val +=
+      shcore::format_text(full_syntax, 80, cname.length() + 2, false) + "\n\n";
 
   ret_val.append("DESCRIPTION\n\n");
 
@@ -312,7 +376,8 @@ std::string get_chained_function_help(shcore::NamingStyle style, const std::stri
 
     if (fname != style_fname) {
       for (size_t index = 0; index < item_syntax.size(); index++)
-        item_syntax[index] = shcore::replace_text(item_syntax[index], fname, style_fname);
+        item_syntax[index] =
+            shcore::replace_text(item_syntax[index], fname, style_fname);
     }
 
     if (item_syntax.size() == 1)
@@ -323,7 +388,8 @@ std::string get_chained_function_help(shcore::NamingStyle style, const std::stri
     ret_val.append("\n\n");
 
     if (item_syntax.size() > 1)
-      ret_val.append("    Variations\n\n      " + shcore::format_text(item_syntax, 80, 6, false) + "\n\n");
+      ret_val.append("    Variations\n\n      " +
+                     shcore::format_text(item_syntax, 80, 6, false) + "\n\n");
 
     auto idetails = get_help_text(tgtcname + "_" + fname + "_DETAIL");
     if (idetails.empty())
@@ -337,4 +403,4 @@ std::string get_chained_function_help(shcore::NamingStyle style, const std::stri
 
   return ret_val;
 };
-}
+}  // namespace shcore

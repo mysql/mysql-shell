@@ -11,6 +11,47 @@
 |uri: OK|
 |currentSchema: OK|
 
+//@<OUT> Session: help
+Provides facilities to execute queries and retrieve database objects.
+
+The following properties are currently supported.
+
+ - uri           Retrieves the URI for the current session.
+ - defaultSchema Retrieves the ClassicSchema configured as default for the
+                 session.
+ - currentSchema Retrieves the ClassicSchema that is active as current on the
+                 session.
+
+
+The following functions are currently supported.
+
+ - close            Closes the internal connection to the MySQL Server held on
+                    this session object.
+ - commit           Commits all the operations executed after a call to
+                    startTransaction().
+ - createSchema     Creates a schema on the database and returns the
+                    corresponding object.
+ - dropSchema       Drops the schema with the specified name.
+ - dropTable        Drops a table from the specified schema.
+ - dropView         Drops a view from the specified schema.
+ - getCurrentSchema Retrieves the ClassicSchema that is active as current on
+                    the session.
+ - getDefaultSchema Retrieves the ClassicSchema configured as default for the
+                    session.
+ - getSchema        Retrieves a ClassicSchema object from the current session
+                    through it's name.
+ - getSchemas       Retrieves the Schemas available on the session.
+ - getUri           Retrieves the URI for the current session.
+ - help             Provides help about this class and it's members
+ - isOpen           Verifies if the session is still open.
+ - rollback         Discards all the operations executed after a call to
+                    startTransaction().
+ - runSql           Executes a query and returns the corresponding
+                    ClassicResult object.
+ - setCurrentSchema Sets the selected schema for this session's connection.
+ - startTransaction Starts a transaction context on the server.
+
+
 //@ ClassicSession: validate dynamic members for system schemas
 |mysql: OK|
 |information_schema: OK|

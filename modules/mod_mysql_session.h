@@ -164,7 +164,11 @@ public:
 #endif
 
   /**
-  * \brief Verifies if the session is still open.
+  * $(SHELLBASESESSION_ISOPEN_BRIEF)
+  *
+  * $(SHELLBASESESSION_ISOPEN_RETURNS)
+  *
+  * $(SHELLBASESESSION_ISOPEN_DETAIL)
   */
 #if DOXYGEN_JS
   Bool isOpen() {}
