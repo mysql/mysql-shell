@@ -13,6 +13,47 @@
 |uri: OK|
 |currentSchema: OK|
 
+//@<OUT> NodeSession: help
+Enables interaction with an X Protocol enabled MySQL Server, this includes SQL
+Execution.
+
+The following properties are currently supported.
+
+ - uri           Retrieves the URI for the current session.
+ - defaultSchema Retrieves the Schema configured as default for the session.
+ - currentSchema Retrieves the active schema on the session.
+
+
+The following functions are currently supported.
+
+ - close            Closes the session.
+ - commit           Commits all the operations executed after a call to
+                    startTransaction().
+ - createSchema     Creates a schema on the database and returns the
+                    corresponding object.
+ - dropCollection   Drops a collection from the specified schema.
+ - dropSchema       Drops the schema with the specified name.
+ - dropTable        Drops a table from the specified schema.
+ - dropView         Drops a view from the specified schema.
+ - getCurrentSchema Retrieves the active schema on the session.
+ - getDefaultSchema Retrieves the Schema configured as default for the session.
+ - getSchema        Retrieves a Schema object from the current session through
+                    it's name.
+ - getSchemas       Retrieves the Schemas available on the session.
+ - getUri           Retrieves the URI for the current session.
+ - help             Provides help about this class and it's members
+ - isOpen           Verifies if the session is still open.
+ - quoteName        Escapes the passed identifier.
+ - rollback         Discards all the operations executed after a call to
+                    startTransaction().
+ - setCurrentSchema Sets the current schema for this session, and returns the
+                    schema object for it.
+ - setFetchWarnings Enables or disables warning generation.
+ - sql              Creates a SqlExecute object to allow running the received
+                    SQL statement on the target MySQL Server.
+ - startTransaction Starts a transaction context on the server.
+
+
 //@ NodeSession: accessing Schemas
 |<Schema:mysql>|
 |<Schema:information_schema>|

@@ -33,7 +33,7 @@ It provides high-availability and scalability for the user's data.
 The following properties are currently supported.
 
  - name       Cluster name.
- - admin_type  Cluster Administration type.
+ - admin_type Cluster Administration type.
 
 
 The following functions are currently supported.

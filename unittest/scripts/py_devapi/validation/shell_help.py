@@ -4,7 +4,7 @@ Gives access to general purpose functions and properties.
 The following properties are currently supported.
 
  - options       Dictionary of active shell options.
- - custom_prompt  Callback to modify the default shell prompt.
+ - custom_prompt Callback to modify the default shell prompt.
 
 
 The following functions are currently supported.
@@ -216,4 +216,3 @@ The options dictionary may contain the following options:
 The type option supports the following values:
 
  - password: the user input will not be echoed on the screen.
-

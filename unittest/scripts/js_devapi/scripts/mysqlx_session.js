@@ -20,6 +20,9 @@ validateMember(nodeSessionMembers, 'defaultSchema');
 validateMember(nodeSessionMembers, 'uri');
 validateMember(nodeSessionMembers, 'currentSchema');
 
+//@<OUT> NodeSession: help
+nodeSession.help();
+
 //@ NodeSession: accessing Schemas
 var schemas = nodeSession.getSchemas();
 print(getSchemaFromList(schemas, 'mysql'));

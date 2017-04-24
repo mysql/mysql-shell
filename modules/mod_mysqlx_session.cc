@@ -78,17 +78,9 @@ REGISTER_HELP(BASESESSION_DETAIL2, "@li Schema management operations.");
 REGISTER_HELP(BASESESSION_DETAIL3, "@li Enabling/disabling warning generation.");
 REGISTER_HELP(BASESESSION_DETAIL4, "@li Retrieval of connection information.");
 
-// Documentation of XSession class
-REGISTER_HELP(XSESSION_INTERACTIVE_BRIEF, "Represents the currently open MySQL session.");
-REGISTER_HELP(XSESSION_BRIEF, "Enables interaction with an X Protocol enabled MySQL Product.");
-REGISTER_HELP(XSESSION_DETAIL, "Note that this class inherits the behavior described on the BaseSession class.");
-REGISTER_HELP(XSESSION_DETAIL1, "In the future this class will be improved to support interacting not only with MySQL Server "\
-"but with other products.");
-
 // Documentation of NodeSession class
 REGISTER_HELP(NODESESSION_INTERACTIVE_BRIEF, "Represents the currently open MySQL session.");
 REGISTER_HELP(NODESESSION_BRIEF, "Enables interaction with an X Protocol enabled MySQL Server, this includes SQL Execution.");
-REGISTER_HELP(NODESESSION_DETAIL, "Note that this class inherits the behavior described on the BaseSession class.");
 
 BaseSession::BaseSession()
   : _case_sensitive_table_names(false) {
@@ -200,7 +192,8 @@ bool BaseSession::table_name_compare(const std::string &n1, const std::string &n
 
 // Documentation of close function
 REGISTER_HELP(BASESESSION_CLOSE_BRIEF, "Closes the session.");
-REGISTER_HELP(BASESESSION_CLOSE_DETAIL, "After closing the session it is still possible to make read only operation "\
+REGISTER_HELP(BASESESSION_CLOSE_DETAIL, "After closing the session it is "\
+"still possible to make read only operations "\
 "to gather metadata info, like getTable(name) or getSchemas().");
 
 /**
@@ -471,8 +464,12 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 }
 
 // Documentation of getDefaultSchema function
-REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the Schema configured as default for the session.");
-REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_RETURNS, "@returns A Schema object or Null");
+REGISTER_HELP(BASESESSION_DEFAULTSCHEMA_BRIEF, "Retrieves the Schema "\
+"configured as default for the session.");
+REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the Schema "\
+"configured as default for the session.");
+REGISTER_HELP(BASESESSION_GETDEFAULTSCHEMA_RETURNS, "@returns A Schema "\
+"object or Null");
 
 #if DOXYGEN_JS || DOXYGEN_PY
 /**
@@ -486,12 +483,8 @@ Schema BaseSession::getDefaultSchema() {}
 Schema BaseSession::get_default_schema() {}
 #endif
 
-// Documentation of getUri function
-REGISTER_HELP(BASESESSION_GETURI_BRIEF, "Retrieves the connection data for this session in string format.");
-REGISTER_HELP(BASESESSION_GETURI_RETURNS, "@returns A string representing the connection data.");
-
 /**
-* $(BASESESSION_GETURI_BRIEF)
+* $(SHELLBASESESSION_GETURI_BRIEF)
 *
 * $(BASESESSION_GETURI_RETURNS)
 */
@@ -606,6 +599,37 @@ shcore::Value BaseSession::get_schemas(const shcore::Argument_list &args) const 
   return shcore::Value(schemas);
 }
 
+REGISTER_HELP(BASESESSION_SETFETCHWARNINGS_BRIEF, "Enables or disables "\
+"warning generation.");
+REGISTER_HELP(BASESESSION_SETFETCHWARNINGS_PARAM, "@param enable Boolean "\
+"value to enable or disable the warnings.");
+REGISTER_HELP(BASESESSION_SETFETCHWARNINGS_DETAIL, "Warnings are generated "\
+"sometimes when database operations are "\
+"executed, such as SQL statements.");
+REGISTER_HELP(BASESESSION_SETFETCHWARNINGS_DETAIL1, "On a Node session the "\
+"warning generation is disabled by default. "\
+"This function can be used to enable or disable the warning generation based"\
+" on the received parameter.");
+REGISTER_HELP(BASESESSION_SETFETCHWARNINGS_DETAIL2, "When warning generation "\
+"is enabled, the warnings will be available through the result object "\
+"returned on the executed operation.");
+
+/**
+* $(BASESESSION_SETFETCHWARNINGS_BRIEF)
+*
+* $(BASESESSION_SETFETCHWARNINGS_PARAM)
+*
+* $(BASESESSION_SETFETCHWARNINGS_DETAIL)
+*
+* $(BASESESSION_SETFETCHWARNINGS_DETAIL1)
+*
+* $(BASESESSION_SETFETCHWARNINGS_DETAIL2)
+*/
+#if DOXYGEN_JS
+Result BaseSession::setFetchWarnings(Boolean enable) {}
+#elif DOXYGEN_PY
+Result BaseSession::set_fetch_warnings(bool enable) {}
+#endif
 shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setFetchWarnings").c_str());
 
@@ -889,6 +913,8 @@ std::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument_l
   return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
 }
 
+REGISTER_HELP(NODESESSION_PARENTS, "BaseSession,ShellDevelopmentSession,"\
+"ShellBaseSession");
 NodeSession::NodeSession() : BaseSession() {
   init();
 }
@@ -925,26 +951,31 @@ std::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argumen
 }
 
 // Documentation of sql function
-REGISTER_HELP(BASESESSION_SQL_BRIEF, "Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.");
-REGISTER_HELP(BASESESSION_SQL_PARAM, "@param sql A string containing the SQL statement to be executed.");
-REGISTER_HELP(BASESESSION_SQL_RETURNS, "@returns A SqlExecute object.");
-REGISTER_HELP(BASESESSION_SQL_DETAIL, "This method creates an SqlExecute object which is a SQL execution handler.");
-REGISTER_HELP(BASESESSION_SQL_DETAIL1, "The SqlExecute class has functions that allow defining the way the statement will be executed "\
+REGISTER_HELP(NODESESSION_SQL_BRIEF, "Creates a SqlExecute object to allow "\
+"running the received SQL statement on the target MySQL Server.");
+REGISTER_HELP(NODESESSION_SQL_PARAM, "@param sql A string containing the SQL "\
+"statement to be executed.");
+REGISTER_HELP(NODESESSION_SQL_RETURN, "@return A SqlExecute object.");
+REGISTER_HELP(NODESESSION_SQL_DETAIL, "This method creates an SqlExecute "\
+"object which is a SQL execution handler.");
+REGISTER_HELP(NODESESSION_SQL_DETAIL1, "The SqlExecute class has functions "\
+"that allow defining the way the statement will be executed "\
 "and allows doing parameter binding.");
-REGISTER_HELP(BASESESSION_SQL_DETAIL2, "The received SQL is set on the execution handler.");
+REGISTER_HELP(NODESESSION_SQL_DETAIL2, "The received SQL is set on the "\
+"execution handler.");
 
 /**
-* $(BASESESSION_SQL_BRIEF)
+* $(NODESESSION_SQL_BRIEF)
 *
-* $(BASESESSION_SQL_PARAM)
+* $(NODESESSION_SQL_PARAM)
 *
-* $(BASESESSION_SQL_RETURNS)
+* $(NODESESSION_SQL_RETURN)
 *
-* $(BASESESSION_SQL_DETAIL)
+* $(NODESESSION_SQL_DETAIL)
 *
-* $(BASESESSION_SQL_DETAIL1)
+* $(NODESESSION_SQL_DETAIL1)
 *
-* $(BASESESSION_SQL_DETAIL2)
+* $(NODESESSION_SQL_DETAIL2)
 *
 * JavaScript Example
 * \code{.js}
@@ -964,14 +995,30 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args) {
   return sql_execute->sql(args);
 }
 
+REGISTER_HELP(NODESESSION_URI_BRIEF, "Retrieves the URI for the current "\
+"session.");
+REGISTER_HELP(NODESESSION_GETURI_BRIEF, "Retrieves the URI for the current "\
+"session.");
+REGISTER_HELP(NODESESSION_GETURI_RETURNS, "@return A string representing the "\
+"connection data.");
+/**
+* $(NODESESSION_GETURI_BRIEF)
+*
+* $(NODESESSION_GETURI_RETURNS)
+*/
+
 // Documentation of getCurrentSchema function
-REGISTER_HELP(BASESESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the Schema set as active on the session.");
-REGISTER_HELP(BASESESSION_GETCURRENTSCHEMA_RETURNS, "@returns A Schema object or Null");
+REGISTER_HELP(NODESESSION_CURRENTSCHEMA_BRIEF, "Retrieves the active schema "\
+"on the session.");
+REGISTER_HELP(NODESESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the active "\
+"schema on the session.");
+REGISTER_HELP(NODESESSION_GETCURRENTSCHEMA_RETURNS, "@return A Schema object "\
+"if a schema is active on the session.");
 
 /**
-* $(BASESESSION_GETCURRENTSCHEMA_BRIEF)
+* $(NODESESSION_GETCURRENTSCHEMA_BRIEF)
 *
-* $(BASESESSION_GETCURRENTSCHEMA_RETURNS)
+* $(NODESESSION_GETCURRENTSCHEMA_RETURNS)
 */
 #if DOXYGEN_JS
 Schema NodeSession::getCurrentSchema() {}
@@ -1005,13 +1052,14 @@ Value NodeSession::get_member(const std::string &prop) const {
 }
 
 // Documentation of quoteName function
-REGISTER_HELP(BASESESSION_QUOTENAME_BRIEF, "Escapes the passed identifier.");
-REGISTER_HELP(BASESESSION_QUOTENAME_RETURNS, "@returns A String containing the escaped identifier.");
+REGISTER_HELP(NODESESSION_QUOTENAME_BRIEF, "Escapes the passed identifier.");
+REGISTER_HELP(NODESESSION_QUOTENAME_RETURNS, "@return A String containing the "\
+"escaped identifier.");
 
 /**
-* $(BASESESSION_QUOTENAME_BRIEF)
+* $(NODESESSION_QUOTENAME_BRIEF)
 *
-* $(BASESESSION_QUOTENAME_RETURNS)
+* $(NODESESSION_QUOTENAME_RETURNS)
 */
 #if DOXYGEN_JS
 String NodeSession::quoteName(String id) {}
@@ -1030,20 +1078,25 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args) {
 }
 
 // Documentation of setCurrentSchema function
-REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_BRIEF, "Sets the current schema for this session, and returns the schema object for it.");
-REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_PARAM, "@param name the name of the new schema to switch to.");
-REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_RETURNS, "@returns the Schema object for the new schema.");
-REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_DETAIL, "At the database level, this is equivalent at issuing the following SQL query:");
-REGISTER_HELP(BASESESSION_SETCURRENTSCHEMA_DETAIL1, "  use <new-default-schema>;");
+REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_BRIEF, "Sets the current schema "\
+"for this session, and returns the schema object for it.");
+REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_PARAM, "@param name the name of "\
+"the new schema to switch to.");
+REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_RETURNS, "@return the Schema "\
+"object for the new schema.");
+REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_DETAIL, "At the database level, "\
+"this is equivalent at issuing the following SQL query:");
+REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_DETAIL1, "  use "\
+"<new-default-schema>;");
 
 /**
-* $(BASESESSION_SETCURRENTSCHEMA_BRIEF)
+* $(NODESESSION_SETCURRENTSCHEMA_BRIEF)
 *
-* $(BASESESSION_SETCURRENTSCHEMA_PARAM)
-* $(BASESESSION_SETCURRENTSCHEMA_RETURNS)
+* $(NODESESSION_SETCURRENTSCHEMA_PARAM)
+* $(NODESESSION_SETCURRENTSCHEMA_RETURNS)
 *
-* $(BASESESSION_SETCURRENTSCHEMA_DETAIL)
-* $(BASESESSION_SETCURRENTSCHEMA_DETAIL1)
+* $(NODESESSION_SETCURRENTSCHEMA_DETAIL)
+* $(NODESESSION_SETCURRENTSCHEMA_DETAIL1)
 */
 #if DOXYGEN_JS
 Schema NodeSession::setCurrentSchema(String name) {}

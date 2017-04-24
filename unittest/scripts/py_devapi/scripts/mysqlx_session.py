@@ -27,6 +27,8 @@ validateMember(nodeSessionMembers, 'default_schema')
 validateMember(nodeSessionMembers, 'uri')
 validateMember(nodeSessionMembers, 'current_schema')
 
+#@<OUT> NodeSession: help
+nodeSession.help()
 
 #@ NodeSession: accessing Schemas
 schemas = nodeSession.get_schemas()
@@ -94,7 +96,7 @@ cschema = nodeSession.get_current_schema()
 print dschema
 print cschema
 
-#@ NodeSession: current schema validations: default 
+#@ NodeSession: current schema validations: default
 nodeSession.close()
 nodeSession = mysqlx.get_node_session(__uripwd + '/mysql')
 dschema = nodeSession.get_default_schema()

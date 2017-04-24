@@ -56,10 +56,14 @@ using namespace shcore;
 REGISTER_OBJECT(mysql, ClassicSession);
 
 // Documentation for ClassicSession class
-REGISTER_HELP(CLASSICSESSION_INTERACTIVE_BRIEF, "Represents the currently open MySQL session.");
-REGISTER_HELP(CLASSICSESSION_BRIEF, "Enables interaction with a MySQL Server using the MySQL Protocol.");
-REGISTER_HELP(CLASSICSESSION_DETAIL, "Provides facilities to execute queries and retrieve database objects.");
-
+REGISTER_HELP(CLASSICSESSION_INTERACTIVE_BRIEF, "Represents the currently "\
+"open MySQL session.");
+REGISTER_HELP(CLASSICSESSION_BRIEF, "Enables interaction with a MySQL Server "\
+"using the MySQL Protocol.");
+REGISTER_HELP(CLASSICSESSION_DETAIL, "Provides facilities to execute queries "\
+"and retrieve database objects.");
+REGISTER_HELP(CLASSICSESSION_PARENTS, "ShellDevelopmentSession,"\
+"ShellBaseSession");
 ClassicSession::ClassicSession() {
   init();
 }
@@ -154,6 +158,12 @@ Value ClassicSession::_close(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP(CLASSICSESSION_ISOPEN_BRIEF, "Verifies if the session is still "\
+"open.");
+REGISTER_HELP(CLASSICSESSION_ISOPEN_RETURNS, "@returns A boolean value "\
+"indicating if the session is still open.");
+REGISTER_HELP(CLASSICSESSION_ISOPEN_DETAIL, "Returns true if the session is "\
+"still open and false otherwise.");
 shcore::Value ClassicSession::_is_open(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("isOpen").c_str());
 
@@ -162,10 +172,14 @@ shcore::Value ClassicSession::_is_open(const shcore::Argument_list &args) {
 
 
 //Documentation of runSql function
-REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query against the database and returns a  ClassicResult object wrapping the result.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM, "@param query the SQL query to execute against the database.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS, "@returns A ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is thrown if an error occurs on the SQL execution.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query and returns the "\
+"corresponding ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM, "@param query the SQL query to "\
+"execute against the database.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS, "@returns A ClassicResult "\
+"object.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is "\
+"thrown if an error occurs on the SQL execution.");
 
 //! $(CLASSICSESSION_RUNSQL_BRIEF)
 #if DOXYGEN_CPP
@@ -293,9 +307,14 @@ void ClassicSession::create_schema(const std::string &name) {
 
 
 // Documentation of getDefaultSchema function
-REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the ClassicSchema configured as default for the session.");
-REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_RETURNS, "@returns A ClassicSchema object or Null");
-REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_DETAIL, "If the configured schema is not valid anymore Null wil be returned.");
+REGISTER_HELP(CLASSICSESSION_DEFAULTSCHEMA_BRIEF, "Retrieves the "\
+"ClassicSchema configured as default for the session.");
+REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_BRIEF, "Retrieves the "\
+"ClassicSchema configured as default for the session.");
+REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_RETURNS, "@returns A "\
+"ClassicSchema object or Null");
+REGISTER_HELP(CLASSICSESSION_GETDEFAULTSCHEMA_DETAIL, "If the configured "\
+"schema is not valid anymore Null wil be returned.");
 
 /**
 * $(CLASSICSESSION_GETDEFAULTSCHEMA_BRIEF)
@@ -311,9 +330,15 @@ ClassicSchema ClassicSession::get_default_schema() {}
 #endif
 
 // Documentation of getCurrentSchema function
-REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the ClassicSchema that is active as current on the session.");
-REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_RETURNS, "@returns A ClassicSchema object or Null");
-REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_DETAIL, "The current schema is configured either throu setCurrentSchema(String name) or by using the USE statement.");
+REGISTER_HELP(CLASSICSESSION_CURRENTSCHEMA_BRIEF, "Retrieves the "\
+"ClassicSchema that is active as current on the session.");
+REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the "\
+"ClassicSchema that is active as current on the session.");
+REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_RETURN, "@return A "\
+"ClassicSchema object or Null");
+REGISTER_HELP(CLASSICSESSION_GETCURRENTSCHEMA_DETAIL, "The current schema is "\
+"configured either throug setCurrentSchema(String name) or by using the USE "\
+"statement.");
 
 /**
 * $(CLASSICSESSION_GETCURRENTSCHEMA_BRIEF)
@@ -329,11 +354,15 @@ ClassicSchema ClassicSession::get_current_schema() {}
 #endif
 
 // Documentation of getCurrentSchema function
-REGISTER_HELP(CLASSICSESSION_GETURI_BRIEF, "Returns the connection string passed to connect() method.");
-REGISTER_HELP(CLASSICSESSION_GETURI_RETURNS, "@returns A string representation of the connection data in URI format (excluding the password or the database).");
+REGISTER_HELP(CLASSICSESSION_URI_BRIEF, "Retrieves the URI for the current "\
+"session.");
+REGISTER_HELP(CLASSICSESSION_GETURI_BRIEF, "Retrieves the URI for the current "\
+"session.");
+REGISTER_HELP(CLASSICSESSION_GETURI_RETURNS, "@return A string representing "\
+"the connection data.");
 
 /**
-* $(CLASSICSESSION_GETURI_BRIEF)
+* $(SHELLBASESESSION_GETURI_BRIEF)
 *
 * $(CLASSICSESSION_GETURI_RETURNS)
 */

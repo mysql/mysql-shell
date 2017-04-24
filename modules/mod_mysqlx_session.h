@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -72,7 +72,7 @@ public:
   List getSchemas();
   String getUri();
   Undefined close();
-  Undefined setFetchWarnings(Bool value);
+  Undefined setFetchWarnings(Boolean enable);
   Result startTransaction();
   Result commit();
   Result rollback();
@@ -93,7 +93,7 @@ private:
   list get_schemas();
   str get_uri();
   None close();
-  None set_fetch_warnings(bool value);
+  None set_fetch_warnings(bool enable);
   Result start_transaction();
   Result commit();
   Result rollback();
@@ -213,6 +213,7 @@ public:
   Schema setCurrentSchema(String name);
   SqlExecute sql(String sql);
   String quoteName(String id);
+  Result setFetchWarnings(Boolean enable);
 #elif DOXYGEN_PY
   Schema current_schema; //!< Same as get_current_schema()
 
@@ -220,6 +221,7 @@ public:
   Schema set_current_schema(str name);
   SqlExecute sql(str sql);
   str quote_name(str id);
+  Result set_fetch_warnings(bool enable);
 #endif
   NodeSession();
   NodeSession(const NodeSession& s);
