@@ -132,7 +132,7 @@ std::unique_ptr<IResult> Session_recorder::query(const std::string& sql,
 }
 
 void Session_recorder::execute(const std::string& sql) {
-  Mock_record::get() << "EXPECT_CALL(session, execute(\"" << sql << "\");"
+  Mock_record::get() << "EXPECT_CALL(session, execute(\"" << sql << "\"));"
                      << std::endl;
   _target->execute(sql);
 }
