@@ -80,7 +80,7 @@ std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds,
     str_duration.append((boost::format("%s%d %s") % (str_duration.empty() ? "" : ", ") % minutes % (minutes == 1 ? "minute" : "minutes")).str());
 
   if (part_seconds)
-    str_duration.append((boost::format("%s%.2f sec") % (str_duration.empty() ? "" : ", ") % seconds).str());
+    str_duration.append((boost::format("%s%.3f sec") % (str_duration.empty() ? "" : ", ") % seconds).str());
   else
     str_duration.append((boost::format("%s%d sec") % (str_duration.empty() ? "" : ", ") % (int)seconds).str());
 
