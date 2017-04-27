@@ -39,6 +39,7 @@
 #include "mysqlx_expr.pb.h"
 #include "mysqlx_expect.pb.h"
 #include "mysqlx_session.pb.h"
+#include "mysqlx_notice.pb.h"
 #include "mysqlx_sql.pb.h"
 #include "mysqlx.h"
 
