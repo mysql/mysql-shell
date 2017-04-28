@@ -37,7 +37,7 @@ namespace dba {
 #endif
 class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 public:
-  MetadataStorage(Dba* admin_session);
+  MetadataStorage(std::shared_ptr<mysqlsh::ShellBaseSession> session);
   ~MetadataStorage();
 
   bool metadata_schema_exists();
@@ -74,7 +74,8 @@ public:
 
   void create_repl_account(std::string &username, std::string &password);
 
-  Dba* get_dba() { return _dba; };
+  std::shared_ptr<mysqlsh::ShellBaseSession> get_session() const {return _session; };
+  void set_session(std::shared_ptr<mysqlsh::ShellBaseSession> session);
 
   std::shared_ptr<mysql::ClassicResult> execute_sql(const std::string &sql, bool retry = false, const std::string &log_sql = "") const;
 
@@ -99,6 +100,7 @@ public:
   };
 private:
   Dba* _dba;
+  std::shared_ptr<mysqlsh::ShellBaseSession> _session;
 
   void start_transaction();
   void commit();

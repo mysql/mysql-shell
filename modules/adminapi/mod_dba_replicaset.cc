@@ -148,7 +148,7 @@ void ReplicaSet::init() {
 void ReplicaSet::verify_topology_type_change() const {
   // Get GR single primary mode value.
   int gr_primary_mode;
-  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  auto instance_session(_metadata_storage->get_session());
   auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
   get_server_variable(classic->connection(),
                       "group_replication_single_primary_mode", gr_primary_mode);
@@ -188,7 +188,7 @@ void ReplicaSet::adopt_from_gr() {
 
     // TODO: what if the password is different on each server?
     // And what if is different from the current session?
-    auto session = _metadata_storage->get_dba()->get_active_session();
+    auto session = _metadata_storage->get_session();
     (*newly_discovered_instance)["user"] = shcore::Value(session->get_user());
     (*newly_discovered_instance)["password"] = shcore::Value(session->get_password());
 
@@ -425,7 +425,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
       ssl_mode = resolve_ssl_mode(session.get(), nullptr);
     } else {
       auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
-          _metadata_storage->get_dba()->get_active_session().get());
+          _metadata_storage->get_session().get());
       ssl_mode = resolve_ssl_mode(session.get(), peer_session);
     }
     log_debug("SSL mode used to configure instance: '%s'", ssl_mode.c_str());
@@ -434,13 +434,13 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   GRInstanceType type = get_gr_instance_type(session->connection());
 
   if (type != GRInstanceType::Standalone) {
-    // Rethieves the new instance UUID
+    // Retrieves the new instance UUID
     std::string uuid;
     get_server_variable(session->connection(), "server_uuid", uuid);
     session->close();
 
     // Verifies if the instance is part of the cluster replication group
-    auto cluster_session = _metadata_storage->get_dba()->get_active_session();
+    auto cluster_session = _metadata_storage->get_session();
     auto cluster_classic_session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(cluster_session);
 
     // Verifies if this UUID is part of the current replication group
@@ -506,7 +506,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
         //Get SSL values to connect to peer instance
         Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
-        auto peer_session = _metadata_storage->get_dba()->get_active_session();
+        auto peer_session = _metadata_storage->get_session();
         std::string peer_ssl_ca = peer_session->get_ssl_ca();
         std::string peer_ssl_cert = peer_session->get_ssl_cert();
         std::string peer_ssl_key = peer_session->get_ssl_key();
@@ -763,7 +763,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     ssl_mode = str_upper(ssl_mode);
 
     auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
-      _metadata_storage->get_dba()->get_active_session().get());
+      _metadata_storage->get_session().get());
 
     //Get SSL values to connect to peer instance
     Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
@@ -897,11 +897,9 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   else
     get_default_password = true;
 
-  // get instance admin and user information from the current active session of the shell
-  // Note: when separate metadata session vs active session is supported, this should
-  // be changed to use the active shell session
+  // get instance admin and user information from the metadata session which is the session saved on the cluster
   if (get_default_user || get_default_password) {
-    auto instance_session(_metadata_storage->get_dba()->get_active_session());
+    auto instance_session(_metadata_storage->get_session());
 
     if (get_default_user)
       instance_admin_user = instance_session->get_user();
@@ -927,7 +925,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     throw shcore::Exception::runtime_error(message);
   }
 
-  auto session = _metadata_storage->get_dba()->get_active_session();
+  auto session = _metadata_storage->get_session();
   mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
 
   GRInstanceType type = get_gr_instance_type(classic->connection());
@@ -1036,7 +1034,7 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
   MetadataStorage::Transaction tx(_metadata_storage);
   int exit_code;
 
-  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  auto instance_session(_metadata_storage->get_session());
   auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
   std::string instance_admin_user = instance_session->get_user();
   std::string instance_admin_user_password = instance_session->get_password();
@@ -1062,12 +1060,12 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
   //Get SSL values to connect to the instances
   //NOTE: It is assumed that the same SSL settings (CA, Cert and Key) are used
   //      to connect to all the cluster instances. Therefore, the SSL settings
-  //      can be obtained from the active session (connected to the cluster).
+  //      can be obtained from the cluster session.
   Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
-  auto active_session = _metadata_storage->get_dba()->get_active_session();
-  std::string ssl_ca = active_session->get_ssl_ca();
-  std::string ssl_cert = active_session->get_ssl_cert();
-  std::string ssl_key = active_session->get_ssl_key();
+  auto cluster_session = _metadata_storage->get_session();
+  std::string ssl_ca = cluster_session->get_ssl_ca();
+  std::string ssl_cert = cluster_session->get_ssl_cert();
+  std::string ssl_key = cluster_session->get_ssl_key();
   if (!ssl_ca.empty())
     (*instance_ssl_opts)["sslCa"] = Value(ssl_ca);
   if (!ssl_cert.empty())
@@ -1234,9 +1232,9 @@ shcore::Value ReplicaSet::retrieve_instance_state(const shcore::Argument_list &a
   new_args.push_back(shcore::Value(instance_def));
   auto instance_session = Dba::get_session(new_args);
 
-  // We will work with the current global session
+  // We will work with the session saved on the metadata which points to the cluster
   // Assuming it is the R/W instance
-  auto master_dev_session = _metadata_storage->get_dba()->get_active_session();
+  auto master_dev_session = _metadata_storage->get_session();
   auto master_session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(master_dev_session);
 
   // We have to retrieve these variables to do the actual state validation
@@ -1761,7 +1759,8 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
   // Identifies the master node
   std::string master_uuid;
   if (single_primary_mode) {
-    auto instance_session(_metadata_storage->get_dba()->get_active_session());
+    // get the current cluster session from the metadata
+    auto instance_session = _metadata_storage->get_session();
     auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
     get_status_variable(classic->connection(), "group_replication_primary_member", master_uuid, false);
   }
@@ -1809,9 +1808,8 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
   std::string desc_status;
   ReplicaSetStatus::Status rs_status;
 
-  // Get the current session instance address
-  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(_metadata_storage
-                      ->get_dba()->get_active_session());
+  // Get the current cluster session from the metadata
+  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(_metadata_storage->get_session());
   auto uri = session->uri();
   auto options = get_connection_data(session->uri(), false);
 
@@ -1921,7 +1919,7 @@ void ReplicaSet::remove_instances(const std::vector<std::string> &remove_instanc
 void ReplicaSet::rejoin_instances(const std::vector<std::string> &rejoin_instances,
                                   const shcore::Value::Map_type_ref &options) {
   std::string user, password;
-  auto instance_session(_metadata_storage->get_dba()->get_active_session());
+  auto instance_session(_metadata_storage->get_session());
 
   if (!rejoin_instances.empty()) {
     // Get the user and password from the options

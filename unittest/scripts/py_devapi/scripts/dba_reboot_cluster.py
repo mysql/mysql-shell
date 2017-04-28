@@ -2,7 +2,8 @@
 #@ Initialization
 deployed_here = reset_or_deploy_sandboxes()
 
-shell.connect({'scheme': 'mysql', 'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+cluster_session = session
 
 #@<OUT> create cluster
 if __have_ssl:
@@ -10,7 +11,9 @@ if __have_ssl:
 else:
   cluster = dba.create_cluster('dev')
 
-cluster.status();
+# session is stored on the cluster object so changing the global session should not affect cluster operations
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
+cluster.status()
 
 #@ Add instance 2
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)
@@ -44,7 +47,7 @@ wait_slave_state(cluster, uri2, "(MISSING)")
 
 # Kill instance 3
 if __sandbox_dir:
-  dba.kill_sandbox_instance(__mysql_sandbox_port3, {'sandboxDir':__sandbox_dir})
+  dba.kill_sandbox_instance(__mysql_sandbox_port3, {'sandboxDir': __sandbox_dir})
 else:
   dba.kill_sandbox_instance(__mysql_sandbox_port3)
 
@@ -54,7 +57,7 @@ wait_slave_state(cluster, uri3, "UNREACHABLE")
 
 # Kill instance 1
 if __sandbox_dir:
-  dba.kill_sandbox_instance(__mysql_sandbox_port1, {'sandboxDir':__sandbox_dir})
+  dba.kill_sandbox_instance(__mysql_sandbox_port1, {'sandboxDir': __sandbox_dir})
 else:
   dba.kill_sandbox_instance(__mysql_sandbox_port1)
 
@@ -62,18 +65,20 @@ else:
 
 # Start instance 2
 if __sandbox_dir:
-  dba.start_sandbox_instance(__mysql_sandbox_port2, {'sandboxDir':__sandbox_dir})
+  dba.start_sandbox_instance(__mysql_sandbox_port2, {'sandboxDir': __sandbox_dir})
 else:
   dba.start_sandbox_instance(__mysql_sandbox_port2)
 
 # Start instance 1
 if __sandbox_dir:
-  dba.start_sandbox_instance(__mysql_sandbox_port1, {'sandboxDir':__sandbox_dir})
+  dba.start_sandbox_instance(__mysql_sandbox_port1, {'sandboxDir': __sandbox_dir})
 else:
   dba.start_sandbox_instance(__mysql_sandbox_port1)
 
+session.close()
+
 # Re-establish the connection to instance 1
-shell.connect({'scheme': 'mysql', 'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
 # Test both rejoinInstances and removeInstances on a single call
 #@ Dba.rebootClusterFromCompleteOutage success
@@ -82,12 +87,14 @@ instance3 = "%s:%s" % (localhost, __mysql_sandbox_port3)
 cluster = dba.reboot_cluster_from_complete_outage('dev', {'rejoinInstances': [instance2], 'removeInstances': [instance3]})
 
 # Waiting for the second added instance to become online
-wait_slave_state(cluster, uri2, "ONLINE");
+wait_slave_state(cluster, uri2, "ONLINE")
 
 #@<OUT> cluster status after reboot
-cluster.status();
+cluster.status()
+session.close()
 
 #@ Finalization
-# Will delete the sandboxes ONLY if this test was executed standalone
+# Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone
+cluster_session.close()
 if (deployed_here):
   cleanup_sandboxes(True)

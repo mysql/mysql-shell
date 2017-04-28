@@ -3,10 +3,14 @@
 # validateMemer and validateNotMember are defined on the setup script
 
 #@<OUT> Cluster: get_cluster with interaction
-cluster = dba.get_cluster('devCluster');
+cluster = dba.get_cluster('devCluster')
 
-desc = cluster.describe();
-localhost = desc.defaultReplicaSet.instances[0].label.split(':')[0];
+# session is stored on the cluster object so changing the global session should not affect cluster operations
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
+session.close()
+
+desc = cluster.describe()
+localhost = desc.defaultReplicaSet.instances[0].label.split(':')[0]
 
 
 all_members = dir(cluster)
@@ -19,20 +23,20 @@ for member in all_members:
 
 #@ Cluster: validating members
 print "Cluster Members: %d" % len(members)
-validateMember(members, 'name');
-validateMember(members, 'get_name');
-validateMember(members, 'admin_type');
-validateMember(members, 'get_admin_type');
-validateMember(members, 'add_instance');
-validateMember(members, 'remove_instance');
-validateMember(members, 'rejoin_instance');
-validateMember(members, 'check_instance_state');
-validateMember(members, 'describe');
-validateMember(members, 'status');
-validateMember(members, 'help');
-validateMember(members, 'dissolve');
-validateMember(members, 'rescan');
-validateMember(members, 'force_quorum_using_partition_of');
+validateMember(members, 'name')
+validateMember(members, 'get_name')
+validateMember(members, 'admin_type')
+validateMember(members, 'get_admin_type')
+validateMember(members, 'add_instance')
+validateMember(members, 'remove_instance')
+validateMember(members, 'rejoin_instance')
+validateMember(members, 'check_instance_state')
+validateMember(members, 'describe')
+validateMember(members, 'status')
+validateMember(members, 'help')
+validateMember(members, 'dissolve')
+validateMember(members, 'rescan')
+validateMember(members, 'force_quorum_using_partition_of')
 
 #@ Cluster: add_instance errors
 cluster.add_instance()
@@ -53,12 +57,12 @@ cluster.add_instance(add_instance_options, add_instance_extra_opts)
 #@<OUT> Cluster: add_instance with interaction, ok
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
-wait_slave_state(cluster, uri2, "ONLINE");
+wait_slave_state(cluster, uri2, "ONLINE")
 
 #@<OUT> Cluster: add_instance 3 with interaction, ok
 add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
-wait_slave_state(cluster, uri3, "ONLINE");
+wait_slave_state(cluster, uri3, "ONLINE")
 
 #@<OUT> Cluster: describe1
 cluster.describe()
@@ -67,12 +71,12 @@ cluster.describe()
 cluster.status()
 
 #@ Cluster: remove_instance errors
-cluster.remove_instance();
-cluster.remove_instance(1,2,3);
-cluster.remove_instance(1);
-cluster.remove_instance({'host': 'localhost', 'port': 33060});
-cluster.remove_instance({'host': 'localhost', 'port': 33060, 'schema': 'abs', 'user': 'sample', 'authMethod': 56});
-cluster.remove_instance("somehost:3306");
+cluster.remove_instance()
+cluster.remove_instance(1,2,3)
+cluster.remove_instance(1)
+cluster.remove_instance({'host': 'localhost', 'port': 33060})
+cluster.remove_instance({'host': 'localhost', 'port': 33060, 'schema': 'abs', 'user': 'sample', 'authMethod': 56})
+cluster.remove_instance("somehost:3306")
 
 #@ Cluster: remove_instance
 cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port2})
@@ -99,12 +103,12 @@ cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port3})
 #@<OUT> Cluster: add_instance with interaction, ok 3
 add_instance_to_cluster(cluster, __mysql_sandbox_port2, 'second_sandbox')
 
-wait_slave_state(cluster, 'second_sandbox', "ONLINE");
+wait_slave_state(cluster, 'second_sandbox', "ONLINE")
 
 #@<OUT> Cluster: add_instance with interaction, ok 4
 add_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox')
 
-wait_slave_state(cluster, 'third_sandbox', "ONLINE");
+wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 
 #@<OUT> Cluster: status: success
 cluster.status()
@@ -127,15 +131,15 @@ else:
 
 #@: Cluster: rejoin_instance errors
 cluster.rejoin_instance()
-cluster.rejoin_instance(1,2,3)
+cluster.rejoin_instance(1, 2, 3)
 cluster.rejoin_instance(1)
 cluster.rejoin_instance({"host": "localhost"})
 cluster.rejoin_instance({"host": "localhost", "schema": 'abs', "authMethod":56, "memberSslMode": "foo", "ipWhitelist": " "})
 cluster.rejoin_instance("somehost:3306")
 cluster.rejoin_instance("somehost:3306", "root")
-cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, {"memberSslMode": "foo", "password": "root"})
-cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, {"memberSslMode": "", "password": "root"})
-cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port3}, {"ipWhitelist": " ", "password": "root"})
+cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port": __mysql_sandbox_port3}, {"memberSslMode": "foo", "password": "root"})
+cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port": __mysql_sandbox_port3}, {"memberSslMode": "", "password": "root"})
+cluster.rejoin_instance({"dbUser": "root", "host": "localhost", "port": __mysql_sandbox_port3}, {"ipWhitelist": " ", "password": "root"})
 
 #@<OUT> Cluster: rejoin_instance with interaction, ok
 if __have_ssl:
@@ -143,7 +147,7 @@ if __have_ssl:
 else:
   cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3}, {'password': 'root'})
 
-wait_slave_state(cluster, 'third_sandbox', "ONLINE");
+wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 
 # Verify if the cluster is OK
 
