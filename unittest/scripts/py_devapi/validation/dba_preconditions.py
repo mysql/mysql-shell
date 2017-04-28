@@ -34,14 +34,14 @@
 #@ Standalone Instance: Failed preconditions
 ||Dba.get_cluster: This function is not available through a session to a standalone instance
 ||Dba.drop_metadata_schema: This function is not available through a session to a standalone instance
-||Cluster.add_instance: This function is not available through a session to a standalone instance
-||Cluster.rejoin_instance: This function is not available through a session to a standalone instance
-||Cluster.remove_instance: This function is not available through a session to a standalone instance
-||Cluster.describe: This function is not available through a session to a standalone instance
-||Cluster.status: This function is not available through a session to a standalone instance
-||Cluster.dissolve: This function is not available through a session to a standalone instance
-||Cluster.check_instance_state: This function is not available through a session to a standalone instance
-||Cluster.rescan: This function is not available through a session to a standalone instance
+||Cluster.add_instance: The session was closed. An open session is required to perform this operation
+||Cluster.rejoin_instance: The session was closed. An open session is required to perform this operation
+||Cluster.remove_instance: The session was closed. An open session is required to perform this operation
+||Cluster.describe: The session was closed. An open session is required to perform this operation
+||Cluster.status: The session was closed. An open session is required to perform this operation
+||Cluster.dissolve: The session was closed. An open session is required to perform this operation
+||Cluster.check_instance_state: The session was closed. An open session is required to perform this operation
+||Cluster.rescan: The session was closed. An open session is required to perform this operation
 
 #@ Preparation for read only tests
 ||
@@ -241,14 +241,14 @@
 ||Dba.create_cluster: a Classic Session is required to perform this operation
 ||Dba.get_cluster: a Classic Session is required to perform this operation
 ||Dba.drop_metadata_schema: a Classic Session is required to perform this operation
-||Cluster.add_instance: a Classic Session is required to perform this operation
-||Cluster.rejoin_instance: a Classic Session is required to perform this operation
-||Cluster.remove_instance: a Classic Session is required to perform this operation
-||Cluster.describe: a Classic Session is required to perform this operation
-||Cluster.status: a Classic Session is required to perform this operation
-||Cluster.dissolve: a Classic Session is required to perform this operation
-||Cluster.check_instance_state: a Classic Session is required to perform this operation
-||Cluster.rescan: a Classic Session is required to perform this operation
+||Cluster.add_instance: The session was closed. An open session is required to perform this operation
+||Cluster.rejoin_instance: The session was closed. An open session is required to perform this operation
+||Cluster.remove_instance: The session was closed. An open session is required to perform this operation
+||Cluster.describe: The session was closed. An open session is required to perform this operation
+||Cluster.status: The session was closed. An open session is required to perform this operation
+||Cluster.dissolve: The session was closed. An open session is required to perform this operation
+||Cluster.check_instance_state: The session was closed. An open session is required to perform this operation
+||Cluster.rescan: The session was closed. An open session is required to perform this operation
 
 #@ Finalization
 ||

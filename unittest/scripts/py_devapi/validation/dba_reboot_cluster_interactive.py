@@ -28,7 +28,7 @@
 ||
 
 #@ Dba.rebootClusterFromCompleteOutage errors
-||Dba.reboot_cluster_from_complete_outage: The cluster's instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.force_quorum_using_partition_of() to restore the quorum loss.
+||Dba.reboot_cluster_from_complete_outage: The cluster's instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.force_quorum_using_partition_of() to restore the quorum loss.
 ||Dba.reboot_cluster_from_complete_outage: Invalid values in the options: invalidOpt
 
 #@ Dba.rebootClusterFromCompleteOutage success

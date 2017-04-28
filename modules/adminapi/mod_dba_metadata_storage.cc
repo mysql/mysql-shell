@@ -39,8 +39,8 @@ using namespace mysqlsh;
 using namespace mysqlsh::dba;
 using namespace shcore;
 
-MetadataStorage::MetadataStorage(Dba* dba) :
-_dba(dba) {}
+MetadataStorage::MetadataStorage(std::shared_ptr<mysqlsh::ShellBaseSession> session) :
+  _session(session) {}
 
 MetadataStorage::~MetadataStorage() {}
 
@@ -52,14 +52,13 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::st
   else
     log_debug("DBA: execute_sql('%s'", log_sql.c_str());
 
-  auto session = _dba->get_active_session();
-  if (!session)
+  if (!_session)
     throw Exception::metadata_error("The Metadata is inaccessible");
 
   int retry_count = kMaxReadOnlyRetries;
   while (retry_count > 0) {
     try {
-      ret_val = session->raw_execute_sql(sql);
+      ret_val = _session->raw_execute_sql(sql);
 
       // If reached here it means there were no errors
       retry_count = 0;
@@ -86,29 +85,29 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::st
   return std::dynamic_pointer_cast<mysql::ClassicResult>(ret_val);
 }
 
+void MetadataStorage::set_session(std::shared_ptr<mysqlsh::ShellBaseSession> session){
+  _session = session;
+};
+
 void MetadataStorage::start_transaction() {
-  auto session = _dba->get_active_session();
-  session->start_transaction();
+  _session->start_transaction();
 }
 
 void MetadataStorage::commit() {
-  auto session = _dba->get_active_session();
-  session->commit();
+  _session->commit();
 }
 
 void MetadataStorage::rollback() {
-  auto session = _dba->get_active_session();
-  session->rollback();
+  _session->rollback();
 }
 
 bool MetadataStorage::metadata_schema_exists() {
   std::string found_object;
   std::string type = "Schema";
   std::string search_name = "mysql_innodb_cluster_metadata";
-  auto session = _dba->get_active_session();
 
-  if (session)
-    found_object = session->db_object_exists(type, search_name, "");
+  if (_session)
+    found_object = _session->db_object_exists(type, search_name, "");
   else
     throw shcore::Exception::logic_error("");
 
@@ -121,7 +120,7 @@ void MetadataStorage::create_metadata_schema() {
 
     size_t pos = 0;
     std::string token, delimiter = ";\n";
-    auto session = _dba->get_active_session();
+
     while ((pos = query.find(delimiter)) != std::string::npos) {
       token = query.substr(0, pos);
 
@@ -271,11 +270,11 @@ uint32_t MetadataStorage::insert_host(const shcore::Value::Map_type_ref &options
         " WHERE host_name = ? OR (ip_address <> '' AND ip_address = ?)", 0);
     query << host_name << ip_address;
     query.done();
-    auto result(execute_sql(query, false));
+    auto result(execute_sql(query, false, ""));
     if (result) {
       auto row = result->fetch_one();
       if (row) {
-        int32_t host_id = static_cast<uint32_t>(row->get_value(0).as_uint());
+        uint32_t host_id = static_cast<uint32_t>(row->get_value(0).as_uint());
 
         log_info("Found host entry %u in metadata for host %s (%s)",
                   host_id, host_name.c_str(), ip_address.c_str());

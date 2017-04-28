@@ -4,6 +4,10 @@
 
 var Cluster = dba.getCluster('devCluster');
 
+// session is stored on the cluster object so changing the global session should not affect cluster operations
+shell.connect({scheme: 'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+session.close();
+
 // Sets the correct local host
 var desc = Cluster.describe();
 var localhost = desc.defaultReplicaSet.instances[0].label.split(':')[0];
@@ -30,11 +34,11 @@ validateMember(members, 'rescan');
 validateMember(members, 'forceQuorumUsingPartitionOf');
 
 //@ Cluster: addInstance errors
-Cluster.addInstance()
-Cluster.addInstance(5,6,7,1)
-Cluster.addInstance(5, 5)
-Cluster.addInstance('', 5)
-Cluster.addInstance( 5)
+Cluster.addInstance();
+Cluster.addInstance(5,6,7,1);
+Cluster.addInstance(5, 5);
+Cluster.addInstance('', 5);
+Cluster.addInstance( 5);
 Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56, memberSslMode: "foo", ipWhitelist: " "});
 Cluster.addInstance({port: __mysql_sandbox_port1});
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
@@ -57,10 +61,10 @@ add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 wait_slave_state(Cluster, uri3, "ONLINE");
 
 //@<OUT> Cluster: describe1
-Cluster.describe()
+Cluster.describe();
 
 //@<OUT> Cluster: status1
-Cluster.status()
+Cluster.status();
 
 //@ Cluster: removeInstance errors
 Cluster.removeInstance();
@@ -71,26 +75,26 @@ Cluster.removeInstance({host: "localhost", port:33060, schema: 'abs', user:"samp
 Cluster.removeInstance("somehost:3306");
 
 //@ Cluster: removeInstance
-Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2})
+Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2});
 
 //@<OUT> Cluster: describe2
-Cluster.describe()
+Cluster.describe();
 
 //@<OUT> Cluster: status2
-Cluster.status()
+Cluster.status();
 
 //@<OUT> Cluster: dissolve error: not empty
-Cluster.dissolve()
+Cluster.dissolve();
 
 //@ Cluster: dissolve errors
-Cluster.dissolve(1)
-Cluster.dissolve(1,2)
-Cluster.dissolve("")
-Cluster.dissolve({enforce: true})
-Cluster.dissolve({force: 'sample'})
+Cluster.dissolve(1);
+Cluster.dissolve(1,2);
+Cluster.dissolve("");
+Cluster.dissolve({enforce: true});
+Cluster.dissolve({force: 'sample'});
 
 //@ Cluster: remove_instance 3
-Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3})
+Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3});
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
 add_instance_to_cluster(Cluster, __mysql_sandbox_port2, 'second_sandbox');
@@ -103,7 +107,7 @@ add_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
 wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 
 //@<OUT> Cluster: status: success
-Cluster.status()
+Cluster.status();
 
 // Rejoin tests
 
@@ -117,9 +121,9 @@ wait_slave_state(Cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"]);
 
 //@# Dba: start instance 3
 if (__sandbox_dir)
-  dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir})
+  dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir});
 else
-  dba.startSandboxInstance(__mysql_sandbox_port3)
+  dba.startSandboxInstance(__mysql_sandbox_port3);
 
 wait_slave_state(Cluster, 'third_sandbox', ["OFFLINE", "(MISSING)"]);
 
@@ -146,22 +150,22 @@ wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 // Verify if the cluster is OK
 
 //@<OUT> Cluster: status for rejoin: success
-Cluster.status()
+Cluster.status();
 
 //@<OUT> Cluster: final dissolve
-Cluster.dissolve({force: true})
+Cluster.dissolve({force: true});
 
 //@ Cluster: no operations can be done on a dissolved cluster
-Cluster.name
-Cluster.adminType
-Cluster.addInstance()
-Cluster.checkInstanceState()
-Cluster.describe()
-Cluster.dissolve()
-Cluster.forceQuorumUsingPartitionOf()
-Cluster.getAdminType()
-Cluster.getName()
-Cluster.rejoinInstance()
-Cluster.removeInstance()
-Cluster.rescan()
-Cluster.status()
+Cluster.name;
+Cluster.adminType;
+Cluster.addInstance();
+Cluster.checkInstanceState();
+Cluster.describe();
+Cluster.dissolve();
+Cluster.forceQuorumUsingPartitionOf();
+Cluster.getAdminType();
+Cluster.getName();
+Cluster.rejoinInstance();
+Cluster.removeInstance();
+Cluster.rescan();
+Cluster.status();

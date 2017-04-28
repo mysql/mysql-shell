@@ -35,7 +35,7 @@ session.close();
 
 //@ Read Only Instance : get cluster
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-
+var cluster = dba.getCluster();
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
 // Waiting for the second added instance to become online
@@ -44,7 +44,7 @@ wait_slave_state(cluster, uri2, "ONLINE");
 session.close();
 
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-var cluster = dba.getCluster()
+var cluster = dba.getCluster();
 
 //@<OUT> Read Only Instance : check instance config
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port3, password:'root'});

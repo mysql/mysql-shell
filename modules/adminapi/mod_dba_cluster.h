@@ -54,6 +54,7 @@ public:
 
   const uint64_t get_id() { return _id; }
   void set_id(uint64_t id) { _id = id; }
+  std::shared_ptr<mysqlsh::ShellBaseSession> get_session() {return _session; }
   std::shared_ptr<ReplicaSet> get_default_replicaset() { return _default_replica_set; }
   void set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs);
   std::string get_name() { return _name; }
@@ -135,6 +136,7 @@ protected:
   shcore::Value::Map_type_ref _options;
   shcore::Value::Map_type_ref _attributes;
   bool _dissolved;
+  std::shared_ptr<mysqlsh::ShellBaseSession> _session;
 
 private:
   void init();

@@ -35,7 +35,7 @@ session.close()
 
 #@ Read Only Instance : get cluster
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
-
+cluster = dba.get_cluster()
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
 # Waiting for the second added instance to become online
