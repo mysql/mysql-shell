@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -700,7 +700,7 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
 TEST_F(Interactive_shell_test, expired_account_support_classic) {
   // Test secure call passing uri with no password (will be prompted)
   _options->uri = _mysql_uri;
-  _options->initial_mode = shcore::IShell_core::SQL;
+  _options->initial_mode = shcore::IShell_core::Mode::SQL;
   reset_shell();
 
   // Setup an expired account for the test
@@ -756,7 +756,7 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
 TEST_F(Interactive_shell_test, expired_account_support_node) {
   // Test secure call passing uri with no password (will be prompted)
   _options->uri = _uri;
-  _options->initial_mode = shcore::IShell_core::SQL;
+  _options->initial_mode = shcore::IShell_core::Mode::SQL;
   reset_shell();
 
   // Setup an expired account for the test

@@ -22,7 +22,7 @@
 namespace mysqlsh {
 Shell_options::Shell_options() {
 #ifdef HAVE_V8
-  initial_mode = shcore::IShell_core::Mode::JScript;
+  initial_mode = shcore::IShell_core::Mode::JavaScript;
 #else
 #ifdef HAVE_PYTHON
   initial_mode = shcore::IShell_core::Mode::Python;

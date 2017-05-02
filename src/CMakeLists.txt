@@ -51,6 +51,8 @@ endif()
 add_executable(mysqlsh ${mysh_SRC})
 set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+ADD_STAN_TARGET(mysqlsh ${mysh_SRC})
+
 IF(NOT WIN32)
   TARGET_LINK_LIBRARIES(mysqlsh edit)
 ENDIF()

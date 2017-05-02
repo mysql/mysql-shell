@@ -41,14 +41,47 @@ class ShellBaseSession;
 namespace shcore {
 
 class SHCORE_PUBLIC IShell_core {
-public:
-  enum Mode {
+ public:
+  enum class Mode {
     None = 0,
-    SQL = 1 << 0,
-    JScript = 1 << 1,
-    Python = 1 << 2,
-    Scripting = Python|JScript,
-    All = SQL|Python|JScript
+    SQL = 1,
+    JavaScript = 2,
+    Python = 3
+  };
+
+  class Mode_mask {
+   public:
+    Mode_mask() : mask(0) {}
+
+    explicit Mode_mask(Mode m) : mask(1 << static_cast<int>(m)) {
+    }
+
+    Mode_mask(const Mode_mask &m) : mask(m.mask) {
+    }
+
+    inline bool matches(Mode mode) const {
+      return ((1 << static_cast<int>(mode)) & mask) != 0;
+    }
+
+    inline bool matches(const Mode_mask &mode_mask) const {
+      return (mode_mask.mask & mask) != 0;
+    }
+
+    static Mode_mask Scripting() {
+      return Mode_mask((1 << static_cast<int>(Mode::Python)) |
+                       (1 << static_cast<int>(Mode::JavaScript)));
+    }
+
+    static const Mode_mask Any() {
+      return Mode_mask((1 << static_cast<int>(Mode::SQL)) |
+                       (1 << static_cast<int>(Mode::Python)) |
+                       (1 << static_cast<int>(Mode::JavaScript)));
+    }
+
+   private:
+    explicit Mode_mask(int m) : mask(m) {
+    }
+    int mask;
   };
 
   IShell_core(void);
@@ -58,7 +91,8 @@ public:
   virtual bool switch_mode(Mode mode, bool &lang_initialized) = 0;
 
   // By default, globals apply to the three languages
-  virtual void set_global(const std::string &name, const Value &value, Mode mode = Mode::All) = 0;
+  virtual void set_global(const std::string &name, const Value &value,
+                          Mode_mask mode = Mode_mask::Any()) = 0;
   virtual Value get_global(const std::string &name) = 0;
 
   virtual Object_registry *registry() = 0;

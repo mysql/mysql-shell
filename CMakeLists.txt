@@ -46,6 +46,7 @@ INCLUDE(libutils)
 INCLUDE(ssl)
 INCLUDE(readline)
 INCLUDE(compiler)
+INCLUDE(static_analysis)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
@@ -182,7 +183,7 @@ IF(WIN32)
 ENDIF()
 
 # Must be before MYSQL_CHECK_SSL()
-include_directories(${CMAKE_BINARY_DIR}/include/ ${PROJECT_SOURCE_DIR}/include)
+include_directories(${CMAKE_BINARY_DIR}/include/)
 
 # Add bundled yassl/taocrypt or system openssl.
 IF (WITH_SSL)
@@ -260,6 +261,12 @@ add_subdirectory(mysqlxtest)
 add_subdirectory(mysqlshdk)
 add_subdirectory(modules)
 add_subdirectory(src)
+
+CHECK_STAN_OPTIONS()
+
+###
+### Packaging and other dependecy copying
+###
 
 include(packaging)
 

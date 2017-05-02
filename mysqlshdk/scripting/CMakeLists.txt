@@ -77,3 +77,5 @@ endif()
 
 
 add_convenience_library(scripting ${SCRIPTING_SOURCES})
+
+ADD_STAN_TARGET(scripting ${SCRIPTING_SOURCES})

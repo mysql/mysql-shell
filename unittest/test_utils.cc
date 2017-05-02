@@ -474,7 +474,8 @@ void Crud_test_wrapper::set_functions(const std::string &functions) {
 // Validates only the specified functions are available
 // non listed functions are validated for unavailability
 void Crud_test_wrapper::ensure_available_functions(const std::string& functions) {
-  bool is_js = _interactive_shell->interactive_mode() == shcore::Shell_core::Mode::JScript;
+  bool is_js = _interactive_shell->interactive_mode() ==
+               shcore::Shell_core::Mode::JavaScript;
   std::vector<std::string> v = split_string_chars(functions, ", ", true);
   std::set<std::string> valid_functions(v.begin(), v.end());
 

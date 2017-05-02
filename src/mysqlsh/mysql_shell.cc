@@ -49,16 +49,36 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     interactive_shell->set_target(_global_shell);
     interactive_dba->set_target(_global_dba);
 
-    set_global_object("db", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_db), shcore::IShell_core::Scripting);
-    set_global_object("session", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_session));
-    set_global_object("shell", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_shell), shcore::IShell_core::Scripting);
-    set_global_object("dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_dba), shcore::IShell_core::Scripting);
+    set_global_object(
+        "db",
+        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_db),
+        shcore::IShell_core::Mode_mask::Scripting());
+    set_global_object("session",
+                      std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
+                          interactive_session));
+    set_global_object(
+        "shell",
+        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_shell),
+        shcore::IShell_core::Mode_mask::Scripting());
+    set_global_object(
+        "dba",
+        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_dba),
+        shcore::IShell_core::Mode_mask::Scripting());
   } else {
-    set_global_object("shell", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_shell), shcore::IShell_core::Scripting);
-    set_global_object("dba", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba), shcore::IShell_core::Scripting);
+    set_global_object(
+        "shell",
+        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_shell),
+        shcore::IShell_core::Mode_mask::Scripting());
+    set_global_object(
+        "dba",
+        std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba),
+        shcore::IShell_core::Mode_mask::Scripting());
   }
 
-  set_global_object("sys", std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_js_sys), shcore::IShell_core::JScript);
+  set_global_object(
+      "sys",
+      std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_js_sys),
+      shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::JavaScript));
 
   INIT_MODULE(mysqlsh::mysql::Mysql);
   INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
@@ -98,18 +118,37 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     "If it is either a Node or Classic session, the current schema will be updated (affects SQL mode).\n"
     "The global db variable will be updated to hold the requested schema.\n";
 
-  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Mysql_shell::cmd_print_shell_help);
-  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::SQL, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::JScript, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode::Python, _1));
-  SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Mysql_shell::cmd_process_file);
-  SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "", Mysql_shell::cmd_start_multiline);
-  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "", Mysql_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect, Mysql_shell::cmd_connect);
-  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Mysql_shell::cmd_warnings);
-  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Mysql_shell::cmd_nowarnings);
-  SET_SHELL_COMMAND("\\status|\\s", "Print information about the current global connection.", "", Mysql_shell::cmd_status);
-  SET_SHELL_COMMAND("\\use|\\u", "Set the current schema for the global session.", cmd_help_use, Mysql_shell::cmd_use);
+  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "",
+                    Mysql_shell::cmd_print_shell_help);
+  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "",
+                           std::bind(&Base_shell::switch_shell_mode, this,
+                                     shcore::Shell_core::Mode::SQL, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "",
+                           std::bind(&Base_shell::switch_shell_mode, this,
+                                     shcore::Shell_core::Mode::JavaScript, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "",
+                           std::bind(&Base_shell::switch_shell_mode, this,
+                                     shcore::Shell_core::Mode::Python, _1));
+  SET_SHELL_COMMAND("\\source|\\.",
+                    "Execute a script file. Takes a file name as an argument.",
+                    cmd_help_source, Mysql_shell::cmd_process_file);
+  SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "",
+                    Mysql_shell::cmd_start_multiline);
+  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "",
+                    Mysql_shell::cmd_quit);
+  SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect,
+                    Mysql_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.",
+                    "", Mysql_shell::cmd_warnings);
+  SET_SHELL_COMMAND("\\nowarnings|\\w",
+                    "Don't show warnings after every statement.", "",
+                    Mysql_shell::cmd_nowarnings);
+  SET_SHELL_COMMAND("\\status|\\s",
+                    "Print information about the current global connection.",
+                    "", Mysql_shell::cmd_status);
+  SET_SHELL_COMMAND("\\use|\\u",
+                    "Set the current schema for the global session.",
+                    cmd_help_use, Mysql_shell::cmd_use);
 
   const std::string cmd_help_store_connection =
     "SYNTAX:\n"
@@ -348,7 +387,8 @@ bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
     }
 
     // Inserts the default modules
-    if (interactive_mode() & shcore::IShell_core::Scripting) {
+    if (shcore::IShell_core::Mode_mask::Scripting().matches(
+            interactive_mode())) {
       global_names.push_back({"mysqlx", "mysqlx"});
       global_names.push_back({"mysql", "mysql"});
     }

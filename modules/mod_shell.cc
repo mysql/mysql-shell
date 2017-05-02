@@ -478,7 +478,8 @@ void Shell::set_current_schema(const std::string& name) {
         db->set_target(std::shared_ptr<Cpp_object_bridge>());
     }
     else
-      _shell_core->set_global("db", new_schema, shcore::IShell_core::Mode::Scripting);
+      _shell_core->set_global("db", new_schema,
+                              shcore::IShell_core::Mode_mask::Scripting());
   }
 }
 
