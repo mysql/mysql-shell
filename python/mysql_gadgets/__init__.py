@@ -128,7 +128,8 @@ def check_expected_version(expected_version):
 def check_python_version(min_version=PYTHON_MIN_VERSION,
                          max_version=PYTHON_MAX_VERSION,
                          raise_exception_on_fail=False, name=None,
-                         exit_on_fail=True, return_error_msg=False):
+                         exit_on_fail=True, return_error_msg=False,
+                         json_msg=False):
     """Check the Python version compatibility.
 
     By default this method uses constants to define the minimum and maximum
@@ -156,6 +157,11 @@ def check_python_version(min_version=PYTHON_MIN_VERSION,
     :param return_error_msg:        If True, and is not compatible
                                     returns (result, error_msg) tuple.
     :type return_error_msg:         boolean
+    :param json_msg:                If true return the error message in JSON
+                                    format '{"type": "ERROR", "msg": "..."}'
+                                    when exit_on_fail=True.
+                                    By default: False, JSON format not used.
+    :type json_msg:                 boolean
 
     :return:   True if Python version is compatible, otherwise False if
                'raise_exception_on_fail' is set to False or a tuple
@@ -195,13 +201,12 @@ def check_python_version(min_version=PYTHON_MIN_VERSION,
             max_version_error_msg = 'or higher'
 
         error_msg = (
-            'The %(name)s requires Python version %(min_version)s '
-            '%(max_version_error_msg)s. The version of Python detected was '
+            'Python version %(min_version)s %(max_version_error_msg)s is '
+            'required. The version of Python detected was '
             '%(sys_version)s. You may need to install or redirect the '
-            'execution of this utility to an environment that includes a '
-            'compatible Python version.'
+            'execution to an environment that includes a compatible Python '
+            'version.'
         ) % {
-            'name': name,
             'sys_version': '.'.join([str(el) for el in sys_version]),
             'min_version': '.'.join([str(el) for el in min_version]),
             'max_version_error_msg': max_version_error_msg
@@ -211,7 +216,10 @@ def check_python_version(min_version=PYTHON_MIN_VERSION,
             raise GadgetVersionError(error_msg)
 
         if exit_on_fail:
-            sys.exit("ERROR: %s\n" % error_msg)
+            if json_msg:
+                sys.exit('{"type": "ERROR", "msg": "%s"}\n' % error_msg)
+            else:
+                sys.exit("ERROR: %s\n" % error_msg)
 
         if return_error_msg:
             return is_compat, error_msg
@@ -219,7 +227,7 @@ def check_python_version(min_version=PYTHON_MIN_VERSION,
     return is_compat
 
 
-def check_connector_python(min_version=CONNECTOR_MIN_VERSION):
+def check_connector_python(min_version=CONNECTOR_MIN_VERSION, json_msg=False):
     """Check connector/python version.
 
     Check to see if Connector/Python is installed, accessible and
@@ -235,15 +243,25 @@ def check_connector_python(min_version=CONNECTOR_MIN_VERSION):
 
     :param min_version: Tuple with the minimum C/Python version required
         (inclusive).
+    :type min_version:  tuple
+    :param json_msg:    If true return the error message in JSON format
+                        '{"type": "ERROR", "msg": "..."}'.
+                        By default: False, JSON format not used.
+    :type json_msg:     boolean
     """
     is_compatible = True
     try:
         import mysql.connector  # pylint: disable=W0612
     except ImportError:
-        sys.exit("ERROR: The MySQL Connector/Python module was not found and "
-                 "it is required to be installed. Please check your paths or "
-                 "download and install the Connector/Python from "
-                 "http://dev.mysql.com.\n")
+        error_msg = (
+            "The MySQL Connector/Python module was not found and "
+            "it is required to be installed. Please check your paths or "
+            "download and install the Connector/Python from "
+            "http://dev.mysql.com.")
+        if json_msg:
+            sys.exit('{"type": "ERROR", "msg": "%s"}\n' % error_msg)
+        else:
+            sys.exit("ERROR: %s\n" % error_msg)
     else:
         try:
             sys_version = mysql.connector.version.VERSION[:3]
@@ -251,8 +269,13 @@ def check_connector_python(min_version=CONNECTOR_MIN_VERSION):
             is_compatible = False
 
     if not is_compatible or sys_version < min_version:
-        sys.exit("ERROR: The MySQL Connector/Python module was found "
-                 "but it is either not properly installed or it is "
-                 "an old version. Connector/Python version > '{0}' is "
-                 "required. Download and install Connector/Python from "
-                 "http://dev.mysql.com.\n".format(min_version))
+        error_msg = (
+            "The MySQL Connector/Python module was found "
+            "but it is either not properly installed or it is "
+            "an old version. Connector/Python version > '{0}' is "
+            "required. Download and install Connector/Python from "
+            "http://dev.mysql.com.").format(min_version)
+        if json_msg:
+            sys.exit('{"type": "ERROR", "msg": "%s"}\n' % error_msg)
+        else:
+            sys.exit("ERROR: %s\n" % error_msg)
