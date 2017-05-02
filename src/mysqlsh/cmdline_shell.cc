@@ -138,7 +138,7 @@ void Command_line_shell::command_loop() {
         message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
 #endif
         break;
-      case shcore::Shell_core::Mode::JScript:
+      case shcore::Shell_core::Mode::JavaScript:
         message = "Currently in JavaScript mode." + message;
         break;
       case shcore::Shell_core::Mode::Python:

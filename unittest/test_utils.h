@@ -154,7 +154,6 @@ protected:
   // This can be use to reinitialize the interactive shell with different options
   // First set the options on _options
   void reset_options() {
-    char **argv = NULL;
     _options.reset(new mysqlsh::Shell_options());
   }
 

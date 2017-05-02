@@ -107,7 +107,7 @@ void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::
 void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
   std::string extension;
 
-  if (mode == shcore::Shell_core::Mode::JScript)
+  if (mode == shcore::Shell_core::Mode::JavaScript)
     extension.append(".js");
   else if (mode == shcore::Shell_core::Mode::Python)
     extension.append(".py");
@@ -159,7 +159,7 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
 void Base_shell::load_default_modules(shcore::Shell_core::Mode mode) {
   // Module preloading only occurs on interactive mode
   if (_options.interactive) {
-    if (mode == shcore::Shell_core::Mode::JScript) {
+    if (mode == shcore::Shell_core::Mode::JavaScript) {
       process_line("var mysqlx = require('mysqlx');");
       process_line("var mysql = require('mysql');");
     } else if (mode == shcore::Shell_core::Mode::Python) {
@@ -201,7 +201,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
         if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to SQL mode... Commands end with ;");
         break;
-      case shcore::Shell_core::Mode::JScript:
+      case shcore::Shell_core::Mode::JavaScript:
 #ifdef HAVE_V8
         if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to JavaScript mode...");
@@ -385,7 +385,8 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
     if (_options.full_interactive)
       _shell->print(prompt());
 
-    bool comment_first_js_line = _shell->interactive_mode() == shcore::IShell_core::Mode::JScript;
+    bool comment_first_js_line =
+        _shell->interactive_mode() == shcore::IShell_core::Mode::JavaScript;
     while (!stream.eof()) {
       std::string line;
 
@@ -414,8 +415,12 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
   }
 }
 
-void Base_shell::set_global_object(const std::string& name, std::shared_ptr<shcore::Cpp_object_bridge> object, shcore::IShell_core::Mode mode) {
-  _shell->set_global(name, shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(object)), mode);
+void Base_shell::set_global_object(
+    const std::string &name, std::shared_ptr<shcore::Cpp_object_bridge> object,
+    shcore::IShell_core::Mode_mask modes) {
+  _shell->set_global(
+      name,
+      shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(object)),
+      modes);
 }
-
 }

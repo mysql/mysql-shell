@@ -63,3 +63,5 @@ file(GLOB api_module_SOURCES
 
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules mysqlxtest)
+
+ADD_STAN_TARGET(api_modules ${api_module_SOURCES})

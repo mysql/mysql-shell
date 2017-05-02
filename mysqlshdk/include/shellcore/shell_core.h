@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,13 +20,13 @@
 #ifndef _SHELLCORE_H_
 #define _SHELLCORE_H_
 
+#include <iostream>
+#include <list>
+#include <utility>
 #include "scripting/common.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h"
 #include "shellcore/shell_notifications.h"
-#include <list>
-
-#include <iostream>
 
 using namespace std::placeholders;
 
@@ -121,7 +121,8 @@ public:
   // sets a global variable, exposed to all supported scripting languages
   // the value is saved in a map, so that the exposing can be deferred in
   // case the context for some langauge is not yet created at the time this is called
-  virtual void set_global(const std::string &name, const Value &value, Mode mode = Mode::All);
+  virtual void set_global(const std::string &name, const Value &value,
+                          Mode_mask mode = Mode_mask::Any());
   virtual Value get_global(const std::string &name);
   std::vector<std::string> get_global_objects(Mode mode);
 
@@ -182,7 +183,7 @@ private:
 
 private:
   Object_registry *_registry;
-  std::map<std::string, std::pair<Mode, Value> > _globals;
+  std::map<std::string, std::pair<Mode_mask, Value> > _globals;
   std::map<Mode, Shell_language*> _langs;
 
   std::shared_ptr<mysqlsh::ShellBaseSession> _global_dev_session;

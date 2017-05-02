@@ -938,12 +938,12 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       break;
     case Integer:
     {
-      s_out += str_format("%ld", value.i);
+      s_out += str_format("%lld", value.i);
     }
     break;
     case UInteger:
     {
-      s_out += str_format("%ld", value.ui);
+      s_out += str_format("%llu", value.ui);
     }
     break;
     case Float:
@@ -1045,12 +1045,12 @@ std::string &Value::append_repr(std::string &s_out) const {
       break;
     case Integer:
     {
-      s_out += str_format("%ld", value.i);
+      s_out += str_format("%lld", value.i);
     }
     break;
     case UInteger:
     {
-      s_out += str_format("%ld", value.ui);
+      s_out += str_format("%lld", value.ui);
     }
     break;
     case Float:

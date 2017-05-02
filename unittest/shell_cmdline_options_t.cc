@@ -53,7 +53,7 @@ std::string shell_mode_name(IShell_core::Mode mode){
   std::string ret_val;
 
   switch(mode){
-    case IShell_core::Mode::JScript:
+    case IShell_core::Mode::JavaScript:
       ret_val = "JavaScript";
       break;
     case IShell_core::Mode::Python:
@@ -408,7 +408,7 @@ TEST(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.host.empty());
 
 #ifdef HAVE_V8
-  EXPECT_EQ(options.initial_mode, IShell_core::Mode::JScript);
+  EXPECT_EQ(options.initial_mode, IShell_core::Mode::JavaScript);
 #else
 #ifdef HAVE_PYTHON
   EXPECT_EQ(options.initial_mode, IShell_core::Mode::Python);
@@ -476,23 +476,35 @@ TEST_F(Shell_cmdline_options_t, app) {
 
   test_option_with_value("execute", "e", "show databases;", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "execute_statement");
 
-  test_option_with_no_value("--classic", "session-type", session_type_name(mysqlsh::SessionType::Classic));
-  test_option_with_no_value("--node", "session-type", session_type_name(mysqlsh::SessionType::Node));
+  test_option_with_no_value("--classic", "session-type",
+                            session_type_name(mysqlsh::SessionType::Classic));
+  test_option_with_no_value("--node", "session-type",
+                            session_type_name(mysqlsh::SessionType::Node));
 
-  test_option_with_no_value("--sql", "session-type", session_type_name(mysqlsh::SessionType::Auto));
-  test_option_with_no_value("--sql", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
+  test_option_with_no_value("--sql", "session-type",
+                            session_type_name(mysqlsh::SessionType::Auto));
+  test_option_with_no_value("--sql", "initial-mode",
+                            shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--sqlc", "session-type", session_type_name(mysqlsh::SessionType::Classic));
-  test_option_with_no_value("--sqlc", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
+  test_option_with_no_value("--sqlc", "session-type",
+                            session_type_name(mysqlsh::SessionType::Classic));
+  test_option_with_no_value("--sqlc", "initial-mode",
+                            shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--sqln", "session-type", session_type_name(mysqlsh::SessionType::Node));
-  test_option_with_no_value("--sqln", "initial-mode", shell_mode_name(IShell_core::Mode::SQL));
+  test_option_with_no_value("--sqln", "session-type",
+                            session_type_name(mysqlsh::SessionType::Node));
+  test_option_with_no_value("--sqln", "initial-mode",
+                            shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--javascript", "initial-mode", shell_mode_name(IShell_core::Mode::JScript));
-  test_option_with_no_value("--js", "initial-mode", shell_mode_name(IShell_core::Mode::JScript));
+  test_option_with_no_value("--javascript", "initial-mode",
+                            shell_mode_name(IShell_core::Mode::JavaScript));
+  test_option_with_no_value("--js", "initial-mode",
+                            shell_mode_name(IShell_core::Mode::JavaScript));
 
-  test_option_with_no_value("--python", "initial-mode", shell_mode_name(IShell_core::Mode::Python));
-  test_option_with_no_value("--py", "initial-mode", shell_mode_name(IShell_core::Mode::Python));
+  test_option_with_no_value("--python", "initial-mode",
+                            shell_mode_name(IShell_core::Mode::Python));
+  test_option_with_no_value("--py", "initial-mode",
+                            shell_mode_name(IShell_core::Mode::Python));
 
   test_option_with_no_value("--recreate-schema", "recreate_database", "1");
 

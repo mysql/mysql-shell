@@ -199,6 +199,7 @@ Type Result::map_data_type(int raw_type) {
     case MYSQL_TYPE_SET:
       return Type::Set;
   }
+  throw std::logic_error("Invalid type");
 }
 }
 }

@@ -168,10 +168,6 @@ Error::Error(int err, const std::string &message)
 {
 }
 
-Error::~Error()
-{
-}
-
 static void throw_server_error(const Mysqlx::Error &error)
 {
   throw Error(error.code(), error.msg());

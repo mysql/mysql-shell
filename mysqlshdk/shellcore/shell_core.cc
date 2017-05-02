@@ -59,8 +59,8 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 Shell_core::~Shell_core() {
   delete _registry;
 
-  if (_langs[Mode::JScript])
-    delete _langs[Mode::JScript];
+  if (_langs[Mode::JavaScript])
+    delete _langs[Mode::JavaScript];
 
   if (_langs[Mode::Python])
     delete _langs[Mode::Python];
@@ -240,7 +240,8 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source,
 
     // When processing JavaScript files, validates the very first line to start with #!
     // If that's the case, it is replaced by a comment indicator //
-    if (_mode == IShell_core::Mode::JScript && data.size() > 1 && data[0] == '#' && data[1] == '!')
+    if (_mode == IShell_core::Mode::JavaScript && data.size() > 1 &&
+        data[0] == '#' && data[1] == '!')
       data.replace(0, 2, "//");
 
     handle_input(data, state, result_processor);
@@ -264,7 +265,7 @@ bool Shell_core::switch_mode(Mode mode, bool &lang_initialized) {
         case Mode::SQL:
           init_sql();
           break;
-        case Mode::JScript:
+        case Mode::JavaScript:
           init_js();
           lang_initialized = true;
           break;
@@ -286,11 +287,12 @@ void Shell_core::init_sql() {
 void Shell_core::init_js() {
 #ifdef HAVE_V8
   Shell_javascript *js;
-  _langs[Mode::JScript] = js = new Shell_javascript(this);
+  _langs[Mode::JavaScript] = js = new Shell_javascript(this);
 
-  for (std::map<std::string, std::pair<Mode, Value> >::const_iterator iter = _globals.begin();
+  for (std::map<std::string, std::pair<Mode_mask, Value> >::const_iterator
+           iter = _globals.begin();
        iter != _globals.end(); ++iter) {
-    if (iter->second.first & Mode::JScript)
+    if (iter->second.first.matches(Mode::JavaScript))
       js->set_global(iter->first, iter->second.second);
   }
 #endif
@@ -301,22 +303,25 @@ void Shell_core::init_py() {
   Shell_python *py;
   _langs[Mode::Python] = py = new Shell_python(this);
 
-  for (std::map<std::string, std::pair<Mode, Value> >::const_iterator iter = _globals.begin();
+  for (std::map<std::string, std::pair<Mode_mask, Value> >::const_iterator
+           iter = _globals.begin();
        iter != _globals.end(); ++iter) {
-    if (iter->second.first & Mode::Python)
+    if (iter->second.first.matches(Mode::Python))
       py->set_global(iter->first, iter->second.second);
   }
 #endif
 }
 
-void Shell_core::set_global(const std::string &name, const Value &value, Mode mode) {
-  _globals[name] = {mode, value};
+void Shell_core::set_global(const std::string &name, const Value &value,
+                            Mode_mask mode) {
+  _globals[name] = std::make_pair(mode, value);
 
   for (std::map<Mode, Shell_language*>::const_iterator iter = _langs.begin();
        iter != _langs.end(); ++iter) {
     // Only sets the global where applicable
-    if (iter->first & mode)
+    if (mode.matches(iter->first)) {
       iter->second->set_global(name, value);
+    }
   }
 }
 
@@ -328,7 +333,8 @@ std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
   std::vector<std::string> globals;
 
   for (auto entry : _globals) {
-    if (entry.second.first & mode && entry.second.second.type == shcore::Object)
+    if (entry.second.first.matches(mode) &&
+        entry.second.second.type == shcore::Object)
       globals.push_back(entry.first);
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -246,7 +246,7 @@ void Shell_sql::abort() {
       if (!kill_session) {
         throw std::runtime_error(str_format("Error duplicating classic connection"));
       }
-      std::string cmd = (str_format("kill query %ju", connection_id));
+      std::string cmd = (str_format("kill query %llu", connection_id));
       a.clear();
       a.push_back(shcore::Value(cmd));
       kill_session->run_sql(a);
@@ -256,7 +256,7 @@ void Shell_sql::abort() {
         throw std::runtime_error(str_format("Error duplicating xplugin connection"));
       }
 
-      std::string cmd = (str_format("kill query %ju", connection_id));
+      std::string cmd = (str_format("kill query %llu", connection_id));
       a.clear();
       shcore::Value v = kill_session2->execute_sql(cmd, a);
     }

@@ -30,3 +30,4 @@ set(utils_SOURCE
 )
 
 add_convenience_library(utils ${utils_SOURCE})
+ADD_STAN_TARGET(utils ${utils_SOURCE})

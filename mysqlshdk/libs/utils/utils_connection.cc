@@ -53,4 +53,5 @@ const std::string MapSslModeNameToValue::get_value(int value) {
   case 4: return "VERIFY_CA";
   case 5: return "VERIFY_IDENTITY";
   }
+  return "";
 }

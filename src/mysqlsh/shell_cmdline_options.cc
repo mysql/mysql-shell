@@ -219,7 +219,7 @@ _options.ssl_info.skip = false;
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
     } else if (check_arg(argv, i, "--js", "--javascript")) {
 #ifdef HAVE_V8
-      _options.initial_mode = shcore::IShell_core::Mode::JScript;
+      _options.initial_mode = shcore::IShell_core::Mode::JavaScript;
 #else
       std::cerr << "JavaScript is not supported.\n";
       exit_code = 1;

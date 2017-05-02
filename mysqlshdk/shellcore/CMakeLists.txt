@@ -65,3 +65,5 @@ if(WIN32)
 endif()
 
 add_convenience_library(shellcore ${SHELLCORE_SOURCES} ${SHELLCORE_DLL_SOURCES})
+
+ADD_STAN_TARGET(shellcore ${SHELLCORE_SOURCES})

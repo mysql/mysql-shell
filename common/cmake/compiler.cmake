@@ -18,12 +18,9 @@ include(CheckCXXCompilerFlag)
 
 function(CHECK_CXX11)
   check_cxx_compiler_flag("-std=c++11" support_11)
-  check_cxx_compiler_flag("-std=c++0x" support_0x)
 
   if(support_11)
     set(CXX11_FLAG "-std=c++11" PARENT_SCOPE)
-  elseif(support_0x)
-    set(CXX11_FLAG "-std=c++0x" PARENT_SCOPE)
   else()
     message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} does not support C++11 standard")
   endif()
@@ -32,13 +29,18 @@ endfunction()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   check_cxx11()
-  set(${CMAKE_CXX_FLAGS} "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wconversion -Wpedantic -Wshadow")
+  #set(${CMAKE_CXX_FLAGS} "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -Wconversion -Wpedantic -Wshadow")
+
+  # Flags to use in old parts of the code, where we have too many warnings
+  # as result of the typo above. We incrementally add warnings until everything is on
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX11_FLAG} -Wall")
+  # Flags to use in new parts of the code, where we're trying to be strict from the beginning
+  set(CXX_FLAGS_FULL_WARNINGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-shadow")
+
   if(ENABLE_GCOV)
     message(STATUS "Enabling code coverage using Gcov")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
   endif()
-
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX11_FLAG}")
 
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # Overview of MSVC versions: http://www.cmake.org/cmake/help/v3.3/variable/MSVC_VERSION.html
