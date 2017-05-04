@@ -365,3 +365,72 @@ void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_
 
   _options.default_session_type = false;
 }
+
+std::vector<std::string> Shell_command_line_options::get_details() {
+  const std::vector<std::string> details = {
+  "  --help                   Display this help and exit.",
+  "  -f, --file=file          Process file.",
+  "  -e, --execute=<cmd>      Execute command and quit.",
+  "  --uri                    Connect to Uniform Resource Identifier.",
+  "                           Format: [user[:pass]]@host[:port][/db]",
+  "                           or user[:pass]@::socket[/db] .",
+  "  -h, --host=name          Connect to host.",
+  "  -P, --port=#             Port number to use for connection.",
+  "  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in"
+  "                           Windows (only classic sessions).",
+  "  -u, --dbuser=name        User for the connection to the server.",
+  "  --user=name              An alias for dbuser.",
+  "  --dbpassword=name        Password to use when connecting to server",
+  "  -p, --password=name      An alias for dbpassword.",
+  "  -p                       Request password prompt to set the password",
+  "  -D, --schema=name        Schema to use.",
+  "  --recreate-schema        Drop and recreate the specified schema.",
+  "                           Schema will be deleted if it exists!",
+  "  --database=name          An alias for --schema.",
+  "  --node                   Uses connection data to create a Node Session.",
+  "  --classic                Uses connection data to create a Classic Session.",
+  "  --sql                    Start in SQL mode.",
+  "  --sqlc                   Start in SQL mode using a classic session.",
+  "  --sqln                   Start in SQL mode using a node session.",
+  "  --js, --javascript       Start in JavaScript mode.",
+  "  --py, --python           Start in Python mode.",
+  "  --json[=format]          Produce output in JSON format, allowed values:",
+  "                           raw, pretty. If no format is specified",
+  "                           pretty format is produced.",
+  "  --table                  Produce output in table format (default for",
+  "                           interactive mode). This option can be used to",
+  "                           force that format when running in batch mode.",
+  "  -E, --vertical           Print the output of a query (rows) vertically.",
+  "  -i, --interactive[=full] To use in batch mode, it forces emulation of",
+  "                           interactive mode processing. Each line on the ",
+  "                           batch is processed as if it were in ",
+  "                           interactive mode.",
+  "  --force                  To use in SQL batch mode, forces processing to",
+  "                           continue if an error is found.",
+  "  --log-level=value        The log level." +
+  ngcommon::Logger::get_level_range_info(),
+  "  -V, --version            Prints the version of MySQL Shell.",
+  "  --ssl                    Enable SSL for connection (automatically enabled",
+  "                           with other flags).",
+  "  --ssl-key=name           X509 key in PEM format.",
+  "  --ssl-cert=name          X509 cert in PEM format.",
+  "  --ssl-ca=name            CA file in PEM format.",
+  "  --ssl-capath=dir         CA directory.",
+  "  --ssl-cipher=name        SSL Cipher to use.",
+  "  --ssl-crl=name           Certificate revocation list.",
+  "  --ssl-crlpath=dir        Certificate revocation list path.",
+  "  --ssl-mode=mode          SSL mode to use, allowed values: DISABLED,",
+  "                           PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
+  "  --tls-version=version    TLS version to use, permitted values are :"
+  "                           TLSv1, TLSv1.1.",
+  "  --passwords-from-stdin   Read passwords from stdin instead of the tty.",
+  "  --auth-method=method     Authentication method to use.",
+  "  --show-warnings          Automatically display SQL warnings on SQL mode"
+  "                           if available.",
+  "  --dba enableXProtocol    Enable the X Protocol in the server connected to."
+  "                           Must be used with --classic.",
+  "  --nw, --no-wizard        Disables wizard mode."
+  };
+  return details;
+}
+
