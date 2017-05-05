@@ -102,7 +102,10 @@ public:
     _impl->connect(host, port, socket, user, password, schema, ssl_info);
   }
 
-  virtual std::unique_ptr<IResult> query(const std::string& sql, bool buffered) { return std::move(std::unique_ptr<IResult>(_impl->query(sql, buffered))); }
+  virtual std::unique_ptr<IResult> query(const std::string& sql,
+      bool buffered) {
+    return std::unique_ptr<IResult>(_impl->query(sql, buffered));
+  }
   virtual void execute(const std::string& sql) { _impl->execute(sql); }
   virtual void start_transaction() { _impl->start_transaction(); }
   virtual void commit() { _impl->commit(); }

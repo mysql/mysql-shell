@@ -859,7 +859,7 @@ shcore::Value::Map_type_ref BaseSession::get_status() {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
 
-  return std::move(status);
+  return status;
 }
 
 void BaseSession::start_transaction() {

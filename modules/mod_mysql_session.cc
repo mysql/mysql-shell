@@ -874,7 +874,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
 
-  return std::move(status);
+  return status;
 }
 
 void ClassicSession::start_transaction() {

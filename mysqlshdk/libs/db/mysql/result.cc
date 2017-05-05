@@ -95,7 +95,7 @@ std::unique_ptr<IRow> Result::fetch_one() {
     }
   }
 
-  return std::move(ret_val);
+  return ret_val;
 }
 
 bool Result::next_data_set() {
@@ -118,7 +118,7 @@ std::unique_ptr<IRow> Result::fetch_one_warning() {
   if (_warnings)
     ret_val = _warnings->fetch_one();
 
-  return std::move(ret_val);
+  return ret_val;
 }
 
 void Result::reset(std::shared_ptr<MYSQL_RES> res) {
