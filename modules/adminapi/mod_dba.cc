@@ -1630,7 +1630,9 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
                   // An extransaction_write_set_extraction which apparently is reserved for future use
                   // So I just took what I saw on the MP code
                   // Source: http://dev.mysql.com/doc/refman/5.7/en/dynamic-system-variables.html
-                  std::vector<std::string> dynamic_variables = {"binlog_format", "binlog_checksum"};
+                  std::vector<std::string> dynamic_variables = {
+                      "binlog_format", "binlog_checksum", "slave_parallel_type",
+                      "slave_preserve_commit_order"};
 
                   bool dynamic = std::find(dynamic_variables.begin(), dynamic_variables.end(), option.first) != dynamic_variables.end();
 

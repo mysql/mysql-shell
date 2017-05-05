@@ -580,6 +580,16 @@ TEST_F(Shell_js_dba_tests, dba_cluster_session){
   validate_interactive("dba_cluster_session.js");
 }
 
+TEST_F(Shell_js_dba_tests, dba_cluster_mts) {
+  _options->wizards = false;
+  reset_shell();
+
+  std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
+  create_file("mybad.cnf", bad_config);
+
+  validate_interactive("dba_cluster_mts.js");
+}
+
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
   reset_shell();

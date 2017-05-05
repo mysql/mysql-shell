@@ -789,11 +789,11 @@ shcore::Value Global_dba::check_instance_configuration(const shcore::Argument_li
 
       print_validation_results(result);
 
-      std::string closing_error = "Please fix these issues ";
+      std::string closing_error = "Please fix these issues";
       if (result->get_bool("restart_required"))
         closing_error += ", restart the server";
 
-      closing_error += "and try again.";
+      closing_error += " and try again.";
 
       println();
       println(closing_error);
