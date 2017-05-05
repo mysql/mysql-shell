@@ -280,7 +280,7 @@ std::unique_ptr<IRow> Result_recorder::fetch_one() {
   if (_row_index < _all_results[_rset_index].size())
     ret_val.reset(_all_results[_rset_index][_row_index++].release());
 
-  return std::move(ret_val);
+  return ret_val;
 }
 
 bool Result_recorder::next_data_set() {

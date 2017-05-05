@@ -147,7 +147,7 @@ std::unique_ptr<Mysqlx::Expr::Identifier> Expr_parser::identifier() {
   }
   const std::string& name = _tokenizer.consume_token(Token::IDENT);
   id->set_name(name.c_str(), name.size());
-  return std::move(id);
+  return id;
 }
 
 /*
@@ -160,7 +160,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::function_call() {
   func->set_allocated_name(identifier().release());
 
   paren_expr_list(func->mutable_param());
-  return std::move(e);
+  return e;
 }
 
 /*
@@ -263,7 +263,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::column_field() {
   if (part == "*") {
     e->set_type(Mysqlx::Expr::Expr::OPERATOR);
     e->mutable_operator_()->set_name("*");
-    return std::move(e);
+    return e;
   }
 
   parts.push_back(part);
@@ -300,7 +300,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::column_field() {
     _tokenizer.consume_token(Token::QUOTE);
   }
   e->set_type(Mysqlx::Expr::Expr::IDENT);
-  return std::move(e);
+  return e;
 }
 
 /*
@@ -322,7 +322,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::document_field() {
   document_path(*colid);
 
   e->set_type(Mysqlx::Expr::Expr::IDENT);
-  return std::move(e);
+  return e;
 }
 
 /*
@@ -344,7 +344,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr() {
   } else if (type == Token::LPAREN) {
     std::unique_ptr<Mysqlx::Expr::Expr> e(my_expr());
     _tokenizer.consume_token(Token::RPAREN);
-    return std::move(e);
+    return e;
   } else if ((_tokenizer.cur_token_type_is(Token::LNUM) ||
               _tokenizer.cur_token_type_is(Token::LINTEGER)) &&
              ((type == Token::PLUS) || (type == Token::MINUS))) {
@@ -403,7 +403,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr() {
     e->mutable_operator_()->mutable_param()->AddAllocated(
         Expr_builder::build_literal_expr(
             Expr_builder::build_string_scalar(val.get_text())));
-    return std::move(e);
+    return e;
   } else if (type == Token::MUL) {
     _tokenizer.unget_token();
     if (!_document_mode)
@@ -478,7 +478,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::array_() {
 
   _tokenizer.consume_token(Token::RSQBRACKET);
 
-  return std::move(result);
+  return result;
 }
 
 /**
@@ -508,7 +508,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::json_doc() {
     }
   }
   _tokenizer.consume_token(Token::RCURLY);
-  return std::move(result);
+  return result;
 }
 
 /**
@@ -544,7 +544,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::placeholder() {
 
   result->set_position(position);
 
-  return std::move(result);
+  return result;
 }
 
 /**
@@ -577,7 +577,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::cast() {
   params->AddAllocated(type_expr.release());
   _tokenizer.consume_token(Token::RPAREN);
 
-  return std::move(result);
+  return result;
 }
 
 /**
@@ -748,7 +748,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::binary() {
       func->mutable_param();
   // expr
   params->AddAllocated(my_expr().release());
-  return std::move(e);
+  return e;
 }
 
 std::unique_ptr<Mysqlx::Expr::Expr>
@@ -771,47 +771,47 @@ Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types,
     op->mutable_param()->AddAllocated(inner_parser().release());
     lhs = std::move(e);
   }
-  return std::move(lhs);
+  return lhs;
 }
 
 /*
  * mul_div_expr ::= atomic_expr (( MUL | DIV | MOD ) atomic_expr )*
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::mul_div_expr() {
-  return std::move(parse_left_assoc_binary_op_expr(
-      _ops.mul_div_expr_types, std::bind(&Expr_parser::atomic_expr, this)));
+  return parse_left_assoc_binary_op_expr(
+      _ops.mul_div_expr_types, std::bind(&Expr_parser::atomic_expr, this));
 }
 
 /*
  * add_sub_expr ::= mul_div_expr (( PLUS | MINUS ) mul_div_expr )*
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::add_sub_expr() {
-  return std::move(parse_left_assoc_binary_op_expr(
-      _ops.add_sub_expr_types, std::bind(&Expr_parser::mul_div_expr, this)));
+  return parse_left_assoc_binary_op_expr(
+      _ops.add_sub_expr_types, std::bind(&Expr_parser::mul_div_expr, this));
 }
 
 /*
  * shift_expr ::= add_sub_expr (( LSHIFT | RSHIFT ) add_sub_expr )*
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::shift_expr() {
-  return std::move(parse_left_assoc_binary_op_expr(
-      _ops.shift_expr_types, std::bind(&Expr_parser::add_sub_expr, this)));
+  return parse_left_assoc_binary_op_expr(
+      _ops.shift_expr_types, std::bind(&Expr_parser::add_sub_expr, this));
 }
 
 /*
  * bit_expr ::= shift_expr (( BITAND | BITOR | BITXOR ) shift_expr )*
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::bit_expr() {
-  return std::move(parse_left_assoc_binary_op_expr(
-      _ops.bit_expr_types, std::bind(&Expr_parser::shift_expr, this)));
+  return parse_left_assoc_binary_op_expr(
+      _ops.bit_expr_types, std::bind(&Expr_parser::shift_expr, this));
 }
 
 /*
  * comp_expr ::= bit_expr (( GE | GT | LE | LT | QE | NE ) bit_expr )*
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::comp_expr() {
-  return std::move(parse_left_assoc_binary_op_expr(
-      _ops.comp_expr_types, std::bind(&Expr_parser::bit_expr, this)));
+  return parse_left_assoc_binary_op_expr(
+      _ops.comp_expr_types, std::bind(&Expr_parser::bit_expr, this));
 }
 
 /*
@@ -895,23 +895,23 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr() {
     }
   }
 
-  return std::move(lhs);
+  return lhs;
 }
 
 /*
  * and_expr ::= ilri_expr ( AND ilri_expr )*
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::and_expr() {
-  return std::move(parse_left_assoc_binary_op_expr(
-      _ops.and_expr_types, std::bind(&Expr_parser::ilri_expr, this)));
+  return parse_left_assoc_binary_op_expr(
+      _ops.and_expr_types, std::bind(&Expr_parser::ilri_expr, this));
 }
 
 /*
  * or_expr ::= and_expr ( OR and_expr )*
  */
 std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::or_expr() {
-  return std::move(parse_left_assoc_binary_op_expr(
-      _ops.or_expr_types, std::bind(&Expr_parser::and_expr, this)));
+  return parse_left_assoc_binary_op_expr(
+      _ops.or_expr_types, std::bind(&Expr_parser::and_expr, this));
 }
 
 /*
@@ -932,7 +932,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::expr() {
         "Expr parser: Expected EOF, instead stopped at position " +
         std::to_string(tok.get_pos()) + " (" + tok.get_text() + ")");
   }
-  return std::move(result);
+  return result;
 }
 
 std::string Expr_unparser::any_to_string(const Mysqlx::Datatypes::Any& a) {
