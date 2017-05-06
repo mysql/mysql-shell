@@ -17,6 +17,30 @@ add_instance_to_cluster(single, __mysql_sandbox_port2)
 # Waiting for the second added instance to become online
 wait_slave_state(single, uri2, "ONLINE")
 
+# Connect to the future new seed node
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
+single_session = session
+
+#@ Get the cluster back
+single = dba.get_cluster()
+
+# Kill the seed instance
+if __sandbox_dir:
+  dba.kill_sandbox_instance(__mysql_sandbox_port1, {'sandboxDir':__sandbox_dir})
+else:
+  dba.kill_sandbox_instance(__mysql_sandbox_port1)
+
+wait_slave_state(single, uri1, ["UNREACHABLE", "OFFLINE"])
+
+#@ Restore the quorum
+single.force_quorum_using_partition_of({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password':'root'})
+
+#@ Success adding instance to the single cluster
+add_instance_to_cluster(single, __mysql_sandbox_port3)
+
+#@ Remove the instance from the cluster
+single.remove_instance({'host': localhost, 'port': __mysql_sandbox_port3})
+
 #@ create second cluster
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
 multi_session = session
