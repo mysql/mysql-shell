@@ -7,6 +7,21 @@
 #@ Success adding instance
 ||
 
+#@ Get the cluster back
+||
+
+#@ Restore the quorum
+||
+
+#@ Success adding another instance
+||
+
+#@ Success adding instance to the single cluster
+||
+
+#@ Remove the instance from the cluster
+||
+
 #@ create second cluster
 ||
 
