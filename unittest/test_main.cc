@@ -44,6 +44,12 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  // Override the configuration home for tests, to not mess with custom data
+#ifdef WIN32
+  _putenv_s("MYSQLSH_USER_CONFIG_HOME", ".");
+#else
+  setenv("MYSQLSH_USER_CONFIG_HOME", ".", 1);
+#endif
   ::testing::InitGoogleTest(&argc, argv);
 
   // Helper code for DBA specific groups of tests;

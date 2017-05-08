@@ -51,7 +51,7 @@ INCLUDE(static_analysis)
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
 if(HAVE_PYTHON)
-  INCLUDE(FindPythonLibs)
+  FIND_PACKAGE(PythonLibs 2.6)
   # On windows stores the path to the python libraries since they will be bundled
   IF(WIN32)
     # PYTHON_PATH and PYTHON_FOLDER are used to properly copy the python libraries where needed
@@ -84,11 +84,15 @@ ELSE()
   message(WARNING "V8 is unavailable: building without JavaScript support.")
 ENDIF()
 
-IF ( PYTHONLIBS_FOUND )
+IF(PYTHONLIBS_FOUND)
   set(HAVE_PYTHON "YES")         # Variable for CMake processing
   add_definitions(-DHAVE_PYTHON) # Preprocessor variable for generated projects
   message(STATUS "Python ${PYTHONLIBS_VERSION_STRING}")
   message(STATUS "PYTHON_LIRARIES: ${PYTHON_LIBRARIES}")
+
+  IF(NOT(PYTHONLIBS_VERSION_STRING VERSION_LESS "3.0"))
+    MESSAGE(FATAL_ERROR "Python support requires Python 2.6 or 2.7")
+  ENDIF()
 
   # TODO: Temporary flag indicating python is static as well
   # Proper logic should be added to correctly configure this
