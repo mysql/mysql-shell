@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -49,48 +49,60 @@ using namespace shcore;
 
 namespace shcore {
 /*
- * Returns the config path (~/.mysqlsh in Unix or %AppData%\MySQL\mysqlsh in Windows).
+ * Returns the config path
+ * (~/.mysqlsh in Unix or %AppData%\MySQL\mysqlsh in Windows).
+ * May be overriden with MYSQLSH_USER_CONFIG_HOME
+ * (specially for tests)
  */
 std::string get_user_config_path() {
   std::string path_separator;
   std::string path;
-  std::vector < std::string> to_append;
+  std::vector<std::string> to_append;
 
+  // Check if there's an override of the config directory
+  // This is needed required for unit-tests
+  const char* usr_config_path = getenv("MYSQLSH_USER_CONFIG_HOME");
+  if (usr_config_path) {
+    path.assign(usr_config_path);
+  } else {
 #ifdef WIN32
-  path_separator = "\\";
-  char szPath[MAX_PATH];
-  HRESULT hr;
+    path_separator = "\\";
+    char szPath[MAX_PATH];
+    HRESULT hr;
 
-  if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath)))
-    path.assign(szPath);
-  else {
-    _com_error err(hr);
-    throw std::runtime_error(str_format("Error when gathering the APPDATA folder path: %s", err.ErrorMessage()));
-  }
-
-  to_append.push_back("MySQL");
-  to_append.push_back("mysqlsh");
-#else
-  path_separator = "/";
-  char* cpath = std::getenv("HOME");
-
-  if (cpath != NULL)
-    path.assign(cpath);
-
-  to_append.push_back(".mysqlsh");
-#endif
-
-  // Up to know the path must exist since it was retrieved from OS standard means
-  // we need to guarantee the rest of the path exists
-  if (!path.empty()) {
-    for (size_t index = 0; index < to_append.size(); index++) {
-      path += path_separator + to_append[index];
-      ensure_dir_exists(path);
+    if (SUCCEEDED(hr =
+                      SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath))) {
+      path.assign(szPath);
+    } else {
+      _com_error err(hr);
+      throw std::runtime_error(
+          str_format("Error when gathering the APPDATA folder path: %s",
+                     err.ErrorMessage()));
     }
 
-    path += path_separator;
-  }
+    to_append.push_back("MySQL");
+    to_append.push_back("mysqlsh");
+#else
+    path_separator = "/";
+    char* cpath = std::getenv("HOME");
 
+    if (cpath != NULL)
+      path.assign(cpath);
+
+    to_append.push_back(".mysqlsh");
+#endif
+
+    // Up to know the path must exist since it was retrieved from OS standard
+    // means we need to guarantee the rest of the path exists
+    if (!path.empty()) {
+      for (size_t index = 0; index < to_append.size(); index++) {
+        path += path_separator + to_append[index];
+        ensure_dir_exists(path);
+      }
+
+      path += path_separator;
+    }
+  }
   return path;
 }
 
