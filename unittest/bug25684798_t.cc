@@ -39,11 +39,15 @@ TEST(Bug25684798, regression_python_cmdline) {
   ASSERT_TRUE(pos != std::string::npos);
   prefix = prefix.substr(0, pos);
   pos = prefix.rfind('/');
-  if (pos == std::string::npos)
+  if (pos == std::string::npos) {
+    if (prefix == ".") {
+      prefix = "..";
+    } else {
       prefix = ".";
-  else
-      prefix = prefix.substr(0, pos);
-
+    }
+  } else {
+    prefix = prefix.substr(0, pos);
+  }
   std::string cmd = prefix+"/mysqlsh";
   cmd.append(" --py -e '1'");
 
