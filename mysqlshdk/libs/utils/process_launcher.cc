@@ -330,11 +330,9 @@ void Process_launcher::start()
   }
   else
   {
-    int status;
-
     ::close(fd_out[1]);
     ::close(fd_in[0]);
-    
+
     is_alive = true;
     /*
     _s_pollfd[0].fd = fd_out[0];
@@ -429,7 +427,7 @@ void Process_launcher::report_error(const char *msg)
   int errnum = errno;
   if(msg == NULL)
   {
-    auto dummy = strerror_r(errno, sys_err, sizeof(sys_err));
+    strerror_r(errno, sys_err, sizeof(sys_err));
     std::string s = sys_err;
     s += "with errno %d.";
     std::string fmt = str_format(s.c_str(), errnum);

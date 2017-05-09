@@ -238,7 +238,6 @@ void Base_shell::print_error(const std::string &error) {
 }
 
 void Base_shell::process_line(const std::string &line) {
-  bool handled_as_command = false;
   std::string to_history;
 
   if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty())

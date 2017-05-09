@@ -214,8 +214,8 @@ Connection::Connection(const Ssl_config &ssl_config, const std::size_t timeout, 
   : m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path,
                     ssl_config.cert, ssl_config.cipher, ssl_config.crl, ssl_config.crl_path,
                     ssl_config.tls_version, ssl_config.mode, timeout),
-    m_account_expired(false),
     m_deadline(m_ios), m_client_id(0),
+    m_account_expired(false),
     m_trace_packets(false), m_closed(true),
     m_dont_wait_for_disconnect(dont_wait_for_disconnect)
 {

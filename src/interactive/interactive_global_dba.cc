@@ -75,11 +75,9 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
   shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string answer;
-  bool proceed = true;
   // Initialize sandboxDir with the default sandboxValue
   std::string sandboxDir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
 
-  int port = args.int_at(0);
   new_args.push_back(args[0]);
 
   if (args.size() == 2) {
@@ -1325,7 +1323,6 @@ void Global_dba::dump_table(const std::vector<std::string>& column_names, const 
 
   // Now updates the length with the real column data lengths
   if (documents) {
-    size_t row_index;
     for (auto map : *documents) {
       auto document = map.as_map();
       for (size_t field_index = 0; field_index < field_count; field_index++)

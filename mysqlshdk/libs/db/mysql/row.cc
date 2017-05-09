@@ -52,7 +52,7 @@ Row::Row(MYSQL_ROW row, unsigned long *lengths,
          const std::vector<Column> &metadata) :
 _row(row), _metadata(metadata) {
 
-  for (int index = 0; index < metadata.size(); index++)
+  for (size_t index = 0; index < metadata.size(); index++)
     _lengths.push_back(lengths[index]);
 }
 
@@ -153,7 +153,7 @@ bool Row::is_date(int index) const {
 }
 
 void Row::validate_index(int index) const {
-  if (index < 0 || index >= _metadata.size())
+  if (index < 0 || index >= static_cast<int>(_metadata.size()))
     throw std::runtime_error("Error trying to fetch row data: index out of bounds");
 }
 
@@ -163,7 +163,7 @@ bool Row::validate_type(int index, const std::string& type, bool throw_on_error)
   validate_index(index);
 
   Type column_type;
-  if (index < _metadata.size())
+  if (index < static_cast<int>(_metadata.size()))
     column_type = _metadata[index].get_type();
 
   ret_val = _type_mappings[type].find(column_type) != _type_mappings[type].end();

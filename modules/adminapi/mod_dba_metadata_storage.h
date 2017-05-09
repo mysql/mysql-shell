@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -99,7 +99,6 @@ public:
     std::shared_ptr<MetadataStorage> _md;
   };
 private:
-  Dba* _dba;
   std::shared_ptr<mysqlsh::ShellBaseSession> _session;
 
   void start_transaction();

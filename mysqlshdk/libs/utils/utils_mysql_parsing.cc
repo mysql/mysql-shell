@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -53,10 +53,6 @@ Delimiters::delim_type_t& Delimiters::operator[](std::size_t pos) {
     return main_delimiter;
   else
     return additional_delimiters[pos - 1];
-}
-
-const Delimiters::delim_type_t& Delimiters::operator[](std::size_t pos) const {
-  return this->operator[](pos);
 }
 
 Statement_range::Statement_range(std::size_t begin, std::size_t end,
@@ -302,7 +298,7 @@ std::vector<Statement_range> determineStatementRanges(
       }
     }
 
-    for(int i = 0; i < delimiters.size(); i++) {
+    for (size_t i = 0; i < delimiters.size(); i++) {
       auto delimiter = delimiters[i];
       if (*tail == delimiter[0]) {
         // Found possible start of the delimiter. Check if it really is.

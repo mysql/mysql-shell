@@ -53,7 +53,7 @@ REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 REGISTER_HELP(CLUSTER_ADMINTYPE_BRIEF, "Cluster Administration type.");
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _metadata_storage(metadata_storage), _dissolved(false) {
+_name(name), _dissolved(false), _metadata_storage(metadata_storage) {
   _session = _metadata_storage->get_session();
  init();
 }
@@ -989,8 +989,6 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     // We need to check if the group has quorum and if not we must abort the operation
     // otherwise we GR blocks the writes to preserve the consistency of the group and we end up
     // with a hang.
-
-    mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(_session.get());
 
     // check if the Cluster is empty
     if (_metadata_storage->is_cluster_empty(get_id())) {

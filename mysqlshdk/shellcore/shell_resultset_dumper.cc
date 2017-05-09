@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,8 +28,12 @@
 
 using options = shcore::Shell_core_options;
 
-ResultsetDumper::ResultsetDumper(std::shared_ptr<mysqlsh::ShellBaseResult> target, shcore::Interpreter_delegate *output_handler, bool buffer_data) :
-_resultset(target), _output_handler(output_handler), _buffer_data(buffer_data) {
+ResultsetDumper::ResultsetDumper(
+    std::shared_ptr<mysqlsh::ShellBaseResult> target,
+    shcore::Interpreter_delegate* output_handler, bool buffer_data)
+    : _output_handler(output_handler),
+      _resultset(target),
+      _buffer_data(buffer_data) {
   _format = options::get()->get_string(SHCORE_OUTPUT_FORMAT);
   _interactive = options::get()->get_bool(SHCORE_INTERACTIVE);
   _show_warnings = options::get()->get_bool(SHCORE_SHOW_WARNINGS);
@@ -229,7 +233,6 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
 
 void ResultsetDumper::dump_vertical(shcore::Value::Array_type_ref records) {
   std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
-  auto field_count = metadata->size();
   std::string star_separator(27, '*');
 
   // Calculate length of a longest column description, used to right align
