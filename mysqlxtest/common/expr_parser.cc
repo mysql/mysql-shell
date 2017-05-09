@@ -470,7 +470,7 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::array_() {
 
     while (_tokenizer.cur_token_type_is(Token::COMMA)) {
       _tokenizer.consume_token(Token::COMMA);
-      e = std::move(my_expr());
+      e = my_expr();
       item = a->add_value();
       item->CopyFrom(*e);
     }

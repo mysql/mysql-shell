@@ -132,7 +132,6 @@ SlaveReplicationState get_slave_replication_state(mysqlsh::mysql::Connection* co
 // For that reason, this function should be called ONLY when the instance has been validated to be NOT Standalone
 ReplicationGroupState get_replication_group_state(mysqlsh::mysql::Connection* connection, GRInstanceType source_type) {
   ReplicationGroupState ret_val;
-  int sum, count;
 
   // Sets the source instance type
   ret_val.source_type = source_type;
@@ -204,8 +203,6 @@ std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::strin
 // This function verifies if a server with the given UUID is part
 // Of the replication group members using connection
 bool is_server_on_replication_group(mysqlsh::mysql::Connection* connection, const std::string &uuid) {
-  bool ret_val = false;
-
   std::string query;
   query = shcore::sqlstring("select count(*) from performance_schema.replication_group_members where member_id = ?", 0) << uuid;
 

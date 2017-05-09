@@ -109,7 +109,6 @@ private:
   int _charset;
   uint64_t _length;
   Type _type;
-  int _decimals;
 
   // Flags
   bool _unsigned;

@@ -97,7 +97,7 @@ void Session_recorder::connect(const std::string& host, int port,
 }
 
 std::unique_ptr<IResult> Session_recorder::query(const std::string& sql,
-                                                 bool buffered) {
+                                                 bool /*buffered*/) {
   std::unique_ptr<IResult> ret_val;
 
   // While mock recording, all is buffered

@@ -2187,6 +2187,11 @@ void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &
       // We only want to check whether the status if InnoDBCluster or GroupReplication to stop and thrown
       // an exception
       break;
+
+    case Any:
+      // FIXME(anyone) to silence warning... should not use a enum as a bitmask
+      assert(0);
+      break;
   }
 
   // Verify all the remaining online instances for their status
@@ -2247,6 +2252,11 @@ void Dba::validate_instances_status_reboot_cluster(const shcore::Argument_list &
       case Standalone:
         // We only want to check whether the status if InnoDBCluster or GroupReplication to stop and thrown
         // an exception
+        break;
+
+      case Any:
+        // FIXME(anyone) to silence warning... should not use a enum as bitmask
+        assert(0);
         break;
     }
   }

@@ -302,7 +302,6 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   std::string mysql_server_uuid;
   std::string instance_label;
   std::string role;
-  float weight;
   shcore::Value::Map_type_ref attributes;
   std::string endpoint;
   std::string xendpoint;

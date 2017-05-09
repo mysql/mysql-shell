@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,9 +50,6 @@ namespace mysqlsh {
 
     shcore::Value::Array_type_ref _argv;
     shcore::Value::Array_type_ref _path;
-
-  private:
-    shcore::IShell_core *_shell_core;
   };
 }
 

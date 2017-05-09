@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -43,7 +43,6 @@ public:
   const delim_type_t& get_main_delimiter() const;
 
   delim_type_t& operator[](std::size_t pos);
-  const delim_type_t& operator[](std::size_t pos) const;
 
 private:
   delim_type_t main_delimiter;
