@@ -100,9 +100,9 @@ Value Constant::get_constant_value(const std::string &module, const std::string&
   // By default all is OK if there are NO params
   // Only varchar, char and decimal will allow params
 
-  size_t param_count = 0;
+  //size_t param_count = 0;
 
-  param_count = args.size();
+  //param_count = args.size();
 
   if (module == "mysqlx") {
     if (group == "Type") {

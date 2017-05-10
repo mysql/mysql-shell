@@ -28,7 +28,7 @@
 #include <string>
 
 #include "mysqlshdk/libs/utils/process_launcher.h"
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 
 using namespace ngcommon;
 

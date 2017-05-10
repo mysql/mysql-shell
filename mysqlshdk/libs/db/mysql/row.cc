@@ -187,7 +187,7 @@ size_t Row::size() const {
 }
 
 int64_t Row::get_int(int index) const {
-  uint64_t ret_val = 0;
+  int64_t ret_val = 0;
 
   if (validate_type(index, "int", true)) {
 

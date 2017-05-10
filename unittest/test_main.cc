@@ -14,10 +14,10 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #ifdef HAVE_PYTHON
-#include <Python.h>
+#include "mysqlshdk/include/scripting/python_utils.h"
 #endif
 
-#include <gtest/gtest.h>
+#include "gtest_clean.h"
 #include <fstream>
 #include <iostream>
 #include <stdlib.h>

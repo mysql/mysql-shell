@@ -21,7 +21,7 @@
 #include <stack>
 #include <tuple>
 
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 #include "utils/utils_string.h"
 
 TEST(UtilsString, strip) {

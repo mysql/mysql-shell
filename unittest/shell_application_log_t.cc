@@ -23,7 +23,7 @@
 #include <string>
 
 #include "scripting/common.h"
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 #include "test_utils.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_file.h"

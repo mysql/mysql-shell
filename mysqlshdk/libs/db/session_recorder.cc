@@ -367,7 +367,7 @@ const std::vector<Column>& Result_recorder::get_metadata() const {
 std::string Result_recorder::map_column_type(Type type) {
   switch (type) {
     case Type::Null:
-
+      return "Type::Null";
     case Type::Decimal:
       return "Type::Decimal";
     case Type::Date:
@@ -423,6 +423,10 @@ std::string Result_recorder::map_column_type(Type type) {
     case Type::Set:
       return "Type::Set";
   }
+
+  throw std::runtime_error("Invalid column type found");
+
+  return "";
 }
 }  // namespace db
 }  // namespace mysqlshdk

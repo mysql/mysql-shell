@@ -147,7 +147,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
 }
 
 PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value) {
-  PyObject *r;
+  PyObject *r = nullptr;
   switch (value.type) {
     case Undefined:
       Py_INCREF(Py_None);

@@ -578,7 +578,7 @@ void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> s
     }
 
     // Give the grants
-    for (int i = 0; i < sizeof(k_admin_user_grants) / sizeof(char*); i++) {
+    for (size_t i = 0; i < sizeof(k_admin_user_grants) / sizeof(char*); i++) {
       std::string grant(k_admin_user_grants[i]);
       grant += " TO " + username + " WITH GRANT OPTION";
       session->execute_sql(grant);

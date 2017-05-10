@@ -19,7 +19,7 @@
 #include <string>
 #include <iostream>
 
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 
 #ifndef _WIN32
 #include <unistd.h>
