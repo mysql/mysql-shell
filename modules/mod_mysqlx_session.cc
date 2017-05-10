@@ -150,16 +150,6 @@ void BaseSession::connect(const Argument_list &args) {
     // Retrieves the connection data, whatever the source is
     load_connection_data(args);
 
-    unsigned int ssl_mode;
-    if (_ssl_info.skip)
-      ssl_mode = static_cast<int>(mysqlshdk::utils::Ssl_mode::Disabled);
-    else {
-      if (_ssl_info.mode)
-        ssl_mode = _ssl_info.mode;
-      else
-        ssl_mode = static_cast<int>(mysqlshdk::utils::Ssl_mode::Preferred);
-    }
-
     _session.open(_host, _port, _schema, _user, _password, _ssl_info, 60000,
       _auth_method, true);
 

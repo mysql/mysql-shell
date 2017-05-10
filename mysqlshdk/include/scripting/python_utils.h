@@ -20,7 +20,15 @@
 #ifndef _PYTHON_UTILS_H_
 #define _PYTHON_UTILS_H_
 
+// Include and avoid warnings from v8
+#if defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#endif
 #include <Python.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 // Must be placed when Python code will be called
 struct WillEnterPython {

@@ -23,7 +23,7 @@
 #include <string>
 #include <stack>
 
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 #include "utils/utils_general.h"
 
 namespace shcore {

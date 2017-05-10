@@ -49,8 +49,8 @@ class Fake_result {
                    const std::string& level);
 
  private:
-  int _index;
-  int _windex;
+  size_t _index;
+  size_t _windex;
 
   std::vector<std::string> _names;
   std::vector<mysqlshdk::db::Type> _types;
@@ -115,7 +115,7 @@ class Mock_result : public mysqlshdk::db::IResult {
   void set_data(const std::vector<Fake_result_data>& data);
 
  private:
-  int _index;
+  size_t _index;
   std::vector<std::unique_ptr<Fake_result> > _results;
 
   std::unique_ptr<mysqlshdk::db::IRow> fake_fetch_one();

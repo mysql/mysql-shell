@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include <string>
 
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 #include "mysqlsh/shell_cmdline_options.h"
 
 namespace shcore {

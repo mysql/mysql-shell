@@ -238,19 +238,19 @@ void ResultsetDumper::dump_vertical(shcore::Value::Array_type_ref records) {
   // Calculate length of a longest column description, used to right align
   // column descriptions
   std::size_t max_col_len = 0;
-  for (int col_index = 0; col_index < metadata->size(); col_index++) {
+  for (size_t col_index = 0; col_index < metadata->size(); col_index++) {
     std::shared_ptr<mysqlsh::Column> column =
         std::static_pointer_cast<mysqlsh::Column>(metadata->at(col_index).as_object());
     max_col_len = std::max(max_col_len,  column->get_column_label().length());
   }
 
-  for (int row_index = 0; row_index < records->size(); row_index++) {
+  for (size_t row_index = 0; row_index < records->size(); row_index++) {
     std::string row_header = star_separator + " " + std::to_string(row_index + 1) +
       ". row " + star_separator + "\n";
 
     _output_handler->print(_output_handler->user_data, row_header.c_str());
 
-    for (int col_index = 0; col_index < metadata->size(); col_index++) {
+    for (size_t col_index = 0; col_index < metadata->size(); col_index++) {
       std::shared_ptr<mysqlsh::Column> column =
           std::static_pointer_cast<mysqlsh::Column>(metadata->at(col_index).as_object());
 

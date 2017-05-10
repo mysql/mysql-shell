@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
+#include "gtest_clean.h"
 #include "../mysqlxtest/common/expr_parser.h"
 #include "scripting/types_cpp.h"
 

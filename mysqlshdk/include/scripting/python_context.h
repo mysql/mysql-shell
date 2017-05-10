@@ -20,7 +20,7 @@
 #ifndef _PYTHON_CONTEXT_H_
 #define _PYTHON_CONTEXT_H_
 
-#include <Python.h>
+#include "python_utils.h"
 
 #include "scripting/types_common.h"
 #include "scripting/types.h"

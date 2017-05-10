@@ -21,7 +21,7 @@
 #include <vector>
 #include <memory>
 
-#include <gtest/gtest.h>
+#include "gtest_clean.h"
 #include "../mysqlxtest/common/orderby_parser.h"
 #include "scripting/types_cpp.h"
 #include "scripting/common.h"

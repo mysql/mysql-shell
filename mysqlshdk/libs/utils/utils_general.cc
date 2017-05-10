@@ -868,7 +868,7 @@ std::string get_my_hostname() {
   }
 #else
   struct ifaddrs *ifa, *ifap;
-  int ret, family, addrlen;
+  int ret = EAI_NONAME, family, addrlen;
 
   if (getifaddrs(&ifa) != 0)
     throw std::runtime_error("Could not get local host address: " + std::string(strerror(errno)));

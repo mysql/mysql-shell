@@ -44,6 +44,16 @@ IF(HAVE_NO_UNUSED_CONST_VAR)
     COMPILE_FLAGS -Wno-unused-const-variable)
 ENDIF()
 
+MY_CHECK_CXX_COMPILER_FLAG("-Wno-unused-but-set-variable" HAVE_NO_UNUSED_BUT_SET_VAR)
+
+IF(HAVE_NO_UNUSED_BUT_SET_VAR)
+  INCLUDE(${MYSQL_CMAKE_SCRIPT_DIR}/compile_flags.cmake)
+  ADD_COMPILE_FLAGS(
+    src/yassl_imp.cpp
+    COMPILE_FLAGS -Wno-unused-but-set-variable)
+ENDIF()
+
+
 INCLUDE (CheckTypeSize)
 
 CHECK_TYPE_SIZE("long"      SIZEOF_LONG)

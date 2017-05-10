@@ -19,7 +19,7 @@
 #include <string>
 #include <stack>
 
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 #include "utils/utils_mysql_parsing.h"
 
 namespace shcore {

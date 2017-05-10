@@ -22,7 +22,6 @@
 
 #include "scripting/common.h"
 #include "scripting/module_registry.h"
-#include "scripting/python_utils.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -675,7 +674,7 @@ PyObject *Python_context::call_module_function(PyObject *self, PyObject *args,
           ctx->pyobj_to_shcore_value(PyTuple_GetItem(args, index)));
   }
 
-  PyObject *py_ret_val;
+  PyObject *py_ret_val = nullptr;
   try {
     auto module = _modules[self];
     shcore::Value ret_val = module->call(name, shell_args);

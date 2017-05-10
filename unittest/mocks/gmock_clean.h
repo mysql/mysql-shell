@@ -26,12 +26,18 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-private-field"
 #pragma clang diagnostic ignored "-Wnull-dereference"
+#elif defined __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
 #include <gmock/gmock.h>
 
 #ifdef __clang__
 #pragma clang diagnostic pop
+#elif defined __GNUC__
+#pragma GCC diagnostic pop
 #endif
+
 
 #endif  // UNITTEST_MOCKS_GMOCK_CLEAN_H_

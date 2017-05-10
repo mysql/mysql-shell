@@ -120,7 +120,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state, std::functio
         code.length(), _delimiters, "\n", _parsing_context_stack);
     //}
 
-    int range_index = 0;
+    size_t range_index = 0;
 
     for (; range_index < ranges.size(); range_index++)
     {
@@ -246,19 +246,20 @@ void Shell_sql::abort() {
       if (!kill_session) {
         throw std::runtime_error(str_format("Error duplicating classic connection"));
       }
-      std::string cmd = (str_format("kill query %llu", connection_id));
+      std::ostringstream cmd;
+      cmd << "kill query " << connection_id;
       a.clear();
-      a.push_back(shcore::Value(cmd));
+      a.push_back(shcore::Value(cmd.str()));
       kill_session->run_sql(a);
     } else if (node) {
       kill_session2->connect(a);
       if (!kill_session2) {
         throw std::runtime_error(str_format("Error duplicating xplugin connection"));
       }
-
-      std::string cmd = (str_format("kill query %llu", connection_id));
+      std::ostringstream cmd;
+      cmd << "kill query " << connection_id;
       a.clear();
-      shcore::Value v = kill_session2->execute_sql(cmd, a);
+      shcore::Value v = kill_session2->execute_sql(cmd.str(), a);
     }
     _killed = true;
   }

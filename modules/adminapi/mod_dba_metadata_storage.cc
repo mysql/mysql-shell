@@ -306,7 +306,6 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   std::string endpoint;
   std::string xendpoint;
   std::string grendpoint;
-  int version_token;
   std::string description;
 
   shcore::sqlstring query;
@@ -333,9 +332,6 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
 
   if (options->has_key("attributes"))
     attributes = (*options)["attributes"].as_map();
-
-  if (options->has_key("version_token"))
-    version_token = (*options)["version_token"].as_int();
 
   if (options->has_key("description"))
     description = (*options)["description"].as_string();

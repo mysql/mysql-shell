@@ -18,7 +18,7 @@
 #include <fstream>
 #include <string>
 
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 #include "scripting/types.h"
 #include "scripting/lang_base.h"
 #include "scripting/types_cpp.h"

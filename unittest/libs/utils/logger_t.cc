@@ -21,7 +21,7 @@
 #include <string>
 
 #include "mysqlshdk/libs/utils/logger.h"
-#include "gtest/gtest.h"
+#include "gtest_clean.h"
 
 
 using namespace ngcommon;
