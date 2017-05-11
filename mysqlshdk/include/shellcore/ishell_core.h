@@ -20,12 +20,14 @@
 #ifndef _ISHELL_CORE_
 #define _ISHELL_CORE_
 
+#include <iostream>
+#include <vector>
+
 #include "scripting/object_registry.h"
 #include "scripting/types_common.h"
 #include "scripting/types.h"
 #include "scripting/lang_base.h"
-
-#include <iostream>
+#include "mysqlshdk/libs/utils/enumset.h"
 
 namespace mysqlsh {
 // The session types that can be produced by connect_session
@@ -48,41 +50,11 @@ class SHCORE_PUBLIC IShell_core {
     JavaScript = 2,
     Python = 3
   };
+  typedef shcore::utils::Enum_set<Mode, Mode::Python> Mode_mask;
 
-  class Mode_mask {
-   public:
-    Mode_mask() : mask(0) {}
-
-    explicit Mode_mask(Mode m) : mask(1 << static_cast<int>(m)) {
-    }
-
-    Mode_mask(const Mode_mask &m) : mask(m.mask) {
-    }
-
-    inline bool matches(Mode mode) const {
-      return ((1 << static_cast<int>(mode)) & mask) != 0;
-    }
-
-    inline bool matches(const Mode_mask &mode_mask) const {
-      return (mode_mask.mask & mask) != 0;
-    }
-
-    static Mode_mask Scripting() {
-      return Mode_mask((1 << static_cast<int>(Mode::Python)) |
-                       (1 << static_cast<int>(Mode::JavaScript)));
-    }
-
-    static const Mode_mask Any() {
-      return Mode_mask((1 << static_cast<int>(Mode::SQL)) |
-                       (1 << static_cast<int>(Mode::Python)) |
-                       (1 << static_cast<int>(Mode::JavaScript)));
-    }
-
-   private:
-    explicit Mode_mask(int m) : mask(m) {
-    }
-    int mask;
-  };
+  static Mode_mask all_scripting_modes() {
+    return Mode_mask(Mode::JavaScript).set(Mode::Python);
+  }
 
   IShell_core(void);
   virtual ~IShell_core();
@@ -92,7 +64,7 @@ class SHCORE_PUBLIC IShell_core {
 
   // By default, globals apply to the three languages
   virtual void set_global(const std::string &name, const Value &value,
-                          Mode_mask mode = Mode_mask::Any()) = 0;
+                          Mode_mask mode = Mode_mask::any()) = 0;
   virtual Value get_global(const std::string &name) = 0;
 
   virtual Object_registry *registry() = 0;

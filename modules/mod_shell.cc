@@ -479,7 +479,7 @@ void Shell::set_current_schema(const std::string& name) {
     }
     else
       _shell_core->set_global("db", new_schema,
-                              shcore::IShell_core::Mode_mask::Scripting());
+                              shcore::IShell_core::all_scripting_modes());
   }
 }
 
