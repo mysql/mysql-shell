@@ -52,27 +52,27 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     set_global_object(
         "db",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_db),
-        shcore::IShell_core::Mode_mask::Scripting());
+        shcore::IShell_core::all_scripting_modes());
     set_global_object("session",
                       std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
                           interactive_session));
     set_global_object(
         "shell",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_shell),
-        shcore::IShell_core::Mode_mask::Scripting());
+        shcore::IShell_core::all_scripting_modes());
     set_global_object(
         "dba",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_dba),
-        shcore::IShell_core::Mode_mask::Scripting());
+        shcore::IShell_core::all_scripting_modes());
   } else {
     set_global_object(
         "shell",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_shell),
-        shcore::IShell_core::Mode_mask::Scripting());
+        shcore::IShell_core::all_scripting_modes());
     set_global_object(
         "dba",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba),
-        shcore::IShell_core::Mode_mask::Scripting());
+        shcore::IShell_core::all_scripting_modes());
   }
 
   set_global_object(
@@ -387,7 +387,7 @@ bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
     }
 
     // Inserts the default modules
-    if (shcore::IShell_core::Mode_mask::Scripting().matches(
+    if (shcore::IShell_core::all_scripting_modes().is_set(
             interactive_mode())) {
       global_names.push_back({"mysqlx", "mysqlx"});
       global_names.push_back({"mysql", "mysql"});

@@ -59,7 +59,7 @@ public:
   void set_global_object(const std::string &name,
                          std::shared_ptr<shcore::Cpp_object_bridge> object,
                          shcore::IShell_core::Mode_mask modes =
-                             shcore::IShell_core::Mode_mask::Any());
+                             shcore::IShell_core::Mode_mask::any());
   bool switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &args);
 
 protected:

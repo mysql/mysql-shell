@@ -292,7 +292,7 @@ void Shell_core::init_js() {
   for (std::map<std::string, std::pair<Mode_mask, Value> >::const_iterator
            iter = _globals.begin();
        iter != _globals.end(); ++iter) {
-    if (iter->second.first.matches(Mode::JavaScript))
+    if (iter->second.first.is_set(Mode::JavaScript))
       js->set_global(iter->first, iter->second.second);
   }
 #endif
@@ -306,7 +306,7 @@ void Shell_core::init_py() {
   for (std::map<std::string, std::pair<Mode_mask, Value> >::const_iterator
            iter = _globals.begin();
        iter != _globals.end(); ++iter) {
-    if (iter->second.first.matches(Mode::Python))
+    if (iter->second.first.is_set(Mode::Python))
       py->set_global(iter->first, iter->second.second);
   }
 #endif
@@ -319,7 +319,7 @@ void Shell_core::set_global(const std::string &name, const Value &value,
   for (std::map<Mode, Shell_language*>::const_iterator iter = _langs.begin();
        iter != _langs.end(); ++iter) {
     // Only sets the global where applicable
-    if (mode.matches(iter->first)) {
+    if (mode.is_set(iter->first)) {
       iter->second->set_global(name, value);
     }
   }
@@ -333,7 +333,7 @@ std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
   std::vector<std::string> globals;
 
   for (auto entry : _globals) {
-    if (entry.second.first.matches(mode) &&
+    if (entry.second.first.is_set(mode) &&
         entry.second.second.type == shcore::Object)
       globals.push_back(entry.first);
   }

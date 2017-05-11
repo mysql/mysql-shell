@@ -122,7 +122,7 @@ public:
   // the value is saved in a map, so that the exposing can be deferred in
   // case the context for some langauge is not yet created at the time this is called
   virtual void set_global(const std::string &name, const Value &value,
-                          Mode_mask mode = Mode_mask::Any());
+                          Mode_mask mode = Mode_mask::any());
   virtual Value get_global(const std::string &name);
   std::vector<std::string> get_global_objects(Mode mode);
 
