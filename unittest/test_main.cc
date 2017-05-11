@@ -38,19 +38,19 @@ static void check_zombie_sandboxes() {
 
   const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
   if (sandbox_port1) {
-    sport1 = atoi(getenv(sandbox_port1));
+    sport1 = atoi(getenv("MYSQL_SANDBOX_PORT1"));
   } else {
     sport1 = port + 10;
   }
   const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
   if (sandbox_port2) {
-    sport2 = atoi(getenv(sandbox_port2));
+    sport2 = atoi(getenv("MYSQL_SANDBOX_PORT2"));
   } else {
     sport2 = port + 20;
   }
   const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
   if (sandbox_port3) {
-    sport3 = atoi(getenv(sandbox_port3));
+    sport3 = atoi(getenv("MYSQL_SANDBOX_PORT3"));
   } else {
     sport3 = port + 30;
   }
