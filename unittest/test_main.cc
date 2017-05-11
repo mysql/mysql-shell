@@ -17,16 +17,86 @@
 #include "mysqlshdk/include/scripting/python_utils.h"
 #endif
 
-#include "gtest_clean.h"
+#include <mysql.h>
 #include <fstream>
 #include <iostream>
 #include <stdlib.h>
 
+#include "unittest/gtest_clean.h"
 #include "shellcore/shell_core_options.h"
 
 extern "C" {
   const char *g_argv0 = nullptr;
 }
+
+static void check_zombie_sandboxes() {
+  int port = 3306;
+  if (getenv("MYSQL_PORT")) {
+    port = atoi(getenv("MYSQL_PORT"));
+  }
+  int sport1, sport2, sport3;
+
+  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
+  if (sandbox_port1) {
+    sport1 = atoi(getenv(sandbox_port1));
+  } else {
+    sport1 = port + 10;
+  }
+  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
+  if (sandbox_port2) {
+    sport2 = atoi(getenv(sandbox_port2));
+  } else {
+    sport2 = port + 20;
+  }
+  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
+  if (sandbox_port3) {
+    sport3 = atoi(getenv(sandbox_port3));
+  } else {
+    sport3 = port + 30;
+  }
+
+  bool have_zombies = false;
+
+  MYSQL mysql;
+  mysql_init(&mysql);
+  unsigned int tcp = MYSQL_PROTOCOL_TCP;
+  mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  // if connect succeeds or error is a server error, then there's a server
+  if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport1, NULL,
+                         0) ||
+      mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
+    std::cout << "Server already running on port " << sport1 << "\n";
+    have_zombies = true;
+  }
+  mysql_init(&mysql);
+  mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport2, NULL,
+                         0) ||
+      mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
+    std::cout << "Server already running on port " << sport2 << "\n";
+    have_zombies = true;
+  }
+  mysql_init(&mysql);
+  mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport3, NULL,
+                         0) ||
+      mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
+    std::cout << "Server already running on port " << sport3 << "\n";
+    have_zombies = true;
+  }
+
+  if (have_zombies) {
+    std::cout << "WARNING: mysqld running on port reserved for sandbox tests\n";
+    std::cout << "Sandbox ports: " << sport1 << ", " << sport2 << ", " << sport3
+              << "\n";
+    std::cout << "If they're left from a previous run, terminate them first\n";
+    std::cout << "Or setenv TEST_SKIP_ZOMBIE_CHECK to skip this check\n";
+    std::cout << "Or setenv MYSQL_SANDBOX_PORT1..3 to pick different ports for "
+                 "test sandboxes\n";
+    exit(1);
+  }
+}
+
 
 int main(int argc, char **argv) {
   g_argv0 = argv[0];
@@ -125,6 +195,11 @@ int main(int argc, char **argv) {
       f << "add_test(" << name << " run_unit_tests --gtest_filter=" << name << ".*)\n";
     }
     return 0;
+  }
+
+  // Check for leftover sandbox servers
+  if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
+    check_zombie_sandboxes();
   }
 
   std::string mppath;
