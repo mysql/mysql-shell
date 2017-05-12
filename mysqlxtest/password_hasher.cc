@@ -18,7 +18,8 @@
  */
 
 
-#include "my_global.h"
+#include "mysh_config.h"
+
 #ifdef HAVE_YASSL
 #include <sha.hpp>
 #include <openssl/ssl.h>
@@ -27,6 +28,7 @@
 #include <openssl/rand.h>
 #endif
 
+#include <cassert>
 #include <stdexcept>
 #include <cstring>
 
@@ -39,7 +41,7 @@
 
 const char *Password_hasher::_dig_vec_upper = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-static inline uint8_t char_val(uint8 X)
+static inline uint8_t char_val(uint8_t X)
 {
   return (uint8_t) (X >= '0' && X <= '9' ? X - '0' :
                  X >= 'A' && X <= 'Z' ? X - 'A' + 10 : X - 'a' + 10);
@@ -50,13 +52,13 @@ std::string Password_hasher::compute_password_hash(const std::string &password)
   if (0 == password.length())
     return "";
 
-  uint8       hash_stage1[MYSQL41_HASH_SIZE];
+  uint8_t       hash_stage1[MYSQL41_HASH_SIZE];
   std::string hash_stage2(MYSQL41_HASH_SIZE, '\0');
 
   compute_two_stage_mysql41_hash(password.c_str(),
                               password.length(),
                               hash_stage1,
-                              (uint8*)&hash_stage2[0]);
+                              (uint8_t*)&hash_stage2[0]);
 
   return get_password_from_salt(hash_stage2);
 }
@@ -106,8 +108,8 @@ char *Password_hasher::octet2hex(char *to, const char *str, size_t len)
   const char *str_end= str + len;
   for (; str != str_end; ++str)
   {
-    *to++= _dig_vec_upper[((uchar) *str) >> 4];
-    *to++= _dig_vec_upper[((uchar) *str) & 0x0F];
+    *to++= _dig_vec_upper[((uint8_t) *str) >> 4];
+    *to++= _dig_vec_upper[((uint8_t) *str) & 0x0F];
   }
   *to= '\0';
   return to;
@@ -154,7 +156,7 @@ bool Password_hasher::check_scramble_mysql41_hash(const char *scramble_arg, cons
   char buf[MYSQL41_HASH_SIZE];
   uint8_t hash_stage2_reassured[MYSQL41_HASH_SIZE];
 
-  DBUG_ASSERT(MYSQL41_HASH_SIZE == SCRAMBLE_LENGTH);
+  assert(MYSQL41_HASH_SIZE == SCRAMBLE_LENGTH);
   /* create key to encrypt scramble */
   compute_mysql41_hash_multi((uint8_t *)buf, message, SCRAMBLE_LENGTH, (const char *) hash_stage2, MYSQL41_HASH_SIZE);
 
@@ -185,7 +187,7 @@ std::string Password_hasher::scramble(const char *message, const char *password)
 
   result.at(SCRAMBLE_LENGTH - 1) = '\0';
 
-  DBUG_ASSERT(MYSQL41_HASH_SIZE == SCRAMBLE_LENGTH);
+  assert(MYSQL41_HASH_SIZE == SCRAMBLE_LENGTH);
 
   /* Two stage SHA1 hash of the pwd */
   compute_two_stage_mysql41_hash(password, strlen(password),
