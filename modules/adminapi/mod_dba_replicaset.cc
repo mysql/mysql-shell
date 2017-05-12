@@ -1190,38 +1190,17 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
 
 std::string ReplicaSet::get_peer_instance() {
   std::vector<std::string> result;
-  std::string master_uuid, master_instance;
 
   // We need to retrieve a peer instance, so let's use the Seed one
-  // If using single-primary mode the Seed instance is the primary
-  auto instance_session = _metadata_storage->get_session();
-  auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
-                              instance_session.get());
-  get_status_variable(classic->connection(),
-                      "group_replication_primary_member",
-                      master_uuid, false);
-
-  auto instances = _metadata_storage->get_replicaset_online_instances(get_id());
-
-  if (!master_uuid.empty()) {
-    for (auto value : *instances.get()) {
-      auto row = value.as_object<mysqlsh::Row>();
-      if (row->get_member(0).as_string() == master_uuid) {
-        master_instance = row->get_member("host").as_string();
-      }
-    }
-  } else {
-    // If in multi-master mode, any instance works
-    // so we can get the first one that is online
-    for (auto value : *instances.get()) {
+  auto instances = _metadata_storage->get_replicaset_instances(get_id());
+  if (instances) {
+    for (auto value : *instances) {
       auto row = value.as_object<mysqlsh::Row>();
       std::string peer_instance = row->get_member("host").as_string();
       result.push_back(peer_instance);
     }
-    master_instance = result.front();
   }
-
-  return master_instance;
+  return result.front();
 }
 
 shcore::Value ReplicaSet::check_instance_state(const shcore::Argument_list &args) {
