@@ -35,7 +35,6 @@
 #include "mysqlx_row.h"
 #include "xpl_error.h"
 
-#include "my_config.h"
 #include "mysql.h"
 
 #include <boost/bind.hpp>
