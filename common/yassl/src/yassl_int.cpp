@@ -1,4 +1,4 @@
-/* Copyright (c) 2005, 2014, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2005, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  */
 
 // First include (the generated) my_config.h, to get correct platform defines.
-#include "my_config.h"
+#include "mysh_config.h"
 #ifdef _WIN32
 #include<Windows.h>
 #else
@@ -72,7 +72,7 @@
 #endif // YASSL_PURE_C
 
 /* for the definition of get_tty_password() */
-#include <mysql/get_password.h>
+#include <mysqlsh/get_password.h>
 
 namespace yaSSL {
 
