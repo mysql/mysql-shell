@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +19,9 @@
 
 #include "base_database_object.h"
 
+#include <algorithm>
+#include <set>
+
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "scripting/lang_base.h"
@@ -27,8 +30,6 @@
 #include "utils/utils_general.h"
 #include "shellcore/base_session.h"
 #include "mysqlxtest_utils.h"
-
-#include <set>
 
 using namespace std::placeholders;
 using namespace mysqlsh;

@@ -26,8 +26,6 @@
 #include <string>
 #include <vector>
 
-#include "my_aes.h"
-
 #include "mod_dba_replicaset.h"
 #include "mod_dba_metadata_storage.h"
 #include "../mysqlxtest_utils.h"
