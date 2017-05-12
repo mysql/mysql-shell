@@ -17,8 +17,7 @@
  * 02110-1301  USA
  */
 
-#include <my_global.h>
-
+#include "mysh_config.h"
 #include "mysql41_hash.h"
 
 #if defined(HAVE_YASSL)
@@ -33,7 +32,7 @@
 
   @return              void
 */
-void mysql_mysql41_hash_yassl(uint8 *digest, const char *buf, size_t len)
+void mysql_mysql41_hash_yassl(uint8_t *digest, const char *buf, size_t len)
 {
   TaoCrypt::SHA hasher;
   hasher.Update((const TaoCrypt::byte *) buf, (TaoCrypt::word32)len);
@@ -52,7 +51,7 @@ void mysql_mysql41_hash_yassl(uint8 *digest, const char *buf, size_t len)
 
   @return              void
 */
-void mysql_mysql41_hash_multi_yassl(uint8 *digest, const char *buf1, int len1,
+void mysql_mysql41_hash_multi_yassl(uint8_t *digest, const char *buf1, int len1,
                             const char *buf2, int len2)
 {
   TaoCrypt::SHA hasher;
@@ -70,7 +69,7 @@ int mysql_mysql41_hash_reset(SHA_CTX *context)
 }
 
 
-int mysql_mysql41_hash_input(SHA_CTX *context, const uint8 *message_array,
+int mysql_mysql41_hash_input(SHA_CTX *context, const uint8_t *message_array,
                      unsigned length)
 {
     return SHA1_Update(context, message_array, length);
@@ -78,7 +77,7 @@ int mysql_mysql41_hash_input(SHA_CTX *context, const uint8 *message_array,
 
 
 int mysql_mysql41_hash_result(SHA_CTX *context,
-                      uint8 Message_Digest[MYSQL41_HASH_SIZE])
+                      uint8_t Message_Digest[MYSQL41_HASH_SIZE])
 {
     return SHA1_Final(Message_Digest, context);
 }
@@ -94,7 +93,7 @@ int mysql_mysql41_hash_result(SHA_CTX *context,
 
   @return              void
 */
-void compute_mysql41_hash(uint8 *digest, const char *buf, size_t len)
+void compute_mysql41_hash(uint8_t *digest, const char *buf, size_t len)
 {
 #if defined(HAVE_YASSL)
   mysql_mysql41_hash_yassl(digest, buf, len);
@@ -102,7 +101,7 @@ void compute_mysql41_hash(uint8 *digest, const char *buf, size_t len)
   SHA_CTX mysql41_hash_context;
 
   mysql_mysql41_hash_reset(&mysql41_hash_context);
-  mysql_mysql41_hash_input(&mysql41_hash_context, (const uint8 *) buf, len);
+  mysql_mysql41_hash_input(&mysql41_hash_context, (const uint8_t *) buf, len);
   mysql_mysql41_hash_result(&mysql41_hash_context, digest);
 #endif /* HAVE_YASSL */
 }
@@ -120,7 +119,7 @@ void compute_mysql41_hash(uint8 *digest, const char *buf, size_t len)
 
   @return              void
 */
-void compute_mysql41_hash_multi(uint8 *digest, const char *buf1, int len1,
+void compute_mysql41_hash_multi(uint8_t *digest, const char *buf1, int len1,
                              const char *buf2, int len2)
 {
 #if defined(HAVE_YASSL)
@@ -129,8 +128,8 @@ void compute_mysql41_hash_multi(uint8 *digest, const char *buf1, int len1,
   SHA_CTX mysql41_hash_context;
 
   mysql_mysql41_hash_reset(&mysql41_hash_context);
-  mysql_mysql41_hash_input(&mysql41_hash_context, (const uint8 *) buf1, len1);
-  mysql_mysql41_hash_input(&mysql41_hash_context, (const uint8 *) buf2, len2);
+  mysql_mysql41_hash_input(&mysql41_hash_context, (const uint8_t *) buf1, len1);
+  mysql_mysql41_hash_input(&mysql41_hash_context, (const uint8_t *) buf2, len2);
   mysql_mysql41_hash_result(&mysql41_hash_context, digest);
 #endif /* HAVE_YASSL */
 }
