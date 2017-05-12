@@ -51,8 +51,6 @@ file(GLOB api_module_SOURCES
       "mysql_connection.cc"
       "interactive_object_wrapper.cc"
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
-      "adminapi/my_aes.cc"
-      "adminapi/${MY_AES_SOURCE}"
       "adminapi/mod_dba.cc"
       "adminapi/mod_dba_cluster.cc"
       "adminapi/mod_dba_metadata_storage.cc"
