@@ -23,6 +23,9 @@
 #include "modules/mysql_connection.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "scripting/common.h"
+#include <string>
+
+#define PASSWORD_LENGTH 32
 
 namespace mysqlsh {
 namespace dba {
@@ -43,6 +46,7 @@ bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::stri
 bool is_gtid_subset(mysqlsh::mysql::Connection *connection, const std::string &subset, const std::string &set);
 shcore::Value get_master_status(mysqlsh::mysql::Connection *connection);
 std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection, const std::string &instance_host);
+std::string generate_password();
 }
 }
 

@@ -60,8 +60,6 @@ using namespace mysqlsh;
 using namespace mysqlsh::dba;
 using namespace shcore;
 
-#define PASSWORD_LENGTH 16
-
 std::set<std::string> ReplicaSet::_add_instance_opts = {"label", "password", "dbPassword", "memberSslMode", "ipWhitelist"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
