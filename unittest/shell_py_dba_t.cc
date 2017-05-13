@@ -475,6 +475,13 @@ TEST_F(Shell_py_dba_tests, dba_cluster_change_topology_type) {
   validate_interactive("dba_cluster_change_topology_type.py");
 }
 
+TEST_F(Shell_py_dba_tests, dba_cluster_rpl_user_password) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_cluster_rpl_user_password.py");
+}
+
 TEST_F(Shell_py_dba_tests, dba_cluster_session) {
   _options->wizards = false;
   reset_shell();
