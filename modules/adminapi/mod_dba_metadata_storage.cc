@@ -24,13 +24,12 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mysql_connection.h"
+#include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlx_connection.h" // for error codes
 
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include <random>
-
-#define PASSWORD_LENGTH 16
 
 // How many times to retry a query if it fails because it's SUPER_READ_ONLY
 static const int kMaxReadOnlyRetries = 10;
@@ -771,40 +770,55 @@ std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_onlin
   return instances;
 }
 
-static std::string generate_password(int password_lenght) {
-  std::random_device rd;
-  std::string pwd;
-  static const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~@#%$^&*()-_=+]}[{|;:.>,</?";
-  std::uniform_int_distribution<int> dist(0, strlen(alphabet) - 1);
-
-  for (int i = 0; i < password_lenght; i++)
-    pwd += alphabet[dist(rd)];
-
-  return pwd;
-}
-
 // generate a replication user account + password for an instance
 // This account will be replicated to all instances in the replicaset, so that
 // the newly joining instance can connect to any of them for recovery.
 void MetadataStorage::create_repl_account(std::string &username,
                                           std::string &password) {
-  password = generate_password(PASSWORD_LENGTH);
+  // Generate a password
+  password = generate_password();
 
   MySQL_timer timer;
   std::string tstamp = std::to_string(timer.get_time());
   std::string base_user = "mysql_innodb_cluster_rplusr";
   username = base_user.substr(0, 32 - tstamp.size()) + tstamp;
 
-  // TODO: Replication accounts should be created with grants for the joining instance only
-  // However, we don't have a reliable way of getting the external IP and/or fully qualified domain name
+  // TODO: Replication accounts should be created with grants for the joining
+  // instance only
+  // However, we don't have a reliable way of getting the external IP and/or
+  // fully qualified domain name
   username.append("@'%'");
 
   Transaction tx(shared_from_this());
 
   execute_sql("DROP USER IF EXISTS " + username);
-  std::string query = "CREATE USER IF NOT EXISTS " + username + " IDENTIFIED BY '" + password + "'";
-  std::string query_log = "CREATE USER IF NOT EXISTS " + username + " IDENTIFIED BY '" + std::string(password.length(), '*') + "'";
-  execute_sql(query, false, query_log);
+
+  int retry_count = 100;
+  while (retry_count > 0) {
+    try {
+      std::string query = "CREATE USER IF NOT EXISTS " + username +
+                          " IDENTIFIED BY '" + password + "'";
+      std::string query_log = "CREATE USER IF NOT EXISTS " + username +
+                              " IDENTIFIED BY '" +
+                              std::string(password.length(), '*') +
+                              "'";
+      execute_sql(query, false, query_log);
+
+      // If it reached here it means there were no errors
+      retry_count = 0;
+    } catch (shcore::Exception &e) {
+      // If the error is: ERROR 1819 (HY000): Your password does not satisfy
+      // the current policy requirements
+      // We regenerate the password to retry
+      if (e.code() == 1819) {
+        password = generate_password();
+        retry_count--;
+      } else {
+        throw;
+      }
+    }
+  }
+
   execute_sql("GRANT REPLICATION SLAVE ON *.* to " + username);
 
   tx.commit();
