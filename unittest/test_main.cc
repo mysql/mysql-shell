@@ -65,6 +65,7 @@ static void check_zombie_sandboxes() {
   if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport1, NULL,
                          0) ||
       mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
+    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) <<"\n";
     std::cout << "Server already running on port " << sport1 << "\n";
     have_zombies = true;
   }
@@ -73,6 +74,7 @@ static void check_zombie_sandboxes() {
   if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport2, NULL,
                          0) ||
       mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
+    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) <<"\n";
     std::cout << "Server already running on port " << sport2 << "\n";
     have_zombies = true;
   }
@@ -81,6 +83,7 @@ static void check_zombie_sandboxes() {
   if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport3, NULL,
                          0) ||
       mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
+    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) <<"\n";
     std::cout << "Server already running on port " << sport3 << "\n";
     have_zombies = true;
   }
