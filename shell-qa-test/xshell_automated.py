@@ -8704,7 +8704,7 @@ class XShell_TestCases(unittest.TestCase):
                    "" + os.linesep +
                    "===== Global Objects ====="  + os.linesep +
                    "db         Used to work with database schema objects."+ os.linesep +
-                   "dba        Allows performing DBA operations using the MySQL X AdminAPI."+ os.linesep +
+                   "dba        Enables you to administer InnoDB clusters using the AdminAPI."+ os.linesep +
                    "mysql      Used to work with classic MySQL sessions using SQL."+ os.linesep +
                    "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI."+ os.linesep +
                    "session    Represents the currently open MySQL session."+ os.linesep +
