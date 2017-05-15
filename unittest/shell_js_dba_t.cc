@@ -448,6 +448,12 @@ TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
   validate_interactive("dba_cluster_add_instance.js");
 }
 
+TEST_F(Shell_js_dba_tests, dba_cluster_remove_instance) {
+  _options->wizards = false;
+  reset_shell();
+  validate_interactive("dba_cluster_remove_instance.js");
+}
+
 TEST_F(Shell_js_dba_tests, dba_cluster_check_instance_state) {
   validate_interactive("dba_cluster_check_instance_state.js");
 }

@@ -253,7 +253,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
     }
     catch (std::exception &e) {
       std::string error(e.what());
-      throw shcore::Exception::argument_error("Invalid instance definition, expected a URI. "
+      throw shcore::Exception::argument_error("Invalid instance definition, expected a valid URI. "
                                               "Error: " + error);
     }
   }
