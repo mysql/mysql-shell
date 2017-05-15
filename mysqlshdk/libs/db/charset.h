@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,31 +20,19 @@
 #ifndef _MYSQLX_CHARSET_H_
 #define _MYSQLX_CHARSET_H_
 
-#include <string>
 #include <stdint.h>
+#include <string>
 
-namespace mysqlx
-{
-  class Charset
-  {
-  public:
-    static std::string charset_name_from_id(uint32_t id);
-    static std::string collation_name_from_id(uint32_t id);
-    static uint32_t id_from_collation_name(const std::string& collation_name);
+namespace mysqlshdk {
+namespace db {
+namespace charset {
 
-  private:
+std::string charset_name_from_collation_id(uint32_t id);
+std::string collation_name_from_collation_id(uint32_t id);
+uint32_t collation_id_from_collation_name(const std::string& collation_name);
 
-    typedef struct {
-      uint32_t id;
-      std::string name;
-      std::string collation;
-    } Charset_entry;
+}  // namespace charset
+}  // namespace db
+}  // namespace mysqlshdk
 
-    static const Charset_entry  m_charsets_info[];
-
-    static std::string field_from_id(uint32_t id, std::string Charset_entry::*field);
-  };
-}
-
-
-#endif
+#endif  // _MYSQLX_CHARSET_H_

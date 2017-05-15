@@ -269,11 +269,12 @@ Value BaseSession::_create_schema(const shcore::Argument_list &args) {
 }
 
 void BaseSession::create_schema(const std::string& name) {
-    std::string statement = sqlstring("create schema !", 0) << name;
-    executeStmt("sql", statement, false, shcore::Argument_list());
+  std::string statement = sqlstring("create schema ! charset='utf8mb4'", 0)
+                          << name;
+  executeStmt("sql", statement, false, shcore::Argument_list());
 
-    // if reached this point it indicates that there were no errors
-    update_schema_cache(name, true);
+  // if reached this point it indicates that there were no errors
+  update_schema_cache(name, true);
 }
 
 void BaseSession::set_current_schema(const std::string &name) {

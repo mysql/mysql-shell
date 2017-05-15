@@ -39,7 +39,7 @@ TEST_F(Mysql_session_test, connect_uri) {
 
   // Success connection, no schema selected
   {
-    EXPECT_NO_THROW(session->connect(_mysql_uri));
+    ASSERT_NO_THROW(session->connect(_mysql_uri));
     auto result = std::unique_ptr<mysqlshdk::db::IResult>(session->query("select database()"));
     auto row = std::unique_ptr<mysqlshdk::db::IRow>(result->fetch_one());
     EXPECT_TRUE(row->is_null(0));
@@ -48,7 +48,7 @@ TEST_F(Mysql_session_test, connect_uri) {
 
   // Success connection, default schema
   {
-    EXPECT_NO_THROW(session->connect(_mysql_uri + "/mysql"));
+    ASSERT_NO_THROW(session->connect(_mysql_uri + "/mysql"));
     auto result = std::unique_ptr<mysqlshdk::db::IResult>(session->query("select database()"));
     auto row = std::unique_ptr<mysqlshdk::db::IRow>(result->fetch_one());
     EXPECT_FALSE(row->is_null(0));
@@ -65,7 +65,8 @@ TEST_F(Mysql_session_test, connect_params) {
 
   // Success connection, no schema selected
   {
-    EXPECT_NO_THROW(session->connect(_host, _mysql_port_number, "", _user, _pwd, "", ssl_info));
+    ASSERT_NO_THROW(session->connect(_host, _mysql_port_number, "", _user, _pwd,
+                                     "", ssl_info));
     auto result = std::unique_ptr<mysqlshdk::db::IResult>(session->query("select database()"));
     auto row = std::unique_ptr<mysqlshdk::db::IRow>(result->fetch_one());
     EXPECT_TRUE(row->is_null(0));
@@ -74,7 +75,8 @@ TEST_F(Mysql_session_test, connect_params) {
 
   // Success connection, default schema
   {
-    EXPECT_NO_THROW(session->connect(_host, _mysql_port_number, "", _user, _pwd, "mysql", ssl_info));
+    ASSERT_NO_THROW(session->connect(_host, _mysql_port_number, "", _user, _pwd,
+                                     "mysql", ssl_info));
     auto result = std::unique_ptr<mysqlshdk::db::IResult>(session->query("select database()"));
     auto row = std::unique_ptr<mysqlshdk::db::IRow>(result->fetch_one());
     EXPECT_FALSE(row->is_null(0));

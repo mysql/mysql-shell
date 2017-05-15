@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,6 +23,7 @@
 #include "mysql_connection.h"
 #include "shellcore/shell_core_options.h"
 #include "shellcore/utils_help.h"
+#include "mysqlshdk/libs/db/charset.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -378,22 +379,19 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
     for (int i = 0; i < num_fields; i++) {
       bool numeric = IS_NUM(metadata[i].type());
       std::shared_ptr<mysqlsh::Column> column(new mysqlsh::Column(
-        metadata[i].db(),
-        metadata[i].org_table(),
-        metadata[i].table(),
-        metadata[i].org_name(),
-        metadata[i].name(),
-  shcore::Value(), //type
-        metadata[i].length(),
-  numeric,
-  metadata[i].decimals(),
-  false, // signed
-  Charset::item[metadata[i].charset()].collation,
-  Charset::item[metadata[i].charset()].name,
-        false //padded
-      ));
+          metadata[i].db(), metadata[i].org_table(), metadata[i].table(),
+          metadata[i].org_name(), metadata[i].name(),
+          shcore::Value(),  // type
+          metadata[i].length(), numeric, metadata[i].decimals(),
+          false,  // signed
+          mysqlshdk::db::charset::collation_name_from_collation_id(
+              metadata[i].charset()),
+          mysqlshdk::db::charset::charset_name_from_collation_id(
+              metadata[i].charset()),
+          false));  // padded
 
-      array->push_back(shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
+      array->push_back(
+          shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
     }
 
     return shcore::Value(array);

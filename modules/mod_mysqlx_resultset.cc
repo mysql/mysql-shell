@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,6 +26,7 @@
 #include "utils/utils_time.h"
 #include "mysqlxtest_utils.h"
 #include "shellcore/utils_help.h"
+#include "mysqlshdk/libs/db/charset.h"
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -416,8 +417,10 @@ shcore::Value DocResult::get_metadata() const {
       false, // IS NUMERIC
       _result->columnMetadata()->at(0).fractional_digits,
       false, // IS SIGNED
-      Charset::item[_result->columnMetadata()->at(0).collation].collation,
-      Charset::item[_result->columnMetadata()->at(0).collation].name,
+      mysqlshdk::db::charset::collation_name_from_collation_id(
+          _result->columnMetadata()->at(0).collation),
+      mysqlshdk::db::charset::charset_name_from_collation_id(
+          _result->columnMetadata()->at(0).collation),
       true)); // IS PADDED
 
     _metadata = shcore::Value(std::static_pointer_cast<Object_bridge>(metadata));
@@ -608,7 +611,8 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
               type_name = "XML";
               break;
             default:
-              if (Charset::item[_result->columnMetadata()->at(i).collation].collation == "Binary")
+              if (mysqlshdk::db::charset::charset_name_from_collation_id(
+                      _result->columnMetadata()->at(i).collation) == "binary")
                 type_name = "BYTES";
               else
                 type_name = "STRING";
@@ -655,11 +659,13 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
         _result->columnMetadata()->at(i).name,
         data_type,
         _result->columnMetadata()->at(i).length,
-  is_numeric,
+        is_numeric,
         _result->columnMetadata()->at(i).fractional_digits,
         is_signed,
-  Charset::item[_result->columnMetadata()->at(i).collation].collation,
-  Charset::item[_result->columnMetadata()->at(i).collation].name,
+        mysqlshdk::db::charset::collation_name_from_collation_id(
+          _result->columnMetadata()->at(i).collation),
+        mysqlshdk::db::charset::charset_name_from_collation_id(
+          _result->columnMetadata()->at(i).collation),
         is_padded));
 
       _columns->push_back(shcore::Value(std::static_pointer_cast<Object_bridge>(column)));

@@ -9,6 +9,17 @@ ensure_schema_does_not_exist(mySession, 'py_shell_test')
 schema = mySession.create_schema('py_shell_test')
 mySession.set_current_schema('py_shell_test')
 
+server_57 = mySession.sql("select @@version like '5.7%'").execute().fetch_one()[0]
+
+def formatCollation(collation):
+  # print collation with normalized output to work in both 5.7 and 8.0
+  # default utf8mb4 collation in 5.7 is utf8mb4_general_ci
+  # but in 8.0 it's utf8mb4_0900_ai_ci
+  if (server_57):
+    return collation+"//utf8mb4_0900_ai_ci"
+  else:
+    return "utf8mb4_general_ci//"+collation
+
 # Metadata Validation On Numeric Types
 result = mySession.sql('create table table1 (one bit, two tinyint primary key, utwo tinyint unsigned, three smallint, uthree smallint unsigned, four mediumint, ufour mediumint unsigned, five int, ufive int unsigned, six float, usix float unsigned, csix float(5,3), seven decimal, useven decimal unsigned, cseven decimal(4,2), eight double, ueight double unsigned, ceight double(8,3))').execute()
 table = schema.get_table('table1')
@@ -345,7 +356,7 @@ print 'Type:', column.get_type()
 print 'Length:', column.get_length()
 print 'Fractional Digits:', column.get_fractional_digits()
 print 'Is Number Signed:', column.is_number_signed()
-print 'Collation Name:', column.get_collation_name()
+print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
 
@@ -361,7 +372,7 @@ print 'Type:', column.get_type()
 print 'Length:', column.get_length()
 print 'Fractional Digits:', column.get_fractional_digits()
 print 'Is Number Signed:', column.is_number_signed()
-print 'Collation Name:', column.get_collation_name()
+print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
 
@@ -377,7 +388,7 @@ print 'Type:', column.get_type()
 print 'Length:', column.get_length()
 print 'Fractional Digits:', column.get_fractional_digits()
 print 'Is Number Signed:', column.is_number_signed()
-print 'Collation Name:', column.get_collation_name()
+print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
 
@@ -441,7 +452,7 @@ print 'Type:', column.get_type()
 print 'Length:', column.get_length()
 print 'Fractional Digits:', column.get_fractional_digits()
 print 'Is Number Signed:', column.is_number_signed()
-print 'Collation Name:', column.get_collation_name()
+print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
 
@@ -457,7 +468,7 @@ print 'Type:', column.get_type()
 print 'Length:', column.get_length()
 print 'Fractional Digits:', column.get_fractional_digits()
 print 'Is Number Signed:', column.is_number_signed()
-print 'Collation Name:', column.get_collation_name()
+print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
 

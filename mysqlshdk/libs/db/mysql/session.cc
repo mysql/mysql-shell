@@ -134,7 +134,7 @@ void Session_impl::close() {
 
   if (_mysql)
     mysql_close(_mysql);
-  _mysql = NULL;
+  _mysql = nullptr;
 }
 
 IResult* Session_impl::query(const std::string& sql, bool buffered) {
@@ -146,6 +146,8 @@ void Session_impl::execute(const std::string& sql) {
 }
 
 Result* Session_impl::run_sql(const std::string &query, bool buffered) {
+  if (_mysql == nullptr)
+    throw std::logic_error("Not connected");
   if (_prev_result)
     _prev_result.reset();
   else {
