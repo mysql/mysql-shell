@@ -151,7 +151,7 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
     }
     catch (std::exception &e) {
       std::string error(e.what());
-      throw shcore::Exception::argument_error("Invalid instance definition, expected a URI. "
+      throw shcore::Exception::argument_error("Invalid instance definition, expected a valid URI. "
                                               "Error: " + error);
     }
   }
