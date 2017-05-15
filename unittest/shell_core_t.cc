@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -71,6 +71,8 @@ protected:
 
 TEST_F(Shell_core_test, test_process_stream) {
   connect();
+  const char *err_table_57 = "Table 'unexisting.whatever' doesn't exist";
+  const char *err_table_80 = "Unknown database 'unexisting'";
 
   // Successfully processed file
   (*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
@@ -82,7 +84,8 @@ TEST_F(Shell_core_test, test_process_stream) {
   process("sql/sql_err.sql");
   EXPECT_EQ(1, _ret_val);
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
-  EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
+  EXPECT_TRUE(0 <= output_handler.std_err.find(err_table_57) ||
+              0 <= output_handler.std_err.find(err_table_80));
   EXPECT_EQ(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
   // Failed without the force option
@@ -90,17 +93,22 @@ TEST_F(Shell_core_test, test_process_stream) {
   process("sql/sql_err.sql");
   EXPECT_EQ(1, _ret_val);
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
-  EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
+  EXPECT_TRUE(0 <= output_handler.std_err.find(err_table_57) ||
+              0 <= output_handler.std_err.find(err_table_80));
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
-  // JS tests: outputs are not validated since in batch mode there's no autoprinting of resultsets
+  // JS tests: outputs are not validated since in batch mode there's no
+  // autoprinting of resultsets
+  //
   // Error is also directed to the std::cerr directly
   _interactive_shell->process_line("\\js");
   process("js/js_ok.js");
   EXPECT_EQ(0, _ret_val);
 
   process("js/js_err.js");
-  EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
+  // Error in 5.7 and 8.0 are different
+  EXPECT_TRUE(0 <= output_handler.std_err.find(err_table_57) ||
+              0 <= output_handler.std_err.find(err_table_80));
 
   // Closes the connection
   _interactive_shell->process_line("session.close()");

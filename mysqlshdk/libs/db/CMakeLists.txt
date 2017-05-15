@@ -19,6 +19,7 @@ set(db_SOURCE
     row.h
     column.cc
     ssl_info.cc
+    charset.cc
     session_recorder.cc
     mysql/session.cc
     mysql/result.cc

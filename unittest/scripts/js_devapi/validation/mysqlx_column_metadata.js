@@ -259,8 +259,8 @@
 |Type: <Type.JSON>|
 |Fractional Digits: 0|
 |Is Number Signed: false|
-|Collation Name: armscii8_bin|
-|Charset Name: armscii8|
+|Collation Name: binary|
+|Charset Name: binary|
 |Is Padded: false|
 
 //@ Metadata on Char Column
@@ -270,11 +270,11 @@
 |Column Name: two|
 |Column Label: two|
 |Type: <Type.STRING>|
-|Length: 5|
+|Length: 20|
 |Fractional Digits: 0|
 |Is Number Signed: true|
-|Collation Name: latin1_swedish_ci|
-|Charset Name: latin1|
+|Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
+|Charset Name: utf8mb4|
 |Is Padded: true|
 
 //@ Metadata on Varchar Column
@@ -284,11 +284,11 @@
 |Column Name: three|
 |Column Label: three|
 |Type: <Type.STRING>|
-|Length: 20|
+|Length: 80|
 |Fractional Digits: 0|
 |Is Number Signed: false|
-|Collation Name: latin1_swedish_ci|
-|Charset Name: latin1|
+|Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
+|Charset Name: utf8mb4|
 |Is Padded: false|
 
 //@ Metadata on Text Column
@@ -301,8 +301,8 @@
 |Length: 65535|
 |Fractional Digits: 0|
 |Is Number Signed: false|
-|Collation Name: latin1_swedish_ci|
-|Charset Name: latin1|
+|Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
+|Charset Name: utf8mb4|
 |Is Padded: false|
 
 //@ Metadata on Time Column
@@ -354,11 +354,11 @@
 |Column Name: eight|
 |Column Label: eight|
 |Type: <Type.SET>|
-|Length: 5|
+|Length: 20|
 |Fractional Digits: 0|
 |Is Number Signed: false|
-|Collation Name: latin1_swedish_ci|
-|Charset Name: latin1|
+|Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
+|Charset Name: utf8mb4|
 |Is Padded: true|
 
 //@ Metadata on Enum Column
@@ -368,9 +368,9 @@
 |Column Name: nine|
 |Column Label: nine|
 |Type: <Type.ENUM>|
-|Length: 1|
+|Length: 4|
 |Fractional Digits: 0|
 |Is Number Signed: false|
-|Collation Name: latin1_swedish_ci|
-|Charset Name: latin1|
+|Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
+|Charset Name: utf8mb4|
 |Is Padded: true|

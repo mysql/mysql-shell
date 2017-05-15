@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,7 +44,7 @@
 #include "scripting/jscript_type_conversion.h"
 #include "scripting/jscript_core_definitions.h"
 
-#include "shellcore/shell_core_options.h"//XXX
+#include "shellcore/shell_core_options.h"  // FIXME
 
 #include <cerrno>
 #ifdef HAVE_UNISTD_H
@@ -322,30 +322,32 @@ struct JScript_context::JScript_context_impl {
   static void f_print(const v8::FunctionCallbackInfo<v8::Value>& args, bool new_line) {
     v8::HandleScope outer_handle_scope(args.GetIsolate());
     JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
+    std::string text;
+    // FIXME this doesn't belong here?
+    std::string format =
+        (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
     for (int i = 0; i < args.Length(); i++) {
       v8::HandleScope handle_scope(args.GetIsolate());
       if (i > 0)
-        self->delegate->print(self->delegate->user_data, " ");
+        text.push_back(' ');
 
       try {
-        //XXX this doesn't belong here?
-        std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
-        std::string text;
         if (format.find("json") == 0)
-          text = self->types.v8_value_to_shcore_value(args[i]).json(format == "json");
+          text += self->types.v8_value_to_shcore_value(args[i]).json(format ==
+                                                                     "json");
         else
-          text = self->types.v8_value_to_shcore_value(args[i]).descr(true);
-
-        if (new_line)
-          text.append("\n");
-
-        self->delegate->print(self->delegate->user_data, text.c_str());
+          text += self->types.v8_value_to_shcore_value(args[i]).descr(true);
       } catch (std::exception &e) {
-        args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+        args.GetIsolate()->ThrowException(
+            v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
         break;
       }
     }
+    if (new_line)
+      text.append("\n");
+
+    self->delegate->print(self->delegate->user_data, text.c_str());
   }
 
   static void f_source(const v8::FunctionCallbackInfo<v8::Value>& args) {

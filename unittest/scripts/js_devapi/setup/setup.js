@@ -316,7 +316,6 @@ function reset_or_deploy_sandbox(port) {
 
     options['password'] = 'root';
     options['allowRootFrom'] = '%';
-
     dba.deploySandboxInstance(port, options);
     deployed_here = true;
   }

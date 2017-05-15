@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -38,18 +38,6 @@ public:
   virtual bool rewind() { return false; }
   virtual bool tell(size_t &dataset, size_t &record) { return false; }
   virtual bool seek(size_t dataset, size_t record) { return false; }
-};
-
-class SHCORE_PUBLIC Charset {
-private:
-  typedef struct {
-    uint32_t id;
-    std::string name;
-    std::string collation;
-  } Charset_entry;
-
-public:
-  static const Charset_entry item[];
 };
 
 /**
