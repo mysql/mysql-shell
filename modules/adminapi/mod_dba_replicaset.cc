@@ -891,9 +891,9 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     get_default_user = true;
 
   if (instance_def->has_key("password"))
-    instance_admin_user = instance_def->get_string("password");
+    instance_admin_user_password = instance_def->get_string("password");
   else if (instance_def->has_key("dbPassword"))
-    instance_admin_user = instance_def->get_string("dbPassword");
+    instance_admin_user_password = instance_def->get_string("dbPassword");
   else
     get_default_password = true;
 
