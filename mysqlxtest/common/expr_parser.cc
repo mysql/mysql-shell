@@ -1101,7 +1101,7 @@ std::string Expr_unparser::operator_to_string(
 void Expr_unparser::replace(std::string& target, const std::string& old_val,
                             const std::string& new_val) {
   size_t len_skip =
-      std::abs(static_cast<int64_t>(old_val.size() - new_val.size()) - 1);
+      std::abs(static_cast<int>(old_val.size() - new_val.size()) - 1);
   std::string result = target;
   std::string::size_type pos = 0;
   while ((pos = result.find(old_val, pos + len_skip)) != std::string::npos) {
