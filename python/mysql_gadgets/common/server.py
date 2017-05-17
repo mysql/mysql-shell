@@ -434,7 +434,7 @@ class Server(object):
         # Set to TRUE when foreign key checks are ON. Check with
         # foreign_key_checks_enabled.
         self.fkeys = None
-        self.autocommit = None
+        self.autocommit = True  # Set autocommit to True by default.
         self.read_only = False
         self.aliases = set()
         self.grants_enabled = None
@@ -860,6 +860,10 @@ class Server(object):
                 parameters['charset'] = self.charset
             parameters['host'] = parameters['host'].replace("[", "")
             parameters['host'] = parameters['host'].replace("]", "")
+
+            # Set autocommit value if defined (otherwise use C/Py default).
+            if self.autocommit is not None:
+                parameters['autocommit'] = self.autocommit
 
             # Add SSL parameters ONLY if they are not None
             if self.ssl_ca is not None:
