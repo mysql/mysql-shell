@@ -559,7 +559,20 @@ void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> s
 #endif
 
   shcore::sqlstring query;
-
+  // we need to check if the provided account has the privileges to
+  // create the new account
+  if (!mysqlsh::dba::validate_cluster_admin_user_privileges
+      (session, session->get_user(), session->get_host())) {
+    log_error(
+        "Account '%s'@'%s' lacks the required privileges to create a new "
+            "user account", session->get_user().c_str(),
+        session->get_host().c_str());
+    std::string msg;
+    msg = "Account '" + session->get_user() + "'@'" + session->get_host()
+        + "' does not have all the ";
+    msg += "privileges to create an user for managing an InnoDB cluster.";
+    throw std::runtime_error(msg);
+  }
   session->execute_sql("SET sql_log_bin = 0");
   session->execute_sql("START TRANSACTION");
   try {

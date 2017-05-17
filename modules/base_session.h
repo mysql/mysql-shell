@@ -64,6 +64,7 @@ public:
 
   std::string get_user() { return _user; }
   std::string get_password() { return _password; }
+  std::string get_host() {return _host; }
   virtual void reconnect();
 
   virtual int get_default_port() = 0;

@@ -72,8 +72,60 @@ dba.configure_local_instance('localhost:' + str(__mysql_port));
 #@<OUT> Dba: configure_local_instance error 3
 dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port1));
 
+#@ Dba: Create user without all necessary privileges
+# create user that has all permissions to admin a cluster but doesn't have
+# the grant privileges for them, so it cannot be used to create viable accounts
+# Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+# PERMISSIONS, CREATES A WRONG NEW USER
+
+connect_to_sandbox([__mysql_sandbox_port2])
+session.run_sql("SET SQL_LOG_BIN=0")
+session.run_sql("CREATE USER missingprivileges@localhost")
+session.run_sql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost")
+session.run_sql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION")
+session.run_sql("SET SQL_LOG_BIN=1")
+result = session.run_sql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'")
+row = result.fetch_one()
+print("Number of accounts: " + str(row[0]))
+session.close()
+
+
+#@ Dba: configure_local_instance not enough privileges 1
+# Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+# PERMISSIONS, CREATES A WRONG NEW USER
+dba.configure_local_instance('missingprivileges@localhost:' + str(__mysql_sandbox_port2))
+
+#@ Dba: configure_local_instance not enough privileges 2
+# Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+# PERMISSIONS, CREATES A WRONG NEW USER
+dba.configure_local_instance('missingprivileges@localhost:' + str(__mysql_sandbox_port2),
+                             {"clusterAdmin": "missingprivileges", "clusterAdminPassword":""})
+
+#@ Dba: configure_local_instance not enough privileges 3
+# Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+# PERMISSIONS, CREATES A WRONG NEW USER
+dba.configure_local_instance('missingprivileges@localhost:' + str(__mysql_sandbox_port2))
+
+#@ Dba: Show list of users to make sure the user missingprivileges@% was not created
+# Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+# PERMISSIONS, CREATES A WRONG NEW USER
+connect_to_sandbox([__mysql_sandbox_port2])
+result = session.run_sql("select COUNT(*) from mysql.user where user='missingprivileges' and host='%'")
+row = result.fetch_one()
+print("Number of accounts: " + str(row[0]))
+
+#@ Dba: Delete created user and reconnect to previous sandbox
+session.run_sql("SET SQL_LOG_BIN=0")
+session.run_sql("DROP USER missingprivileges@localhost")
+session.run_sql("SET SQL_LOG_BIN=1")
+result = session.run_sql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'")
+row = result.fetch_one()
+print("Number of accounts: " + str(row[0]))
+session.close()
+connect_to_sandbox([__mysql_sandbox_port1])
+
 #@<OUT> Dba: configure_local_instance updating config file
-dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port2), {'mycnfPath':'mybad.cnf'});
+dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port2), {'mycnfPath':'mybad.cnf'})
 
 #@# Dba: get_cluster errors
 c2 = dba.get_cluster(5)

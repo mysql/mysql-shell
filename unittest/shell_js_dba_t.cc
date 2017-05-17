@@ -269,6 +269,8 @@ TEST_F(Shell_js_dba_tests, DISABLED_no_interactive_classic_global_cluster_multim
 }
 
 TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
+  //IMPORTANT NOTE: This test fixture requires non sandbox server as the base
+  // server.
   std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
   create_file("mybad.cnf", bad_config);
 
@@ -289,7 +291,22 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
 
   //@<OUT> Dba: configureLocalInstance error 3
   output_handler.passwords.push_back("root");
-  output_handler.prompts.push_back("mybad.cnf");
+
+  //@ Dba: configureLocalInstance not enough privileges 1
+  output_handler.passwords.push_back(""); // Please provide the password for missingprivileges@...
+  output_handler.prompts.push_back("1"); // Please select an option [1]: 1
+  output_handler.passwords.push_back(""); // Password for new account:
+  output_handler.passwords.push_back(""); // confirm password
+
+  //@ Dba: configureLocalInstance not enough privileges 2
+  output_handler.passwords.push_back(""); // Please provide the password for missingprivileges@...
+
+  //@ Dba: configureLocalInstance not enough privileges 3
+  output_handler.passwords.push_back("");  // Please provide the password for missingprivileges@...
+  output_handler.prompts.push_back("2"); // Please select an option [1]: 2
+  output_handler.prompts.push_back("missingprivileges@'%'"); // Please provide an account name (e.g: icroot@%) to have it created with the necessary privileges or leave empty and press Enter to cancel.
+  output_handler.passwords.push_back(""); // Password for new account:
+  output_handler.passwords.push_back(""); // confirm password
 
   //@<OUT> Dba: configureLocalInstance updating config file
   output_handler.passwords.push_back("root");
@@ -534,17 +551,17 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
   std::string cfgpath1 = _sandbox_dir + path_splitter + _mysql_sandbox_port1
       + path_splitter + "my.cnf";
   execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", " + stop_options + ");");
-  add_to_cfg_file(cfgpath1, "binlog-do-db=db1,mysql_innodb_cluster_metadata,db2");
+  add_to_cfg_file(cfgpath1, "[mysqld]\nbinlog-do-db=db1,mysql_innodb_cluster_metadata,db2");
   execute("try_restart_sandbox(" + _mysql_sandbox_port1 + ");");
   std::string cfgpath2 = _sandbox_dir + path_splitter + _mysql_sandbox_port2
       + path_splitter + "my.cnf";
   execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", " + stop_options + ");");
-  add_to_cfg_file(cfgpath2, "binlog-do-db=db1,db2");
+  add_to_cfg_file(cfgpath2, "[mysqld]\nbinlog-do-db=db1,db2");
   execute("try_restart_sandbox(" + _mysql_sandbox_port2 + ");");
   std::string cfgpath3 = _sandbox_dir + path_splitter + _mysql_sandbox_port3
       + path_splitter + "my.cnf";
   execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", " + stop_options + ");");
-  add_to_cfg_file(cfgpath3, "binlog-ignore-db=db1,mysql_innodb_cluster_metadata,db2");
+  add_to_cfg_file(cfgpath3, "[mysqld]\nbinlog-ignore-db=db1,mysql_innodb_cluster_metadata,db2");
   execute("try_restart_sandbox(" + _mysql_sandbox_port3 + ");");
 
   // Validate test script.
