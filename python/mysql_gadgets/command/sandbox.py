@@ -497,9 +497,8 @@ def create_sandbox(**kwargs):
         "port": port,
         "loose_mysqlx_port": mysqlx_port,
         "server_id": server_id,
-        "socket": os.path.join(sandbox_dir, "mysqld.sock").replace("\\", "/"),
-        "loose_mysqlx_socket": os.path.join(sandbox_dir,
-                                            "mysqlx.sock").replace("\\", "/"),
+        "socket": "mysqld.sock",
+        "loose_mysqlx_socket": "mysqlx.sock",
         "basedir": basedir.replace("\\", "/"),
         "datadir": datadir.replace("\\", "/"),
         "log_syslog": "OFF",  # Disable syslog to avoid issue on Windows.

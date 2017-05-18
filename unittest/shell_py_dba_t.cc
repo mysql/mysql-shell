@@ -200,10 +200,17 @@ TEST_F(Shell_py_dba_tests, no_interactive_sandboxes) {
   std::string dir = _sandbox_dir + path_splitter + "foo  \' bar";
   shcore::ensure_dir_exists(dir);
 
+  // Create directory with long name (> 89 char).
+  std::string dir_long = _sandbox_dir + path_splitter +
+      "01234567891123456789212345678931234567894123456789"
+          "5123456789612345678971234567898123456789";
+  shcore::ensure_dir_exists(dir_long);
+
   validate_interactive("dba_sandboxes.py");
 
-  // Remove previously created directory.
+  // Remove previously created directories.
   shcore::remove_directory(dir);
+  shcore::remove_directory(dir_long);
 }
 
 TEST_F(Shell_py_dba_tests, dba_help) {
