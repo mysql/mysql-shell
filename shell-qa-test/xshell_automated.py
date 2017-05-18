@@ -5440,13 +5440,13 @@ class XShell_TestCases(unittest.TestCase):
 
         results = ''
         help_text = "===== Global Objects =====" + os.linesep + \
-                    "dba        Allows performing DBA operations using the MySQL X AdminAPI." + os.linesep + \
+                    "dba        Enables you to administer InnoDB clusters using the AdminAPI." + os.linesep + \
                     "mysql      Used to work with classic MySQL sessions using SQL." + os.linesep + \
                     "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep + \
                     "shell      Gives access to general purpose functions and properties." + os.linesep + \
                     "sys        Gives access to system specific parameters." + os.linesep
         help_text_session = "===== Global Objects =====" + os.linesep + \
-                    "dba        Allows performing DBA operations using the MySQL X AdminAPI." + os.linesep + \
+                    "dba        Enables you to administer InnoDB clusters using the AdminAPI." + os.linesep + \
                     "mysql      Used to work with classic MySQL sessions using SQL." + os.linesep + \
                     "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep + \
                     "session    Represents the currently open MySQL session." + os.linesep + \
@@ -8704,7 +8704,7 @@ class XShell_TestCases(unittest.TestCase):
                    "" + os.linesep +
                    "===== Global Objects ====="  + os.linesep +
                    "db         Used to work with database schema objects."+ os.linesep +
-                   "dba        Allows performing DBA operations using the MySQL X AdminAPI."+ os.linesep +
+                   "dba        Enables you to administer InnoDB clusters using the AdminAPI."+ os.linesep +
                    "mysql      Used to work with classic MySQL sessions using SQL."+ os.linesep +
                    "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI."+ os.linesep +
                    "session    Represents the currently open MySQL session."+ os.linesep +
