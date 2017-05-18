@@ -31,6 +31,7 @@ public:
   Shell_command_line_options(int argc, char **argv);
 
   mysqlsh::Shell_options& get_options() { return _options; }
+  static std::vector<std::string> get_details();
 private:
   void override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value = NULL);
 

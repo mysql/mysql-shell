@@ -19,6 +19,7 @@
 
 #include "cmdline_shell.h"
 #include "shellcore/base_session.h"
+#include "shell_cmdline_options.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h" // <---
@@ -190,54 +191,9 @@ void Command_line_shell::print_cmd_line_helper() {
   println("");
   println("Usage: mysqlsh [OPTIONS] [URI]");
   println("Usage: mysqlsh [OPTIONS] [URI] -f <path> [script args...]");
-  println("  -?, --help               Display this help and exit.");
-  println("  -f, --file=file          Process file.");
-  println("  -e, --execute=<cmd>      Execute command and quit.");
-  println("  --uri                    Connect to Uniform Resource Identifier.");
-  println("                           Format: [user[:pass]]@host[:port][/db]");
-  println("                           or user[:pass]@::socket[/db] .");
-  println("  -h, --host=name          Connect to host.");
-  println("  -P, --port=#             Port number to use for connection.");
-  println("  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in Windows (only classic sessions).");
-  println("  -u, --dbuser=name        User for the connection to the server.");
-  println("  --user=name              An alias for dbuser.");
-  println("  --dbpassword=name        Password to use when connecting to server");
-  println("  --password=name          An alias for dbpassword.");
-  println("  -p                       Request password prompt to set the password");
-  println("  -D --schema=name         Schema to use.");
-  println("  --recreate-schema        Drop and recreate the specified schema. Schema will be deleted if it exists!");
-  println("  --database=name          An alias for --schema.");
-  println("  --node                   Uses connection data to create a Node Session.");
-  println("  --classic                Uses connection data to create a Classic Session.");
-  println("  --sql                    Start in SQL mode.");
-  println("  --sqlc                   Start in SQL mode using a classic session.");
-  println("  --sqln                   Start in SQL mode using a node session.");
-  println("  --js                     Start in JavaScript mode.");
-  println("  --py                     Start in Python mode.");
-  println("  --json                   Produce output in JSON format.");
-  println("  --table                  Produce output in table format (default for interactive mode).");
-  println("                           This option can be used to force that format when running in batch mode.");
-  println("  -E, --vertical           Print the output of a query (rows) vertically.");
-  println("  -i, --interactive[=full] To use in batch mode, it forces emulation of interactive mode processing.");
-  println("                           Each line on the batch is processed as if it were in interactive mode.");
-  println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
-  println("  --log-level=value        The log level." + ngcommon::Logger::get_level_range_info());
-  println("  --version                Prints the version of MySQL Shell.");
-  println("  --ssl                    Enable SSL for connection(automatically enabled with other flags).");
-  println("  --ssl-key=name           X509 key in PEM format.");
-  println("  --ssl-cert=name          X509 cert in PEM format.");
-  println("  --ssl-ca=name            CA file in PEM format.");
-  println("  --ssl-capath=dir         CA directory.");
-  println("  --ssl-cipher=name        SSL Cipher to use.");
-  println("  --ssl-crl=name           Certificate revocation list.");
-  println("  --ssl-crlpath=dir        Certificate revocation list path.");
-  println("  --tls-version=version    TLS version to use, permitted values are : TLSv1, TLSv1.1.");
-  println("  --passwords-from-stdin   Read passwords from stdin instead of the tty.");
-  println("  --auth-method=method     Authentication method to use.");
-  println("  --show-warnings          Automatically display SQL warnings on SQL mode if available.");
-  println("  --dba enableXProtocol    Enable the X Protocol in the server connected to. Must be used with --classic.");
-  println("  --no-wizard              Disables wizard mode.");
-
+  std::vector<std::string> details = Shell_command_line_options::get_details();
+  for (std::string line : details)
+    println(line);
   println("");
   println("Usage examples:");
   println("$ mysqlsh root@localhost/schema");
