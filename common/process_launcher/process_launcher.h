@@ -48,7 +48,7 @@ public:
    * Argument 'args' must have a last entry that is NULL.
    * If redirect_stderr is true, the child's stderr is redirected to the same stream than child's stdout.
    */
-  Process_launcher(const char ** argv, bool redirect_stderr = true) : is_alive(false) {
+  Process_launcher(const char * const * argv, bool redirect_stderr = true) : is_alive(false) {
     this->argv = argv;
     this->redirect_stderr = redirect_stderr;
   }
@@ -117,7 +117,7 @@ public:
   uint64_t get_fd_read();
 
   /** Perform Windows specific quoting of args and build a command line */
-  static std::string make_windows_cmdline(const char **argv);
+  static std::string make_windows_cmdline(const char * const*argv);
 
 private:
   /**
@@ -128,7 +128,7 @@ private:
   /** Closes child process */
   void close();
 
-  const char **argv;
+  const char * const *argv;
   bool is_alive;
 #ifdef WIN32
   HANDLE child_in_rd;

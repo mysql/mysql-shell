@@ -68,6 +68,8 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.cc"
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.h"
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.cc"
+    "${CMAKE_SOURCE_DIR}/utils/uri_data.h"
+    "${CMAKE_SOURCE_DIR}/utils/uri_data.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_help.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_help.cc"
     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_schema.h"
@@ -207,6 +209,8 @@ file(GLOB libmysqlshmods_SRC
       "../modules/mysql_connection.cc"
       "../modules/mysql_connection.h"
       "../modules/mysqlxtest_utils.h"
+      "../modules/mod_utils.h"
+      "../modules/mod_utils.cc"
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 

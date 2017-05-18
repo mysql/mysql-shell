@@ -14,7 +14,7 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "process_launcher.h"
-#include "exception.h"
+#include "common/common/exception.h"
 
 #include <boost/format.hpp>
 #include <string>
@@ -48,7 +48,7 @@ using namespace ngcommon;
 
   https://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
  */
-std::string Process_launcher::make_windows_cmdline(const char **argv) {
+std::string Process_launcher::make_windows_cmdline(const char * const*argv) {
   assert(argv[0]);
   std::string cmd = argv[0];
 

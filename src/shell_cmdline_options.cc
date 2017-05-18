@@ -23,12 +23,14 @@
 #include "shell_cmdline_options.h"
 #include "utils/utils_general.h"
 #include "utils/utils_connection.h"
+#include "utils/uri_parser.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   : Command_line_options(argc, argv) {
+
   int arg_format = 0;
   for (int i = 1; i < argc && exit_code == 0; i++) {
     char *value;
@@ -45,14 +47,15 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       if (shcore::validate_uri(value)) {
         _options.uri = value;
 
-        shcore::Value::Map_type_ref data = shcore::get_connection_data(value, false);
+        shcore::uri::Uri_parser parser;
+        _uri_data = parser.parse(value);
 
-        if (data->has_key("dbPassword")) {
-          std::string pwd(data->get_string("dbPassword").length(), '*');
-          (*data)["dbPassword"] = shcore::Value(pwd);
+        if (_uri_data.has_password()) {
+          std::string pwd(_uri_data.get_password().length(), '*');
 
-          // Required replacement when --uri <value>
-          auto nopwd_uri = shcore::build_connection_string(data, true);
+          std::string old_uri(value);
+          auto nopwd_uri = old_uri.replace(_uri_data.get_user().length()+1,
+                                           pwd.length(), pwd);
 
           // Required replacement when --uri=<value>
           if (arg_format == 3)
@@ -319,11 +322,119 @@ _options.ssl_info.skip = false;
     }
   }
 
+  try {
+    check_session_type_conflicts();
+    check_user_conflicts();
+    check_password_conflicts();
+    check_host_conflicts();
+    check_host_socket_conflicts();
+    check_port_conflicts();
+    check_socket_conflicts();
+    check_port_socket_conflicts();
+  } catch (const std::runtime_error& e) {
+    std::cerr << e.what() << std::endl;
+    exit_code = 1;
+  }
+
   _options.exit_code = exit_code;
 }
 
-void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value) {
-  auto get_session_type = [](mysqlsh::SessionType type) {
+void Shell_command_line_options::check_session_type_conflicts() {
+  if (_options.session_type != mysqlsh::SessionType::Auto &&
+     !_uri_data.get_scheme().empty()) {
+    if ((_options.session_type == mysqlsh::SessionType::Classic &&
+      _uri_data.get_scheme() != "mysql") ||
+      (_options.session_type == mysqlsh::SessionType::Node &&
+      _uri_data.get_scheme() != "mysqlx")) {
+      auto error = "Conflicting options: provided URI is not compatible with " +
+                   get_session_type_name(_options.session_type) + " session "
+                   "configured with " + _session_type_arg + ".";
+      throw std::runtime_error(error);
+    }
+  }
+}
+
+void Shell_command_line_options::check_user_conflicts() {
+  if (!_options.user.empty() && !_uri_data.get_user().empty()) {
+    if (_options.user != _uri_data.get_user()) {
+      auto error = "Conflicting options: provided user name differs from the "
+                   "user in the URI.";
+      throw std::runtime_error(error);
+    }
+  }
+}
+
+void Shell_command_line_options::check_password_conflicts() {
+  if (_options.password != NULL && _uri_data.has_password()) {
+    if (_options.password != _uri_data.get_password()) {
+      auto error = "Conflicting options: provided password differs from the "
+                   "password in the URI.";
+      throw std::runtime_error(error);
+    }
+  }
+}
+
+void Shell_command_line_options::check_host_conflicts() {
+  if (!_uri_data.get_host().empty() && !_options.host.empty()) {
+    if (_options.host != _uri_data.get_host()) {
+      auto error = "Conflicting options: provided host differs from the "
+                   "host in the URI.";
+      throw std::runtime_error(error);
+    }
+  }
+}
+
+void Shell_command_line_options::check_host_socket_conflicts() {
+  if (!_options.sock.empty()) {
+    if ((!_options.host.empty() && _options.host != "localhost") ||
+        (!_uri_data.get_host().empty() &&
+         _uri_data.get_host() != "localhost")) {
+      auto error =  "Conflicting options: socket can not be used if host is "
+                    "not 'localhost'.";
+      throw std::runtime_error(error);
+    }
+  }
+}
+
+void Shell_command_line_options::check_port_conflicts() {
+  if (_options.port != 0 &&
+      _uri_data.get_type() == shcore::uri::TargetType::Tcp &&
+      _uri_data.has_port() &&
+      _uri_data.get_port() != _options.port) {
+    auto error = "Conflicting options: provided port differs from the "
+                 "port in the URI.";
+    throw std::runtime_error(error);
+  }
+}
+
+void Shell_command_line_options::check_socket_conflicts() {
+  if (!_options.sock.empty() &&
+      _uri_data.get_type() == shcore::uri::TargetType::Socket &&
+      _uri_data.get_socket() != _options.sock ) {
+    auto error = "Conflicting options: provided socket differs from the "
+                 "socket in the URI.";
+    throw std::runtime_error(error);
+  }
+}
+
+void Shell_command_line_options::check_port_socket_conflicts() {
+  if (_options.port != 0 && !_options.sock.empty()) {
+    auto error = "Conflicting options: port and socket can not be used "
+                  "together.";
+    throw std::runtime_error(error);
+  } else if (_options.port != 0 &&
+            _uri_data.get_type() == shcore::uri::TargetType::Socket) {
+    auto error = "Conflicting options: port can not be used if the URI "
+                 "contains a socket.";
+    throw std::runtime_error(error);
+  } else if (!_options.sock.empty() && _uri_data.has_port()) {
+    auto error = "Conflicting options: socket can not be used if the URI "
+                 "contains a port.";
+    throw std::runtime_error(error);
+  }
+}
+
+std::string Shell_command_line_options::get_session_type_name(mysqlsh::SessionType type) {
     std::string label;
     switch (type) {
       case mysqlsh::SessionType::X:
@@ -340,14 +451,15 @@ void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_
     }
 
     return label;
-  };
+}
 
+void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value) {
   if (new_type != _options.session_type) {
     if (!_options.default_session_type) {
       std::string msg = "Session type already configured to ";
-      msg.append(get_session_type(_options.session_type));
+      msg.append(get_session_type_name(_options.session_type));
       msg.append(", unable to change to ");
-      msg.append(get_session_type(new_type));
+      msg.append(get_session_type_name(new_type));
       msg.append(" with option ");
       msg.append(option);
 
@@ -361,6 +473,7 @@ void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_
     }
 
     _options.session_type = new_type;
+    _session_type_arg = option;
   }
 
   _options.default_session_type = false;

@@ -160,6 +160,12 @@ TEST(Uri_parser, parse_user_info) {
 }
 
 TEST(Uri_parser, parse_host_name) {
+#ifdef WIN32
+  validate_uri("mysqlx://user@localhost", "mysqlx", "user", NO_PASSWORD, "localhost", NO_PORT, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_NO_PORT, uri::Tcp);
+#else
+  validate_uri("mysqlx://user@localhost", "mysqlx", "user", NO_PASSWORD, "localhost", NO_PORT, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_NO_PORT, uri::Pipe);
+#endif
+  validate_uri("mysqlx://user@localhost:3306", "mysqlx", "user", NO_PASSWORD, "localhost", 3306, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_PORT, uri::Tcp);
   validate_uri("mysqlx://user@mysql.com", "mysqlx", "user", NO_PASSWORD, "mysql.com", NO_PORT, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_NO_PORT, uri::Tcp);
   validate_uri("mysqlx://user@mysql1.com", "mysqlx", "user", NO_PASSWORD, "mysql1.com", NO_PORT, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_NO_PORT, uri::Tcp);
   validate_uri("mysqlx://user@mysql1-com", "mysqlx", "user", NO_PASSWORD, "mysql1-com", NO_PORT, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_NO_PORT, uri::Tcp);

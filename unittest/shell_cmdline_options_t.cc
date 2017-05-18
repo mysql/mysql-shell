@@ -23,6 +23,7 @@
 
 #include "gtest/gtest.h"
 #include "src/shell_cmdline_options.h"
+#include "utils/utils_general.h"
 
 namespace shcore {
 #define IS_CONNECTION_DATA true
@@ -72,9 +73,9 @@ std::string shell_mode_name(IShell_core::Mode mode){
 }
 
 
-class Shell_cmdline_options_t : public ::testing::Test {
+class Shell_cmdline_options : public ::testing::Test {
 public:
-  Shell_cmdline_options_t() {}
+  Shell_cmdline_options() {}
 
   std::string get_string(mysqlsh::Shell_options* options, const std::string &option) {
     if (option == "host")
@@ -393,9 +394,26 @@ public:
     // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
+
+  void test_conflicting_options(std::string context, size_t argc, char *argv[], std::string error) {
+    std::streambuf* backup = std::cerr.rdbuf();
+    std::ostringstream cerr;
+    std::cerr.rdbuf(cerr.rdbuf());
+
+    SCOPED_TRACE("TESTING: " + context);
+
+    Shell_command_line_options options(argc, argv);
+
+    EXPECT_EQ(1, options.exit_code);
+
+    EXPECT_STREQ(error.c_str(), cerr.str().c_str());
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
+  }
 };
 
-TEST(Shell_cmdline_options, default_values) {
+TEST_F(Shell_cmdline_options, default_values) {
   int argc = 0;
   char **argv = NULL;
 
@@ -448,13 +466,14 @@ TEST(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.default_session_type);
 }
 
-TEST_F(Shell_cmdline_options_t, app) {
+TEST_F(Shell_cmdline_options, app) {
   test_option_with_value("host", "h", "localhost", "", IS_CONNECTION_DATA, !IS_NULLABLE);
   test_option_with_value("port", "P", "3306", "", IS_CONNECTION_DATA, !IS_NULLABLE);
   test_option_with_value("schema", "D", "sakila", "", IS_CONNECTION_DATA, !IS_NULLABLE);
   test_option_with_value("database", "", "sakila", "", IS_CONNECTION_DATA, !IS_NULLABLE, "schema");
   test_option_with_value("user", "u", "root", "", IS_CONNECTION_DATA, !IS_NULLABLE);
   test_option_with_value("dbuser", "u", "root", "", IS_CONNECTION_DATA, !IS_NULLABLE, "user");
+  test_option_with_value("socket", "S", "/some/socket/path", "", IS_CONNECTION_DATA, !IS_NULLABLE, "sock");
 
   test_option_with_no_value("-p", "prompt_password", "1");
 
@@ -516,7 +535,7 @@ TEST_F(Shell_cmdline_options_t, app) {
   test_option_with_no_value("--passwords-from-stdin", "passwords_from_stdin", "1");
 }
 
-TEST_F(Shell_cmdline_options_t, test_session_type_conflicts) {
+TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
   test_session_type_conflicts("--sqlc", "--sqlc", "Classic", "Classic", 0);
   test_session_type_conflicts("--sqlc", "--classic", "Classic", "Classic", 0);
   test_session_type_conflicts("--sqlc", "--node", "Classic", "Node", 1);
@@ -538,7 +557,7 @@ TEST_F(Shell_cmdline_options_t, test_session_type_conflicts) {
   test_session_type_conflicts("--classic", "--sqln", "Classic", "Node", 1);
 }
 
-TEST_F(Shell_cmdline_options_t, test_positional_argument) {
+TEST_F(Shell_cmdline_options, test_positional_argument) {
   // Redirect cerr.
   std::streambuf* backup = std::cerr.rdbuf();
   std::ostringstream cerr;
@@ -606,7 +625,7 @@ TEST_F(Shell_cmdline_options_t, test_positional_argument) {
   std::cerr.rdbuf(backup);
 }
 
-TEST_F(Shell_cmdline_options_t, test_help_details) {
+TEST_F(Shell_cmdline_options, test_help_details) {
   const std::vector<std::string> exp_details = {
     "  --help                   Display this help and exit.",
   "  -f, --file=file          Process file.",
@@ -677,6 +696,200 @@ TEST_F(Shell_cmdline_options_t, test_help_details) {
     EXPECT_STREQ(exp_sentence.c_str(), details[i].c_str());
     ++i;
   }
+}
+
+TEST_F(Shell_cmdline_options, conflicts_session_type) {
+  {
+    auto error = "Conflicting options: provided URI is not compatible with "
+                  "Classic session configured with --classic.\n";
+
+    char *argv0[] = {
+        "ut",
+        "--classic",
+        "--uri=mysqlx://root@localhost",
+        NULL
+      };
+
+    test_conflicting_options("--classic --uri", 3, argv0, error);
+  }
+
+  {
+    auto error = "Conflicting options: provided URI is not compatible with "
+                  "Classic session configured with --sqlc.\n";
+
+    char *argv0[] = {
+        "ut",
+        "--sqlc",
+        "--uri=mysqlx://root@localhost",
+        NULL
+      };
+
+    test_conflicting_options("--classic --uri", 3, argv0, error);
+  }
+
+  {
+    auto error = "Conflicting options: provided URI is not compatible with "
+                  "Node session configured with --node.\n";
+
+    char *argv1[] = {
+        "ut",
+        "--node",
+        "--uri=mysql://root@localhost",
+        NULL
+      };
+
+    test_conflicting_options("--classic --uri", 3, argv1, error);
+  }
+
+  {
+    auto error = "Conflicting options: provided URI is not compatible with "
+                  "Node session configured with --sqln.\n";
+
+    char *argv1[] = {
+        "ut",
+        "--sqln",
+        "--uri=mysql://root@localhost",
+        NULL
+      };
+
+    test_conflicting_options("--classic --uri", 3, argv1, error);
+  }
+
+}
+
+TEST_F(Shell_cmdline_options, conflicts_user) {
+  auto error = "Conflicting options: provided user name differs from the "
+                "user in the URI.\n";
+
+  char *argv0[] = {
+      "ut",
+      "--user=guest",
+      "--uri=mysqlx://root@localhost",
+      NULL
+    };
+
+  test_conflicting_options("--user --uri", 3, argv0, error);
+}
+
+TEST_F(Shell_cmdline_options, conflicts_password) {
+  auto error = "Conflicting options: provided password differs from the "
+                "password in the URI.\n";
+
+  char pwd[] = {"--password=example"};
+  char uri[] = {"--uri=mysqlx://root:password@localhost"};
+  char *argv0[] = {
+      "ut",
+      pwd,
+      uri,
+      NULL
+    };
+
+  test_conflicting_options("--password --uri", 3, argv0, error);
+}
+
+TEST_F(Shell_cmdline_options, conflicts_host) {
+  auto error = "Conflicting options: provided host differs from the "
+                "host in the URI.\n";
+
+  char uri[] = "--uri=mysqlx://root:password@localhost";
+  char *argv0[] = {
+      "ut",
+      "--host=127.0.0.1",
+      uri,
+      NULL
+    };
+
+  test_conflicting_options("--host --uri", 3, argv0, error);
+}
+
+TEST_F(Shell_cmdline_options, conflicts_host_socket) {
+  auto error =  "Conflicting options: socket can not be used if host is "
+                "not 'localhost'.\n";
+
+  char *argv0[] = {
+      "ut",
+      "--uri=root@127.0.0.1",
+      "--socket=/some/socket/path",
+      NULL
+    };
+  test_conflicting_options("--uri --socket", 3, argv0, error);
+
+  char *argv1[] = {
+      "ut",
+      "--host=127.0.0.1",
+      "--socket=/some/socket/path",
+      NULL
+    };
+  test_conflicting_options("--host --socket", 3, argv0, error);
+
+}
+
+TEST_F(Shell_cmdline_options, conflicts_port) {
+  auto error = "Conflicting options: provided port differs from the "
+                "port in the URI.\n";
+
+  char uri[] = {"--uri=mysqlx://root:password@localhost:3307"};
+  char *argv0[] = {
+      "ut",
+      "--port=3306",
+      uri,
+      NULL
+    };
+
+  test_conflicting_options("--port --uri", 3, argv0, error);
+}
+
+TEST_F(Shell_cmdline_options, conflicts_socket) {
+  auto error = "Conflicting options: provided socket differs from the "
+                "socket in the URI.\n";
+
+  char *argv0[] = {
+      "ut",
+      "--socket=/path/to/socket",
+      "--uri=mysqlx://root@/socket",
+      NULL
+    };
+
+  test_conflicting_options("--socket --uri", 3, argv0, error);
+}
+
+
+TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
+  std::string error0 = "Conflicting options: port and socket can not be used "
+                       "together.\n";
+
+  char *argv0[] = {
+      "ut",
+      "--port=3307",
+      "--socket=/some/weird/path",
+      NULL
+    };
+
+  test_conflicting_options("--port --socket", 3, argv0, error0);
+
+  auto error1 = "Conflicting options: port can not be used if the URI "
+                "contains a socket.\n";
+
+  char *argv1[] = {
+    "ut",
+    "--uri=root@/socket",
+    "--port=3306",
+    NULL
+  };
+
+  test_conflicting_options("--uri --port", 3, argv1, error1);
+
+  auto error2 = "Conflicting options: socket can not be used if the URI "
+                "contains a port.\n";
+
+  char *argv2[] = {
+      "ut",
+      "--uri=root@localhost:3306",
+      "--socket=/some/socket/path",
+      NULL
+    };
+
+  test_conflicting_options("--uri --socket", 3, argv2, error2);
 }
 
 }

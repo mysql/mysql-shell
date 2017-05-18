@@ -35,6 +35,8 @@ if(WITH_TESTS)
     file(GLOB mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/*.h"
         "${PROJECT_SOURCE_DIR}/unittest/*_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_main.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_utils.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_script_tester.cc"
@@ -66,6 +68,8 @@ if(WITH_TESTS)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/unittest/value_py_bridging_t.cc")
     endif()
 
+    add_subdirectory(test_utils)
+
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     add_dependencies(run_unit_tests mysqlshcore)
     add_dependencies(run_unit_tests mysqlxtest)
@@ -73,6 +77,7 @@ if(WITH_TESTS)
             mysqlshcore
             mysqlxtest
             gtest
+            test_utils
             ${MYSQL_LIBRARIES}
             ${PROTOBUF_LIBRARY}
             ${SSL_LIBRARIES}

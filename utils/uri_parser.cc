@@ -81,38 +81,6 @@ std::map<char, char> Uri_parser::hex_literals = {
   {'b', 11}, {'c', 12}, {'d', 13}, {'e', 14}, {'f', 15}
 };
 
-Uri_data::Uri_data() :_has_password(false), _has_port(false), _port(0) {}
-
-std::string Uri_data::get_password() {
-  assert(_has_password);
-  return _password;
-}
-
-std::string Uri_data::get_host() {
-  assert(_type == Tcp);
-  return _host;
-}
-
-int Uri_data::get_port() {
-  assert(_has_port);
-  return _port;
-}
-
-int Uri_data::get_ssl_mode() {
-  assert(_ssl_mode != 0);
-  return _ssl_mode;
-}
-
-std::string Uri_data::get_pipe() {
-  assert(_type == Pipe);
-  return _pipe;
-}
-
-std::string Uri_data::get_socket() {
-  assert(_type == Socket);
-  return _socket;
-}
-
 Uri_parser::Uri_parser() {}
 
 void Uri_parser::parse_scheme() {
@@ -388,6 +356,8 @@ void Uri_parser::parse_port(const std::pair<size_t, size_t> &range, size_t &offs
       throw Parser_error("Port is out of the valid range: 0 - 65535");
 
     _data->_has_port = true;
+
+    _data->_type = TargetType::Tcp;
   } else
     throw Parser_error("Missing port number");
 
@@ -396,8 +366,6 @@ void Uri_parser::parse_port(const std::pair<size_t, size_t> &range, size_t &offs
 }
 
 void Uri_parser::parse_host() {
-  _data->_type = Tcp;
-
   size_t offset = _chunks[URI_TARGET].first;
 
   if (_input[_chunks[URI_TARGET].first] == '[')
@@ -427,6 +395,9 @@ void Uri_parser::parse_host() {
         _tokenizer.consume_any_token();
       }
     }
+
+    if (_data->_host != "localhost")
+      _data->_type = Tcp;
   }
 
   if (offset <= _chunks[URI_TARGET].second)

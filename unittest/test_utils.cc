@@ -266,6 +266,7 @@ void Shell_core_test_wrapper::SetUp() {
     shcore::Value::Map_type_ref data = shcore::get_connection_data(uri);
 
     _host = data->get_string("host");
+    _user = data->get_string("dbUser");
 
     const char *pwd = getenv("MYSQL_PWD");
     if (pwd) {

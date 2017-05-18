@@ -173,6 +173,7 @@ protected:
   void wipe_log() { output_handler.wipe_log(); }
   void wipe_all() { output_handler.wipe_all(); }
 
+  std::string _user;
   std::string _host;
   std::string _port;
   std::string _uri;

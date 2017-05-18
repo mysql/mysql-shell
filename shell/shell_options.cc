@@ -58,6 +58,7 @@ bool Shell_options::has_connection_data() {
     !user.empty() ||
     !host.empty() ||
     !schema.empty() ||
+    !sock.empty() ||
     port != 0 ||
     password != NULL ||
     prompt_password ||

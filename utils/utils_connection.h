@@ -21,6 +21,7 @@
 #define __mysh__utils_connection__
 
 #include <string>
+#include <set>
 
 #include "shellcore/common.h"
 
@@ -123,7 +124,10 @@ const std::string kSslTlsVersion = "sslTlsVersion";
 const std::string kSslMode = "sslMode";
 const std::string kAuthMethod = "authMethod";
 
-
+const std::set<std::string> connection_attributes = {kHost, kPort, kSocket,
+  kScheme, kSchema, kUser, kDbUser, kPassword, kDbPassword, kSslCa, kSslCaPath,
+  kSslCert, kSslKey, kSslCrl, kSslCrlPath, kSslCiphers, kSslTlsVersion,
+  kSslMode, kAuthMethod };
 
 };
 
