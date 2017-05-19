@@ -29,7 +29,7 @@ import subprocess
 import sys
 
 from mysql_gadgets.common import tools, server
-from mysql_gadgets.common.constants import PATH_ENV_VAR, QUOTE_CHAR
+from mysql_gadgets.common.constants import PATH_ENV_VAR
 from mysql_gadgets.common.config_parser import (MySQLOptionsParser,
                                                 option_list_to_dictionary)
 from mysql_gadgets.common.logger import CustomLevelLogger
@@ -39,14 +39,12 @@ from mysql_gadgets import exceptions, MIN_MYSQL_VERSION, MAX_MYSQL_VERSION
 logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
-_CREATE_SANDBOX_CMD = ("{quote}{mysqld_path}{quote} --defaults-file={quote}"
-                       "{config_file}{quote} --initialize-insecure")
-_START_SERVER_CMD = ("{quote}{mysqld_path}{quote} --defaults-file={quote}"
-                     "{config_file}{quote}")
-_STOP_SERVER_CMD = ("{quote}{mysqladmin_path}{quote} --defaults-file="
-                    "{quote}{config_file}{quote} shutdown -p")
-_CREATE_RSA_SSL_FILES_CMD = ("{quote}{mysql_ssl_rsa_setup_path}{quote} "
-                             "--datadir={quote}{datadir}{quote}")
+_CREATE_SANDBOX_CMD = ("{mysqld_path} --defaults-file={config_file} "
+                       "--initialize-insecure")
+_START_SERVER_CMD = "{mysqld_path} --defaults-file={config_file}"
+_STOP_SERVER_CMD = ("{mysqladmin_path} --defaults-file={config_file} "
+                    "shutdown -p")
+_CREATE_RSA_SSL_FILES_CMD = "{mysql_ssl_rsa_setup_path} --datadir={datadir}"
 _WIN_SCRIPT = "echo \"{message}\" & {content}\n"
 _UNIX_SCRIPT = "#!/bin/sh\n\necho '{message}'; {content}\n"
 
@@ -119,9 +117,9 @@ def _create_start_script(script_name, script_path, mysqld, config_file):
     _LOGGER.debug("Creating start script on '%s'", start_path)
     try:
         with open(start_path, "w") as f:
-            f.write(script_contents.format(quote=QUOTE_CHAR,
-                                           mysqld_path=mysqld,
-                                           config_file=config_file))
+            f.write(script_contents.format(
+                mysqld_path=tools.shell_quote(mysqld),
+                config_file=tools.shell_quote(config_file)))
     except Exception as err:
         raise exceptions.GadgetError("Unable to create start script for "
                                      "sandbox instance", cause=err)
@@ -170,9 +168,9 @@ def _create_stop_script(script_name, script_path, mysqladmin, config_file):
     _LOGGER.debug("Creating stop script on '%s'", stop_path)
     try:
         with open(stop_path, "w") as f:
-            f.write(script_contents.format(quote=QUOTE_CHAR,
-                                           mysqladmin_path=mysqladmin,
-                                           config_file=config_file))
+            f.write(script_contents.format(
+                mysqladmin_path=tools.shell_quote(mysqladmin),
+                config_file=tools.shell_quote(config_file)))
     except Exception as err:
         raise exceptions.GadgetError("Unable to create stop script for "
                                      "sandbox instance", cause=err)
@@ -558,8 +556,8 @@ def create_sandbox(**kwargs):
 
     # Get the command string
     create_cmd = _CREATE_SANDBOX_CMD.format(
-        quote=QUOTE_CHAR, mysqld_path=local_mysqld_path,
-        config_file=os.path.normpath(optf_path))
+        mysqld_path=tools.shell_quote(local_mysqld_path),
+        config_file=tools.shell_quote(os.path.normpath(optf_path)))
 
     # If we are running the script as root , the --user=root option is needed
     if os.name == "posix" and getpass.getuser() == "root":
@@ -593,8 +591,8 @@ def create_sandbox(**kwargs):
                     "already in use.".format(port))
 
         start_cmd = _START_SERVER_CMD.format(
-            quote=QUOTE_CHAR, mysqld_path=local_mysqld_path,
-            config_file=os.path.normpath(optf_path))
+            mysqld_path=tools.shell_quote(local_mysqld_path),
+            config_file=tools.shell_quote(os.path.normpath(optf_path)))
 
         # If we are running the script as root , the --user=root option is
         # needed
@@ -688,9 +686,9 @@ def create_sandbox(**kwargs):
         # be done manually using the mysql_ssl_rsa_setup utility however it
         # requires the openssl command to be available.
         rsa_ssl_cmd = _CREATE_RSA_SSL_FILES_CMD.format(
-            quote=QUOTE_CHAR,
-            mysql_ssl_rsa_setup_path=mysql_ssl_rsa_setup_path,
-            datadir=datadir)
+            mysql_ssl_rsa_setup_path=tools.shell_quote(
+                mysql_ssl_rsa_setup_path),
+            datadir=tools.shell_quote(datadir))
         create_ssl_rsa_files_proc = tools.run_subprocess(
             rsa_ssl_cmd, shell=False, stderr=subprocess.PIPE)
         _, stderr = create_ssl_rsa_files_proc.communicate()
@@ -864,9 +862,8 @@ def start_sandbox(**kwargs):
         os.close(file_handle)
 
         start_cmd = _START_SERVER_CMD.format(
-            quote=QUOTE_CHAR,
-            mysqld_path=mysqld_path,
-            config_file=os.path.normpath(optf_path))
+            mysqld_path=tools.shell_quote(mysqld_path),
+            config_file=tools.shell_quote(os.path.normpath(optf_path)))
 
         # If we are running the script as root , the --user=root option
         # is needed

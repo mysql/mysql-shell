@@ -45,7 +45,8 @@ from mysql_gadgets.common.connection_parser import (parse_connection,
                                                     hostname_is_ip,
                                                     clean_IPv6,)
 from mysql_gadgets.common.tools import (create_option_file, get_abs_path,
-                                        is_executable, run_subprocess)
+                                        is_executable, run_subprocess,
+                                        shell_quote)
 
 _FOREIGN_KEY_SET = "SET foreign_key_checks = {0}"
 _AUTOCOMMIT_SET = "SET AUTOCOMMIT = {0}"
@@ -81,9 +82,9 @@ def get_mysqld_version(mysqld_path):
     :return: tuple with with major, minor and release number and version string
     :rtype tuple((int, int, int), str)
     """
-    version_proc = run_subprocess("{0} --version".format(mysqld_path),
-                                  stdout=subprocess.PIPE, shell=False,
-                                  universal_newlines=True)
+    version_proc = run_subprocess(
+        "{exec_path} --version".format(exec_path=shell_quote(mysqld_path)),
+        stdout=subprocess.PIPE, shell=False, universal_newlines=True)
     output, _ = version_proc.communicate()
     match = re.match(r'^.*mysqld.*?\s+(Ver\s+(\d+\.\d+(?:\.\d+)*).*)', output)
     if match:
