@@ -58,7 +58,9 @@ GRInstanceType get_gr_instance_type(mysqlsh::mysql::Connection* connection) {
           ret_val = GRInstanceType::InnoDBCluster;
       }
     } catch (shcore::Exception& error) {
-      if (error.code() != 1146) // Tables doesn't exist
+      // Ignore error table does not exist (error 1146) for 5.7 or database
+      // does not exist (error 1049) for 8.0, when metadata is not available.
+      if (error.code() != 1146 && error.code() != 1049)
         throw;
     }
   }
