@@ -18,6 +18,15 @@
 """
 This module contains methods for working with mysql server tools.
 """
+
+# quote() is available in a different module starting from Python 3.3.
+try:
+    # Import from shlex for Python 3.
+    from shlex import quote
+except ImportError:
+    # Otherwise, import from pipes module for Python 2.
+    from pipes import quote
+
 import shlex
 from contextlib import closing
 import logging
@@ -28,7 +37,7 @@ import subprocess
 import sys
 import tempfile
 
-
+from mysql_gadgets.common.constants import QUOTE_CHAR
 from mysql_gadgets.exceptions import GadgetError
 
 # pylint: disable=C0411
@@ -402,3 +411,23 @@ def stop_process_with_pid(pid, force=False):
             os.kill(pid, signal.SIGTERM)
         except OSError as err:
             raise GadgetError(error_msg.format("terminate", pid, str(err)))
+
+
+def shell_quote(param):
+    """Quote the string parameter from the shell command line.
+
+    Quote the specified string parameter, returning a shell-escaped version
+    of the string that can be safely used in a shell command line.
+
+    Note: Quoting is compatible with UNIX shells and with shlex.split(), for
+          Windows only the parameter is only surrounded with double quotes (").
+
+    :param param: Parameter to quote.
+    :type param: string
+
+    :return: A shell-escaped version of the specified string parameter.
+    """
+    if os.name == "posix":
+        return quote(param)
+    else:
+        return "{0}{1}{0}".format(QUOTE_CHAR, param)

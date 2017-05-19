@@ -715,13 +715,6 @@ if __name__ == "__main__":
             raise _PARSER.error(_ERROR_DUPLICATED_PORT.format(
                 mysqlx_port=args.mysqlx_port, server_port=args.port))
 
-        # check if sandbox exists
-        cmd_args = {"port": args.port}
-        if args.sandbox_base_dir:
-            cmd_args["sandbox_base_dir"] = args.sandbox_base_dir
-        # read password for root user if it is a create command or
-        # a start command and the sandbox doesn't yet exist.
-
         if args.sandbox_cmd == SANDBOX_CREATE:
             # Read extra password for root user of the sandbox
             sandbox_pw = options.read_extra_password(

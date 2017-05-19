@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017 Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 //#  include <poll.h>
 #endif
 #include <stdint.h>
+#include <string>
 
 namespace ngcommon {
 // Launches a process as child of current process and exposes the stdin & stdout of the child process
@@ -47,9 +48,8 @@ public:
    * Argument 'args' must have a last entry that is NULL.
    * If redirect_stderr is true, the child's stderr is redirected to the same stream than child's stdout.
    */
-  Process_launcher(const char *cmd_line, const char ** args, bool redirect_stderr = true) : is_alive(false) {
-    this->cmd_line = cmd_line;
-    this->args = args;
+  Process_launcher(const char ** argv, bool redirect_stderr = true) : is_alive(false) {
+    this->argv = argv;
     this->redirect_stderr = redirect_stderr;
   }
 
@@ -116,6 +116,9 @@ public:
   */
   uint64_t get_fd_read();
 
+  /** Perform Windows specific quoting of args and build a command line */
+  static std::string make_windows_cmdline(const char **argv);
+
 private:
   /**
    * Throws an exception with the specified message, if msg == NULL, the exception's message is specific of the platform error.
@@ -125,8 +128,7 @@ private:
   /** Closes child process */
   void close();
 
-  const char *cmd_line;
-  const char **args;
+  const char **argv;
   bool is_alive;
 #ifdef WIN32
   HANDLE child_in_rd;
