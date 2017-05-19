@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -105,19 +105,21 @@ JScript_function::JScript_function(JScript_context* context, v8::Handle<v8::Func
   _function.Reset(_js->isolate(), function);
 }
 
-std::string JScript_function::name() {
+const std::string &JScript_function::name() const {
   // TODO:
-  return "";
+  static std::string tmp;
+  return tmp;
 }
 
-std::vector<std::pair<std::string, Value_type> > JScript_function::signature() {
+const std::vector<std::pair<std::string, Value_type> > &JScript_function::signature() const {
   // TODO:
-  return std::vector<std::pair<std::string, Value_type> >();
+  static std::vector<std::pair<std::string, Value_type> > tmp;
+  return tmp;
 }
 
-std::pair<std::string, Value_type> JScript_function::return_type() {
+Value_type JScript_function::return_type() const {
   // TODO:
-  return std::pair<std::string, Value_type>();
+  return Undefined;
 }
 
 bool JScript_function::operator == (const Function_base &UNUSED(other)) const {

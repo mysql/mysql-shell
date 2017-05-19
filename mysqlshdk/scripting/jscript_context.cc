@@ -706,7 +706,7 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
   return ret_val;
 }
 
-Value JScript_context::execute_interactive(const std::string &code_str, Input_state& r_state) BOOST_NOEXCEPT_OR_NOTHROW
+Value JScript_context::execute_interactive(const std::string &code_str, Input_state& r_state) noexcept
 {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);

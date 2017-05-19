@@ -18,25 +18,48 @@
  */
 
 #include "scripting/types.h"
-#include "utils/utils_general.h"
-#include "utils/utils_string.h"
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/range/iterator_range_core.hpp>
-#include "mysqlshdk/libs/utils/logger.h"
+#include <rapidjson/prettywriter.h>
 #include <stdexcept>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
-#include <rapidjson/prettywriter.h>
 #include <limits>
+#include <cfloat>
+#include "utils/utils_general.h"
+#include "utils/utils_string.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 // These is* functions have undefined behavior if the passed value
 // is out of the -1-255 range
 #define IS_ALPHA(x) (isalpha(static_cast<unsigned char>(x)))
 #define IS_DIGIT(x) (isdigit(static_cast<unsigned char>(x)))
 
-using namespace shcore;
+// kTypeConvertible[from_type][to_type] = is_convertible
+// from_type = row, to_type = column
+#define T true
+#define F false
+const bool shcore::kTypeConvertible[12][12] = {
+// Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, MapR,Fun
+  {T,   F,   F,   F,   F,   F,   F,   F,   F,   F,   F,   F},  // Undefined
+  {F,   T,   F,   F,   F,   F,   F,   T,   T,   T,   T,   T},  // Null
+  {F,   F,   T,   F,   T,   T,   T,   F,   F,   F,   F,   F},  // Bool
+  {F,   F,   F,   T,   F,   F,   F,   F,   F,   F,   F,   F},  // String
+  {F,   F,   T,   F,   T,   T,   T,   F,   F,   F,   F,   F},  // Integer
+  {F,   F,   T,   F,   T,   T,   T,   F,   F,   F,   F,   F},  // UInteger
+  {F,   F,   T,   F,   T,   T,   T,   F,   F,   F,   F,   F},  // Float
+  {F,   F,   F,   F,   F,   F,   F,   T,   F,   F,   F,   F},  // Object
+  {F,   F,   F,   F,   F,   F,   F,   F,   T,   F,   F,   F},  // Array
+  {F,   F,   F,   F,   F,   F,   F,   F,   F,   T,   T,   F},  // Map
+  {F,   F,   F,   F,   F,   F,   F,   F,   F,   T,   T,   F},  // MapRef
+  {F,   F,   F,   F,   F,   F,   F,   F,   F,   F,   F,   T},  // Function
+};
+#undef T
+#undef F
+// Note: Null can be cast to Object/Array/Map, but a valid Object/Array/Map
+// pointer is not NULL, so they can't be cast to it.
+
+namespace shcore {
 
 // --
 
@@ -136,27 +159,24 @@ Exception Exception::parser_error(const std::string &message) {
   return e;
 }
 
-const char *Exception::what() const BOOST_NOEXCEPT_OR_NOTHROW
-{
+const char *Exception::what() const noexcept {
   if ((*_error)["message"].type == String)
-  return (*_error)["message"].value.s->c_str();
+    return (*_error)["message"].value.s->c_str();
   return "?";
 }
 
-const char *Exception::type() const BOOST_NOEXCEPT_OR_NOTHROW
-{
+const char *Exception::type() const noexcept {
   if ((*_error)["type"].type == String)
-  return (*_error)["type"].value.s->c_str();
+    return (*_error)["type"].value.s->c_str();
   return "Exception";
 }
 
-int64_t Exception::code() const BOOST_NOEXCEPT_OR_NOTHROW
-{
+int64_t Exception::code() const noexcept {
   if ((*_error).find("code") != (*_error).end()) {
     try {
       return (*_error)["code"].as_int();
     } catch (...) {
-      return 0; //as it's not int
+      return 0;  // as it's not int
     }
   }
   return 0;
@@ -221,7 +241,7 @@ std::string Exception::format() {
 
 // --
 
-std::string shcore::type_name(Value_type type) {
+std::string type_name(Value_type type) {
   switch (type) {
     case Undefined:
       return "Undefined";
@@ -363,6 +383,11 @@ Value::Value(const char *s, size_t n) {
 Value::Value(int i)
   : type(Integer) {
   value.i = i;
+}
+
+Value::Value(unsigned int ui)
+  : type(UInteger) {
+  value.ui = ui;
 }
 
 Value::Value(int64_t i)
@@ -757,13 +782,19 @@ Value Value::parse_number(char **pcc) {
   return ret_val;
 }
 
-bool my_strnicmp(const char *c1, const char *c2, size_t n) {
-  return boost::iequals(boost::make_iterator_range(c1, c1 + n), boost::make_iterator_range(c2, c2 + n));
-}
-
 Value Value::parse(const std::string &s) {
   char *pc = const_cast<char *>(s.c_str());
-  return parse(&pc);
+  Value tmp(parse(&pc));
+  if (pc != &s[s.size() - 1]) {
+    // ensure any leftover chars are just whitespaces
+    while (isspace(*pc))
+      ++pc;
+    if (pc - 1 != &s[s.size() - 1])
+      throw Exception::parser_error(
+          "Unexpected characters left at the end of document: ..." +
+          std::string(pc));
+  }
+  return tmp;
 }
 
 Value Value::parse(char **pc) {
@@ -787,19 +818,16 @@ Value Value::parse(char **pc) {
         ++*pc;
 
       n = *pc - pi;
-      if (n == 9 && ::my_strnicmp(pi, "undefined", 9)) {
+      if (n == 9 && str_caseeq(pi, "undefined", n)) {
         return Value();
-      } else if (n == 4 && ::my_strnicmp(pi, "true", 4)) {
+      } else if (n == 4 && str_caseeq(pi, "true", n)) {
         return Value(true);
-      } else if (n == 4 && ::my_strnicmp(pi, "null", 4)) {
+      } else if (n == 4 && str_caseeq(pi, "null", n)) {
         return Value::Null();
-      } else if (n == 5 && ::my_strnicmp(pi, "false", 5)) {
+      } else if (n == 5 && str_caseeq(pi, "false", n)) {
         return Value(false);
       } else {
-        throw Exception::parser_error(std::string("Can't parse '") + *pc + "'");
-        //report_error(pi - _pc_json_start,
-        //  "one of (array, string, number, true, false, null) expected");
-        return Value();
+        throw Exception::parser_error(std::string("Can't parse '") + pi + "'");
       }
     }
   }
@@ -1184,53 +1212,97 @@ Value::~Value() {
   }
 }
 
+inline Exception type_conversion_error(Value_type from, Value_type expected) {
+  return Exception::type_error("Invalid typecast: "+type_name(expected)+" expected, but value is "+type_name(from));
+}
+
+inline Exception type_range_error(Value_type from, Value_type expected) {
+  return Exception::type_error("Invalid typecast: "+type_name(expected)+" expected, but "+type_name(from)+" value is out of range");
+}
+
 void Value::check_type(Value_type t) const {
-  if (type != t)
-    throw Exception::type_error("Invalid typecast");
+  if (!kTypeConvertible[type][t])
+    throw type_conversion_error(type, t);
+}
+
+bool Value::as_bool() const {
+  switch (type) {
+    case Bool:
+      return value.b;
+    case Integer:
+      return value.i != 0;
+    case UInteger:
+      return value.ui != 0;
+    case Float:
+      return value.d != 0.0;
+    default:
+      break;
+  }
+  throw type_conversion_error(type, Bool);
 }
 
 int64_t Value::as_int() const {
-  int64_t ret_val;
-
-  if (type == Integer)
-    ret_val = value.i;
-  else if (type == UInteger && value.ui <= uint64_t(std::numeric_limits<int64_t>::max()))
-    ret_val = static_cast<int64_t>(value.ui);
-  else if (type == Float)
-    ret_val = static_cast<int64_t>(value.d);
-  else if (type == Bool)
-    ret_val = value.b ? 1 : 0;
-  else
-    throw Exception::type_error("Invalid typecast");
-
-  return ret_val;
+  switch (type) {
+    case Integer:
+      return value.i;
+    case UInteger:
+      if (value.ui <= (uint64_t)std::numeric_limits<int64_t>::max())
+        return static_cast<int64_t>(value.ui);
+      throw type_range_error(type, Integer);
+    case Float:
+      if (value.d >= -(1LL << DBL_MANT_DIG) && value.d <= (1LL << DBL_MANT_DIG))
+        return static_cast<int64_t>(value.d);
+      throw type_range_error(type, Integer);
+    case Bool:
+      return value.b ? 1 : 0;
+    default:
+      break;
+  }
+  throw type_conversion_error(type, Integer);
 }
 
 uint64_t Value::as_uint() const {
-  uint64_t ret_val;
-
-  if (type == UInteger)
-    ret_val = value.ui;
-  else if (type == Integer && value.i >= 0)
-    ret_val = (uint64_t)value.i;
-  else
-    throw Exception::type_error("Invalid typecast");
-
-  return ret_val;
+  switch (type) {
+    case UInteger:
+      return value.ui;
+    case Integer:
+      if (value.i >= 0)
+        return static_cast<uint64_t>(value.i);
+      throw type_range_error(type, UInteger);
+    case Float:
+      if (value.d >= 0.0 && value.d <= (1LL << DBL_MANT_DIG))
+        return static_cast<uint64_t>(value.d);
+      throw type_range_error(type, UInteger);
+    case Bool:
+      return value.b ? 1 : 0;
+    default:
+      break;
+  }
+  throw type_conversion_error(type, UInteger);
 }
 
 double Value::as_double() const {
-  double ret_val;
-  if (type == Float)
-    ret_val = value.d;
-  else if (type == Integer)
-    ret_val = (double)value.i;
-  else if (type == UInteger)
-    ret_val = (double)value.ui;
-  else
-    throw Exception::type_error("Invalid typecast");
-
-  return ret_val;
+  // DBL_MANT_DIG is the number of bits used to represent the number itself,
+  // without the exponent or sign
+  switch (type) {
+    case UInteger:
+      if (value.ui <= (1ULL << DBL_MANT_DIG))
+        return static_cast<double>(value.ui);
+      // higher values lose precision
+      throw type_range_error(type, Float);
+    case Integer:
+      if (value.i <= (1LL << DBL_MANT_DIG) && value.i >= -(1LL << DBL_MANT_DIG))
+        return static_cast<double>(value.i);
+      // higher or lower values lose precision
+      throw type_range_error(type, Float);
+    case Float:
+      return value.d;
+    case Bool:
+      return value.b ? 1.0 : 0.0;
+    default:
+      break;
+  }
+  throw type_conversion_error(type, Float);
 }
 
 //---
@@ -1259,7 +1331,8 @@ bool Argument_list::bool_at(unsigned int i) const {
     case Float:
       return at(i).value.d != 0.0;
     default:
-      throw Exception::type_error(str_format("Argument #%u is expected to be a bool", (i + 1)));
+      throw Exception::type_error(
+          str_format("Argument #%u is expected to be a bool", (i + 1)));
   }
 }
 
@@ -1520,3 +1593,5 @@ void Object_bridge::append_json(JSON_dumper& dumper) const
   dumper.append_string("class", class_name());
   dumper.end_object();
 }
+
+}  // namespace shcore

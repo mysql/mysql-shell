@@ -27,6 +27,10 @@
 #include "shellcore/shell_options.h"
 #include "mysh_config.h"
 
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 mysqlsh::Command_line_shell* shell_ptr = NULL;
 
 #ifdef WIN32

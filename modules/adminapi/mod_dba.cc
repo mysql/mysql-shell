@@ -19,6 +19,7 @@
 
 #include <string>
 #include <random>
+#include <algorithm>
 #ifndef WIN32
 #include <sys/un.h>
 #endif

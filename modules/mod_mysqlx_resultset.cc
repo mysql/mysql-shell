@@ -321,8 +321,8 @@ REGISTER_HELP(DOCRESULT_BRIEF, "Allows traversing the DbDoc objects returned by 
 
 DocResult::DocResult(std::shared_ptr< ::mysqlx::Result> result) :
 BaseResult(result) {
-  add_method("fetchOne", std::bind(&DocResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
-  add_method("fetchAll", std::bind(&DocResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchOne", std::bind(&DocResult::fetch_one, this, _1), NULL);
+  add_method("fetchAll", std::bind(&DocResult::fetch_all, this, _1), NULL);
 }
 
 // Documentation of fetchOne function
@@ -450,8 +450,8 @@ BaseResult(result) {
   add_property("columns", "getColumns");
   add_property("columnNames", "getColumnNames");
 
-  add_method("fetchOne", std::bind(&RowResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
-  add_method("fetchAll", std::bind(&RowResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchOne", std::bind(&RowResult::fetch_one, this, _1), NULL);
+  add_method("fetchAll", std::bind(&RowResult::fetch_all, this, _1), NULL);
 }
 
 shcore::Value RowResult::get_member(const std::string &prop) const {

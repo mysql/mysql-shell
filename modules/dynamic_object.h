@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -56,6 +56,8 @@ protected:
   // Enable/disable functions based on the received and registered states
   void update_functions(const std::string& state);
   void enable_function(const char *name, bool enable);
+
+  bool is_enabled(const std::string &name) const;
 };
 }
 }

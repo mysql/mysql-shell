@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -29,19 +29,21 @@ Python_function::Python_function(Python_context* context, PyObject *function)
   Py_INCREF(_function);
 }
 
-std::string Python_function::name() {
+const std::string &Python_function::name() const {
   // TODO:
-  return "";
+  static std::string tmp;
+  return tmp;
 }
 
-std::vector<std::pair<std::string, Value_type> > Python_function::signature() {
+const std::vector<std::pair<std::string, Value_type> > &Python_function::signature() const {
   // TODO:
-  return std::vector<std::pair<std::string, Value_type> >();
+  static std::vector<std::pair<std::string, Value_type> > tmp;
+  return tmp;
 }
 
-std::pair<std::string, Value_type> Python_function::return_type() {
+Value_type Python_function::return_type() const {
   // TODO:
-  return std::pair<std::string, Value_type>();
+  return Undefined;
 }
 
 bool Python_function::operator == (const Function_base &UNUSED(other)) const {
@@ -66,4 +68,3 @@ Value Python_function::invoke(const Argument_list &args) {
 
   return _py->pyobj_to_shcore_value(ret_val);
 }
-

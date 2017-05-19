@@ -256,9 +256,13 @@ shcore::Value DatabaseObject::find_in_cache(const std::string& name, Cache targe
 
 bool DatabaseObject::is_base_member(const std::string &prop) const {
   auto style = naming_style;
-  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f) { return f.second->name(style) == prop; });
+  if (has_method_advanced(prop, style))
+    return true;
+  auto prop_index = std::find_if(
+      _properties.begin(), _properties.begin() + (_base_property_count - 1),
+      [prop, style](const Cpp_property_name& p) {
+        return p.name(style) == prop;
+      });
 
-  auto prop_index = std::find_if(_properties.begin(), _properties.begin() + (_base_property_count - 1), [prop, style](std::shared_ptr<Cpp_property_name> p) { return p->name(style) == prop; });
-
-  return (method_index != _funcs.end() || prop_index != _properties.begin() + (_base_property_count - 1));
+  return (prop_index != _properties.begin() + (_base_property_count - 1));
 }

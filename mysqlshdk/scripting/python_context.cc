@@ -185,7 +185,7 @@ Value Python_context::execute(
 }
 
 Value Python_context::execute_interactive(
-    const std::string &code, Input_state &r_state) BOOST_NOEXCEPT_OR_NOTHROW {
+    const std::string &code, Input_state &r_state) noexcept {
   Value retvalue;
 
   r_state = shcore::Input_state::Ok;

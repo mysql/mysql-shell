@@ -55,6 +55,28 @@ public:\
     void GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::TestBody()
 #endif
 
+#define ASSERT_THROW_LIKE(expr, exc, msg)                              \
+  try {                                                                \
+    expr;                                                              \
+    FAIL() << "Expected exception of type " #exc << " but got none\n"; \
+  } catch (exc & e) {                                                  \
+    if (std::string(e.what()).find(msg) == std::string::npos) {        \
+      FAIL() << "Expected exception with message: " << msg             \
+             << "\nbut got: " << e.what() << "\n";                     \
+    }                                                                  \
+  }
+
+#define EXPECT_THROW_LIKE(expr, exc, msg)                                     \
+  try {                                                                       \
+    expr;                                                                     \
+    ADD_FAILURE() << "Expected exception of type " #exc << " but got none\n"; \
+  } catch (exc & e) {                                                         \
+    if (std::string(e.what()).find(msg) == std::string::npos) {               \
+      ADD_FAILURE() << "Expected exception with message: " << msg             \
+                    << "\nbut got: " << e.what() << "\n";                     \
+    }                                                                         \
+  }
+
 class Shell_test_output_handler {
 public:
   // You can define per-test set-up and tear-down logic as usual.

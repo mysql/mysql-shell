@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -24,8 +24,8 @@
 #include <string>
 #include <stdexcept>
 
-#ifndef BOOST_NOEXCEPT_OR_NOTHROW
-# define BOOST_NOEXCEPT_OR_NOTHROW throw()
+#ifndef noexcept
+# define noexcept throw()
 #endif
 
 namespace ngcommon {
@@ -39,11 +39,11 @@ private:
 
 public:
 
-  virtual ~Exception() BOOST_NOEXCEPT_OR_NOTHROW { }
+  virtual ~Exception() noexcept { }
 
   static Exception runtime_error(const std::string &message);
 
-  virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
+  virtual const char *what() const noexcept;
 };
 
 }

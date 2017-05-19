@@ -59,3 +59,7 @@ ENDMACRO()
 IF(USE_ASAN)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 ENDIF()
+
+IF(FORCE_CLANG_COLOR)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcolor-diagnostics")
+ENDIF()

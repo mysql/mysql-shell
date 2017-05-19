@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,7 +30,7 @@ Exception Exception::runtime_error(const std::string &message)
 }
 
 
-const char *Exception::what() const BOOST_NOEXCEPT_OR_NOTHROW
+const char *Exception::what() const noexcept
 {
   return message.c_str();
 }

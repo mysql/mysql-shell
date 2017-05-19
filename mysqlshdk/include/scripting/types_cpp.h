@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,11 +17,18 @@
  * 02110-1301  USA
  */
 
-#ifndef _TYPES_CPP_H_
-#define _TYPES_CPP_H_
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_CPP_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_CPP_H_
 
-#include "scripting/types_common.h"
+#include <cassert>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "scripting/types.h"
+#include "scripting/types_common.h"
 
 namespace shcore {
 enum NamingStyle {
@@ -30,74 +37,237 @@ enum NamingStyle {
   Constants = 2
 };
 
+// Helper type traits for automatic method wrapping
+template <typename T>
+struct Type_info {
+  static T to_native(const shcore::Value &in);
+};
+
+template <>
+struct Type_info<void> {
+  static Value_type vtype() { return shcore::Null; }
+};
+
+template <>
+struct Type_info<int64_t> {
+  static int64_t to_native(const shcore::Value &in) { return in.as_int(); }
+  static Value_type vtype() { return shcore::Integer; }
+  static const char *code() { return "i"; }
+  static int64_t default_value() { return 0; }
+};
+
+template <>
+struct Type_info<uint64_t> {
+  static uint64_t to_native(const shcore::Value &in) { return in.as_uint(); }
+  static Value_type vtype() { return shcore::UInteger; }
+  static const char *code() { return "u"; }
+  static uint64_t default_value() { return 0; }
+};
+
+template <>
+struct Type_info<int> {
+  static int to_native(const shcore::Value &in) {
+    return static_cast<int>(in.as_int());
+  }
+  static Value_type vtype() { return shcore::Integer; }
+  static const char *code() { return "i"; }
+  static int default_value() { return 0; }
+};
+
+template <>
+struct Type_info<unsigned int> {
+  static unsigned int to_native(const shcore::Value &in) {
+    return static_cast<unsigned int>(in.as_uint());
+  }
+  static Value_type vtype() { return shcore::UInteger; }
+  static const char *code() { return "u"; }
+  static unsigned int default_value() { return 0; }
+};
+
+template <>
+struct Type_info<double> {
+  static double to_native(const shcore::Value &in) { return in.as_double(); }
+  static Value_type vtype() { return shcore::Float; }
+  static const char *code() { return "f"; }
+  static double default_value() { return 0.0; }
+};
+
+template <>
+struct Type_info<float> {
+  static float to_native(const shcore::Value &in) { return in.as_double(); }
+  static Value_type vtype() { return shcore::Float; }
+  static const char *code() { return "f"; }
+  static float default_value() { return 0.0f; }
+};
+
+template <>
+struct Type_info<bool> {
+  static bool to_native(const shcore::Value &in) { return in.as_bool(); }
+  static Value_type vtype() { return shcore::Bool; }
+  static const char *code() { return "b"; }
+  static bool default_value() { return false; }
+};
+
+template <>
+struct Type_info<std::string> {
+  static const std::string &to_native(const shcore::Value &in) {
+    return in.as_string();
+  }
+  static Value_type vtype() { return shcore::String; }
+  static const char *code() { return "s"; }
+  static std::string default_value() { return std::string(); }
+};
+
+template <>
+struct Type_info<const std::string &> {
+  static const std::string &to_native(const shcore::Value &in) {
+    return in.as_string();
+  }
+  static Value_type vtype() { return shcore::String; }
+  static const char *code() { return "s"; }
+  static std::string default_value() { return std::string(); }
+};
+
+template <>
+struct Type_info<shcore::Dictionary_t> {
+  static shcore::Dictionary_t to_native(const shcore::Value &in) {
+    return in.as_map();
+  }
+  static Value_type vtype() { return shcore::Map; }
+  static const char *code() { return "D"; }
+  static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
+};
+
+template <>
+struct Type_info<shcore::Array_t> {
+  static shcore::Array_t to_native(const shcore::Value &in) {
+    return in.as_array();
+  }
+  static Value_type vtype() { return shcore::Array; }
+  static const char *code() { return "A"; }
+  static shcore::Array_t default_value() { return shcore::Array_t(); }
+};
+
+template <typename Bridge_class>
+struct Type_info<std::shared_ptr<Bridge_class>> {
+  static std::shared_ptr<Bridge_class> to_native(const shcore::Value &in) {
+    return in.as_object<Bridge_class>();
+  }
+  static Value_type vtype() { return shcore::Object; }
+  static const char *code() { return "O"; }
+  static std::shared_ptr<Bridge_class> default_value() {
+    return std::shared_ptr<Bridge_class>();
+  }
+};
+
 class SHCORE_PUBLIC Cpp_property_name {
-public:
-  Cpp_property_name(const std::string &name, bool constant = false);
-  std::string name(const NamingStyle& style);
-  std::string base_name();
+ public:
+  explicit Cpp_property_name(const std::string &name, bool constant = false);
+  Cpp_property_name(const Cpp_property_name &other) {
+    _name[0] = other._name[0];
+    _name[1] = other._name[1];
+  }
+  std::string name(const NamingStyle &style) const;
+  std::string base_name() const;
 
-private:
-
+ private:
   // Each instance holds it's names on the different styles
   std::string _name[2];
 };
 
 class SHCORE_PUBLIC Cpp_function : public Function_base {
-public:
-  //TODO make this work with direct function pointers and skip std::function
+ public:
   typedef std::function<Value(const shcore::Argument_list &)> Function;
 
-  virtual ~Cpp_function() {}
+  const std::string &name() const override;
+  virtual const std::string &name(const NamingStyle &style) const;
 
-  virtual std::string name();
-  virtual std::string name(const NamingStyle& style);
+  const std::vector<std::pair<std::string, Value_type>> &signature()
+      const override;
 
-  virtual std::vector<std::pair<std::string, Value_type> > signature();
+  Value_type return_type() const override;
 
-  virtual std::pair<std::string, Value_type> return_type();
+  bool operator==(const Function_base &other) const override;
 
-  virtual bool operator == (const Function_base &other) const;
+  Value invoke(const Argument_list &args) override;
 
-  virtual Value invoke(const Argument_list &args);
+  bool is_legacy = false;
+  // TODO(alfredo) delme
+  bool has_var_args() override { return _meta->var_args; }
 
-  virtual bool has_var_args() { return _var_args; }
+  static std::shared_ptr<Function_base> create(const std::string &name,
+                                               const Function &func,
+                                               const char *arg1_name,
+                                               Value_type arg1_type = Undefined,
+                                               ...);
 
-  static std::shared_ptr<Function_base> create(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type = Undefined, ...);
+  static std::shared_ptr<Function_base> create(
+      const std::string &name, const Function &func,
+      const std::vector<std::pair<std::string, Value_type>> &signature);
 
-  static std::shared_ptr<Function_base> create(const std::string &name, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature);
-
-protected:
+ protected:
   friend class Cpp_object_bridge;
 
-  Cpp_function(const std::string &name, const Function &func, bool var_args);
-  Cpp_function(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type = Undefined, ...);
-  Cpp_function(const std::string &name, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature);
+  enum Param_flag { Mandatory, Optional };
+  typedef std::vector<std::pair<Value_type, Param_flag>> Raw_signature;
+  static Raw_signature gen_signature(
+      const std::vector<std::pair<std::string, Value_type>> &param_types);
+  static std::pair<bool, int> match_signatures(
+      const Raw_signature &cand, const std::vector<Value_type> &wanted);
 
+  struct Metadata {
+    std::string name[2];
+    Raw_signature signature;
+
+    std::vector<std::pair<std::string, Value_type>> param_types;
+    Value_type return_type;
+    bool var_args;  // delme
+
+    void set(const std::string &name, Value_type rtype,
+             const std::vector<std::pair<std::string, Value_type>> &ptypes);
+  };
+
+  Cpp_function(const std::string &name, const Function &func,
+               bool var_args);  // delme
+  Cpp_function(const std::string &name, const Function &func,
+               const std::vector<std::pair<std::string, Value_type>>
+                   &signature);  // delme
+  Cpp_function(const Metadata *meta, const Function &func);
+
+  const Raw_signature &function_signature() const { return _meta->signature; }
+
+ private:
   // Each instance holds it's names on the different styles
-  std::string _name[2];
   Function _func;
 
-  std::vector<std::pair<std::string, Value_type> > _signature;
-  Value_type _return_type;
-  bool _var_args;
+  const Metadata *_meta;
+  Metadata _meta_tmp;  // temporary memory for legacy versions of Cpp_function
 };
 
 class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
-public:
+ public:
   struct ScopedStyle {
-  public:
-    ScopedStyle(Cpp_object_bridge *target, NamingStyle style) :_target(target) {
+   public:
+    ScopedStyle(const Cpp_object_bridge *target, NamingStyle style)
+        : _target(target) {
       _target->naming_style = style;
     }
-    ~ScopedStyle() {
-      _target->naming_style = LowerCamelCase;
-    }
-  private:
-    Cpp_object_bridge *_target;
+    ~ScopedStyle() { _target->naming_style = LowerCamelCase; }
+
+   private:
+    const Cpp_object_bridge *_target;
   };
 
+ protected:
   Cpp_object_bridge();
+  Cpp_object_bridge(const Cpp_object_bridge &) = delete;
+
+ public:
   virtual ~Cpp_object_bridge();
+
+  virtual bool operator==(const Object_bridge &other) const {
+    return class_name() == other.class_name() && this == &other;
+  }
 
   virtual std::vector<std::string> get_members() const;
   virtual Value get_member(const std::string &prop) const;
@@ -114,49 +284,259 @@ public:
   virtual Value call(const std::string &name, const Argument_list &args);
 
   // Helper method to retrieve properties using a method
-  shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
+  shcore::Value get_member_method(const shcore::Argument_list &args,
+                                  const std::string &method,
+                                  const std::string &prop);
 
-  // These advanced functions verify the requested property/function to see if it is
-  // valid on the active naming style first, if so, then the normal functions (above)
-  // are called with the base property/function name
-  virtual std::vector<std::string> get_members_advanced(const NamingStyle &style);
-  virtual Value get_member_advanced(const std::string &prop, const NamingStyle &style);
-  virtual bool has_member_advanced(const std::string &prop, const NamingStyle &style);
-  virtual void set_member_advanced(const std::string &prop, Value value, const NamingStyle &style);
-  virtual bool has_method_advanced(const std::string &name, const NamingStyle &style);
-  virtual Value call_advanced(const std::string &name, const Argument_list &args, const NamingStyle &style);
+  // These advanced functions verify the requested property/function to see if
+  // it is valid on the active naming style first, if so, then the normal
+  // functions (above) are called with the base property/function name
+  virtual std::vector<std::string> get_members_advanced(
+      const NamingStyle &style);
+  virtual Value get_member_advanced(const std::string &prop,
+                                    const NamingStyle &style) const;
+  virtual bool has_member_advanced(const std::string &prop,
+                                   const NamingStyle &style) const;
+  virtual void set_member_advanced(const std::string &prop, Value value,
+                                   const NamingStyle &style);
+  virtual bool has_method_advanced(const std::string &name,
+                                   const NamingStyle &style) const;
+  virtual Value call_advanced(const std::string &name,
+                              const Argument_list &args,
+                              const NamingStyle &style);
 
-  virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
+  virtual std::string &append_descr(std::string &s_out, int indent = -1,
+                                    int quote_strings = 0) const;
   virtual std::string &append_repr(std::string &s_out) const;
-  std::shared_ptr<ScopedStyle> set_scoped_naming_style(const NamingStyle& style);
+  std::shared_ptr<ScopedStyle> set_scoped_naming_style(
+      const NamingStyle &style);
 
   virtual shcore::Value help(const shcore::Argument_list &args);
 
-protected:
+ protected:
+  /** Expose a method with 1 argument with automatic bridging.
+
+  For use with methods with 1 argument, using shcore::Value compatible
+  arguments and return type. String arguments must be passed by const ref.
+
+  To mark a parameter as optional, add ? at the beginning of the name string.
+  Optional parameters must be marked from right to left, with no skips.
+
+  Runtime type checking and conversions done automatically.
+
+  @param name - the name of the method, with description separated by space.
+    e.g. "expr filter expression for query"
+  @param func - function pointer to the method
+  @param a1doc - name of the 1st argument (must not be empty!)
+  @param a1def - default value to be used if parameter is optional and not given
+  */
+  template <typename R, typename A1, typename C>
+  void expose(const std::string &name, R (C::*func)(A1),
+              const std::string &a1doc,
+              const typename std::remove_const<A1>::type &a1def =
+                  Type_info<A1>::default_value()) {
+    assert(func != nullptr);
+    assert(!name.empty());
+    assert(!a1doc.empty());
+
+    Cpp_function::Metadata &md =
+        get_metadata(class_name() + "::" + name + ":" + Type_info<A1>::code());
+    if (md.name[0].empty()) {
+      set_metadata(md, name, Type_info<R>::vtype(),
+                   {{a1doc, Type_info<A1>::vtype()}});
+    } else {
+      throw std::logic_error("redefinition of " + name);
+    }
+
+    _funcs.emplace(std::make_pair(
+        name.substr(0, name.find("|")),
+        std::shared_ptr<Cpp_function>(new Cpp_function(
+            &md,
+            [this, func,
+             a1def](const shcore::Argument_list &args) -> shcore::Value {
+              return shcore::Value((static_cast<C *>(this)->*func)(
+                  args.size() == 0 ? a1def
+                                   : Type_info<A1>::to_native(args.at(0))));
+            }))));
+  }
+
+  /** Expose method with no arguments, with automatic bridging.
+      See above for details.
+  */
+  template <typename R, typename C>
+  void expose(const std::string &name, R (C::*func)()) {
+    assert(func != nullptr);
+    assert(!name.empty());
+
+    Cpp_function::Metadata &md = get_metadata(class_name() + "::" + name + ":");
+    if (md.name[0].empty()) {
+      set_metadata(md, name, Type_info<R>::vtype(), {});
+    } else {
+      throw std::logic_error("redefinition of " + name);
+    }
+
+    _funcs.emplace(std::make_pair(
+        name.substr(0, name.find("|")),
+        std::shared_ptr<Cpp_function>(new Cpp_function(
+            &md, [this, func](const shcore::Argument_list &) -> shcore::Value {
+              return shcore::Value((static_cast<C *>(this)->*func)());
+            }))));
+  }
+
+  /** Expose method with 2 arguments, with automatic bridging.
+      See above for details.
+  */
+  template <typename R, typename A1, typename A2, typename C>
+  void expose(const std::string &name, R (C::*func)(A1, A2),
+              const std::string &a1doc, const std::string &a2doc,
+              const typename std::remove_const<A2>::type &a2def =
+                  Type_info<A2>::default_value(),
+              const typename std::remove_const<A1>::type &a1def =
+                  Type_info<A1>::default_value()) {
+    assert(func != nullptr);
+    assert(!name.empty());
+    assert(!a1doc.empty());
+    assert(!a2doc.empty());
+
+    if (!((a1doc[0] != '?' && a2doc[0] != '?') ||
+          (a1doc[0] != '?' && a2doc[0] == '?') ||
+          (a1doc[0] == '?' && a2doc[0] == '?')))
+      throw std::logic_error(
+          "optional parameters have to be at the end of param list");
+
+    Cpp_function::Metadata &md =
+        get_metadata(class_name() + "::" + name + ":" + Type_info<A1>::code() +
+                     Type_info<A2>::code());
+    if (md.name[0].empty()) {
+      set_metadata(
+          md, name, Type_info<R>::vtype(),
+          {{a1doc, Type_info<A1>::vtype()}, {a2doc, Type_info<A2>::vtype()}});
+    } else {
+      throw std::logic_error("redefinition of " + name);
+    }
+
+    _funcs.emplace(std::make_pair(
+        name.substr(0, name.find("|")),
+        std::shared_ptr<Cpp_function>(new Cpp_function(
+            &md,
+            [this, func, a1def,
+             a2def](const shcore::Argument_list &args) -> shcore::Value {
+              return shcore::Value((static_cast<C *>(this)->*func)(
+                  args.size() == 0 ? a1def
+                                   : Type_info<A1>::to_native(args.at(0)),
+                  args.size() <= 1 ? a2def
+                                   : Type_info<A2>::to_native(args.at(1))));
+            }))));
+  }
+
+  /** Expose method with 3 arguments, with automatic bridging.
+      See above for details.
+  */
+  template <typename R, typename A1, typename A2, typename A3, typename C>
+  void expose(const std::string &name, R (C::*func)(A1, A2, A3),
+              const std::string &a1doc, const std::string &a2doc,
+              const std::string &a3doc,
+              const typename std::remove_const<A3>::type &a3def =
+                  Type_info<A3>::default_value(),
+              const typename std::remove_const<A2>::type &a2def =
+                  Type_info<A2>::default_value(),
+              const typename std::remove_const<A1>::type &a1def =
+                  Type_info<A1>::default_value()) {
+    assert(func != nullptr);
+    assert(!name.empty());
+    assert(!a1doc.empty());
+    assert(!a2doc.empty());
+    assert(!a3doc.empty());
+
+    if (!((a1doc[0] != '?' && a2doc[0] != '?' && a3doc[0] != '?') ||
+          (a1doc[0] != '?' && a2doc[0] != '?' && a3doc[0] == '?') ||
+          (a1doc[0] != '?' && a2doc[0] == '?' && a3doc[0] == '?') ||
+          (a1doc[0] == '?' && a2doc[0] == '?' && a3doc[0] == '?')))
+      throw std::logic_error(
+          "optional parameters have to be at the end of param list");
+
+    Cpp_function::Metadata &md =
+        get_metadata(class_name() + "::" + name + ":" + Type_info<A2>::code() +
+                     Type_info<A2>::code() + Type_info<A3>::code());
+    if (md.name[0].empty()) {
+      set_metadata(md, name, Type_info<R>::vtype(),
+                   {{a1doc, Type_info<A1>::vtype()},
+                    {a2doc, Type_info<A2>::vtype()},
+                    {a3doc, Type_info<A3>::vtype()}});
+    } else {
+      throw std::logic_error("redefinition of " + name);
+    }
+
+    _funcs.emplace(std::make_pair(
+        name.substr(0, name.find("|")),
+        std::shared_ptr<Cpp_function>(new Cpp_function(
+            &md,
+            [this, func, a1def, a2def,
+             a3def](const shcore::Argument_list &args) -> shcore::Value {
+              return shcore::Value((static_cast<C *>(this)->*func)(
+                  args.size() == 0 ? a1def
+                                   : Type_info<A1>::to_native(args.at(0)),
+                  args.size() <= 1 ? a2def
+                                   : Type_info<A2>::to_native(args.at(1)),
+                  args.size() <= 2 ? a3def
+                                   : Type_info<A3>::to_native(args.at(2))));
+            }))));
+  }
+
+ protected:
+  // delme
   virtual void add_method(const std::string &name, Cpp_function::Function func,
-                  const char *arg1_name, Value_type arg1_type = Undefined, ...);
-  virtual void add_varargs_method(const std::string &name, Cpp_function::Function func);
+                          const char *arg1_name,
+                          Value_type arg1_type = Undefined, ...);
+  // delme - replace varargs with type overloading
+  virtual void add_varargs_method(const std::string &name,
+                                  Cpp_function::Function func);
 
-  // Constants and properties are not handled through the Cpp_property_name class
-  // which supports different naming styles
+  // Constants and properties are not handled through the Cpp_property_name
+  // class which supports different naming styles
   virtual void add_constant(const std::string &name);
-  virtual void add_property(const std::string &name, const std::string &getter = "");
-  virtual void delete_property(const std::string &name, const std::string &getter = "");
+  virtual void add_property(const std::string &name,
+                            const std::string &getter = "");
+  virtual void delete_property(const std::string &name,
+                               const std::string &getter = "");
 
-  // Helper function that retrieves a qualified functio name using the active naming style
-  // Used mostly for errors in function validations
-  std::string get_function_name(const std::string& member, bool fully_specified = true) const;
+  // Helper function that retrieves a qualified function name using the active
+  // naming style Used mostly for errors in function validations
+  std::string get_function_name(const std::string &member,
+                                bool fully_specified = true) const;
 
-  // Returns the base name of the given member
-  std::string get_base_name(const std::string& member) const;
-
-  typedef std::pair< std::string, std::shared_ptr<Cpp_function> > FunctionEntry;
-  std::map<std::string, std::shared_ptr<Cpp_function> > _funcs;
-  std::vector<std::shared_ptr<Cpp_property_name> > _properties;
+  std::vector<Cpp_property_name> _properties;
 
   // The global active naming style
-  NamingStyle naming_style;
-};
-};
+  mutable NamingStyle naming_style;
 
+ protected:
+  // Returns named function which signature that matches the given argument list
+  std::shared_ptr<Cpp_function> lookup_function_overload(
+      const std::string &method, const NamingStyle &style,
+      const shcore::Argument_list &args) const;
+  std::shared_ptr<Cpp_function> lookup_function(const std::string &method,
+                                                const NamingStyle &style) const;
+  std::shared_ptr<Cpp_function> lookup_function(
+      const std::string &method) const;
+
+ private:
+  std::multimap<std::string, std::shared_ptr<Cpp_function>> _funcs;
+
+  // Returns the base name of the given member
+  std::string get_base_name(const std::string &member) const;
+
+  static std::map<std::string, Cpp_function::Metadata> mdtable;
+  static void clear_metadata();
+  static Cpp_function::Metadata &get_metadata(const std::string &method);
+  static void set_metadata(
+      Cpp_function::Metadata &meta, const std::string &name, Value_type rtype,
+      const std::vector<std::pair<std::string, Value_type>> &ptypes);
+
+#ifdef FRIEND_TEST
+  friend class Types_cpp;
 #endif
+};
+}  // namespace shcore
+
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_CPP_H_

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -80,6 +80,145 @@ TEST(ValueTests, SimpleDouble) {
   EXPECT_EQ(Value(1.1234).as_double(), 1.1234);
 }
 
+TEST(ValueTests, Conversion) {
+  // OK conversions
+  EXPECT_THROW(Value::Null().as_bool(), shcore::Exception);
+  EXPECT_EQ(true, Value::True().as_bool());
+  EXPECT_FALSE(Value::False().as_bool());
+  EXPECT_EQ(true, Value(42).as_bool());
+  EXPECT_FALSE(Value(0).as_bool());
+  EXPECT_EQ(true, Value(42U).as_bool());
+  EXPECT_FALSE(Value(0U).as_bool());
+  EXPECT_EQ(true, Value(42.5).as_bool());
+  EXPECT_FALSE(Value(0.0).as_bool());
+  EXPECT_THROW(Value("foo").as_bool(), shcore::Exception);
+  EXPECT_THROW(Value::new_array().as_bool(), shcore::Exception);
+  EXPECT_THROW(Value::new_map().as_bool(), shcore::Exception);
+
+  EXPECT_EQ(1, Value::True().as_int());
+  EXPECT_EQ(0, Value::False().as_int());
+  EXPECT_EQ(-42, Value(-42).as_int());
+  EXPECT_EQ(42, Value(42).as_int());
+  EXPECT_EQ(0, Value(0).as_int());
+  EXPECT_EQ(42, Value(42U).as_int());
+  EXPECT_EQ(0, Value(0U).as_int());
+  EXPECT_EQ(-42, Value(-42.5).as_int());
+  EXPECT_EQ(42, Value(42.5).as_int());
+  EXPECT_EQ(0, Value(0.0).as_int());
+  EXPECT_THROW(Value("foo").as_int(), shcore::Exception);
+  EXPECT_THROW(Value::new_array().as_int(), shcore::Exception);
+  EXPECT_THROW(Value::new_map().as_int(), shcore::Exception);
+
+  EXPECT_EQ(1, Value::True().as_uint());
+  EXPECT_EQ(0, Value::False().as_uint());
+  EXPECT_THROW(Value(-42).as_uint(), shcore::Exception);
+  EXPECT_EQ(42, Value(42).as_uint());
+  EXPECT_EQ(0, Value(0).as_uint());
+  EXPECT_EQ(42, Value(42U).as_uint());
+  EXPECT_EQ(0, Value(0U).as_uint());
+  EXPECT_THROW(Value(-42.5).as_uint(), shcore::Exception);
+  EXPECT_EQ(42, Value(42.5).as_uint());
+  EXPECT_EQ(0, Value(0.0).as_uint());
+  EXPECT_THROW(Value("foo").as_uint(), shcore::Exception);
+  EXPECT_THROW(Value::new_array().as_uint(), shcore::Exception);
+  EXPECT_THROW(Value::new_map().as_uint(), shcore::Exception);
+
+  EXPECT_EQ(1.0, Value::True().as_double());
+  EXPECT_EQ(0.0, Value::False().as_double());
+  EXPECT_EQ(-42.0, Value(-42).as_double());
+  EXPECT_EQ(42.0, Value(42).as_double());
+  EXPECT_EQ(0.0, Value(0).as_double());
+  EXPECT_EQ(42.0, Value(42U).as_double());
+  EXPECT_EQ(0.0, Value(0U).as_double());
+  EXPECT_EQ(-42.5, Value(-42.5).as_double());
+  EXPECT_EQ(42.5, Value(42.5).as_double());
+  EXPECT_EQ(0.0, Value(0.0).as_double());
+  EXPECT_THROW(Value("foo").as_double(), shcore::Exception);
+  EXPECT_THROW(Value::new_array().as_double(), shcore::Exception);
+  EXPECT_THROW(Value::new_map().as_double(), shcore::Exception);
+}
+
+TEST(ValueTests, ConversionRanges) {
+  static constexpr uint64_t kBiggestUIntThatFitsInDouble =
+      (1ULL << DBL_MANT_DIG);
+  static constexpr int64_t kSmallestIntThatFitsInDouble =
+      -(1LL << DBL_MANT_DIG);
+  static constexpr int64_t kBiggestIntThatFitsInDouble = (1LL << DBL_MANT_DIG);
+
+  // int64_t  -> uint64_t
+  //    min -> error
+  //    max -> OK
+  EXPECT_THROW(Value(std::numeric_limits<int64_t>::min()).as_uint(),
+               shcore::Exception);
+  EXPECT_TRUE(std::numeric_limits<int64_t>::max() ==
+              Value(std::numeric_limits<int64_t>::max()).as_uint());
+  // int64_t  -> double
+  //    min -> error
+  //    max -> error
+  EXPECT_THROW(Value(std::numeric_limits<int64_t>::min()).as_double(),
+               shcore::Exception);
+  EXPECT_THROW(Value(std::numeric_limits<int64_t>::max()).as_double(),
+               shcore::Exception);
+  EXPECT_TRUE(Value(kBiggestIntThatFitsInDouble).as_double() ==
+              kBiggestIntThatFitsInDouble);
+  EXPECT_THROW(Value(kBiggestIntThatFitsInDouble + 1).as_double(),
+               shcore::Exception);
+  EXPECT_TRUE(Value(kSmallestIntThatFitsInDouble).as_double() ==
+              kSmallestIntThatFitsInDouble);
+  EXPECT_THROW(Value(kSmallestIntThatFitsInDouble - 1).as_double(),
+               shcore::Exception);
+  // uint64_t -> int64_t
+  //    min -> OK
+  //    max -> error
+  EXPECT_TRUE(std::numeric_limits<uint64_t>::min() ==
+              Value(std::numeric_limits<uint64_t>::min()).as_int());
+  EXPECT_THROW(Value(std::numeric_limits<uint64_t>::max()).as_int(),
+               shcore::Exception);
+  // uint64_t -> double
+  //    min -> OK
+  //    max -> error
+  EXPECT_TRUE(std::numeric_limits<uint64_t>::min() ==
+              Value(std::numeric_limits<uint64_t>::min()).as_double());
+  EXPECT_THROW(Value(std::numeric_limits<uint64_t>::max()).as_double(),
+               shcore::Exception);
+  EXPECT_TRUE(Value(kBiggestUIntThatFitsInDouble).as_double() ==
+              kBiggestUIntThatFitsInDouble);
+  EXPECT_THROW(Value(kBiggestUIntThatFitsInDouble + 1).as_double(),
+               shcore::Exception);
+  // double   -> int64_t
+  //    min -> error (min for a double means the smallest number in (0.0, 1.0)
+  //    interval) max -> error
+  EXPECT_THROW(Value(std::numeric_limits<double>::lowest()).as_int(),
+               shcore::Exception);
+  EXPECT_THROW(Value(std::numeric_limits<double>::max()).as_int(),
+               shcore::Exception);
+  EXPECT_TRUE(
+      Value(static_cast<double>(kBiggestIntThatFitsInDouble)).as_int() ==
+      kBiggestIntThatFitsInDouble);
+  EXPECT_THROW(
+      Value(static_cast<double>(kBiggestIntThatFitsInDouble) + 2.0).as_int(),
+      shcore::Exception);
+  EXPECT_TRUE(
+      Value(static_cast<double>(kSmallestIntThatFitsInDouble)).as_int() ==
+      kSmallestIntThatFitsInDouble);
+  EXPECT_THROW(
+      Value(static_cast<double>(kSmallestIntThatFitsInDouble) - 2.0).as_int(),
+      shcore::Exception);
+  // double   -> uint64_t
+  //    min -> error
+  //    max -> error
+  EXPECT_THROW(Value(std::numeric_limits<double>::lowest()).as_uint(),
+               shcore::Exception);
+  EXPECT_THROW(Value(std::numeric_limits<double>::max()).as_uint(),
+               shcore::Exception);
+  EXPECT_TRUE(
+      Value(static_cast<double>(kBiggestUIntThatFitsInDouble)).as_uint() ==
+      kBiggestUIntThatFitsInDouble);
+  EXPECT_THROW(
+      Value(static_cast<double>(kBiggestUIntThatFitsInDouble) + 2.0).as_uint(),
+      shcore::Exception);
+}
+
 TEST(ValueTests, SimpleString) {
   const std::string input("Hello world");
   shcore::Value v(input);
@@ -126,10 +265,8 @@ static Value do_test(const Argument_list &args) {
 }
 
 TEST(Functions, function_wrappers) {
-  std::shared_ptr<Function_base> f(Cpp_function::create("test", do_test,
-    "test_index", Integer,
-    "test_arg", String,
-    NULL));
+  std::shared_ptr<Function_base> f(Cpp_function::create(
+      "test", do_test, "test_index", Integer, "test_arg", String, NULL));
 
   {
     Argument_list args;
@@ -140,25 +277,37 @@ TEST(Functions, function_wrappers) {
 
     EXPECT_THROW(f->invoke(args), Exception);
   }
-      {
-        Argument_list args;
+  {
+    Argument_list args;
 
-        args.push_back(Value(0));
-        args.push_back(Value("hello"));
+    args.push_back(Value(0));
+    args.push_back(Value("hello"));
 
-        EXPECT_EQ(f->invoke(args), Value("hello"));
-      }
+    EXPECT_EQ(f->invoke(args), Value("hello"));
+  }
 }
 
 TEST(Parsing, Integer) {
-  const std::string data = "1984";
-  shcore::Value v = shcore::Value::parse(data);
-  std::string mydescr = v.descr(true);
-  std::string myrepr = v.repr();
+  {
+    const std::string data = "1984";
+    shcore::Value v = shcore::Value::parse(data);
+    std::string mydescr = v.descr(true);
+    std::string myrepr = v.repr();
 
-  EXPECT_EQ(shcore::Integer, v.type);
-  EXPECT_STREQ("1984", mydescr.c_str());
-  EXPECT_STREQ("1984", myrepr.c_str());
+    EXPECT_EQ(shcore::Integer, v.type);
+    EXPECT_STREQ("1984", mydescr.c_str());
+    EXPECT_STREQ("1984", myrepr.c_str());
+  }
+  {
+    const std::string data = "1984  \n";
+    shcore::Value v = shcore::Value::parse(data);
+    std::string mydescr = v.descr(true);
+    std::string myrepr = v.repr();
+
+    EXPECT_EQ(shcore::Integer, v.type);
+    EXPECT_STREQ("1984", mydescr.c_str());
+    EXPECT_STREQ("1984", myrepr.c_str());
+  }
 }
 
 TEST(Parsing, Float) {
@@ -194,8 +343,8 @@ TEST(Parsing, Bool) {
   EXPECT_STREQ("true", mydescr.c_str());
   EXPECT_STREQ("true", myrepr.c_str());
 
-  const std::string data3 = "FALSE";
-  const std::string data4 = "TRUE";
+  const std::string data3 = "FALSE  ";
+  const std::string data4 = "TRUE\t";
 
   v = shcore::Value::parse(data3);
   mydescr = v.descr(true);
@@ -236,6 +385,23 @@ TEST(Parsing, String) {
   EXPECT_STREQ("\"Hello World\"", myrepr.c_str());
 }
 
+TEST(Parsing, Bad) {
+  EXPECT_THROW(shcore::Value::parse("bla"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("123foo"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("truefoo"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("true123"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("123true"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("falsefoo"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("blafoo"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("nullfoo"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("[true123]"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("{'a':truefoo}"), shcore::Exception);
+
+  // Not bad
+  EXPECT_NO_THROW(shcore::Value::parse("{'a':true  \n}"));
+  EXPECT_NO_THROW(shcore::Value::parse("{'a' :  1  }  \t\n"));
+}
+
 TEST(Parsing, StringSingleQuoted) {
   const std::string data = "\'Hello World\'";
   shcore::Value v = shcore::Value::parse(data);
@@ -248,7 +414,9 @@ TEST(Parsing, StringSingleQuoted) {
 }
 
 TEST(Parsing, Map) {
-  const std::string data = "{\"null\" : null, \"false\" : false, \"true\" : true, \"string\" : \"string value\", \"integer\":560, \"nested\": {\"inner\": \"value\"}}";
+  const std::string data =
+      "{\"null\" : null, \"false\" : false, \"true\" : true, \"string\" : "
+      "\"string value\", \"integer\":560, \"nested\": {\"inner\": \"value\"}}";
   shcore::Value v = shcore::Value::parse(data);
 
   EXPECT_EQ(shcore::Map, v.type);
@@ -291,7 +459,9 @@ TEST(Parsing, Map) {
 }
 
 TEST(Parsing, Array) {
-  const std::string data = "[450, 450.3, +3.5e-10, \"a string\", [1,2,3], {\"nested\":\"document\"}, true, false, null, undefined]";
+  const std::string data =
+      "[450, 450.3, +3.5e-10, \"a string\", [1,2,3], "
+      "{\"nested\":\"document\"}, true, false, null, undefined]";
   shcore::Value v = shcore::Value::parse(data);
 
   EXPECT_EQ(shcore::Array, v.type);
@@ -359,19 +529,19 @@ TEST(Argument_map, all) {
     args["vec"] = Value::new_array();
     args["map"] = Value::new_map();
 
-    ASSERT_NO_THROW(
-      args.ensure_keys({"int", "bool", "uint", "str", "flt", "vec"}, {"map"}, "test1"));
+    ASSERT_NO_THROW(args.ensure_keys(
+        {"int", "bool", "uint", "str", "flt", "vec"}, {"map"}, "test1"));
 
-    ASSERT_THROW(
-      args.ensure_keys({"int", "bool", "uint", "str", "flt"}, {"map"}, "test2"),
-      Exception);
+    ASSERT_THROW(args.ensure_keys({"int", "bool", "uint", "str", "flt"},
+                                  {"map"}, "test2"),
+                 Exception);
 
-    ASSERT_THROW(
-      args.ensure_keys({"int", "bool", "uint", "str", "flt", "bla"}, {"map"}, "test3"),
-      Exception);
+    ASSERT_THROW(args.ensure_keys({"int", "bool", "uint", "str", "flt", "bla"},
+                                  {"map"}, "test3"),
+                 Exception);
 
-    ASSERT_NO_THROW(
-      args.ensure_keys({"int", "bool", "uint", "str", "flt", "vec"}, {"map", "bla"}, "test2"));
+    ASSERT_NO_THROW(args.ensure_keys(
+        {"int", "bool", "uint", "str", "flt", "vec"}, {"map", "bla"}, "test2"));
 
     EXPECT_EQ(args.bool_at("bool"), true);
     EXPECT_EQ(args.bool_at("int"), true);
@@ -413,55 +583,54 @@ TEST(Argument_map, all) {
     EXPECT_THROW(args.uint_at("vec"), Exception);
     EXPECT_THROW(args.uint_at("map"), Exception);
   }
-  
+
   // option alias, success alias 1
   {
     shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
     (*options)["user"] = shcore::Value("sample");
     (*options)["password"] = shcore::Value("sample");
-    
+
     Argument_map args(*options);
     ASSERT_NO_THROW(
-      args.ensure_keys({"password|dbPassword"}, {"user"}, "test1"));
+        args.ensure_keys({"password|dbPassword"}, {"user"}, "test1"));
   }
-  
+
   // option alias, success alias 2
   {
     shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
     (*options)["user"] = shcore::Value("sample");
     (*options)["dbPassword"] = shcore::Value("sample");
-    
+
     Argument_map args(*options);
     ASSERT_NO_THROW(
-      args.ensure_keys({"password|dbPassword"}, {"user"}, "test1"));
+        args.ensure_keys({"password|dbPassword"}, {"user"}, "test1"));
   }
-  
+
   // option alias, failure two aliases
   {
     shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
     (*options)["user"] = shcore::Value("sample");
     (*options)["password"] = shcore::Value("sample");
     (*options)["dbPassword"] = shcore::Value("sample");
-    
+
     Argument_map args(*options);
-    
+
     ASSERT_THROW(
-      args.ensure_keys({"password|dbPassword"}, {"user"}, "multiple aliases"),
-                 Exception);
+        args.ensure_keys({"password|dbPassword"}, {"user"}, "multiple aliases"),
+        Exception);
   }
-  
+
   // option alias, failure no aliases
   {
     shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
     (*options)["user"] = shcore::Value("sample");
-    
+
     Argument_map args(*options);
-    
+
     ASSERT_THROW(
-      args.ensure_keys({"password|dbPassword"}, {"user"}, "no aliases"),
-                 Exception);
+        args.ensure_keys({"password|dbPassword"}, {"user"}, "no aliases"),
+        Exception);
   }
 }
-
 }
 }

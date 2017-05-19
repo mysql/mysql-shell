@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -29,7 +29,6 @@ using namespace shcore;
 void Global_session::init() {
   add_method("getSchema", std::bind(&Global_session::get_schema, this, _1), "name", shcore::String, NULL);
   add_method("isOpen", std::bind(&Global_session::is_open, this, _1), NULL);
-  set_wrapper_function("isOpen");
 }
 
 void Global_session::resolve() const {
