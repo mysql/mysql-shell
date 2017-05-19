@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -24,12 +24,11 @@
 
 #include <vector>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <stdexcept>
 #include <memory>
-
-#include <boost/function.hpp>
 
 #include "mysqlshdk_export.h"
 #include "utils/utils_json.h"
@@ -40,23 +39,26 @@ namespace shcore {
  With the exception of Native and Function, all types can be serialized to JSON.
  */
 enum Value_type {
-  Undefined, //! Undefined
-  Null, //! Null/None value
-  Bool, //! true or false
-  String, //! String values, UTF-8 encoding
-  Integer, //! 64bit integer numbers
-  Float, //! double numbers
+  Undefined,  //! Undefined
+  Null,  //! Null/None value
+  Bool,  //! true or false
+  String,  //! String values, UTF-8 encoding
+  Integer,  //! 64bit integer numbers
+  UInteger,  //! unsigned 64bit integer numbers
+  Float,  //! double numbers
 
-  Object, //! Native/bridged C++ object references, may or may not be serializable
+  Object,  //! Native/bridged C++ object refs, may or may not be serializable
 
-  Array, //! Array/List container
-  Map, //! Dictionary/Map/Object container
-  MapRef, //! A weak reference to a Map
+  Array,  //! Array/List container
+  Map,  //! Dictionary/Map/Object container
+  MapRef,  //! A weak reference to a Map
 
-  Function, //! A function reference, not serializable.
-
-  UInteger //! unsigned 64bit integer numbers
+  Function  //! A function reference, not serializable.
 };
+
+// kTypeConvertible[from_type][to_type] = is_convertible
+// from_type = row, to_type = column
+extern const bool kTypeConvertible[12][12];
 
 class Object_bridge;
 typedef std::shared_ptr<Object_bridge> Object_bridge_ref;
@@ -81,7 +83,24 @@ typedef std::shared_ptr<Object_bridge> Object_bridge_ref;
  - Scripting language objects are either generically wrapped to a language specific generic object wrapper or converted to a specific C++ Object subclass
 
  Example: JS Date object is converted to a C++ Date object and vice-versa, but Mysql_connection is wrapped generically
- */
+
+ @section Implicit type conversions
+
+           Null Bool  String  Integer UInteger  Float Object  Array Map
+ Null      OK   -     -       -       -         -     OK      OK    OK
+ Bool      -    OK    -       OK      OK        OK    -       -     -
+ String    -    -     OK      -       -         -     -       -     -
+ Integer   -    OK    -       OK      OK        OK    -       -     -
+ UInteger  -    OK    -       OK      OK        OK    -       -     -
+ Float     -    OK    -       OK      OK        OK    -       -     -
+ Object    -    -     -       -       -         -     OK      -     -
+ Array     -    -     -       -       -         -     -       OK    -
+ Map       -    -     -       -       -         -     -       -     OK
+
+ * Integer <-> UInteger conversions are only possible if the range allows it
+ * Null can be cast to Object/Array/Map, but a valid Object/Array/Map pointer
+ is not NULL, so it can't be cast to it.
+  */
 struct SHCORE_PUBLIC Value {
   typedef std::vector<Value> Array_type;
   typedef std::shared_ptr<Array_type> Array_type_ref;
@@ -215,19 +234,40 @@ struct SHCORE_PUBLIC Value {
 
   void check_type(Value_type t) const;
 
-  bool as_bool() const { check_type(Bool); return value.b; }
+  bool as_bool() const;
   int64_t as_int() const;
   uint64_t as_uint() const;
   double as_double() const;
   const std::string &as_string() const { check_type(String); return *value.s; }
   template<class C>
-  std::shared_ptr<C> as_object() const { check_type(Object); return std::dynamic_pointer_cast<C>(*value.o); }
-  std::shared_ptr<Object_bridge> as_object() const { check_type(Object); return std::dynamic_pointer_cast<Object_bridge>(*value.o); }
-  std::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
-  std::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
-  std::shared_ptr<Function_base> as_function() const { check_type(Function); return std::dynamic_pointer_cast<Function_base>(*value.func); }
+  std::shared_ptr<C> as_object() const {
+    check_type(Object);
+    return std::dynamic_pointer_cast<C>(type == shcore::Null ? nullptr : *value.o);
+  }
 
-private:
+  std::shared_ptr<Object_bridge> as_object() const {
+    check_type(Object);
+    return std::dynamic_pointer_cast<Object_bridge>(
+        type == shcore::Null ? nullptr : *value.o);
+  }
+
+  std::shared_ptr<Map_type> as_map() const {
+    check_type(Map);
+    return type == shcore::Null ? nullptr : *value.map;
+  }
+
+  std::shared_ptr<Array_type> as_array() const {
+    check_type(Array);
+    return type == shcore::Null ? nullptr : *value.array;
+  }
+
+  std::shared_ptr<Function_base> as_function() const {
+    check_type(Function);
+    return std::dynamic_pointer_cast<Function_base>(
+        type == shcore::Null ? nullptr : *value.func);
+  }
+
+ private:
   static Value parse(char **pc);
   static Value parse_map(char **pc);
   static Value parse_array(char **pc);
@@ -236,9 +276,19 @@ private:
   static Value parse_double_quoted_string(char **pc);
   static Value parse_number(char **pc);
 };
+typedef Value::Map_type_ref Dictionary_t;
+typedef Value::Array_type_ref Array_t;
+
+inline Dictionary_t make_dict() {
+  return Value::Map_type_ref(new Value::Map_type());
+}
+inline Array_t make_array() {
+  return Value::Array_type_ref(new Value::Array_type());
+}
 
 class SHCORE_PUBLIC Argument_list {
-public:
+ public:
+  // TODO(alfredo) remove most of this when possible
   const std::string &string_at(unsigned int i) const;
   bool bool_at(unsigned int i) const;
   int64_t int_at(unsigned int i) const;
@@ -275,7 +325,8 @@ public:
 
   std::vector<Value>::const_iterator begin() const { return _args.begin(); }
   std::vector<Value>::const_iterator end() const { return _args.end(); }
-private:
+
+ private:
   std::vector<Value> _args;
 };
 
@@ -326,16 +377,42 @@ private:
 
 template<class T> struct value_type_for_native {};
 
-template<> struct value_type_for_native<bool> { static const Value_type type = Bool; };
-template<> struct value_type_for_native<int64_t> { static const Value_type type = Integer; };
-template<> struct value_type_for_native<uint64_t> { static const Value_type type = UInteger; };
-template<> struct value_type_for_native<double> { static const Value_type type = Float; };
-template<> struct value_type_for_native<std::string> { static const Value_type type = String; };
-template<> struct value_type_for_native<Object_bridge*> { static const Value_type type = Object; };
-template<> struct value_type_for_native<Value::Map_type> { static const Value_type type = Map; };
-template<> struct value_type_for_native<Value::Array_type> { static const Value_type type = Array; };
+template <>
+struct value_type_for_native<bool> {
+  static const Value_type type = Bool;
+};
+template <>
+struct value_type_for_native<int64_t> {
+  static const Value_type type = Integer;
+};
+template <>
+struct value_type_for_native<uint64_t> {
+  static const Value_type type = UInteger;
+};
+template <>
+struct value_type_for_native<double> {
+  static const Value_type type = Float;
+};
+template <>
+struct value_type_for_native<std::string> {
+  static const Value_type type = String;
+};
+template <>
+struct value_type_for_native<Object_bridge *> {
+  static const Value_type type = Object;
+};
+template <>
+struct value_type_for_native<Value::Map_type> {
+  static const Value_type type = Map;
+};
+template <>
+struct value_type_for_native<Value::Array_type> {
+  static const Value_type type = Array;
+};
 
 std::string SHCORE_PUBLIC type_name(Value_type type);
+
+class JSON_dumper;
 
 /** An instance of an object, that's implemented in some language.
  *
@@ -395,14 +472,14 @@ public:
 class SHCORE_PUBLIC Function_base {
 public:
   //! The name of the function
-  virtual std::string name() = 0;
+  virtual const std::string &name() const = 0;
 
   //! Returns the signature of the function, as a list of
   // argname - description, Type pairs
-  virtual std::vector<std::pair<std::string, Value_type> > signature() = 0;
+  virtual const std::vector<std::pair<std::string, Value_type> > &signature() const = 0;
 
   //! Return type of the function, as a description, Type pair
-  virtual std::pair<std::string, Value_type> return_type() = 0;
+  virtual Value_type return_type() const = 0;
 
   //! Implements equality operator
   virtual bool operator == (const Function_base &other) const = 0;
@@ -424,7 +501,7 @@ class SHCORE_PUBLIC Exception : public std::exception {
 public:
   Exception(const std::shared_ptr<Value::Map_type> e);
 
-  virtual ~Exception() BOOST_NOEXCEPT_OR_NOTHROW {}
+  virtual ~Exception() noexcept {}
 
   static Exception runtime_error(const std::string &message);
   static Exception argument_error(const std::string &message);
@@ -455,11 +532,11 @@ public:
   bool is_mysql() const;
   bool is_parser() const;
 
-  virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
+  virtual const char *what() const noexcept;
 
-  const char *type() const BOOST_NOEXCEPT_OR_NOTHROW;
+  const char *type() const noexcept;
 
-  int64_t code() const BOOST_NOEXCEPT_OR_NOTHROW;
+  int64_t code() const noexcept;
 
   std::shared_ptr<Value::Map_type> error() const { return _error; }
 

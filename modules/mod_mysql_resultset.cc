@@ -48,10 +48,10 @@ ClassicResult::ClassicResult(std::shared_ptr<Result> result)
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("info", "getInfo");
 
-  add_method("fetchOne", std::bind((shcore::Value(ClassicResult::*)(const shcore::Argument_list &)const)&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
-  add_method("fetchAll", std::bind((shcore::Value(ClassicResult::*)(const shcore::Argument_list &)const)&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
-  add_method("nextDataSet", std::bind(&ClassicResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
-  add_method("hasData", std::bind(&ClassicResult::has_data, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchOne", std::bind((shcore::Value(ClassicResult::*)(const shcore::Argument_list &)const)&ClassicResult::fetch_one, this, _1), NULL);
+  add_method("fetchAll", std::bind((shcore::Value(ClassicResult::*)(const shcore::Argument_list &)const)&ClassicResult::fetch_all, this, _1), NULL);
+  add_method("nextDataSet", std::bind(&ClassicResult::next_data_set, this, _1), NULL);
+  add_method("hasData", std::bind(&ClassicResult::has_data, this, _1), NULL);
 }
 
 // Documentation of the hasData function

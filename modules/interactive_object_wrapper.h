@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -73,11 +73,11 @@ public:
   // These functions are bridged too, but they include a resolution step: if the target object os not set, resolve() will be called on an attempt to
   // set _target based on input from the user (interaction)
   // These functions are called on attempts to access an object's property or method
-  virtual bool has_method_advanced(const std::string &name, const NamingStyle &style);
+  virtual bool has_method_advanced(const std::string &name, const NamingStyle &style) const;
   virtual bool has_member(const std::string &prop) const;
-  virtual bool has_member_advanced(const std::string &prop, const NamingStyle &style);
+  virtual bool has_member_advanced(const std::string &prop, const NamingStyle &style) const;
   virtual Value get_member(const std::string &prop) const;
-  virtual Value get_member_advanced(const std::string &prop, const NamingStyle &style);
+  virtual Value get_member_advanced(const std::string &prop, const NamingStyle &style) const;
   virtual Value call(const std::string &name, const Argument_list &args);
   virtual Value call_advanced(const std::string &name, const Argument_list &args, const NamingStyle &style);
 
@@ -102,7 +102,7 @@ public:
   * making the existence of this wrapper transparent.
   */
   virtual Value interactive_get_member(const std::string &prop) const;
-  virtual Value interactive_get_member_advanced(const std::string &prop, const NamingStyle &style);
+  virtual Value interactive_get_member_advanced(const std::string &prop, const NamingStyle &style) const;
 
 public:
   // Accessors for the target object.
@@ -114,11 +114,6 @@ protected:
   std::shared_ptr<Cpp_object_bridge> _target;
   Shell_core& _shell_core;
   Interpreter_delegate *_delegate;
-
-  // This array would contain function names that work even when _target is not set
-  std::map<std::string, std::shared_ptr<Cpp_function> > _wrapper_functions;
-
-  void set_wrapper_function(const std::string& name) { _wrapper_functions[name] = _funcs[name]; }
 
   // Helper functions to enable implementing interaction
   void print(const std::string& text) const;

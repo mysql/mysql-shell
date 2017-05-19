@@ -19,6 +19,7 @@
 
 #include "utils_file.h"
 
+#include <cstring>
 #include <stdexcept>
 #include <fstream>
 #include <iostream>
@@ -31,11 +32,11 @@
 #else
 #  include <sys/file.h>
 #  include <errno.h>
-#  include <cstring>
 #  include <sys/types.h>
 #  include <dirent.h>
 #  include <sys/stat.h>
 #  include <stdio.h>
+#include <unistd.h>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>

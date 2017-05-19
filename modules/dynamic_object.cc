@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -29,13 +29,16 @@ using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 std::vector<std::string> Dynamic_object::get_members() const {
-  std::vector<std::string> _members;
-  for (auto i : _funcs) {
-    // Only returns the public enabled functions
-    if (_enabled_functions.find(i.first) != _enabled_functions.end() && _enabled_functions.at(i.first) && i.first != "__shell_hook__")
-      _members.push_back(i.second->name(naming_style));
+  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
+  size_t last = 0;
+  for (size_t i = 0, c = members.size(); i < c; i++) {
+    // filter out disabled functions
+    if (is_enabled(members[i]) && members[i] != "__shell_hook__") {
+      members[last++] = members[i];
+    }
   }
-  return _members;
+  members.resize(last);
+  return members;
 }
 
 #if DOXYGEN_CPP
@@ -53,35 +56,26 @@ std::vector<std::string> Dynamic_object::get_members() const {
  */
 #endif
 Value Dynamic_object::get_member(const std::string &prop) const {
-  std::map<std::string, std::shared_ptr<shcore::Cpp_function> >::const_iterator i;
-  if ((i = _funcs.find(prop)) == _funcs.end() || prop == "help")
-    throw shcore::Exception::attrib_error("Invalid object member " + prop);
-  else if (!_enabled_functions.at(prop))
-    throw shcore::Exception::logic_error("Forbidden usage of " + prop);
-  else
-    return Value(std::shared_ptr<shcore::Function_base>(i->second));
+  Value tmp(Cpp_object_bridge::get_member(prop));
+  if (tmp && prop != "help") {
+    if (is_enabled(prop)) {
+      return tmp;
+    } else {
+      throw shcore::Exception::logic_error("Invalid chaining of method '"+prop+"'");
+    }
+  }
+  throw shcore::Exception::attrib_error("Invalid object member " + prop);
 }
 
 bool Dynamic_object::has_member(const std::string &prop) const {
-  bool ret_val = false;
-
-  // A function is considered only if it is enanbled
-  auto i = std::find_if(_funcs.begin(), _funcs.end(), [this, prop](const FunctionEntry &f) { return f.second->name(naming_style) == prop; });
-  if (i != _funcs.end())
-    ret_val = _enabled_functions.find(i->first) != _enabled_functions.end() && _enabled_functions.at(i->first);
-  else
-    ret_val = Cpp_object_bridge::has_member(prop);
-
-  return ret_val;
+  return Cpp_object_bridge::has_member(prop) && is_enabled(prop);
 }
 
 Value Dynamic_object::call(const std::string &name, const shcore::Argument_list &args) {
-  std::map<std::string, std::shared_ptr<shcore::Cpp_function> >::const_iterator i;
-  if ((i = _funcs.find(name)) == _funcs.end())
-    throw shcore::Exception::attrib_error("Invalid object function " + name);
-  else if (!_enabled_functions.at(name))
-    throw shcore::Exception::logic_error("Forbidden usage of " + name);
-  return i->second->invoke(args);
+  if (!is_enabled(name)) {
+    throw shcore::Exception::logic_error("Invalid chaining of method '"+name+"'");
+  }
+  return Cpp_object_bridge::call(name, args);
 }
 
 /*
@@ -90,12 +84,14 @@ Value Dynamic_object::call(const std::string &name, const shcore::Argument_list 
 *   - name: indicates the exposed function to be enabled/disabled.
 *   - enable_after: indicate the "states" under which the function should be enabled.
 */
-void Dynamic_object::register_dynamic_function(const std::string& name, const std::string& enable_after) {
+void Dynamic_object::register_dynamic_function(
+    const std::string &name, const std::string &enable_after) {
   // Adds the function to the enabled/disabled state registry
   _enabled_functions[name] = true;
 
   // Splits the 'enable' states and associates them to the function
-  std::vector<std::string> tokens = shcore::split_string_chars(enable_after, ", ", true);
+  std::vector<std::string> tokens =
+      shcore::split_string_chars(enable_after, ", ", true);
   std::set<std::string> after(tokens.begin(), tokens.end());
   _enable_paths[name] = after;
 }
@@ -112,4 +108,15 @@ void Dynamic_object::update_functions(const std::string& source) {
 void Dynamic_object::enable_function(const char *name, bool enable) {
   if (_enabled_functions.find(name) != _enabled_functions.end())
     _enabled_functions[name] = enable;
+}
+
+bool Dynamic_object::is_enabled(const std::string &name) const {
+  auto func = lookup_function(name);
+  if (func) {
+    // filter out disabled functions
+    auto it = _enabled_functions.find(func->name(LowerCamelCase));
+    if (it != _enabled_functions.end() && it->second)
+      return true;
+  }
+  return false;
 }

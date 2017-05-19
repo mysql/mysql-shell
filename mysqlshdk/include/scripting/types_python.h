@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,29 +25,30 @@
 #include "scripting/types.h"
 
 namespace shcore {
-  class SHCORE_PUBLIC Python_function : public Function_base {
-  public:
-    Python_function(Python_context* context, PyObject* function);
-    virtual ~Python_function() {}
+class SHCORE_PUBLIC Python_function : public Function_base {
+ public:
+  Python_function(Python_context *context, PyObject *function);
+  virtual ~Python_function() {}
 
-    virtual std::string name();
+  const std::string &name() const override;
 
-    virtual std::vector<std::pair<std::string, Value_type> > signature();
+  const std::vector<std::pair<std::string, Value_type> > &signature()
+      const override;
 
-    virtual std::pair<std::string, Value_type> return_type();
+  Value_type return_type() const override;
 
-    virtual bool operator == (const Function_base &other) const;
+  bool operator==(const Function_base &other) const override;
 
-    virtual bool operator != (const Function_base &other) const;
+  bool operator!=(const Function_base &other) const;
 
-    virtual Value invoke(const Argument_list &args);
+  Value invoke(const Argument_list &args) override;
 
-    virtual bool has_var_args() {return false;}
+  bool has_var_args() override { return false; }
 
-  private:
-    Python_context *_py;
-    PyObject *_function;
-  };
+ private:
+  Python_context *_py;
+  PyObject *_function;
 };
+}  // namespace shcore
 
 #endif

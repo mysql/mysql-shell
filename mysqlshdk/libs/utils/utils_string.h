@@ -62,6 +62,14 @@ inline bool str_caseeq(const char *a, const char *b) {
 #endif
 }
 
+inline bool str_caseeq(const char *a, const char *b, size_t n) {
+#ifdef _WIN32
+  return ::_strnicmp(a, b, n) == 0;
+#else
+  return ::strncasecmp(a, b, n) == 0;
+#endif
+}
+
 /** Checks whether a string has another as a prefix */
 inline bool str_beginswith(const char *s, const char *prefix) {
   return strncmp(s, prefix, strlen(prefix)) == 0;
