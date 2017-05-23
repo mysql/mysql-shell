@@ -35,6 +35,7 @@ SERVER_VARIABLES = "SERVER_VARIABLES"
 SERVER_VERSION = "SERVER_VERSION"
 USER_PRIVILEGES = "USER_PRIVILEGES"
 PEER_SERVER_VARIABLES = "PEER_SERVER_VARIABLES"
+MTS_SETTINGS = "MTS_SETTINGS"
 
 # Comparison key names:
 DEFAULT = "DEFAULT"
@@ -642,6 +643,44 @@ class RequirementChecker(object):
 
         if "pass" not in results.keys():
             results["pass"] = True
+
+        return results
+
+    def check_mts_compatibility(self, alt_server=None):
+        """Check the Multi-Threaded Slave settings.
+
+        Check the compatibility of the Multi-Threaded Slave (MTS) settings to
+        use with group replication.
+
+        If MTS is enabled (slave_parallel_workers > 0) then GR requires
+        slave_parallel_type=LOGICAL_CLOCK and slave_preserve_commit_order=1
+        (ON).
+
+        :param alt_server: An alternative server instance to use.
+        :type alt_server:  Server instance.
+        """
+        results = {'pass': True}
+        server = self._get_server(alt_server=alt_server)
+        # Check if MTS is enabled ( > 0)
+        slave_p_workers = server.select_variable('slave_parallel_workers')
+        if slave_p_workers and int(slave_p_workers) > 0:
+            # MTS is enabled, then we need to check compatible settings.
+            p_type = server.select_variable('slave_parallel_type')
+            cmt_order = server.select_variable('slave_preserve_commit_order')
+            # slave_parallel_type must be 'LOGICAL_CLOCK'
+            if p_type.upper() != 'LOGICAL_CLOCK':
+                results['slave_parallel_type'] = (False, 'LOGICAL_CLOCK',
+                                                  p_type)
+                results['pass'] = False
+            # slave_preserve_commit_order must be '1' (ON)
+            if cmt_order.upper() != '1':
+                # slave_preserve_commit_order value is converted to 'OFF'
+                # if not '1', in order to be able to be updated later
+                # (if '1' is used for the SET command instead of 'OFF' it will
+                # fail).
+                results['slave_preserve_commit_order'] = (False, 'ON',
+                                                          'OFF')
+                results['pass'] = False
 
         return results
 
