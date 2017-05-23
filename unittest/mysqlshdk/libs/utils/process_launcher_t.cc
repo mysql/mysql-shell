@@ -21,7 +21,7 @@
 
 #include <gtest/gtest.h>
 #ifdef _WIN32
-#include <windows.h>
+#include <Shellapi.h>
 #endif
 #include <cassert>
 
@@ -31,7 +31,7 @@ namespace shcore {
 
 #ifdef WIN32
 static void check_argv(const char **argv, const std::string &cmd) {
-  LPWSTR *wstr = shcore::win_a_to_w_string(cmd.c_str());
+  LPWSTR wstr = shcore::win_a_to_w_string(const_cast<char *>(cmd.c_str()));
   ASSERT_NE(nullptr, wstr);
   int nargs;
   LPWSTR *parsed_argv = CommandLineToArgvW(wstr, &nargs);
@@ -41,10 +41,12 @@ static void check_argv(const char **argv, const std::string &cmd) {
   int i;
   for (i = 0; i < nargs; i++) {
     ASSERT_NE(nullptr, argv[i]);
-    EXPECT_STREQ(argv[i], parsed_argv[i]);
+    LPSTR actual = shcore::win_w_to_a_string(parsed_argv[i], 0);
+    EXPECT_STREQ(argv[i], actual);
   }
   // both should be null
-  EXPECT_EQ(argv[i], parsed_argv[i]);
+  EXPECT_EQ(nullptr, parsed_argv[i]);
+  EXPECT_EQ(nullptr, argv[i]);
   LocalFree(parsed_argv);
 }
 #else

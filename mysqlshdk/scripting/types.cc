@@ -30,6 +30,12 @@
 #include "utils/utils_string.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
+#ifdef WIN32
+#ifdef max
+#undef max
+#endif
+#endif
+
 // These is* functions have undefined behavior if the passed value
 // is out of the -1-255 range
 #define IS_ALPHA(x) (isalpha(static_cast<unsigned char>(x)))

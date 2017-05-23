@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <vector>
+#include <functional>
 
 #include "scripting/object_registry.h"
 #include "scripting/types_common.h"

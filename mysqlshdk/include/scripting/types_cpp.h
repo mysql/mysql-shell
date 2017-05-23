@@ -26,6 +26,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <functional>
 
 #include "scripting/types.h"
 #include "scripting/types_common.h"
