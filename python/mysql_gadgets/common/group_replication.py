@@ -38,7 +38,8 @@ from mysql_gadgets.common.req_checker import (ALL_OF,
                                               SERVER_ID,
                                               SERVER_VARIABLES,
                                               SERVER_VERSION,
-                                              USER_PRIVILEGES,)
+                                              USER_PRIVILEGES,
+                                              MTS_SETTINGS)
 from mysql_gadgets.common.config_parser import MySQLOptionsParser
 from mysql_gadgets.common.server import get_server, generate_server_id
 from mysql_gadgets.common.user import (change_user_privileges, parse_user_host,
@@ -141,6 +142,9 @@ _ERROR_RESTART_SERVER = ("Please restart the server {0} with the updated "
                          "options file and try again.")
 _ERROR_UPDATE_AND_RESTART = ("Please change the configuration values on your "
                              "options file, restart the server and try again.")
+_ERROR_SERVER_VARIABLES = (
+    "Some active options on server {0} are incompatible with Group "
+    "Replication.\n{1}")
 
 # Commands
 START = "START"
@@ -1214,7 +1218,7 @@ def check_server_version(req_checker, error_msgs=None):
 
 
 def check_options_file(req_checker, error_msgs=None, update=True,
-                       verbose=False, skip_backup=False):
+                       verbose=False, skip_backup=False, extra_vars=None):
     """Checks the variables in the options file that requires specific values
     for GR plugin.
 
@@ -1230,6 +1234,9 @@ def check_options_file(req_checker, error_msgs=None, update=True,
     :param skip_backup: if True, skip the creation of a backup file when
                         modifying the options file.
     :type skip_backup: bool
+    :param extra_vars: Dictionary with additional variables to check in the
+                       configuration file.
+    :type extra_vars: dict
     :return: True if the update file fulfills the requirements otherwise
              False.
     :rtype: bool
@@ -1238,8 +1245,14 @@ def check_options_file(req_checker, error_msgs=None, update=True,
         error_msgs = []
     req_dict = req_checker.req_dict
 
+    # Set variable to check in the configuration file.
+    config_setting = req_dict[CONFIG_SETTINGS]
+    if extra_vars:
+        config_setting.update(extra_vars)
+
+    # Check configuration file settings.
     server_var_res = req_checker.check_config_settings(
-        req_dict[CONFIG_SETTINGS], req_dict[OPTION_PARSER])
+        config_setting, req_dict[OPTION_PARSER])
 
     test_result = "PASS" if server_var_res["pass"] else "FAIL"
     _LOGGER.info("* Checking server options from file... "
@@ -1337,8 +1350,7 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                      "requirements.")
     else:
         restart_msg = _ERROR_RESTART_SERVER.format(req_checker.server)
-        msg = ("Some active options on server {0} are incompatible with "
-               "Group Replication.\n{1}").format(server, restart_msg)
+        msg = _ERROR_SERVER_VARIABLES.format(server, restart_msg)
         if update:
             var_res = server_var_res
             for var_name in list(var_res.keys()):
@@ -1400,6 +1412,87 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
             error_msgs.append(msg)
 
     return server_var_res
+
+
+def check_mts(req_checker, error_msgs=None, update=True,
+              var_change_warning=False):
+    """Check Multi-Threaded Slave settings for Group Replications.
+
+    Check the compatibility of the Multi-Threaded Slave (MTS) settings to
+    use with group replication.
+
+    :param req_checker: Requirement checker instance used to perform the check.
+    :type req_checker:  RequirementChecker
+    :param error_msgs:  List of errors that occurred during the check.
+    :type error_msgs:   list
+    :param update:      Specify if the options file should be updated or not.
+                        By default: True (option file is updated).
+    :type update:       bool
+    :param var_change_warning: Indicate if a warning is issued when a dynamic
+                               server variable is changed. By default False,
+                               no warning is issued.
+    :type var_change_warning:  bool
+
+    :return: Dictionary with the result of the check ('pass' key with the
+             value 'PASS' or 'FAIL') and the variables that need to be changed
+             as key (with a tuple has value that contains the required value
+             for that variable and its corresponding current value).
+    :rtype: dict
+    """
+    if error_msgs is None:
+        error_msgs = []
+    res = req_checker.check_mts_compatibility()
+
+    test_result = "PASS" if res['pass'] else "FAIL"
+    _LOGGER.info(
+        "* Checking compatibility of Multi-Threaded Slave settings... %s",
+        test_result)
+    if res['pass']:
+        _LOGGER.info("Multi-Threaded Slave settings are compatible with Group "
+                     "Replication.")
+    else:
+        server = req_checker.server
+        # Note: Error message must be the same as for server variables check.
+        restart_msg = _ERROR_RESTART_SERVER.format(server)
+        msg = _ERROR_SERVER_VARIABLES.format(server, restart_msg)
+        if update:
+            update_error = False
+            for var_name in list(res.keys()):
+                if var_name == "pass":
+                    continue
+                _, needs_value, has = res.get(var_name)
+                try:
+                    _LOGGER.debug("Updating variable: %s to value: %s",
+                                  var_name, needs_value)
+                    server.set_variable(var_name,
+                                        "'{0}'".format(needs_value),
+                                        var_type='global')
+                    # Issue a warning if requested.
+                    if var_change_warning:
+                        _LOGGER.warning("Server variable %s was changed "
+                                        "from '%s' to '%s'.", var_name,
+                                        has, needs_value)
+                except GadgetDBError as err:
+                    update_error = True
+                    _LOGGER.warning("Error updating %s to %s from %s: %s",
+                                    var_name, needs_value, has, err)
+
+            # Log different message if errors occurred updating variables.
+            if update_error:
+                _LOGGER.info(
+                    "Incompatible Multi-Threaded Slave configuration was"
+                    " found.")
+                # append error message
+                error_msgs.append(msg)
+            else:
+                _LOGGER.info("Incompatible Multi-Threaded Slave configuration "
+                             "has been updated.")
+        else:
+            _LOGGER.info("Incompatible Multi-Threaded Slave configuration was "
+                         "found.")
+            # Append error message
+            error_msgs.append(msg)
+    return res
 
 
 def check_peer_ssl_compatibility(peer_server, ssl_mode):
@@ -1584,12 +1677,37 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                 error_msgs[SERVER_ID] = errors
         _LOGGER.info("")
 
+    # Checking MTS settings
+    mts_opt_file = {}
+    if MTS_SETTINGS in req_dict.keys():
+        errors = []
+        mts_opt_res = check_mts(req_checker, errors, update,
+                                var_change_warning)
+        if 'pass' in mts_opt_res and not mts_opt_res['pass']:
+            # Update the result for SERVER_VARIABLES to include the MTS
+            # settings that need to be changed.
+            options_res.update(mts_opt_res)
+            # Create options to check in config file if needed.
+            if 'slave_parallel_type' in mts_opt_res:
+                mts_opt_file['slave_parallel_type'] = \
+                    {ONE_OF: ("LOGICAL_CLOCK",)}
+            if 'slave_preserve_commit_order' in mts_opt_res:
+                mts_opt_file['slave_preserve_commit_order'] = \
+                    {ONE_OF: ("ON", "1")}
+        if errors:
+            # Set SERVER_VARIABLES errors if not already set.
+            # Note: Errors for MTS_SETTINGS and SERVER_VARIABLES are the
+            # same to maintain the output expected by the AdminAPI.
+            if SERVER_VARIABLES not in error_msgs:
+                error_msgs[SERVER_VARIABLES] = errors
+
     # Checking server options from file
     options_results = None
     if OPTION_PARSER in req_dict.keys():
         errors = []
         res = check_options_file(req_checker, errors, update, verbose,
-                                 skip_backup=skip_backup)
+                                 skip_backup=skip_backup,
+                                 extra_vars=mts_opt_file)
         options_results = res[1]
         if options_res is not None:
             if "pass" in options_res.keys():
@@ -1762,6 +1880,9 @@ def get_req_dict(server, replication_user, peer_server=None, option_file=None):
         }
     else:
         req_dict[SERVER_ID] = {"peers": []}
+
+    # Add MTS setting check
+    req_dict[MTS_SETTINGS] = {}
 
     return req_dict
 
