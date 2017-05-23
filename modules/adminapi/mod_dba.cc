@@ -864,15 +864,6 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
     if (opt_map.has_key("sandboxDir")) {
       sandbox_dir = opt_map.string_at("sandboxDir");
-
-#ifndef WIN32
-      // The UNIX domain socket address path has a length limitation so we must check the sandboxDir length
-      // sizeof(sockaddr_un::sun_path) - strlen("mysqlx.sock") - strlen("64000") - 2 - 1
-      size_t max_socket_path_length = sizeof(sockaddr_un::sun_path) - 19;
-      if (sandbox_dir.length() > max_socket_path_length)
-        throw shcore::Exception::argument_error("Invalid value for 'sandboxDir': sandboxDir path too long. "\
-        "Please keep it shorter than " + std::to_string(max_socket_path_length) + " chars.");
-#endif
     }
 
     if (opt_map.has_key("ignoreSslError"))
