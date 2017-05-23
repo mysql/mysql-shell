@@ -59,7 +59,8 @@ void parse_and_assert_expr(const std::string& input,
   if (expr != NULL)
     *expr = e.release();
   out << s;
-  ASSERT_EQ(unparsed, out.str());
+  std::string actual = out.str();
+  ASSERT_EQ(unparsed, actual);
 }
 
 void assert_member_type(Mysqlx::Expr::Expr* expr,

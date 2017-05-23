@@ -23,6 +23,8 @@
 #ifndef _MOD_CORE_SESSION_H_
 #define _MOD_CORE_SESSION_H_
 
+#include <functional>
+
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"

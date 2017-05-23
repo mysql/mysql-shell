@@ -24,6 +24,7 @@
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
 #include "mysqlshdk/libs/db/ssl_info.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "utils/utils_file.h"
 
 namespace shcore {

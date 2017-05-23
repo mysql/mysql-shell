@@ -27,6 +27,12 @@
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 
+#ifdef WIN32
+#ifdef max
+#undef max
+#endif
+#endif
+
 // TODO(alfredo) - remove all the linear lookups on the member names
 // TODO(alfredo) - clarify property mechanism
 

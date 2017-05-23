@@ -20,16 +20,17 @@
 #ifndef __mysh__utils_general__
 #define __mysh__utils_general__
 
-
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
+#include <functional>
 #include <string>
 #include <set>
 #include <vector>
 #ifdef _WIN32
 #include <windows.h>
 #endif
+
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
+#include "mysqlshdk/libs/db/ssl_info.h"
 
 namespace shcore {
 
@@ -81,6 +82,7 @@ bool is_local_host(const std::string &host, bool check_hostname);
 // We inline these functions to avoid trouble with memory and DLL boundaries
 inline LPSTR win_w_to_a_string(LPWSTR wstr, int wstrl) {
   LPSTR str;
+
   int r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wstr, -1, nullptr,
                               0, nullptr, nullptr);
   if (r <= 0)
