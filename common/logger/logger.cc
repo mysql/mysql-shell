@@ -19,9 +19,11 @@
 
 
 #include "logger.h"
+#include <utils/utils_general.h>
 
 #include <stdarg.h>
 #include <time.h>
+#include <vector>
 
 #if defined __GNUC__
 #  pragma GCC diagnostic push
@@ -375,7 +377,10 @@ bool Logger::is_level_none(const std::string& tag)
 
 std::string Logger::get_level_range_info()
 {
-  return "Value must be an integer between 1 and 8 or any of [none, internal, error, warning, info, debug, debug2, debug3].";
+  std::vector<std::string> info = { "Value must be an integer between 1 and 8 "
+                                    "any of [none, internal, error, warning, "
+                                    "info, debug, debug2, debug3]."};
+  return shcore::format_markup_text(info, 80, 27);
 }
 
 Logger::LOG_LEVEL Logger::Logger_levels_table::get_level_by_name(const std::string& level_name)

@@ -372,11 +372,10 @@ std::vector<std::string> Shell_command_line_options::get_details() {
   "  -f, --file=file          Process file.",
   "  -e, --execute=<cmd>      Execute command and quit.",
   "  --uri                    Connect to Uniform Resource Identifier.",
-  "                           Format: [user[:pass]]@host[:port][/db]",
-  "                           or user[:pass]@::socket[/db] .",
+  "                           Format: [user[:pass]@]host[:port][/db]",
   "  -h, --host=name          Connect to host.",
   "  -P, --port=#             Port number to use for connection.",
-  "  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in"
+  "  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in",
   "                           Windows (only classic sessions).",
   "  -u, --dbuser=name        User for the connection to the server.",
   "  --user=name              An alias for dbuser.",
@@ -407,7 +406,7 @@ std::vector<std::string> Shell_command_line_options::get_details() {
   "                           interactive mode.",
   "  --force                  To use in SQL batch mode, forces processing to",
   "                           continue if an error is found.",
-  "  --log-level=value        The log level." +
+  "  --log-level=value        The log level.",
   ngcommon::Logger::get_level_range_info(),
   "  -V, --version            Prints the version of MySQL Shell.",
   "  --ssl                    Enable SSL for connection (automatically enabled",
@@ -421,13 +420,13 @@ std::vector<std::string> Shell_command_line_options::get_details() {
   "  --ssl-crlpath=dir        Certificate revocation list path.",
   "  --ssl-mode=mode          SSL mode to use, allowed values: DISABLED,",
   "                           PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
-  "  --tls-version=version    TLS version to use, permitted values are :"
+  "  --tls-version=version    TLS version to use, permitted values are :",
   "                           TLSv1, TLSv1.1.",
   "  --passwords-from-stdin   Read passwords from stdin instead of the tty.",
   "  --auth-method=method     Authentication method to use.",
-  "  --show-warnings          Automatically display SQL warnings on SQL mode"
+  "  --show-warnings          Automatically display SQL warnings on SQL mode",
   "                           if available.",
-  "  --dba enableXProtocol    Enable the X Protocol in the server connected to."
+  "  --dba enableXProtocol    Enable the X Protocol in the server connected to.",
   "                           Must be used with --classic.",
   "  --nw, --no-wizard        Disables wizard mode."
   };
