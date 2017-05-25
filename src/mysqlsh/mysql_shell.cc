@@ -20,7 +20,7 @@
 #include "mysql_shell.h"
 
 #include "modules/mod_mysql.h"
-#include "modules/mod_mysqlx.h"
+#include "modules/devapi/mod_mysqlx.h"
 #include "src/interactive/interactive_global_dba.h"
 #include "src/interactive/interactive_dba_cluster.h"
 #include "src/interactive/interactive_global_schema.h"

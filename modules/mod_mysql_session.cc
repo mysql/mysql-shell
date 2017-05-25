@@ -39,9 +39,9 @@
 
 #include <set>
 
-#include "mysql_connection.h"
-#include "mod_mysql_resultset.h"
-#include "mod_mysql_schema.h"
+#include "modules/mysql_connection.h"
+#include "modules/mod_mysql_resultset.h"
+#include "modules/mod_mysql_schema.h"
 #include "utils/utils_general.h"
 #include "shellcore/utils_help.h"
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #include "shellcore/shell_sql.h"
 #include "shellcore/shell_notifications.h"
 #include "shellcore/base_session.h"
-#include "../modules/base_resultset.h"
+#include "modules/devapi/base_resultset.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"

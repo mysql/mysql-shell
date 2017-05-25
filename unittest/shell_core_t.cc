@@ -27,7 +27,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
 #include "shellcore/base_session.h"
-#include "../modules/base_resultset.h"
+#include "modules/devapi/base_resultset.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"

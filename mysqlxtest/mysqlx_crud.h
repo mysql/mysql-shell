@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -69,7 +69,7 @@ namespace mysqlx
   class Statement
   {
   public:
-    Statement(){};
+    Statement() {}
     Statement(const Statement& other);
     virtual ~Statement();
     virtual std::shared_ptr<Result> execute() = 0;

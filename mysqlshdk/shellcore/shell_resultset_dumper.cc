@@ -20,7 +20,7 @@
 #include "shellcore/shell_resultset_dumper.h"
 #include "shellcore/shell_core_options.h"
 #include "modules/mod_mysql_resultset.h"
-#include "modules/mod_mysqlx_resultset.h"
+#include "modules/devapi/mod_mysqlx_resultset.h"
 #include "utils/utils_string.h"
 
 #define MAX_COLUMN_LENGTH 1024
@@ -44,7 +44,7 @@ void ResultsetDumper::dump() {
 
   // Buffers the data remaining on the record
   size_t rset, record;
-  bool buffered = false;;
+  bool buffered = false;
   if (_buffer_data) {
     _resultset->buffer();
 

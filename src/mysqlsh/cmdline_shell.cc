@@ -23,7 +23,7 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h" // <---
-#include "modules/base_resultset.h"
+#include "modules/devapi/base_resultset.h"
 #include "utils/utils_time.h"
 #include "shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/logger.h"

@@ -37,14 +37,9 @@ else()
 endif()
 
 file(GLOB api_module_SOURCES
-      "base_*.cc"
-      "collection_*.cc"
-      "table_*.cc"
-      "crud_*.cc"
+      "devapi/*.cc"
       "dynamic_*.cc"
-      "mod_mysqlx.cc"
       "mod_mysql.cc"
-      "mod_mysqlx_*.cc"
       "mod_mysql_*.cc"
       "mod_shell.cc"
       "mod_sys.cc"
