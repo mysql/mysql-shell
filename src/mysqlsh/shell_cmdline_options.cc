@@ -29,12 +29,12 @@
 
 using namespace shcore;
 
-Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
+Shell_command_line_options::Shell_command_line_options(int argc, const char **argv)
   : Command_line_options(argc, argv) {
 
   int arg_format = 0;
   for (int i = 1; i < argc && exit_code == 0; i++) {
-    char *value;
+    const char *value;
     if (check_arg_with_value(argv, i, "--file", "-f", value)) {
       _options.run_file = value;
       // the rest of the cmdline options, starting from here are all passed
@@ -61,7 +61,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
           // Required replacement when --uri=<value>
           if (arg_format == 3)
             nopwd_uri = "--uri=" + nopwd_uri;
-           strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()).c_str());
+           strcpy(const_cast<char*>(argv[i]), nopwd_uri.substr(0, _options.uri.length()).c_str());
         }
       } else {
         std::cerr << "Invalid value specified in --uri parameter.\n";
@@ -118,7 +118,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         std::string pwd = arg_format == 2 ? "-p" : "--dbpassword=";
         pwd.append(stars);
 
-        strcpy(argv[i], pwd.c_str());
+        strcpy(const_cast<char*>(argv[i]), pwd.c_str());
       }
 
       // --password value (value is ignored)
@@ -155,7 +155,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         std::string pwd = arg_format == 2 ? "-p" : "--password=";
         pwd.append(stars);
 
-        strcpy(argv[i], pwd.c_str());
+        strcpy(const_cast<char*>(argv[i]), pwd.c_str());
       }
 
       // --password value (value is ignored)
@@ -311,7 +311,7 @@ _options.ssl_info.skip = false;
 
             // Hide password being used.
             auto nopwd_uri = shcore::build_connection_string(data, true);
-            strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()).c_str());
+            strcpy(const_cast<char*>(argv[i]), nopwd_uri.substr(0, _options.uri.length()).c_str());
           }
         } else {
           std::cerr << "Invalid uri parameter.\n";

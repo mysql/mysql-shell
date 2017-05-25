@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -29,7 +29,7 @@
 class Shell_command_line_options : public Command_line_options {
 public:
   // Takes the URI and the individual connection parameters and overrides
-  Shell_command_line_options(int argc, char **argv);
+  Shell_command_line_options(int argc, const char **argv);
 
   mysqlsh::Shell_options& get_options() { return _options; }
   static std::vector<std::string> get_details();

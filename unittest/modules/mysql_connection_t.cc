@@ -121,7 +121,7 @@ TEST_F(Mysql_connection_test, connect_socket){
     FAIL();
   } else {
     try {
-      shcore::SslInfo info;
+      mysqlshdk::utils::Ssl_info info;
       mysqlsh::mysql::Connection socket_conn("localhost", 0, socket, _user, _pwd, "", info);
       socket_conn.close();
     } catch (const std::exception& e) {

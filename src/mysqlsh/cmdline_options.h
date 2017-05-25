@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,12 +30,12 @@ class Command_line_options
 public:
   int exit_code;
 protected:
-  Command_line_options(int UNUSED(argc), char **UNUSED(argv))
+  Command_line_options(int UNUSED(argc), const char **UNUSED(argv))
     : exit_code(0)
   {
   }
 
-  bool check_arg(char **argv, int &argi, const char *arg, const char *larg)
+  bool check_arg(const char **argv, int &argi, const char *arg, const char *larg)
   {
     if ((arg && strcmp(argv[argi], arg) == 0) || (larg && strcmp(argv[argi], larg) == 0))
       return true;
@@ -55,7 +55,7 @@ protected:
   // --option=[value] will get NULL value if value is missing and can accept_null(i.e. --option=)
   //
   // ReturnValue: Returns the # of format found based on the list above, or 0 if no valid value was found
-  int check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value, bool accept_null = false)
+  int check_arg_with_value(const char **argv, int &argi, const char *arg, const char *larg, const char *&value, bool accept_null = false)
   {
     int ret_val = 0;
 
