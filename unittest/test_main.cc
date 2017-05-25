@@ -129,12 +129,11 @@ int main(int argc, char **argv) {
     p = strrchr(argv[0], '\\');
     mppath = std::string(argv[0], p - argv[0]);
   }
-#ifdef _WIN32
-  // also strip out build type component (eg RelWithDebInfo)
-  mppath.append("/..");
-#endif
+#ifndef _WIN32
+  // On linux, we need to tell the UTs where the mysqlprovision executable is
   mppath.append("/../mysqlprovision");
   (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] = shcore::Value(mppath);
+#endif
 
   int ret_val = RUN_ALL_TESTS();
 

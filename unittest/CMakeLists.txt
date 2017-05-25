@@ -84,12 +84,31 @@ if(WITH_TESTS)
             ${SSL_LIBRARIES_DL}
     )
 
-    # Copies the mysqlshcore dll to the binary location to enable running the UTs
-    if(WINDOWS_RUNTIME_MD)
+    # Sets the test environment so it is ready for execution out of the box
+    # On windows mysqlprovision zip, cmd and mysqlsh.exe need to be together
+    IF(WIN32)
+      # Copies the mysqlprovision.zip to the binary folder
       add_custom_command(TARGET run_unit_tests PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy
-                          $<TARGET_FILE:mysqlshcore> $<TARGET_FILE_DIR:run_unit_tests>)
-    endif()
+                          "${CMAKE_BINARY_DIR}/mysqlprovision.zip" $<TARGET_FILE_DIR:run_unit_tests>/mysqlprovision.zip)
+
+      # Copies the mysqlprovision.cmd to the binary folder
+      add_custom_command(TARGET run_unit_tests PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy
+                          "${CMAKE_SOURCE_DIR}/res/mysqlprovision.cmd" $<TARGET_FILE_DIR:run_unit_tests>/mysqlprovision.cmd)
+
+      # Copies the mysqlsh.exe to the binary folder
+      add_custom_command(TARGET run_unit_tests PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy
+                          $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:run_unit_tests>)
+
+      # Copies the mysqlshcore dll to the binary location to enable running the UTs
+      IF(WINDOWS_RUNTIME_MD)
+        add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy
+                            $<TARGET_FILE:mysqlshcore> $<TARGET_FILE_DIR:run_unit_tests>)
+      ENDIF()
+    ENDIF()
 
 
     if ( HAVE_V8 )
@@ -119,7 +138,7 @@ if(WITH_TESTS)
       target_link_libraries(run_unit_tests "${PYTHON_LIBRARIES}")
 
       if (WIN32)
-        if(CMAKE_BUILD_TYPE MATCHES Debug OR WINDOWS_RUNTIME_MD)
+        IF(WINDOWS_RUNTIME_MD)
           set(PY_DLL ${PYTHON_LIBRARIES})
           string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
           get_filename_component(PY_FILE ${PY_DLL} NAME)
@@ -130,7 +149,21 @@ if(WITH_TESTS)
           add_custom_command(TARGET run_unit_tests PRE_BUILD
                               COMMAND ${CMAKE_COMMAND} -E copy
                               "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${PY_FILE})
-        endif()
+        ENDIF()
+
+        IF(PYTHON_PATH AND PYTHON_FOLDER)
+          # This is to copy the modules into the build directory to make them
+          # available for debugging purposes
+          add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                          "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:run_unit_tests>/Python2.7/Lib)
+
+          # This is to copy the pyd modules into the build directory to make them
+          # available for debugging purposes
+          add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                          "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:run_unit_tests>/Python2.7/DLLs)
+        ENDIF()
       endif()
     endif()
 

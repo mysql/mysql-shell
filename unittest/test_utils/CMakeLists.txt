@@ -24,3 +24,9 @@ set(test_utils_SRC
 )
 
 add_convenience_library(test_utils ${test_utils_SRC})
+
+if(WIN32)
+  if(NOT WINDOWS_RUNTIME_MD)
+    CHANGE_MD_2_MT()
+  endif()
+endif()
