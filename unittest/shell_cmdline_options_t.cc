@@ -152,7 +152,7 @@ public:
     std::string arg;
     arg.append("--").append(option).append("=").append(value);
     SCOPED_TRACE("TESTING: " + arg);
-    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
+    const char *argv[] = {"ut", arg.c_str(), NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
@@ -183,7 +183,7 @@ public:
     std::string arg;
     arg.append("--").append(option);
     SCOPED_TRACE("TESTING: " + arg + " " + value);
-    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
+    const char *argv[] = {"ut", arg.c_str(), value.c_str(), NULL};
     Shell_command_line_options cmd_options(3, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
@@ -214,7 +214,7 @@ public:
     std::string arg;
     arg.append("-").append(soption).append(value);
     SCOPED_TRACE("TESTING: " + arg);
-    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
+    const char *argv[] = {"ut", arg.c_str(), NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
@@ -245,7 +245,7 @@ public:
     std::string arg;
     arg.append("-").append(soption);
     SCOPED_TRACE("TESTING: " + arg + " " + value);
-    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
+    const char *argv[] = {"ut", arg.c_str(), value.c_str(), NULL};
     Shell_command_line_options cmd_options(3, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
@@ -276,7 +276,7 @@ public:
     std::string arg;
     arg.append("--").append(option);
     SCOPED_TRACE("TESTING: " + arg);
-    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
+    const char *argv[] = {"ut", arg.c_str(), NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
 
@@ -314,7 +314,7 @@ public:
     std::string arg;
     arg.append("--").append(option).append("=");
     SCOPED_TRACE("TESTING: " + arg);
-    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
+    const char *argv[] = {("ut"), (arg.c_str()), NULL};
     Shell_command_line_options options(2, argv);
 
     if (valid) {
@@ -362,7 +362,7 @@ public:
     // Tests --option or -o
 
     SCOPED_TRACE("TESTING: " + option);
-    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(option.c_str()), NULL};
+    const char *argv[] = {("ut"), (option.c_str()), NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
 
@@ -381,7 +381,7 @@ public:
 
     {
       SCOPED_TRACE("TESTING: " + firstArg + " " + secondArg);
-      char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()), const_cast<char *>(secondArg.c_str()), NULL};
+      const char *argv[] = {("ut"), (firstArg.c_str()), (secondArg.c_str()), NULL};
       Shell_command_line_options options(3, argv);
 
       EXPECT_EQ(ret_code, options.exit_code);
@@ -394,7 +394,7 @@ public:
     std::cerr.rdbuf(backup);
   }
 
-  void test_conflicting_options(std::string context, size_t argc, char *argv[], std::string error) {
+  void test_conflicting_options(std::string context, size_t argc, const char *argv[], std::string error) {
     std::streambuf* backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
@@ -414,7 +414,7 @@ public:
 
 TEST_F(Shell_cmdline_options, default_values) {
   int argc = 0;
-  char **argv = NULL;
+  const char **argv = NULL;
 
   Shell_command_line_options cmd_options(argc, argv);
   mysqlsh::Shell_options options = cmd_options.get_options();
@@ -579,8 +579,8 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
   SCOPED_TRACE("TESTING: uri as positional argument.");
   firstArg = "root@localhost:3301";
 
-  char *argv[] {const_cast<char *>("ut"),
-                const_cast<char *>(firstArg.c_str()), NULL};
+  const char *argv[] {("ut"),
+                (firstArg.c_str()), NULL};
   Shell_command_line_options cmd_options(2, argv);
   mysqlsh::Shell_options options = cmd_options.get_options();
 
@@ -595,9 +595,9 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
   firstArg = "root@localhost:3301";
   secondArg = "--uri=user2:pass@localhost";
 
-  char *argv2[] {const_cast<char *>("ut"),
-                 const_cast<char *>(firstArg.c_str()),
-                 const_cast<char *>(secondArg.c_str()), NULL};
+  const char *argv2[] {("ut"),
+                 (firstArg.c_str()),
+                 (secondArg.c_str()), NULL};
   cmd_options = Shell_command_line_options(3, argv2);
   options = cmd_options.get_options();
 
@@ -609,9 +609,9 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
   firstArg = "--uri=user2@localhost";
   secondArg = "root:pass@localhost:3301";
 
-  char *argv3[] {const_cast<char *>("ut"),
-                 const_cast<char *>(firstArg.c_str()),
-                 const_cast<char *>(secondArg.c_str()), NULL};
+  const char *argv3[] {("ut"),
+                 (firstArg.c_str()),
+                 (secondArg.c_str()), NULL};
 
   cmd_options = Shell_command_line_options(3, argv3);
   options = cmd_options.get_options();
@@ -624,8 +624,8 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
   SCOPED_TRACE("TESTING: invalid uri as positional argument");
   firstArg = "not:valid_uri";
 
-  char *argv4[] {const_cast<char *>("ut"),
-                 const_cast<char *>(firstArg.c_str()), NULL};
+  const char *argv4[] {("ut"),
+                 (firstArg.c_str()), NULL};
 
   cmd_options = Shell_command_line_options(2, argv4);
   options = cmd_options.get_options();
@@ -714,7 +714,7 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
     auto error = "Conflicting options: provided URI is not compatible with "
                   "Classic session configured with --classic.\n";
 
-    char *argv0[] = {
+    const char *argv0[] = {
         "ut",
         "--classic",
         "--uri=mysqlx://root@localhost",
@@ -728,7 +728,7 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
     auto error = "Conflicting options: provided URI is not compatible with "
                   "Classic session configured with --sqlc.\n";
 
-    char *argv0[] = {
+    const char *argv0[] = {
         "ut",
         "--sqlc",
         "--uri=mysqlx://root@localhost",
@@ -742,7 +742,7 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
     auto error = "Conflicting options: provided URI is not compatible with "
                   "Node session configured with --node.\n";
 
-    char *argv1[] = {
+    const char *argv1[] = {
         "ut",
         "--node",
         "--uri=mysql://root@localhost",
@@ -756,7 +756,7 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
     auto error = "Conflicting options: provided URI is not compatible with "
                   "Node session configured with --sqln.\n";
 
-    char *argv1[] = {
+    const char *argv1[] = {
         "ut",
         "--sqln",
         "--uri=mysql://root@localhost",
@@ -772,7 +772,7 @@ TEST_F(Shell_cmdline_options, conflicts_user) {
   auto error = "Conflicting options: provided user name differs from the "
                 "user in the URI.\n";
 
-  char *argv0[] = {
+  const char *argv0[] = {
       "ut",
       "--user=guest",
       "--uri=mysqlx://root@localhost",
@@ -788,7 +788,7 @@ TEST_F(Shell_cmdline_options, conflicts_password) {
 
   char pwd[] = {"--password=example"};
   char uri[] = {"--uri=mysqlx://root:password@localhost"};
-  char *argv0[] = {
+  const char *argv0[] = {
       "ut",
       pwd,
       uri,
@@ -803,7 +803,7 @@ TEST_F(Shell_cmdline_options, conflicts_host) {
                 "host in the URI.\n";
 
   char uri[] = "--uri=mysqlx://root:password@localhost";
-  char *argv0[] = {
+  const char *argv0[] = {
       "ut",
       "--host=127.0.0.1",
       uri,
@@ -817,7 +817,7 @@ TEST_F(Shell_cmdline_options, conflicts_host_socket) {
   auto error =  "Conflicting options: socket can not be used if host is "
                 "not 'localhost'.\n";
 
-  char *argv0[] = {
+  const char *argv0[] = {
       "ut",
       "--uri=root@127.0.0.1",
       "--socket=/some/socket/path",
@@ -825,13 +825,13 @@ TEST_F(Shell_cmdline_options, conflicts_host_socket) {
     };
   test_conflicting_options("--uri --socket", 3, argv0, error);
 
-  char *argv1[] = {
+  const char *argv1[] = {
       "ut",
       "--host=127.0.0.1",
       "--socket=/some/socket/path",
       NULL
     };
-  test_conflicting_options("--host --socket", 3, argv0, error);
+  test_conflicting_options("--host --socket", 3, argv1, error);
 
 }
 
@@ -840,7 +840,7 @@ TEST_F(Shell_cmdline_options, conflicts_port) {
                 "port in the URI.\n";
 
   char uri[] = {"--uri=mysqlx://root:password@localhost:3307"};
-  char *argv0[] = {
+  const char *argv0[] = {
       "ut",
       "--port=3306",
       uri,
@@ -854,7 +854,7 @@ TEST_F(Shell_cmdline_options, conflicts_socket) {
   auto error = "Conflicting options: provided socket differs from the "
                 "socket in the URI.\n";
 
-  char *argv0[] = {
+  const char *argv0[] = {
       "ut",
       "--socket=/path/to/socket",
       "--uri=mysqlx://root@/socket",
@@ -869,7 +869,7 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
   std::string error0 = "Conflicting options: port and socket can not be used "
                        "together.\n";
 
-  char *argv0[] = {
+  const char *argv0[] = {
       "ut",
       "--port=3307",
       "--socket=/some/weird/path",
@@ -881,7 +881,7 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
   auto error1 = "Conflicting options: port can not be used if the URI "
                 "contains a socket.\n";
 
-  char *argv1[] = {
+  const char *argv1[] = {
     "ut",
     "--uri=root@/socket",
     "--port=3306",
@@ -893,7 +893,7 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
   auto error2 = "Conflicting options: socket can not be used if the URI "
                 "contains a port.\n";
 
-  char *argv2[] = {
+  const char *argv2[] = {
       "ut",
       "--uri=root@localhost:3306",
       "--socket=/some/socket/path",

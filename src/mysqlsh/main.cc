@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
 
   int ret_val = 0;
 
-  Shell_command_line_options cmd_line_options(argc, argv);
+  Shell_command_line_options cmd_line_options(argc, const_cast<const char**>(argv));
   mysqlsh::Shell_options options = cmd_line_options.get_options();
 
   if (options.exit_code != 0)
