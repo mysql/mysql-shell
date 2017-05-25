@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,7 +23,7 @@
 #ifndef _MOD_MYSQL_TABLE_H_
 #define _MOD_MYSQL_TABLE_H_
 
-#include "base_database_object.h"
+#include "modules/devapi/base_database_object.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 

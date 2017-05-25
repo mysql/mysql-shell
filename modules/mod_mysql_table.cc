@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#include "mod_mysql_schema.h"
-#include "mod_mysql_table.h"
+#include "modules/mod_mysql_schema.h"
+#include "modules/mod_mysql_table.h"
 
 #include "shellcore/utils_help.h"
 

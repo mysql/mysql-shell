@@ -20,7 +20,7 @@
 #include "shellcore/shell_sql.h"
 #include "shellcore/base_session.h"
 #include "../modules/mod_mysql_session.h"
-#include "../modules/mod_mysqlx_session.h"
+#include "modules/devapi/mod_mysqlx_session.h"
 #include <fstream>
 #include "utils/utils_string.h"
 

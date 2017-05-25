@@ -33,7 +33,7 @@
 #endif
 
 #include <mysql.h>
-#include "mod_common.h"
+#include "modules/mod_common.h"
 
 namespace mysqlsh {
 namespace mysql {

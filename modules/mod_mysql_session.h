@@ -23,7 +23,7 @@
 #ifndef _MOD_SESSION_H_
 #define _MOD_SESSION_H_
 
-#include "mod_common.h"
+#include "modules/mod_common.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"

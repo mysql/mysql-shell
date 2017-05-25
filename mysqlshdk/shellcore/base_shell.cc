@@ -25,7 +25,7 @@
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h" // <---
 #include "shellcore/shell_notifications.h"
-#include "modules/base_resultset.h"
+#include "modules/devapi/base_resultset.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_time.h"
 #include "mysqlshdk/libs/utils/logger.h"

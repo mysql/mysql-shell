@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,7 +35,7 @@ namespace dba {
 class Instance : public shcore::Cpp_object_bridge{
  public:
   explicit Instance(const std::string &name, const std::string& uri, const shcore::Value::Map_type_ref options  = nullptr);
-  virtual ~Instance(){};
+  virtual ~Instance() {}
 
   virtual std::string class_name() const { return "Instance"; }
   virtual bool operator == (const Object_bridge &other) const;
