@@ -19,8 +19,15 @@ set(test_utils_SRC
     command_line_test.h
     command_line_test.cc
 
-    "${PROJECT_SOURCE_DIR}/common/process_launcher/process_launcher.cc"
+    "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/utils/process_launcher.cc"
     "${PROJECT_SOURCE_DIR}/common/common/exception.cc"
 )
 
 add_convenience_library(test_utils ${test_utils_SRC})
+
+if(WIN32)
+  include(msvc)
+  if(WITH_STATIC_MSVCRT)
+    CHANGE_MD_2_MT()
+  endif()
+endif()

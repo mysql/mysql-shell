@@ -286,25 +286,9 @@ include(packaging)
 
 if(WIN32)
   remove_definitions(-DUNICODE)
-
   IF(PYTHON_LIBRARY_PATH)
     install(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
     install(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
-
-    IF(CMAKE_BUILD_TYPE MATCHES Debug)
-      # This is to copy the modules into the build directory to make them
-      # available for debugging purposes
-      add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/Python2.7/Lib)
-
-      # This is to copy the pyd modules into the build directory to make them
-      # available for debugging purposes
-      add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:mysqlsh>/Python2.7/DLLs)
-    ENDIF()
-
   ENDIF()
 
   # Copies the mysqlshcore dll to the binary location to enable running the UTs
