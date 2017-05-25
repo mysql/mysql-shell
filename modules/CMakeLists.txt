@@ -48,6 +48,7 @@ file(GLOB api_module_SOURCES
       "mod_mysql_*.cc"
       "mod_shell.cc"
       "mod_sys.cc"
+	  "mod_utils.cc"
       "mysql_connection.cc"
       "interactive_object_wrapper.cc"
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"

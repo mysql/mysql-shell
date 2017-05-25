@@ -233,10 +233,10 @@ void parse_mysql_connstring(const std::string &connstring,
 
     scheme = data.get_scheme();
     user = data.get_user();
+    host = data.get_host();
 
     switch (data.get_type()) {
       case uri::Tcp:
-        host = data.get_host();
         if (data.has_port())
           port = data.get_port();
         break;

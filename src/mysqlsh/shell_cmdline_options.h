@@ -24,6 +24,7 @@
 #include <iostream>
 #include "cmdline_options.h"
 #include "shellcore/shell_options.h"
+#include "utils/uri_data.h"
 
 class Shell_command_line_options : public Command_line_options {
 public:
@@ -34,7 +35,18 @@ public:
   static std::vector<std::string> get_details();
 private:
   void override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value = NULL);
+  std::string get_session_type_name(mysqlsh::SessionType type);
+  void check_session_type_conflicts();
+  void check_user_conflicts();
+  void check_password_conflicts();
+  void check_host_conflicts();
+  void check_host_socket_conflicts();
+  void check_port_conflicts();
+  void check_socket_conflicts();
+  void check_port_socket_conflicts();
 
+  shcore::uri::Uri_data _uri_data;
   mysqlsh::Shell_options _options;
+  std::string _session_type_arg;
 };
 #endif

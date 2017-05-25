@@ -28,6 +28,7 @@
 #include "modules/interactive_object_wrapper.h"
 #include "modules/base_database_object.h"
 #include "shellcore/shell_notifications.h"
+#include "modules/mod_utils.h"
 
 using namespace std::placeholders;
 
@@ -435,8 +436,9 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("connect").c_str());
 
   try {
-    auto options = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
-    mysqlsh::dba::resolve_instance_credentials(options);
+    auto options = mysqlsh::get_connection_data(args, PasswordFormat::STRING);
+
+    mysqlsh::resolve_connection_credentials(options);
 
     SessionType type = SessionType::Auto;
     if (options->has_key("scheme")) {

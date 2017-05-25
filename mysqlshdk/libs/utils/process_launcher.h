@@ -53,7 +53,7 @@ class Process_launcher {
    * quoting would be required, which is currently not supported.
    * For that reason, a logic_error will be thrown if cmd.exe is argv[0]
    */
-  explicit Process_launcher(const char **argv, bool redirect_stderr = true);
+  explicit Process_launcher(const char * const *argv, bool redirect_stderr = true);
 
   ~Process_launcher() {
     if (is_alive)
@@ -130,7 +130,7 @@ class Process_launcher {
 #endif
 
   /** Perform Windows specific quoting of args and build a command line */
-  static std::string make_windows_cmdline(const char **argv);
+  static std::string make_windows_cmdline(const char * const*argv);
 
 private:
   /**
@@ -142,7 +142,7 @@ private:
   /** Closes child process */
   void close();
 
-  const char **argv;
+  const char * const *argv;
   bool is_alive;
 #ifdef WIN32
   HANDLE child_in_rd;

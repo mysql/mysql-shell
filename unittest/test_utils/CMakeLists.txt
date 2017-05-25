@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,22 +13,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-include_directories(${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
-set(utils_SOURCE
-    utils_mysql_parsing.cc
-    utils_time.cc
-    utils_file.cc
-    utils_json.cc
-    utils_general.cc
-    utils_sqlstring.cc
-    utils_connection.cc
-    utils_string.cc
-    base_tokenizer.cc
-	uri_data.cc
-    uri_parser.cc
-    logger.cc
-    process_launcher.cc
+set(test_utils_SRC
+    shell_base_test.h
+    shell_base_test.cc
+    command_line_test.h
+    command_line_test.cc
+
+    "${PROJECT_SOURCE_DIR}/common/process_launcher/process_launcher.cc"
+    "${PROJECT_SOURCE_DIR}/common/common/exception.cc"
 )
 
-add_convenience_library(utils ${utils_SOURCE})
-ADD_STAN_TARGET(utils ${utils_SOURCE})
+add_convenience_library(test_utils ${test_utils_SRC})

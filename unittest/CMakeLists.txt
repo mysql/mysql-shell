@@ -43,6 +43,8 @@ if(WITH_TESTS)
 
     set(mysqlsh_tests_SRC
         ${mysqlsh_tests_SRC}
+        "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_main.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils.cc"
         "${CMAKE_SOURCE_DIR}/unittest/shell_script_tester.cc"
@@ -72,6 +74,8 @@ if(WITH_TESTS)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/value_py_bridging_t.cc")
     endif()
 
+    add_subdirectory(test_utils)
+
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     add_dependencies(run_unit_tests
             api_modules
@@ -83,6 +87,7 @@ if(WITH_TESTS)
             mysqlxtest
             gtest
             gmock
+            test_utils
             ${MYSQL_LIBRARIES}
             ${PROTOBUF_LIBRARY}
             ${SSL_LIBRARIES}

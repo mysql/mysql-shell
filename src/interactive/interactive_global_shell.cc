@@ -22,6 +22,7 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/mysqlxtest_utils.h"
 #include "shellcore/base_session.h"
+#include "modules/mod_utils.h"
 
 using namespace std::placeholders;
 
@@ -36,13 +37,12 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   shcore::Value::Map_type_ref instance_def;
   try {
-    instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
+    instance_def = mysqlsh::get_connection_data(args,
+                                               mysqlsh::PasswordFormat::STRING);
 
-    mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
+    mysqlsh::resolve_connection_credentials(instance_def, _delegate);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
-
-
 
   std::string stype;
 
