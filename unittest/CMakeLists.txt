@@ -96,9 +96,35 @@ if(WITH_TESTS)
             ${PYTHON_LIBRARIES}
     )
 
-    if(HAVE_PYTHON)
+    # Sets the test environment so it is ready for execution out of the box
+    # On windows mysqlprovision zip, cmd and mysqlsh.exe need to be together
+    IF(WIN32)
+      # Copies the mysqlprovision.zip to the binary folder
+      add_custom_command(TARGET run_unit_tests PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy
+                          "${CMAKE_BINARY_DIR}/mysqlprovision.zip" $<TARGET_FILE_DIR:run_unit_tests>/mysqlprovision.zip)
+
+      # Copies the mysqlprovision.cmd to the binary folder
+      add_custom_command(TARGET run_unit_tests PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy
+                          "${CMAKE_SOURCE_DIR}/python/mysqlprovision.cmd" $<TARGET_FILE_DIR:run_unit_tests>/mysqlprovision.cmd)
+
+      # Copies the mysqlsh.exe to the binary folder
+      add_custom_command(TARGET run_unit_tests PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy
+                          $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:run_unit_tests>)
+    ENDIF()
+
+
+    if ( HAVE_V8 )
+      target_link_libraries(run_unit_tests ${V8_LINK_LIST})
+    endif()
+
+    if ( HAVE_PYTHON )
+      target_link_libraries(run_unit_tests "${PYTHON_LIBRARIES}")
+
       if (WIN32)
-        if(CMAKE_BUILD_TYPE MATCHES Debug OR NOT WITH_STATIC_PYTHON_LIB)
+        IF(NOT WITH_STATIC_MSVCRT)
           set(PY_DLL ${PYTHON_LIBRARIES})
           string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
           get_filename_component(PY_FILE ${PY_DLL} NAME)
@@ -109,7 +135,21 @@ if(WITH_TESTS)
           add_custom_command(TARGET run_unit_tests PRE_BUILD
                               COMMAND ${CMAKE_COMMAND} -E copy
                               "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${PY_FILE})
-        endif()
+        ENDIF()
+
+        IF(PYTHON_PATH AND PYTHON_FOLDER)
+          # This is to copy the modules into the build directory to make them
+          # available for debugging purposes
+          add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                          "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:run_unit_tests>/Python2.7/Lib)
+
+          # This is to copy the pyd modules into the build directory to make them
+          # available for debugging purposes
+          add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                          "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:run_unit_tests>/Python2.7/DLLs)
+        ENDIF()
       endif()
     endif()
 
