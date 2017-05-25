@@ -44,7 +44,7 @@
 
 namespace shcore {
 
-Process_launcher::Process_launcher(const char **argv, bool redirect_stderr)
+Process_launcher::Process_launcher(const char * const *argv, bool redirect_stderr)
     : is_alive(false) {
 #ifdef WIN32
   if (strstr(argv[0], "cmd.exe"))
@@ -60,7 +60,7 @@ Process_launcher::Process_launcher(const char **argv, bool redirect_stderr)
 
   https://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
  */
-std::string Process_launcher::make_windows_cmdline(const char **argv) {
+std::string Process_launcher::make_windows_cmdline(const char * const*argv) {
   assert(argv[0]);
   std::string cmd = argv[0];
 

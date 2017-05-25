@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-
 #include "mysql_connection.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_general.h"
@@ -210,7 +209,7 @@ Connection::Connection(const std::string &uri_, const char *password)
   std::string user;
   std::string pass;
   std::string host;
-  int port = 3306;
+  int port = 0;
   std::string sock;
   std::string db;
   std::string ssl_ca;
@@ -219,19 +218,38 @@ Connection::Connection(const std::string &uri_, const char *password)
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
   int pwd_found;
 
-  _mysql = mysql_init(NULL);
-
   struct mysqlshdk::utils::Ssl_info ssl_info;
   shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_info);
+
+  // No option should be silently ignored, on conflicts an error is raised
+  if (port != 0 && !sock.empty())
+    throw shcore::Exception::argument_error("Conflicting connection options: both port and socket were specified.");
+
+  // Sets the default port only if no port was specified
+  if (port == 0 && sock.empty())
+    port = 3306;
 
   if (password)
     pass.assign(password);
 
   _uri = shcore::strip_password(uri_);
 
+  _mysql = mysql_init(NULL);
+
   setup_ssl(ssl_info);
-  unsigned int tcp = MYSQL_PROTOCOL_TCP;
-  mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  if (port != 0) {
+    unsigned int tcp = MYSQL_PROTOCOL_TCP;
+    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  }
+
+#ifdef _WIN32
+  // Enable pipe connection if required
+  if (port == 0 && (host == "." || (host.empty() && !sock.empty()))) {
+    unsigned int pipe = MYSQL_PROTOCOL_PIPE;
+    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
+  }
+#endif
+
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags)) {
     throw_on_connection_fail();
   }
@@ -242,16 +260,30 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
 : _mysql(NULL) {
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
 
-  _mysql = mysql_init(NULL);
+  // No option should be silently ignored, on conflicts an error is raised
+  if (port != 0 && !socket.empty())
+    throw shcore::Exception::argument_error("Conflicting connection options: both port and socket were specified.");
 
   std::stringstream str;
   str << user << "@" << host << ":" << port;
   _uri = str.str();
 
+  _mysql = mysql_init(NULL);
+
   setup_ssl(ssl_info);
 
-  unsigned int tcp = MYSQL_PROTOCOL_TCP;
-  mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  if (port != 0) {
+    unsigned int tcp = MYSQL_PROTOCOL_TCP;
+    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  }
+#ifdef _WIN32
+  // Enable pipe connection if required
+  if (port == 0 && (host == "." || (host.empty() && !socket.empty()))) {
+    unsigned int pipe = MYSQL_PROTOCOL_PIPE;
+    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
+  }
+#endif
+
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags)) {
     throw_on_connection_fail();
   }
