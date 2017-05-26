@@ -23,6 +23,12 @@ cluster.remove_instance('@localhost:%d' % __mysql_sandbox_port2)
 #@<OUT> Cluster status
 cluster.status()
 
+#@ Remove instance failure due to wrong credentials
+cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port2, 'user': 'foo', 'password': 'bar'});
+
+#@<OUT> Cluster status after remove failed
+cluster.status()
+
 #@ Removing instance
 cluster.remove_instance('root:root@localhost:%d' % __mysql_sandbox_port2)
 

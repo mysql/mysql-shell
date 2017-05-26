@@ -928,8 +928,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   GRInstanceType type = get_gr_instance_type(classic->connection());
 
-  // If the instance is not on GR, we can remove it from the MD
-
   // TODO: do we remove the host? we check if is the last instance of that host and them remove?
   // auto result = _metadata_storage->remove_host(args);
 
@@ -943,16 +941,14 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   //       - If removing the master instance, a new master will be promoted but this instance will never
   //         be removed from the cluster
 
+  // Get the instance row
+  shcore::Value::Map_type_ref instance =
+        _metadata_storage->get_instance(instance_address);
+
   MetadataStorage::Transaction tx(_metadata_storage);
 
-  if (type == GRInstanceType::InnoDBCluster || type == GRInstanceType::GroupReplication) {
-    std::string replication_user = "mysql_innodb_cluster_rplusr" + port;
-    _metadata_storage->execute_sql("DROP USER IF EXISTS '" + replication_user + "'@'" + host + "'");
-  }
-
   // Remove it from the MD
-  if (is_instance_on_md)
-    remove_instance_metadata(instance_def);
+  remove_instance_metadata(instance_def);
 
   tx.commit();
 
@@ -980,8 +976,17 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
                                                                          instance_admin_user_password,
                                                                          errors);
 
-    if (exit_code != 0)
-      throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
+    if (exit_code != 0) {
+      // If the the removal of the instance from the replicaset failed
+      // We must add it back to the MD
+      // NOTE: This is a temporary fix for the issue caused by the
+      // API not being atomic.
+      // As soon as the API becomes atomic, the following solution can
+      // be dropped
+      _metadata_storage->insert_instance(instance);
+      throw shcore::Exception::runtime_error(
+              get_mysqlprovision_error_string(errors));
+    }
   }
 
   return shcore::Value();

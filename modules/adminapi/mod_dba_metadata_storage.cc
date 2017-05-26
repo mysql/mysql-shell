@@ -296,8 +296,6 @@ uint32_t MetadataStorage::insert_host(const shcore::Value::Map_type_ref &options
 }
 
 void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options, uint64_t host_id, uint64_t rs_id) {
-  std::string uri;
-
   std::string mysql_server_uuid;
   std::string instance_label;
   std::string role;
@@ -305,20 +303,22 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   std::string endpoint;
   std::string xendpoint;
   std::string grendpoint;
-  std::string description;
 
   shcore::sqlstring query;
   std::shared_ptr< ::mysqlx::Result> result;
   std::shared_ptr< ::mysqlx::Row> row;
+
+  if (host_id == 0)
+    host_id = (*options)["host_id"].as_uint();
+
+  if (rs_id == 0)
+    rs_id = (*options)["replicaset_id"].as_uint();
 
   mysql_server_uuid = (*options)["mysql_server_uuid"].as_string();
   instance_label = (*options)["label"].as_string();
 
   if (options->has_key("role"))
     role = (*options)["role"].as_string();
-
-  //if (options->has_key("weight"))
-  //  weight = (*options)["weight"].as_float();
 
   if (options->has_key("endpoint"))
     endpoint = (*options)["endpoint"].as_string();
@@ -332,13 +332,13 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   if (options->has_key("attributes"))
     attributes = (*options)["attributes"].as_map();
 
-  if (options->has_key("description"))
-    description = (*options)["description"].as_string();
+  query = shcore::sqlstring(
+        "INSERT INTO mysql_innodb_cluster_metadata.instances "
+        "(host_id, replicaset_id, mysql_server_uuid, "
+        "instance_name, role, addresses) "
+        "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, "
+        "'mysqlX', ?, 'grLocal', ?))", 0);
 
-  // Insert the default ReplicaSet on the replicasets table
-  query = shcore::sqlstring("INSERT INTO mysql_innodb_cluster_metadata.instances"
-                    " (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses)"
-                    " VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, 'mysqlX', ?, 'grLocal', ?))", 0);
   query << host_id;
   query << rs_id;
   query << mysql_server_uuid;
@@ -763,6 +763,67 @@ std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_onlin
   auto instances = raw_instances.as_array();
 
   return instances;
+}
+
+shcore::Value::Map_type_ref MetadataStorage::get_instance(
+      const std::string &instance_address) {
+  shcore::sqlstring query;
+  Value::Map_type_ref ret_val(new shcore::Value::Map_type);
+  uint64_t host_id, replicaset_id;
+  // int version_token;
+  std::string mysql_server_uuid, instance_name, role,
+              endpoint, xendpoint, grendpoint;
+  // std::string weight, description;
+  shcore::Value::Map_type_ref attributes;
+
+  query = shcore::sqlstring(
+      "SELECT host_id, replicaset_id, mysql_server_uuid, "\
+      "instance_name, role, weight, "\
+      "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as endpoint, "\
+      "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlX\")) as xendpoint, "\
+      "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.grLocal\")) as grendpoint, "\
+      "addresses, attributes, version_token, description "
+      "FROM mysql_innodb_cluster_metadata.instances "\
+      "WHERE addresses->\"$.mysqlClassic\" = ?", 0);
+
+  query << instance_address;
+  query.done();
+
+  auto result = execute_sql(query);
+  auto row = result->fetch_one();
+
+  if (row) {
+    host_id = row->get_value(0);
+    replicaset_id = row->get_value(1);
+    mysql_server_uuid = row->get_value(2).as_string();
+    instance_name = row->get_value(3).as_string();
+    role = row->get_value(4).as_string();
+    // weight = row->get_value(5).as_float();
+    endpoint = row->get_value(6).as_string();
+    xendpoint = row->get_value(7).as_string();
+    grendpoint = row->get_value(8).as_string();
+    // attributes = row->get_value(10).as_map();
+    // version_token = row->get_value(11).as_int();
+    // description = row->get_value(12).as_string();
+
+    (*ret_val)["host_id"] = Value(host_id);
+    (*ret_val)["replicaset_id"] = Value(replicaset_id);
+    (*ret_val)["mysql_server_uuid"] = Value(mysql_server_uuid);
+    (*ret_val)["label"] = Value(instance_name);
+    (*ret_val)["role"] = Value(role);
+    // (*ret_val)["weight"] = Value(weight);
+    (*ret_val)["endpoint"] = Value(endpoint);
+    (*ret_val)["xendpoint"] = Value(xendpoint);
+    (*ret_val)["grendpoint"] = Value(grendpoint);
+    // (*ret_val)["attributes"] = Value(attributes);
+    // (*ret_val)["version_token"] = Value(version_token);
+    // (*ret_val)["description"] = Value(description);
+
+    return ret_val;
+  }
+
+  throw Exception::metadata_error("The instance with the address '" +
+                                  instance_address + "' does not exist.");
 }
 
 // generate a replication user account + password for an instance

@@ -71,7 +71,7 @@ public:
   std::string get_topology_type() const { return _topology_type; }
 
   void add_instance_metadata(const shcore::Value::Map_type_ref &instance_definition, const std::string& label = "");
-  void remove_instance_metadata(const shcore::Value::Map_type_ref& instance_def);
+  void remove_instance_metadata(const shcore::Value::Map_type_ref &instance_def);
 
   void adopt_from_gr();
 
