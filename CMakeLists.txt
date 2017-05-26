@@ -287,8 +287,13 @@ include(packaging)
 if(WIN32)
   remove_definitions(-DUNICODE)
   IF(PYTHON_LIBRARY_PATH)
-    install(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
-    install(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+    INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+    INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+
+    IF (WITH_DEV)
+      INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT dev)
+      INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT dev)
+    ENDIF()
   ENDIF()
 
   # Copies the mysqlshcore dll to the binary location to enable running the UTs
@@ -305,8 +310,7 @@ if(WITH_DEV)
        install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
     endif()
 
-    install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "${INSTALL_INCLUDEDIR}/utils" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-    install(FILES "${CMAKE_SOURCE_DIR}/common/logger/logger.h" DESTINATION "${INSTALL_INCLUDEDIR}/logger" COMPONENT dev)
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlshdk/include/shellcore" DESTINATION "${INSTALL_INCLUDEDIR}" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 endif()
 
 # This should be there for both MD and non MD windows builds
