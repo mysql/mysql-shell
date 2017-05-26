@@ -40,6 +40,36 @@
     }
 }
 
+#@ Remove instance failure due to wrong credentials
+||RuntimeError: Cluster.remove_instance: ERROR: Error leaving cluster: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' - Access denied for user 'foo'@'localhost' (using password: YES)
+
+#@<OUT> Cluster status after remove failed
+{
+    "clusterName": "dev",
+    "defaultReplicaSet": {
+        "name": "default",
+        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "OK_NO_TOLERANCE",
+        "statusText": "Cluster is NOT tolerant to any failures.",
+        "topology": {
+            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            },
+            "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE"
+            }
+        }
+    }
+}
+
 #@ Removing instance
 ||
 
