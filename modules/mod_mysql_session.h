@@ -163,7 +163,7 @@ public:
 #endif
   virtual bool is_connected() const { return _conn ? true : false; }
 
-  virtual int get_default_port() { return 3306; };
+  virtual int get_default_port();
 
 private:
   void init();

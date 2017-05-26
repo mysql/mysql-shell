@@ -224,6 +224,15 @@ void BaseSession::reset_session() {
   }
 }
 
+int BaseSession::get_default_port() {
+  int default_port = 0;
+
+  if (_port == 0 && _sock.empty())
+    default_port = 33060;
+
+  return default_port;
+};
+
 Value BaseSession::sql(const Argument_list &args) {
   args.ensure_count(1, get_function_name("sql").c_str());
 
