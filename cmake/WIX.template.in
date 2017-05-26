@@ -41,20 +41,20 @@
 
         <UI>
           <UIRef Id="WixUI_InstallDir" />
-          <Publish Dialog="ExitDialog" 
-            Control="Finish" 
-            Event="DoAction" 
-            Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>    
+          <Publish Dialog="ExitDialog"
+            Control="Finish"
+            Event="DoAction"
+            Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
         </UI>
-        <Property Id="CPP_120_RUNTIMES" Secure="yes" Hidden="yes">
-          <DirectorySearch Id="CPP_120_RUNTIMES" Path="[WindowsFolder]" Depth="2">
-            <FileSearch Name="msvcr120.dll" MinVersion="12.0.0.0" />
+        <Property Id="CPP_140_RUNTIMES" Secure="yes" Hidden="yes">
+          <DirectorySearch Id="CPP_140_RUNTIMES" Path="[WindowsFolder]" Depth="2">
+            <FileSearch Name="vcruntime140.dll" MinVersion="14.0.0.0" />
           </DirectorySearch>
         </Property>
-        <Condition Message="MySQL Shell requires the Visual C++ 2013 Redistributable Package to be installed."><![CDATA[Installed OR CPP_120_RUNTIMES]]></Condition>
+        <Condition Message="MySQL Shell requires the Visual C++ 2015 Redistributable Package to be installed."><![CDATA[Installed OR CPP_140_RUNTIMES]]></Condition>
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch MySQL Shell" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
         <Property Id="WixShellExecTarget" Value="[#mysqlsh.exe]" />
-        <CustomAction Id="LaunchApplication" Directory="DIR_ID_1" ExeCommand="[SystemFolder]cmd.exe /C mysqlsh.exe" Return="asyncNoWait"/>
+        <CustomAction Id="LaunchApplication" Directory="CM_DP_main.bin" ExeCommand="[SystemFolder]cmd.exe /C mysqlsh.exe" Return="asyncNoWait"/>
     </Product>
 </Wix>
