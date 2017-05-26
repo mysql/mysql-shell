@@ -51,8 +51,12 @@ add_custom_command(OUTPUT mysqlprovision_bin_with_connector
 if(WIN32)
   add_custom_target(mysqlprovision ALL DEPENDS mysqlprovision_exe)
   install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_BINDIR})
-
   install(FILES "${CMAKE_SOURCE_DIR}/python/mysqlprovision.cmd" COMPONENT main DESTINATION ${INSTALL_BINDIR})
+
+  IF (WITH_DEV)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_BINDIR})
+    install(FILES "${CMAKE_SOURCE_DIR}/python/mysqlprovision.cmd" COMPONENT dev DESTINATION ${INSTALL_BINDIR})
+  ENDIF()
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     add_custom_command(TARGET mysqlsh PRE_BUILD
@@ -66,4 +70,7 @@ else()
       add_custom_target(mysqlprovision ALL DEPENDS mysqlprovision_bin)
   endif()
   install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision COMPONENT main DESTINATION ${INSTALL_BINDIR})
+  IF (WITH_DEV)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision COMPONENT dev DESTINATION ${INSTALL_BINDIR})
+  ENDIF()
 endif()

@@ -128,10 +128,6 @@ endif()
 # Configures Python accordingly...
 if ( HAVE_PYTHON )
   include_directories("${PYTHON_INCLUDE_DIR}")
-
-  if (WITH_DEV AND WIN32)
-    install(FILES ${PYTHON_LIBRARIES} DESTINATION lib COMPONENT dev)
-  endif()
 else()
   # Removes from the project all the python files
   file(GLOB python_SRC "*python*.cc")
@@ -245,7 +241,7 @@ INCLUDE(protobuf)
 SETUP_PROTOBUF()
 include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
 
-IF(WIN32 AND WINDOWS_RUNTIME_MD)
+IF(WIN32 AND NOT WITH_STATIC_MSVCRT)
   SET(MYSH_FILE_TYPE "VFT_DLL")
   SET(MYSH_PRODUCT_NAME "MySQL Shell Core Library")
   SET(MYSH_ORIGINAL_FILE_NAME "mysqlshcore.dll")
@@ -282,11 +278,6 @@ if( WIN32 )
   if(WITH_STATIC_MSVCRT)
     CHANGE_MD_2_MT()
   endif()
-endif()
-
-if (WITH_DEV)
-    install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "${INSTALL_INCLUDEDIR}/shellcore" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-    install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "${INSTALL_INCLUDEDIR}/modules" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 endif()
 
 install(TARGETS mysqlshcore COMPONENT dev DESTINATION lib)

@@ -62,8 +62,3 @@ target_link_libraries(mysqlxtest ${PROTOBUF_LIBRARY})
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   set_target_properties(mysqlxtest PROPERTIES COMPILE_FLAGS "-fPIC -Wno-error=unused-value")
 endif()
-
-if (WITH_DEV)
-    install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/" DESTINATION "${INSTALL_INCLUDEDIR}/mysqlxtest/" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-    install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/common/" DESTINATION "${INSTALL_INCLUDEDIR}/mysqlxtest/common/" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-endif()
