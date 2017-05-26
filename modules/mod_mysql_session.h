@@ -177,7 +177,7 @@ public:
 #endif
   virtual bool is_open() const;
 
-  virtual int get_default_port() { return 3306; };
+  virtual int get_default_port();
 
 private:
   void init();
