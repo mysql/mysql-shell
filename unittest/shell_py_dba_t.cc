@@ -486,6 +486,7 @@ TEST_F(Shell_py_dba_tests, dba_cluster_add_instance) {
 TEST_F(Shell_py_dba_tests, dba_cluster_remove_instance) {
   _options->wizards = false;
   reset_shell();
+  // Regression for Bug #25404009
   validate_interactive("dba_cluster_remove_instance.py");
 }
 

@@ -49,7 +49,7 @@ public:
   void insert_cluster(const std::shared_ptr<Cluster> &cluster);
   void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset, bool is_default, bool is_adopted);
   uint32_t insert_host(const shcore::Value::Map_type_ref &options);
-  void insert_instance(const shcore::Value::Map_type_ref& options, uint64_t host_id, uint64_t rs_id);
+  void insert_instance(const shcore::Value::Map_type_ref& options, uint64_t host_id = 0, uint64_t rs_id = 0);
   void remove_instance(const std::string &instance_address);
   void drop_cluster(const std::string &cluster_name);
   bool cluster_has_default_replicaset_only(const std::string &cluster_name);
@@ -71,6 +71,9 @@ public:
   std::string get_seed_instance(uint64_t rs_id);
   std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(uint64_t rs_id);
   std::shared_ptr<shcore::Value::Array_type> get_replicaset_online_instances(uint64_t rs_id);
+
+  shcore::Value::Map_type_ref get_instance(
+          const std::string &instance_address);
 
   void create_repl_account(std::string &username, std::string &password);
 

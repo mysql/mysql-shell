@@ -1714,9 +1714,9 @@ class Server(object):
         :rtype:  string
         """
         if self.socket and os.name == "posix":
-            return "'{0}@{1}'".format(self.host, self.socket)
+            return "'{0}:{1}'".format(self.host, self.socket)
         else:
-            return "'{0}@{1}'".format(self.host, self.port)
+            return "'{0}:{1}'".format(self.host, self.port)
 
 
 class QueryKillerThread(threading.Thread):
