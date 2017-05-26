@@ -1015,6 +1015,16 @@ std::string BaseSession::query_one_string(const std::string &query) {
   return "";
 }
 
+int BaseSession::get_default_port() {
+  int default_port = 0;
+
+  if (_port == 0 && _sock.empty())
+    default_port = 33060;
+
+  return default_port;
+}
+
+
 std::shared_ptr<BaseSession> XSession::_get_shared_this() const {
   std::shared_ptr<const XSession> shared = shared_from_this();
 

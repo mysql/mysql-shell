@@ -218,17 +218,13 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
   if (2 == args.size())
     _password = args.string_at(1).c_str();
 
-#ifdef _WIN32
-  // Default port is used only on windows if:
-  // - Not provided by the user
-  // - No named pipe provided (--socket)
-  // - Host is different than "." in which case would be using
-  //   the default named pipe
-  // On linux the port is let empty so a socket connection is attempted
-  // It is left empty so a socket connection is attempted
-  if (_port == 0 && _sock.empty() && !_host.empty() && _host != ".")
-    _port = get_default_port();
-#endif
+  // Default port will be != 0 only when applicable
+  if (_port == 0) {
+      int default_port = get_default_port();
+
+    if (default_port != 0)
+      _port = default_port;
+  }
 
   std::string sock_port = (_port == 0) ? _sock : std::to_string(_port);
 

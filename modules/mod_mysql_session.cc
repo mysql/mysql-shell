@@ -398,6 +398,23 @@ Value ClassicSession::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+int ClassicSession::get_default_port() {
+  int default_port = 0;
+#ifdef _WIN32
+  // Default port is used only on windows if:
+  // - Not provided by the user
+  // - No named pipe provided (--socket)
+  // - Host is different than "." in which case would be using
+  //   the default named pipe
+  // On linux the port is let empty so a socket connection is attempted
+  // It is left empty so a socket connection is attempted
+  if (_port == 0 && _sock.empty() && !_host.empty() && _host != ".")
+    default_port = 3306;
+#endif
+  return default_port;
+}
+
+
 std::string ClassicSession::_retrieve_current_schema() {
   std::string name;
 

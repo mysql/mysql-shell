@@ -182,7 +182,7 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   }
   std::string _retrieve_current_schema();
 
-  virtual int get_default_port() { return 33060; }
+  virtual int get_default_port();
 
   SessionHandle _session;
 
