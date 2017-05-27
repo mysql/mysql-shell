@@ -12,7 +12,7 @@
         "port" : 3306
     },
 "remote": {
-        "user" : "root",
+        "user" : "root",a 
         "password" : "guidev!",
         "host" : "localhost",
         "xprotocol_port" : 33060,

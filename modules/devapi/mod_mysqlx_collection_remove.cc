@@ -25,6 +25,7 @@
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "utils/utils_time.h"
 
 using namespace std::placeholders;
@@ -66,23 +67,36 @@ CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
 // Documentation of remove function
 REGISTER_HELP(
     COLLECTIONREMOVE_REMOVE_BRIEF,
-    "Sets the search condition to filter the Documents to be deleted from the owner Collection.");
+    "Sets the search condition to filter the documents to be deleted from "
+    "the owner Collection.");
 REGISTER_HELP(
     COLLECTIONREMOVE_REMOVE_PARAM,
-    "@param searchCondition: An optional expression to filter the documents to be deleted.");
+    "@param searchCondition: An expression to filter the documents to be "
+    "deleted.");
 REGISTER_HELP(COLLECTIONREMOVE_REMOVE_RETURNS,
               "@returns This CollectionRemove object.");
-REGISTER_HELP(
-    COLLECTIONREMOVE_REMOVE_DETAIL,
-    "if not specified all the documents will be deleted from the collection unless a limit is set.");
+
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL,
+    "Creates a handler for the deletion of documents on the collection.");
+
 REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL1,
-              "The searchCondition supports parameter binding.");
-REGISTER_HELP(
-    COLLECTIONREMOVE_REMOVE_DETAIL2,
-    "This function is called automatically when Collection.remove(searchCondition) is called.");
-REGISTER_HELP(
-    COLLECTIONREMOVE_REMOVE_DETAIL3,
-    "The actual deletion of the documents will occur only when the execute method is called.");
+    "A condition must be provided to this function, all the documents "
+    "matching the condition will be removed from the collection.");
+
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL2,
+    "To delete all the documents, set a condition that always evaluates to "
+    "true, for example '1'.");
+
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL3,
+    "The searchCondition supports parameter binding.");
+
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL4,
+    "This function is called automatically when "
+    "Collection.remove(searchCondition) is called.");
+
+REGISTER_HELP(COLLECTIONREMOVE_REMOVE_DETAIL5,
+    "The actual deletion of the documents will occur only when the execute "
+    "method is called.");
 
 /**
 * $(COLLECTIONREMOVE_REMOVE_BRIEF)
@@ -98,6 +112,10 @@ REGISTER_HELP(
 * $(COLLECTIONREMOVE_REMOVE_DETAIL2)
 *
 * $(COLLECTIONREMOVE_REMOVE_DETAIL3)
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL4)
+*
+* $(COLLECTIONREMOVE_REMOVE_DETAIL5)
 *
 * #### Method Chaining
 *
@@ -119,16 +137,17 @@ CollectionRemove CollectionRemove::remove(str searchCondition) {}
 //@}
 shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
   // Each method validates the received parameters
-  args.ensure_count(0, 1, get_function_name("remove").c_str());
+  args.ensure_count(1, get_function_name("remove").c_str());
 
   std::shared_ptr<Collection> collection(
       std::static_pointer_cast<Collection>(_owner.lock()));
 
   if (collection) {
     try {
-      std::string search_condition;
-      if (args.size())
-        search_condition = args.string_at(0);
+      std::string search_condition = str_strip(args.string_at(0));
+
+      if (search_condition.empty())
+        throw shcore::Exception::argument_error("Requires a search condition.");
 
       _remove_statement.reset(new ::mysqlx::RemoveStatement(
           collection->_collection_impl->remove(search_condition)));

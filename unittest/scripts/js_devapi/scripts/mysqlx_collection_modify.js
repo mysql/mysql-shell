@@ -23,49 +23,49 @@ var result = collection.add({ name: 'angel', age: 14, gender: 'male' }).execute(
 // Collection.Modify Unit Testing: Dynamic Behavior
 // ------------------------------------------------
 //@ CollectionModify: valid operations after modify and set
-var crud = collection.modify();
+var crud = collection.modify('some_filter');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.set('name', 'dummy');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and unset empty
-var crud = collection.modify();
+var crud = collection.modify('some_filter');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.unset([]);
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 
 //@ CollectionModify: valid operations after modify and unset list
-var crud = collection.modify();
+var crud = collection.modify('some_filter');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.unset(['name', 'type']);
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and unset multiple params
-var crud = collection.modify();
+var crud = collection.modify('some_filter');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.unset('name', 'type');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and merge
-var crud = collection.modify();
+var crud = collection.modify('some_filter');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.merge({ 'att': 'value', 'second': 'final' });
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and arrayInsert
-var crud = collection.modify();
+var crud = collection.modify('some_filter');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.arrayInsert('hobbies[3]', 'run');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and arrayAppend
-var crud = collection.modify();
+var crud = collection.modify('some_filter');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.arrayAppend('hobbies', 'skate');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and arrayDelete
-var crud = collection.modify();
+var crud = collection.modify('some_filter');
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
 var crud = crud.arrayDelete('hobbies[5]')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
@@ -96,53 +96,55 @@ print('Updated Carol:', result.affectedItemCount, '\n');
 // ----------------------------------------------
 
 //@# CollectionModify: Error conditions on modify
+crud = collection.modify();
+crud = collection.modify('   ');
 crud = collection.modify(5);
 crud = collection.modify('test = "2');
 
 //@# CollectionModify: Error conditions on set
-crud = collection.modify().set();
-crud = collection.modify().set(45, 'whatever');
-crud = collection.modify().set('', 5);
+crud = collection.modify('some_filter').set();
+crud = collection.modify('some_filter').set(45, 'whatever');
+crud = collection.modify('some_filter').set('', 5);
 
 //@# CollectionModify: Error conditions on unset
-crud = collection.modify().unset();
-crud = collection.modify().unset({});
-crud = collection.modify().unset({}, '');
-crud = collection.modify().unset(['name', 1]);
-crud = collection.modify().unset('');
+crud = collection.modify('some_filter').unset();
+crud = collection.modify('some_filter').unset({});
+crud = collection.modify('some_filter').unset({}, '');
+crud = collection.modify('some_filter').unset(['name', 1]);
+crud = collection.modify('some_filter').unset('');
 
 //@# CollectionModify: Error conditions on merge
-crud = collection.modify().merge();
-crud = collection.modify().merge('');
+crud = collection.modify('some_filter').merge();
+crud = collection.modify('some_filter').merge('');
 
 //@# CollectionModify: Error conditions on arrayInsert
-crud = collection.modify().arrayInsert();
-crud = collection.modify().arrayInsert(5, 'another');
-crud = collection.modify().arrayInsert('', 'another');
-crud = collection.modify().arrayInsert('test', 'another');
+crud = collection.modify('some_filter').arrayInsert();
+crud = collection.modify('some_filter').arrayInsert(5, 'another');
+crud = collection.modify('some_filter').arrayInsert('', 'another');
+crud = collection.modify('some_filter').arrayInsert('test', 'another');
 
 //@# CollectionModify: Error conditions on arrayAppend
-crud = collection.modify().arrayAppend();
-crud = collection.modify().arrayAppend({}, '');
-crud = collection.modify().arrayAppend('', 45);
-crud = collection.modify().arrayAppend('data', mySession);
+crud = collection.modify('some_filter').arrayAppend();
+crud = collection.modify('some_filter').arrayAppend({}, '');
+crud = collection.modify('some_filter').arrayAppend('', 45);
+crud = collection.modify('some_filter').arrayAppend('data', mySession);
 
 //@# CollectionModify: Error conditions on arrayDelete
-crud = collection.modify().arrayDelete();
-crud = collection.modify().arrayDelete(5);
-crud = collection.modify().arrayDelete('');
-crud = collection.modify().arrayDelete('test');
+crud = collection.modify('some_filter').arrayDelete();
+crud = collection.modify('some_filter').arrayDelete(5);
+crud = collection.modify('some_filter').arrayDelete('');
+crud = collection.modify('some_filter').arrayDelete('test');
 
 //@# CollectionModify: Error conditions on sort
-crud = collection.modify().unset('name').sort();
-crud = collection.modify().unset('name').sort(5);
-crud = collection.modify().unset('name').sort([]);
-crud = collection.modify().unset('name').sort(['name', 5]);
-crud = collection.modify().unset('name').sort('name', 5);
+crud = collection.modify('some_filter').unset('name').sort();
+crud = collection.modify('some_filter').unset('name').sort(5);
+crud = collection.modify('some_filter').unset('name').sort([]);
+crud = collection.modify('some_filter').unset('name').sort(['name', 5]);
+crud = collection.modify('some_filter').unset('name').sort('name', 5);
 
 //@# CollectionModify: Error conditions on limit
-crud = collection.modify().unset('name').limit();
-crud = collection.modify().unset('name').limit('');
+crud = collection.modify('some_filter').unset('name').limit();
+crud = collection.modify('some_filter').unset('name').limit('');
 
 //@# CollectionModify: Error conditions on bind
 crud = collection.modify('name = :data and age > :years').set('hobby', 'swim').bind();
@@ -280,6 +282,9 @@ print(dir(doc));
 //@ CollectionModify: sorting and limit Execution - 4
 var doc = result.fetchOne();
 print(dir(doc));
+
+//@<OUT> CollectionModify: help
+collection.help('modify');
 
 // Cleanup
 mySession.dropSchema('js_shell_test');

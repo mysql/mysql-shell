@@ -75,7 +75,7 @@ var result = collection.createIndex('_name', mysqlx.IndexType.UNIQUE).field('nam
 var result = collection.createIndex('_alias', mysqlx.IndexType.UNIQUE).field('alias', "TEXT(50)", true).execute();
 
 //@ Unique index: creation with required field
-var result = collection.remove().execute();
+var result = collection.remove('1').execute();
 var result = collection.createIndex('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", true).execute();
 var result = collection.add({ name: 'John', last_name: 'Carter', age: 17 }).execute();
 var result = collection.add({ name: 'John', last_name: 'Doe', age: 18 }).execute();
