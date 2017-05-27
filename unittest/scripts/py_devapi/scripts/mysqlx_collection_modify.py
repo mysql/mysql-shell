@@ -23,49 +23,49 @@ result = collection.add({"name": 'angel', "age": 14, "gender": 'male'}).execute(
 # Collection.Modify Unit Testing: Dynamic Behavior
 # ------------------------------------------------
 #@ CollectionModify: valid operations after modify and set
-crud = collection.modify()
+crud = collection.modify('some_filter')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.set('name', 'dummy')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and unset empty
-crud = collection.modify()
+crud = collection.modify('some_filter')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud.unset([])
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 
 #@ CollectionModify: valid operations after modify and unset list
-crud = collection.modify()
+crud = collection.modify('some_filter')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.unset(['name', 'type'])
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and unset multiple params
-crud = collection.modify()
+crud = collection.modify('some_filter')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.unset('name', 'type')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and merge
-crud = collection.modify()
+crud = collection.modify('some_filter')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.merge({'att':'value','second':'final'})
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and array_insert
-crud = collection.modify()
+crud = collection.modify('some_filter')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.array_insert('hobbies[3]', 'run')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and array_append
-crud = collection.modify()
+crud = collection.modify('some_filter')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.array_append('hobbies','skate')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and array_delete
-crud = collection.modify()
+crud = collection.modify('some_filter')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.array_delete('hobbies[5]')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
@@ -97,54 +97,56 @@ print 'Updated Carol:', result.affected_item_count, '\n'
 # ----------------------------------------------
 
 #@# CollectionModify: Error conditions on modify
+crud = collection.modify()
+crud = collection.modify('    ')
 crud = collection.modify(5)
 crud = collection.modify('test = "2')
 
 #@# CollectionModify: Error conditions on set
-crud = collection.modify().set()
-crud = collection.modify().set(45, 'whatever')
-crud = collection.modify().set('', 5)
+crud = collection.modify('some_filter').set()
+crud = collection.modify('some_filter').set(45, 'whatever')
+crud = collection.modify('some_filter').set('', 5)
 
 
 #@# CollectionModify: Error conditions on unset
-crud = collection.modify().unset()
-crud = collection.modify().unset({})
-crud = collection.modify().unset({}, '')
-crud = collection.modify().unset(['name', 1])
-crud = collection.modify().unset('')
+crud = collection.modify('some_filter').unset()
+crud = collection.modify('some_filter').unset({})
+crud = collection.modify('some_filter').unset({}, '')
+crud = collection.modify('some_filter').unset(['name', 1])
+crud = collection.modify('some_filter').unset('')
 
 #@# CollectionModify: Error conditions on merge
-crud = collection.modify().merge()
-crud = collection.modify().merge('')
+crud = collection.modify('some_filter').merge()
+crud = collection.modify('some_filter').merge('')
 
 #@# CollectionModify: Error conditions on array_insert
-crud = collection.modify().array_insert()
-crud = collection.modify().array_insert(5, 'another')
-crud = collection.modify().array_insert('', 'another')
-crud = collection.modify().array_insert('test', 'another')
+crud = collection.modify('some_filter').array_insert()
+crud = collection.modify('some_filter').array_insert(5, 'another')
+crud = collection.modify('some_filter').array_insert('', 'another')
+crud = collection.modify('some_filter').array_insert('test', 'another')
 
 #@# CollectionModify: Error conditions on array_append
-crud = collection.modify().array_append()
-crud = collection.modify().array_append({},'')
-crud = collection.modify().array_append('',45)
-crud = collection.modify().array_append('data', mySession)
+crud = collection.modify('some_filter').array_append()
+crud = collection.modify('some_filter').array_append({},'')
+crud = collection.modify('some_filter').array_append('',45)
+crud = collection.modify('some_filter').array_append('data', mySession)
 
 #@# CollectionModify: Error conditions on array_delete
-crud = collection.modify().array_delete()
-crud = collection.modify().array_delete(5)
-crud = collection.modify().array_delete('')
-crud = collection.modify().array_delete('test')
+crud = collection.modify('some_filter').array_delete()
+crud = collection.modify('some_filter').array_delete(5)
+crud = collection.modify('some_filter').array_delete('')
+crud = collection.modify('some_filter').array_delete('test')
 
 #@# CollectionModify: Error conditions on sort
-crud = collection.modify().unset('name').sort()
-crud = collection.modify().unset('name').sort(5)
-crud = collection.modify().unset('name').sort([])
-crud = collection.modify().unset('name').sort(['name', 5])
-crud = collection.modify().unset('name').sort('name', 5)
+crud = collection.modify('some_filter').unset('name').sort()
+crud = collection.modify('some_filter').unset('name').sort(5)
+crud = collection.modify('some_filter').unset('name').sort([])
+crud = collection.modify('some_filter').unset('name').sort(['name', 5])
+crud = collection.modify('some_filter').unset('name').sort('name', 5)
 
 #@# CollectionModify: Error conditions on limit
-crud = collection.modify().unset('name').limit()
-crud = collection.modify().unset('name').limit('')
+crud = collection.modify('some_filter').unset('name').limit()
+crud = collection.modify('some_filter').unset('name').limit('')
 
 #@# CollectionModify: Error conditions on bind
 crud = collection.modify('name = :data and age > :years').set('hobby', 'swim').bind()
@@ -275,6 +277,9 @@ print dir(doc)
 #@ CollectionModify: sorting and limit Execution - 4
 doc = result.fetch_one()
 print dir(doc)
+
+#@<OUT> CollectionModify: help
+collection.help('modify')
 
 # Cleanup
 mySession.drop_schema('js_shell_test')

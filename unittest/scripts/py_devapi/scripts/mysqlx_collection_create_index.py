@@ -78,7 +78,7 @@ result = collection.create_index('_name', mysqlx.IndexType.UNIQUE).field('name',
 result = collection.create_index('_alias', mysqlx.IndexType.UNIQUE).field('alias', "TEXT(50)", True).execute()
 
 #@ Unique index: creation with required field
-result = collection.remove().execute()
+result = collection.remove('1').execute()
 result = collection.create_index('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", True).execute()
 result = collection.add({'name':'John', 'last_name':'Carter', 'age':17}).execute()
 result = collection.add({'name':'John', 'last_name':'Doe', 'age':18}).execute()

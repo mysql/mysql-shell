@@ -51,6 +51,8 @@
 |Updated Carol: 1|
 
 //@# CollectionModify: Error conditions on modify
+||Invalid number of arguments in CollectionModify.modify, expected 1 but got 0
+||CollectionModify.modify: Requires a search condition.
 ||CollectionModify.modify: Argument #1 is expected to be a string
 ||CollectionModify.modify: Unterminated quoted string starting at position 8
 
@@ -196,3 +198,129 @@
 |age|
 |gender|
 |~sample|
+
+//@<OUT> CollectionModify: help
+Creates a collection update handler.
+
+SYNTAX
+
+  <Collection>.modify(...)
+              [.set(...)]
+              [.unset(...)]
+              [.merge(...)]
+              [.arrayInsert(...)]
+              [.arrayAppend(...)]
+              [.arrayDelete(...)]
+              [.sort(...)]
+              [.limit(...)]
+              [.bind(...)]
+              [.execute(...)]
+
+DESCRIPTION
+
+Creates a collection update handler.
+
+  .modify(...)
+
+    Creates a handler to update documents in the collection.
+
+    A condition must be provided to this function, all the documents matching
+    the condition will be updated.
+
+    To update all the documents, set a condition that always evaluates to true,
+    for example '1'.
+
+  .set(...)
+
+    Adds an opertion into the modify handler to set an attribute on the
+    documents that were included on the selection filter and limit.
+
+     - If the attribute is not present on the document, it will be added with
+       the given value.
+     - If the attribute already exists on the document, it will be updated with
+       the given value.
+
+
+    **  Using Expressions for Values  **
+
+    The received values are set into the document in a literal way unless an
+    expression is used.
+
+    When an expression is used, it is evaluated on the server and the resulting
+    value is set into the document.
+
+  .unset(...)
+
+    Variations
+
+      unset(String attribute)
+      unset(List attributes)
+
+    The attribute removal will be done on the collection's documents once the
+    execute method is called.
+
+    For each attribute on the attributes list, adds an opertion into the modify
+    handler
+
+    to remove the attribute on the documents that were included on the
+    selection filter and limit.
+
+  .merge(...)
+
+    This function adds an operation to add into the documents of a collection,
+    all the attribues defined in document that do not exist on the collection's
+    documents.
+
+    The attribute addition will be done on the collection's documents once the
+    execute method is called.
+
+  .arrayInsert(...)
+
+    Adds an opertion into the modify handler to insert a value into an array
+    attribute on the documents that were included on the selection filter and
+    limit.
+
+    The insertion of the value will be done on the collection's documents once
+    the execute method is called.
+
+  .arrayAppend(...)
+
+    Adds an opertion into the modify handler to append a value into an array
+    attribute on the documents that were included on the selection filter and
+    limit.
+
+  .arrayDelete(...)
+
+    Adds an opertion into the modify handler to delete a value from an array
+    attribute on the documents that were included on the selection filter and
+    limit.
+
+    The attribute deletion will be done on the collection's documents once the
+    execute method is called.
+
+  .sort(...)
+
+    The elements of sortExprStr list are usually strings defining the attribute
+    name on which the collection sorting will be based. Each criterion could be
+    followed by asc or desc to indicate ascending
+
+    or descending order respectivelly. If no order is specified, ascending will
+    be used by default.
+
+    This method is usually used in combination with limit to fix the amount of
+    documents to be updated.
+
+  .limit(...)
+
+    This method is usually used in combination with sort to fix the amount of
+    documents to be updated.
+
+  .bind(...)
+
+    Binds a value to a specific placeholder used on this CollectionModify
+    object.
+
+  .execute(...)
+
+    Executes the update operations added to the handler with the configured
+    filter and limit.

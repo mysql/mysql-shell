@@ -6530,7 +6530,7 @@ class XShell_TestCases(unittest.TestCase):
 #                 ("var myColl = session.getSchema(\'sakila\').getCollection(\"test_merge_js\");\n","mysql-js>"),
 #                 ("myColl.add({ nombre: \'Test1\', apellido:\'lastname1\'});\n","Query OK"),
 #                 ("myColl.add({ nombre: \'Test2\', apellido:\'lastname2\'});\n","Query OK"),
-#                 ("myColl.modify().merge({idioma: \'spanish\'}).execute();\n","Query OK, 2 items affected"),
+#                 ("myColl.modify('1').merge({idioma: \'spanish\'}).execute();\n","Query OK, 2 items affected"),
 #                 ("myColl.modify(\'nombre =: Name\').arrayAppend(\'apellido\', 'aburto').bind(\'Name\',\'Test1\');\n","Query OK, 1 item affected"),
 #                 # ----------------------------------------------------------------
 #                 # ("\\py\n","mysql-py>"),
@@ -6539,7 +6539,7 @@ class XShell_TestCases(unittest.TestCase):
 #                 # ("session.getSchema(\'sakila\').getCollection(\"test_merge_py\").existsInDatabase()\n","true"),
 #                 # ("myColl2 = session.getSchema(\'sakila\').getCollection(\"test_merge_py\")\n","mysql-py>"),
 #                 # ("myColl2.add([{ \"nombre\": \"TestPy2\", \"apellido\":\"lastnamePy2\"},{ \"nombre\": \"TestPy3\", \"apellido\":\"lastnamePy3\"}])\n","Query OK"),
-#                 # ("myColl2.modify().merge({\'idioma\': \'spanish\'}).execute()\n","Query OK, 2 items affected"),
+#                 # ("myColl2.modify('1').merge({\'idioma\': \'spanish\'}).execute()\n","Query OK, 2 items affected"),
 #                 # ("myColl2.modify(\'nombre =: Name\').arrayAppend(\'apellido\', 'aburto').bind(\'Name\',\'TestPy2\')\n","Query OK, 1 item affected"),
 #                 ]
 #       results = exec_xshell_commands(init_command, x_cmds)
@@ -6575,7 +6575,7 @@ class XShell_TestCases(unittest.TestCase):
 #           #           ("var myColl = session.get_schema(\'sakila\').get_collection(\"test_merge_js\");\n","mysql-js>"),
 #           #           ("myColl.add({ nombre: \'Test1\', apellido:\'lastname1\'});\n","Query OK"),
 #           #           ("myColl.add({ nombre: \'Test2\', apellido:\'lastname2\'});\n","Query OK"),
-#           #           ("myColl.modify().merge({idioma: \'spanish\'}).execute();\n","Query OK, 2 items affected"),
+#           #           ("myColl.modify('1').merge({idioma: \'spanish\'}).execute();\n","Query OK, 2 items affected"),
 #           #           ("myColl.modify(\'nombre =: Name\').array_append(\'apellido\', 'aburto').bind(\'Name\',\'Test1\');\n","Query OK, 1 item affected"),
 #           # ----------------------------------------------------------------
 #           ("\\py\n", "mysql-py>"),
@@ -6586,7 +6586,7 @@ class XShell_TestCases(unittest.TestCase):
 #           (
 #           "myColl2.add([{ \"nombre\": \"TestPy2\", \"apellido\":\"lastnamePy2\"},{ \"nombre\": \"TestPy3\", \"apellido\":\"lastnamePy3\"}])\n",
 #           "Query OK"),
-#           ("myColl2.modify().merge({\'idioma\': \'spanish\'}).execute()\n", "Query OK, 2 items affected"),
+#           ("myColl2.modify('1').merge({\'idioma\': \'spanish\'}).execute()\n", "Query OK, 2 items affected"),
 #           ("myColl2.modify(\'nombre =: Name\').array_append(\'apellido\', 'aburto').bind(\'Name\',\'TestPy2\')\n",
 #            "Query OK, 1 item affected"),
 #       ]
@@ -7198,7 +7198,7 @@ class XShell_TestCases(unittest.TestCase):
 #
 #       x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
 #                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
-#                 ("myColl.modify().merge({Language: \'Spanish\', Extra_Info:[\'Extra info TBD\']}).limit(" + str(jsRowsNum_Test) + ").execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
+#                 ("myColl.modify('1').merge({Language: \'Spanish\', Extra_Info:[\'Extra info TBD\']}).limit(" + str(jsRowsNum_Test) + ").execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
 #                ]
 #       results = exec_xshell_commands(init_command, x_cmds)
 #       self.assertEqual(results, 'PASS')
@@ -7212,7 +7212,7 @@ class XShell_TestCases(unittest.TestCase):
 #
 #       x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
 #                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
-#                 ("myColl.modify().arrayAppend(\'Language\', \'Spanish_mexico\').arrayAppend(\'Extra_Info\', \'Extra info TBD 2\').limit(" + str(jsRowsNum_Test) + ").execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
+#                 ("myColl.modify('1').arrayAppend(\'Language\', \'Spanish_mexico\').arrayAppend(\'Extra_Info\', \'Extra info TBD 2\').limit(" + str(jsRowsNum_Test) + ").execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
 #                ]
 #       results = exec_xshell_commands(init_command, x_cmds)
 #       self.assertEqual(results, 'PASS')
@@ -7423,7 +7423,7 @@ class XShell_TestCases(unittest.TestCase):
 #
 #       x_cmds = [("session.sql(\"use world_x;\")\n", "Query OK"),
 #                 ("myColl = session.get_schema(\'world_x\').get_collection(\"big_coll_node_py\")\n", ""),
-#                 ("myColl.modify().merge({\'Language\': \"Spanish\", \'Extra_Info\':[\"Extra info TBD\"]}).limit(" + str(
+#                 ("myColl.modify('1').merge({\'Language\': \"Spanish\", \'Extra_Info\':[\"Extra info TBD\"]}).limit(" + str(
 #                     pyRowsNum_Test) + ").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
 #                 ]
 #       results = exec_xshell_commands(init_command, x_cmds)
@@ -7439,7 +7439,7 @@ class XShell_TestCases(unittest.TestCase):
 #       x_cmds = [("session.sql(\"use world_x;\")\n", "Query OK"),
 #                 ("myColl = session.get_schema(\'world_x\').get_collection(\"big_coll_node_py\")\n", ""),
 #                 (
-#                 "myColl.modify().array_append(\"Language\", \"Spanish_mexico\").array_append(\"Extra_Info\", \"Extra info TBD 2\").limit(" + str(
+#                 "myColl.modify('1').array_append(\"Language\", \"Spanish_mexico\").array_append(\"Extra_Info\", \"Extra info TBD 2\").limit(" + str(
 #                     pyRowsNum_Test) + ").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
 #                 ]
 #       results = exec_xshell_commands(init_command, x_cmds)

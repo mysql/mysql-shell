@@ -23,7 +23,7 @@ result = collection.add({"name": 'angel', "age": 14, "gender": 'male'}).execute(
 # collection.remove Unit Testing: Dynamic Behavior
 # ------------------------------------------------
 #@ CollectionRemove: valid operations after remove
-crud = collection.remove()
+crud = collection.remove('some_condition')
 validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionRemove: valid operations after sort
@@ -53,19 +53,21 @@ print 'Deleted alma:', result.affected_item_count, '\n'
 # ----------------------------------------------
 
 #@# CollectionRemove: Error conditions on remove
+crud = collection.remove()
+crud = collection.remove('    ')
 crud = collection.remove(5)
 crud = collection.remove('test = "2')
 
 #@# CollectionRemove: Error conditions sort
-crud = collection.remove().sort()
-crud = collection.remove().sort(5)
-crud = collection.remove().sort([])
-crud = collection.remove().sort(['name', 5])
-crud = collection.remove().sort('name', 5)
+crud = collection.remove('some_condition').sort()
+crud = collection.remove('some_condition').sort(5)
+crud = collection.remove('some_condition').sort([])
+crud = collection.remove('some_condition').sort(['name', 5])
+crud = collection.remove('some_condition').sort('name', 5)
 
 #@# CollectionRemove: Error conditions on limit
-crud = collection.remove().limit()
-crud = collection.remove().limit('')
+crud = collection.remove('some_condition').limit()
+crud = collection.remove('some_condition').limit('')
 
 #@# CollectionRemove: Error conditions on bind
 crud = collection.remove('name = :data and age > :years').bind()
@@ -121,12 +123,15 @@ print 'Records Left:', len(docs), '\n'
 
 #@ CollectionRemove: full remove
 //! [CollectionRemove: full remove]
-result = collection.remove().execute()
+result = collection.remove('1').execute()
 print 'Affected Rows:', result.affected_item_count, '\n'
 
 docs = collection.find().execute().fetch_all()
 print 'Records Left:', len(docs), '\n'
 //! [CollectionRemove: full remove]
+
+#@<OUT> CollectionRemove: help
+collection.help('remove')
 
 # Cleanup
 mySession.drop_schema('js_shell_test')

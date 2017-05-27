@@ -169,7 +169,7 @@ shcore::Value Collection::add_(const shcore::Argument_list &args) {
 REGISTER_HELP(COLLECTION_MODIFY_BRIEF, "Creates a collection update handler.");
 REGISTER_HELP(
     COLLECTION_MODIFY_CHAINED,
-    "CollectionModify.modify.[set].[unset].[merge].[arrayInsert].[arrayAppend].[arrayDelete].[sort].[limit->[skip]].[bind].[execute]");
+    "CollectionModify.modify.[set].[unset].[merge].[arrayInsert].[arrayAppend].[arrayDelete].[sort].[limit].[bind].[execute]");
 
 /**
 * $(COLLECTION_ADD_BRIEF)
@@ -209,13 +209,6 @@ REGISTER_HELP(
 * $(COLLECTIONMODIFY_MODIFY_DETAIL1)
 *
 * $(COLLECTIONMODIFY_MODIFY_DETAIL2)
-*
-* $(COLLECTIONMODIFY_MODIFY_DETAIL3)
-*
-* To define an expression use:
-* \code{.py}
-* mysqlx.expr(expression)
-* \endcode
 *
 * #### .set()
 *

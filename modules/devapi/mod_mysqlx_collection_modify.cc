@@ -20,7 +20,7 @@
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "shellcore/utils_help.h"
-#include "utils/utils_string.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "utils/utils_time.h"
 
 #include <algorithm>
@@ -81,25 +81,27 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
 }
 
 // Documentation of modify function
-REGISTER_HELP(
-    COLLECTIONMODIFY_MODIFY_BRIEF,
-    "Sets the search condition to identify the Documents to be updated on the owner Collection.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_MODIFY_PARAM,
-    "@param searchCondition: An optional expression to identify the documents to be updated.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_MODIFY_DETAIL,
-    "if not specified all the documents will be updated on the collection unless a limit is set.");
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_BRIEF,
+    "Sets the search condition to identify the Documents to be updated on the "
+    "owner Collection.");
+
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_PARAM,
+    "@param searchCondition: An expression to identify the documents to be "
+    "updated.");
+
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_RETURNS,
-              "@returns This CollectionModify object.");
+    "@returns This CollectionModify object.");
+
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL,
+    "Creates a handler to update documents in the collection.");
+
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL1,
-              "<b> Using Expressions for Values </b>");
-REGISTER_HELP(
-    COLLECTIONMODIFY_MODIFY_DETAIL2,
-    "Tipically, the received values are set into the document in a literal way.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_MODIFY_DETAIL3,
-    "An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.");
+    "A condition must be provided to this function, all the documents "
+    "matching the condition will be updated.");
+
+REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL2,
+    "To update all the documents, set a condition that always evaluates to "
+    "true, for example '1'.");
 
 /**
 * $(COLLECTIONMODIFY_MODIFY_BRIEF)
@@ -113,16 +115,6 @@ REGISTER_HELP(
 * $(COLLECTIONMODIFY_MODIFY_DETAIL1)
 *
 * $(COLLECTIONMODIFY_MODIFY_DETAIL2)
-*
-* $(COLLECTIONMODIFY_MODIFY_DETAIL3)
-*
-* To define an expression use:
-* \code{.py}
-* mysqlx.expr(expression)
-* \endcode
-*
-* The expression also can be used for \a [Parameter
-* Binding](param_binding.html).
 *
 * #### Method Chaining
 *
@@ -148,16 +140,17 @@ CollectionModify CollectionModify::modify(str searchCondition) {}
 #endif
 shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
   // Each method validates the received parameters
-  args.ensure_count(0, 1, get_function_name("modify").c_str());
+  args.ensure_count(1, get_function_name("modify").c_str());
 
   std::shared_ptr<Collection> collection(
       std::static_pointer_cast<Collection>(_owner.lock()));
 
   if (collection) {
     try {
-      std::string search_condition;
-      if (args.size())
-        search_condition = args.string_at(0);
+      std::string search_condition = str_strip(args.string_at(0));
+
+      if (search_condition.empty())
+        throw shcore::Exception::argument_error("Requires a search condition.");
 
       _modify_statement.reset(new ::mysqlx::ModifyStatement(
           collection->_collection_impl->modify(search_condition)));
@@ -194,10 +187,12 @@ REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL3,
               "<b> Using Expressions for Values </b>");
 REGISTER_HELP(
     COLLECTIONMODIFY_SET_DETAIL4,
-    "Tipically, the received values are set into the document in a literal way.");
+   "The received values are set into the document in a literal way unless an "
+   "expression is used.");
 REGISTER_HELP(
     COLLECTIONMODIFY_SET_DETAIL5,
-    "An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.");
+   "When an expression is used, it is evaluated on the server and the "
+   "resulting value is set into the document.");
 
 /**
 * $(COLLECTIONMODIFY_SET_BRIEF)
