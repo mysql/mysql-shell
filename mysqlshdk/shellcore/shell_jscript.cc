@@ -51,11 +51,14 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state,
 
 std::string Shell_javascript::prompt() {
   try {
-    shcore::Value value = _js->execute("shell.customPrompt ? shell.customPrompt() : null", "shell.customPrompt");
+    shcore::Value value =
+        _js->execute("shell.customPrompt ? shell.customPrompt() : null",
+                     "shell.customPrompt");
     if (value && value.type == String)
       return value.as_string();
   } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception in JS ps function: ") + exc.what());
+    _owner->print_error(std::string("Exception in JS ps function: ") +
+                        exc.what());
   }
 
   std::string node_type = "mysql";

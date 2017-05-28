@@ -234,8 +234,6 @@ private:
   void set_argv(const std::vector<std::string> &argv);
 
   std::list<AutoPyObject> _captured_eval_result;
-  std::string _error_buffer;
-  bool _error_buffer_ready;
 
 protected:
   AutoPyObject _shell_list_class;
