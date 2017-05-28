@@ -56,7 +56,7 @@ void Command_line_shell::deleg_print(void *cdata, const char *text) {
 }
 
 void Command_line_shell::deleg_print_error(void *cdata, const char *text) {
-  std::cerr << text;
+  std::cerr << text << std::flush;
 }
 
 char *Command_line_shell::readline(const char *prompt) {

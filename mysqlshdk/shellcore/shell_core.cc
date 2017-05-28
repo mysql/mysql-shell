@@ -467,9 +467,6 @@ void Shell_core::deleg_print_error(void *self, const char *text) {
   if (format.find("json") != std::string::npos)
     output = shcore->format_json_output(output, "error");
 
-  if (output.length() && output[output.length() - 1] != '\n')
-    output += "\n";
-
   deleg->print_error(deleg->user_data, output.c_str());
 }
 

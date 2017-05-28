@@ -54,7 +54,7 @@ void Python_init_singleton::init_python() {
 }
 
 Python_context::Python_context(Interpreter_delegate *deleg) throw(Exception)
-    : _types(this), _error_buffer_ready(false) {
+    : _types(this) {
   _delegate = deleg;
 
   Python_init_singleton::init_python();
@@ -459,33 +459,7 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
 // TODO(rennox): logging
 #endif
   if (stream == "error") {
-    if (exit_error || module_processing) {
-      ctx->_delegate->print_error(ctx->_delegate->user_data, text.c_str());
-    } else {
-      ctx->_error_buffer += text;
-
-      // Hack to buffer python errors until error description is
-      // received and \n is received
-      // Python error descriptions come in the format of
-      // <Operation>Error
-      // i.e. ImportError, AttributeError, SystemError
-      auto position = text.find("Error");
-      if (position == std::string::npos && text == "Exception")
-        ctx->_error_buffer_ready = true;
-      else if (position > 0 && position != std::string::npos)
-        ctx->_error_buffer_ready = true;
-      if (ctx->_error_buffer_ready && text == "\n") {
-        ctx->_delegate->print_error(ctx->_delegate->user_data,
-                                    ctx->_error_buffer.c_str());
-        ctx->_error_buffer.clear();
-        ctx->_error_buffer_ready = false;
-      }
-    }
-  } else if (stream == "error.flush") {
-    ctx->_delegate->print_error(ctx->_delegate->user_data,
-                                ctx->_error_buffer.c_str());
-    ctx->_error_buffer.clear();
-    ctx->_error_buffer_ready = false;
+    ctx->_delegate->print_error(ctx->_delegate->user_data, text.c_str());
   } else {
     ctx->_delegate->print(ctx->_delegate->user_data, text.c_str());
   }
@@ -601,7 +575,8 @@ PyObject *Python_context::shell_stderr(PyObject *self, PyObject *args) {
 }
 
 PyObject *Python_context::shell_flush_stderr(PyObject *self, PyObject *args) {
-  return shell_print(self, args, "error.flush");
+  Py_INCREF(Py_None);
+  return Py_None;
 }
 
 PyObject *Python_context::shell_flush(PyObject *self, PyObject *args) {
