@@ -23,6 +23,7 @@ ENDIF()
 project (mysqlsh)
 
 file(GLOB docs_SRC
+    "${CMAKE_SOURCE_DIR}/../../modules/devapi/*"
     "${CMAKE_SOURCE_DIR}/../../modules/adminapi/*"
     "${CMAKE_SOURCE_DIR}/../../modules/*"
 )
@@ -105,7 +106,7 @@ foreach(file ${docs_SRC})
   endforeach()
 endforeach()
 
-SET(DOX_INPUT "${CMAKE_SOURCE_DIR}/../../modules/adminapi ${CMAKE_SOURCE_DIR}/../../modules/ ${CMAKE_SOURCE_DIR}/../../doc/devapi")
+SET(DOX_INPUT "${CMAKE_SOURCE_DIR}/../../modules/adminapi ${CMAKE_SOURCE_DIR}/../../modules/ ${CMAKE_SOURCE_DIR}/../../modules/devapi")
 
 SET(DOX_EXAMPLE_PATH "${CMAKE_SOURCE_DIR}/../../unittest/scripts/")
 SET(DOX_EXCLUDE_PATTERNS "*my_aes* *mod_dba_replicaset* *mod_dba_instan*")
