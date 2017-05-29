@@ -78,7 +78,7 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   message = "Your MySQL connection id is " +
             std::to_string(new_session->get_connection_id());
-  if (new_session->class_name() == "NodeSession")
+  if (new_session->class_name() == "Session")
     message += " (X protocol)";
   message += "\n";
 

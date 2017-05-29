@@ -221,7 +221,7 @@ Shell_command_line_options::Shell_command_line_options(int argc,
       override_session_type(mysqlsh::SessionType::Classic, "--sqlc");
     } else if (check_arg(argv, i, NULL, "--sqln")) {
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
-      override_session_type(mysqlsh::SessionType::Node, "--sqln");
+      override_session_type(mysqlsh::SessionType::X, "--sqln");
     } else if (check_arg_with_value(argv, i, "--json", NULL, value, true)) {
       if (!value || strcmp(value, "pretty") == 0) {
         _options.output_format = "json";
@@ -334,7 +334,7 @@ void Shell_command_line_options::check_session_type_conflicts() {
      _uri_data.has_scheme()) {
     if ((_options.session_type == mysqlsh::SessionType::Classic &&
       _uri_data.get_scheme() != "mysql") ||
-      (_options.session_type == mysqlsh::SessionType::Node &&
+      (_options.session_type == mysqlsh::SessionType::X &&
       _uri_data.get_scheme() != "mysqlx")) {
       auto error = "Conflicting options: provided URI is not compatible with " +
                    get_session_type_name(_options.session_type) + " session "
@@ -436,9 +436,6 @@ std::string Shell_command_line_options::get_session_type_name(
   switch (type) {
     case mysqlsh::SessionType::X:
       label = "X";
-      break;
-    case mysqlsh::SessionType::Node:
-      label = "Node";
       break;
     case mysqlsh::SessionType::Classic:
       label = "Classic";

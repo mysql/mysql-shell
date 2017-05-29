@@ -37,9 +37,9 @@ REGISTER_HELP(
     "Handler for execution SQL statements, supports parameter binding.");
 REGISTER_HELP(
     SQLEXECUTE_DETAIL,
-    "This object should only be created by calling the sql function a NodeSession instance.");
+    "This object should only be created by calling the sql function at a Session instance.");
 
-SqlExecute::SqlExecute(std::shared_ptr<NodeSession> owner)
+SqlExecute::SqlExecute(std::shared_ptr<Session> owner)
     : Dynamic_object(), _session(owner) {
   // Exposes the methods available for chaining
   add_method("sql", std::bind(&SqlExecute::sql, this, _1), "data");
@@ -61,23 +61,19 @@ SqlExecute::SqlExecute(std::shared_ptr<NodeSession> owner)
 // Documentation of sql function
 REGISTER_HELP(SQLEXECUTE_SQL_BRIEF,
               "Sets the sql statement to be executed by this handler.");
-REGISTER_HELP(
-    SQLEXECUTE_SQL_PARAM,
+REGISTER_HELP(SQLEXECUTE_SQL_PARAM,
     "@param statement A string containing the SQL statement to be executed.");
 REGISTER_HELP(SQLEXECUTE_SQL_RETURNS, "@returns This SqlExecute object.");
-REGISTER_HELP(
-    SQLEXECUTE_SQL_DETAIL,
-    "This function is called automatically when NodeSession.sql(sql) is called.");
+REGISTER_HELP(SQLEXECUTE_SQL_DETAIL,
+    "This function is called automatically when Session.sql(sql) is called.");
 REGISTER_HELP(
     SQLEXECUTE_SQL_DETAIL1,
     "Parameter binding is supported and can be done by using the \\b ? placeholder instead of passing values directly on the SQL statement.");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL2,
               "Parameters are bound in positional order.");
-REGISTER_HELP(
-    SQLEXECUTE_SQL_DETAIL3,
+REGISTER_HELP(SQLEXECUTE_SQL_DETAIL3,
     "The actual execution of the SQL statement will occur when the execute() function is called.");
-REGISTER_HELP(
-    SQLEXECUTE_SQL_DETAIL4,
+REGISTER_HELP(SQLEXECUTE_SQL_DETAIL4,
     "After this function invocation, the following functions can be invoked:");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL5, "@li bind(Value value)");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL6, "@li bind(List values)");

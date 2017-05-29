@@ -86,8 +86,8 @@ TEST_F(Shell_js_dev_api_sample_tester, Setting_the_Current_Schema) {
   validate_interactive("concepts/Setting_the_Current_Schema");
 }
 
-TEST_F(Shell_js_dev_api_sample_tester, Using_SQL_with_NodeSession) {
-  validate_interactive("concepts/Using_SQL_with_NodeSession");
+TEST_F(Shell_js_dev_api_sample_tester, Using_SQL_with_Session) {
+  validate_interactive("concepts/Using_SQL_with_Session");
 }
 
 TEST_F(Shell_js_dev_api_sample_tester, Working_with_a_Session_Object) {

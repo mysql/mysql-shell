@@ -25,10 +25,10 @@
 |name: js_shell_test|
 
 //@ Testing schema.getSession
-|getSession(): <NodeSession:|
+|getSession(): <Session:|
 
 //@ Testing schema.session
-|session: <NodeSession:|
+|session: <Session:|
 
 //@ Testing schema schema retrieving
 |getSchema(): null|
@@ -83,10 +83,10 @@
 ||
 
 //@ Testing name shadowing: session
-|<NodeSession:|
+|<Session:|
 
 //@ Testing name shadowing: getSession
-|<NodeSession:|
+|<Session:|
 
 //@ Testing name shadowing: another
 |<Collection:another>|

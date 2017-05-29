@@ -3,8 +3,8 @@
 |name: table1|
 
 #@ Testing session retrieving
-|get_session(): <NodeSession:|
-|session: <NodeSession:|
+|get_session(): <Session:|
+|session: <Session:|
 
 #@ Testing table schema retrieving
 |get_schema(): <Schema:js_shell_test>|

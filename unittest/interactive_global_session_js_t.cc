@@ -56,7 +56,7 @@ TEST_F(Interactive_global_session_js_test, defined_session_usage) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.uri");
@@ -80,7 +80,7 @@ TEST_F(Interactive_global_session_js_test, resolve_property_access_to_node) {
   output_handler.prompts.push_back(_uri_nopasswd); // Connection data
   output_handler.passwords.push_back(_pwd);
   _interactive_shell->process_line("println('Resolved: ' + session.uri);");
-  
+
   MY_EXPECT_STDOUT_CONTAINS(no_session_message);
   MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI:");
   MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
@@ -88,7 +88,7 @@ TEST_F(Interactive_global_session_js_test, resolve_property_access_to_node) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.close()");
@@ -111,7 +111,7 @@ TEST_F(Interactive_global_session_js_test, resolve_method_call_to_node) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.close()");
@@ -133,7 +133,7 @@ TEST_F(Interactive_global_session_js_test, leading_spaces_in_first_option) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.close()");
@@ -155,7 +155,7 @@ TEST_F(Interactive_global_session_js_test, trailing_spaces_in_first_option) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.close()");
@@ -177,7 +177,7 @@ TEST_F(Interactive_global_session_js_test, leading_and_trailing_spaces_in_first_
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.close()");

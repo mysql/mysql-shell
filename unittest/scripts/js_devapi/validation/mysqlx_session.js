@@ -1,4 +1,4 @@
-//@ NodeSession: validating members
+//@ Session: validating members
 |close: OK|
 |createSchema: OK|
 |getCurrentSchema: OK|
@@ -13,7 +13,7 @@
 |uri: OK|
 |currentSchema: OK|
 
-//@<OUT> NodeSession: help
+//@<OUT> Session: help
 Document Store functionality can be used through this object, in addition to
 SQL.
 
@@ -54,63 +54,63 @@ The following functions are currently supported.
  - startTransaction Starts a transaction context on the server.
 
 
-//@ NodeSession: accessing Schemas
+//@ Session: accessing Schemas
 |<Schema:mysql>|
 |<Schema:information_schema>|
 
-//@ NodeSession: accessing individual schema
+//@ Session: accessing individual schema
 |mysql|
 |information_schema|
 
-//@ NodeSession: accessing unexisting schema
+//@ Session: accessing unexisting schema
 ||Unknown database 'unexisting_schema'
 
-//@ NodeSession: current schema validations: nodefault
+//@ Session: current schema validations: nodefault
 |null|
 |null|
 
-//@ NodeSession: create schema success
+//@ Session: create schema success
 |<Schema:node_session_schema>|
 
-//@ NodeSession: create schema failure
+//@ Session: create schema failure
 ||Can't create database 'node_session_schema'; database exists
 
-//@ NodeSession: Transaction handling: rollback
+//@ Session: Transaction handling: rollback
 |Inserted Documents: 0|
 
-//@ NodeSession: Transaction handling: commit
+//@ Session: Transaction handling: commit
 |Inserted Documents: 3|
 
-//@ NodeSession: current schema validations: nodefault, mysql
+//@ Session: current schema validations: nodefault, mysql
 |null|
 |<Schema:mysql>|
 
-//@ NodeSession: current schema validations: nodefault, information_schema
+//@ Session: current schema validations: nodefault, information_schema
 |null|
 |<Schema:information_schema>|
 
-//@ NodeSession: current schema validations: default
+//@ Session: current schema validations: default
 |<Schema:mysql>|
 |<Schema:mysql>|
 
-//@ NodeSession: current schema validations: default, information_schema
+//@ Session: current schema validations: default, information_schema
 |<Schema:mysql>|
 |<Schema:information_schema>|
 
-//@ NodeSession: setFetchWarnings(false)
+//@ Session: setFetchWarnings(false)
 |0|
 
-//@ NodeSession: setFetchWarnings(true)
+//@ Session: setFetchWarnings(true)
 |1|
 |Can't drop database 'unexisting'; database doesn't exist|
 
-//@ NodeSession: quoteName no parameters
-||Invalid number of arguments in NodeSession.quoteName, expected 1 but got 0
+//@ Session: quoteName no parameters
+||Invalid number of arguments in Session.quoteName, expected 1 but got 0
 
-//@ NodeSession: quoteName wrong param type
+//@ Session: quoteName wrong param type
 ||Argument #1 is expected to be a string
 
-//@ NodeSession: quoteName with correct parameters
+//@ Session: quoteName with correct parameters
 |`sample`|
 |`sam``ple`|
 |```sample```|

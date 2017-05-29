@@ -142,7 +142,7 @@ shcore::Value CollectionDropIndex::execute(const shcore::Argument_list &args) {
     if (raw_owner) {
       Value session = raw_owner->get_member("session");
       auto session_obj =
-          std::static_pointer_cast<NodeSession>(session.as_object());
+          std::static_pointer_cast<Session>(session.as_object());
       result = session_obj->_execute_mysqlx_stmt("drop_collection_index",
                                                 _drop_index_args);
     }

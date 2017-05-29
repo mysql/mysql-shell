@@ -61,7 +61,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
   n = _notifications.front();
   _notifications.pop();
   ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
-  ASSERT_EQ("NodeSession", n.sender->class_name());
+  ASSERT_EQ("Session", n.sender->class_name());
 
   _interactive_shell->process_line("session.close()");
 
@@ -69,7 +69,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
   n = _notifications.front();
   _notifications.pop();
   ASSERT_EQ("SN_SESSION_CLOSED", n.name);
-  ASSERT_EQ("NodeSession", n.sender->class_name());
+  ASSERT_EQ("Session", n.sender->class_name());
 
   _interactive_shell->process_line("\\connect -c " + _mysql_uri);
 
@@ -135,13 +135,13 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_javascript) {
   ASSERT_EQ("ClassicSession", n.sender->class_name());
 
 
-  _interactive_shell->process_line("var session = mysqlx.getNodeSession('" + _uri + "');");
+  _interactive_shell->process_line("var session = mysqlx.getSession('" + _uri + "');");
 
   ASSERT_EQ(1, _notifications.size());
   n = _notifications.front();
   _notifications.pop();
   ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
-  ASSERT_EQ("NodeSession", n.sender->class_name());
+  ASSERT_EQ("Session", n.sender->class_name());
 
   _interactive_shell->process_line("session.close()");
 
@@ -149,7 +149,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_javascript) {
   n = _notifications.front();
   _notifications.pop();
   ASSERT_EQ("SN_SESSION_CLOSED", n.name);
-  ASSERT_EQ("NodeSession", n.sender->class_name());
+  ASSERT_EQ("Session", n.sender->class_name());
 
 
   this->ignore_notification("SN_SESSION_CONNECTED");
@@ -163,7 +163,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_javascript) {
 
   ASSERT_EQ(0, _notifications.size());
 
-  _interactive_shell->process_line("var session = mysqlx.getNodeSession('" + _uri + "');");
+  _interactive_shell->process_line("var session = mysqlx.getSession('" + _uri + "');");
 
   ASSERT_EQ(0, _notifications.size());
 
@@ -199,13 +199,13 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_python) {
   ASSERT_EQ("SN_SESSION_CLOSED", n.name);
   ASSERT_EQ("ClassicSession", n.sender->class_name());
 
-  _interactive_shell->process_line("session = mysqlx.get_node_session('" + _uri + "');");
+  _interactive_shell->process_line("session = mysqlx.get_session('" + _uri + "');");
 
   ASSERT_EQ(1, _notifications.size());
   n = _notifications.front();
   _notifications.pop();
   ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
-  ASSERT_EQ("NodeSession", n.sender->class_name());
+  ASSERT_EQ("Session", n.sender->class_name());
 
   _interactive_shell->process_line("session.close()");
 
@@ -213,7 +213,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_python) {
   n = _notifications.front();
   _notifications.pop();
   ASSERT_EQ("SN_SESSION_CLOSED", n.name);
-  ASSERT_EQ("NodeSession", n.sender->class_name());
+  ASSERT_EQ("Session", n.sender->class_name());
 
 
   this->ignore_notification("SN_SESSION_CONNECTED");
@@ -227,7 +227,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_python) {
 
   ASSERT_EQ(0, _notifications.size());
 
-  _interactive_shell->process_line("session = mysqlx.get_node_session('" + _uri + "');");
+  _interactive_shell->process_line("session = mysqlx.get_session('" + _uri + "');");
 
   ASSERT_EQ(0, _notifications.size());
 

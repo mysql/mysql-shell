@@ -89,7 +89,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -106,7 +106,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -183,7 +183,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -235,7 +235,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<NodeSession:mysqlx://" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -251,7 +251,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:mysqlx://" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -268,7 +268,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:mysqlx://" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -323,7 +323,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -683,7 +683,7 @@ TEST_F(Interactive_shell_test, js_session_usage_with_no_wizards) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("session.getUri()");
@@ -794,7 +794,7 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
   output_handler.wipe_all();
 
   execute("dir(mysqlx)");
-  MY_EXPECT_STDOUT_CONTAINS("getNodeSession");
+  MY_EXPECT_STDOUT_CONTAINS("getSession");
   output_handler.wipe_all();
 
   execute("the_variable");

@@ -58,8 +58,7 @@ REGISTER_HELP(
 REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
   add_property("IndexType|IndexType");
-  // REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
-  REGISTER_VARARGS_FUNCTION(Mysqlx, get_node_session, getNodeSession);
+  REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, date_value, dateValue);
   REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String, NULL);
 
@@ -90,45 +89,45 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 // }
 
 REGISTER_HELP(
-    MYSQLX_GETNODESESSION_BRIEF,
-    "Creates a NodeSession instance using the provided connection data.");
-REGISTER_HELP(MYSQLX_GETNODESESSION_PARAM,
+    MYSQLX_GETSESSION_BRIEF,
+    "Creates a Session instance using the provided connection data.");
+REGISTER_HELP(MYSQLX_GETSESSION_PARAM,
               "@param connectionData The connection data for the session");
-REGISTER_HELP(MYSQLX_GETNODESESSION_PARAM1,
+REGISTER_HELP(MYSQLX_GETSESSION_PARAM1,
               "@param password Optional password for the session");
-REGISTER_HELP(MYSQLX_GETNODESESSION_RETURNS, "@returns A NodeSession");
+REGISTER_HELP(MYSQLX_GETSESSION_RETURNS, "@returns A Session");
 REGISTER_HELP(
-    MYSQLX_GETNODESESSION_DETAIL,
-    "A NodeSession object uses the traditional MySQL Protocol to allow executing operations on the "
+    MYSQLX_GETSESSION_DETAIL,
+    "A Session object uses the X Protocol to allow executing operations on the "
     "connected MySQL Server.");
-REGISTER_HELP(MYSQLX_GETNODESESSION_DETAIL1,
+REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1,
               "The connection data can be any of:");
-REGISTER_HELP(MYSQLX_GETNODESESSION_DETAIL2, "@li A URI string");
-REGISTER_HELP(MYSQLX_GETNODESESSION_DETAIL3,
+REGISTER_HELP(MYSQLX_GETSESSION_DETAIL2, "@li A URI string");
+REGISTER_HELP(MYSQLX_GETSESSION_DETAIL3,
               "@li A Dictionary with the connection options");
 
 /**
- * $(MYSQLX_GETNODESESSION)
+ * $(MYSQLX_GETSESSION)
  *
- * $(MYSQLX_GETNODESESSION_PARAM)
- * $(MYSQLX_GETNODESESSION_PARAM1)
+ * $(MYSQLX_GETSESSION_PARAM)
+ * $(MYSQLX_GETSESSION_PARAM1)
  *
- * $(MYSQLX_GETNODESESSION_RETURNS)
+ * $(MYSQLX_GETSESSION_RETURNS)
  *
- * $(MYSQLX_GETNODESESSION_DETAIL)
+ * $(MYSQLX_GETSESSION_DETAIL)
  *
- * $(MYSQLX_GETNODESESSION_DETAIL1)
- * $(MYSQLX_GETNODESESSION_DETAIL2)
- * $(MYSQLX_GETNODESESSION_DETAIL3)
+ * $(MYSQLX_GETSESSION_DETAIL1)
+ * $(MYSQLX_GETSESSION_DETAIL2)
+ * $(MYSQLX_GETSESSION_DETAIL3)
  */
 
 #if DOXYGEN_JS
-NodeSession getNodeSession(ConnectionData connectionData, String password) {}
+Session getSession(ConnectionData connectionData, String password) {}
 #elif DOXYGEN_PY
-NodeSession get_node_session(ConnectionData connectionData, str password) {}
+Session get_session(ConnectionData connectionData, str password) {}
 #endif
-DEFINE_FUNCTION(Mysqlx, get_node_session) {
-  return shcore::Value(NodeSession::create(args));
+DEFINE_FUNCTION(Mysqlx, get_session) {
+  return shcore::Value(Session::create(args));
 }
 
 REGISTER_HELP(MYSQLX_EXPR_BRIEF,

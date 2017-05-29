@@ -82,7 +82,7 @@
 ||Invalid number of arguments in CollectionModify.arrayAppend, expected 2 but got 0
 ||CollectionModify.arrayAppend: Argument #1 is expected to be a string
 ||CollectionModify.arrayAppend: Invalid document path
-||CollectionModify.arrayAppend: Unsupported value received: <NodeSession:
+||CollectionModify.arrayAppend: Unsupported value received: <Session:
 
 //@# CollectionModify: Error conditions on arrayDelete
 ||Invalid number of arguments in CollectionModify.arrayDelete, expected 1 but got

@@ -2,7 +2,7 @@
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 var mysqlx = require('mysqlx');
 
-var mySession = mysqlx.getNodeSession(__uripwd);
+var mySession = mysqlx.getSession(__uripwd);
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test');
 var schema = mySession.createSchema('js_shell_test');
@@ -18,7 +18,7 @@ var crud = collection.add([]);
 validate_crud_functions(crud, ['add', 'execute']);
 
 //@ CollectionAdd: valid operations after add
-var crud = collection.add({ name: "john", age: 17, account: null });
+var crud = collection.add({ name: "john", age: 17 });
 validate_crud_functions(crud, ['add', 'execute']);
 
 //@ CollectionAdd: valid operations after execute

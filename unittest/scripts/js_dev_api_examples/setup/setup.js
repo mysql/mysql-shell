@@ -5,7 +5,7 @@ var testSession = null;
 var db;
 var myTable;
 var myColl;
-var nodeSession;
+var mySession;
 var session;
 
 function ensure_session(){
@@ -20,9 +20,9 @@ function ensure_session(){
       uri = uri + ":" + port;
 
     if (pwd)
-      testSession = mysqlx.getNodeSession(uri, pwd);
+      testSession = mysqlx.getSession(uri, pwd);
     else
-      testSession = mysqlx.getNodeSession(uri);
+      testSession = mysqlx.getSession(uri);
 
     // Ensures the user on dev-api exists
     try {
@@ -246,7 +246,7 @@ function ensure_table_users_exists(){
   testSession.sql('insert into test.users values ("Armand", 50)').execute();
   testSession.sql('insert into test.users values ("Rafa", 38)').execute();
 
-	nodeSession = testSession;
+	mySession = testSession;
 }
 
 function ensure_my_proc_procedure_exists(){
@@ -262,7 +262,7 @@ function ensure_my_proc_procedure_exists(){
 	testSession.sql("drop procedure if exists my_proc").execute();
 	testSession.sql(procedure).execute();
 
-	nodeSession = testSession;
+	mySession = testSession;
 }
 
 // Executes the functions associated to every assumption defined on the test case

@@ -1,15 +1,15 @@
 from mysqlsh import mysqlx
 
-# Connect to server using a NodeSession
-mySession = mysqlx.get_node_session('mike:s3cr3t!@localhost')
+# Connect to server using a Session
+mySession = mysqlx.get_session('mike:s3cr3t!@localhost')
 
 # Switch to use schema 'test'
 mySession.sql("USE test").execute()
 
-# In a NodeSession context the full SQL language can be used
+# In a Session context the full SQL language can be used
 sql = """CREATE PROCEDURE my_add_one_procedure
                                  (INOUT incr_param INT)
-                                 BEGIN 
+                                 BEGIN
                                          SET incr_param = incr_param + 1;
                                  END
                         """

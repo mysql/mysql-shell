@@ -56,7 +56,7 @@ TEST_F(Interactive_global_session_py_test, defined_session_usage) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.uri");
@@ -87,7 +87,7 @@ TEST_F(Interactive_global_session_py_test, resolve_property_access_to_node) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.close()");
@@ -110,7 +110,7 @@ TEST_F(Interactive_global_session_py_test, resolve_method_call_to_node) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session");
-  MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   _interactive_shell->process_line("session.close()");

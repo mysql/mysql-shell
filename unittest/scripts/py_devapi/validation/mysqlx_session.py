@@ -1,4 +1,4 @@
-#@ NodeSession: validating members
+#@ Session: validating members
 |close: OK|
 |create_schema: OK|
 |get_current_schema: OK|
@@ -13,7 +13,7 @@
 |uri: OK|
 |current_schema: OK|
 
-#@<OUT> NodeSession: help
+#@<OUT> Session: help
 Document Store functionality can be used through this object, in addition to
 SQL.
 
@@ -57,63 +57,63 @@ The following functions are currently supported.
 
 
 
-#@ NodeSession: accessing Schemas
+#@ Session: accessing Schemas
 |<Schema:mysql>|
 |<Schema:information_schema>|
 
-#@ NodeSession: accessing individual schema
+#@ Session: accessing individual schema
 |mysql|
 |information_schema|
 
-#@ NodeSession: accessing unexisting schema
+#@ Session: accessing unexisting schema
 ||Unknown database 'unexisting_schema'
 
-#@ NodeSession: current schema validations: nodefault
+#@ Session: current schema validations: nodefault
 |None|
 |None|
 
-#@ NodeSession: create schema success
+#@ Session: create schema success
 |<Schema:node_session_schema>|
 
-#@ NodeSession: create schema failure
+#@ Session: create schema failure
 ||MySQL Error (1007): Can't create database 'node_session_schema'; database exists
 
-#@ NodeSession: Transaction handling: rollback
+#@ Session: Transaction handling: rollback
 |Inserted Documents: 0|
 
-#@ NodeSession: Transaction handling: commit
+#@ Session: Transaction handling: commit
 |Inserted Documents: 3|
 
-#@ NodeSession: current schema validations: nodefault, mysql
+#@ Session: current schema validations: nodefault, mysql
 |None|
 |<Schema:mysql>|
 
-#@ NodeSession: current schema validations: nodefault, information_schema
+#@ Session: current schema validations: nodefault, information_schema
 |None|
 |<Schema:information_schema>|
 
-#@ NodeSession: current schema validations: default
+#@ Session: current schema validations: default
 |<Schema:mysql>|
 |<Schema:mysql>|
 
-#@ NodeSession: current schema validations: default, information_schema
+#@ Session: current schema validations: default, information_schema
 |<Schema:mysql>|
 |<Schema:information_schema>|
 
-#@ NodeSession: set_fetch_warnings(False)
+#@ Session: set_fetch_warnings(False)
 |0|
 
-#@ NodeSession: set_fetch_warnings(True)
+#@ Session: set_fetch_warnings(True)
 |1|
 |Can't drop database 'unexisting'; database doesn't exist|
 
-#@ NodeSession: quote_name no parameters
-||ArgumentError: Invalid number of arguments in NodeSession.quote_name, expected 1 but got 0
+#@ Session: quote_name no parameters
+||ArgumentError: Invalid number of arguments in Session.quote_name, expected 1 but got 0
 
-#@ NodeSession: quote_name wrong param type
+#@ Session: quote_name wrong param type
 ||TypeError: Argument #1 is expected to be a string
 
-#@ NodeSession: quote_name with correct parameters
+#@ Session: quote_name with correct parameters
 |`sample`|
 |`sam``ple`|
 |```sample```|

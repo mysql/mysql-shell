@@ -81,9 +81,7 @@ void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::
 
   switch (type) {
     case mysqlsh::SessionType::X:
-      stype = "an X";
-      break;
-    case mysqlsh::SessionType::Node:
+      // TODO(rennox): This should print the proper message for an X Protocol session
       stype = "a Node";
       break;
     case mysqlsh::SessionType::Classic:

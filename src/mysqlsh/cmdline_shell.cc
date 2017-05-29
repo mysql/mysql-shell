@@ -343,8 +343,7 @@ void Command_line_shell::command_loop() {
     std::string message;
     auto session = _shell->get_dev_session();
 
-    if (!session || (session && session->class_name() != "XSession"))
-      message = " Use \\sql to switch to SQL mode and execute queries.";
+    message = " Use \\sql to switch to SQL mode and execute queries.";
 
     switch (_shell->interactive_mode()) {
       case shcore::Shell_core::Mode::SQL:

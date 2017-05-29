@@ -1,5 +1,5 @@
 
-var res = nodeSession.sql('CALL my_proc()').execute();
+var res = mySession.sql('CALL my_proc()').execute();
 
 if (res.hasData()){
 
