@@ -23,8 +23,8 @@ ENDIF()
 project (mysqlsh)
 
 file(GLOB docs_SRC
-    "${CMAKE_SOURCE_DIR}/../../modules/adminapi/*.cc"
-    "${CMAKE_SOURCE_DIR}/../../modules/*.cc"
+    "${CMAKE_SOURCE_DIR}/../../modules/adminapi/*"
+    "${CMAKE_SOURCE_DIR}/../../modules/*"
 )
 
 foreach(file ${docs_SRC})
@@ -32,44 +32,81 @@ foreach(file ${docs_SRC})
   STRING(REGEX REPLACE ";" "\\\\;" contents "${contents}")
   STRING(REGEX REPLACE "\n" ";" contents "${contents}")
   STRING(REGEX REPLACE "\"\\\\;[ ]*\"" "" contents "${contents}")
-  foreach(line ${contents})
-    if("${line}" MATCHES "^REGISTER_HELP")
+  #MESSAGE("----> ${file}")
 
+  SET(number "0")
+  SET(continued "0")
+  SET(process "0")
+  SET(ready_line "")
+
+  foreach(line ${contents})
+    IF ("${continued}" STREQUAL "0")
+      if("${line}" MATCHES "^REGISTER_HELP")
+        string(FIND "${line}" "\")" register_end)
+        IF ("${register_end}" STREQUAL "-1")
+          SET(ready_line "${line}")
+          SET(continued "1")
+        ELSE()
+          SET(ready_line "${line}")
+          SET(process "1")
+        ENDIF()
+      endif()
+    ELSE()
+      string(FIND "${line}" "\")" register_end)
+      IF ("${register_end}" STREQUAL "-1")
+        SET(ready_line "${ready_line}${line}")
+      ELSE()
+        string(STRIP "${line}" stripped_line)
+        SET(ready_line "${ready_line}${stripped_line}")
+        STRING(REGEX REPLACE "\"\"" "" ready_line "${ready_line}")
+        SET(continued "0")
+        SET(process "1")
+      ENDIF()
+    ENDIF()
+
+    MATH(EXPR number "${number}+1")
+    # Now process a line considered complete
+    IF ("${process}" STREQUAL "1")
       # Retrieves the variable name to be defined
-      string(FIND "${line}" "(" start)
-      string(FIND "${line}" "," end)
+      #MESSAGE("----> ${number} : ${ready_line}")
+      string(FIND "${ready_line}" "(" start)
+      string(FIND "${ready_line}" "," end)
       MATH(EXPR start "${start}+1")
 
       IF ("${end}" STREQUAL "-1")
         MESSAGE("${file}")
-        MESSAGE("${line}")
+        MESSAGE("${ready_line}")
       ENDIF()
 
       MATH(EXPR length "${end}-${start}")
 
-      string(SUBSTRING "${line}" ${start} ${length} variable)
+      string(SUBSTRING "${ready_line}" ${start} ${length} variable)
 
       # Now retrieves the value to be assigned
-      string(FIND "${line}" "\"" start)
-      string(FIND "${line}" "\")" end)
+      string(FIND "${ready_line}" "\"" start)
+      string(FIND "${ready_line}" "\")" end)
       MATH(EXPR start "${start}+1")
 
       IF ("${end}" STREQUAL "-1")
         MESSAGE("${file}")
-        MESSAGE("${line}")
+        MESSAGE("${ready_line}")
       ENDIF()
 
 
       MATH(EXPR length "${end}-${start}")
-      string(SUBSTRING "${line}" ${start} ${length} value)
+      string(SUBSTRING "${ready_line}" ${start} ${length} value)
 
       # Creates the variable with the assigned value
-      SET(ENV{${variable}} "${value}")
-    endif()
+      STRING(STRIP "${variable}" stripped_variable)
+      #MESSAGE ("VAR: '${stripped_variable}' : '${value}'")
+      SET(ENV{${stripped_variable}} "${value}")
+      SET(process "0")
+    ENDIF()
   endforeach()
 endforeach()
 
-SET(DOX_INPUT "${CMAKE_SOURCE_DIR}/../../modules/adminapi ${CMAKE_SOURCE_DIR}/../../modules/ ${CMAKE_SOURCE_DIR}")
+SET(DOX_INPUT "${CMAKE_SOURCE_DIR}/../../modules/adminapi ${CMAKE_SOURCE_DIR}/../../modules/ ${CMAKE_SOURCE_DIR}/../../doc/devapi")
+
 SET(DOX_EXAMPLE_PATH "${CMAKE_SOURCE_DIR}/../../unittest/scripts/")
 SET(DOX_EXCLUDE_PATTERNS "*my_aes* *mod_dba_replicaset* *mod_dba_instan*")
 
