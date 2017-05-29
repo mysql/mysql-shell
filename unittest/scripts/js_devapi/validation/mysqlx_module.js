@@ -1,26 +1,26 @@
 //@ mysqlx module: exports
 |Exported Items: 6|
-|getNodeSession: object|
+|getSession: object|
 |expr: object|
 |dateValue: object|
 |help: object|
 |Type: <mysqlx.Type>|
 |IndexType: <mysqlx.IndexType>|
 
-//@ mysqlx module: getNodeSession through URI
-|<NodeSession:|
+//@ mysqlx module: getSession through URI
+|<Session:|
 |Session using right URI|
 
-//@ mysqlx module: getNodeSession through URI and password
-|<NodeSession:|
+//@ mysqlx module: getSession through URI and password
+|<Session:|
 |Session using right URI|
 
-//@ mysqlx module: getNodeSession through data
-|<NodeSession:|
+//@ mysqlx module: getSession through data
+|<Session:|
 |Session using right URI|
 
-//@ mysqlx module: getNodeSession through data and password
-|<NodeSession:|
+//@ mysqlx module: getSession through data and password
+|<Session:|
 |Session using right URI|
 
 //@# mysqlx module: expression errors

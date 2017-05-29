@@ -2,7 +2,7 @@
 
 from mysqlsh import mysqlx
 
-mySession = mysqlx.get_node_session(__uripwd)
+mySession = mysqlx.get_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 

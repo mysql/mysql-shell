@@ -21,15 +21,15 @@ for member in all_members:
 
 print 'Exported Items:', len(exports)
 
-print 'get_node_session:', type(mysqlx.get_node_session), '\n'
+print 'get_session:', type(mysqlx.get_session), '\n'
 print 'expr:', type(mysqlx.expr), '\n'
 print 'dateValue:', type(mysqlx.date_value), '\n'
 print 'help:', type(mysqlx.date_value), '\n'
 print 'Type:', mysqlx.Type, '\n'
 print 'IndexType:', mysqlx.IndexType, '\n'
 
-#@ mysqlx module: get_node_session through URI
-mySession = mysqlx.get_node_session(__uripwd)
+#@ mysqlx module: get_session through URI
+mySession = mysqlx.get_session(__uripwd)
 
 print mySession, '\n'
 
@@ -40,8 +40,8 @@ else:
 
 mySession.close()
 
-#@ mysqlx module: get_node_session through URI and password
-mySession = mysqlx.get_node_session(__uri, __pwd)
+#@ mysqlx module: get_session through URI and password
+mySession = mysqlx.get_session(__uri, __pwd)
 
 print mySession, '\n'
 
@@ -53,7 +53,7 @@ else:
 mySession.close()
 
 
-#@ mysqlx module: get_node_session through data
+#@ mysqlx module: get_session through data
 data = { 'host': __host,
 				 'port': __port,
 				 'schema': __schema,
@@ -61,7 +61,7 @@ data = { 'host': __host,
 				 'dbPassword': __pwd }
 
 
-mySession = mysqlx.get_node_session(data)
+mySession = mysqlx.get_session(data)
 
 print mySession, '\n'
 
@@ -72,14 +72,14 @@ else:
 
 mySession.close()
 
-#@ mysqlx module: get_node_session through data and password
+#@ mysqlx module: get_session through data and password
 data = { 'host': __host,
 				 'port': __port,
 				 'schema': __schema,
 				 'dbUser': __user}
 
 
-mySession = mysqlx.get_node_session(data, __pwd)
+mySession = mysqlx.get_session(data, __pwd)
 
 print mySession, '\n'
 

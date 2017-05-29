@@ -56,7 +56,7 @@ using namespace mysqlsh;
 using namespace shcore;
 using namespace mysqlsh::mysqlx;
 
-REGISTER_OBJECT(mysqlx, NodeSession);
+REGISTER_OBJECT(mysqlx, Session);
 REGISTER_OBJECT(mysqlx, Expression);
 REGISTER_OBJECT(mysqlx, Type);
 REGISTER_OBJECT(mysqlx, IndexType);
@@ -64,87 +64,96 @@ REGISTER_OBJECT(mysqlx, IndexType);
 #ifdef WIN32
 #define strcasecmp _stricmp
 #endif
+REGISTER_HELP(SESSION_PARENTS, "ShellBaseSession");
 
-// Documentation of NodeSession class
-REGISTER_HELP(NODESESSION_BRIEF,
+// Documentation of BaseSession class
+REGISTER_HELP(SESSION_BRIEF,
+    "Enables interaction with an X Protocol enabled MySQL Server.");
+REGISTER_HELP(SESSION_DETAIL,
+    "This class allows performing database operations such as:");
+REGISTER_HELP(SESSION_DETAIL1, "@li Schema management operations.");
+REGISTER_HELP(SESSION_DETAIL2, "@li Access to relational tables.");
+REGISTER_HELP(SESSION_DETAIL3, "@li Access to Document Store collections.");
+REGISTER_HELP(SESSION_DETAIL4, "@li Enabling/disabling warning generation.");
+REGISTER_HELP(SESSION_DETAIL5, "@li Retrieval of connection information.");
+
+// Documentation of Session class
+REGISTER_HELP(SESSION_INTERACTIVE_BRIEF,
               "Represents the currently open MySQL session.");
-REGISTER_HELP(NODESESSION_DETAIL,
-              "Document Store functionality can be used through this "
-              "object, in addition to SQL.");
 
-NodeSession::NodeSession() : _case_sensitive_table_names(false) {
+Session::Session() : _case_sensitive_table_names(false) {
   init();
 }
 
 // Documentation of isOpen function
-REGISTER_HELP(NODESESSION_ISOPEN_BRIEF,
+REGISTER_HELP(SESSION_ISOPEN_BRIEF,
               "Verifies if the session is still open.");
 /**
- * $(NODESESSION_ISOPEN_BRIEF)
- */
+* $(SESSION_ISOPEN_BRIEF)
+*/
 #if DOXYGEN_JS
 Bool NodeSession::isOpen() {}
 #elif DOXYGEN_PY
 bool NodeSession::is_open() {}
 #endif
-bool NodeSession::is_open() const {
+bool Session::is_open() const {
   return _session->valid();
 }
 
-shcore::Value NodeSession::_is_open(const shcore::Argument_list &args) {
+shcore::Value Session::_is_open(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("isOpen").c_str());
 
   return shcore::Value(is_open());
 }
 
-NodeSession::NodeSession(const NodeSession &s)
+Session::Session(const Session &s)
     : ShellBaseSession(s), _case_sensitive_table_names(false) {
   init();
 }
 
-NodeSession::~NodeSession() {
+Session::~Session() {
   if (is_open())
     close();
 }
 
 void NodeSession::init() {
-  add_method("close", std::bind(&NodeSession::_close, this, _1), "data");
+  add_method("close", std::bind(&Session::_close, this, _1), "data");
   add_method("setFetchWarnings",
-             std::bind(&NodeSession::set_fetch_warnings, this, _1), "data");
+             std::bind(&Session::set_fetch_warnings, this, _1), "data");
   add_method("startTransaction",
-             std::bind(&NodeSession::_start_transaction, this, _1), "data");
-  add_method("commit", std::bind(&NodeSession::_commit, this, _1), "data");
-  add_method("rollback", std::bind(&NodeSession::_rollback, this, _1), "data");
+             std::bind(&Session::_start_transaction, this, _1), "data");
+  add_method("commit", std::bind(&Session::_commit, this, _1), "data");
+  add_method("rollback", std::bind(&Session::_rollback, this, _1), "data");
 
-  add_method("createSchema", std::bind(&NodeSession::_create_schema, this, _1),
+  add_method("createSchema", std::bind(&Session::_create_schema, this, _1),
              "data");
-  add_method("getSchema", std::bind(&NodeSession::_get_schema, this, _1),
+  add_method("getSchema", std::bind(&Session::_get_schema, this, _1),
              "name", shcore::String, NULL);
-  add_method("getSchemas", std::bind(&NodeSession::get_schemas, this, _1),
+  add_method("getSchemas", std::bind(&Session::get_schemas, this, _1),
              NULL);
-  add_method("dropSchema", std::bind(&NodeSession::_drop_schema, this, _1),
+  add_method("dropSchema", std::bind(&Session::_drop_schema, this, _1),
              "data");
   add_method("dropTable",
-             std::bind(&NodeSession::drop_schema_object, this, _1, "Table"),
+             std::bind(&Session::drop_schema_object, this, _1, "Table"),
              "data");
   add_method(
       "dropCollection",
       std::bind(&NodeSession::drop_schema_object, this, _1, "Collection"),
       "data");
   add_method("dropView",
-             std::bind(&NodeSession::drop_schema_object, this, _1, "View"),
+             std::bind(&Session::drop_schema_object, this, _1, "View"),
              "data");
   add_property("uri", "getUri");
   add_property("defaultSchema", "getDefaultSchema");
   add_property("currentSchema", "getCurrentSchema");
 
-  add_method("isOpen", std::bind(&NodeSession::_is_open, this, _1), NULL);
-  add_method("sql", std::bind(&NodeSession::sql, this, _1), "sql",
+  add_method("isOpen", std::bind(&Session::_is_open, this, _1), NULL);
+  add_method("sql", std::bind(&Session::sql, this, _1), "sql",
             shcore::String, NULL);
   add_method("setCurrentSchema",
-            std::bind(&NodeSession::_set_current_schema, this, _1), "name",
+            std::bind(&Session::_set_current_schema, this, _1), "name",
             shcore::String, NULL);
-  add_method("quoteName", std::bind(&NodeSession::quote_name, this, _1), "name",
+  add_method("quoteName", std::bind(&Session::quote_name, this, _1), "name",
             shcore::String, NULL);
 
   _schemas.reset(new shcore::Value::Map_type);
@@ -160,7 +169,7 @@ void NodeSession::init() {
   };
 }
 
-void NodeSession::connect(const mysqlshdk::db::Connection_options& data) {
+void Session::connect(const mysqlshdk::db::Connection_options& data) {
   try {
     _connection_options = data;
 
@@ -174,7 +183,7 @@ void NodeSession::connect(const mysqlshdk::db::Connection_options& data) {
   CATCH_AND_TRANSLATE();
 }
 
-void NodeSession::set_option(const char *option, int value) {
+void Session::set_option(const char *option, int value) {
   if (strcmp(option, "trace_protocol") == 0) {
     if (is_open())
       _session->enable_protocol_trace(value != 0);
@@ -184,11 +193,11 @@ void NodeSession::set_option(const char *option, int value) {
   }
 }
 
-uint64_t NodeSession::get_connection_id() const {
+uint64_t Session::get_connection_id() const {
   return _session->get_connection_id();
 }
 
-bool NodeSession::table_name_compare(const std::string &n1,
+bool Session::table_name_compare(const std::string &n1,
                                      const std::string &n2) {
   if (_case_sensitive_table_names)
     return n1 == n2;
@@ -197,23 +206,22 @@ bool NodeSession::table_name_compare(const std::string &n1,
 }
 
 // Documentation of close function
-REGISTER_HELP(NODESESSION_CLOSE_BRIEF, "Closes the session.");
-REGISTER_HELP(NODESESSION_CLOSE_DETAIL,
-              "After closing the session it is "
-              "still possible to make read only operations "
-              "to gather metadata info, like getTable(name) or getSchemas().");
+REGISTER_HELP(SESSION_CLOSE_BRIEF, "Closes the session.");
+REGISTER_HELP(SESSION_CLOSE_DETAIL, "After closing the session it is "
+  "still possible to make read only operations to gather metadata info, like "
+  "getTable(name) or getSchemas().");
 
 /**
- * $(NODESESSION_CLOSE_BRIEF)
- *
- * $(NODESESSION_CLOSE_DETAIL)
- */
+* $(SESSION_CLOSE_BRIEF)
+*
+* $(SESSION_CLOSE_DETAIL)
+*/
 #if DOXYGEN_JS
 Undefined NodeSession::close() {}
 #elif DOXYGEN_PY
 None NodeSession::close() {}
 #endif
-Value NodeSession::_close(const shcore::Argument_list &args) {
+Value Session::_close(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("close").c_str());
 
   close();
@@ -221,7 +229,7 @@ Value NodeSession::_close(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
-void NodeSession::close() {
+void Session::close() {
   bool did_close = false;
   try {
     // Connection must be explicitly closed, we can't rely on the
@@ -238,7 +246,7 @@ void NodeSession::close() {
     log_warning("Error occurred closing session: %s", e.what());
   }
 
-  if (did_close) {
+if (did_close) {
     try {
       // this shouldn't be getting clled from teh d-tor...
       ShellNotifications::get()->notify("SN_SESSION_CLOSED", shared_from_this());
@@ -251,31 +259,29 @@ void NodeSession::close() {
 }
 
 // Documentation of createSchema function
-REGISTER_HELP(
-    NODESESSION_CREATESCHEMA_BRIEF,
-    "Creates a schema on the database and returns the corresponding object.");
-REGISTER_HELP(NODESESSION_CREATESCHEMA_PARAM,
-              "@param name A string value indicating the schema name.");
-REGISTER_HELP(NODESESSION_CREATESCHEMA_RETURNS,
-              "@returns The created schema object.");
-REGISTER_HELP(NODESESSION_CREATESCHEMA_EXCEPTION,
-              "@exception An exception is thrown if an error occurs creating "
-              "the Session.");
+REGISTER_HELP(SESSION_CREATESCHEMA_BRIEF,
+  "Creates a schema on the database and returns the corresponding object.");
+REGISTER_HELP(SESSION_CREATESCHEMA_PARAM,
+  "@param name A string value indicating the schema name.");
+REGISTER_HELP(SESSION_CREATESCHEMA_RETURNS,
+  "@returns The created schema object.");
+REGISTER_HELP(SESSION_CREATESCHEMA_EXCEPTION,
+  "@exception An exception is thrown if an error occurs creating the schema.");
 
 /**
- * $(NODESESSION_CREATESCHEMA_BRIEF)
- *
- * $(NODESESSION_CREATESCHEMA_PARAM)
- * $(NODESESSION_CREATESCHEMA_RETURNS)
- *
- * $(NODESESSION_CREATESCHEMA_EXCEPTION)
- */
+* $(SESSION_CREATESCHEMA_BRIEF)
+*
+* $(SESSION_CREATESCHEMA_PARAM)
+* $(SESSION_CREATESCHEMA_RETURNS)
+*
+* $(SESSION_CREATESCHEMA_EXCEPTION)
+*/
 #if DOXYGEN_JS
 Schema NodeSession::createSchema(String name) {}
 #elif DOXYGEN_PY
 Schema NodeSession::create_schema(str name) {}
 #endif
-Value NodeSession::_create_schema(const shcore::Argument_list &args) {
+Value Session::_create_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("createSchema").c_str());
 
   std::string name;
@@ -289,7 +295,7 @@ Value NodeSession::_create_schema(const shcore::Argument_list &args) {
   return (*_schemas)[name];
 }
 
-void NodeSession::create_schema(const std::string &name) {
+void Session::create_schema(const std::string &name) {
   std::string statement = sqlstring("create schema ! charset='utf8mb4'", 0)
                           << name;
   execute_sql(statement);
@@ -298,46 +304,44 @@ void NodeSession::create_schema(const std::string &name) {
   update_schema_cache(name, true);
 }
 
-void NodeSession::set_current_schema(const std::string &name) {
+void Session::set_current_schema(const std::string &name) {
   execute_sql(sqlstring("use !", 0) << name);
 }
 
 // Documentation of startTransaction function
-REGISTER_HELP(NODESESSION_STARTTRANSACTION_BRIEF,
-              "Starts a transaction context on the server.");
-REGISTER_HELP(NODESESSION_STARTTRANSACTION_RETURNS,
-              "@returns A SqlResult object.");
-REGISTER_HELP(
-    NODESESSION_STARTTRANSACTION_DETAIL,
-    "Calling this function will turn off the autocommit mode on the server.");
-REGISTER_HELP(NODESESSION_STARTTRANSACTION_DETAIL1,
-              "All the operations executed after calling this function will "
-              "take place only when commit() is called.");
-REGISTER_HELP(NODESESSION_STARTTRANSACTION_DETAIL2,
-              "All the operations executed after calling this function, will "
-              "be discarded is rollback() is called.");
-REGISTER_HELP(
-    NODESESSION_STARTTRANSACTION_DETAIL3,
-    "When commit() or rollback() are called, the server autocommit mode "
-    "will return back to it's state before calling startTransaction().");
+REGISTER_HELP(SESSION_STARTTRANSACTION_BRIEF,
+  "Starts a transaction context on the server.");
+REGISTER_HELP(SESSION_STARTTRANSACTION_RETURNS,
+  "@returns A SqlResult object.");
+REGISTER_HELP(SESSION_STARTTRANSACTION_DETAIL,
+  "Calling this function will turn off the autocommit mode on the server.");
+REGISTER_HELP(SESSION_STARTTRANSACTION_DETAIL1,
+  "All the operations executed after calling this function will take place "
+  "only when commit() is called.");
+REGISTER_HELP(SESSION_STARTTRANSACTION_DETAIL2,
+  "All the operations executed after calling this function, will be discarded "
+  "is rollback() is called.");
+REGISTER_HELP(SESSION_STARTTRANSACTION_DETAIL3,
+  "When commit() or rollback() are called, the server autocommit mode "
+  "will return back to it's state before calling startTransaction().");
 
 /**
- * $(NODESESSION_STARTTRANSACTION_BRIEF)
- *
- * $(NODESESSION_STARTTRANSACTION_RETURNS)
- *
- * $(NODESESSION_STARTTRANSACTION_DETAIL)
- *
- * $(NODESESSION_STARTTRANSACTION_DETAIL1)
- * $(NODESESSION_STARTTRANSACTION_DETAIL2)
- * $(NODESESSION_STARTTRANSACTION_DETAIL3)
- */
+* $(SESSION_STARTTRANSACTION_BRIEF)
+*
+* $(SESSION_STARTTRANSACTION_RETURNS)
+*
+* $(SESSION_STARTTRANSACTION_DETAIL)
+*
+* $(SESSION_STARTTRANSACTION_DETAIL1)
+* $(SESSION_STARTTRANSACTION_DETAIL2)
+* $(SESSION_STARTTRANSACTION_DETAIL3)
+*/
 #if DOXYGEN_JS
 Result NodeSession::startTransaction() {}
 #elif DOXYGEN_PY
 Result NodeSession::start_transaction() {}
 #endif
-shcore::Value NodeSession::_start_transaction(
+shcore::Value Session::_start_transaction(
     const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("startTransaction").c_str());
 
@@ -352,13 +356,13 @@ shcore::Value NodeSession::_start_transaction(
 
 // Documentation of commit function
 REGISTER_HELP(
-    NODESESSION_COMMIT_BRIEF,
+    SESSION_COMMIT_BRIEF,
     "Commits all the operations executed after a call to startTransaction().");
-REGISTER_HELP(NODESESSION_COMMIT_RETURNS, "@returns A SqlResult object.");
-REGISTER_HELP(NODESESSION_COMMIT_DETAIL,
+REGISTER_HELP(SESSION_COMMIT_RETURNS, "@returns A SqlResult object.");
+REGISTER_HELP(SESSION_COMMIT_DETAIL,
               "All the operations executed after calling startTransaction() "
               "will take place when this function is called.");
-REGISTER_HELP(NODESESSION_COMMIT_DETAIL1,
+REGISTER_HELP(SESSION_COMMIT_DETAIL1,
               "The server autocommit mode will return back to it's state "
               "before calling startTransaction().");
 
@@ -376,7 +380,7 @@ Result NodeSession::commit() {}
 #elif DOXYGEN_PY
 Result NodeSession::commit() {}
 #endif
-shcore::Value NodeSession::_commit(const shcore::Argument_list &args) {
+shcore::Value Session::_commit(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("commit").c_str());
 
   shcore::Value ret_val;
@@ -391,13 +395,13 @@ shcore::Value NodeSession::_commit(const shcore::Argument_list &args) {
 
 // Documentation of rollback function
 REGISTER_HELP(
-    NODESESSION_ROLLBACK_BRIEF,
+    SESSION_ROLLBACK_BRIEF,
     "Discards all the operations executed after a call to startTransaction().");
-REGISTER_HELP(NODESESSION_ROLLBACK_RETURNS, "@returns A SqlResult object.");
-REGISTER_HELP(NODESESSION_ROLLBACK_DETAIL,
+REGISTER_HELP(SESSION_ROLLBACK_RETURNS, "@returns A SqlResult object.");
+REGISTER_HELP(SESSION_ROLLBACK_DETAIL,
               "All the operations executed after calling startTransaction() "
               "will be discarded when this function is called.");
-REGISTER_HELP(NODESESSION_ROLLBACK_DETAIL1,
+REGISTER_HELP(SESSION_ROLLBACK_DETAIL1,
               "The server autocommit mode will return back to it's state "
               "before calling startTransaction().");
 
@@ -415,7 +419,7 @@ Result NodeSession::rollback() {}
 #elif DOXYGEN_PY
 Result NodeSession::rollback() {}
 #endif
-shcore::Value NodeSession::_rollback(const shcore::Argument_list &args) {
+shcore::Value Session::_rollback(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("rollback").c_str());
 
   shcore::Value ret_val;
@@ -429,13 +433,13 @@ shcore::Value NodeSession::_rollback(const shcore::Argument_list &args) {
 }
 
 // Documentation of getDefaultSchema function
-REGISTER_HELP(NODESESSION_DEFAULTSCHEMA_BRIEF,
+REGISTER_HELP(SESSION_DEFAULTSCHEMA_BRIEF,
               "Retrieves the Schema "
               "configured as default for the session.");
-REGISTER_HELP(NODESESSION_GETDEFAULTSCHEMA_BRIEF,
+REGISTER_HELP(SESSION_GETDEFAULTSCHEMA_BRIEF,
               "Retrieves the Schema "
               "configured as default for the session.");
-REGISTER_HELP(NODESESSION_GETDEFAULTSCHEMA_RETURNS,
+REGISTER_HELP(SESSION_GETDEFAULTSCHEMA_RETURNS,
               "@returns A Schema "
               "object or Null");
 
@@ -452,10 +456,10 @@ Schema NodeSession::get_default_schema() {}
 #endif
 
 /**
- * $(SHELLNODESESSION_GETURI_BRIEF)
- *
- * $(NODESESSION_GETURI_RETURNS)
- */
+* $(SHELLSESSION_GETURI_BRIEF)
+*
+* $(SESSION_GETURI_RETURNS)
+*/
 #if DOXYGEN_JS
 String NodeSession::getUri() {}
 #elif DOXYGEN_PY
@@ -463,7 +467,7 @@ str NodeSession::get_uri() {}
 #endif
 #endif
 
-std::string NodeSession::_retrieve_current_schema() {
+std::string Session::_retrieve_current_schema() {
   try {
     if (is_open()) {
       auto result = execute_sql("select schema()");
@@ -481,22 +485,22 @@ std::string NodeSession::_retrieve_current_schema() {
 
 // Documentation of getSchema function
 REGISTER_HELP(
-    NODESESSION_GETSCHEMA_BRIEF,
+    SESSION_GETSCHEMA_BRIEF,
     "Retrieves a Schema object from the current session through it's name.");
-REGISTER_HELP(NODESESSION_GETSCHEMA_PARAM,
+REGISTER_HELP(SESSION_GETSCHEMA_PARAM,
               "@param name The name of the Schema object to be retrieved.");
-REGISTER_HELP(NODESESSION_GETSCHEMA_RETURNS,
+REGISTER_HELP(SESSION_GETSCHEMA_RETURNS,
               "@returns The Schema object with the given name.");
-REGISTER_HELP(NODESESSION_GETSCHEMA_EXCEPTION,
+REGISTER_HELP(SESSION_GETSCHEMA_EXCEPTION,
               "@exception An exception is thrown if the given name is not a "
               "valid schema.");
 
 /**
- * $(NODESESSION_GETSCHEMA_BRIEF)
+ * $(SESSION_GETSCHEMA_BRIEF)
  *
- * $(NODESESSION_GETSCHEMA_PARAM)
- * $(NODESESSION_GETSCHEMA_RETURNS)
- * $(NODESESSION_GETSCHEMA_EXCEPTION)
+ * $(SESSION_GETSCHEMA_PARAM)
+ * $(SESSION_GETSCHEMA_RETURNS)
+ * $(SESSION_GETSCHEMA_EXCEPTION)
  * \sa Schema
  */
 #if DOXYGEN_JS
@@ -504,7 +508,7 @@ Schema NodeSession::getSchema(String name) {}
 #elif DOXYGEN_PY
 Schema NodeSession::get_schema(str name) {}
 #endif
-shcore::Object_bridge_ref NodeSession::get_schema(const std::string &name) {
+shcore::Object_bridge_ref Session::get_schema(const std::string &name) {
   auto ret_val = ShellBaseSession::get_schema(name);
 
   auto dbobject = std::dynamic_pointer_cast<DatabaseObject>(ret_val);
@@ -513,7 +517,7 @@ shcore::Object_bridge_ref NodeSession::get_schema(const std::string &name) {
   return ret_val;
 }
 
-shcore::Value NodeSession::_get_schema(const shcore::Argument_list &args) {
+shcore::Value Session::_get_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
@@ -526,22 +530,22 @@ shcore::Value NodeSession::_get_schema(const shcore::Argument_list &args) {
 }
 
 // Documentation of  function
-REGISTER_HELP(NODESESSION_GETSCHEMAS_BRIEF,
+REGISTER_HELP(SESSION_GETSCHEMAS_BRIEF,
               "Retrieves the Schemas available on the session.");
 REGISTER_HELP(
-    NODESESSION_GETSCHEMAS_RETURNS,
+    SESSION_GETSCHEMAS_RETURNS,
     "@returns A List containing the Schema objects available on the session.");
 /**
- * $(NODESESSION_GETSCHEMAS_BRIEF)
+ * $(SESSION_GETSCHEMAS_BRIEF)
  *
- * $(NODESESSION_GETSCHEMAS_RETURNS)
+ * $(SESSION_GETSCHEMAS_RETURNS)
  */
 #if DOXYGEN_JS
 List NodeSession::getSchemas() {}
 #elif DOXYGEN_PY
 list NodeSession::get_schemas() {}
 #endif
-shcore::Value NodeSession::get_schemas(const shcore::Argument_list &args) {
+shcore::Value Session::get_schemas(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getSchemas").c_str());
 
   shcore::Value::Array_type_ref schemas(new shcore::Value::Array_type);
@@ -570,45 +574,45 @@ shcore::Value NodeSession::get_schemas(const shcore::Argument_list &args) {
   return shcore::Value(schemas);
 }
 
-REGISTER_HELP(NODESESSION_SETFETCHWARNINGS_BRIEF,
+REGISTER_HELP(SESSION_SETFETCHWARNINGS_BRIEF,
               "Enables or disables "
               "warning generation.");
-REGISTER_HELP(NODESESSION_SETFETCHWARNINGS_PARAM,
+REGISTER_HELP(SESSION_SETFETCHWARNINGS_PARAM,
               "@param enable Boolean "
               "value to enable or disable the warnings.");
-REGISTER_HELP(NODESESSION_SETFETCHWARNINGS_DETAIL,
+REGISTER_HELP(SESSION_SETFETCHWARNINGS_DETAIL,
               "Warnings are generated "
               "sometimes when database operations are "
               "executed, such as SQL statements.");
-REGISTER_HELP(NODESESSION_SETFETCHWARNINGS_DETAIL1,
+REGISTER_HELP(SESSION_SETFETCHWARNINGS_DETAIL1,
               "On a Node session the "
               "warning generation is disabled by default. "
               "This function can be used to enable or disable the warning "
               "generation based"
               " on the received parameter.");
 REGISTER_HELP(
-    NODESESSION_SETFETCHWARNINGS_DETAIL2,
+    SESSION_SETFETCHWARNINGS_DETAIL2,
     "When warning generation "
     "is enabled, the warnings will be available through the result object "
     "returned on the executed operation.");
 
 /**
- * $(NODESESSION_SETFETCHWARNINGS_BRIEF)
+ * $(SESSION_SETFETCHWARNINGS_BRIEF)
  *
- * $(NODESESSION_SETFETCHWARNINGS_PARAM)
+ * $(SESSION_SETFETCHWARNINGS_PARAM)
  *
- * $(NODESESSION_SETFETCHWARNINGS_DETAIL)
+ * $(SESSION_SETFETCHWARNINGS_DETAIL)
  *
- * $(NODESESSION_SETFETCHWARNINGS_DETAIL1)
+ * $(SESSION_SETFETCHWARNINGS_DETAIL1)
  *
- * $(NODESESSION_SETFETCHWARNINGS_DETAIL2)
+ * $(SESSION_SETFETCHWARNINGS_DETAIL2)
  */
 #if DOXYGEN_JS
 Result NodeSession::setFetchWarnings(Boolean enable) {}
 #elif DOXYGEN_PY
 Result NodeSession::set_fetch_warnings(bool enable) {}
 #endif
-shcore::Value NodeSession::set_fetch_warnings(
+shcore::Value Session::set_fetch_warnings(
     const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setFetchWarnings").c_str());
 
@@ -628,33 +632,33 @@ shcore::Value NodeSession::set_fetch_warnings(
 }
 
 // Documentation of dropSchema function
-REGISTER_HELP(NODESESSION_DROPSCHEMA_BRIEF,
+REGISTER_HELP(SESSION_DROPSCHEMA_BRIEF,
               "Drops the schema with the specified name.");
-REGISTER_HELP(NODESESSION_DROPSCHEMA_RETURNS,
+REGISTER_HELP(SESSION_DROPSCHEMA_RETURNS,
               "@returns A SqlResult object if succeeded.");
-REGISTER_HELP(NODESESSION_DROPSCHEMA_EXCEPTION,
+REGISTER_HELP(SESSION_DROPSCHEMA_EXCEPTION,
               "@exception An error is raised if the schema did not exist.");
 
 /**
- * $(NODESESSION_DROPSCHEMA_BRIEF)
+ * $(SESSION_DROPSCHEMA_BRIEF)
  *
- * $(NODESESSION_DROPSCHEMA_RETURNS)
+ * $(SESSION_DROPSCHEMA_RETURNS)
  *
- * $(NODESESSION_DROPSCHEMA_EXCEPTION)
+ * $(SESSION_DROPSCHEMA_EXCEPTION)
  */
 #if DOXYGEN_JS
 Result NodeSession::dropSchema(String name) {}
 #elif DOXYGEN_PY
 Result NodeSession::drop_schema(str name) {}
 #endif
-void NodeSession::drop_schema(const std::string &name) {
+void Session::drop_schema(const std::string &name) {
   execute_sql(sqlstring("drop schema !", 0) << name, shcore::Argument_list());
 
   if (_schemas->find(name) != _schemas->end())
     _schemas->erase(name);
 }
 
-shcore::Value NodeSession::_drop_schema(const shcore::Argument_list &args) {
+shcore::Value Session::_drop_schema(const shcore::Argument_list &args) {
   std::string function = get_function_name("dropSchema");
 
   args.ensure_count(1, function.c_str());
@@ -668,19 +672,19 @@ shcore::Value NodeSession::_drop_schema(const shcore::Argument_list &args) {
 }
 
 // Documentation of dropTable function
-REGISTER_HELP(NODESESSION_DROPTABLE_BRIEF,
+REGISTER_HELP(SESSION_DROPTABLE_BRIEF,
               "Drops a table from the specified schema.");
-REGISTER_HELP(NODESESSION_DROPTABLE_RETURNS,
+REGISTER_HELP(SESSION_DROPTABLE_RETURNS,
               "@returns A SqlResult object if succeeded.");
-REGISTER_HELP(NODESESSION_DROPTABLE_EXCEPTION,
+REGISTER_HELP(SESSION_DROPTABLE_EXCEPTION,
               "@exception An error is raised if the table did not exist.");
 
 /**
- * $(NODESESSION_DROPTABLE_BRIEF)
+ * $(SESSION_DROPTABLE_BRIEF)
  *
- * $(NODESESSION_DROPTABLE_RETURNS)
+ * $(SESSION_DROPTABLE_RETURNS)
  *
- * $(NODESESSION_DROPTABLE_EXCEPTION)
+ * $(SESSION_DROPTABLE_EXCEPTION)
  */
 #if DOXYGEN_JS
 Result NodeSession::dropTable(String schema, String name) {}
@@ -689,19 +693,19 @@ Result NodeSession::drop_table(str schema, str name) {}
 #endif
 
 // Documentation of dropCollection function
-REGISTER_HELP(NODESESSION_DROPCOLLECTION_BRIEF,
+REGISTER_HELP(SESSION_DROPCOLLECTION_BRIEF,
               "Drops a collection from the specified schema.");
-REGISTER_HELP(NODESESSION_DROPCOLLECTION_RETURNS,
+REGISTER_HELP(SESSION_DROPCOLLECTION_RETURNS,
               "@returns A SqlResult object if succeeded.");
-REGISTER_HELP(NODESESSION_DROPCOLLECTION_EXCEPTION,
+REGISTER_HELP(SESSION_DROPCOLLECTION_EXCEPTION,
               "@exception An error is raised if the collection did not exist.");
 
 /**
- * $(NODESESSION_DROPCOLLECTION_BRIEF)
+ * $(SESSION_DROPCOLLECTION_BRIEF)
  *
- * $(NODESESSION_DROPCOLLECTION_RETURNS)
+ * $(SESSION_DROPCOLLECTION_RETURNS)
  *
- * $(NODESESSION_DROPCOLLECTION_EXCEPTION)
+ * $(SESSION_DROPCOLLECTION_EXCEPTION)
  */
 #if DOXYGEN_JS
 Result NodeSession::dropCollection(String schema, String name) {}
@@ -710,19 +714,19 @@ Result NodeSession::drop_collection(str schema, str name) {}
 #endif
 
 // Documentation of dropView function
-REGISTER_HELP(NODESESSION_DROPVIEW_BRIEF,
+REGISTER_HELP(SESSION_DROPVIEW_BRIEF,
               "Drops a view from the specified schema.");
-REGISTER_HELP(NODESESSION_DROPVIEW_RETURNS,
+REGISTER_HELP(SESSION_DROPVIEW_RETURNS,
               "@returns A SqlResult object if succeeded.");
-REGISTER_HELP(NODESESSION_DROPVIEW_EXCEPTION,
+REGISTER_HELP(SESSION_DROPVIEW_EXCEPTION,
               "@exception An error is raised if the view did not exist.");
 
 /**
- * $(NODESESSION_DROPVIEW_BRIEF)
+ * $(SESSION_DROPVIEW_BRIEF)
  *
- * $(NODESESSION_DROPVIEW_RETURNS)
+ * $(SESSION_DROPVIEW_RETURNS)
  *
- * $(NODESESSION_DROPVIEW_EXCEPTION)
+ * $(SESSION_DROPVIEW_EXCEPTION)
  */
 #if DOXYGEN_JS
 Result NodeSession::dropView(String schema, String name) {}
@@ -730,7 +734,7 @@ Result NodeSession::dropView(String schema, String name) {}
 Result NodeSession::drop_view(str schema, str name) {}
 #endif
 
-shcore::Value NodeSession::drop_schema_object(const shcore::Argument_list &args,
+shcore::Value Session::drop_schema_object(const shcore::Argument_list &args,
                                               const std::string &type) {
   std::string function = get_function_name("drop" + type);
 
@@ -783,7 +787,7 @@ shcore::Value NodeSession::drop_schema_object(const shcore::Argument_list &args,
  *
  * Returns the name of the object as exists in the database.
  */
-std::string NodeSession::db_object_exists(std::string &type,
+std::string Session::db_object_exists(std::string &type,
                                           const std::string &name,
                                           const std::string &owner) {
   Interruptible intr(this);
@@ -820,7 +824,7 @@ extern "C" {
 unsigned long mysql_get_client_version(void);
 }
 
-shcore::Value::Map_type_ref NodeSession::get_status() {
+shcore::Value::Map_type_ref Session::get_status() {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
   (*status)["SESSION_TYPE"] = shcore::Value("Node");
@@ -914,14 +918,14 @@ shcore::Value::Map_type_ref NodeSession::get_status() {
   return status;
 }
 
-void NodeSession::start_transaction() {
+void Session::start_transaction() {
   if (_tx_deep == 0)
     execute_sql("start transaction", shcore::Argument_list());
 
   _tx_deep++;
 }
 
-void NodeSession::commit() {
+void Session::commit() {
   _tx_deep--;
 
   assert(_tx_deep >= 0);
@@ -930,7 +934,7 @@ void NodeSession::commit() {
     execute_sql("commit", shcore::Argument_list());
 }
 
-void NodeSession::rollback() {
+void Session::rollback() {
   _tx_deep--;
 
   assert(_tx_deep >= 0);
@@ -939,7 +943,7 @@ void NodeSession::rollback() {
     execute_sql("rollback", shcore::Argument_list());
 }
 
-std::string NodeSession::query_one_string(const std::string &query, int field) {
+std::string Session::query_one_string(const std::string &query, int field) {
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> result = execute_sql(query);
   if (auto row = result->fetch_one()) {
     if (!row->is_null(field)) {
@@ -949,7 +953,7 @@ std::string NodeSession::query_one_string(const std::string &query, int field) {
   return "";
 }
 
-void NodeSession::kill_query() {
+void Session::kill_query() {
   uint64_t cid = get_connection_id();
 
   auto session = mysqlshdk::db::mysqlx::Session::create();
@@ -1021,7 +1025,7 @@ static ::xcl::Arguments convert_args(const shcore::Argument_list &args) {
 }
 
 
-Value NodeSession::executeAdminCommand(const std::string &command,
+Value Session::executeAdminCommand(const std::string &command,
                                        bool expect_data,
                                        const Argument_list &args) {
   std::string function = class_name() + '.' + "executeAdminCommand";
@@ -1030,17 +1034,17 @@ Value NodeSession::executeAdminCommand(const std::string &command,
   return _execute_stmt("xplugin", command, convert_args(args), expect_data);
 }
 
-shcore::Value NodeSession::_execute_mysqlx_stmt(
+shcore::Value Session::_execute_mysqlx_stmt(
     const std::string &command, const shcore::Dictionary_t &args) {
   return _execute_stmt("mysqlx", command, convert_args(args), true);
 }
 
-std::shared_ptr<mysqlshdk::db::mysqlx::Result> NodeSession::execute_mysqlx_stmt(
+std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_mysqlx_stmt(
     const std::string &command, const shcore::Dictionary_t &args) {
   return execute_stmt("mysqlx", command, convert_args(args));
 }
 
-shcore::Value NodeSession::_execute_stmt(const std::string &ns,
+shcore::Value Session::_execute_stmt(const std::string &ns,
                                          const std::string &command,
                                          const ::xcl::Arguments &args,
                                          bool expect_data) {
@@ -1061,7 +1065,7 @@ shcore::Value NodeSession::_execute_stmt(const std::string &ns,
   return {};
 }
 
-std::shared_ptr<mysqlshdk::db::mysqlx::Result> NodeSession::execute_stmt(
+std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
     const std::string &ns, const std::string &command,
     const ::xcl::Arguments &args) {
   try {
@@ -1081,7 +1085,7 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> NodeSession::execute_stmt(
   }
 }
 
-shcore::Value NodeSession::_execute_sql(const std::string &statement,
+shcore::Value Session::_execute_sql(const std::string &statement,
                                         const shcore::Argument_list &args) {
   MySQL_timer timer;
   timer.start();
@@ -1091,14 +1095,14 @@ shcore::Value NodeSession::_execute_sql(const std::string &statement,
   return shcore::Value::wrap(result);
 }
 
-std::shared_ptr<mysqlshdk::db::mysqlx::Result> NodeSession::execute_sql(
+std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_sql(
     const std::string &sql, const shcore::Argument_list &args) {
   return execute_stmt("sql", sql, convert_args(args));
 }
 
-std::shared_ptr<shcore::Object_bridge> NodeSession::create(
+std::shared_ptr<shcore::Object_bridge> Session::create(
     const shcore::Argument_list &args) {
-  std::shared_ptr<NodeSession> session(new NodeSession());
+  std::shared_ptr<Session> session(new Session());
 
   session->connect(
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING));
@@ -1109,94 +1113,82 @@ std::shared_ptr<shcore::Object_bridge> NodeSession::create(
 }
 
 // Documentation of sql function
-REGISTER_HELP(NODESESSION_SQL_BRIEF,
-              "Creates a SqlExecute object to allow "
-              "running the received SQL statement on the target MySQL Server.");
-REGISTER_HELP(NODESESSION_SQL_PARAM,
-              "@param sql A string containing the SQL "
-              "statement to be executed.");
-REGISTER_HELP(NODESESSION_SQL_RETURN, "@return A SqlExecute object.");
-REGISTER_HELP(NODESESSION_SQL_DETAIL,
-              "This method creates an SqlExecute "
-              "object which is a SQL execution handler.");
-REGISTER_HELP(NODESESSION_SQL_DETAIL1,
-              "The SqlExecute class has functions "
-              "that allow defining the way the statement will be executed "
-              "and allows doing parameter binding.");
-REGISTER_HELP(NODESESSION_SQL_DETAIL2,
-              "The received SQL is set on the "
-              "execution handler.");
+REGISTER_HELP(SESSION_SQL_BRIEF, "Creates a SqlExecute object to allow "
+  "running the received SQL statement on the target MySQL Server.");
+REGISTER_HELP(SESSION_SQL_PARAM, "@param sql A string containing the SQL "
+  "statement to be executed.");
+REGISTER_HELP(SESSION_SQL_RETURN, "@return A SqlExecute object.");
+REGISTER_HELP(SESSION_SQL_DETAIL, "This method creates an SqlExecute "
+  "object which is a SQL execution handler.");
+REGISTER_HELP(SESSION_SQL_DETAIL1, "The SqlExecute class has functions "
+  "that allow defining the way the statement will be executed and allows doing "
+  "parameter binding.");
+REGISTER_HELP(SESSION_SQL_DETAIL2, "The received SQL is set on the execution "
+  "handler.");
 
 /**
- * $(NODESESSION_SQL_BRIEF)
- *
- * $(NODESESSION_SQL_PARAM)
- *
- * $(NODESESSION_SQL_RETURN)
- *
- * $(NODESESSION_SQL_DETAIL)
- *
- * $(NODESESSION_SQL_DETAIL1)
- *
- * $(NODESESSION_SQL_DETAIL2)
- *
- * JavaScript Example
- * \code{.js}
- * var sql = session.sql("select * from mydb.students where  age > ?");
- * var result = sql.bind(18).execute();
- * \endcode
- * \sa SqlExecute
- */
+* $(SESSION_SQL_BRIEF)
+*
+* $(SESSION_SQL_PARAM)
+*
+* $(SESSION_SQL_RETURN)
+*
+* $(SESSION_SQL_DETAIL)
+*
+* $(SESSION_SQL_DETAIL1)
+*
+* $(SESSION_SQL_DETAIL2)
+*
+* JavaScript Example
+* \code{.js}
+* var sql = session.sql("select * from mydb.students where  age > ?");
+* var result = sql.bind(18).execute();
+* \endcode
+* \sa SqlExecute
+*/
 #if DOXYGEN_JS
-SqlExecute NodeSession::sql(String sql) {}
+SqlExecute BaseSession::sql(String sql) {}
 #elif DOXYGEN_PY
-SqlExecute NodeSession::sql(str sql) {}
+SqlExecute BaseSession::sql(str sql) {}
 #endif
-shcore::Value NodeSession::sql(const shcore::Argument_list &args) {
+shcore::Value Session::sql(const shcore::Argument_list &args) {
   std::shared_ptr<SqlExecute> sql_execute(new SqlExecute(
       std::static_pointer_cast<NodeSession>(shared_from_this())));
 
   return sql_execute->sql(args);
 }
 
-REGISTER_HELP(NODESESSION_URI_BRIEF,
-              "Retrieves the URI for the current "
-              "session.");
-REGISTER_HELP(NODESESSION_GETURI_BRIEF,
-              "Retrieves the URI for the current "
-              "session.");
-REGISTER_HELP(NODESESSION_GETURI_RETURNS,
-              "@return A string representing the "
-              "connection data.");
+REGISTER_HELP(SESSION_URI_BRIEF, "Retrieves the URI for the current session.");
+REGISTER_HELP(SESSION_GETURI_BRIEF, "Retrieves the URI for the current "
+  "session.");
+REGISTER_HELP(SESSION_GETURI_RETURNS, "@return A string representing the "
+  "connection data.");
 /**
- * $(NODESESSION_GETURI_BRIEF)
- *
- * $(NODESESSION_GETURI_RETURNS)
- */
+* $(SESSION_GETURI_BRIEF)
+*
+* $(SESSION_GETURI_RETURNS)
+*/
 
 // Documentation of getCurrentSchema function
-REGISTER_HELP(NODESESSION_CURRENTSCHEMA_BRIEF,
-              "Retrieves the active schema "
-              "on the session.");
-REGISTER_HELP(NODESESSION_GETCURRENTSCHEMA_BRIEF,
-              "Retrieves the active "
-              "schema on the session.");
-REGISTER_HELP(NODESESSION_GETCURRENTSCHEMA_RETURNS,
-              "@return A Schema object "
-              "if a schema is active on the session.");
+REGISTER_HELP(SESSION_CURRENTSCHEMA_BRIEF, "Retrieves the active schema "
+  "on the session.");
+REGISTER_HELP(SESSION_GETCURRENTSCHEMA_BRIEF, "Retrieves the active "
+  "schema on the session.");
+REGISTER_HELP(SESSION_GETCURRENTSCHEMA_RETURNS, "@return A Schema object "
+  "if a schema is active on the session.");
 
 /**
- * $(NODESESSION_GETCURRENTSCHEMA_BRIEF)
- *
- * $(NODESESSION_GETCURRENTSCHEMA_RETURNS)
- */
+* $(SESSION_GETCURRENTSCHEMA_BRIEF)
+*
+* $(SESSION_GETCURRENTSCHEMA_RETURNS)
+*/
 #if DOXYGEN_JS
-Schema NodeSession::getCurrentSchema() {}
+Schema BaseSession::getCurrentSchema() {}
 #elif DOXYGEN_PY
-Schema NodeSession::get_current_schema() {}
+Schema BaseSession::get_current_schema() {}
 #endif
 
-Value NodeSession::get_member(const std::string &prop) const {
+Value Session::get_member(const std::string &prop) const {
   Value ret_val;
   NodeSession *session = const_cast<NodeSession *>(this);
 
@@ -1230,21 +1222,21 @@ Value NodeSession::get_member(const std::string &prop) const {
 }
 
 // Documentation of quoteName function
-REGISTER_HELP(NODESESSION_QUOTENAME_BRIEF, "Escapes the passed identifier.");
-REGISTER_HELP(NODESESSION_QUOTENAME_RETURNS,
+REGISTER_HELP(SESSION_QUOTENAME_BRIEF, "Escapes the passed identifier.");
+REGISTER_HELP(SESSION_QUOTENAME_RETURNS,
               "@return A String containing the escaped identifier.");
 
 /**
- * $(NODESESSION_QUOTENAME_BRIEF)
+ * $(SESSION_QUOTENAME_BRIEF)
  *
- * $(NODESESSION_QUOTENAME_RETURNS)
+ * $(SESSION_QUOTENAME_RETURNS)
  */
 #if DOXYGEN_JS
-String NodeSession::quoteName(String id) {}
+String BaseSession::quoteName(String id) {}
 #elif DOXYGEN_PY
-str NodeSession::quote_name(str id) {}
+str BaseSession::quote_name(str id) {}
 #endif
-shcore::Value NodeSession::quote_name(const shcore::Argument_list &args) {
+shcore::Value Session::quote_name(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("quoteName").c_str());
 
   if (args[0].type != shcore::String)
@@ -1257,34 +1249,34 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args) {
 }
 
 // Documentation of setCurrentSchema function
-REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_BRIEF,
+REGISTER_HELP(SESSION_SETCURRENTSCHEMA_BRIEF,
               "Sets the current schema for this session, and returns the "
               "schema object for it.");
-REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_PARAM,
+REGISTER_HELP(SESSION_SETCURRENTSCHEMA_PARAM,
               "@param name the name of the new schema to switch to.");
-REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_RETURNS,
+REGISTER_HELP(SESSION_SETCURRENTSCHEMA_RETURNS,
               "@return the Schema object for the new schema.");
-REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_DETAIL,
+REGISTER_HELP(SESSION_SETCURRENTSCHEMA_DETAIL,
               "At the database level, this is equivalent at issuing the "
               "following SQL query:");
-REGISTER_HELP(NODESESSION_SETCURRENTSCHEMA_DETAIL1,
+REGISTER_HELP(SESSION_SETCURRENTSCHEMA_DETAIL1,
               "  use <new-default-schema>;");
 
 /**
- * $(NODESESSION_SETCURRENTSCHEMA_BRIEF)
+ * $(SESSION_SETCURRENTSCHEMA_BRIEF)
  *
- * $(NODESESSION_SETCURRENTSCHEMA_PARAM)
- * $(NODESESSION_SETCURRENTSCHEMA_RETURNS)
+ * $(SESSION_SETCURRENTSCHEMA_PARAM)
+ * $(SESSION_SETCURRENTSCHEMA_RETURNS)
  *
- * $(NODESESSION_SETCURRENTSCHEMA_DETAIL)
- * $(NODESESSION_SETCURRENTSCHEMA_DETAIL1)
+ * $(SESSION_SETCURRENTSCHEMA_DETAIL)
+ * $(SESSION_SETCURRENTSCHEMA_DETAIL1)
  */
 #if DOXYGEN_JS
-Schema NodeSession::setCurrentSchema(String name) {}
+Schema BaseSession::setCurrentSchema(String name) {}
 #elif DOXYGEN_PY
-Schema NodeSession::set_current_schema(str name) {}
+Schema BaseSession::set_current_schema(str name) {}
 #endif
-shcore::Value NodeSession::_set_current_schema(
+shcore::Value Session::_set_current_schema(
     const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
 

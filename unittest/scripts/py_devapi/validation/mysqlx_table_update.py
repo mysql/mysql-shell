@@ -36,7 +36,7 @@
 #@# TableUpdate: Error conditions on set
 ||Invalid number of arguments in TableUpdate.set, expected 2 but got 0
 ||TableUpdate.set: Argument #1 is expected to be a string
-||TableUpdate.set: Unsupported value received for table update operation on field "name", received: <NodeSession:
+||TableUpdate.set: Unsupported value received for table update operation on field "name", received: <Session:
 
 
 #@# TableUpdate: Error conditions on where

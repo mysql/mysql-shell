@@ -60,7 +60,7 @@ REGISTER_HELP(
     SCHEMA_DETAIL3,
     "For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.");
 
-Schema::Schema(std::shared_ptr<NodeSession> session, const std::string &schema)
+Schema::Schema(std::shared_ptr<Session> session, const std::string &schema)
     : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema) {
   init();
 }
@@ -136,8 +136,8 @@ void Schema::init() {
 
 void Schema::update_cache() {
   try {
-    std::shared_ptr<NodeSession> sess(
-        std::static_pointer_cast<NodeSession>(_session.lock()));
+    std::shared_ptr<Session> sess(
+        std::static_pointer_cast<Session>(_session.lock()));
     if (sess) {
       std::vector<std::string> tables;
       std::vector<std::string> collections;
@@ -535,8 +535,8 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
   options->set("schema", Value(_name));
   options->set("name", args[0]);
 
-  std::shared_ptr<NodeSession> sess(
-      std::static_pointer_cast<NodeSession>(_session.lock()));
+  std::shared_ptr<Session> sess(
+      std::static_pointer_cast<Session>(_session.lock()));
 
   try {
     if (sess) {

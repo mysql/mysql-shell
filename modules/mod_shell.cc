@@ -587,7 +587,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
   // Automatic protocol detection is ON
   // Attempts X Protocol first, then Classic
   if (type == mysqlsh::SessionType::Auto) {
-    ret_val.reset(new mysqlsh::mysqlx::NodeSession());
+    ret_val.reset(new mysqlsh::mysqlx::Session());
     try {
       ret_val->connect(connection_options);
 
@@ -620,8 +620,8 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
   }
 
   switch (type) {
-    case mysqlsh::SessionType::Node:
-      ret_val.reset(new mysqlsh::mysqlx::NodeSession());
+    case mysqlsh::SessionType::X:
+      ret_val.reset(new mysqlsh::mysqlx::Session());
       break;
     case mysqlsh::SessionType::Classic:
       ret_val.reset(new mysql::ClassicSession());

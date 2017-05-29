@@ -1,26 +1,26 @@
 #@ mysqlx module: exports
 |Exported Items: 6|
-|get_node_session: <type 'builtin_function_or_method'>|
+|get_session: <type 'builtin_function_or_method'>|
 |expr: <type 'builtin_function_or_method'>|
 |dateValue: <type 'builtin_function_or_method'>|
 |help: <type 'builtin_function_or_method'>|
 |Type: <mysqlx.Type>|
 |IndexType: <mysqlx.IndexType>|
 
-#@ mysqlx module: get_node_session through URI
-|<NodeSession:|
+#@ mysqlx module: get_session through URI
+|<Session:|
 |Session using right URI|
 
-#@ mysqlx module: get_node_session through URI and password
-|<NodeSession:|
+#@ mysqlx module: get_session through URI and password
+|<Session:|
 |Session using right URI|
 
-#@ mysqlx module: get_node_session through data
-|<NodeSession:|
+#@ mysqlx module: get_session through data
+|<Session:|
 |Session using right URI|
 
-#@ mysqlx module: get_node_session through data and password
-|<NodeSession:|
+#@ mysqlx module: get_session through data and password
+|<Session:|
 |Session using right URI|
 
 #@# mysqlx module: expression errors

@@ -5,7 +5,7 @@ testSession = None
 db = None
 myTable = None
 myColl = None
-nodeSession = None
+mySession = None
 session = None
 
 def ensure_session():
@@ -14,7 +14,7 @@ def ensure_session():
   if testSession is None:
     print "Creating session...\n"
 
-    testSession = mysqlx.get_node_session(__uripwd)
+    testSession = mysqlx.get_session(__uripwd)
 
     # Ensures the user on dev-api exists
     try:
@@ -185,7 +185,7 @@ def ensure_custom_id_unique():
   myColl.remove('_id = "custom_id"').execute()
 
 def ensure_table_users_exists():
-  global nodeSession
+  global mySession
   ensure_test_schema()
 
   try:
@@ -204,10 +204,10 @@ def ensure_table_users_exists():
   testSession.sql('insert into test.users values ("Armand", 50)').execute()
   testSession.sql('insert into test.users values ("Rafa", 38)').execute()
 
-  nodeSession = testSession
+  mySession = testSession
 
 def ensure_my_proc_procedure_exists():
-  global nodeSession
+  global mySession
   ensure_table_users_exists()
 
   procedure = """
@@ -221,7 +221,7 @@ def ensure_my_proc_procedure_exists():
   testSession.sql("drop procedure if exists my_proc").execute()
   testSession.sql(procedure).execute()
 
-  nodeSession = testSession
+  mySession = testSession
 
 # Executes the functions associated to every assumption defined on the test case
 for assumption in __assumptions__:

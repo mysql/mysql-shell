@@ -67,7 +67,7 @@ Value Shell_sql::process_sql(const std::string &query_str,
       } else if (session->session_type() == mysqlsh::SessionType::Node) {
         try {
           ret_val =
-              std::static_pointer_cast<mysqlsh::mysqlx::NodeSession>(session)
+              std::static_pointer_cast<mysqlsh::mysqlx::Session>(session)
                   ->_execute_sql(query_str);
         } catch (mysqlshdk::db::Error &e) {
           throw shcore::Exception::mysql_error_with_code(e.what(), e.code());

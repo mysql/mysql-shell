@@ -1,5 +1,5 @@
 
-var res = nodeSession.sql('SELECT name, age FROM users').execute();
+var res = mySession.sql('SELECT name, age FROM users').execute();
 
 var row;
 while (row = res.fetchOne()) {

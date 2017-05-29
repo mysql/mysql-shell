@@ -14,7 +14,7 @@ var mysqlx = require('mysqlx');
 var exports = dir(mysqlx);
 print('Exported Items:', exports.length);
 
-print('getNodeSession:', typeof mysqlx.getNodeSession, '\n');
+print('getSession:', typeof mysqlx.getSession, '\n');
 print('expr:', typeof mysqlx.expr, '\n');
 print('dateValue:', typeof mysqlx.dateValue, '\n');
 print('help:', typeof mysqlx.dateValue, '\n');
@@ -22,8 +22,8 @@ print('Type:', mysqlx.Type, '\n');
 print('IndexType:', mysqlx.IndexType, '\n');
 
 
-//@ mysqlx module: getNodeSession through URI
-mySession = mysqlx.getNodeSession(__uripwd);
+//@ mysqlx module: getSession through URI
+mySession = mysqlx.getSession(__uripwd);
 
 print(mySession, '\n');
 
@@ -34,8 +34,8 @@ else
 
 mySession.close();
 
-//@ mysqlx module: getNodeSession through URI and password
-mySession = mysqlx.getNodeSession(__uri, __pwd);
+//@ mysqlx module: getSession through URI and password
+mySession = mysqlx.getSession(__uri, __pwd);
 
 print(mySession, '\n');
 
@@ -47,7 +47,7 @@ else
 mySession.close();
 
 
-//@ mysqlx module: getNodeSession through data
+//@ mysqlx module: getSession through data
 var data = { host: __host,
 						 port: __port,
 						 schema: __schema,
@@ -55,7 +55,7 @@ var data = { host: __host,
 						 dbPassword: __pwd };
 
 
-mySession = mysqlx.getNodeSession(data);
+mySession = mysqlx.getSession(data);
 
 print(mySession, '\n');
 
@@ -66,14 +66,14 @@ else
 
 mySession.close();
 
-//@ mysqlx module: getNodeSession through data and password
+//@ mysqlx module: getSession through data and password
 var data = { host: __host,
 						 port: __port,
 						 schema: __schema,
 						 dbUser: __user};
 
 
-mySession = mysqlx.getNodeSession(data, __pwd);
+mySession = mysqlx.getSession(data, __pwd);
 
 print(mySession, '\n');
 

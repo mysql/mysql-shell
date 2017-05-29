@@ -46,7 +46,7 @@ void Global_session::resolve() const {
       std::string options = "12";
       switch (options.find(answer)) {
         case 0:
-          type = mysqlsh::SessionType::Node;
+          type = mysqlsh::SessionType::X;
           error = false;
           break;
         case 1:

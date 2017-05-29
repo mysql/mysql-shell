@@ -44,7 +44,7 @@ namespace mysqlsh {
   *
   * // Then you can use the module functions and properties
   * // for example to create a session
-  * mysql-js> var mySession = mysqlx.getNodeSession('admin@localhost');
+  * mysql-js> var mySession = mysqlx.getSession('admin@localhost');
   * \endcode
   * \elseif DOXYGEN_PY
   * \code
@@ -52,7 +52,7 @@ namespace mysqlsh {
   *
   * // Then you can use the module functions and properties
   * // for example to create a session
-  * mysql-py> mySession = mysqlx.get_node_session('admin@localhost')
+  * mysql-py> mySession = mysqlx.get_session('admin@localhost')
   * \endcode
   * \endif
   *
@@ -63,19 +63,19 @@ namespace mysqlx {
 #if DOXYGEN_JS
 Types Types;          //!< $(MYSQLX_TYPE_BRIEF)
 IndexType IndexType;  //!< $(MYSQLX_INDEXTYPE_BRIEF)
-NodeSession getNodeSession(ConnectionData connectionData, String password);
+Session getSession(ConnectionData connectionData, String password);
 Expression expr(String expressionStr);
 #elif DOXYGEN_PY
 Types Types;          //!< $(MYSQLX_TYPE_BRIEF)
 IndexType IndexType;  //!< $(MYSQLX_INDEXTYPE_BRIEF)
-NodeSession get_node_session(ConnectionData connectionData, str password);
+Session get_session(ConnectionData connectionData, str password);
 Expression expr(str expressionStr);
 #endif
 
 DECLARE_MODULE(Mysqlx, mysqlx);
 
 // DECLARE_FUNCTION(get_session);
-DECLARE_FUNCTION(get_node_session);
+DECLARE_FUNCTION(get_session);
 DECLARE_FUNCTION(expr);
 DECLARE_FUNCTION(date_value);
 

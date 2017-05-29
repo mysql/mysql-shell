@@ -219,7 +219,7 @@ bool Mysql_shell::connect(bool primary_session) {
 
       if (_options.session_type == mysqlsh::SessionType::Auto) {
         if (scheme == "mysqlx")
-          _options.session_type = mysqlsh::SessionType::Node;
+          _options.session_type = mysqlsh::SessionType::X;
         else if (scheme == "mysql")
           _options.session_type = mysqlsh::SessionType::Classic;
       } else {
@@ -227,7 +227,7 @@ bool Mysql_shell::connect(bool primary_session) {
           if (_options.session_type == mysqlsh::SessionType::Classic)
             error = "Invalid URI for Classic session";
         } else if (scheme == "mysql") {
-          if (_options.session_type == mysqlsh::SessionType::Node)
+          if (_options.session_type == mysqlsh::SessionType::X)
             error = "Invalid URI for Node session";
         }
       }
@@ -320,8 +320,8 @@ shcore::Value Mysql_shell::connect_session(
       }
     }
     new_session->create_schema(schema_name);
-    if (new_session->class_name().compare("XSession"))
-      new_session->call("setCurrentSchema", schema_arg);
+
+    new_session->call("setCurrentSchema", schema_arg);
   }
   if (_options.interactive) {
     if (old_session && old_session.unique() && old_session->is_open()) {
@@ -336,7 +336,7 @@ shcore::Value Mysql_shell::connect_session(
 
     message = "Your MySQL connection id is " +
               std::to_string(new_session->get_connection_id());
-    if (session_type == "NodeSession")
+    if (session_type == "Session")
       message += " (X protocol)";
     try {
       message += "\nServer version: " +
@@ -490,7 +490,7 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string>& args) {
     if (arg.empty())
       error = true;
     else if (!arg.compare("-n") || !arg.compare("-N"))
-      _options.session_type = mysqlsh::SessionType::Node;
+      _options.session_type = mysqlsh::SessionType::X;
     else if (!arg.compare("-c") || !arg.compare("-C"))
       _options.session_type = mysqlsh::SessionType::Classic;
     else {

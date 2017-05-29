@@ -29,13 +29,13 @@
 
 namespace mysqlsh {
 namespace mysqlx {
-class NodeSession;
+class Session;
 /**
 * \ingroup XDevAPI
 * $(SQLEXECUTE_BRIEF)
 *
 * $(SQLEXECUTE_DETAIL)
-* \sa NodeSession
+* \sa Session
 */
 class SqlExecute : public Dynamic_object,
                    public std::enable_shared_from_this<SqlExecute> {
@@ -51,14 +51,14 @@ class SqlExecute : public Dynamic_object,
   SqlExecute bind(list values);
   SqlResult execute();
 #endif
-  explicit SqlExecute(std::shared_ptr<NodeSession> owner);
+  explicit SqlExecute(std::shared_ptr<Session> owner);
   virtual std::string class_name() const { return "SqlExecute"; }
   shcore::Value sql(const shcore::Argument_list &args);
   shcore::Value bind(const shcore::Argument_list &args);
   virtual shcore::Value execute(const shcore::Argument_list &args);
 
  private:
-  std::weak_ptr<NodeSession> _session;
+  std::weak_ptr<Session> _session;
   std::string _sql;
   shcore::Argument_list _parameters;
 };

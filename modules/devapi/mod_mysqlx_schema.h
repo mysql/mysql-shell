@@ -37,7 +37,7 @@ class Proxy_object;
 
 namespace mysqlsh {
 namespace mysqlx {
-class NodeSession;
+class Session;
 class Table;
 class Collection;
 
@@ -56,7 +56,7 @@ class Collection;
 class SHCORE_PUBLIC Schema : public DatabaseObject,
                              public std::enable_shared_from_this<Schema> {
  public:
-  Schema(std::shared_ptr<NodeSession> owner, const std::string &name);
+  Schema(std::shared_ptr<Session> owner, const std::string &name);
   ~Schema();
 
   virtual std::string class_name() const { return "Schema"; }

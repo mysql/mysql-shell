@@ -256,8 +256,8 @@ shcore::Value CollectionCreateIndex::execute(
   try {
     if (raw_owner) {
       Value session = raw_owner->get_member("session");
-      auto session_obj =
-          std::static_pointer_cast<NodeSession>(session.as_object());
+      std::shared_ptr<Session> session_obj =
+          std::static_pointer_cast<Session>(session.as_object());
       result = session_obj->executeAdminCommand("create_collection_index",
                                                 false, _create_index_args);
     }

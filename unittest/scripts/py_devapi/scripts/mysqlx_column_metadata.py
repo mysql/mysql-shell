@@ -2,7 +2,7 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 from mysqlsh import mysqlx
 
-mySession = mysqlx.get_node_session(__uripwd)
+mySession = mysqlx.get_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'py_shell_test')
 

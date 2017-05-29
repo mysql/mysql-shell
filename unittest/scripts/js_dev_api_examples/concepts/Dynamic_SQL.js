@@ -17,7 +17,7 @@ function createTestTable(session, name) {
 
 var mysqlx = require('mysqlx');
 
-var session = mysqlx.getNodeSession('mike:s3cr3t!@localhost:33060/test');
+var session = mysqlx.getSession('mike:s3cr3t!@localhost:33060/test');
 
 var default_schema = session.getDefaultSchema().name;
 session.setCurrentSchema(default_schema);

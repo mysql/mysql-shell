@@ -38,9 +38,7 @@ std::string session_type_name(mysqlsh::SessionType type) {
     case mysqlsh::SessionType::Classic:
       ret_val = "Classic";
       break;
-    case mysqlsh::SessionType::Node:
-      ret_val = "Node";
-      break;
+    // TODO(rennox): this should return the proper session type name
     case mysqlsh::SessionType::X:
       ret_val = "X";
       break;
@@ -574,7 +572,7 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_no_value("--classic", "session-type",
                             session_type_name(mysqlsh::SessionType::Classic));
   test_option_with_no_value("--node", "session-type",
-                            session_type_name(mysqlsh::SessionType::Node));
+                            session_type_name(mysqlsh::SessionType::X));
 
   test_option_with_no_value("--sql", "session-type",
                             session_type_name(mysqlsh::SessionType::Auto));
@@ -587,7 +585,7 @@ TEST_F(Shell_cmdline_options, app) {
                             shell_mode_name(IShell_core::Mode::SQL));
 
   test_option_with_no_value("--sqln", "session-type",
-                            session_type_name(mysqlsh::SessionType::Node));
+                            session_type_name(mysqlsh::SessionType::X));
   test_option_with_no_value("--sqln", "initial-mode",
                             shell_mode_name(IShell_core::Mode::SQL));
 

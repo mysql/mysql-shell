@@ -5,7 +5,7 @@ var mySession;
 
 try {
   // Connect to server on localhost
-  mySession = mysqlx.getNodeSession( {
+  mySession = mysqlx.getSession( {
     host: 'localhost', port: 33060,
     dbUser: 'mike', dbPassword: 's3cr3t!' } );
 }

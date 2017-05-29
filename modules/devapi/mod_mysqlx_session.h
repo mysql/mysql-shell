@@ -40,27 +40,30 @@ namespace mysqlx {
 
 class Schema;
 /**
- * \ingroup XDevAPI
- * $(NODESESSION_BRIEF)
- *
- * $(NODESESSION_DETAIL)
- *
- * #### JavaScript Examples
- *
- * \include "concepts/Working_with_a_Session_Object.js"
- *
- * #### Python Examples
- *
- * \include "concepts/Working_with_a_Session_Object.py"
- *
- * \sa mysqlx.getSession(String connectionData, String password)
- * \sa mysqlx.getSession(Map connectionData, String password)
- * \sa mysqlx.getNodeSession(String connectionData, String password)
- * \sa mysqlx.getNodeSession(Map connectionData, String password)
- */
-class SHCORE_PUBLIC NodeSession
-    : public ShellBaseSession,
-      public std::enable_shared_from_this<NodeSession> {
+* \ingroup XDevAPI
+* $(SESSION_BRIEF)
+*
+* $(SESSION_DETAIL)
+*
+* $(SESSION_DETAIL1)
+* $(SESSION_DETAIL2)
+* $(SESSION_DETAIL3)
+* $(SESSION_DETAIL4)
+* $(SESSION_DETAIL5)
+*
+* #### JavaScript Examples
+*
+* \include "js_dev_api_examples/concepts/Working_with_a_Session_Object.js"
+*
+* #### Python Examples
+*
+* \include "py_dev_api_examples/concepts/Working_with_a_Session_Object.py"
+*
+* \sa mysqlx.getSession(String connectionData, String password)
+* \sa mysqlx.getSession(Map connectionData, String password)
+*/
+class SHCORE_PUBLIC Session : public ShellBaseSession,
+      public std::enable_shared_from_this<Session> {
  public:
 #if DOXYGEN_JS
   String uri;            //!< Same as getUri()
@@ -116,13 +119,11 @@ class SHCORE_PUBLIC NodeSession
  private:
 #endif
 
-  NodeSession();
-  NodeSession(const NodeSession &s);
-  virtual ~NodeSession();
+  Session();
+  Session(const Session &s);
+  virtual ~Session();
 
-  virtual std::string class_name() const {
-    return "NodeSession";
-  }
+  virtual std::string class_name() const { return "Session"; }
 
   virtual shcore::Value get_member(const std::string &prop) const;
 
@@ -160,6 +161,12 @@ class SHCORE_PUBLIC NodeSession
   shcore::Value drop_schema_object(const shcore::Argument_list &args,
                                    const std::string &type);
   shcore::Value _is_open(const shcore::Argument_list &args);
+  shcore::Value _set_current_schema(const shcore::Argument_list &args);
+  shcore::Value sql(const shcore::Argument_list &args);
+  shcore::Value quote_name(const shcore::Argument_list &args);
+
+
+  virtual shcore::Value get_member(const std::string &prop) const;
 
   shcore::Value sql(const shcore::Argument_list &args);
   shcore::Value quote_name(const shcore::Argument_list &args);

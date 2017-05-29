@@ -10,15 +10,14 @@ def print_result(res):
       for column in columns:
         print "%s: %s \n" % (column.get_column_name(), record[index])
         index = index + 1
-        
+      
       # Get the next record
       record = res.fetch_one()
-      
   else:
     #INSERT, UPDATE, DELETE, ...
     print 'Rows affected: %s' % res.get_affected_row_count()
 
-res = nodeSession.sql('CALL my_proc()').execute()
+res = mySession.sql('CALL my_proc()').execute()
 
 # Prints each returned result
 more = True

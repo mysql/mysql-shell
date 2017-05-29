@@ -106,7 +106,7 @@ bool DatabaseObject::operator==(const Object_bridge &other) const {
  * DatabaseObject is either an instance of Schema or ClassicSchema it returns
  * Null.
  * \li session: returns a session object under which the DatabaseObject was
- * created, it could be any of XSession, NodeSession or ClassicSession.
+ * created, it could be any of Session, ClassicSession.
  */
 #else
 /**
@@ -123,9 +123,7 @@ str DatabaseObject::get_name() {}
 * \return the Session object used to get to this object.
 *
 * Note that the returned object can be any of:
-* - XSession: if the object was created/retrieved using an XSession instance.
-* - NodeSession: if the object was created/retrieved using an NodeSession
-* instance.
+* - Session: if the object was created/retrieved using an Session instance.
 * - ClassicSession: if the object was created/retrieved using an ClassicSession
 * instance.
 */

@@ -1,13 +1,13 @@
 
 var mysqlx = require('mysqlx');
 
-// Connect to server using a NodeSession
-var mySession = mysqlx.getNodeSession('mike:s3cr3t!@localhost');
+// Connect to server using a Session
+var mySession = mysqlx.getSession('mike:s3cr3t!@localhost');
 
 // Switch to use schema 'test'
 mySession.sql("USE test").execute();
 
-// In a NodeSession context the full SQL language can be used
+// In a Session context the full SQL language can be used
 mySession.sql("CREATE PROCEDURE my_add_one_procedure " +
   " (INOUT incr_param INT) " +
   "BEGIN " +

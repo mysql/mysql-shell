@@ -35,7 +35,6 @@ namespace mysqlsh {
 enum class SessionType {
   Auto,
   X,
-  Node,
   Classic
 };
 class ShellBaseSession;
