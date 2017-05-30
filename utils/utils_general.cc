@@ -908,20 +908,23 @@ bool is_local_host(const std::string &host, bool check_hostname) {
           (host == get_my_hostname() && check_hostname));
 }
 
-
 static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
-      std::string *out_string) {
-
-  if (s.size() - p <= 0)
+                                            std::string *out_string) {
+  bool seen_not_a_digit = false;
+  if (s.size() <= p)
     return p;
 
   char quote = s[p];
-  if (quote != '\'' && quote != '"') {
+  if (quote !=
+      '`') {  // Ignoring \" since ANSI_QUOTES is not meant to be supported
     // check if valid initial char
-    if (!std::isalpha(quote) && quote != '_' && quote != '$')
+    if (!std::isalnum(quote) && quote != '_' && quote != '$')
       throw std::runtime_error("Invalid character in identifier");
+    if (!std::isdigit(quote))
+      seen_not_a_digit = true;
     quote = 0;
   } else {
+    seen_not_a_digit = true;
     p++;
   }
 
@@ -929,9 +932,17 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
     while (p < s.size()) {
       if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$')
         break;
-      if (out_string) out_string->push_back(s[p]);
+      if (out_string)
+        out_string->push_back(s[p]);
+      if (!seen_not_a_digit && !isdigit(s[p]))
+        seen_not_a_digit = true;
       ++p;
     }
+    if (!seen_not_a_digit)
+      throw std::runtime_error(
+          "Invalid identifier: identifiers may begin with a digit but unless "
+          "quoted may not consist solely of digits.");
+
   } else {
     int esc = 0;
     bool done = false;
@@ -941,56 +952,23 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
         break;
       }
       switch (s[p]) {
-        case '"':
-        case '\'':
-          if (quote == s[p]) {
-            if (esc == quote || esc == '\\') {
-              if (out_string) out_string->push_back(s[p]);
-              esc = 0;
-            } else {
-              esc = s[p];
-            }
-          } else {
-            if (out_string) out_string->push_back(s[p]);
+        case '`':
+          if (esc == quote) {
+            if (out_string)
+              out_string->push_back(s[p]);
             esc = 0;
-          }
-          break;
-        case '\\':
-          if (esc == '\\') {
-            if (out_string) out_string->push_back(s[p]);
-            esc = 0;
-          } else if (esc == 0) {
-            esc = '\\';
           } else {
-            done = true;
-          }
-          break;
-        case 'n':
-          if (esc == '\\') {
-            if (out_string) out_string->push_back('\n');
-            esc = 0;
-          } else if (esc == 0) {
-            if (out_string) out_string->push_back(s[p]);
-          } else {
-            done = true;
-          }
-          break;
-        case 't':
-          if (esc == '\\') {
-            if (out_string) out_string->push_back('\t');
-            esc = 0;
-          } else if (esc == 0) {
-            if (out_string) out_string->push_back(s[p]);
-          } else {
-            done = true;
+            esc = s[p];
           }
           break;
         default:
-          if (esc == '\\') {
-            if (out_string) out_string->push_back(s[p]);
+          if (esc == quote) {
+            if (out_string)
+              out_string->push_back(s[p]);
             esc = 0;
           } else if (esc == 0) {
-            if (out_string) out_string->push_back(s[p]);
+            if (out_string)
+              out_string->push_back(s[p]);
           } else {
             done = true;
           }
@@ -1007,24 +985,234 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
   return p;
 }
 
-/** Split a MySQL account string (in the form user@host) into its username and
- *  hostname components. The returned strings will be unquoted.
- *
- *  Includes correct handling for quotes (e.g. 'my@user'@'192.168.%')
- */
-void split_account(const std::string& account, std::string *out_user, std::string *out_host) {
-  std::size_t pos = 0;
-  if (out_user) *out_user = "";
-  if (out_host) *out_host = "";
+static std::size_t span_quotable_string_literal(const std::string &s,
+                                                std::size_t p,
+                                                std::string *out_string) {
+  if (s.size() <= p)
+    return p;
 
-  pos = span_quotable_identifier(account, 0, out_user);
-  if (account[pos] == '@') {
-    pos = span_quotable_identifier(account, pos+1, out_host);
+  char quote = s[p];
+  if (quote != '\'' && quote != '"') {
+    // check if valid initial char
+    if (!std::isalpha(quote) && quote != '_' && quote != '$')
+      throw std::runtime_error("Invalid character in string literal");
+    quote = 0;
+  } else {
+    p++;
   }
-  if (pos < account.size())
-    throw std::runtime_error("Invalid syntax in account name '"+account+"'");
+
+  if (quote == 0) {
+    while (p < s.size()) {
+      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$')
+        break;
+      if (out_string)
+        out_string->push_back(s[p]);
+      ++p;
+    }
+  } else {
+    int esc = 0;
+    bool done = false;
+    while (p < s.size() && !done) {
+      if (esc == quote && s[p] != esc) {
+        done = true;
+        break;
+      }
+      switch (s[p]) {
+        case '"':
+        case '\'':
+          if (quote == s[p]) {
+            if (esc == quote || esc == '\\') {
+              if (out_string)
+                out_string->push_back(s[p]);
+              esc = 0;
+            } else {
+              esc = s[p];
+            }
+          } else {
+            if (out_string)
+              out_string->push_back(s[p]);
+            esc = 0;
+          }
+          break;
+        case '\\':
+          if (esc == '\\') {
+            if (out_string)
+              out_string->push_back(s[p]);
+            esc = 0;
+          } else if (esc == 0) {
+            esc = '\\';
+          } else {
+            done = true;
+          }
+          break;
+        case 'n':
+          if (esc == '\\') {
+            if (out_string)
+              out_string->push_back('\n');
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string)
+              out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+        case 't':
+          if (esc == '\\') {
+            if (out_string)
+              out_string->push_back('\t');
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string)
+              out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+        case 'b':
+          if (esc == '\\') {
+            if (out_string)
+              out_string->push_back('\b');
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string)
+              out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+        case 'r':
+          if (esc == '\\') {
+            if (out_string)
+              out_string->push_back('\r');
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string)
+              out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+        case '0':
+          if (esc == '\\') {
+            if (out_string)
+              out_string->push_back('\0');
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string)
+              out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+        case 'Z':
+          if (esc == '\\') {
+            if (out_string) {
+              out_string->push_back(26);
+            }
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string)
+              out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+        default:
+          if (esc == '\\') {
+            if (out_string)
+              out_string->push_back(s[p]);
+            esc = 0;
+          } else if (esc == 0) {
+            if (out_string)
+              out_string->push_back(s[p]);
+          } else {
+            done = true;
+          }
+          break;
+      }
+      ++p;
+    }
+    if (!done && esc == quote)
+      done = true;
+    else if (!done) {
+      throw std::runtime_error("Invalid syntax in string literal");
+    }
+  }
+  return p;
 }
 
+static std::size_t span_account_hostname_relaxed(const std::string &s,
+                                                 std::size_t p,
+                                                 std::string *out_string) {
+  if (s.size() <= p)
+    return p;
+
+  // Use the span_quotable_identifier, if an error occurs, try to see if quotes
+  // would fix it, however first check for the existence of the '@' character
+  // which is not allowed in hostnames
+  std::size_t old_p = p, res = 0;
+
+  if (s.find('@', p) != std::string::npos) {
+    std::string err_msg = "Malformed hostname (illegal symbol: '@')";
+    throw std::runtime_error(err_msg);
+  }
+  // Check if hostname starts with string literal or identifier depending on the
+  // first character being a backtick or not.
+  if (s[p] == '`')
+    res = span_quotable_identifier(s, p, out_string);
+  else {
+    // Do not allow quote characters unless they are surrounded by quotes
+    if (s[p] == s[s.size() - 1] && (s[p] == '\'' || s[p] == '"')) {
+      // hostname surrounded by quotes.
+    } else {
+      if ((s.find('\'', p) != std::string::npos) ||
+          (s.find('"', p) != std::string::npos)) {
+        throw std::runtime_error(
+            "Malformed hostname. Cannot use \"'\" or '\"' "
+            "characters on the hostname without quotes");
+      }
+    }
+    try {
+      res = span_quotable_string_literal(s, p, out_string);
+    } catch (std::runtime_error e) {
+      std::string quoted_s =
+          s.substr(0, old_p) + quote_identifier(s.substr(old_p), '\'');
+      // reset out_string
+      if (out_string)
+        *out_string = "";
+      res = span_quotable_string_literal(quoted_s, old_p, out_string);
+    }
+  }
+  return res;
+}
+
+/** Split a MySQL account string (in the form user@host) into its username and
+ *  hostname components. The returned strings will be unquoted.
+ *  The supported format is the <a href="https://dev.mysql.com/doc/refman/en/account-names.html">standard MySQL account name format</a>.
+ *  This means it supports both identifiers and string literals for username and hostname.
+ */
+void split_account(const std::string &account, std::string *out_user,
+                   std::string *out_host) {
+  std::size_t pos = 0;
+  if (out_user)
+    *out_user = "";
+  if (out_host)
+    *out_host = "";
+
+  // Check if account starts with string literal or identifier depending on the
+  // first character being a backtick or not.
+  if (account.size() > 0 && account[0] == '`')
+    pos = span_quotable_identifier(account, 0, out_user);
+  else
+    pos = span_quotable_string_literal(account, 0, out_user);
+  if (account[pos] == '@') {
+    pos = span_account_hostname_relaxed(account, pos + 1, out_host);
+  }
+  if (pos < account.size())
+    throw std::runtime_error("Invalid syntax in account name '" + account +
+                             "'");
+}
 
 /** Join MySQL account components into a string suitable for use with GRANT
  *  and similar
