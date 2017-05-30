@@ -190,6 +190,7 @@ _SAND_IGNORE_SSL_HELP = ("Create sandbox tries to add SSL support by default "
                          "if not already available. Use this option to allow "
                          "the sandbox instance to be created without SSL "
                          "support.")
+_START_HELP = "Start the sandbox instance after its creation."
 
 _EPILOGUE = (
     """Introduction
@@ -603,6 +604,11 @@ if __name__ == "__main__":
     # add option to read passwords from stdin
     options.add_stdin_password_option(sub_parser_sandbox_create)
     options.add_stdin_password_option(sub_parser_sandbox_stop)
+
+    # add start option
+    sub_parser_sandbox_create.add_argument("--start", dest="start",
+                                           action="store_true",
+                                           help=_START_HELP)
 
     # Parse provided arguments
     args = _PARSER.parse_args()

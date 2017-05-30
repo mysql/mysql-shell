@@ -29,7 +29,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "shellcore/base_session.h"
 
-static const char *kRequiredMySQLProvisionInterfaceVersion = "2.0";
+static const char *kRequiredMySQLProvisionInterfaceVersion = "2.1";
 
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
@@ -385,7 +385,8 @@ int ProvisioningInterface::exec_sandbox_op(
 int ProvisioningInterface::create_sandbox(
     int port, int portx, const std::string &sandbox_dir,
     const std::string &password, const shcore::Value &mycnf_options,
-    bool ignore_ssl_error, shcore::Value::Array_type_ref &errors) {
+    bool start, bool ignore_ssl_error, shcore::Value::Array_type_ref &errors) {
+
   std::vector<std::string> extra_args;
   if (mycnf_options) {
     for (auto s : *mycnf_options.as_array()) {
@@ -395,6 +396,9 @@ int ProvisioningInterface::create_sandbox(
 
   if (ignore_ssl_error)
     extra_args.push_back("--ignore-ssl-error");
+
+  if(start)
+    extra_args.push_back("--start");
 
   return exec_sandbox_op("create", port, portx, sandbox_dir, password,
                          extra_args, errors);
