@@ -98,14 +98,24 @@ class Process_launcher {
 
   /**
    * Returns the child process handle.
-   * In Linux this needs to be cast to pid_t, in Windows to cast to HANDLE.
    */
-  uint64_t get_pid();
+#ifdef _WIN32
+  HANDLE get_pid();
+#else
+  pid_t get_pid();
+#endif
+
+  /**
+   * Check whether the child process has already exited.
+   * @return true if the process already exited.
+   */
+  bool check();
 
   /**
    * Wait for the child process to exists and returns its exit code.
    * If the child process is already dead, wait() it just returns.
-   * Returns the exit code of the process.
+   * Returns the exit code of the process. If the process was terminated
+   * by a signal, returns 128 + SIGNAL
    */
   int wait();
 
@@ -155,8 +165,9 @@ private:
   pid_t childpid;
   int fd_in[2];
   int fd_out[2];
-//  struct pollfd _s_pollfd[2];
 #endif
+  int _pstatus = 0;
+  bool _wait_pending = false;
   bool redirect_stderr;
 };
 }  // namespace shcore

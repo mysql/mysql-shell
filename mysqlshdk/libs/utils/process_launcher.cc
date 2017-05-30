@@ -158,11 +158,12 @@ void Process_launcher::start() {
     &si,           // lpStartupInfo
     &pi);          // lpProcessInformation
 
-  if (!bSuccess)
+  if (!bSuccess) {
     report_error(NULL);
-  else
+  } else {
     is_alive = true;
-
+    _wait_pending = true;
+  }
   CloseHandle(child_out_wr);
   CloseHandle(child_in_rd);
 
@@ -170,11 +171,29 @@ void Process_launcher::start() {
   //res1 = WaitForSingleObject(pi.hThread, 100);
 }
 
-uint64_t Process_launcher::get_pid() {
-  return (uint64_t)pi.hProcess;
+HANDLE Process_launcher::get_pid() {
+  return pi.hProcess;
+}
+
+bool Process_launcher::check() {
+  DWORD dwExit = 0;
+  if (!_wait_pending)
+    return true;
+  if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
+    if (dwExit == STILL_ACTIVE)
+      return false;
+    _wait_pending = false;
+    _pstatus = dwExit;
+    return true;
+  }
+  _wait_pending = false;
+  assert(0);
+  return true;
 }
 
 int Process_launcher::wait() {
+  if (!_wait_pending)
+    return _pstatus;
   DWORD dwExit = 0;
   if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
     if (dwExit == STILL_ACTIVE) {
@@ -309,7 +328,7 @@ HANDLE Process_launcher::get_fd_read() {
   return child_out_rd;
 }
 
-#else
+#else  // !WIN32
 
 void Process_launcher::start() {
   if (pipe(fd_in) < 0) {
@@ -318,7 +337,6 @@ void Process_launcher::start() {
   if (pipe(fd_out) < 0) {
     report_error(NULL);
   }
-
   // Ignore broken pipe signal
   signal(SIGPIPE, SIG_IGN);
 
@@ -360,8 +378,7 @@ void Process_launcher::start() {
     fcntl(fd_in[0], F_SETFD, FD_CLOEXEC);
 
     execvp(argv[0], (char * const *)argv);
-    // if exec returns, there is an error.
-    // TODO: Use explain_execvp if available
+
     int my_errno = errno;
     fprintf(stderr, "%s could not be executed: %s (errno %d)\n", argv[0],
             strerror(my_errno), my_errno);
@@ -381,12 +398,7 @@ void Process_launcher::start() {
     ::close(fd_in[0]);
 
     is_alive = true;
-    /*
-    _s_pollfd[0].fd = fd_out[0];
-    _s_pollfd[0].events = POLLIN;
-    _s_pollfd[1].fd = fd_in[1];
-    _s_pollfd[1].events = POLLOUT;
-    */
+    _wait_pending = true;
   }
 }
 
@@ -481,8 +493,17 @@ void Process_launcher::report_error(const char *msg) {
   }
 }
 
-uint64_t Process_launcher::get_pid() {
-  return (uint64_t)childpid;
+pid_t Process_launcher::get_pid() {
+  return childpid;
+}
+
+bool Process_launcher::check() {
+  if (!_wait_pending)
+    return true;
+  if (waitpid(childpid, &_pstatus, WNOHANG) <= 0)
+    return false;
+  _wait_pending = false;
+  return true;
 }
 
 /*
@@ -491,25 +512,26 @@ uint64_t Process_launcher::get_pid() {
  * does not fail.
  */
 int Process_launcher::wait() {
-  int status;
-  int exited;
-  int exitstatus;
-  pid_t ret;
+  int ret;
 
-  do {
-    ret = ::wait(&status);
-    exited = WIFEXITED(status);
-    exitstatus = WEXITSTATUS(status);
-    if (ret == -1) {
-      if (errno == ECHILD)
-        break;  // no children left
-      if ((exited == 0) || (exitstatus != 0)) {
-        report_error(NULL);
+  if (_wait_pending) {
+    do {
+      ret = ::waitpid(childpid, &_pstatus, 0);
+      if (ret == -1) {
+        if (errno == ECHILD) {
+          assert(0);
+          _pstatus = -1;
+          break;  // no children left
+        }
       }
-    }
-  } while (ret == -1);
-
-  return exitstatus;
+    } while (ret == -1);
+  }
+  _wait_pending = false;
+  assert(WIFEXITED(_pstatus) || WIFSIGNALED(_pstatus));
+  if (WIFEXITED(_pstatus))
+    return WEXITSTATUS(_pstatus);
+  else
+    return WTERMSIG(_pstatus) + 128;
 }
 
 int Process_launcher::get_fd_write() {
