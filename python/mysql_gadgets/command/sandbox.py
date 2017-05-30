@@ -366,6 +366,7 @@ def create_sandbox(**kwargs):
                                if SSL support cannot be added. If true no error
                                will be issued if SSL support cannot be provided
                                and SSL support will be skipped.
+                    start: if true leave the sandbox running after its creation
     :type kwargs:    dict
     """
     # get mandatory values
@@ -376,6 +377,7 @@ def create_sandbox(**kwargs):
     password = kwargs.get("passwd")
 
     ignore_ssl_error = kwargs.get("ignore_ssl_error", False)
+    start = kwargs.get("start", False)
 
     # Get default values for optional variables
     timeout = kwargs.get("timeout", SANDBOX_TIMEOUT)
@@ -563,13 +565,106 @@ def create_sandbox(**kwargs):
         _LOGGER.warning("Creating a sandbox as root is not recommended.")
         create_cmd = "{0} --user=root".format(create_cmd)
 
-    init_proc = tools.run_subprocess(create_cmd, shell=False)
+    init_proc = tools.run_subprocess(create_cmd, shell=False, close_fds=True)
     init_proc.wait()
     if init_proc.returncode != 0:
         raise exceptions.GadgetError(
             "Error initializing MySQL sandbox '{0}'. Initialize process "
             "failed with return code '{1}'.".format(port,
                                                     init_proc.returncode))
+
+    _LOGGER.debug("Creating SSL/RSA files.")
+    # Create SSL/RSA Files if they don't exist using the mysql_ssl_rsa_setup.
+    if (os.path.isfile(os.path.join(datadir, "ca.pem")) or
+            os.path.isfile(os.path.join(datadir, "server-cert.pem")) or
+            os.path.isfile(os.path.join(datadir, "server-key.pem"))):
+        _LOGGER.debug("SSL/RSA files already exist.")
+    else:
+        # MySQL servers have the capability of automatically generating
+        # missing SSL and RSA files at startup, for MySQL distributions
+        # compiled using OpenSSL. For MySQL distributions using YaSSL this can
+        # be done manually using the mysql_ssl_rsa_setup utility however it
+        # requires the openssl command to be available.
+        rsa_ssl_cmd = _CREATE_RSA_SSL_FILES_CMD.format(
+            mysql_ssl_rsa_setup_path=tools.shell_quote(
+                mysql_ssl_rsa_setup_path),
+            datadir=tools.shell_quote(datadir))
+        create_ssl_rsa_files_proc = tools.run_subprocess(
+            rsa_ssl_cmd, shell=False, stderr=subprocess.PIPE)
+        _, stderr = create_ssl_rsa_files_proc.communicate()
+        # if the return code is not 0, an error occurred. Raise an exception
+        # and show it if the ignore_ssl_error flag was not used.
+        if create_ssl_rsa_files_proc.returncode and not ignore_ssl_error:
+            raise exceptions.GadgetError(
+                "Unable to create SSL/RSA files. mysql_ssl_rsa_setup exited "
+                "with error code '{0}' and message: '{1}'. You can use the "
+                "option to ignore SSL errors to skip the use of SSL.".format(
+                    create_ssl_rsa_files_proc.returncode, stderr.strip()))
+        elif not create_ssl_rsa_files_proc.returncode:
+            # if the process ran without any errors
+            _LOGGER.debug("SSL/RSA files created.")
+
+    # create start script
+    _LOGGER.debug("Creating start script for sandbox.")
+    start_path = _create_start_script("start", sandbox_dir, local_mysqld_path,
+                                      optf_path)
+    _LOGGER.debug("Start script created.")
+
+    # Create stop script
+    _LOGGER.debug("Creating stop script for sandbox.")
+    stop_path = _create_stop_script("stop", sandbox_dir, mysqladmin_path,
+                                    optf_path)
+    _LOGGER.debug("Stop script created.")
+
+    # if the start option was provided but there is no need to change the
+    # password.
+    if start and not password:
+        _LOGGER.info("Starting sandbox")
+        if tools.is_listening("localhost", port):
+            # there is already something running on the port that the sandbox
+            # will use
+            raise exceptions.GadgetError(
+                "Unable to start the MySQL sandbox. Port '{0}' on which "
+                "the sandbox runs was already in use.".format(port))
+        start_cmd = _START_SERVER_CMD.format(
+            mysqld_path=tools.shell_quote(local_mysqld_path),
+            config_file=tools.shell_quote(os.path.normpath(optf_path)))
+
+        # If we are running the script as root , the --user=root option is
+        # needed
+        if os.name == "posix" and getpass.getuser() == "root":
+            start_cmd = "{0} --user=root".format(start_cmd)
+
+        _LOGGER.debug("Launching mysqld")
+        server_proc = tools.run_subprocess(start_cmd, close_fds=True)
+        # wait until server is listening on the given port
+        i = 0
+        _LOGGER.debug("Waiting for MySQL sandbox to start listening for "
+                      "connections on port '%i'", port)
+        while i < timeout:
+            if not tools.is_listening("localhost", port):
+                time.sleep(1)
+                i += 1
+            else:
+                # port is listening, break out of loop
+                _LOGGER.debug("MySQL sandbox is listening for connections on "
+                              "port '%i'", port)
+                break
+        else:
+            # timeout occurred, send signal to terminate process
+            try:
+                server_proc.terminate()
+            except Exception as err:
+                raise exceptions.GadgetError(
+                    "Timeout waiting for mysqld process with pid '{0}' to "
+                    "start and we got error '{1} "
+                    "while trying to terminate it. You might need to "
+                    "terminate it manually.".format(server_proc.pid, str(err)))
+            else:
+                # server was successfully terminated
+                raise exceptions.GadgetError(
+                    "Timeout waiting for mysqld process with pid '{0}' "
+                    "to start.".format(server_proc.pid))
 
     # Change root password if one was provided
     # start the server
@@ -599,7 +694,7 @@ def create_sandbox(**kwargs):
             start_cmd = "{0} --user=root".format(start_cmd)
 
         _LOGGER.debug("Launching mysqld to change the root password")
-        server_proc = tools.run_subprocess(start_cmd)
+        server_proc = tools.run_subprocess(start_cmd, close_fds=True)
         # wait until server is listening on the given port
         i = 0
         _LOGGER.debug("Waiting for MySQL sandbox to start listening for "
@@ -658,64 +753,20 @@ def create_sandbox(**kwargs):
         s.toggle_binlog(action="enable")
         s.disconnect()
         _LOGGER.info("Password changed.")
-        _LOGGER.debug("Root password changed, stopping mysqld.")
-        try:
-            # terminate server proc
-            server_proc.terminate()
-        except Exception as err:
-            raise exceptions.GadgetError(
-                "Unable to terminate the mysqld process with "
-                "pid '{0}' that was started to change the root password: "
-                "'{1}'. You might need to terminate it manually.".format(
-                    server_proc.pid, str(err)))
+        if not start:
+            _LOGGER.debug("Stopping mysqld.")
+            try:
+                # terminate server proc
+                server_proc.terminate()
+            except Exception as err:
+                raise exceptions.GadgetError(
+                    "Unable to terminate the mysqld process with "
+                    "pid '{0}' that was started to change the root password: "
+                    "'{1}'. You might need to terminate it manually.".format(
+                        server_proc.pid, str(err)))
 
-        server_proc.wait()
-        _LOGGER.debug("mysqld stopped.")
-
-    _LOGGER.debug("Creating SSL/RSA files.")
-    # Create SSL/RSA Files if they don't exist using the mysql_ssl_rsa_setup.
-    if (os.path.isfile(os.path.join(datadir, "ca.pem")) or
-            os.path.isfile(os.path.join(datadir, "server-cert.pem")) or
-            os.path.isfile(os.path.join(datadir, "server-key.pem"))):
-        _LOGGER.debug("SSL/RSA files already exist.")
-    else:
-        # MySQL servers have the capability of automatically generating
-        # missing SSL and RSA files at startup, for MySQL distributions
-        # compiled using OpenSSL. For MySQL distributions using YaSSL this can
-        # be done manually using the mysql_ssl_rsa_setup utility however it
-        # requires the openssl command to be available.
-        rsa_ssl_cmd = _CREATE_RSA_SSL_FILES_CMD.format(
-            mysql_ssl_rsa_setup_path=tools.shell_quote(
-                mysql_ssl_rsa_setup_path),
-            datadir=tools.shell_quote(datadir))
-        create_ssl_rsa_files_proc = tools.run_subprocess(
-            rsa_ssl_cmd, shell=False, stderr=subprocess.PIPE)
-        _, stderr = create_ssl_rsa_files_proc.communicate()
-        # if the return code is not 0, an error occurred. Raise an exception
-        # and show it if the ignore_ssl_error flag was not used.
-        if create_ssl_rsa_files_proc.returncode and not ignore_ssl_error:
-            raise exceptions.GadgetError(
-                "Unable to create SSL/RSA files. mysql_ssl_rsa_setup exited "
-                "with error code '{0}' and message: '{1}'. You can use the "
-                "option to ignore SSL errors to skip the use of SSL.".format(
-                    create_ssl_rsa_files_proc.returncode, stderr.strip()))
-        elif not create_ssl_rsa_files_proc.returncode:
-            # if the process ran without any errors
-            _LOGGER.debug("SSL/RSA files created.")
-
-    # create start script
-    _LOGGER.debug("Creating start script for sandbox.")
-    start_path = _create_start_script("start", sandbox_dir, local_mysqld_path,
-                                      optf_path)
-    _LOGGER.debug("Start script created.")
-
-    # Create stop script
-    _LOGGER.debug("Creating stop script for sandbox.")
-    stop_path = _create_stop_script("stop", sandbox_dir, mysqladmin_path,
-                                    optf_path)
-    _LOGGER.debug("Stop script created.")
-    print("You can use '{0}' and '{1}' to start and stop the instance.".format(
-        os.path.normpath(start_path), os.path.normpath(stop_path)))
+            server_proc.wait()
+            _LOGGER.debug("mysqld stopped.")
 
 
 def start_sandbox(**kwargs):
@@ -882,7 +933,8 @@ def start_sandbox(**kwargs):
             # file
             error_log_end_pos = 0
 
-        server_proc = tools.run_subprocess(start_cmd, shell=False)
+        server_proc = tools.run_subprocess(start_cmd, shell=False,
+                                           close_fds=True)
         started_at = time.time()
         started_ok = False
         _LOGGER.debug("Waiting for MySQL sandbox to start listening for "

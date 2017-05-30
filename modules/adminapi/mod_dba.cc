@@ -882,15 +882,11 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     throw shcore::Exception::argument_error("Invalid value for 'port': Please use a valid TCP port number >= 1024 and <= 65535");
 
   int rc = 0;
-  if (function == "deploy") {
+  if (function == "deploy")
     // First we need to create the instance
-    rc = _provisioning_interface->create_sandbox(port, portx, sandbox_dir, password, mycnf_options, ignore_ssl_error, errors);
-    if (rc == 0) {
-      rc = _provisioning_interface->start_sandbox(port, sandbox_dir, errors);
-      //std::string uri = "localhost:" + std::to_string(port);
-      //ret_val = shcore::Value::wrap<Instance>(new Instance(uri, uri, options));
-    }
-  } else if (function == "delete")
+    rc = _provisioning_interface->create_sandbox(port, portx, sandbox_dir, password, mycnf_options,
+                                                 true, ignore_ssl_error, errors);
+  else if (function == "delete")
       rc = _provisioning_interface->delete_sandbox(port, sandbox_dir, errors);
   else if (function == "kill")
     rc = _provisioning_interface->kill_sandbox(port, sandbox_dir, errors);
