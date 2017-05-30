@@ -37,6 +37,7 @@ check_connector_python()
 import argparse
 import logging
 import os
+import signal
 import sys
 
 from mysql_gadgets.common import options, logger
@@ -640,294 +641,311 @@ if __name__ == "__main__":
     # Add replication user password prompt if the --replication-user option
     # was not provided.
 
-    if command == START:
-        options.force_read_password(args, "replication_user",
-                                    args.replication_user["user"])
-    if command == JOIN:
-        if not args.skip_rpl_user and args.replication_user is None:
-            # set default value for replication_user
-            args.replication_user = {"user": "rpl_user"}
+    # Handle keyboard interrupt on password retrieve and command execution.
+    try:
+        if command == START:
             options.force_read_password(args, "replication_user",
                                         args.replication_user["user"])
-    # ask for passwords
-    options.read_passwords(args)
+        if command == JOIN:
+            if not args.skip_rpl_user and args.replication_user is None:
+                # set default value for replication_user
+                args.replication_user = {"user": "rpl_user"}
+                options.force_read_password(args, "replication_user",
+                                            args.replication_user["user"])
+        # ask for passwords
+        options.read_passwords(args)
 
-    # SSL connection information
-    if hasattr(args, "server") and isinstance(args.server, dict):
-        ssl_server_conn_dict = {}
-        if args.server_ssl_ca:
-            ssl_server_conn_dict["ssl_ca"] = args.server_ssl_ca
-        if args.server_ssl_cert:
-            ssl_server_conn_dict["ssl_cert"] = args.server_ssl_cert
-        if args.server_ssl_key:
-            ssl_server_conn_dict["ssl_key"] = args.server_ssl_key
-        if ssl_server_conn_dict:
-            ssl_server_conn_dict["ssl"] = True
-            # throw an error if Python has no ssl support but we are trying to
-            # use ssl to encrypt the communications
-            if not HAVE_SSL_SUPPORT:
-                if command == JOIN:
-                    # on the join replicaset command the server argument is
-                    # the server we want to add to the group. This means any
-                    # ssl connection information does not come from the current
-                    # session but from instance definition parameter of
-                    # <cluster>.addInstance
-                    _LOGGER.error(_ERROR_NO_SSL_SUPPORT_OPTIONS)
-                    sys.exit(1)
-                else:
-                    # on the rest of the commands the server ssl information
-                    # provided to mysqlprovision comes from the connection
-                    # being used in the shell session.
+        # SSL connection information
+        if hasattr(args, "server") and isinstance(args.server, dict):
+            ssl_server_conn_dict = {}
+            if args.server_ssl_ca:
+                ssl_server_conn_dict["ssl_ca"] = args.server_ssl_ca
+            if args.server_ssl_cert:
+                ssl_server_conn_dict["ssl_cert"] = args.server_ssl_cert
+            if args.server_ssl_key:
+                ssl_server_conn_dict["ssl_key"] = args.server_ssl_key
+            if ssl_server_conn_dict:
+                ssl_server_conn_dict["ssl"] = True
+                # throw an error if Python has no ssl support but we are trying to
+                # use ssl to encrypt the communications
+                if not HAVE_SSL_SUPPORT:
+                    if command == JOIN:
+                        # on the join replicaset command the server argument is
+                        # the server we want to add to the group. This means any
+                        # ssl connection information does not come from the current
+                        # session but from instance definition parameter of
+                        # <cluster>.addInstance
+                        _LOGGER.error(_ERROR_NO_SSL_SUPPORT_OPTIONS)
+                        sys.exit(1)
+                    else:
+                        # on the rest of the commands the server ssl information
+                        # provided to mysqlprovision comes from the connection
+                        # being used in the shell session.
+                        _LOGGER.error(_ERROR_NO_SSL_SUPPORT_SESSION)
+                        sys.exit(1)
+
+            args.server.update(ssl_server_conn_dict)
+
+        if hasattr(args, "peer_server") and isinstance(args.peer_server, dict):
+            ssl_peer_conn_dict = {}
+            if args.peer_server_ssl_ca:
+                ssl_peer_conn_dict["ssl_ca"] = args.peer_server_ssl_ca
+            if args.peer_server_ssl_cert:
+                ssl_peer_conn_dict["ssl_cert"] = args.peer_server_ssl_cert
+            if args.peer_server_ssl_key:
+                ssl_peer_conn_dict["ssl_key"] = args.peer_server_ssl_key
+            if ssl_peer_conn_dict:
+                ssl_peer_conn_dict["ssl"] = True
+                if not HAVE_SSL_SUPPORT:
+                    # on the join command (only command that receives a peer
+                    # server) the peer_server ssl information provided to
+                    # mysqlprovision comes from the connection being used in the
+                    # shell session.
                     _LOGGER.error(_ERROR_NO_SSL_SUPPORT_SESSION)
                     sys.exit(1)
+            args.peer_server.update(ssl_peer_conn_dict)
 
-        args.server.update(ssl_server_conn_dict)
+        if command == SANDBOX:
+            sandbox_pw = None
+            # Check that port number is valid
+            if args.port < 1024 or args.port > 65535:
+                raise _PARSER.error(
+                    _ERROR_INVALID_PORT.format(port=args.port,
+                                               listener="server"))
 
-    if hasattr(args, "peer_server") and isinstance(args.peer_server, dict):
-        ssl_peer_conn_dict = {}
-        if args.peer_server_ssl_ca:
-            ssl_peer_conn_dict["ssl_ca"] = args.peer_server_ssl_ca
-        if args.peer_server_ssl_cert:
-            ssl_peer_conn_dict["ssl_cert"] = args.peer_server_ssl_cert
-        if args.peer_server_ssl_key:
-            ssl_peer_conn_dict["ssl_key"] = args.peer_server_ssl_key
-        if ssl_peer_conn_dict:
-            ssl_peer_conn_dict["ssl"] = True
-            if not HAVE_SSL_SUPPORT:
-                # on the join command (only command that receives a peer
-                # server) the peer_server ssl information provided to
-                # mysqlprovision comes from the connection being used in the
-                # shell session.
-                _LOGGER.error(_ERROR_NO_SSL_SUPPORT_SESSION)
-                sys.exit(1)
-        args.peer_server.update(ssl_peer_conn_dict)
+            # Check that mysqlx-port number is valid
+            if hasattr(args, "mysqlx_port") and \
+               args.mysqlx_port is not None and \
+               (args.mysqlx_port < 1024 or args.mysqlx_port > 65535):
+                raise _PARSER.error(_ERROR_INVALID_PORT.format(
+                    port=args.mysqlx_port, listener="mysqlx"))
 
-    if command == SANDBOX:
-        sandbox_pw = None
-        # Check that port number is valid
-        if args.port < 1024 or args.port > 65535:
-            raise _PARSER.error(_ERROR_INVALID_PORT.format(port=args.port,
-                                                           listener="server"))
+            # The mysqlx-port must be different from the server port.
+            if hasattr(args, "mysqlx_port") and \
+               args.mysqlx_port is not None and \
+               args.mysqlx_port == args.port:
+                raise _PARSER.error(_ERROR_DUPLICATED_PORT.format(
+                    mysqlx_port=args.mysqlx_port, server_port=args.port))
 
-        # Check that mysqlx-port number is valid
-        if hasattr(args, "mysqlx_port") and args.mysqlx_port is not None and \
-           (args.mysqlx_port < 1024 or args.mysqlx_port > 65535):
-            raise _PARSER.error(_ERROR_INVALID_PORT.format(
-                port=args.mysqlx_port, listener="mysqlx"))
+            if args.sandbox_cmd == SANDBOX_CREATE:
+                # Read extra password for root user of the sandbox
+                sandbox_pw = options.read_extra_password(
+                    "Enter a password to be set for the root user of the "
+                    "MySQL sandbox (root@localhost): ",
+                    read_from_stdin=args.stdin_pw)
+            if args.sandbox_cmd == SANDBOX_STOP:
+                # Read extra password for root user of the sandbox
+                sandbox_pw = options.read_extra_password(
+                    "Enter the password for the root user of the MySQL sandbox"
+                    " (root@localhost): ", read_from_stdin=args.stdin_pw)
 
-        # The mysqlx-port must be different from the server port.
-        if hasattr(args, "mysqlx_port") and args.mysqlx_port is not None and \
-           args.mysqlx_port == args.port:
-            raise _PARSER.error(_ERROR_DUPLICATED_PORT.format(
-                mysqlx_port=args.mysqlx_port, server_port=args.port))
-
-        if args.sandbox_cmd == SANDBOX_CREATE:
-            # Read extra password for root user of the sandbox
-            sandbox_pw = options.read_extra_password(
-                "Enter a password to be set for the root user of the MySQL "
-                "sandbox (root@localhost): ", read_from_stdin=args.stdin_pw)
-        if args.sandbox_cmd == SANDBOX_STOP:
-            # Read extra password for root user of the sandbox
-            sandbox_pw = options.read_extra_password(
-                "Enter the password for the root user of the MySQL "
-                "sandbox (root@localhost): ", read_from_stdin=args.stdin_pw)
-
-    _LOGGER.debug("Setting options for command: %s", command)
-    cmd_options = None
-    # Verify specified options for the given command.
-    if command == CHECK:
-        # Check only requires the args.server (server conn information)
-        # or option_file
-        if args.option_file is None and args.server is None:
-            raise _PARSER.error(_ERROR_OPTIONS_REQ.format("--defaults-file "
-                                                          "or --instance",
-                                                          command))
-
-        if args.skip_backup and not args.update:
-            raise _PARSER.error("The use of --skip-backup option requires the "
-                                "--update option.")
-        cmd_options = {
-            "server": args.server,
-            "update": args.update,
-            "skip_backup": args.skip_backup,
-            "option_file": args.option_file,
-            "verbose": args.verbose,
-        }
-
-    elif command == CLONE:
-        adapter_name = "MySQLDump"
-        connection_dict = {MYSQL_SOURCE: args.peer_server,
-                           MYSQL_DEST: args.server}
-
-    elif command == HEALTH or command == STATUS:
-        # Fill the options
-        cmd_options = {"verbose": args.verbose}
-
-    elif command == JOIN:
-        cmd_options = {}
-
-        if (args.ssl_ca or args.ssl_cert or args.ssl_key) and \
-                args.ssl_mode == GR_SSL_DISABLED:
-            raise _PARSER.error(_ERROR_OPTIONS_SSL_SKIP_ALONG)
-
-        if args.replication_user and args.skip_rpl_user:
-            raise _PARSER.error(_ERROR_OPTIONS_RPL_USER)
-
-        if args.replication_user is not None:
-            cmd_options.update({
-                "replication_user": args.replication_user["user"],
-                "rep_user_passwd": args.replication_user["passwd"],
-            })
-
-        # Fill the options
-        cmd_options.update({
-            "dry_run": args.dry_run,
-            "option_file": args.option_file,
-            "ip_whitelist": args.ip_whitelist,
-            "gr_address": args.gr_address,
-            "group_seeds": args.group_seeds,
-            "skip_backup": args.skip_backup,
-            "ssl_mode": args.ssl_mode,
-            "ssl_ca": args.ssl_ca,
-            "ssl_cert": args.ssl_cert,
-            "ssl_key": args.ssl_key,
-            "verbose": args.verbose,
-            "skip_rpl_user": args.skip_rpl_user,
-        })
-
-    elif command == LEAVE:
-        # Fill the options
-        cmd_options = {
-            "dry_run": args.dry_run,
-            "option_file": args.option_file,
-            "skip_backup": args.skip_backup,
-            "verbose": args.verbose,
-        }
-
-    elif command == START:
-        cmd_options = {}
-        if args.replication_user is not None:
-            cmd_options.update({
-                "replication_user": args.replication_user["user"],
-                "rep_user_passwd": args.replication_user["passwd"],
-            })
-
-        if (args.ssl_ca or args.ssl_cert or args.ssl_key) and \
-                args.ssl_mode == GR_SSL_DISABLED:
-            raise _PARSER.error(_ERROR_OPTIONS_SSL_SKIP_ALONG)
-
-        # Fill the options
-        cmd_options.update({
-            "dry_run": args.dry_run,
-            "group_name": args.group_name,
-            "gr_address": args.gr_address,
-            "group_seeds": args.group_seeds,
-            "ip_whitelist": args.ip_whitelist,
-            "option_file": args.option_file,
-            "skip_backup": args.skip_backup,
-            "single_primary": args.single_primary,
-            "skip_schema_checks": args.skip_schema_checks,
-            "ssl_mode": args.ssl_mode,
-            "ssl_ca": args.ssl_ca,
-            "ssl_cert": args.ssl_cert,
-            "ssl_key": args.ssl_key,
-            "verbose": args.verbose,
-        })
-
-    elif command == SANDBOX:
-        # get dictionary from the namespace object
-        cmd_options = vars(args)
-        # remove None values to use method defaults
-        for key, val in list(cmd_options.items()):
-            if val is None:
-                del cmd_options[key]
-        # set root password for create and stop cmd.
-        cmd_options["passwd"] = sandbox_pw
-    else:
-        raise _PARSER.error("The given command '{0}' was not recognized, "
-                            "please specify a valid command: {1} and {2}"
-                            ".".format(args.command[0],
-                                       ", ".join(_VALID_COMMANDS[:-1]),
-                                       _VALID_COMMANDS[-1]))
-
-    if cmd_options is not None:
-        # Hide the password
-        hide_pw_dict = {"passwd": "******"}
-        cmd_options_hidden_pw = cmd_options.copy()
-        cmd_options_hidden_pw.update(hide_pw_dict)
-        if "rep_user_passwd" in cmd_options_hidden_pw:
-            cmd_options_hidden_pw["rep_user_passwd"] = "******"
-
-        # \ are converted to \\ internally (in dictionaries), and \\ will be
-        # printed instead of \ if we try to print the full dictionary.
-        # Therefore, the dictionary needs to be converted to string and the
-        # \\ converted to \, in order to be handled correctly by the logger.
-        dic_msg = str(cmd_options_hidden_pw)
-        dic_msg = dic_msg.replace("\\\\", "\\")
-        _LOGGER.debug("Command options: %s", dic_msg)
-
-    # Perform command
-    command_error_msg = "executing operation"
-    try:
+        _LOGGER.debug("Setting options for command: %s", command)
+        cmd_options = None
+        # Verify specified options for the given command.
         if command == CHECK:
-            command_error_msg = "checking instance"
-            check(**cmd_options)
+            # Check only requires the args.server (server conn information)
+            # or option_file
+            if args.option_file is None and args.server is None:
+                raise _PARSER.error(
+                    _ERROR_OPTIONS_REQ.format("--defaults-file or --instance",
+                                              command))
+
+            if args.skip_backup and not args.update:
+                raise _PARSER.error("The use of --skip-backup option requires "
+                                    "the --update option.")
+            cmd_options = {
+                "server": args.server,
+                "update": args.update,
+                "skip_backup": args.skip_backup,
+                "option_file": args.option_file,
+                "verbose": args.verbose,
+            }
 
         elif command == CLONE:
-            command_error_msg = "cloning instance"
-            clone_server(connection_dict, adapter_name)
+            adapter_name = "MySQLDump"
+            connection_dict = {MYSQL_SOURCE: args.peer_server,
+                               MYSQL_DEST: args.server}
 
-        elif command == HEALTH:
-            command_error_msg = "checking cluster health"
-            health(args.server, detailed=True, **cmd_options)
-
-        elif command == STATUS:
-            command_error_msg = "checking cluster status"
-            health(args.server, **cmd_options)
+        elif command == HEALTH or command == STATUS:
+            # Fill the options
+            cmd_options = {"verbose": args.verbose}
 
         elif command == JOIN:
-            command_error_msg = "joining instance to cluster"
-            if join(args.server, args.peer_server, **cmd_options):
-                command_error_msg = "checking cluster health"
-                health(args.server, **cmd_options)
+            cmd_options = {}
+
+            if (args.ssl_ca or args.ssl_cert or args.ssl_key) and \
+                    args.ssl_mode == GR_SSL_DISABLED:
+                raise _PARSER.error(_ERROR_OPTIONS_SSL_SKIP_ALONG)
+
+            if args.replication_user and args.skip_rpl_user:
+                raise _PARSER.error(_ERROR_OPTIONS_RPL_USER)
+
+            if args.replication_user is not None:
+                cmd_options.update({
+                    "replication_user": args.replication_user["user"],
+                    "rep_user_passwd": args.replication_user["passwd"],
+                })
+
+            # Fill the options
+            cmd_options.update({
+                "dry_run": args.dry_run,
+                "option_file": args.option_file,
+                "ip_whitelist": args.ip_whitelist,
+                "gr_address": args.gr_address,
+                "group_seeds": args.group_seeds,
+                "skip_backup": args.skip_backup,
+                "ssl_mode": args.ssl_mode,
+                "ssl_ca": args.ssl_ca,
+                "ssl_cert": args.ssl_cert,
+                "ssl_key": args.ssl_key,
+                "verbose": args.verbose,
+                "skip_rpl_user": args.skip_rpl_user,
+            })
 
         elif command == LEAVE:
-            command_error_msg = "leaving cluster"
-            leave(args.server, **cmd_options)
+            # Fill the options
+            cmd_options = {
+                "dry_run": args.dry_run,
+                "option_file": args.option_file,
+                "skip_backup": args.skip_backup,
+                "verbose": args.verbose,
+            }
 
         elif command == START:
-            command_error_msg = "starting cluster"
-            if start(args.server, **cmd_options):
-                command_error_msg = "checking cluster health"
-                health(args.server, **cmd_options)
+            cmd_options = {}
+            if args.replication_user is not None:
+                cmd_options.update({
+                    "replication_user": args.replication_user["user"],
+                    "rep_user_passwd": args.replication_user["passwd"],
+                })
+
+            if (args.ssl_ca or args.ssl_cert or args.ssl_key) and \
+                    args.ssl_mode == GR_SSL_DISABLED:
+                raise _PARSER.error(_ERROR_OPTIONS_SSL_SKIP_ALONG)
+
+            # Fill the options
+            cmd_options.update({
+                "dry_run": args.dry_run,
+                "group_name": args.group_name,
+                "gr_address": args.gr_address,
+                "group_seeds": args.group_seeds,
+                "ip_whitelist": args.ip_whitelist,
+                "option_file": args.option_file,
+                "skip_backup": args.skip_backup,
+                "single_primary": args.single_primary,
+                "skip_schema_checks": args.skip_schema_checks,
+                "ssl_mode": args.ssl_mode,
+                "ssl_ca": args.ssl_ca,
+                "ssl_cert": args.ssl_cert,
+                "ssl_key": args.ssl_key,
+                "verbose": args.verbose,
+            })
+
         elif command == SANDBOX:
-            sandbox_cmd = cmd_options["sandbox_cmd"]
-            command = '{0} {1}'.format(command, sandbox_cmd)
-            command_error_msg = "executing sandbox operation"
-            if sandbox_cmd == SANDBOX_START:
-                command_error_msg = "starting sandbox"
-                start_sandbox(**cmd_options)
-            elif sandbox_cmd == SANDBOX_CREATE:
-                command_error_msg = "creating sandbox"
-                create_sandbox(**cmd_options)
-            elif sandbox_cmd == SANDBOX_STOP:
-                command_error_msg = "stopping sandbox"
-                stop_sandbox(**cmd_options)
-            elif sandbox_cmd == SANDBOX_KILL:
-                command_error_msg = "killing sandbox"
-                kill_sandbox(**cmd_options)
-            elif sandbox_cmd == SANDBOX_DELETE:
-                command_error_msg = "deleting sandbox"
-                delete_sandbox(**cmd_options)
+            # get dictionary from the namespace object
+            cmd_options = vars(args)
+            # remove None values to use method defaults
+            for key, val in list(cmd_options.items()):
+                if val is None:
+                    del cmd_options[key]
+            # set root password for create and stop cmd.
+            cmd_options["passwd"] = sandbox_pw
+        else:
+            raise _PARSER.error("The given command '{0}' was not recognized, "
+                                "please specify a valid command: {1} and {2}"
+                                ".".format(args.command[0],
+                                           ", ".join(_VALID_COMMANDS[:-1]),
+                                           _VALID_COMMANDS[-1]))
 
-    except GadgetError:
-        _, err, _ = sys.exc_info()
-        _LOGGER.error("Error %s: %s", command_error_msg, str(err))
-        sys.exit(1)
-    except Exception:  # pylint: disable=broad-except
-        _, err, _ = sys.exc_info()
-        _LOGGER.error("Unexpected error %s: %s", command_error_msg, str(err))
-        sys.exit(1)
+        if cmd_options is not None:
+            # Hide the password
+            hide_pw_dict = {"passwd": "******"}
+            cmd_options_hidden_pw = cmd_options.copy()
+            cmd_options_hidden_pw.update(hide_pw_dict)
+            if "rep_user_passwd" in cmd_options_hidden_pw:
+                cmd_options_hidden_pw["rep_user_passwd"] = "******"
 
-    # Operation completed with success.
-    sys.exit(0)
+            # \ are converted to \\ internally (in dictionaries), and \\ will be
+            # printed instead of \ if we try to print the full dictionary.
+            # Therefore, the dictionary needs to be converted to string and the
+            # \\ converted to \, in order to be handled correctly by the logger.
+            dic_msg = str(cmd_options_hidden_pw)
+            dic_msg = dic_msg.replace("\\\\", "\\")
+            _LOGGER.debug("Command options: %s", dic_msg)
+
+        # Perform command
+        command_error_msg = "executing operation"
+        try:
+            if command == CHECK:
+                command_error_msg = "checking instance"
+                check(**cmd_options)
+
+            elif command == CLONE:
+                command_error_msg = "cloning instance"
+                clone_server(connection_dict, adapter_name)
+
+            elif command == HEALTH:
+                command_error_msg = "checking cluster health"
+                health(args.server, detailed=True, **cmd_options)
+
+            elif command == STATUS:
+                command_error_msg = "checking cluster status"
+                health(args.server, **cmd_options)
+
+            elif command == JOIN:
+                command_error_msg = "joining instance to cluster"
+                if join(args.server, args.peer_server, **cmd_options):
+                    command_error_msg = "checking cluster health"
+                    health(args.server, **cmd_options)
+
+            elif command == LEAVE:
+                command_error_msg = "leaving cluster"
+                leave(args.server, **cmd_options)
+
+            elif command == START:
+                command_error_msg = "starting cluster"
+                if start(args.server, **cmd_options):
+                    command_error_msg = "checking cluster health"
+                    health(args.server, **cmd_options)
+            elif command == SANDBOX:
+                sandbox_cmd = cmd_options["sandbox_cmd"]
+                command = '{0} {1}'.format(command, sandbox_cmd)
+                command_error_msg = "executing sandbox operation"
+                if sandbox_cmd == SANDBOX_START:
+                    command_error_msg = "starting sandbox"
+                    start_sandbox(**cmd_options)
+                elif sandbox_cmd == SANDBOX_CREATE:
+                    command_error_msg = "creating sandbox"
+                    create_sandbox(**cmd_options)
+                elif sandbox_cmd == SANDBOX_STOP:
+                    command_error_msg = "stopping sandbox"
+                    stop_sandbox(**cmd_options)
+                elif sandbox_cmd == SANDBOX_KILL:
+                    command_error_msg = "killing sandbox"
+                    kill_sandbox(**cmd_options)
+                elif sandbox_cmd == SANDBOX_DELETE:
+                    command_error_msg = "deleting sandbox"
+                    delete_sandbox(**cmd_options)
+
+        except GadgetError:
+            _, err, _ = sys.exc_info()
+            _LOGGER.error("Error %s: %s", command_error_msg, str(err))
+            sys.exit(1)
+        except Exception:  # pylint: disable=broad-except
+            _, err, _ = sys.exc_info()
+            _LOGGER.error("Unexpected error %s: %s", command_error_msg, str(err))
+            sys.exit(1)
+
+        # Operation completed with success.
+        sys.exit(0)
+
+    except KeyboardInterrupt:
+        _LOGGER.error("keyboard interruption (^C) received, stopping...")
+        if os.name == "nt":
+            # Using signal.CTRL_C_EVENT on windows will not set any error code.
+            # Simulate the Unix signal exit code 130 - Script terminated by Control-C
+            # for ngshell to interpreted it as the same way as on linux.
+            sys.exit(130)
+        else:
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
+            os.kill(os.getpid(), signal.SIGINT)
