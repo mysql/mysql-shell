@@ -17,7 +17,7 @@
 * 02110-1301  USA
 */
 
-#include <gtest/gtest.h>
+#include "unittest/gtest_clean.h"
 #include "modules/mod_utils.h"
 #include "unittest/test_utils.h"
 

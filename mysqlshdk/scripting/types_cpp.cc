@@ -52,8 +52,8 @@ std::pair<bool, int> Cpp_function::match_signatures(
     const Raw_signature &cand, const std::vector<Value_type> &wanted) {
   // this function follows mostly the same rules for finding viable functions
   // as c++ for function overload resolution
-  int m = wanted.size();
-  int c = cand.size();
+  size_t m = wanted.size();
+  size_t c = cand.size();
   bool match = true;
 
   switch (static_cast<int>(cand.size()) - m) {
@@ -77,7 +77,7 @@ std::pair<bool, int> Cpp_function::match_signatures(
   }
   if (match) {
     bool have_object_params = false;
-    int exact_matches = m;
+    size_t exact_matches = m;
     // check if all provided params are implicitly convertible to the ones
     // from the candidate
     switch (m) {
@@ -750,7 +750,7 @@ bool Cpp_function::operator==(const Function_base &UNUSED(other)) const {
 
 static std::string num_args_expected(
     const std::vector<std::pair<std::string, Value_type>> &argt) {
-  int min_args = argt.size();
+  size_t min_args = argt.size();
   for (auto i = argt.rbegin(); i != argt.rend(); ++i) {
     if (i->first[0] == '?' || i->first[0] == '*')
       --min_args;

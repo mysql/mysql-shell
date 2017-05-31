@@ -197,7 +197,7 @@ IF(WIN32)
 ENDIF()
 
 # Must be before MYSQL_CHECK_SSL()
-include_directories(${CMAKE_BINARY_DIR}/include/)
+include_directories(${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/include/)
 
 # Add bundled yassl/taocrypt or system openssl.
 IF (WITH_SSL)
