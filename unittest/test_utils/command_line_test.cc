@@ -72,9 +72,8 @@ int Command_line_test::execute(const std::vector<const char *> &args) {
     // Starts the process
     _process->start();
 
-    // Reads all produced output, until either the process dies
-    // or stdout is closed
-    while (!_process->check() && _process->read(&c, 1) > 0) {
+    // Reads all produced output, until stdout is closed
+    while (_process->read(&c, 1) > 0) {
       if (debug)
         std::cout << c << std::flush;
       _output_mutex.lock();
