@@ -158,7 +158,7 @@ def connect_to_sandbox(params):
     print 'connected to sandbox at %s' % port
     connected = True
   except Exception, err:
-    print 'failed connecting to sandbox at %s : %s' % (port, err.message)
+    print 'failed connecting to sandbox at %s : %s' % (port, err.args[0])
 
   return connected;
 
@@ -176,9 +176,9 @@ def start_sandbox(params):
     print 'started sandbox at %s' % port
   except Exception, err:
     started = False
-    print 'failed starting sandbox at %s : %s' % (port, err.message)
+    print 'failed starting sandbox at %s : %s' % (port, err.args[0])
 
-    if err.message.find("Cannot start MySQL sandbox for the given port because it does not exist.") != -1:
+    if err.args[0].find("Cannot start MySQL sandbox for the given port because it does not exist.") != -1:
       raise;
 
 
@@ -194,7 +194,7 @@ def cleanup_sandbox(port):
 
       dba.stop_sandbox_instance(port, stop_options)
     except Exception, err:
-      print err.message
+      print err.args[0]
       pass
 
     print 'Deleting the sandbox at %s' % port
@@ -205,7 +205,7 @@ def cleanup_sandbox(port):
 
       dba.delete_sandbox_instance(port, options)
     except Exception, err:
-      print err.message
+      print err.args[0]
       pass
 
 def reset_or_deploy_sandbox(port):
@@ -226,10 +226,10 @@ def reset_or_deploy_sandbox(port):
       print 'cluster found, reboot required...'
       reboot = True
     except Exception, err:
-      print "unable to get cluster from sandbox at %s: %s" % (port, err.message)
+      print "unable to get cluster from sandbox at %s: %s" % (port, err.args[0])
 
       # Reboot is required if it is not a standalone instance
-      if err.message.find("This function is not available through a session to a standalone instance") == -1:
+      if err.args[0].find("This function is not available through a session to a standalone instance") == -1:
         reboot = True
   else:
     start = True
@@ -249,7 +249,7 @@ def reset_or_deploy_sandbox(port):
 
       dba.stop_sandbox_instance(port, stop_options)
     except Exception, err:
-      print err.message
+      print err.args[0]
       pass
 
     start = True
@@ -266,7 +266,7 @@ def reset_or_deploy_sandbox(port):
         print 'Connecting to sandbox at: %s' % port
         connected = retry(10, 2, connect_to_sandbox, [port])
     except Exception, err:
-      print err.message
+      print err.args[0]
       pass
 
     if not connected:
@@ -288,7 +288,7 @@ def reset_or_deploy_sandbox(port):
         print 'Stopping Group Replication...'
         session.run_sql('STOP GROUP_REPLICATION')
     except Exception, err:
-        print 'Error stopping Group Replication at %s: %s' % (port, err.message)
+        print 'Error stopping Group Replication at %s: %s' % (port, err.args[0])
 
     print 'Remove binary logs and clean GTIDs sets (RESET MASTER)...'
     session.run_sql('RESET MASTER')
