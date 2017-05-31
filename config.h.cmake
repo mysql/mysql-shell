@@ -94,6 +94,8 @@
 #cmakedefine HAVE_GETPASS 1
 #cmakedefine HAVE_GETPASSPHRASE 1
 #cmakedefine HAVE_GETPWNAM 1
+#cmakedefine HAVE_GETPWUID_R 1
+#cmakedefine HAVE_GETLOGIN_R 1
 #cmakedefine HAVE_GETPWUID 1
 #cmakedefine HAVE_GETRLIMIT 1
 #cmakedefine HAVE_GETRUSAGE 1
