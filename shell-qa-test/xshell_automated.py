@@ -1724,19 +1724,19 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.port),
-                   "Classic Session successfully established. No default schema selected."),
+                   "No default schema selected; type \\use <schema> to set one."),
                   (
                   "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.port),
-                  "Classic Session successfully established. Default schema set to `sakila`."),
+                  "Default schema set to `sakila`."),
                   ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.xprotocol_port),
-                   "Node Session successfully established. No default schema selected."),
+                   "No default schema selected; type \\use <schema> to set one."),
                   (
                       "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                          LOCALHOST.host,
                                                                          LOCALHOST.xprotocol_port),
-                      "Node Session successfully established. Default schema `sakila` accessible through db."),
+                      "Default schema `sakila` accessible through db."),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1747,23 +1747,23 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--js']
         x_cmds = [("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.port),
-                   "Classic Session successfully established. No default schema selected."),
+                   "No default schema selected; type \\use <schema> to set one."),
                   (
                   "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.port),
-                  "Classic Session successfully established. Default schema set to `sakila`."),
+                  "Default schema set to `sakila`."),
                   ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.xprotocol_port),
-                   "Node Session successfully established. No default schema selected."),
+                   "No default schema selected; type \\use <schema> to set one."),
                   (
                       "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                          LOCALHOST.host,
                                                                          LOCALHOST.xprotocol_port),
-                      "Node Session successfully established. Default schema `sakila` accessible through db."),
+                      "Default schema `sakila` accessible through db."),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
-		
+
     def test_4_0_01_01(self):
         '''[4.0.001]:1 Batch Exec - Loading code from file:  --file= createtable.js'''
         results = ''
@@ -3720,7 +3720,7 @@ class XShell_TestCases(unittest.TestCase):
                    "mysql-js>"),
                   ("session.runSql(\"drop database if exists automation_test;\");\n", "Query OK"),
                   ("session.runSql(\'create database automation_test;\');\n", "Query OK"),
-                  ("session.dropSchema(\'automation_test\');\n", "Query OK"),
+                  ("session.dropSchema(\'automation_test\');\n", "mysql-js>"),
                   ("session.runSql(\"show schemas like \'automation_test\';\");\n", "Empty set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -3735,7 +3735,7 @@ class XShell_TestCases(unittest.TestCase):
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\"drop database if exists automation_test;\").execute();\n", "Query OK"),
                   ("session.sql(\'create database automation_test;\').execute();\n", "Query OK"),
-                  ("session.dropSchema(\'automation_test\');\n", "Query OK"),
+                  ("session.dropSchema(\'automation_test\');\n", "mysql-js>"),
                   ("session.sql(\"show schemas like \'automation_test\';\").execute();\n", "Empty set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -4290,7 +4290,7 @@ class XShell_TestCases(unittest.TestCase):
                    "mysql-py>"),
                   ("session.run_sql(\"drop database if exists automation_test;\")\n", "Query OK"),
                   ("session.run_sql(\'create database automation_test;\')\n", "Query OK"),
-                  ("session.drop_schema(\'automation_test\')\n", "Query OK"),
+                  ("session.drop_schema(\'automation_test\')\n", "mysql-py>"),
                   ("session.run_sql(\"show schemas like \'automation_test\';\")\n", "Empty set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -4305,7 +4305,7 @@ class XShell_TestCases(unittest.TestCase):
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\"drop database if exists automation_test;\").execute()\n", "Query OK"),
                   ("session.sql(\'create database automation_test;\').execute()\n", "Query OK"),
-                  ("session.drop_schema(\'automation_test\')\n", "Query OK"),
+                  ("session.drop_schema(\'automation_test\')\n", "mysql-py>"),
                   ("session.sql(\"show schemas like \'automation_test\';\").execute()\n", "Empty set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6391,7 +6391,8 @@ class XShell_TestCases(unittest.TestCase):
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         p.stdin.flush()
         stdin, stdout = p.communicate()
-        if stdin.find(bytearray("MySQL Shell Version", "ascii"), 0, len(stdin)) >= 0:
+        version = MYSQL_SHELL + "   Ver"
+        if stdin.find(bytearray(version, "ascii"), 0, len(stdin)) >= 0:
             results = "PASS"
         else:
             results = "FAIL"
@@ -6811,7 +6812,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
         x_cmds = [(";\n", 'mysql-py>'),
                   ("session.create_schema(\'my-Classic\')\n", "<ClassicSchema:my-Classic>"),
-                  ("session.drop_schema(\'my-Classic\')\n", "Query OK")
+                  ("session.drop_schema(\'my-Classic\')\n", "mysql-py>")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6823,7 +6824,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
         x_cmds = [#(";\n", 'mysql-py>'),
                   ("session.create_schema('my-Node')\n", "<Schema:my-Node>"),
-                  ("session.drop_schema('my-Node')\n", "Query OK")
+                  ("session.drop_schema('my-Node')\n", "mysql-py>")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7257,7 +7258,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
         x_cmds = [("session.create_schema('uri')\n", ""),
                   ("session.get_schema('uri')\n", ""),
-                  ("session.drop_schema('uri')\n", "Query OK")
+                  ("session.drop_schema('uri')\n", "mysql-py>")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7269,7 +7270,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
         x_cmds = [("session.createSchema('uri')\n", ""),
                   ("session.getSchema('uri')\n", ""),
-                  ("session.dropSchema('uri')\n", "Query OK")
+                  ("session.dropSchema('uri')\n", "mysql-js>")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7282,7 +7283,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--x', '--js']
         x_cmds = [("session.createSchema('uri')\n", ""),
                   ("session.getSchema('uri')\n", ""),
-                  ("session.dropSchema('uri')\n", "Query OK")
+                  ("session.dropSchema('uri')\n", "mysql-js>")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8749,20 +8750,9 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port]
-        count = 1
-        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        p.stdin.flush()
-        stdoutdata, stderrdata = p.communicate()
-        stdoutsplitted = stdoutdata.splitlines()
-        for line in stdoutsplitted:
-            count += 1
-            found = line.find("Node Session successfully established", 0, len(line))
-            if found == -1 and count > len(stdoutsplitted):
-                results = "FAIL"
-                break
-            elif found != -1:
-                results = "PASS"
-                break
+        x_cmds = [("session;\n", "<NodeSession:")]
+
+        results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
         # ----------------------------------------------------------------------
