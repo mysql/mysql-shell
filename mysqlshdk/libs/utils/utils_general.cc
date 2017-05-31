@@ -615,8 +615,8 @@ std::string get_system_user() {
 # else
     ret_val = "UNKNOWN_USER";
 # endif
-#endif
   }
+#endif
 
   return ret_val;
 }
