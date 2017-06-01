@@ -657,7 +657,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
                    "Creating a Session"),
                   ("\\js\n", "mysql-js>"),
-                  ("print(session);\n", "NodeSession:")
+                  ("print(session);\n", "Session:")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -682,7 +682,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
                    "Creating a Node Session"),
-                  ("print(session);\n", "NodeSession:"),
+                  ("print(session);\n", "Session:"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -694,7 +694,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\connect -n {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                             LOCALHOST.xprotocol_port), "Creating a Node Session"),
-                  ("print(session);\n", "NodeSession:"),
+                  ("print(session);\n", "Session:"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -717,7 +717,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
                    "Creating a Session"),
                   ("\\js\n", "mysql-js>"),
-                  ("print(session);\n", "NodeSession:"),
+                  ("print(session);\n", "Session:"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -742,7 +742,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
                    "Creating a Node Session"),
-                  ("print(session);\n", "NodeSession:"),
+                  ("print(session);\n", "Session:"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -754,7 +754,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\connect -n {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                             REMOTEHOST.xprotocol_port), "Creating a Node Session"),
-                  ("print(session);\n", "NodeSession:"),
+                  ("print(session);\n", "Session:"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -775,7 +775,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("var schemaList = session.getSchemas();\n", "mysql-js>"),
                   ("print(schemaList);\n", "sakila"),
@@ -788,7 +788,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession({host: '" + LOCALHOST.host + "', dbUser: '"
+                  ("var session=mysqlx.getSession({host: '" + LOCALHOST.host + "', dbUser: '"
                    + LOCALHOST.user + "', dbPassword: '" + LOCALHOST.password + "'});\n", "mysql-js>"),
                   ("var schemaList = session.getSchemas();\n", "mysql-js>"),
                   ("print(schemaList);\n", "sakila"),
@@ -816,7 +816,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(REMOTEHOST.user, REMOTEHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(REMOTEHOST.user, REMOTEHOST.password,
                                                                                   REMOTEHOST.host), "mysql-js>"),
                   ("var schemaList = session.getSchemas();\n", "mysql-js>"),
                   ("print(schemaList);\n", "sakila"),
@@ -829,7 +829,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession({host: '" + REMOTEHOST.host + "', dbUser: '"
+                  ("var session=mysqlx.getSession({host: '" + REMOTEHOST.host + "', dbUser: '"
                    + REMOTEHOST.user + "', dbPassword: '" + REMOTEHOST.password + "'});\n", "mysql-js>"),
                   ("var schemaList = session.getSchemas();\n", "mysql-js>"),
                   ("print(schemaList);\n", "sakila"),
@@ -857,7 +857,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("schemaList = session.get_schemas()\n", "mysql-py>"),
                   ("schemaList\n", "sakila"),
@@ -870,7 +870,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session({\'host\': \'" + LOCALHOST.host + "\', \'dbUser\': \'"
+                  ("session=mysqlx.get_session({\'host\': \'" + LOCALHOST.host + "\', \'dbUser\': \'"
                    + LOCALHOST.user + "\', \'dbPassword\': \'" + LOCALHOST.password + "\'})\n", "mysql-py>"),
                   ("schemaList = session.get_schemas()\n", "mysql-py>"),
                   ("schemaList\n", "sakila"),
@@ -897,7 +897,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(REMOTEHOST.user, REMOTEHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(REMOTEHOST.user, REMOTEHOST.password,
                                                                                REMOTEHOST.host), "mysql-py>"),
                   ("schemaList = session.get_schemas()\n", "mysql-py>"),
                   ("schemaList\n", "sakila"),
@@ -910,7 +910,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session({\'host\': \'" + REMOTEHOST.host + "\', \'dbUser\': \'"
+                  ("session=mysqlx.get_session({\'host\': \'" + REMOTEHOST.host + "\', \'dbUser\': \'"
                    + REMOTEHOST.user + "\', \'dbPassword\': \'" + REMOTEHOST.password + "\'})\n", "mysql-py>"),
                   ("schemaList = session.get_schemas()\n", "mysql-py>"),
                   ("schemaList\n", "sakila"),
@@ -1899,7 +1899,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql('use sakila;').execute()\n", "Query OK"),
                   ("session.sql('drop procedure if exists get_actors;').execute()\n", "Query OK"),
@@ -2218,7 +2218,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\"use sakila;\").execute();\n", "Query OK"),
                   ("session.sql(\"drop table if exists sakila.friends;\").execute();\n", "Query OK"),
@@ -2272,7 +2272,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql('use sakila;').execute();\n", "Query OK"),
                   ("session.sql('drop table if exists sakila.friends;').execute();\n", "Query OK"),
@@ -2365,7 +2365,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\'drop database if exists automation_test;\').execute();\n", "Query OK"),
                   ("session.sql('create database automation_test;').execute();\n", "Query OK"),
@@ -2405,7 +2405,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host), "mysql-js>"),
                   ("session.sql('drop database if exists automation_test;').execute();\n", "Query OK"),
                   ("session.\n", "..."),
@@ -2495,7 +2495,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql('use sakila;').execute();\n", "Query OK"),
                   ("session.sql('drop view if exists js_view;').execute();\n", "Query OK"),
@@ -2538,7 +2538,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host), "mysql-js>"),
                   ("session.sql('use sakila;').execute();\n", "Query OK"),
                   ("session.sql('drop view if exists js_view;').execute();\n", "Query OK"),
@@ -2629,7 +2629,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql('use sakila;').execute();\n", "Query OK"),
                   ("session.sql('DROP PROCEDURE IF EXISTS my_automated_procedure;').execute();\n", "Query OK"),
@@ -2677,7 +2677,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host), "mysql-js>"),
                   ("session.sql('use sakila;').execute();\n", "Query OK"),
                   ("session.sql('DROP PROCEDURE IF EXISTS my_automated_procedure;').execute();\n", "Query OK"),
@@ -2766,7 +2766,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\"use sakila;\").execute()\n", "Query OK"),
                   ("session.sql(\"drop table if exists sakila.friends;\").execute()\n", "Query OK"),
@@ -2817,7 +2817,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                              LOCALHOST.host), "mysql-py>"),
                   ("session.sql('use sakila;').execute()\n", "Query OK"),
                   ("session.sql('drop table if exists sakila.friends;').execute()\n", "Query OK"),
@@ -2908,7 +2908,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\"drop database if exists automation_test;\").execute()\n", "Query OK"),
                   ("session.sql(\'create database automation_test;\').execute()\n", "Query OK"),
@@ -2949,7 +2949,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql('drop database if exists automation_test;').execute()\n", "Query OK"),
                   ("session.\\\n", "..."),
@@ -3038,7 +3038,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\'use sakila;\').execute()\n", "Query OK"),
                   ("session.sql(\'drop view if exists js_view;\').execute()\n", "Query OK"),
@@ -3080,7 +3080,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                              LOCALHOST.host), "mysql-py>"),
                   ("session.sql('use sakila;').execute()\n", "Query OK"),
                   ("session.sql('drop view if exists js_view;').execute()\n", "Query OK"),
@@ -3209,7 +3209,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.getSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                              LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\'use sakila;\').execute()\n", "Query OK"),
                   ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute()\n", "Query OK"),
@@ -3627,7 +3627,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\"use sakila;\").execute();\n", "Query OK"),
                   ("session.sql(\"drop table if exists sakila.friends;\").execute();\n", "Query OK"),
@@ -3683,7 +3683,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host), "mysql-js>"),
                   ("session.sql('use sakila;').execute();\n", "Query OK"),
                   ("session.sql('drop table if exists sakila.friends;').execute();\n", "Query OK"),
@@ -3774,7 +3774,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\"drop database if exists automation_test;\").execute();\n", "Query OK"),
                   ("session.sql(\'create database automation_test;\').execute();\n", "Query OK"),
@@ -3810,7 +3810,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host), "mysql-js>"),
                   ("session.\n", "..."),
                   ("sql('drop database if exists automation_test;').execute();\n", "..."),
@@ -3896,7 +3896,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\'use sakila;\').execute();\n", "Query OK"),
                   ("session.sql(\'drop view if exists js_view;\').execute();\n", "Query OK"),
@@ -3944,7 +3944,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host), "mysql-js>"),
                   ("session.sql('use sakila;').execute();\n", "Query OK"),
                   ("session.sql('drop view if exists js_view;').execute();\n", "Query OK"),
@@ -4049,7 +4049,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\'use sakila;\').execute();\n", "Query OK"),
                   ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute();\n", "Query OK"),
@@ -4095,7 +4095,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("var mysqlx=require(\'mysqlx\');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\'use sakila;\').execute();\n", "Query OK"),
                   ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute();\n", "Query OK"),
@@ -4196,7 +4196,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx;\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\"use sakila;\").execute()\n", "Query OK"),
                   ("session.sql(\"drop table if exists sakila.friends;\").execute()\n", "Query OK"),
@@ -4254,7 +4254,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                              LOCALHOST.host), "mysql-py>"),
                   ("session.sql('use sakila;').execute()\n", "Query OK"),
                   ("session.sql('drop table if exists sakila.friends;').execute()\n", "Query OK"),
@@ -4344,7 +4344,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\"drop database if exists automation_test;\").execute()\n", "Query OK"),
                   ("session.sql(\'create database automation_test;\').execute()\n", "Query OK"),
@@ -4377,7 +4377,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\"drop database if exists automation_test;\").execute()\n", "Query OK"),
                   ("session.sql(\'create database automation_test;\').execute()\n", "Query OK"),
@@ -4464,7 +4464,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql('use sakila;').execute()\n", "Query OK"),
                   ("session.sql('drop view if exists py_view;').execute()\n", "Query OK"),
@@ -4511,7 +4511,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [#("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.get_session('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                              LOCALHOST.host), "mysql-py>"),
                   ("session.sql('use sakila;').execute()\n", "Query OK"),
                   ("session.sql('drop view if exists py_view;').execute()\n", "Query OK"),
@@ -4661,7 +4661,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.getSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                              LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\'use sakila;\').execute()\n", "Query OK"),
                   ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute()\n", "Query OK"),
@@ -4706,7 +4706,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                  ("session=mysqlx.getSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                              LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\'use sakila;\').execute()\n", "Query OK"),
                   ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute();\n", "Query OK"),
@@ -5535,7 +5535,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
                   (
-                  "session=mysqlx.get_node_session('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + "')\n",
+                  "session=mysqlx.get_session('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + "')\n",
                   "mysql-py>"),
                   ("myTable = session.get_schema('sakila').get_table('actor')\n", "mysql-py>"),
                   ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
@@ -5583,7 +5583,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
                   (
-                  "session=mysqlx.get_node_session('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + "')\n",
+                  "session=mysqlx.get_session('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + "')\n",
                   "mysql-py>"),
                   ("myTable = session.get_schema('sakila').get_table('actor')\n", "mysql-py>"),
                   ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
@@ -5630,7 +5630,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--js']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                  ("var session=mysqlx.getSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
                    + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n",
                    "mysql-js>"),
                   ("var myTable = session.getTable('actor');\n", "mysql-js>"),
@@ -5678,7 +5678,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--js']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
-                  ("var session=mysqlx.getNodeSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                  ("var session=mysqlx.getSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
                    + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n",
                    "mysql-js>"),
                   ("var myTable = session.getTable('actor');\n", "mysql-js>"),
@@ -6364,9 +6364,11 @@ class XShell_TestCases(unittest.TestCase):
                             '--schema=sakila', '--node']
             p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
             stdin, stdout = p.communicate()
+            print "---->" + stdout
             if stdout.find(bytearray("ERROR", "ascii"), 0, len(stdin)) > -1 or stdout != '':
                 results = "FAIL"
                 break
+            print "---->" + stdin
             if stdin.find(bytearray("Creating a Node Session to", "ascii"), 0, len(stdin)) > -1 and stdin.find(
                     bytearray("mysql" + w + ">", "ascii"), 0, len(stdin)) > -1:
                 results = 'PASS'
@@ -6487,10 +6489,10 @@ class XShell_TestCases(unittest.TestCase):
             ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
             ('\\connect -n {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
-            ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
+            ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
             ('\\connect -n {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-js>"),
-            ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
+            ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
@@ -6507,10 +6509,10 @@ class XShell_TestCases(unittest.TestCase):
             ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
             ('\\connect -n {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-py>"),
-            ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
+            ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
             ('\\connect -n {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-py>"),
-            ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
+            ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
@@ -6532,7 +6534,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
         x_cmds = [(";\n", 'mysql-js>'),
                   ("session\n",
-                   "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">")
+                   "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6599,7 +6601,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=raw']
         x_cmds = [("\n", 'mysql-py>'),
                   ("session\n",
-                   '{"class":"NodeSession","connected":true,"uri":"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '"}'),
+                   '{"class":"Session","connected":true,"uri":"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '"}'),
                   ("\\sql\n", "mysql-sql>"),
                   ("use world_x;\n",
                    "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
@@ -6769,11 +6771,11 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--js']
         x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
                   (
-                  "var session=mysqlx.getNodeSession({host: '" + LOCALHOST.host + "', dbUser: '" + LOCALHOST.user + "', port: '" + LOCALHOST.xprotocol_port +
+                  "var session=mysqlx.getSession({host: '" + LOCALHOST.host + "', dbUser: '" + LOCALHOST.user + "', port: '" + LOCALHOST.xprotocol_port +
                   "', dbPassword: '" + LOCALHOST.password + "', ssl-ca: '" + Exec_files_location + "ca.pem', ssl-cert: '" +
                   Exec_files_location + "client-cert.pem', ssl-key: '" + Exec_files_location + "client-key.pem'});\n",
                   "mysql-js>"),
-                  ("session;\n", "NodeSession:"),
+                  ("session;\n", "Session:"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7363,7 +7365,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila']
-        x_cmds = [("print(session);\n", "NodeSession:" + LOCALHOST.user + "@localhost:33060/sakila")
+        x_cmds = [("print(session);\n", "Session:" + LOCALHOST.user + "@localhost:33060/sakila")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7462,7 +7464,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=raw']
         x_cmds = [("session\n",
-                   '{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host +
+                   '{\"class\":\"Session\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host +
                    ':' + LOCALHOST.xprotocol_port + '\"}'),
                   ("\\sql\n", "mysql-sql>"),
                   ("use world_x;\n",
@@ -8153,7 +8155,7 @@ class XShell_TestCases(unittest.TestCase):
 
     @unittest.skip("X sessions and Stored sessions removed for mysql-shell-1.0.6-release, therefore must be skipped")
     def test_MYS_470_1(self):
-        '''Enable named parameters in python for mysqlx.get_session() and mysqlx.get_node_session()'''
+        '''Enable named parameters in python for mysqlx.get_session() and mysqlx.get_session()'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
@@ -8166,14 +8168,14 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_MYS_470_2(self):
-        '''Enable named parameters in python for mysqlx.getSession() and mysqlx.get_node_session()'''
+        '''Enable named parameters in python for mysqlx.getSession() and mysqlx.get_session()'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("import mysqlx\n", "mysql-py>"),
-                  ("session=mysqlx.get_node_session(host= '" + LOCALHOST.host + "', dbUser= '"
+                  ("session=mysqlx.get_session(host= '" + LOCALHOST.host + "', dbUser= '"
                    + LOCALHOST.user + "', dbPassword= '" + LOCALHOST.password + "')\n", "mysql-py>"),
                   ("session\n",
-                   "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ">"),
+                   "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ">"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8243,7 +8245,7 @@ class XShell_TestCases(unittest.TestCase):
                    "Creating a Session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
-                   "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + ""),
+                   "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + ""),
                   ("\\use sakila\n", "mysql-js>"),
                   ("db;\n", "<Schema:sakila>"),
                   ]
@@ -8258,7 +8260,7 @@ class XShell_TestCases(unittest.TestCase):
                    "Creating a Node Session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
-                   "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + ""),
+                   "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + ""),
                   ("\\use sakila\n", "mysql-js>"),
                   ("session.getCurrentSchema();\n", "<Schema:sakila>"),
                   ("db;\n", "<Schema:sakila>"),
@@ -8290,7 +8292,7 @@ class XShell_TestCases(unittest.TestCase):
                    "Creating a Session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
-                   "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + "")
+                   "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + "")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8571,7 +8573,7 @@ class XShell_TestCases(unittest.TestCase):
                    "Enter password"),
                   ("{0}\n".format(LOCALHOST.password), "{0}@{1}:{2}".format(LOCALHOST.user, LOCALHOST.host,
                                                                             LOCALHOST.xprotocol_port)),
-                  ("session\n", "<NodeSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host,
+                  ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host,
                                                                    LOCALHOST.xprotocol_port))]
         if str(platform.platform()).find("Windows") > -1:
             # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
@@ -8790,7 +8792,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port]
-        x_cmds = [("session\n", "<NodeSession:")]
+        x_cmds = [("session\n", "<Session:")]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 

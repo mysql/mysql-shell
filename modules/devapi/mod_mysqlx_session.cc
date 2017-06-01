@@ -1107,7 +1107,9 @@ std::shared_ptr<shcore::Object_bridge> Session::create(
   session->connect(
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING));
 
+#ifdef DEBUG_SESSION_CREATE_CLOSE
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
+#endif
 
   return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
 }

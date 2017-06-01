@@ -501,7 +501,7 @@ def tc_2_0_03_4(self, tc_name):
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
     x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
                "Creating Node Session"),
-              ("print(session);\n", "NodeSession:"),
+              ("print(session);\n", "Session:"),
               ]
     results = exec_xshell_commands(init_command, x_cmds)
     self.assertEqual(results, "PASS")
@@ -512,7 +512,7 @@ def tc_2_0_03_5(self, tc_name):
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
     x_cmds = [("\\connect -n {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                   LOCALHOST.xprotocol_port),"Creating Node Session"),
-              ("print(session);\n", "NodeSession:"),
+              ("print(session);\n", "Session:"),
               ]
     results = exec_xshell_commands(init_command, x_cmds)
     self.assertEqual(results, "PASS")
@@ -559,7 +559,7 @@ def tc_2_0_04_4(self, tc_name):
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
     x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
                "Creating Node Session"),
-              ("print(session);\n", "NodeSession:"),
+              ("print(session);\n", "Session:"),
               ]
     results = exec_xshell_commands(init_command, x_cmds)
     self.assertEqual(results, "PASS")
@@ -570,7 +570,7 @@ def tc_2_0_04_5(self, tc_name):
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
     x_cmds = [("\\connect -n {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                                   REMOTEHOST.xprotocol_port),"Creating Node Session"),
-              ("print(session);\n", "NodeSession:"),
+              ("print(session);\n", "Session:"),
               ]
     results = exec_xshell_commands(init_command, x_cmds)
     self.assertEqual(results, "PASS")
@@ -598,7 +598,7 @@ def tc_4_2_16_1(self, tc_name):
     results = ''
     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7','--py']
     x_cmds = [("import mysqlx\n", "mysql-py>"),
-              ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+              ("session=mysqlx.getSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                LOCALHOST.host ), "mysql-py>"),
               ("session.sql(\'use sakila;\').execute()\n","Query OK"),
               ("session.sql(\"drop procedure if exists get_actors;\").execute()\n","Query OK"),
@@ -818,7 +818,7 @@ def tc_4_3_9_2(self, tc_name):
     results = ''
     init_command = [MYSQL_SHELL, '--interactive=full']
     x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
-              ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+              ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                               LOCALHOST.host),"mysql-js>"),
               ("session.sql(\"use sakila;\").execute();\n","Query OK"),
               ("session.sql(\"drop table if exists sakila.friends;\").execute();\n","Query OK"),
@@ -864,7 +864,7 @@ def tc_4_3_10_2(self, tc_name):
     results = ''
     init_command = [MYSQL_SHELL, '--interactive=full']
     x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
-              ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+              ("var session=mysqlx.getSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                               LOCALHOST.host),"mysql-js>"),
               ("session.sql(\"use sakila;\").execute();\n","Query OK"),
               ("session.sql(\"drop table if exists sakila.friends;\").execute();\n","Query OK"),
