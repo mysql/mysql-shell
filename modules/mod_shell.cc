@@ -591,8 +591,10 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
     try {
       ret_val->connect(connection_options);
 
+#ifdef DEBUG_SESSION_CREATE_CLOSE
       shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED",
                                                 ret_val);
+#endif
 
       return ret_val;
     } catch (shcore::Exception &e) {
@@ -646,7 +648,9 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
     }
   }
 
+#ifdef DEBUG_SESSION_CREATE_CLOSE
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
+#endif
 
   return ret_val;
 }

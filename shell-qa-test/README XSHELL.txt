@@ -22,7 +22,7 @@ init_command example:
 
 x_cmds: set of commands to be executed in xshell session and its expected results
 x_cmds example:
-      x_cmds = [("session;", '<NodeSession:root@localhost:33060>')]
+      x_cmds = [("session;", '<Session:root@localhost:33060>')]
 
 this tupla contains:
       x_cmds = [(string to be executed in shell, expected string results]
