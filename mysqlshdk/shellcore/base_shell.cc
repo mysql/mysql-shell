@@ -147,7 +147,9 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
       scripts_paths.push_back(path);
 
     for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i) {
-      process_file(*i, {*i});
+      std::ifstream stream(*i);
+      if (stream && stream.peek() != std::ifstream::traits_type::eof())
+        process_file(*i, {*i});
     }
   } catch (std::exception &e) {
     std::string error(e.what());
@@ -358,6 +360,12 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
     std::ifstream s(file.c_str());
 
     if (!s.fail()) {
+      if (shcore::is_folder(file)) {
+        print_error(shcore::str_format("Failed to open file: '%s' is a "
+          "directory\n", file.c_str()));
+        return ret_val;
+      }
+
       // The return value now depends on the stream processing
       ret_val = process_stream(s, file, argv);
 
@@ -369,7 +377,8 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
       s.close();
     } else {
       // TODO: add a log entry once logging is
-      print_error(shcore::str_format("Failed to open file '%s', error: %d\n", file.c_str(), errno));
+      print_error(shcore::str_format("Failed to open file '%s', error: %s\n",
+        file.c_str(), std::strerror(errno)));
     }
   }
 

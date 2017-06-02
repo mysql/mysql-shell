@@ -785,8 +785,9 @@ bool Python_context::is_module(const std::string &file_name) {
   PyObject *argv0 = NULL, *importer = NULL;
 
   ret_val = ((argv0 = PyString_FromString(file_name.c_str())) &&
-             (importer = PyImport_GetImporter(argv0)) &&
-             (importer->ob_type != &PyNullImporter_Type));
+              (importer = PyImport_GetImporter(argv0)) &&
+              (importer != Py_None) &&
+              (importer->ob_type != &PyNullImporter_Type));
 
   Py_XDECREF(argv0);
   Py_XDECREF(importer);

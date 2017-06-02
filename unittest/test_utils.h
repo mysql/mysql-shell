@@ -77,6 +77,8 @@ public:\
     }                                                                         \
   }
 
+std::string random_string(std::string::size_type length);
+
 class Shell_test_output_handler {
 public:
   // You can define per-test set-up and tear-down logic as usual.
@@ -199,7 +201,7 @@ protected:
     _interactive_shell.reset(new mysqlsh::Mysql_shell(*_options.get(), &output_handler.deleg));
 
     set_defaults();
-
+std::string random_string(std::string::size_type length);
     _interactive_shell->finish_init();
   }
 
