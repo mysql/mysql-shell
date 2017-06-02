@@ -649,6 +649,9 @@ bool Mysql_shell::cmd_use(const std::vector<std::string>& args) {
 bool Mysql_shell::cmd_process_file(const std::vector<std::string>& params) {
   std::string file;
 
+  if (params.size() < 2)
+    throw shcore::Exception::runtime_error("Filename not specified");
+
   // The parameter 0 contains the somplete command as submitted by the user
   // File name would be on parameter 1
   file = shcore::str_strip(params[1]);
