@@ -208,6 +208,21 @@ table.select('name').where('age > 16');
 shell.options.outputFormat = "table"
 table.select('name').where('age > 16');
 
+//@ Table.Select Zerofill field as variable
+mySession.sql('create table table2 (value int(5) zerofill);').execute();
+var table = schema.getTable('table2');
+table.insert({ value: '1' }).execute();
+table.insert({ value: '12' }).execute();
+table.insert({ value: '12345' }).execute();
+table.insert({ value: '123456789' }).execute();
+var records = table.select().execute().fetchAll();
+for (index = 0; index < 4; index++) {
+  print('Variable value :', records[index].value, '\n');
+}
+
+//@ Table.Select Zerofill field display
+mySession.sql('select * from table2');
+
 // Cleanup
 mySession.dropSchema('js_shell_test');
 mySession.close();

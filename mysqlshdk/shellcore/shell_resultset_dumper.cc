@@ -224,7 +224,7 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
     std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
-      std::string raw_value = row->get_member(field_index).descr();
+      std::string raw_value = row->get_display_value(field_index);
       _output_handler->print(_output_handler->user_data, raw_value.c_str());
       _output_handler->print(_output_handler->user_data, field_index < (field_count - 1) ? "\t" : "\n");
     }
@@ -288,7 +288,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   for (row_index = 0; row_index < records->size(); row_index++) {
     std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
     for (size_t field_index = 0; field_index < field_count; field_index++)
-      max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], row->get_member(field_index).descr().length());
+      max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], row->get_display_value(field_index).length());
   }
 
   //-----------
@@ -335,7 +335,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
     std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
-      std::string raw_value = row->get_member(field_index).descr();
+      std::string raw_value = row->get_display_value(field_index);
       std::string data = shcore::str_format(formats[field_index].c_str(), raw_value.c_str());
 
       _output_handler->print(_output_handler->user_data, data.c_str());

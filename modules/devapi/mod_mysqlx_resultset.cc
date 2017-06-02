@@ -765,6 +765,7 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
   try {
     std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata =
         _result->columnMetadata();
+    std::string display_value;
     if (metadata->size() > 0) {
       std::shared_ptr< ::mysqlx::Row> row = _result->next();
       if (row) {
@@ -781,6 +782,13 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
                 field_value = Value(row->sInt64Field(index));
                 break;
               case ::mysqlx::UINT:
+                //Check if the ZEROFILL flag is set, if so then create proper display value
+                if (metadata->at(index).flags & 0x0001) {
+                  display_value = std::to_string(row->uInt64Field(index));
+                  int count = metadata->at(index).length - display_value.length();
+                  if (count > 0)
+                    display_value.insert(0, count, '0');
+                }
                 field_value = Value(row->uInt64Field(index));
                 break;
               case ::mysqlx::DOUBLE:
@@ -821,7 +829,9 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
                 break;
             }
           }
-          value_row->add_item(metadata->at(index).name, field_value);
+          if (display_value.empty())
+            display_value = field_value.descr();
+          value_row->add_item(metadata->at(index).name, field_value, display_value);
         }
 
         ret_val = shcore::Value::wrap(value_row);

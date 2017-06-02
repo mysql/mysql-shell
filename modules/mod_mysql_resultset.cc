@@ -95,8 +95,16 @@ shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const 
 
     std::vector<Field> metadata(_result->get_metadata());
 
-    for (size_t index = 0; index < metadata.size(); index++)
-      value_row->add_item(metadata[index].name(), inner_row->get_value(index));
+    for (size_t index = 0; index < metadata.size(); index++) {
+      std::string display_value = inner_row->get_value(index).descr();
+      if (metadata.at(index).flags() & ZEROFILL_FLAG) {
+      int count = metadata.at(index).length() - display_value.length();
+      if (count > 0)
+        display_value.insert(0, count, '0');
+      }
+      value_row->add_item(metadata[index].name(), inner_row->get_value(index),
+        display_value);
+    }
 
     return shcore::Value::wrap(value_row);
   }
