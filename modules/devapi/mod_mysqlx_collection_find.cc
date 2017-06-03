@@ -659,69 +659,57 @@ REGISTER_HELP(COLLECTIONFIND_EXECUTE_SYNTAX, "execute()");
 #if DOXYGEN_JS
 /**
 * #### Retrieving All Documents
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: All
-* Records
+* \snippet mysqlx_collection_find.js CollectionFind: All Records
 *
 * #### Filtering
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Filtering
+* \snippet mysqlx_collection_find.js CollectionFind: Filtering
 *
 * #### Field Selection
 * Using a field selection list
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field
-* Selection List
+* \snippet mysqlx_collection_find.js CollectionFind: Field Selection List
 *
 * Using separate field selection parameters
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field
-* Selection Parameters
+* \snippet mysqlx_collection_find.js CollectionFind: Field Selection Parameters
 *
 * Using a projection expression
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field
-* Selection Projection
+* \snippet mysqlx_collection_find.js CollectionFind: Field Selection Projection
 *
 * #### Sorting
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Sorting
+* \snippet mysqlx_collection_find.js CollectionFind: Sorting
 *
 * #### Using Limit and Skip
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Limit and
-* Skip
+* \snippet mysqlx_collection_find.js CollectionFind: Limit and Skip
 *
 * #### Parameter Binding
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Parameter
-* Binding
+* \snippet mysqlx_collection_find.js CollectionFind: Parameter Binding
 */
 DocResult CollectionFind::execute() {}
 #elif DOXYGEN_PY
 /**
 * #### Retrieving All Documents
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: All
-* Records
+* \snippet mysqlx_collection_find.py CollectionFind: All Records
 *
 * #### Filtering
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Filtering
+* \snippet mysqlx_collection_find.py CollectionFind: Filtering
 *
 * #### Field Selection
 * Using a field selection list
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field
-* Selection List
+* \snippet mysqlx_collection_find.py CollectionFind: Field Selection List
 *
 * Using separate field selection parameters
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field
-* Selection Parameters
+* \snippet mysqlx_collection_find.py CollectionFind: Field Selection Parameters
 *
 * Using a projection expression
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field
-* Selection Projection
+* \snippet mysqlx_collection_find.py CollectionFind: Field Selection Projection
 *
 * #### Sorting
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Sorting
+* \snippet mysqlx_collection_find.py CollectionFind: Sorting
 *
 * #### Using Limit and Skip
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Limit and
-* Skip
+* \snippet mysqlx_collection_find.py CollectionFind: Limit and Skip
 *
 * #### Parameter Binding
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Parameter
-* Binding
+* \snippet mysqlx_collection_find.py CollectionFind: Parameter Binding
 */
 DocResult CollectionFind::execute() {}
 #endif

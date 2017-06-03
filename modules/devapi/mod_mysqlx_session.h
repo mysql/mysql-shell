@@ -51,11 +51,11 @@ class Schema;
 *
 * #### JavaScript Examples
 *
-* \include "js_dev_api_examples/concepts/Working_with_a_Session_Object.js"
+* \include "concepts/Working_with_a_Session_Object.js"
 *
 * #### Python Examples
 *
-* \include "py_dev_api_examples/concepts/Working_with_a_Session_Object.py"
+* \include "concepts/Working_with_a_Session_Object.py"
 *
 * \sa mysqlx.getSession(String connectionData, String password)
 * \sa mysqlx.getSession(Map connectionData, String password)

@@ -113,49 +113,41 @@ REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
 */
 #if DOXYGEN_JS
 /**
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Chained
-* Calls
+* \snippet mysqlx_collection_add.js CollectionAdd: Chained Calls
 *
 * $(COLLECTIONADD_ADD_DETAIL9)
 *
 * $(COLLECTIONADD_ADD_DETAIL10)
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Using an
-* Expression
+* \snippet mysqlx_collection_add.js CollectionAdd: Using an Expression
 *
 * #### Using a Document List
 * Adding document using an existing document list
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Document
-* List
+* \snippet mysqlx_collection_add.js CollectionAdd: Document List
 *
 * #### Multiple Parameters
 * Adding document using a separate parameter for each document on a single call
 * to add(...)
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Multiple
-* Parameters
+* \snippet mysqlx_collection_add.js CollectionAdd: Multiple Parameters
 */
 CollectionAdd Collection::add(...) {}
 #elif DOXYGEN_PY
 /**
 * Adding documents using chained calls to add(...)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Chained
-* Calls
+* \snippet mysqlx_collection_add.py CollectionAdd: Chained Calls
 *
 * $(COLLECTIONADD_ADD_DETAIL9)
 *
 * $(COLLECTIONADD_ADD_DETAIL10)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Using an
-* Expression
+* \snippet mysqlx_collection_add.py CollectionAdd: Using an Expression
 *
 * #### Using a Document List
 * Adding document using an existing document list
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Document
-* List
+* \snippet mysqlx_collection_add.py CollectionAdd: Document List
 *
 * #### Multiple Parameters
 * Adding document using a separate parameter for each document on a single call
 * to add(...)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Multiple
-* Parameters
+* \snippet mysqlx_collection_add.py CollectionAdd: Multiple Parameters
 */
 CollectionAdd Collection::add(...) {}
 #endif
@@ -179,26 +171,28 @@ REGISTER_HELP(
 * <code>
 *   <table border = "0">
 *     <tr><td>Collection</td><td>.modify(...)</td></tr>
-*     <tr><td></td><td>[.$(COLLECTIONMODIFY_SET_SYNTAX)]</td></tr>
+*     <tr><td></td><td>[.set(...)]</td></tr>
 *     <tr><td></td><td>[.$(COLLECTIONMODIFY_UNSET_SYNTAX)]</td></tr>
-*     <tr><td></td><td>[.$(COLLECTIONMODIFY_MERGE_SYNTAX)]</td></tr>
+*     <tr><td></td><td>[.merge(...)]</td></tr>
 */
 #if DOXYGEN_JS
 /**
 *     <tr><td></td><td>[.arrayInsert(...)]</td></tr>
 *     <tr><td></td><td>[.arrayAppend(...)]</td></tr>
+*     <tr><td></td><td>[.arrayDelete(...)]</td></tr>
 */
 #elif DOXYGEN_PY
 /**
 *     <tr><td></td><td>[.array_insert(...)]</td></tr>
 *     <tr><td></td><td>[.array_append(...)]</td></tr>
+*     <tr><td></td><td>[.array_delete(...)]</td></tr>
 */
 #endif
 /**
-*     <tr><td></td><td>[.$(COLLECTIONMODIFY_ARRAYDELETE_SYNTAX)]</td></tr>
-*     <tr><td></td><td>[.$(COLLECTIONMODIFY_SORT_SYNTAX)[.limit(...)]]</td></tr>
-*     <tr><td></td><td>[.$(COLLECTIONMODIFY_BIND_SYNTAX)]</td></tr>
-*     <tr><td></td><td>[.$(COLLECTIONMODIFY_EXECUTE_SYNTAX)]</td></tr>
+*     <tr><td></td><td>[.sort(...)]</td></tr>
+*     <tr><td></td><td>[.limit(...)]</td></tr>
+*     <tr><td></td><td>[.bind(...)]</td></tr>
+*     <tr><td></td><td>[.execute()]</td></tr>
 *   </table>
 * </code>
 *
@@ -291,7 +285,7 @@ REGISTER_HELP(
 /**
 *
 * #### Examples
-* \dontinclude "js_devapi/scripts/mysqlx_collection_modify.js"
+* \dontinclude "mysqlx_collection_modify.js"
 * \skip //@# CollectionModify: Set Execution
 * \until //@ CollectionModify: sorting and limit Execution - 4
 * \until print(dir(doc));
@@ -300,7 +294,7 @@ REGISTER_HELP(
 /**
 *
 * #### Examples
-* \dontinclude "py_devapi/scripts/mysqlx_collection_modify.py"
+* \dontinclude "mysqlx_collection_modify.py"
 * \skip #@# CollectionModify: Set Execution
 * \until #@ CollectionModify: sorting and limit Execution - 4
 * \until print dir(doc)
@@ -379,36 +373,30 @@ REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
 /**
 * #### Remove under condition
 *
-* \snippet js_devapi/scripts/mysqlx_collection_remove.js CollectionRemove:
-* remove under condition
+* \snippet mysqlx_collection_remove.js CollectionRemove: remove under condition
 *
 * #### Remove with binding
 *
-* \snippet js_devapi/scripts/mysqlx_collection_remove.js CollectionRemove:
-* remove with binding
+* \snippet mysqlx_collection_remove.js CollectionRemove: remove with binding
 *
 * #### Full remove
 *
-* \snippet js_devapi/scripts/mysqlx_collection_remove.js CollectionRemove: full
-* remove
+* \snippet mysqlx_collection_remove.js CollectionRemove: full remove
 *
 */
 #elif DOXYGEN_PY
 /**
 * #### Remove under condition
 *
-* \snippet py_devapi/scripts/mysqlx_collection_remove.py CollectionRemove:
-* remove under condition
+* \snippet mysqlx_collection_remove.py CollectionRemove: remove under condition
 *
 * #### Remove with binding
 *
-* \snippet py_devapi/scripts/mysqlx_collection_remove.py CollectionRemove:
-* remove with binding
+* \snippet mysqlx_collection_remove.py CollectionRemove: remove with binding
 *
 * #### Full remove
 *
-* \snippet py_devapi/scripts/mysqlx_collection_remove.py CollectionRemove: full
-* remove
+* \snippet mysqlx_collection_remove.py CollectionRemove: full remove
 *
 */
 #endif
@@ -477,7 +465,7 @@ REGISTER_HELP(
 * @li $(COLLECTIONFIND_FIELDS_SYNTAX2)
 *
 * $(COLLECTIONFIND_FIELDS_DETAIL)
-*
+*ALLBUTDBA
 * $(COLLECTIONFIND_FIELDS_DETAIL1)
 *
 * $(COLLECTIONFIND_FIELDS_DETAIL2)
@@ -550,69 +538,57 @@ REGISTER_HELP(
 #if DOXYGEN_JS
 /**
 * #### Retrieving All Documents
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: All
-* Records
+* \snippet mysqlx_collection_find.js CollectionFind: All Records
 *
 * #### Filtering
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Filtering
+* \snippet mysqlx_collection_find.js CollectionFind: Filtering
 *
 * #### Field Selection
 * Using a field selection list
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field
-* Selection List
+* \snippet mysqlx_collection_find.js CollectionFind: Field Selection List
 *
 * Using separate field selection parameters
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field
-* Selection Parameters
+* \snippet mysqlx_collection_find.js CollectionFind: Field Selection Parameters
 *
 * Using a projection expression
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Field
-* Selection Projection
+* \snippet mysqlx_collection_find.js CollectionFind: Field Selection Projection
 *
 * #### Sorting
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Sorting
+* \snippet mysqlx_collection_find.js CollectionFind: Sorting
 *
 * #### Using Limit and Skip
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Limit and
-* Skip
+* \snippet mysqlx_collection_find.js CollectionFind: Limit and Skip
 *
 * #### Parameter Binding
-* \snippet js_devapi/scripts/mysqlx_collection_find.js CollectionFind: Parameter
-* Binding
+* \snippet mysqlx_collection_find.js CollectionFind: Parameter Binding
 */
 CollectionFind Collection::find(...) {}
 #elif DOXYGEN_PY
 /**
 * #### Retrieving All Documents
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: All
-* Records
+* \snippet mysqlx_collection_find.py CollectionFind: All Records
 *
 * #### Filtering
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Filtering
+* \snippet mysqlx_collection_find.py CollectionFind: Filtering
 *
 * #### Field Selection
 * Using a field selection list
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field
-* Selection List
+* \snippet mysqlx_collection_find.py CollectionFind: Field Selection List
 *
 * Using separate field selection parameters
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field
-* Selection Parameters
+* \snippet mysqlx_collection_find.py CollectionFind: Field Selection Parameters
 *
 * Using a projection expression
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Field
-* Selection Projection
+* \snippet mysqlx_collection_find.py CollectionFind: Field Selection Projection
 *
 * #### Sorting
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Sorting
+* \snippet mysqlx_collection_find.py CollectionFind: Sorting
 *
 * #### Using Limit and Skip
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Limit and
-* Skip
+* \snippet mysqlx_collection_find.py CollectionFind: Limit and Skip
 *
 * #### Parameter Binding
-* \snippet py_devapi/scripts/mysqlx_collection_find.py CollectionFind: Parameter
-* Binding
+* \snippet mysqlx_collection_find.py CollectionFind: Parameter Binding
 */
 CollectionFind Collection::find(...) {}
 #endif
