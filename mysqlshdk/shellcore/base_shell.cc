@@ -357,14 +357,14 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {
-    std::ifstream s(file.c_str());
+	if (shcore::is_folder(file)) {
+		print_error(shcore::str_format("Failed to open file: '%s' is a "
+			"directory\n", file.c_str()));
+		return ret_val;
+	}
 
+	std::ifstream s(file.c_str());
     if (!s.fail()) {
-      if (shcore::is_folder(file)) {
-        print_error(shcore::str_format("Failed to open file: '%s' is a "
-          "directory\n", file.c_str()));
-        return ret_val;
-      }
 
       // The return value now depends on the stream processing
       ret_val = process_stream(s, file, argv);
