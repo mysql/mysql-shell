@@ -35,17 +35,17 @@ The bind function must be called for each place holder on the expression, otherw
 Available on the CRUD operations, allows removing values from expressions through the use of named parameters. To finally associate the corresponding parameter values, call the .bind(<parameter>, <value>) function.
 
 \if DOXYGEN_JS
-\include "js_dev_api_examples/crud_operations/Parameter_Binding.js"
+\include "crud_operations/Parameter_Binding.js"
 \elseif DOXYGEN_PY
-\include "py_dev_api_examples/crud_operations/Parameter_Binding.py"
+\include "crud_operations/Parameter_Binding.py"
 \endif
 
 Each CRUD operation creates a binding context, in order to succeed all the defined parameters must have a value. A parameter could be used several times on the operation, even so, only one value can be assigned to it. If bind is called several times for the same parameter the last value will override the previous ones.
 
 \if DOXYGEN_JS
-\include "js_dev_api_examples/crud_operations/Parameter_Binding_1.js"
+\include "crud_operations/Parameter_Binding_1.js"
 \elseif DOXYGEN_PY
-\include "py_dev_api_examples/crud_operations/Parameter_Binding_1.py"
+\include "crud_operations/Parameter_Binding_1.py"
 \endif
 
 */

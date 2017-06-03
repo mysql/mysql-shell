@@ -285,50 +285,42 @@ REGISTER_HELP(COLLECTIONADD_EXECUTE_SYNTAX, "execute()");
 /**
 * #### Using a Document List
 * Adding document using an existing document list
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Document
-* List
+* \snippet mysqlx_collection_add.js CollectionAdd: Document List
 *
 * #### Multiple Parameters
 * Adding document using a separate parameter for each document on a single call
 * to add(...)
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Multiple
-* Parameters
+* \snippet mysqlx_collection_add.js CollectionAdd: Multiple Parameters
 *
 * #### Chaining Addition
 * Adding documents using chained calls to add(...)
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Chained
-* Calls
+* \snippet mysqlx_collection_add.js CollectionAdd: Chained Calls
 *
 * $(COLLECTIONADD_ADD_DETAIL9)
 *
 * $(COLLECTIONADD_ADD_DETAIL10)
-* \snippet js_devapi/scripts/mysqlx_collection_add.js CollectionAdd: Using an
-* Expression
+* \snippet mysqlx_collection_add.js CollectionAdd: Using an Expression
 */
 Result CollectionAdd::execute() {}
 #elif DOXYGEN_PY
 /**
 * #### Using a Document List
 * Adding document using an existing document list
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Document
-* List
+* \snippet mysqlx_collection_add.py CollectionAdd: Document List
 *
 * #### Multiple Parameters
 * Adding document using a separate parameter for each document on a single call
 * to add(...)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Multiple
-* Parameters
+* \snippet mysqlx_collection_add.py CollectionAdd: Multiple Parameters
 *
 * #### Chaining Addition
 * Adding documents using chained calls to add(...)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Chained
-* Calls
+* \snippet mysqlx_collection_add.py CollectionAdd: Chained Calls
 *
 * $(COLLECTIONADD_ADD_DETAIL9)
 *
 * $(COLLECTIONADD_ADD_DETAIL10)
-* \snippet py_devapi/scripts/mysqlx_collection_add.py CollectionAdd: Using an
-* Expression
+* \snippet mysqlx_collection_add.py CollectionAdd: Using an Expression
 */
 Result CollectionAdd::execute() {}
 #endif
