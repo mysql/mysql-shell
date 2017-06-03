@@ -141,7 +141,6 @@ protected:
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
     if (!tokens.at(tokens.size() - 1).empty()) {
       tokens.push_back("");
-      tokens.push_back("");
     }
 
     _sandbox_dir = shcore::str_join(tokens, "\\\\");
@@ -150,7 +149,7 @@ protected:
 
     // output sandbox dir
     code =
-        "var __output_sandbox_dir = '" + shcore::str_join(tokens, "\\") + "';";
+        "var __output_sandbox_dir = '" + _sandbox_dir + "';";
     exec_and_out_equals(code);
 #else
     code = "var __path_splitter = '/';";
