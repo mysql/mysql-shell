@@ -903,4 +903,63 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
   test_conflicting_options("--uri --socket", 3, argv2, error2);
 }
 
+TEST_F(Shell_cmdline_options, test_uri_with_password) {
+  // Redirect cerr.
+  std::streambuf* backup = std::cerr.rdbuf();
+  std::ostringstream cerr;
+  std::cerr.rdbuf(cerr.rdbuf());
+  std::string firstArg, secondArg;
+
+  SCOPED_TRACE("TESTING: user with password in uri");
+  firstArg = "--uri=root:pass@localhost:3301";
+
+  char *argv[] {const_cast<char *>("ut"),
+                const_cast<char *>(firstArg.c_str()), NULL};
+  Shell_command_line_options cmd_options(2, const_cast<const char **>(argv));
+  mysqlsh::Shell_options options = cmd_options.get_options();
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(argv[1], "--uri=root:****@localhost:3301");
+  EXPECT_STREQ("", cerr.str().c_str());
+
+  SCOPED_TRACE("TESTING: single letter user without password in uri");
+  firstArg = "--uri=r:@localhost:3301";
+
+  char *argv1[] {const_cast<char *>("ut"),
+                 const_cast<char *>(firstArg.c_str()), NULL};
+  cmd_options = Shell_command_line_options(2, const_cast<const char **>(argv1));
+  options = cmd_options.get_options();
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(argv1[1], "--uri=r:@localhost:3301");
+  EXPECT_STREQ("", cerr.str().c_str());
+
+  SCOPED_TRACE("TESTING: single letter user with password in uri");
+  firstArg = "--uri=r:pass@localhost:3301";
+
+  char *argv2[] {const_cast<char *>("ut"),
+                 const_cast<char *>(firstArg.c_str()), NULL};
+  cmd_options = Shell_command_line_options(2, const_cast<const char **>(argv2));
+  options = cmd_options.get_options();
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(argv2[1], "--uri=r:****@localhost:3301");
+  EXPECT_STREQ("", cerr.str().c_str());
+
+  SCOPED_TRACE("TESTING: single letter user with single letter password");
+  firstArg = "--uri=r:r@localhost:3301";
+
+  char *argv3[] {const_cast<char *>("ut"),
+                 const_cast<char *>(firstArg.c_str()), NULL};
+  cmd_options = Shell_command_line_options(2, const_cast<const char **>(argv3));
+  options = cmd_options.get_options();
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(argv3[1], "--uri=r:*@localhost:3301");
+  EXPECT_STREQ("", cerr.str().c_str());
+
+  // Restore old cerr.
+  std::cerr.rdbuf(backup);
+}
+
 }
