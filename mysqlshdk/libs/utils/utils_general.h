@@ -80,43 +80,45 @@ bool is_local_host(const std::string &host, bool check_hostname);
 
 #ifdef _WIN32
 // We inline these functions to avoid trouble with memory and DLL boundaries
-inline LPSTR win_w_to_a_string(LPWSTR wstr, int wstrl) {
-  LPSTR str;
+inline std::string win_w_to_a_string(const std::wstring &wstr, int wstrl) {
+  std::string str;
 
-  int r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wstr, -1, nullptr,
-                              0, nullptr, nullptr);
-  if (r <= 0)
-    return nullptr;
-  str = (LPSTR)malloc(r + 1);
-  if (!str)
-    return nullptr;
+  // No ceonversion needed at all
+  if (!wstr.empty()) {
+    // Calculates the required output buffer size
+    // Since -1 is used as input length, the null termination character will be included
+    // on the length calculation
+    int r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &wstr[0], -1, nullptr,
+      0, nullptr, nullptr);
 
-  r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wstr, -1, str, r,
-                          nullptr, nullptr);
-  if (r <= 0) {
-    free(str);
-    return nullptr;
+    if (r > 0) {
+      str = std::string(r, 0);
+      // Copies the buffer, since -1 is passed as input buffer length this
+      // includes the null termination character
+      r = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &wstr[0], -1, &str[0], r,
+        nullptr, nullptr);
+    }
   }
-  str[r] = 0;
+
   return str;
 }
 
-inline LPWSTR win_a_to_w_string(LPSTR str) {
-  LPWSTR wstr;
-  int r =
-      MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, -1, nullptr, 0);
-  if (r <= 0)
-    return nullptr;
-  wstr = (LPWSTR)malloc(r + 1);
-  if (!str)
-    return nullptr;
+inline std::wstring win_a_to_w_string(const std::string &str) {
+  std::wstring wstr;
 
-  r = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, -1, wstr, r);
-  if (r <= 0) {
-    free(wstr);
-    return nullptr;
+  // No conversion needed
+  if (!str.empty()) {
+    // Calculates the required output buffer size
+    // Since -1 is used as input length, the null termination character will be included
+    // on the length calculation
+    int r =
+      MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, &str[0], -1, nullptr, 0);
+
+    if (r > 0) {
+      wstr = std::wstring(r, 0);
+      r = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, &str[0], -1, &wstr[0], r);
+    }
   }
-  wstr[r] = 0;
   return wstr;
 }
 #endif

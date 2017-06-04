@@ -31,18 +31,17 @@ namespace shcore {
 
 #ifdef WIN32
 static void check_argv(const char **argv, const std::string &cmd) {
-  LPWSTR wstr = shcore::win_a_to_w_string(const_cast<char *>(cmd.c_str()));
-  ASSERT_NE(nullptr, wstr);
+  std::wstring wstr = shcore::win_a_to_w_string(const_cast<char *>(cmd.c_str()));
   int nargs;
-  LPWSTR *parsed_argv = CommandLineToArgvW(wstr, &nargs);
-  free(wstr);
+  LPWSTR *parsed_argv = CommandLineToArgvW(&wstr[0], &nargs);
+
   ASSERT_NE(nullptr, parsed_argv);
 
   int i;
   for (i = 0; i < nargs; i++) {
     ASSERT_NE(nullptr, argv[i]);
-    LPSTR actual = shcore::win_w_to_a_string(parsed_argv[i], 0);
-    EXPECT_STREQ(argv[i], actual);
+    std::string actual = shcore::win_w_to_a_string(parsed_argv[i], 0);
+    EXPECT_STREQ(argv[i], actual.c_str());
   }
   // both should be null
   EXPECT_EQ(nullptr, parsed_argv[i]);
