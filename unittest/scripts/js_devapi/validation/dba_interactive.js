@@ -102,6 +102,24 @@ Validating instance...
 //@<ERR> Dba: configureLocalInstance error 3
 Dba.configureLocalInstance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
+//@ Dba: Create user without all necessary privileges
+|Number of accounts: 1|
+
+//@ Dba: configureLocalInstance not enough privileges 1
+||Dba.configureLocalInstance: Account 'missingprivileges'@'localhost' does not have all the privileges to create an user for managing an InnoDB cluster.
+
+//@ Dba: configureLocalInstance not enough privileges 2
+||Dba.configureLocalInstance: Account 'missingprivileges'@'localhost' does not have all the privileges to create an user for managing an InnoDB cluster.
+
+//@ Dba: configureLocalInstance not enough privileges 3
+||Dba.configureLocalInstance: Account 'missingprivileges'@'localhost' does not have all the privileges to create an user for managing an InnoDB cluster.
+
+//@ Dba: Show list of users to make sure the user missingprivileges@% was not created
+|Number of accounts: 0|
+
+//@ Dba: Delete created user and reconnect to previous sandbox
+|Number of accounts: 0|
+
 //@<OUT> Dba: configureLocalInstance updating config file
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 

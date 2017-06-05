@@ -97,6 +97,50 @@ print (result.status)
 result = dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port2), {'mycnfPath':'mybad.cnf', 'dbPassword':'root'});
 print (result.status)
 
+#@ Dba: Create user without all necessary privileges
+# create user that has all permissions to admin a cluster but doesn't have
+# the grant privileges for them, so it cannot be used to create viable accounts
+# Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+# PERMISSIONS, CREATES A WRONG NEW USER
+
+connect_to_sandbox([__mysql_sandbox_port2])
+session.run_sql("SET SQL_LOG_BIN=0")
+session.run_sql("CREATE USER missingprivileges@localhost")
+session.run_sql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost")
+session.run_sql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION")
+session.run_sql("SET SQL_LOG_BIN=1")
+result = session.run_sql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'")
+row = result.fetch_one()
+print("Number of accounts: " + str(row[0]))
+session.close()
+
+#@ Dba: configure_local_instance not enough privileges
+# Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+# PERMISSIONS, CREATES A WRONG NEW USER
+dba.configure_local_instance('missingprivileges:@localhost:' + str(__mysql_sandbox_port2),
+                             {"clusterAdmin": "missingprivileges", "clusterAdminPassword":"",
+                              "mycnfPath":__output_sandbox_dir + str(__mysql_sandbox_port2) + __path_splitter + 'my.cnf'})
+
+#@ Dba: Show list of users to make sure the user missingprivileges@% was not created
+# Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+# PERMISSIONS, CREATES A WRONG NEW USER
+connect_to_sandbox([__mysql_sandbox_port2])
+result = session.run_sql("select COUNT(*) from mysql.user where user='missingprivileges' and host='%'")
+row = result.fetch_one()
+print("Number of accounts: " + str(row[0]))
+session.close()
+
+#@ Dba: Delete created user and reconnect to previous sandbox
+connect_to_sandbox([__mysql_sandbox_port2])
+session.run_sql("SET SQL_LOG_BIN=0")
+session.run_sql("DROP USER missingprivileges@localhost")
+session.run_sql("SET SQL_LOG_BIN=1")
+result = session.run_sql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'")
+row = result.fetch_one()
+print("Number of accounts: " + str(row[0]))
+session.close()
+connect_to_sandbox([__mysql_sandbox_port1])
+
 #@# Dba: get_cluster errors
 c2 = dba.get_cluster()
 c2 = dba.get_cluster(5)

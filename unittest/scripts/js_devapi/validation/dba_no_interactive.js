@@ -149,6 +149,17 @@
     "status": "ok"
 }
 
+//@ Dba: Create user without all necessary privileges
+|Number of accounts: 1|
+
+//@ Dba: configureLocalInstance not enough privileges
+||Dba.configureLocalInstance: Account 'missingprivileges'@'localhost' does not have all the privileges to create an user for managing an InnoDB cluster.
+
+//@ Dba: Show list of users to make sure the user missingprivileges@% was not created
+|Number of accounts: 0|
+
+//@ Dba: Delete created user and reconnect to previous sandbox
+|Number of accounts: 0|
 
 //@# Dba: getCluster errors
 ||Invalid cluster name: Argument #1 is expected to be a string
