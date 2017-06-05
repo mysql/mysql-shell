@@ -803,9 +803,6 @@ None Dba::check_instance_configuration(InstanceDef instance, dict options) {}
 shcore::Value Dba::check_instance_configuration(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("checkInstanceConfiguration").c_str());
 
-  // Point the metadata session to the dba session
-  _metadata_storage->set_session(get_active_session());
-
   shcore::Value ret_val;
 
   try {
