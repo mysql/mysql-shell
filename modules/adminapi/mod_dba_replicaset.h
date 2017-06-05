@@ -75,8 +75,6 @@ public:
 
   void adopt_from_gr();
 
-  std::vector<std::string> get_instances_gr();
-  std::vector<std::string> get_instances_md();
   std::vector<std::string> get_online_instances();
 
   static char const *kTopologyPrimaryMaster;
@@ -133,18 +131,6 @@ public:
 private:
   //TODO these should go to a GroupReplication file
   friend Cluster;
-  struct NewInstanceInfo {
-    std::string member_id;
-    std::string host;
-    int port;
-  };
-  struct MissingInstanceInfo {
-    std::string id;
-    std::string label;
-    std::string host;
-  };
-  std::vector<NewInstanceInfo> get_newly_discovered_instances();
-  std::vector<MissingInstanceInfo> get_unavailable_instances();
 
   shcore::Value get_description() const;
   void verify_topology_type_change() const;

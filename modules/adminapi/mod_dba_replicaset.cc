@@ -46,6 +46,7 @@
 #include <string>
 #include <vector>
 #include <random>
+#include <algorithm>
 #ifdef _WIN32
 #define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
 #else
@@ -174,10 +175,11 @@ void ReplicaSet::verify_topology_type_change() const {
 void ReplicaSet::adopt_from_gr() {
   shcore::Value ret_val;
 
-  auto newly_discovered_instances_list(get_newly_discovered_instances());
+  auto newly_discovered_instances_list(
+      get_newly_discovered_instances(_metadata_storage, _id));
 
   // Add all instances to the cluster metadata
-  for (ReplicaSet::NewInstanceInfo &instance : newly_discovered_instances_list) {
+  for (NewInstanceInfo &instance : newly_discovered_instances_list) {
     Value::Map_type_ref newly_discovered_instance(new shcore::Value::Map_type);
     (*newly_discovered_instance)["host"] = shcore::Value(instance.host);
     (*newly_discovered_instance)["port"] = shcore::Value(instance.port);
@@ -1143,7 +1145,8 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
   // Set the ReplicaSet name on the result map
   (*ret_val)["name"] = shcore::Value(_name);
 
-  std::vector<NewInstanceInfo> newly_discovered_instances_list = get_newly_discovered_instances();
+  std::vector<NewInstanceInfo> newly_discovered_instances_list =
+      get_newly_discovered_instances(_metadata_storage, _id);
 
   // Creates the newlyDiscoveredInstances map
   shcore::Value::Array_type_ref newly_discovered_instances(new shcore::Value::Array_type());
@@ -1163,7 +1166,8 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(const shcore::Argument_list &arg
 
   shcore::Value unavailable_instances_result;
 
-  std::vector<MissingInstanceInfo> unavailable_instances_list = get_unavailable_instances();
+  std::vector<MissingInstanceInfo> unavailable_instances_list =
+      get_unavailable_instances(_metadata_storage, _id);
 
   // Creates the unavailableInstances array
   shcore::Value::Array_type_ref unavailable_instances(new shcore::Value::Array_type());
@@ -1399,25 +1403,6 @@ void ReplicaSet::remove_instance_metadata(const shcore::Value::Map_type_ref& ins
   tx.commit();
 }
 
-std::vector<std::string> ReplicaSet::get_instances_gr() {
-  // Get the list of instances belonging to the GR group
-  std::string query = "SELECT member_id FROM performance_schema.replication_group_members";
-
-  auto result = _metadata_storage->execute_sql(query);
-  auto members_ids = result->call("fetchAll", shcore::Argument_list());
-
-  // build the instances array
-  auto instances_gr = members_ids.as_array();
-  std::vector<std::string> instances_gr_array;
-
-  for (auto value : *instances_gr.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-    instances_gr_array.push_back(row->get_member(0).as_string());
-  }
-
-  return instances_gr_array;
-}
-
 std::vector<std::string> ReplicaSet::get_online_instances() {
   std::vector<std::string> online_instances_array;
 
@@ -1431,99 +1416,6 @@ std::vector<std::string> ReplicaSet::get_online_instances() {
   }
 
   return online_instances_array;
-}
-
-std::vector<std::string> ReplicaSet::get_instances_md() {
-  // Get the list of instances registered on the Metadata
-  shcore::sqlstring query("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances " \
-                          "WHERE replicaset_id = ?", 0);
-  query << _id;
-  query.done();
-
-  auto result = _metadata_storage->execute_sql(query);
-  auto mysql_server_uuids = result->call("fetchAll", shcore::Argument_list());
-
-  // build the instances array
-  auto instances_md = mysql_server_uuids.as_array();
-  std::vector<std::string> instances_md_array;
-
-  for (auto value : *instances_md.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-    instances_md_array.push_back(row->get_member(0).as_string());
-  }
-
-  return instances_md_array;
-}
-
-std::vector<ReplicaSet::NewInstanceInfo> ReplicaSet::get_newly_discovered_instances() {
-  std::vector<std::string> instances_gr_array, instances_md_array;
-  std::string query;
-
-  instances_gr_array = get_instances_gr();
-  instances_md_array = get_instances_md();
-
-  // Check the differences between the two lists
-  std::vector<std::string> new_members;
-
-  // Check if the instances_gr list has more members than the instances_md lists
-  // Meaning that an instance was added to the GR group outside of the AdminAPI
-  std::set_difference(instances_gr_array.begin(), instances_gr_array.end(), instances_md_array.begin(),
-                      instances_md_array.end(), std::inserter(new_members, new_members.begin()));
-
-  std::vector<NewInstanceInfo> ret;
-  for (auto i : new_members) {
-    shcore::sqlstring query("SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT " \
-                            "FROM performance_schema.replication_group_members " \
-                            "WHERE MEMBER_ID = ?", 0);
-    query << i;
-    query.done();
-
-    auto result = _metadata_storage->execute_sql(query);
-    auto row = result->fetch_one();
-
-    NewInstanceInfo info;
-    info.member_id = row->get_value(0).as_string();
-    info.host = row->get_value(1).as_string();
-    info.port = row->get_value(2).as_int();
-    ret.push_back(info);
-  }
-
-  return ret;
-}
-
-std::vector<ReplicaSet::MissingInstanceInfo> ReplicaSet::get_unavailable_instances() {
-  std::vector<std::string> instances_gr_array, instances_md_array;
-
-  instances_gr_array = get_instances_gr();
-  instances_md_array = get_instances_md();
-
-  // Check the differences between the two lists
-  std::vector<std::string> removed_members;
-
-  // Check if the instances_md list has more members than the instances_gr lists
-  // Meaning that an instance was removed from the GR group outside of the AdminAPI
-  std::set_difference(instances_md_array.begin(), instances_md_array.end(), instances_gr_array.begin(),
-                      instances_gr_array.end(), std::inserter(removed_members, removed_members.begin()));
-
-  std::vector<MissingInstanceInfo> ret;
-  for (auto i : removed_members) {
-    shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, " \
-                            "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host " \
-                            "FROM mysql_innodb_cluster_metadata.instances " \
-                            "WHERE mysql_server_uuid = ?", 0);
-    query << i;
-    query.done();
-
-    auto result = _metadata_storage->execute_sql(query);
-    auto row = result->fetch_one();
-    MissingInstanceInfo info;
-    info.id = row->get_value(0).as_string();
-    info.label = row->get_value(1).as_string();
-    info.host = row->get_value(2).as_string();
-    ret.push_back(info);
-  }
-
-  return ret;
 }
 
 #if DOXYGEN_CPP

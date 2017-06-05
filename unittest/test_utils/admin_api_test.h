@@ -32,9 +32,24 @@ class Admin_api_test: public Shell_core_test_wrapper {
                                      const std::string& variable,
                                      tests::Type type,
                                      const std::string& value);
+  void add_show_databases_query(std::vector<tests::Fake_result_data> *data,
+                                const std::string& variable,
+                                const std::string& value);
   void add_replication_filters_query(std::vector<tests::Fake_result_data> *data,
                                      const std::string& binlog_do_db,
                                     const std::string& binlog_ignore_db);
+  void add_ps_gr_group_members_query(std::vector<tests::Fake_result_data> *data,
+        const std::vector<std::vector<std::string>> &values);
+  void add_ps_gr_group_members_full_query(
+        std::vector<tests::Fake_result_data> *data,
+        const std::string &member_id,
+        const std::vector<std::vector<std::string>> &values);
+  void add_md_group_members_query(std::vector<tests::Fake_result_data> *data,
+        const std::vector<std::vector<std::string>> &values);
+  void add_md_group_members_full_query(
+        std::vector<tests::Fake_result_data> *data,
+        const std::string &mysql_server_uuid,
+        const std::vector<std::vector<std::string>> &values);
 };
 }  // namespace tests
 
