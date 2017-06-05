@@ -88,6 +88,50 @@ print (result.status)
 var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', dbPassword:'root'});
 print (result.status)
 
+//@ Dba: Create user without all necessary privileges
+// create user that has all permissions to admin a cluster but doesn't have
+// the grant privileges for them, so it cannot be used to create viable accounts
+// Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+// PERMISSIONS, CREATES A WRONG NEW USER
+
+connect_to_sandbox([__mysql_sandbox_port2]);
+session.runSql("SET SQL_LOG_BIN=0");
+session.runSql("CREATE USER missingprivileges@localhost");
+session.runSql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost");
+session.runSql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION");
+session.runSql("SET SQL_LOG_BIN=1");
+var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'");
+var row = result.fetchOne();
+print("Number of accounts: "+ row[0] + "\n");
+session.close();
+
+//@ Dba: configureLocalInstance not enough privileges
+// Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+// PERMISSIONS, CREATES A WRONG NEW USER
+dba.configureLocalInstance('missingprivileges:@localhost:' + __mysql_sandbox_port2,
+    {clusterAdmin: "missingprivileges", clusterAdminPassword:"",
+     mycnfPath:__output_sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+
+//@ Dba: Show list of users to make sure the user missingprivileges@% was not created
+// Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
+// PERMISSIONS, CREATES A WRONG NEW USER
+connect_to_sandbox([__mysql_sandbox_port2]);
+var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='%'");
+var row = result.fetchOne();
+print("Number of accounts: "+ row[0] + "\n");
+session.close();
+
+//@ Dba: Delete created user and reconnect to previous sandbox
+connect_to_sandbox([__mysql_sandbox_port2]);
+session.runSql("SET SQL_LOG_BIN=0");
+session.runSql("DROP USER missingprivileges@localhost");
+session.runSql("SET SQL_LOG_BIN=1");
+var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'");
+var row = result.fetchOne();
+print("Number of accounts: "+ row[0] + "\n");
+session.close();
+connect_to_sandbox([__mysql_sandbox_port1]);
+
 //@# Dba: getCluster errors
 var c2 = dba.getCluster();
 var c2 = dba.getCluster(5);
