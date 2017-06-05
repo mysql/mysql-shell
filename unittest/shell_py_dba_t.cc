@@ -221,6 +221,13 @@ TEST_F(Shell_py_dba_tests, dba_cluster_help) {
   validate_interactive("dba_cluster_help.py");
 }
 
+// Regression test for a bug on checkInstanceConfiguration() which
+// was requiring an active session to the metadata which is not
+// required by design
+TEST_F(Shell_py_dba_tests, dba_check_instance_configuration_session) {
+  validate_interactive("dba_check_instance_configuration_session.py");
+}
+
 TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
   _options->wizards = false;
   reset_shell();
