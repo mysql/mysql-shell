@@ -600,8 +600,9 @@ void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> s
       session->execute_sql(grant);
     }
     session->execute_sql("COMMIT");
+    session->execute_sql("SET sql_log_bin = 1");
   } catch (...) {
-    session->execute_sql("ROLLBACk");
+    session->execute_sql("ROLLBACK");
     session->execute_sql("SET sql_log_bin = 1");
     throw;
   }
