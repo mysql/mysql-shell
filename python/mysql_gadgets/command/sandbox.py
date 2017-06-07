@@ -78,7 +78,13 @@ _ERROR_VERSION_NOT_SUPPORTED = ("Provided mysqld executable '{0}' has a non "
                                 "supported version: '{1}'. MySQL version must "
                                 "be >= '{2}' and < '{3}'.")
 _ERROR_CANNOT_FIND_TOOL = ("Could not find {exec_name} executable. "
-                           "Make sure it is on {path_var_name}.")
+                           "Make sure it is on the {path_var_name} "
+                           "environment variable.")
+_ERROR_CANNOT_FIND_VALID_TOOL = (
+    "Could not find a valid {exec_name} executable with a supported version "
+    "(>= {min_ver} and < {max_ver}). Make sure it is on the {path_var_name} "
+    "environment variable.")
+_ERROR_CHECK_VALID_TOOL = "Could not verify {exec_name} executable: {error}."
 
 
 def _create_start_script(script_name, script_path, mysqld, config_file):
@@ -399,14 +405,25 @@ def create_sandbox(**kwargs):
                                      "".format(sandbox_dir))
     # If no value is provided for mysqld, search value on PATH and default
     # mysqld paths.
-    mysqld_path = kwargs.get("mysqld_path",
-                             tools.get_tool_path(
-                                 None, "mysqld", search_path=True,
-                                 required=False,
-                                 check_tool_func=server.is_valid_mysqld))
-    if not mysqld_path:
-        raise exceptions.GadgetError(_ERROR_CANNOT_FIND_TOOL.format(
-            exec_name="mysqld", path_var_name=PATH_ENV_VAR))
+    try:
+        mysqld_path = kwargs.get("mysqld_path",
+                                 tools.get_tool_path(
+                                     None, "mysqld", search_path=True,
+                                     required=True,
+                                     check_tool_func=server.is_valid_mysqld))
+    except exceptions.GadgetError as err:
+        if err.errno == 1:
+            raise exceptions.GadgetError(_ERROR_CANNOT_FIND_TOOL.format(
+                exec_name="mysqld", path_var_name=PATH_ENV_VAR))
+        elif err.errno == 2:
+            raise exceptions.GadgetError(_ERROR_CANNOT_FIND_VALID_TOOL.format(
+                exec_name="mysqld",
+                min_ver='.'.join(str(i) for i in MIN_MYSQL_VERSION),
+                max_ver='.'.join(str(i) for i in MAX_MYSQL_VERSION),
+                path_var_name=PATH_ENV_VAR))
+        else:
+            raise exceptions.GadgetError(_ERROR_CHECK_VALID_TOOL.format(
+                exec_name="mysqld", error=err.errmsg))
 
     # If no value is provided for mysqladmin, by default search value on PATH
     mysqladmin_path = kwargs.get("mysqladmin_path",
@@ -579,7 +596,7 @@ def create_sandbox(**kwargs):
             os.path.isfile(os.path.join(datadir, "server-cert.pem")) or
             os.path.isfile(os.path.join(datadir, "server-key.pem"))):
         _LOGGER.debug("SSL/RSA files already exist.")
-    else:
+    elif mysql_ssl_rsa_setup_path:
         # MySQL servers have the capability of automatically generating
         # missing SSL and RSA files at startup, for MySQL distributions
         # compiled using OpenSSL. For MySQL distributions using YaSSL this can
@@ -603,6 +620,11 @@ def create_sandbox(**kwargs):
         elif not create_ssl_rsa_files_proc.returncode:
             # if the process ran without any errors
             _LOGGER.debug("SSL/RSA files created.")
+    else:
+        # No SSL/RSA files created if mysql_ssl_rsa_setup is not available.
+        # NOTE: Error already raised previously if the tool is not found and
+        # ignore_ssl_error is False.
+        _LOGGER.debug("No SSL/RSA files created.")
 
     # create start script
     _LOGGER.debug("Creating start script for sandbox.")
@@ -816,9 +838,28 @@ def start_sandbox(**kwargs):
         # On non non posix systems if no value is provided for mysqld, by
         # default search the $PATH.
         if not mysqld_path:
-            mysqld_path = tools.get_tool_path(
-                None, "mysqld", search_path=True, required=False,
-                check_tool_func=server.is_valid_mysqld)
+            try:
+                mysqld_path = tools.get_tool_path(
+                    None, "mysqld", search_path=True, required=True,
+                    check_tool_func=server.is_valid_mysqld)
+            except exceptions.GadgetError as err:
+                if err.errno == 1:
+                    raise exceptions.GadgetError(
+                        _ERROR_CANNOT_FIND_TOOL.format(
+                            exec_name="mysqld", path_var_name=PATH_ENV_VAR))
+                elif err.errno == 2:
+                    raise exceptions.GadgetError(
+                        _ERROR_CANNOT_FIND_VALID_TOOL.format(
+                            exec_name="mysqld",
+                            min_ver='.'.join(
+                                str(i) for i in MIN_MYSQL_VERSION),
+                            max_ver='.'.join(
+                                str(i) for i in MAX_MYSQL_VERSION),
+                            path_var_name=PATH_ENV_VAR))
+                else:
+                    raise exceptions.GadgetError(
+                        _ERROR_CHECK_VALID_TOOL.format(
+                            exec_name="mysqld", error=err.errmsg))
     else:
         # On posix systems, if no value is provided for mysqld, by default
         # search for the mysqld binary inside the sandbox dir. If not found
@@ -831,12 +872,25 @@ def start_sandbox(**kwargs):
                                 "fail if AppArmor or SELinux are blocking "
                                 "the mysqld access to the sandbox directory.",
                                 sandbox_dir)
-                mysqld_path = tools.get_tool_path(
-                    None, "mysqld", search_path=True, required=False,
-                    check_tool_func=server.is_valid_mysqld)
-    if not mysqld_path:
-        raise exceptions.GadgetError(_ERROR_CANNOT_FIND_TOOL.format(
-            exec_name="mysqld", path_var_name=PATH_ENV_VAR))
+                try:
+                    mysqld_path = tools.get_tool_path(
+                        None, "mysqld", search_path=True, required=True,
+                        check_tool_func=server.is_valid_mysqld)
+                except exceptions.GadgetError as err:
+                    if err.errno == 0:
+                        raise exceptions.GadgetError(
+                            _ERROR_CANNOT_FIND_TOOL.format(
+                                exec_name="mysqld",
+                                path_var_name=PATH_ENV_VAR))
+                    else:
+                        raise exceptions.GadgetError(
+                            _ERROR_CANNOT_FIND_VALID_TOOL.format(
+                                exec_name="mysqld",
+                                min_ver='.'.join(
+                                    str(i) for i in MIN_MYSQL_VERSION),
+                                max_ver='.'.join(
+                                    str(i) for i in MAX_MYSQL_VERSION),
+                                path_var_name=PATH_ENV_VAR))
 
     # Checking if mysqld meets requirements
     if not tools.is_executable(mysqld_path):
