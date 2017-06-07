@@ -35,6 +35,18 @@ cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port2)
 //@<OUT> Cluster status after removal
 cluster.status()
 
+//@ Error removing last instance
+// Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
+cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port1);
+
+//@ Dissolve cluster with success
+// Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
+cluster.dissolve({force: true});
+
+//@ Cluster re-created with success
+// Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
+var cluster = dba.createCluster('dev');
+
 session.close();
 
 //@ Finalization
