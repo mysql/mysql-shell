@@ -161,11 +161,13 @@ def get_tool_path(basedir, tool, fix_ext=True, required=True,
     if os.name == "nt" and fix_ext:
         tool = "{0}.exe".format(tool)
     # Search for the tool
+    none_found = True
     for path in search_paths:
         norm_path = os.path.normpath(path)
         if os.path.isdir(norm_path):
             toolpath = os.path.normpath(os.path.join(norm_path, tool))
             if os.path.isfile(toolpath):
+                none_found = False
                 if not check_tool_func or check_tool_func(toolpath):
                     return r"{0}{1}{0}".format(quote_char, toolpath)
             else:
@@ -173,12 +175,19 @@ def get_tool_path(basedir, tool, fix_ext=True, required=True,
                     toolpath = os.path.normpath(
                         os.path.join(norm_path, "mysqld-nt.exe"))
                     if os.path.isfile(toolpath):
+                        none_found = False
                         if not check_tool_func or check_tool_func(toolpath):
                             return r"{0}{1}{0}".format(quote_char, toolpath)
 
-    # Tool not found, raise exception or return None.
+    # Valid tool not found, raise exception or return None.
     if required:
-        raise GadgetError("Cannot find location of {0}.".format(tool))
+        # Distinguish between no tool being found and a valid tool (based on
+        # the check_tool_func parameter) not being found. Use a different
+        # error message and error number.
+        if none_found:
+            raise GadgetError("Cannot find {0}.".format(tool), errno=1)
+        else:
+            raise GadgetError("Cannot find valid {0}.".format(tool), errno=2)
 
     return None
 

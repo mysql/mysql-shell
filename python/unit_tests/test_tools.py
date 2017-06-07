@@ -126,8 +126,16 @@ class TestTools(GadgetsTestCase):
                       "The 'mysqld' file is expected to be found in PATH.")
 
         # Try to find a non existing tool (error raised by default).
-        with self.assertRaises(GadgetError):
+        with self.assertRaises(GadgetError) as cm:
             tools.get_tool_path(basedir, 'non_existing_tool')
+        self.assertEqual(cm.exception.errno, 1)
+
+        # Cannot find a valid tool, based on check function (raise error)
+        # Note: Use a lambda function that always return false.
+        with self.assertRaises(GadgetError) as cm:
+            tools.get_tool_path(basedir, 'mysqld',
+                                check_tool_func=lambda path: False)
+        self.assertEqual(cm.exception.errno, 2)
 
         # Try to find a non existing tool with required set to False.
         res = tools.get_tool_path(basedir, 'non_existing_tool', required=False)
