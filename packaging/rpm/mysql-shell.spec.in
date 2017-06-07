@@ -1,4 +1,4 @@
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -112,6 +112,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %{_bindir}/mysqlprovision
 
 %changelog
+* Wed Jun 07 2017 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com> - 8.0.0-0.1
+- Updated for 8.0.0 dmr release
+
 * Mon Mar 13 2017 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.8-1
 - Updated for mysqlprovision build change
 
