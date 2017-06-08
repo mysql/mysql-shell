@@ -18,6 +18,8 @@ set(test_utils_SRC
     shell_base_test.cc
     command_line_test.h
     command_line_test.cc
+    server_mock.h
+    server_mock.cc
 
     "${PROJECT_SOURCE_DIR}/common/process_launcher/process_launcher.cc"
     "${PROJECT_SOURCE_DIR}/common/common/exception.cc"

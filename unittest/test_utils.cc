@@ -250,6 +250,8 @@ std::string Shell_core_test_wrapper::context_identifier() {
 }
 
 void Shell_core_test_wrapper::SetUp() {
+  tests::Shell_base_test::SetUp();
+
   output_handler.debug_print_header(context_identifier());
 
   // Initializes the options member
@@ -262,36 +264,6 @@ void Shell_core_test_wrapper::SetUp() {
 
   const char *uri = getenv("MYSQL_URI");
   if (uri) {
-    // Creates connection data and recreates URI, this will fix URI if no password is defined
-    // So the UT don't prompt for password ever
-    shcore::Value::Map_type_ref data = shcore::get_connection_data(uri);
-
-    _host = data->get_string("host");
-    _user = data->get_string("dbUser");
-
-    const char *pwd = getenv("MYSQL_PWD");
-    if (pwd) {
-      _pwd.assign(pwd);
-      (*data)["dbPassword"] = shcore::Value(_pwd);
-    }
-
-    _uri = shcore::build_connection_string(data, true);
-    _mysql_uri = _uri;
-
-    const char *xport = getenv("MYSQLX_PORT");
-    if (xport) {
-      _port.assign(xport);
-      (*data)["port"] = shcore::Value(_pwd);
-      _uri += ":" + _port;
-    }
-    _uri_nopasswd = shcore::strip_password(_uri);
-
-    const char *port = getenv("MYSQL_PORT");
-    if (port) {
-      _mysql_port.assign(port);
-      _mysql_uri += ":" + _mysql_port;
-    }
-
     const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
     if (sandbox_port1) {
       _mysql_sandbox_port1.assign(sandbox_port1);
@@ -315,8 +287,6 @@ void Shell_core_test_wrapper::SetUp() {
       std::string sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
       _mysql_sandbox_port3.assign(sandbox_port3);
     }
-
-    _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
   }
 
   const char *tmpdir = getenv("TMPDIR");

@@ -23,6 +23,7 @@
 #include <vector>
 #include <list>
 #include "shell/base_shell.h"
+#include "unittest/test_utils/shell_base_test.h"
 
 #ifdef GTEST_TEST_
 #undef GTEST_TEST_
@@ -118,7 +119,8 @@ protected:
 #define MY_EXPECT_STDERR_NOT_CONTAINS(x) output_handler.validate_stderr_content(x,false)
 #define MY_EXPECT_LOG_NOT_CONTAINS(x) output_handler.validate_log_content(x,false)
 
-class Shell_core_test_wrapper : public ::testing::Test, public shcore::NotificationObserver {
+class Shell_core_test_wrapper : public tests::Shell_base_test,
+                                public shcore::NotificationObserver {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
@@ -147,18 +149,6 @@ protected:
   void enable_debug() {debug = true; output_handler.debug= true;}
   virtual void set_options() {};
 
-  void create_file(const std::string& name, const std::string& content) {
-    std::ofstream file(name, std::ofstream::out | std::ofstream::trunc);
-
-    if (file.is_open()) {
-      file << content;
-      file.close();
-    } else {
-      SCOPED_TRACE("Error Creating File: " + name);
-      ADD_FAILURE();
-    }
-  }
-
   void reset_shell() {
     _interactive_shell.reset(new mysqlsh::Base_shell(*_options.get(), &output_handler.deleg));
 
@@ -175,13 +165,6 @@ protected:
   void wipe_log() { output_handler.wipe_log(); }
   void wipe_all() { output_handler.wipe_all(); }
 
-  std::string _user;
-  std::string _host;
-  std::string _port;
-  std::string _uri;
-  std::string _uri_nopasswd;
-  std::string _pwd;
-  std::string _mysql_port;
   std::string _mysql_sandbox_port1;
   std::string _mysql_sandbox_port2;
   std::string _mysql_sandbox_port3;
@@ -192,8 +175,6 @@ protected:
   std::string _sandbox_cnf_3;
   std::string _path_splitter;
 
-  std::string _mysql_uri;
-  std::string _mysql_uri_nopasswd;
   std::string _sandbox_dir;
 
   shcore::Value _returned_value;

@@ -18,12 +18,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <string>
 #include "unittest/test_utils/shell_base_test.h"
-#include "common/process_launcher/process_launcher.h"
 
 #define MY_EXPECT_CMD_OUTPUT_CONTAINS(e) Shell_base_test::check_string_expectation(e,_output,true)
 #define MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(e) Shell_base_test::check_string_expectation(e,_output,false)
-
-extern "C" const char *g_argv0;
 
 namespace tests {
 

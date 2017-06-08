@@ -47,6 +47,7 @@ INCLUDE(msvc)
 INCLUDE(ssl)
 INCLUDE(readline)
 INCLUDE(compiler)
+include(cmake/compile_flags.cmake)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
