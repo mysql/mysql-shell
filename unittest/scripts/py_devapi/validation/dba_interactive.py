@@ -126,6 +126,84 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Va
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
 You can now use it in an InnoDB Cluster.
 
+#@ Dba: create an admin user with all needed privileges
+|Number of 'mydba'@'localhost' accounts: 1|
+
+#@<OUT> Dba: configureLocalInstance create different admin user
+Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>':
+Detected as sandbox instance.
+
+Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port2>>><<<__path_splitter>>>my.cnf
+MySQL user 'mydba' cannot be verified to have access to other hosts in the network.
+
+1) Create mydba@% with necessary grants
+2) Create account with different name
+3) Continue without creating account
+4) Cancel
+Please select an option [1]: Please provide an account name (e.g: icroot@%) to have it created with the necessary
+privileges or leave empty and press Enter to cancel.
+Account Name: Password for new account: Confirm password: Validating instance...
+
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
+You can now use it in an InnoDB Cluster.
+
+{
+    "status": "ok"
+}
+
+#@<OUT> Dba: configureLocalInstance create existing valid admin user
+Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>':
+Detected as sandbox instance.
+
+Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port2>>><<<__path_splitter>>>my.cnf
+MySQL user 'mydba' cannot be verified to have access to other hosts in the network.
+
+1) Create mydba@% with necessary grants
+2) Create account with different name
+3) Continue without creating account
+4) Cancel
+Please select an option [1]: Please provide an account name (e.g: icroot@%) to have it created with the necessary
+privileges or leave empty and press Enter to cancel.
+Account Name: Password for new account: Confirm password: Validating instance...
+
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
+You can now use it in an InnoDB Cluster.
+
+{
+    "status": "ok"
+}
+
+#@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
+||
+
+#@<OUT> Dba: configureLocalInstance create existing invalid admin user
+Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>':
+Detected as sandbox instance.
+
+Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port2>>><<<__path_splitter>>>my.cnf
+MySQL user 'mydba' cannot be verified to have access to other hosts in the network.
+
+1) Create mydba@% with necessary grants
+2) Create account with different name
+3) Continue without creating account
+4) Cancel
+Please select an option [1]: Please provide an account name (e.g: icroot@%) to have it created with the necessary
+privileges or leave empty and press Enter to cancel.
+Account Name: Password for new account: Confirm password: Validating instance...
+
+The issues above can be fixed dynamically to get the server ready for InnoDB Cluster.
+
+{
+    "errors": [
+        "User 'dba_test'@'%' already exists but it does not have all the privileges for managing an InnoDB cluster. Please provide a non-existing user to be created or a different one with all the required privileges."
+    ],
+    "restart_required": false,
+    "status": "error"
+}
+
+#@ Dba: Delete previously create an admin user with all needed privileges
+|Number of 'mydba'@'localhost' accounts: 0|
+
 #@# Dba: get_cluster errors
 ||ArgumentError: Dba.get_cluster: Invalid cluster name: Argument #1 is expected to be a string
 ||Dba.get_cluster: The Cluster name cannot be empty

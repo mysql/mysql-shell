@@ -127,6 +127,51 @@ connect_to_sandbox([__mysql_sandbox_port1])
 #@<OUT> Dba: configure_local_instance updating config file
 dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port2), {'mycnfPath':'mybad.cnf'})
 
+#@ Dba: create an admin user with all needed privileges
+# Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+connect_to_sandbox([__mysql_sandbox_port2])
+session.run_sql("SET SQL_LOG_BIN=0")
+session.run_sql("CREATE USER 'mydba'@'localhost' IDENTIFIED BY ''")
+session.run_sql("GRANT ALL ON *.* TO 'mydba'@'localhost' WITH GRANT OPTION")
+session.run_sql("SET SQL_LOG_BIN=1")
+result = session.run_sql("SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'")
+row = result.fetch_one()
+print("Number of 'mydba'@'localhost' accounts: "+ str(row[0]))
+session.close()
+
+#@<OUT> Dba: configureLocalInstance create different admin user
+# Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+dba.configure_local_instance('mydba@localhost:' + str(__mysql_sandbox_port2))
+
+#@<OUT> Dba: configureLocalInstance create existing valid admin user
+# Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+dba.configure_local_instance('mydba@localhost:' + str(__mysql_sandbox_port2))
+
+#@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
+connect_to_sandbox([__mysql_sandbox_port2])
+session.run_sql("SET SQL_LOG_BIN=0")
+session.run_sql("REVOKE REPLICATION SLAVE ON *.* FROM 'dba_test'@'%'")
+session.run_sql("SET SQL_LOG_BIN=1")
+session.close()
+
+#@<OUT> Dba: configureLocalInstance create existing invalid admin user
+# Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+dba.configure_local_instance('mydba@localhost:' + str(__mysql_sandbox_port2))
+
+#@ Dba: Delete previously create an admin user with all needed privileges
+# Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+connect_to_sandbox([__mysql_sandbox_port2])
+session.run_sql("SET SQL_LOG_BIN=0")
+session.run_sql("DROP USER 'mydba'@'localhost'")
+session.run_sql("DROP USER 'dba_test'@'%'")
+session.run_sql("SET SQL_LOG_BIN=1")
+result = session.run_sql("SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'")
+row = result.fetch_one()
+print("Number of 'mydba'@'localhost' accounts: "+ str(row[0]))
+session.close()
+
+connect_to_sandbox([__mysql_sandbox_port1])
+
 #@# Dba: get_cluster errors
 c2 = dba.get_cluster(5)
 c2 = dba.get_cluster('', 5)

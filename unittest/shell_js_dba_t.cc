@@ -318,6 +318,27 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   //@<OUT> Dba: configureLocalInstance updating config file
   output_handler.passwords.push_back("root");
 
+  //@<OUT> Dba: configureLocalInstance create different admin user
+  output_handler.passwords.push_back("");  // Pass for mydba
+  output_handler.prompts.push_back("2");  // Option (account with diff name)
+  output_handler.prompts.push_back("dba_test");  // account name
+  output_handler.passwords.push_back("");  // account pass
+  output_handler.passwords.push_back("");  // account pass confirmation
+
+  //@<OUT> Dba: configureLocalInstance create existing valid admin user
+  output_handler.passwords.push_back("");  // Pass for mydba
+  output_handler.prompts.push_back("2");  // Option (account with diff name)
+  output_handler.prompts.push_back("dba_test");  // account name
+  output_handler.passwords.push_back("");  // account pass
+  output_handler.passwords.push_back("");  // account pass confirmation
+
+  //@<OUT> Dba: configureLocalInstance create existing invalid admin user
+  output_handler.passwords.push_back("");  // Pass for mydba
+  output_handler.prompts.push_back("2");  // Option (account with diff name)
+  output_handler.prompts.push_back("dba_test");  // account name
+  output_handler.passwords.push_back("");  // account pass
+  output_handler.passwords.push_back("");  // account pass confirmation
+
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_interactive.js");
