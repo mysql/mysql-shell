@@ -259,8 +259,8 @@
 |Type: <Type.JSON>|
 |Fractional Digits: 0|
 |Is Number Signed: false|
-|Collation Name: armscii8_bin|
-|Charset Name: armscii8|
+|Collation Name: binary|
+|Charset Name: binary|
 |Is Padded: false|
 
 //@ Metadata on Char Column

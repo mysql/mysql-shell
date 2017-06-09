@@ -394,14 +394,15 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
         metadata[i].table(),
         metadata[i].org_name(),
         metadata[i].name(),
-  shcore::Value(), //type
+        shcore::Value(), //type
         metadata[i].length(),
-  numeric,
-  metadata[i].decimals(),
-  false, // signed
-  Charset::item[metadata[i].charset()].collation,
-  Charset::item[metadata[i].charset()].name,
-        false //padded
+        numeric,
+        metadata[i].decimals(),
+        false, // signed
+        mysqlsh::charset::collation_name_from_collation_id(
+            metadata[i].charset()),
+        mysqlsh::charset::charset_name_from_collation_id(
+            metadata[i].charset()),        false //padded
       ));
 
       array->push_back(shcore::Value(std::static_pointer_cast<Object_bridge>(column)));

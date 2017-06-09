@@ -28,6 +28,12 @@
 #include "shellcore/types_cpp.h"
 
 namespace mysqlsh {
+namespace charset {
+std::string charset_name_from_collation_id(uint32_t id);
+std::string collation_name_from_collation_id(uint32_t id);
+uint32_t collation_id_from_collation_name(const std::string& collation_name);
+}  // namespace charset
+
 // This is the Shell Common Base Class for all the resultset classes
 class ShellBaseResult : public shcore::Cpp_object_bridge {
 public:
@@ -38,18 +44,6 @@ public:
   virtual bool rewind() { return false; }
   virtual bool tell(size_t &dataset, size_t &record) { return false; }
   virtual bool seek(size_t dataset, size_t record) { return false; }
-};
-
-class SHCORE_PUBLIC Charset {
-private:
-  typedef struct {
-    uint32_t id;
-    std::string name;
-    std::string collation;
-  } Charset_entry;
-
-public:
-  static const Charset_entry item[];
 };
 
 /**
