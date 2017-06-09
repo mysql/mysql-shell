@@ -637,7 +637,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   std::string ip_whitelist;
   shcore::Value::Array_type_ref errors;
   mysqlsh::mysql::ClassicSession *classic;
-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
+  std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
   // Get the instance definition
   auto instance_def = get_instance_options_map(args,
@@ -736,8 +736,8 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
                instance_address.c_str());
       shcore::Argument_list slave_args;
       slave_args.push_back(shcore::Value(instance_def));
-      session = mysqlsh::connect_session(slave_args,
-                                         mysqlsh::SessionType::Classic);
+      session = mysqlsh::Shell::connect_session(slave_args,
+                                                mysqlsh::SessionType::Classic);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
