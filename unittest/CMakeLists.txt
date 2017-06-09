@@ -34,7 +34,6 @@ if(WITH_TESTS)
                 ${V8_INCLUDE_DIR})
 
     file(GLOB mysqlsh_tests_SRC
-        "${PROJECT_SOURCE_DIR}/unittest/mocks/mysqlshdk/libs/db/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/mysql/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/db/mysql_session_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/utils/*.cc"
@@ -74,6 +73,7 @@ if(WITH_TESTS)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/value_py_bridging_t.cc")
     endif()
 
+    add_subdirectory(mysqld_mock)
     add_subdirectory(test_utils)
 
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
@@ -95,6 +95,11 @@ if(WITH_TESTS)
             ${V8_LINK_LIST}
             ${PYTHON_LIBRARIES}
     )
+
+    # Copies the mysql_server_mock to the binary folder
+    add_custom_command(TARGET run_unit_tests PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy
+                        $<TARGET_FILE:mysql_server_mock> $<TARGET_FILE_DIR:run_unit_tests>)
 
     # Sets the test environment so it is ready for execution out of the box
     # On windows mysqlprovision zip, cmd and mysqlsh.exe need to be together

@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/db/result.h"
-#include "mocks/gmock_clean.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace testing {
 /**
@@ -62,6 +62,7 @@ class Fake_result {
 };
 
 struct Fake_result_data {
+  std::string sql;
   std::vector<std::string> names;
   std::vector<mysqlshdk::db::Type> types;
   std::vector<std::vector<std::string> > rows;

@@ -36,8 +36,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
     Shell_base_test::check_string_expectation(e, _output, false); \
   } while (0)
 
-extern "C" const char *g_argv0;
-
 namespace tests {
 
 class Command_line_test : public Shell_base_test {

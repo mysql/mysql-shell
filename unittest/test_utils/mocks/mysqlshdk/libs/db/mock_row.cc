@@ -20,7 +20,7 @@
 #include <string>
 #include <utility>
 
-#include "unittest/mocks/mysqlshdk/libs/db/mock_row.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_row.h"
 #include "utils/utils_general.h"
 
 

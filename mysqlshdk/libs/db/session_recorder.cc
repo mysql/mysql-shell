@@ -176,6 +176,8 @@ Result_recorder::Result_recorder(IResult* target) : _target(target) {
 void Result_recorder::save_result() {
   Mock_record::get() << "then_return({" << std::endl;
 
+  Mock_record::get() << "\"<Executed SQL>\"," << std::endl;
+
   bool first = true;
   while (first || _target->next_data_set()) {
     if (!first)

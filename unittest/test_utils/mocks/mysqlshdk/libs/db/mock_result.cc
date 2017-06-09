@@ -20,8 +20,8 @@
 #include <string>
 #include <vector>
 
-#include "unittest/mocks/mysqlshdk/libs/db/mock_result.h"
-#include "unittest/mocks/mysqlshdk/libs/db/mock_row.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_row.h"
 #include "utils/utils_general.h"
 
 namespace testing {
