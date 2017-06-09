@@ -26,6 +26,7 @@
 #include "modules/mysql_connection.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlx_connection.h" // for error codes
+#include "mysqlxtest/password_hasher.h"
 
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -826,11 +827,40 @@ shcore::Value::Map_type_ref MetadataStorage::get_instance(
                                   instance_address + "' does not exist.");
 }
 
+void MetadataStorage::create_account(const std::string &username,
+                                     const std::string &password,
+                                     const std::string &hostname,
+                                     bool password_hashed) {
+  std::string query_to_escape, query_log;
+  shcore::sqlstring query;
+
+  query_to_escape.append("CREATE USER IF NOT EXISTS ?@?");
+
+  query_log = query_to_escape;
+
+  query_to_escape.append(" IDENTIFIED ");
+  query_to_escape.append((password_hashed ?
+                          "WITH mysql_native_password AS ?" : "BY ?"));
+
+  query_log + std::string(password.length(), '*');
+  query_log.append("'");
+
+  query = shcore::sqlstring(query_to_escape.c_str(), 0);
+  query << username;
+  query << hostname;
+  query << password;
+  query.done();
+
+  execute_sql(query, false, query_log);
+}
+
 // generate a replication user account + password for an instance
 // This account will be replicated to all instances in the replicaset, so that
 // the newly joining instance can connect to any of them for recovery.
 void MetadataStorage::create_repl_account(std::string &username,
                                           std::string &password) {
+  shcore::sqlstring query;
+  bool account_created = false;
   // Generate a password
   password = generate_password();
 
@@ -843,30 +873,33 @@ void MetadataStorage::create_repl_account(std::string &username,
   // instance only
   // However, we don't have a reliable way of getting the external IP and/or
   // fully qualified domain name
-  username.append("@'%'");
+  std::string hostname = "%";
 
   Transaction tx(shared_from_this());
 
-  execute_sql("DROP USER IF EXISTS " + username);
+  query = shcore::sqlstring("DROP USER IF EXISTS ?@?", 0);
+  query << username;
+  query << hostname;
+  query.done();
 
+  execute_sql(query);
+
+  // Try to create an account with the generated password,
+  // and if fails retry for 100 times with newly generated passwords
   int retry_count = 100;
   while (retry_count > 0) {
     try {
-      std::string query = "CREATE USER IF NOT EXISTS " + username +
-                          " IDENTIFIED BY '" + password + "'";
-      std::string query_log = "CREATE USER IF NOT EXISTS " + username +
-                              " IDENTIFIED BY '" +
-                              std::string(password.length(), '*') +
-                              "'";
-      execute_sql(query, false, query_log);
+      // Create the account without using an hashed password
+      create_account(username, password, hostname, false);
 
       // If it reached here it means there were no errors
       retry_count = 0;
+      account_created = true;
     } catch (shcore::Exception &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
       // the current policy requirements
       // We regenerate the password to retry
-      if (e.code() == 1819) {
+      if (e.code() == ER_NOT_VALID_PASSWORD) {
         password = generate_password();
         retry_count--;
       } else {
@@ -875,7 +908,39 @@ void MetadataStorage::create_repl_account(std::string &username,
     }
   }
 
-  execute_sql("GRANT REPLICATION SLAVE ON *.* to " + username);
+  // Try to create an account using mysql_native_password with the
+  // hashed password to avoid validate_password verification.
+  if (!account_created) {
+    log_warning("Failed to create replication user account. "
+                "Trying to create the account using a SHA1 hashed "
+                "password to avoid the validate_password verification");
+    try {
+      // Compute the password SHA1 hash
+      std::string hashed_password =
+          Password_hasher::compute_password_hash(password);
+
+      // Create the account using an hashed password
+      create_account(username, hashed_password, hostname, true);
+    } catch (shcore::Exception &e) {
+      // If the error is: ERROR 1524 (HY000): Plugin 'mysql_native_password'
+      // is not loaded, we have failed all the attempts so we suggest the user
+      // to change to validate_password rules
+      if (e.code() == ER_PLUGIN_IS_NOT_LOADED) {
+        throw shcore::Exception::runtime_error(
+              "Failed to create replication user account. Try to decrease the "
+              "validate_password rules and try the operation again.");
+      } else {
+        throw;
+      }
+    }
+  }
+
+  query = shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to ?@?", 0);
+  query << username;
+  query << hostname;
+  query.done();
+
+  execute_sql(query);
 
   tx.commit();
 }

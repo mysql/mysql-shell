@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -24,6 +24,9 @@
 #include "mod_dba_cluster.h"
 #include "mod_dba_replicaset.h"
 #include <string>
+
+#define ER_NOT_VALID_PASSWORD 1819
+#define ER_PLUGIN_IS_NOT_LOADED 1524
 
 namespace mysqlsh {
 namespace mysql {
@@ -81,6 +84,10 @@ public:
   void set_session(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session);
 
   std::shared_ptr<mysql::ClassicResult> execute_sql(const std::string &sql, bool retry = false, const std::string &log_sql = "") const;
+
+  void create_account(const std::string &username, const std::string &password,
+                      const std::string &hostname,
+                      bool password_hashed = false);
 
   class Transaction {
   public:
