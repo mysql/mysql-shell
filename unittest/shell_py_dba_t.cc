@@ -514,6 +514,13 @@ TEST_F(Shell_py_dba_tests, dba_cluster_remove_instance) {
   validate_interactive("dba_cluster_remove_instance.py");
 }
 
+TEST_F(Shell_py_dba_tests, dba_cluster_rejoin_instance) {
+  _options->wizards = false;
+  reset_shell();
+  // Regression for Bug #25786495
+  validate_interactive("dba_cluster_rejoin_instance.py");
+}
+
 TEST_F(Shell_py_dba_tests, dba_cluster_check_instance_state) {
   validate_interactive("dba_cluster_check_instance_state.py");
 }
