@@ -630,17 +630,23 @@ shcore::Value ReplicaSet::rejoin_instance_(const shcore::Argument_list &args) {
 
 shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
-  std::string host;
-  int port = 0, exit_code;
-  std::string ssl_mode = mysqlsh::dba::kMemberSSLModeAuto; //SSL Mode AUTO by default
+  std::string instance_host;
+  int instance_port = 0;
+  // SSL Mode AUTO by default
+  std::string ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
   std::string ip_whitelist;
+  shcore::Value::Array_type_ref errors;
+  mysqlsh::mysql::ClassicSession *classic;
+  std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
 
-  auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
+  // Get the instance definition
+  auto instance_def = get_instance_options_map(args,
+                        mysqlsh::dba::PasswordFormat::OPTIONS);
   shcore::Argument_map instance_map(*instance_def);
   instance_map.ensure_keys({"host"}, _instance_options, "instance definition");
 
-  // Retrieves the add options
-  if (args.size() == 2 ) {
+  // Retrieves the options
+  if (args.size() == 2) {
     auto rejoin_options = args.map_at(1);
     shcore::Argument_map rejoin_instance_map(*rejoin_options);
     rejoin_instance_map.ensure_keys({}, _add_instance_opts, " options");
@@ -648,7 +654,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     // Validate SSL options for the cluster instance
     validate_ssl_instance_options(rejoin_options);
 
-    //Validate ip whitelist option
+    // Validate ip whitelist option
     validate_ip_whitelist_option(rejoin_options);
 
     if (rejoin_options->has_key("memberSslMode"))
@@ -661,97 +667,81 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   if (!instance_def->has_key("port"))
     (*instance_def)["port"] = shcore::Value(get_default_port());
 
-  port = instance_def->get_int("port");
-  host = instance_def->get_string("host");
+  instance_port = instance_def->get_int("port");
+  instance_host = instance_def->get_string("host");
 
-  std::string instance_address = host + ":" + std::to_string(port);
+  std::string instance_address = instance_host + ":" +
+                                 std::to_string(instance_port);
 
   // Check if the instance is part of the Metadata
-  if (!_metadata_storage->is_instance_on_replicaset(get_id(), instance_address)) {
-    std::string message = "The instance '" + instance_address + "'";
-
-    message.append(" does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+  if (!_metadata_storage->is_instance_on_replicaset(get_id(),
+                                                    instance_address)) {
+    std::string message = "The instance '" + instance_address + "' " +
+                          "does not belong to the ReplicaSet: '" +
+                          get_member("name").as_string() + "'.";
 
     throw shcore::Exception::runtime_error(message);
   }
 
-  // Get a peer instance
-  std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
-  if (peer_instance.empty()) {
-    throw shcore::Exception::runtime_error(
-      "Cannot rejoin instance. There is no remaining available seed instance in the replicaset.");
-  }
+  // Before rejoining an instance we must verify if the group has quorum and
+  // if the gr plugin is active otherwise we may end up hanging the system
 
-  // Before rejoining an instance we must verify if the group was quorum and if the gr plugin is active
-  // otherwise we may end up hanging the system
+  // In single-primary mode, the active session must be established to the seed
+  // instance in order to be able to make changes on the cluster.
+  // So we must obtain the active session credentials in order to do the follow
+  // validations.
+  // In multi-primary mode, any instance is suitable, so we can also use the
+  // active session.
 
+  // Get the current cluster session from the metadata
+  auto seed_session(_metadata_storage->get_session());
+
+  // Get the rejoining instance definition
   // Sets a default user if not specified
   resolve_instance_credentials(instance_def, nullptr);
-  std::string password = instance_def->get_string(instance_def->has_key("password") ? "password" : "dbPassword");
-  std::string user = instance_def->get_string(instance_def->has_key("user") ? "user" : "dbUser");
-
-  std::shared_ptr<mysqlsh::ShellBaseSession> session;
-  mysqlsh::mysql::ClassicSession *classic;
-
-  // Session args holds all the connection data, including the resolved user/password
-  shcore::Argument_list session_args;
-  Value::Map_type_ref seed_options(new shcore::Value::Map_type);
-
-  std::string delimiter = ":";
-  std::string seed_host = peer_instance.substr(0, peer_instance.find(delimiter));
-  std::string seed_port = peer_instance.substr(peer_instance.find(delimiter) + 1, peer_instance.length());
-
-  (*seed_options)["host"] = shcore::Value(seed_host);
-  (*seed_options)["port"] = shcore::Value(atoi(seed_port.c_str()));
-  // We assume the root password is the same on all instances
-  (*seed_options)["password"] = shcore::Value(password);
-  mysqlsh::dba::resolve_instance_credentials(seed_options, nullptr);
-  session_args.push_back(shcore::Value(seed_options));
-
-  try {
-    log_info("Opening a new session to the seed instance for validations %s",
-             peer_instance.c_str());
-    session = Shell::connect_session(session_args, mysqlsh::SessionType::Classic);
-    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-  } catch (std::exception &e) {
-    log_error("Could not open connection to %s: %s", instance_address.c_str(),
-              e.what());
-    throw;
-  }
-
-  shcore::Argument_list temp_args;
+  std::string instance_password = instance_def->get_string(
+    instance_def->has_key("password") ? "password" : "dbPassword");
+  std::string instance_user = instance_def->get_string(
+    instance_def->has_key("user") ? "user" : "dbUser");
 
   // Verify if the group_replication plugin is active on the seed instance
   {
-    log_info("Verifying if the group_replication plugin is active on the seed instance %s",
+    log_info("Verifying if the group_replication plugin is active on the seed "
+             "instance %s",
              instance_address.c_str());
 
-    std::string plugin_status = get_plugin_status(classic->connection(), "group_replication");
+    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(seed_session.get());
+    std::string plugin_status = get_plugin_status(classic->connection(),
+                                "group_replication");
 
     if (plugin_status != "ACTIVE") {
       throw shcore::Exception::runtime_error(
-        "Cannot rejoin instance. The seed instance doesn't have group-replication active.");
+        "Cannot rejoin instance. The seed instance doesn't have "
+        "group-replication active.");
     }
   }
 
-  std::string peer_instance_xcom_address;
-  shcore::Value::Array_type_ref errors;
-
   // Get @@group_replication_local_address
-  get_server_variable(classic->connection(), "group_replication_local_address", peer_instance_xcom_address);
+  std::string seed_instance_xcom_address;
+  get_server_variable(classic->connection(), "group_replication_local_address",
+                      seed_instance_xcom_address);
 
   // join Instance to cluster
   {
+    int exit_code;
+    shcore::Argument_list temp_args;
+
     try {
       log_info("Opening a new session to the rejoining instance %s",
                instance_address.c_str());
       shcore::Argument_list slave_args;
       slave_args.push_back(shcore::Value(instance_def));
-      session = mysqlsh::Shell::connect_session(slave_args, mysqlsh::SessionType::Classic);
+      session = mysqlsh::connect_session(slave_args,
+                                         mysqlsh::SessionType::Classic);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
     } catch (std::exception &e) {
-      log_error("Could not open connection to '%s': %s", instance_address.c_str(),
-                e.what());
+      log_error("Could not open connection to '%s': %s",
+                instance_address.c_str(), e.what());
       throw;
     }
 
@@ -763,7 +753,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
       _metadata_storage->get_session().get());
 
-    //Get SSL values to connect to peer instance
+    // Get SSL values to connect to peer instance
     Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
     std::string peer_ssl_ca = peer_session->get_ssl_ca();
     std::string peer_ssl_cert = peer_session->get_ssl_cert();
@@ -790,28 +780,60 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
     // Get SSL values to connect to instance
     Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
-    if (instance_def->has_key("sslCa"))
+    if (instance_def->has_key("sslCa")) {
       (*instance_ssl_opts)["sslCa"] = Value(instance_def->get_string("sslCa"));
-    if (instance_def->has_key("sslCert"))
-      (*instance_ssl_opts)["sslCert"] = Value(instance_def->get_string("sslCert"));
-    if (instance_def->has_key("sslKey"))
-      (*instance_ssl_opts)["sslKey"] = Value(instance_def->get_string("sslKey"));
+    }
+    if (instance_def->has_key("sslCert")) {
+      (*instance_ssl_opts)["sslCert"] = Value(
+        instance_def->get_string("sslCert"));
+    }
+    if (instance_def->has_key("sslKey")) {
+      (*instance_ssl_opts)["sslKey"] = Value(
+        instance_def->get_string("sslKey"));
+    }
 
+    // Get the seed session connection data
+    auto seed_session_options =
+          get_connection_data(seed_session->uri(), false);
+    std::string seed_session_port =
+          std::to_string(seed_session_options->get_int("port"));
+    std::string seed_session_host =
+          seed_session_options->get_string("host");
+    std::string seed_session_address =
+          seed_session_host + ":" + seed_session_port;
+    std::string seed_session_user = seed_session->get_user();
+
+    // Get SSL values to connect to the seed instance
+    Value::Map_type_ref seed_instance_ssl_opts(new shcore::Value::Map_type);
+    std::string seed_ssl_ca = seed_session->get_ssl_ca();
+    std::string seed_ssl_cert = seed_session->get_ssl_cert();
+    std::string seed_ssl_key = seed_session->get_ssl_key();
+    if (!seed_ssl_ca.empty())
+      (*seed_instance_ssl_opts)["sslCa"] = Value(seed_ssl_ca);
+    if (!seed_ssl_cert.empty())
+      (*seed_instance_ssl_opts)["sslCert"] = Value(seed_ssl_cert);
+    if (!seed_ssl_key.empty())
+      (*seed_instance_ssl_opts)["sslKey"] = Value(seed_ssl_key);
 
     // use mysqlprovision to rejoin the cluster.
-    exit_code = _cluster->get_provisioning_interface()->join_replicaset(user + "@" + instance_address,
-                                                                        instance_ssl_opts,
-                                                                        "",
-                                                                        user+ "@" + peer_instance,
-                                                                        peer_instance_ssl_opts,
-                                                                        password, "",
-                                                                        ssl_mode, ip_whitelist,
-                                                                        peer_instance_xcom_address, true,
-                                                                        errors);
+    exit_code = _cluster->get_provisioning_interface()->join_replicaset(
+                          instance_user + "@" + instance_address,
+                          instance_ssl_opts,
+                          "",
+                          seed_session_user + "@" + seed_session_address,
+                          seed_instance_ssl_opts,
+                          instance_password, "",
+                          ssl_mode, ip_whitelist,
+                          seed_instance_xcom_address, true,
+                          errors);
     if (exit_code == 0) {
-        ret_val = shcore::Value("The instance '" + instance_address + "' was successfully added to the MySQL Cluster.");
-    } else
-      throw shcore::Exception::runtime_error(get_mysqlprovision_error_string(errors));
+        ret_val = shcore::Value("The instance '" + instance_address +
+                                "' was successfully added to the MySQL "
+                                "Cluster.");
+    } else {
+      throw shcore::Exception::runtime_error(
+        get_mysqlprovision_error_string(errors));
+    }
   }
   return ret_val;
 }
