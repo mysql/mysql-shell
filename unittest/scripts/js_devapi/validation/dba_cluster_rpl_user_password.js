@@ -4,7 +4,10 @@
 //@ Create cluster
 ||
 
-//@ Add instance to cluster
+//@ Add instance 2 to cluster
+||
+
+//@ Add instance 3 to cluster
 ||
 
 //@ Finalization
