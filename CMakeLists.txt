@@ -47,6 +47,7 @@ INCLUDE(ssl)
 INCLUDE(readline)
 INCLUDE(compiler)
 INCLUDE(static_analysis)
+include(cmake/compile_flags.cmake)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
@@ -82,6 +83,7 @@ IF(WIN32)
 	# Also definitely resolves the trouble of using both
 	# windows.h and winsock2.h
 	ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
+  ADD_DEFINITIONS(-DNOMINMAX)
 
 	# Sets the windows versions that should be supported
 	ADD_DEFINITIONS(-DNTDDI_VERSION=0x06000100 -D_WIN32_WINNT=0x0600)

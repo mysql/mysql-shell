@@ -24,10 +24,10 @@
 #include <utility>
 #include <vector>
 
-#include "mocks/gmock_clean.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/row.h"
-#include "unittest/mocks/mysqlshdk/libs/db/mock_result.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 
 namespace testing {
 class Mock_row : public mysqlshdk::db::IRow {

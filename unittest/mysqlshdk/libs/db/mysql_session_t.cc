@@ -13,14 +13,14 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include "unittest/test_utils.h"
+#include "unittest/test_utils/shell_base_test.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include <mysql.h>
 
 namespace testing {
 
-class Mysql_session_test : public Shell_base_test {
+class Mysql_session_test : public tests::Shell_base_test {
 protected:
   mysqlshdk::db::mysql::Session mysql_session;
   mysqlshdk::db::ISession *session;

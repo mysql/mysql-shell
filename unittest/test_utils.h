@@ -23,6 +23,7 @@
 #include <vector>
 #include <list>
 #include "src/mysqlsh/mysql_shell.h"
+#include "unittest/test_utils/shell_base_test.h"
 
 #ifdef GTEST_TEST_
 #undef GTEST_TEST_
@@ -140,24 +141,8 @@ protected:
 #define MY_EXPECT_STDERR_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,false); } while (0)
 #define MY_EXPECT_LOG_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,false); } while (0)
 
-class Shell_base_test: public ::testing::Test {
-protected:
-  virtual void SetUp();
-
-  std::string _host;
-  std::string _port;
-  std::string _user;
-  int _port_number;
-  std::string _uri;
-  std::string _uri_nopasswd;
-  std::string _pwd;
-  std::string _mysql_port;
-  int _mysql_port_number;
-  std::string _mysql_uri;
-  std::string _mysql_uri_nopasswd;
-};
-
-class Shell_core_test_wrapper : public Shell_base_test, public shcore::NotificationObserver {
+class Shell_core_test_wrapper : public tests::Shell_base_test,
+                                public shcore::NotificationObserver {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
@@ -184,18 +169,6 @@ protected:
   bool debug;
   void enable_debug() {debug = true; output_handler.debug= true;}
   virtual void set_options() {};
-
-  void create_file(const std::string& name, const std::string& content) {
-    std::ofstream file(name, std::ofstream::out | std::ofstream::trunc);
-
-    if (file.is_open()) {
-      file << content;
-      file.close();
-    } else {
-      SCOPED_TRACE("Error Creating File: " + name);
-      ADD_FAILURE();
-    }
-  }
 
   void reset_shell() {
     _interactive_shell.reset(new mysqlsh::Mysql_shell(*_options.get(), &output_handler.deleg));

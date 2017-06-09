@@ -232,44 +232,6 @@ void Shell_test_output_handler::flush_debug_log() {
   full_output.clear();
 }
 
-void Shell_base_test::SetUp() {
-  const char *uri = getenv("MYSQL_URI");
-  if (uri) {
-    // Creates connection data and recreates URI, this will fix URI if no password is defined
-    // So the UT don't prompt for password ever
-    shcore::Value::Map_type_ref data = shcore::get_connection_data(uri);
-
-    _host = data->get_string("host");
-    _user = data->get_string("dbUser");
-
-    const char *pwd = getenv("MYSQL_PWD");
-    if (pwd) {
-      _pwd.assign(pwd);
-      (*data)["dbPassword"] = shcore::Value(_pwd);
-    }
-
-    _uri = shcore::build_connection_string(data, true);
-    _mysql_uri = _uri;
-
-    const char *xport = getenv("MYSQLX_PORT");
-    if (xport) {
-      _port_number = atoi(xport);
-      _port.assign(xport);
-      (*data)["port"] = shcore::Value(_pwd);
-      _uri += ":" + _port;
-    }
-    _uri_nopasswd = shcore::strip_password(_uri);
-
-    const char *port = getenv("MYSQL_PORT");
-    if (port) {
-      _mysql_port_number = atoi(port);
-      _mysql_port.assign(port);
-      _mysql_uri += ":" + _mysql_port;
-    }
-
-    _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
-  }
-}
 
 std::string Shell_core_test_wrapper::context_identifier() {
   std::string ret_val;

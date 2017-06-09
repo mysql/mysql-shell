@@ -17,11 +17,10 @@
  * 02110-1301  USA
  */
 
-#include "unittest/mocks/mysqlshdk/libs/db/mock_session.h"
-
 #include <memory>
-
-#include "mocks/gmock_clean.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace testing {
 

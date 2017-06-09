@@ -14,9 +14,9 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "unittest/mocks/mysqlshdk/libs/db/mock_result.h"
-#include "unittest/mocks/mysqlshdk/libs/db/mock_session.h"
-#include "unittest/test_utils.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
+#include "unittest/test_utils/shell_base_test.h"
 
 using mysqlshdk::db::Type;
 namespace testing {
@@ -28,7 +28,7 @@ struct DoNotDelete {
   void operator()(T *) {}
 };
 
-class Instance_test : public Shell_base_test {
+class Instance_test : public tests::Shell_base_test {
  protected:
   // An Instance requires an ISession shared pointer
   std::shared_ptr<mysqlshdk::db::ISession> _session;
@@ -57,6 +57,8 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
                        " ('server_uuid')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('server_uuid')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {
@@ -85,6 +87,8 @@ TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
                        " ('unexisting_variable')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('unexisting_variable')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {}  // No Records...
@@ -110,6 +114,8 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
                        " ('sql_warnings')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('sql_warnings')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {
@@ -139,6 +145,8 @@ TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
                        " ('unexisting_variable')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('unexisting_variable')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {}  // No Records...
@@ -164,6 +172,8 @@ TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
                        " ('server_uuid')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('server_uuid')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {
@@ -187,6 +197,8 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
                        " ('server_id')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('server_id')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {
@@ -216,6 +228,8 @@ TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
                        " ('unexisting_variable')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('unexisting_variable')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {}  // No Records...
@@ -241,6 +255,8 @@ TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
                        " ('server_uuid')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('server_uuid')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {
@@ -264,6 +280,8 @@ TEST_F(Instance_test, get_system_variables) {
                        " ('server_id', 'server_uuid', 'unexisting_variable')").
     then_return({
       {
+        "show variables where `variable_name` in"
+        " ('server_id', 'server_uuid', 'unexisting_variable')",
         { "Variable_name", "Value" },
         { Type::VarString, Type::VarString },
         {

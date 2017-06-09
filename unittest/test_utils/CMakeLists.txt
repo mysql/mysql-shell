@@ -18,7 +18,12 @@ set(test_utils_SRC
     shell_base_test.cc
     command_line_test.h
     command_line_test.cc
+    server_mock.h
+    server_mock.cc
 
+    "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.cc"
+    "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.cc"
+    "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_row.cc"
     "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/utils/process_launcher.cc"
     "${PROJECT_SOURCE_DIR}/common/common/exception.cc"
 )

@@ -25,8 +25,8 @@
 #include <string>
 #include <vector>
 
-#include "mocks/gmock_clean.h"
-#include "mocks/mysqlshdk/libs/db/mock_result.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 #include "mysqlshdk/libs/db/session.h"
 
 namespace testing {
