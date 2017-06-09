@@ -25,6 +25,9 @@
 #include "mod_dba_replicaset.h"
 #include <string>
 
+#define ER_NOT_VALID_PASSWORD 1819
+#define ER_PLUGIN_IS_NOT_LOADED 1524
+
 namespace mysqlsh {
 namespace mysql {
 class ClassicResult;
@@ -81,6 +84,10 @@ public:
   void set_session(std::shared_ptr<mysqlsh::ShellBaseSession> session);
 
   std::shared_ptr<mysql::ClassicResult> execute_sql(const std::string &sql, bool retry = false, const std::string &log_sql = "") const;
+
+  void create_account(const std::string &username, const std::string &password,
+                      const std::string &hostname,
+                      bool password_hashed = false);
 
   class Transaction {
   public:

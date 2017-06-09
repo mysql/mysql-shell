@@ -22,8 +22,13 @@ else:
 # configure the validate_password plugin for the strong policy
 session.run_sql('SET GLOBAL validate_password_policy=\'STRONG\'');
 
-#@ Add instance to cluster
+#@ Add instance 2 to cluster
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)
+
+session.run_sql('SET GLOBAL validate_password_length=33');
+
+#@ Add instance 3 to cluster
+add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
 #@ Finalization
 if deployed_here:
