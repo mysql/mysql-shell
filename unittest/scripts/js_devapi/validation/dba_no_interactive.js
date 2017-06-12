@@ -161,6 +161,34 @@
 //@ Dba: Delete created user and reconnect to previous sandbox
 |Number of accounts: 0|
 
+//@ Dba: create an admin user with all needed privileges
+|Number of 'mydba'@'localhost' accounts: 1|
+
+//@<OUT> Dba: configureLocalInstance create different admin user
+{
+    "status": "ok"
+}
+
+//@<OUT> Dba: configureLocalInstance create existing valid admin user
+{
+    "status": "ok"
+}
+
+//@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
+||
+
+//@<OUT> Dba: configureLocalInstance create existing invalid admin user
+{
+    "errors": [
+        "User dba_test already exists but it does not have all the privileges for managing an InnoDB cluster. Please provide a non-existing user to be created or a different one with all the required privileges."
+    ],
+    "restart_required": false,
+    "status": "error"
+}
+
+//@ Dba: Delete previously create an admin user with all needed privileges
+|Number of 'mydba'@'localhost' accounts: 0|
+
 //@# Dba: getCluster errors
 ||Invalid cluster name: Argument #1 is expected to be a string
 ||Invalid number of arguments in Dba.getCluster, expected 0 to 1 but got 2

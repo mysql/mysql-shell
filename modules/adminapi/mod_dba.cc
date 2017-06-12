@@ -1447,6 +1447,7 @@ std::shared_ptr<mysqlsh::mysql::ClassicSession> Dba::get_session(const shcore::A
 
 shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Argument_list &args, bool allow_update) {
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
+  shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
 
   // Validates the connection options
   shcore::Value::Map_type_ref instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
@@ -1509,8 +1510,40 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
     throw shcore::Exception::runtime_error("The instance '" + uri + "' is already part of an InnoDB Cluster");
   }
   else {
-    if (!cluster_admin.empty() && allow_update)
-      create_cluster_admin_user(session, cluster_admin, cluster_admin_password);
+    if (!cluster_admin.empty() && allow_update) {
+      try {
+        create_cluster_admin_user(session,
+                                  cluster_admin,
+                                  cluster_admin_password);
+      } catch (shcore::Exception &err) {
+        // Catch ER_CANNOT_USER (1396) if the user already exists, and skip it
+        // if the user has the needed privileges.
+        if (err.code() == ER_CANNOT_USER) {
+          std::string admin_user, admin_user_host;
+          shcore::split_account(cluster_admin, &admin_user, &admin_user_host);
+          // Host '%' is used by default if not provided in the user account.
+          if (admin_user_host.empty())
+            admin_user_host = "%";
+          if (!validate_cluster_admin_user_privileges(session, admin_user,
+                                                      admin_user_host)) {
+            std::string error_msg =
+                "User " + cluster_admin + " already exists but it does not "
+                "have all the privileges for managing an InnoDB cluster. "
+                "Please provide a non-existing user to be created or a "
+                "different one with all the required privileges.";
+            errors->push_back(shcore::Value(error_msg));
+            log_error("%s", error_msg.c_str());
+          } else {
+            log_warning("User %s already exists.", cluster_admin.c_str());
+          }
+        } else {
+          std::string error_msg = "Unexpected error creating " + cluster_admin +
+                                  " user: " + err.what();
+          errors->push_back(shcore::Value(error_msg));
+          log_error("%s", error_msg.c_str());
+        }
+      }
+    }
 
     std::string host = instance_def->get_string("host");
     int port = instance_def->get_int("port");
@@ -1540,9 +1573,15 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
     shcore::Value::Array_type_ref mp_errors;
 
     if ((_provisioning_interface->check(user, host, port, password, instance_ssl_opts, cnfpath, allow_update, mp_errors) == 0)) {
-      (*ret_val)["status"] = shcore::Value("ok");
+      // Only return status "ok" if no previous errors were found.
+      if (errors->size() == 0) {
+        (*ret_val)["status"] = shcore::Value("ok");
+      } else {
+        (*ret_val)["status"] = shcore::Value("error");
+        (*ret_val)["errors"] = shcore::Value(errors);
+        (*ret_val)["restart_required"] = shcore::Value(false);
+      }
     } else {
-      shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
       bool restart_required = false;
 
       (*ret_val)["status"] = shcore::Value("error");

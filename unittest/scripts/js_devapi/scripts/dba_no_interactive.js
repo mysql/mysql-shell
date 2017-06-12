@@ -130,6 +130,56 @@ var result = session.runSql("select COUNT(*) from mysql.user where user='missing
 var row = result.fetchOne();
 print("Number of accounts: "+ row[0] + "\n");
 session.close();
+
+//@ Dba: create an admin user with all needed privileges
+// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+connect_to_sandbox([__mysql_sandbox_port2]);
+session.runSql("SET SQL_LOG_BIN=0");
+session.runSql("CREATE USER 'mydba'@'localhost' IDENTIFIED BY ''");
+session.runSql("GRANT ALL ON *.* TO 'mydba'@'localhost' WITH GRANT OPTION");
+session.runSql("SET SQL_LOG_BIN=1");
+var result = session.runSql("SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'");
+var row = result.fetchOne();
+print("Number of 'mydba'@'localhost' accounts: "+ row[0] + "\n");
+session.close();
+
+//@<OUT> Dba: configureLocalInstance create different admin user
+// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
+    {clusterAdmin: "dba_test", clusterAdminPassword:"",
+        mycnfPath:__output_sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+
+//@<OUT> Dba: configureLocalInstance create existing valid admin user
+// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
+    {clusterAdmin: "dba_test", clusterAdminPassword:"",
+        mycnfPath:__output_sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+
+//@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
+connect_to_sandbox([__mysql_sandbox_port2]);
+session.runSql("SET SQL_LOG_BIN=0");
+session.runSql("REVOKE REPLICATION SLAVE ON *.* FROM 'dba_test'@'%'");
+session.runSql("SET SQL_LOG_BIN=1");
+session.close();
+
+//@<OUT> Dba: configureLocalInstance create existing invalid admin user
+// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
+    {clusterAdmin: "dba_test", clusterAdminPassword:"",
+        mycnfPath:__output_sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+
+//@ Dba: Delete previously create an admin user with all needed privileges
+// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
+connect_to_sandbox([__mysql_sandbox_port2]);
+session.runSql("SET SQL_LOG_BIN=0");
+session.runSql("DROP USER 'mydba'@'localhost'");
+session.runSql("DROP USER 'dba_test'@'%'");
+session.runSql("SET SQL_LOG_BIN=1");
+var result = session.runSql("SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'");
+var row = result.fetchOne();
+print("Number of 'mydba'@'localhost' accounts: "+ row[0] + "\n");
+session.close();
+
 connect_to_sandbox([__mysql_sandbox_port1]);
 
 //@# Dba: getCluster errors
