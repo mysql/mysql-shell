@@ -70,6 +70,7 @@ public:
   std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
   bool is_replicaset_empty(uint64_t rs_id);
   bool is_instance_on_replicaset(uint64_t rs_id, const std::string &address);
+  uint64_t get_replicaset_count(uint64_t rs_id) const;
 
   std::string get_seed_instance(uint64_t rs_id);
   std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(uint64_t rs_id);

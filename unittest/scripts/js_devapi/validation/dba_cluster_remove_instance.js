@@ -93,5 +93,14 @@
     }
 }
 
+//@ Error removing last instance
+||Cluster.removeInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster. (LogicError)
+
+//@ Dissolve cluster with success
+||
+
+//@ Cluster re-created with success
+||
+
 //@ Finalization
 ||

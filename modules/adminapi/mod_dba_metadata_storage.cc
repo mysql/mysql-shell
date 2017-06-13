@@ -689,6 +689,33 @@ bool MetadataStorage::is_replicaset_empty(uint64_t rs_id) {
   return count == 0;
 }
 
+/**
+ * Count the number of instances in a replicaset.
+ *
+ * @param rs_id Integer with the ID of the target replicaset.
+ *
+ * @return An integer with the number of instances in the replicaset.
+ */
+uint64_t MetadataStorage::get_replicaset_count(uint64_t rs_id) const {
+  shcore::sqlstring query;
+
+  query = shcore::sqlstring("SELECT COUNT(*) as count "
+                            "FROM mysql_innodb_cluster_metadata.instances "
+                            "WHERE replicaset_id = ?",
+                            0);
+  query << rs_id;
+  query.done();
+
+  auto result = execute_sql(query);
+
+  auto row = result->fetch_one();
+  uint64_t count = 0;
+  if (row) {
+    count = row->get_value(0).as_int();
+  }
+  return count;
+}
+
 bool MetadataStorage::is_instance_on_replicaset(uint64_t rs_id, const std::string &address) {
   shcore::sqlstring query;
 

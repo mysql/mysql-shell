@@ -83,5 +83,14 @@
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
 
+#@ Error removing last instance
+||SystemError: LogicError: Cluster.remove_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster.
+
+#@ Dissolve cluster with success
+||
+
+#@ Cluster re-created with success
+||
+
 #@ Finalization
 ||

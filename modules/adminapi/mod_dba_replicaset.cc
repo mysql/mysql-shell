@@ -945,6 +945,18 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     throw shcore::Exception::runtime_error(message);
   }
 
+  // Check if it is the last instance in the ReplicaSet and issue an error.
+  // NOTE: When multiple replicasets are supported this check needs to be moved
+  //       to a higher level (to check if the instance is the last one of the
+  //       last replicaset, which should be the default replicaset).
+  if (_metadata_storage->get_replicaset_count(get_id()) == 1) {
+    throw Exception::logic_error(
+        "The instance '" + instance_address + "' cannot be removed because it "
+        "is the only member of the Cluster. "
+        "Please use <Cluster>." + get_member_name("dissolve", naming_style) +
+        "() instead to remove the last instance and dissolve the Cluster.");
+  }
+
   auto session = _metadata_storage->get_session();
   mysqlsh::mysql::ClassicSession *classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
 
