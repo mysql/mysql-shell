@@ -357,7 +357,9 @@ void MetadataStorage::remove_instance(const std::string &instance_address) {
   shcore::sqlstring query;
 
   // Remove the instance
-  query = shcore::sqlstring("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE addresses->\"$.mysqlClassic\" = ?", 0);
+  query = shcore::sqlstring(
+      "DELETE FROM mysql_innodb_cluster_metadata.instances "
+      "WHERE addresses->'$.mysqlClassic' = ?", 0);
   query << instance_address;
   query.done();
 
@@ -662,7 +664,9 @@ bool MetadataStorage::has_default_cluster() {
   bool ret_val = false;
 
   if (metadata_schema_exists()) {
-    auto result = execute_sql("SELECT cluster_id from mysql_innodb_cluster_metadata.clusters WHERE attributes->\"$.default\" = true");
+    auto result = execute_sql(
+        "SELECT cluster_id from mysql_innodb_cluster_metadata.clusters "
+        "WHERE attributes->'$.default' = true");
 
     auto row = result->fetch_one();
     if (row)
@@ -719,7 +723,9 @@ uint64_t MetadataStorage::get_replicaset_count(uint64_t rs_id) const {
 bool MetadataStorage::is_instance_on_replicaset(uint64_t rs_id, const std::string &address) {
   shcore::sqlstring query;
 
-  query = shcore::sqlstring("SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = ? AND addresses->\"$.mysqlClassic\" = ?", 0);
+  query = shcore::sqlstring(
+      "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances "
+      "WHERE replicaset_id = ? AND addresses->'$.mysqlClassic' = ?", 0);
   query << rs_id;
   query << address;
   query.done();
@@ -743,9 +749,10 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
   // Get the Cluster instanceAdminUser
 
   //query = "SELECT JSON_UNQUOTE(addresses->\"$.mysqlClassic\")  as address FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = '" + std::to_string(rs_id) + "' AND role = 'HA'";
-  query = "SELECT JSON_UNQUOTE(i.addresses->\"$.mysqlClassic\") as address "
+  query = "SELECT JSON_UNQUOTE(i.addresses->'$.mysqlClassic') as address "
           " FROM performance_schema.replication_group_members g"
-          " JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid"
+          " JOIN mysql_innodb_cluster_metadata.instances i"
+          " ON g.member_id = i.mysql_server_uuid"
           " WHERE g.member_state = 'ONLINE'";
 
   auto result = execute_sql(query);
@@ -760,10 +767,11 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
 std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_instances(uint64_t rs_id) {
   shcore::sqlstring query;
 
-  query = shcore::sqlstring("select mysql_server_uuid, instance_name, role,"
-                            " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
-                            " from mysql_innodb_cluster_metadata.instances"
-                            " where replicaset_id = ?", 0);
+  query = shcore::sqlstring(
+      "select mysql_server_uuid, instance_name, role,"
+      " JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host"
+      " from mysql_innodb_cluster_metadata.instances"
+      " where replicaset_id = ?", 0);
   query << rs_id;
   query.done();
 
@@ -777,12 +785,14 @@ std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_insta
 std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_online_instances(uint64_t rs_id) {
   shcore::sqlstring query;
 
-  query = shcore::sqlstring("SELECT mysql_server_uuid, instance_name, role,"
-                            " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
-                            " FROM performance_schema.replication_group_members g"
-                            " JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid"
-                            " WHERE g.member_state = 'ONLINE'"
-                            " AND replicaset_id = ?", 0);
+  query = shcore::sqlstring(
+      "SELECT mysql_server_uuid, instance_name, role,"
+      " JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host"
+      " FROM performance_schema.replication_group_members g"
+      " JOIN mysql_innodb_cluster_metadata.instances i"
+      " ON g.member_id = i.mysql_server_uuid"
+      " WHERE g.member_state = 'ONLINE'"
+      " AND replicaset_id = ?", 0);
   query << rs_id;
   query.done();
 
@@ -807,12 +817,12 @@ shcore::Value::Map_type_ref MetadataStorage::get_instance(
   query = shcore::sqlstring(
       "SELECT host_id, replicaset_id, mysql_server_uuid, "\
       "instance_name, role, weight, "\
-      "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as endpoint, "\
-      "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlX\")) as xendpoint, "\
-      "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.grLocal\")) as grendpoint, "\
+      "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as endpoint, "\
+      "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlX')) as xendpoint, "\
+      "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.grLocal')) as grendpoint, "\
       "addresses, attributes, version_token, description "
       "FROM mysql_innodb_cluster_metadata.instances "\
-      "WHERE addresses->\"$.mysqlClassic\" = ?", 0);
+      "WHERE addresses->'$.mysqlClassic' = ?", 0);
 
   query << instance_address;
   query.done();
