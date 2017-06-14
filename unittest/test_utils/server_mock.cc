@@ -13,6 +13,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <vector>
 #include "unittest/test_utils/server_mock.h"
 #include "unittest/test_utils/shell_base_test.h"
 #include "utils/utils_general.h"
@@ -41,7 +42,7 @@ std::string random_json_name(std::string::size_type length)
   return result + ".json";
 }
 
-Server_mock::Server_mock():_port(0) {
+Server_mock::Server_mock():_server_listening(false) {
 }
 
 std::string Server_mock::create_data_file(const std::vector<Fake_result_data> &data) {
@@ -100,7 +101,8 @@ std::string Server_mock::create_data_file(const std::vector<Fake_result_data> &d
   std::string name = prefix + "/" + random_json_name(15);
 #endif
 
-  Shell_base_test::create_file(name, dumper.str());
+  if (!shcore::create_file(name, dumper.str()))
+    throw std::runtime_error("Error creating Mock Server data file");
 
   return name;
 }
@@ -163,39 +165,63 @@ std::string Server_mock::get_path_to_binary() {
 }
 
 void Server_mock::start(int port, const std::vector<Fake_result_data> &data) {
-  _port = port;
-  _query_file = create_data_file(data);
-  _binary_path = get_path_to_binary();
+  std::string binary_path = get_path_to_binary();
+  std::string data_path = create_data_file(data);
+  std::string strport = std::to_string(port);
+
+  std::vector<const char *> args = {
+    binary_path.c_str(),
+    data_path.c_str(),
+    strport.c_str(),
+    NULL
+  };
 
   _thread = std::shared_ptr<std::thread>(
-    new std::thread([this](){
+    new std::thread([this, args](){
       try {
-        std::vector<const char *> args_script = {
-          _binary_path.c_str(),
-          _query_file.c_str(),
-          std::to_string(_port).c_str(),
-          NULL
-        };
+        _server.lock();
 
-        _process.reset(new ngcommon::Process_launcher (&args_script[0]));
+        _process.reset(new ngcommon::Process_launcher(&args[0]));
         _process->start();
+
+        char c;
+        while (_process->read(&c, 1) > 0) {
+          _server_output += c;
+          if (_server_output.find("Starting to handle connections") !=
+              std::string::npos) {
+            if (!_server_listening) {
+              _server_listening = true;
+              _server.unlock();
+            }
+          }
+        }
+
         _process->wait();
+
+        // If the server is not listening, it is still locked
+        if (!_server_listening)
+          _server.unlock();
       }
       catch (const std::exception& e) {
-        std::cout << "MySQLServerMock ERROR: " << e.what() << std::endl;
+        std::cout << e.what() << std::endl;
       }
-
-      // The mock process has ended, the data file is no longer needed
-      shcore::delete_file(_query_file);
     }));
 
-  // This delay is required to ensure the mock server is up and running
-  // When it receives the first connection attemp
+  // This delay is required to guarantee the _server is locked first on the
+  // mock server thread
 #ifdef _WIN32
-  Sleep(1000);
+  Sleep(5);
 #else
-  sleep(1);
+  usleep(5000);
 #endif
+  _server.lock();
+
+  // Deletes the temporary data file
+  shcore::delete_file(data_path);
+
+  if (!_server_listening)
+    throw std::runtime_error(_server_output);
+  _server.unlock();
 }
 
 void Server_mock::stop() {

@@ -283,68 +283,6 @@ void ReplicaSet::validate_instance_address(std::shared_ptr<mysqlsh::mysql::Class
   }
 }
 
-/**
- * Determines the value to use for the SSL mode based on the settings of
- * the instance (SSL support available) or the settings used by the peer
- * instance, when the SSL mode is set to AUTO.
- *
- * The function also validates if the determined SSL mode can be set for the
- * instance and raise an error otherwise.
- *
- * No peer_session should be specified (nullptr) when used to create the
- * cluster. The peer_session should be specified for join and rejoin.
- */
-std::string ReplicaSet::resolve_ssl_mode(mysqlsh::mysql::ClassicSession *session,
-                                         mysqlsh::mysql::ClassicSession *peer_session) {
-  if (peer_session == nullptr) {
-    // No peer_session specified (create cluster) then the SSL mode is
-    // determined based on the instance SSL support.
-    std::string have_ssl;
-    get_server_variable(session->connection(), "global.have_ssl",
-                        have_ssl);
-    if (have_ssl.compare("YES") == 0) {
-      return dba::kMemberSSLModeRequired;
-    } else {
-      std::string msg = "Instance does not have SSL enabled. Cluster will not "
-          "use SSL (encryption).";
-      log_warning("%s", msg.c_str());
-      return dba::kMemberSSLModeDisabled;
-    }
-  } else {
-    // peer_session specified (join/rejoin instance) then the SSL mode is
-    // determined based on the SSL mode of the peer (it must be the same).
-    std::string gr_ssl_mode;
-    get_server_variable(peer_session->connection(),
-                        "global.group_replication_ssl_mode",
-                        gr_ssl_mode);
-    if (gr_ssl_mode.compare("REQUIRED") == 0) {
-      std::string have_ssl;
-      get_server_variable(session->connection(), "global.have_ssl",
-                          have_ssl);
-      if (have_ssl.compare("YES") != 0) {
-        // Instance is not able to enable SSL (not supported).
-        throw shcore::Exception::runtime_error(
-            "Instance does not support SSL and cannot join a cluster with SSL "
-                "(encryption) enabled. Enable SSL support on the instance and "
-                "try again, otherwise it can only be added to a cluster with "
-                "SSL disabled."
-        );
-      }
-      return dba::kMemberSSLModeRequired;
-    } else if (gr_ssl_mode.compare("DISABLED") == 0) {
-      return dba::kMemberSSLModeDisabled;
-    } else {
-      // Only GR SSL mode "REQUIRED" and "DISABLED" are currently supported.
-      throw shcore::Exception::runtime_error(
-          "Unsupported Group Replication SSL Mode for the cluster: "
-              + gr_ssl_mode + ". If the cluster was created using "
-              "adoptFromGR:true make sure the group_replication_ssl_mode "
-              "variable is set with a supported value (DISABLED or REQUIRED) "
-              "for all cluster members.");
-    }
-  }
-}
-
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                                        const std::string &existing_replication_user,
                                        const std::string &existing_replication_password,
@@ -369,7 +307,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
   // Retrieves the instance definition
   auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
   shcore::Argument_map instance_map(*instance_def);
-  instance_map.ensure_keys({"host"}, _instance_options, "instance definition");
+  instance_map.ensure_keys({"host"},
+                           shcore::connection_attributes,
+                           "instance definition");
 
   // Retrieves the add options
   if (args.size() == 2 ) {
@@ -420,16 +360,27 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
   // Resolve the SSL Mode to use to configure the instance.
   boost::to_upper(ssl_mode);
-  if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
-    if (seed_instance) {
-      ssl_mode = resolve_ssl_mode(session.get(), nullptr);
-    } else {
-      auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
-          _metadata_storage->get_session().get());
-      ssl_mode = resolve_ssl_mode(session.get(), peer_session);
-    }
-    log_debug("SSL mode used to configure instance: '%s'", ssl_mode.c_str());
+  std::string new_ssl_mode;
+  std::string target;
+  if (seed_instance) {
+    new_ssl_mode = resolve_cluster_ssl_mode(session.get(), ssl_mode);
+    target = "cluster";
+  } else {
+    auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
+        _metadata_storage->get_session().get());
+    new_ssl_mode = resolve_instance_ssl_mode(session.get(),
+                                             peer_session,
+                                             ssl_mode);
+    target = "instance";
   }
+
+  if (new_ssl_mode != ssl_mode) {
+    ssl_mode = new_ssl_mode;
+    log_warning("SSL mode used to configure the %s: '%s'",
+                target.c_str(),
+                ssl_mode.c_str());
+  }
+
 
   GRInstanceType type = get_gr_instance_type(session->connection());
 
@@ -645,7 +596,9 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
   auto instance_def = get_instance_options_map(args,
                         mysqlsh::dba::PasswordFormat::OPTIONS);
   shcore::Argument_map instance_map(*instance_def);
-  instance_map.ensure_keys({"host"}, _instance_options, "instance definition");
+  instance_map.ensure_keys({"host"},
+                           shcore::connection_attributes,
+                           "instance definition");
 
   // Retrieves the options
   if (args.size() == 2) {
@@ -750,12 +703,20 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     // Check replication filters before creating the Metadata.
     validate_replication_filters(classic);
 
-    boost::to_upper(ssl_mode);
-
     auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
       _metadata_storage->get_session().get());
 
-    // Get SSL values to connect to peer instance
+    boost::to_upper(ssl_mode);
+    std::string new_ssl_mode;
+    // Resolve the SSL Mode to use to configure the instance.
+    new_ssl_mode = resolve_instance_ssl_mode(classic, peer_session, ssl_mode);
+    if (new_ssl_mode != ssl_mode) {
+      ssl_mode = new_ssl_mode;
+      log_warning("SSL mode used to configure the instance: '%s'",
+                  ssl_mode.c_str());
+    }
+
+    //Get SSL values to connect to peer instance
     Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
     std::string peer_ssl_ca = peer_session->get_ssl_ca();
     std::string peer_ssl_cert = peer_session->get_ssl_cert();
@@ -766,12 +727,6 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       (*peer_instance_ssl_opts)["sslCert"] = Value(peer_ssl_cert);
     if (!peer_ssl_key.empty())
       (*peer_instance_ssl_opts)["sslKey"] = Value(peer_ssl_key);
-
-    // Resolve the SSL Mode to use to configure the instance.
-    if (ssl_mode.compare(dba::kMemberSSLModeAuto) == 0) {
-      ssl_mode = resolve_ssl_mode(classic, peer_session);
-      log_debug("SSL mode used to configure instance: '%s'", ssl_mode.c_str());
-    }
 
     // Stop group-replication
     log_info("Stopping group-replication at instance %s",
@@ -891,7 +846,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   // No required options set before refactoring
   shcore::Argument_map opt_map(*instance_def);
-  opt_map.ensure_keys({}, _instance_options, "instance definition");
+  opt_map.ensure_keys({}, shcore::connection_attributes, "instance definition");
 
   if (!instance_def->has_key("port"))
     (*instance_def)["port"] = shcore::Value(get_default_port());
@@ -1276,7 +1231,9 @@ shcore::Value ReplicaSet::retrieve_instance_state(const shcore::Argument_list &a
   auto instance_def = get_instance_options_map(args, PasswordFormat::STRING);
 
   shcore::Argument_map opt_map(*instance_def);
-  opt_map.ensure_keys({"host"}, _instance_options, "instance definition");
+  opt_map.ensure_keys({"host"},
+                      shcore::connection_attributes,
+                      "instance definition");
 
   if (!instance_def->has_key("port"))
     (*instance_def)["port"] = shcore::Value(get_default_port());
@@ -1615,7 +1572,9 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(const shcore::Argument
 
   auto instance_def = get_instance_options_map(args, PasswordFormat::STRING);
   shcore::Argument_map opt_map(*instance_def);
-  opt_map.ensure_keys({"host"}, _instance_options, "instance definition");
+  opt_map.ensure_keys({"host"},
+                      shcore::connection_attributes,
+                      "instance definition");
 
   if (!instance_def->has_key("port"))
     (*instance_def)["port"] = shcore::Value(get_default_port());

@@ -17,16 +17,15 @@
  * 02110-1301  USA
  */
 
+#include <string>
+#include <vector>
+#include <boost/format.hpp>
 #include "interactive_dba_cluster.h"
 #include "interactive_global_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-//#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "modules/adminapi/mod_dba_common.h"
-#include <boost/format.hpp>
-#include <string>
-#include <vector>
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -128,7 +127,8 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
 
       instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
       shcore::Argument_map instance_map(*instance_def);
-      instance_map.ensure_keys({"host"}, mysqlsh::dba::_instance_options, "instance definition");
+      instance_map.ensure_keys({"host"}, shcore::connection_attributes,
+                               "instance definition");
 
       if (args.size() == 2) {
         options = args.map_at(1);
@@ -179,7 +179,8 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
   try {
     instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
     shcore::Argument_map instance_map(*instance_def);
-    instance_map.ensure_keys({"host"}, mysqlsh::dba::_instance_options, "instance definition");
+    instance_map.ensure_keys({"host"}, shcore::connection_attributes,
+                             "instance definition");
 
     if (args.size() == 2) {
       options = args.map_at(1);
@@ -347,7 +348,8 @@ shcore::Value Interactive_dba_cluster::check_instance_state(const shcore::Argume
     instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
 
     shcore::Argument_map opt_map(*instance_def);
-    opt_map.ensure_keys({"host", "port"}, mysqlsh::dba::_instance_options, "instance definition");
+    opt_map.ensure_keys({"host", "port"}, shcore::connection_attributes,
+                        "instance definition");
 
     // Gather username and password if missing
     mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
@@ -513,7 +515,7 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(const shc
 
     shcore::Argument_map opt_map(*instance_def);
     opt_map.ensure_keys({"host"},
-                        mysqlsh::dba::_instance_options,
+                        shcore::connection_attributes,
                         "instance definition");
 
     std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replica_set;

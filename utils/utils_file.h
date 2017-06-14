@@ -35,6 +35,8 @@ void SHCORE_PUBLIC remove_directory(const std::string& path);
 std::string SHCORE_PUBLIC get_last_error();
 bool SHCORE_PUBLIC load_text_file(const std::string& path, std::string& data);
 void SHCORE_PUBLIC delete_file(const std::string& filename);
+bool SHCORE_PUBLIC create_file(const std::string& name,
+                               const std::string& content);
 std::string SHCORE_PUBLIC get_home_dir();
 }
 #endif /* defined(__mysh__utils_file__) */

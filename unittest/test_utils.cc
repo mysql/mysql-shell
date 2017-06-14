@@ -262,59 +262,11 @@ void Shell_core_test_wrapper::SetUp() {
   set_options();
   output_handler.debug = debug;
 
-  const char *uri = getenv("MYSQL_URI");
-  if (uri) {
-    const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-    if (sandbox_port1) {
-      _mysql_sandbox_port1.assign(sandbox_port1);
-    } else {
-      std::string sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
-      _mysql_sandbox_port1.assign(sandbox_port1);
-    }
-
-    const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-    if (sandbox_port2) {
-      _mysql_sandbox_port2.assign(sandbox_port2);
-    } else {
-      std::string sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
-      _mysql_sandbox_port2.assign(sandbox_port2);
-    }
-
-    const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-    if (sandbox_port3) {
-      _mysql_sandbox_port3.assign(sandbox_port3);
-    } else {
-      std::string sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
-      _mysql_sandbox_port3.assign(sandbox_port3);
-    }
-  }
-
-  const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir) {
-    _sandbox_dir.assign(tmpdir);
-
-#ifdef WIN32
-    auto tokens = shcore::split_string(_sandbox_dir, "\\");
-    _sandbox_dir = shcore::join_strings(tokens, "\\\\");
-#endif
-  } else {
-    // If not specified, the tests will create the sandboxes on the binary folder
-    _sandbox_dir = shcore::get_binary_folder();
-  }
-
-
 #ifdef _WIN32
   std::string _path_splitter = "\\";
 #else
   std::string _path_splitter = "/";
 #endif
-
-  std::vector<std::string> path_components = {_sandbox_dir, _mysql_sandbox_port1, "my.cnf"};
-  _sandbox_cnf_1 = shcore::join_strings(path_components, _path_splitter);
-  path_components[1] = _mysql_sandbox_port2;
-  _sandbox_cnf_2 = shcore::join_strings(path_components, _path_splitter);
-  path_components[1] = _mysql_sandbox_port3;
-  _sandbox_cnf_3 = shcore::join_strings(path_components, _path_splitter);
 
   // Initializes the interactive shell
   reset_shell();

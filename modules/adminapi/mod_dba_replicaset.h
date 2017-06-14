@@ -171,8 +171,6 @@ private:
 
   void validate_instance_address(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
                                  const std::string &hostname, int port);
-  std::string resolve_ssl_mode(mysqlsh::mysql::ClassicSession *session,
-                               mysqlsh::mysql::ClassicSession *peer_session);
 
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
 

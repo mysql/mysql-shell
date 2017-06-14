@@ -22,7 +22,7 @@
 ||Cluster.addInstance: Connection definition is empty
 ||Cluster.addInstance: Invalid and missing values in instance definition (invalid: weird), (missing: host)
 ||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.addInstance: Invalid values in instance definition: authMethod, ipWhitelist, memberSslMode, schema
+||Cluster.addInstance: Invalid values in instance definition: ipWhitelist, memberSslMode
 ||Cluster.addInstance: Missing values in instance definition: host
 ||Cluster.addInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
@@ -99,7 +99,7 @@
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 3
 ||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.removeInstance: Invalid values in instance definition: authMethod, schema
+||Cluster.removeInstance: Invalid values in instance definition: fakeOption
 ||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 ||Cluster.removeInstance: The instance 'second:3306' does not belong to the ReplicaSet: 'default'
 
@@ -341,7 +341,7 @@
 ||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 3
 ||Cluster.rejoinInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.rejoinInstance: Invalid values in instance definition: authMethod, ipWhitelist, memberSslMode, schema
+||Cluster.rejoinInstance: Invalid values in instance definition: ipWhitelist, memberSslMode
 ||Cluster.rejoinInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 ||Cluster.rejoinInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.

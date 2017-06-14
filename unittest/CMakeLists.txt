@@ -37,8 +37,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/*_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_t.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_interactive_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_main.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_utils.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_script_tester.cc"
@@ -47,6 +46,13 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/src/shell_resultset_dumper.cc"
         "${PROJECT_SOURCE_DIR}/src/interactive_shell.cc"
         "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/shell_base_test.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/command_line_test.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/server_mock.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/admin_api_test.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/shell_script_tester.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/shell_script_tester.cc"
+        "${PROJECT_SOURCE_DIR}/common/process_launcher/process_launcher.cc"
     )
 
     if (HAVE_PROTOBUF)
@@ -71,7 +77,6 @@ if(WITH_TESTS)
     endif()
 
     add_subdirectory(mysqld_mock)
-    add_subdirectory(test_utils)
 
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     add_dependencies(run_unit_tests mysqlshcore)
@@ -80,7 +85,6 @@ if(WITH_TESTS)
             mysqlshcore
             mysqlxtest
             gtest
-            test_utils
             ${MYSQL_LIBRARIES}
             ${PROTOBUF_LIBRARY}
             ${SSL_LIBRARIES}

@@ -755,7 +755,7 @@ shcore::Value Global_dba::check_instance_configuration(const shcore::Argument_li
 
   shcore::Argument_map opt_map(*instance_def);
 
-  opt_map.ensure_keys({"host", "port"}, mysqlsh::dba::_instance_options, "instance definition");
+  opt_map.ensure_keys({"host", "port"}, shcore::connection_attributes, "instance definition");
 
   if (args.size() == 2) {
     shcore::Argument_map extra_opts(*args.map_at(1));
@@ -1162,7 +1162,7 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
     }
     instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
     shcore::Argument_map opt_map(*instance_def);
-    opt_map.ensure_keys({"host", "port"}, mysqlsh::dba::_instance_options, "instance definition");
+    opt_map.ensure_keys({"host", "port"}, shcore::connection_attributes, "instance definition");
 
     if (!shcore::is_local_host(opt_map.string_at("host"), true))
       throw shcore::Exception::runtime_error("This function only works with local instances");

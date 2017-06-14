@@ -1453,7 +1453,8 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
   shcore::Argument_map opt_map(*instance_def);
   shcore::Argument_map validate_opt_map;
 
-  opt_map.ensure_keys({"host", "port"}, _instance_options, "instance definition");
+  opt_map.ensure_keys({"host", "port"}, shcore::connection_attributes,
+                      "instance definition");
 
   shcore::Value::Map_type_ref validate_options;
 
