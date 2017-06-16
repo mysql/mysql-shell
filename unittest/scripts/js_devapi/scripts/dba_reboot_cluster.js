@@ -81,10 +81,18 @@ session.close();
 // Re-establish the connection to instance 1
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
+var instance2 = localhost + ':' + __mysql_sandbox_port2;
+var instance3 = localhost + ':' + __mysql_sandbox_port3;
+
+//@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
+cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance3]});
+
+//@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
+cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance2]});
+
 // Test both rejoinInstances and removeInstances on a single call
 //@ Dba.rebootClusterFromCompleteOutage success
-var instance2 = 'localhost:' + __mysql_sandbox_port2;
-var instance3 = 'localhost:' + __mysql_sandbox_port3;
+
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance3]});
 
 // Waiting for the second added instance to become online
