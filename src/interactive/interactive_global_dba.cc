@@ -559,11 +559,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
                   [&instance](const std::pair<std::string, std::string> &p)
                   { return p.first == instance; });
 
-        if (it != instances_status.end()) {
-          if (!(it->second.empty())) {
-            throw Exception::runtime_error("The instance '" + instance + "' is not reachable");
-          }
-        } else {
+        if (it == instances_status.end()) {
           throw Exception::runtime_error("The instance '" + instance + "' does not "
                                          "belong to the cluster or is the seed instance.");
         }
@@ -615,6 +611,17 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
           log_warning("%s", msg.c_str());
           continue;
         }
+        // If the instance is part of the remove_instances list we skip this
+        // instance
+        if (!confirm_rescan_removes) {
+          auto it = std::find_if(remove_instances_ref.get()->begin(),
+                                 remove_instances_ref.get()->end(),
+                                 [&instance_address](shcore::Value val) {
+                                   return val.as_string() == instance_address;
+                                 });
+          if (it != remove_instances_ref.get()->end())
+            continue;
+        }
 
         println();
         println("The instance '" + instance_address + "' was part of the cluster configuration.");
@@ -637,6 +644,17 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
         if (instance_status.empty())
           continue;
 
+        // If the instance is part of the rejoin_instances list we skip this
+        // instance
+        if (!confirm_rescan_rejoins) {
+          auto it = std::find_if(rejoin_instances_ref.get()->begin(),
+                                 rejoin_instances_ref.get()->end(),
+                                 [&instance_address](shcore::Value val) {
+                                   return val.as_string() == instance_address;
+                                 });
+          if (it != rejoin_instances_ref.get()->end())
+            continue;
+        }
         println();
         println("Could not open a connection to '" + instance_address + "': '" + instance_status + "'");
 

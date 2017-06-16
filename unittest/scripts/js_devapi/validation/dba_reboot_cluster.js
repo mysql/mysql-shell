@@ -33,6 +33,12 @@
 ||Dba.rebootClusterFromCompleteOutage: The cluster with the name 'dev2' does not exist.
 ||Dba.rebootClusterFromCompleteOutage: The cluster's instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.forceQuorumUsingPartitionOf() to restore the quorum loss
 
+//@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
+||Dba.rebootClusterFromCompleteOutage: The following instances: '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' were specified in the rejoinInstances list but are not reachable.
+
+//@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
+||Dba.rebootClusterFromCompleteOutage: The following instances: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belong to both 'rejoinInstances' and 'removeInstances' lists.
+
 //@ Dba.rebootClusterFromCompleteOutage success
 ||
 

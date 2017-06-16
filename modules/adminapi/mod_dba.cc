@@ -1868,13 +1868,12 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
         if (value.as_string() == instance_session_address)
           throw shcore::Exception::argument_error("The current session instance "
                 "cannot be used on the 'rejoinInstances' list.");
-
         rejoin_instances_list.push_back(value.as_string());
       }
     }
 
     // Check if there is an intersection of the two lists.
-    // Sort the vectors because set_intersction works on sorted collections
+    // Sort the vectors because set_intersection works on sorted collections
     std::sort(remove_instances_list.begin(), remove_instances_list.end());
     std::sort(rejoin_instances_list.begin(), rejoin_instances_list.end());
 
@@ -1960,6 +1959,41 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
         if (!_metadata_storage->is_instance_on_replicaset(default_replicaset->get_id(), value))
           throw Exception::runtime_error("The instance '" + value + "' does not belong "
                                          "to the cluster: '" + cluster->get_name() + "'.");
+
+      }
+      // Get the all the instances and their status
+      std::vector<std::pair<std::string, std::string>> instances_status =
+          get_replicaset_instances_status(&cluster_name, options);
+
+      std::vector<std::string> non_reachable_rejoin_instances,
+          non_reachable_instances;
+
+      // get all non reachable instances
+      for (auto &instance : instances_status) {
+        if (!(instance.second.empty())) {
+          non_reachable_instances.push_back(instance.first);
+        }
+      }
+      // get all the list of non-reachable instances that were specified on the
+      // rejoinInstances list.
+      // Sort non_reachable_instances vector because set_intersection works on
+      // sorted collections
+      // The rejoin_instances_list vector was already sorted above.
+      std::sort(non_reachable_instances.begin(), non_reachable_instances.end());
+
+      std::set_intersection(
+          non_reachable_instances.begin(), non_reachable_instances.end(),
+          rejoin_instances_list.begin(), rejoin_instances_list.end(),
+          std::back_inserter(non_reachable_rejoin_instances));
+
+      if (!non_reachable_rejoin_instances.empty()) {
+        std::string list;
+
+        list = shcore::str_join(non_reachable_rejoin_instances, ", ");
+
+        throw std::runtime_error("The following instances: '" + list +
+                                 "' were specified in the rejoinInstances list "
+                                 "but are not reachable.");
       }
     } else {
       std::string message;

@@ -31,8 +31,14 @@
 ||Dba.reboot_cluster_from_complete_outage: The cluster's instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.force_quorum_using_partition_of() to restore the quorum loss.
 ||Dba.reboot_cluster_from_complete_outage: Invalid values in the options: invalidOpt
 
+#@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
+||Dba.reboot_cluster_from_complete_outage: The following instances: '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' were specified in the rejoinInstances list but are not reachable.
+
+#@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
+||Dba.reboot_cluster_from_complete_outage: The following instances: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belong to both 'rejoinInstances' and 'removeInstances' lists.
+
 #@ Dba.rebootClusterFromCompleteOutage success
-||
+|The cluster was successfully rebooted.|
 
 #@<OUT> cluster status after reboot
 {
@@ -60,6 +66,12 @@
         }
     }
 }
+
+#@ Add instance 3 back to the cluster
+||
+
+#@ Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390
+|The cluster was successfully rebooted.|
 
 #@ Finalization
 ||
