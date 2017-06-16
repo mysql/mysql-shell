@@ -19,7 +19,7 @@
 
 #include "mysqlshdk/libs/utils/process_launcher.h"
 
-#include <gtest/gtest.h>
+#include "gtest_clean.h"
 #ifdef _WIN32
 #include <Shellapi.h>
 #endif

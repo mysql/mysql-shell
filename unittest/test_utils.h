@@ -186,18 +186,6 @@ std::string random_string(std::string::size_type length);
   void wipe_log() { output_handler.wipe_log(); }
   void wipe_all() { output_handler.wipe_all(); }
 
-  std::string _mysql_sandbox_port1;
-  std::string _mysql_sandbox_port2;
-  std::string _mysql_sandbox_port3;
-
-  // Paths to the 3 commonly used sandboxes configuration files
-  std::string _sandbox_cnf_1;
-  std::string _sandbox_cnf_2;
-  std::string _sandbox_cnf_3;
-  std::string _path_splitter;
-
-  std::string _sandbox_dir;
-
   shcore::Value _returned_value;
 
   shcore::Interpreter_delegate deleg;

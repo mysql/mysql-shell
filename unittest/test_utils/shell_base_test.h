@@ -31,6 +31,7 @@ extern "C" const char *g_argv0;
 
 namespace tests {
 
+#define START_SERVER_MOCK(P,D) ASSERT_EQ("",start_server_mock(P,D))
 
 class Shell_base_test : public ::testing::Test {
  protected:
@@ -53,8 +54,27 @@ class Shell_base_test : public ::testing::Test {
   static void check_string_expectation(const std::string &expected_str,
                                        const std::string &actual,
                                        bool expected);
-  static void create_file(const std::string& name, const std::string& content);
-  void start_server_mock(int port,
+  // TODO(rennox) These variables were originally for AdminAPI tests
+  // But the values are useful for other means too, some cleanup should
+  // Organize the tests in a better way
+  std::string _mysql_sandbox_port1;
+  std::string _mysql_sandbox_port2;
+  std::string _mysql_sandbox_port3;
+
+  int _mysql_sandbox_nport1;
+  int _mysql_sandbox_nport2;
+  int _mysql_sandbox_nport3;
+
+  // Paths to the 3 commonly used sandboxes configuration files
+  std::string _sandbox_cnf_1;
+  std::string _sandbox_cnf_2;
+  std::string _sandbox_cnf_3;
+  std::string _path_splitter;
+
+  std::string _sandbox_dir;
+
+  void create_file(const std::string& name, const std::string& content);
+  std::string start_server_mock(int port,
                          const std::vector< testing::Fake_result_data >& data);
   void stop_server_mock(int port);
 

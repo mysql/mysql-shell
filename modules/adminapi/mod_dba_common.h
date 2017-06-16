@@ -22,6 +22,7 @@
 
 #include "scripting/types.h"
 #include "scripting/lang_base.h"
+#include "mysqlshdk/include/mysqlshdk_export.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 
@@ -102,8 +103,6 @@ enum Format {
 };
 }
 
-extern const std::set<std::string> _instance_options;
-
 shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, PasswordFormat::Format format);
 void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate = nullptr);
 std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);
@@ -122,6 +121,13 @@ bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::Clas
     const std::string &admin_user, const std::string &admin_host);
 void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
     const std::string &username, const std::string &password);
+std::string SHCORE_PUBLIC resolve_cluster_ssl_mode(
+                            mysqlsh::mysql::ClassicSession *session,
+                            const std::string& member_ssl_mode);
+std::string SHCORE_PUBLIC resolve_instance_ssl_mode(
+                            mysqlsh::mysql::ClassicSession *session,
+                            mysqlsh::mysql::ClassicSession *psession,
+                            const std::string& member_ssl_mode);
 }
 }
 #endif

@@ -18,7 +18,7 @@
 */
 
 
-#include <gtest/gtest.h>
+#include "gtest_clean.h"
 #include "unittest/test_utils/shell_base_test.h"
 #include "modules/mysql_connection.h"
 #include "mysqlshdk/libs/db/ssl_info.h"

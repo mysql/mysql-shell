@@ -18,6 +18,8 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "utils/utils_general.h"
 #include "utils/utils_json.h"
+#include "utils/utils_file.h"
+#include "utils/utils_string.h"
 
 namespace tests {
 
@@ -57,6 +59,45 @@ void Shell_base_test::SetUp() {
     }
 
     _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
+
+
+    const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
+    if (sandbox_port1)
+      _mysql_sandbox_port1.assign(sandbox_port1);
+    else
+      _mysql_sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
+
+    _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
+
+    const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
+    if (sandbox_port2)
+      _mysql_sandbox_port2.assign(sandbox_port2);
+    else
+      _mysql_sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
+
+    _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
+
+    const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
+    if (sandbox_port3)
+      _mysql_sandbox_port3.assign(sandbox_port3);
+    else
+      _mysql_sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
+
+    _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
+
+    const char *tmpdir = getenv("TMPDIR");
+    if (tmpdir) {
+      _sandbox_dir.assign(tmpdir);
+
+  #ifdef WIN32
+      auto tokens = shcore::split_string(_sandbox_dir, "\\");
+      _sandbox_dir = shcore::str_join(tokens, "\\\\");
+  #endif
+    } else {
+      // If not specified, the tests will create the sandboxes on the
+      // binary folder
+      _sandbox_dir = shcore::get_binary_folder();
+    }
   }
 }
 
@@ -66,12 +107,7 @@ void Shell_base_test::TearDown() {
 
 void Shell_base_test::create_file(const std::string& name,
                                   const std::string& content) {
-  std::ofstream file(name, std::ofstream::out | std::ofstream::trunc);
-
-  if (file.is_open()) {
-    file << content;
-    file.close();
-  } else {
+  if (!shcore::create_file(name, content)) {
     SCOPED_TRACE("Error Creating File: " + name);
     ADD_FAILURE();
   }
@@ -91,11 +127,21 @@ void Shell_base_test::check_string_expectation(const std::string& expected_str,
   }
 }
 
-void Shell_base_test::start_server_mock
+std::string Shell_base_test::start_server_mock
   (int port, const std::vector< testing::Fake_result_data >& data) {
+  std::string ret_val;
   assert(_servers.find(port) == _servers.end());
   _servers[port] = std::shared_ptr<Server_mock>(new Server_mock());
-  _servers[port]->start(port, data);
+
+  try {
+    _servers[port]->start(port, data);
+  } catch (const std::runtime_error &e) {
+    stop_server_mock(port);
+    ret_val = "Failure Starting Mock Server at port " + std::to_string(port) +
+              ": " + e.what();
+  }
+
+  return ret_val;
 }
 
 void Shell_base_test::stop_server_mock(int port) {

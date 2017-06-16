@@ -71,7 +71,7 @@ Cluster.removeInstance();
 Cluster.removeInstance(1,2,3);
 Cluster.removeInstance(1);
 Cluster.removeInstance({host: "localhost"});
-Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
+Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", fakeOption:56});
 Cluster.removeInstance("somehost:3306");
 Cluster.removeInstance("second");
 
