@@ -80,7 +80,7 @@ cluster.remove_instance()
 cluster.remove_instance(1,2,3)
 cluster.remove_instance(1)
 cluster.remove_instance({"host": "localhost"})
-cluster.remove_instance({"host": "localhost", "schema": 'abs', "user": "sample", "authMethod": 56})
+cluster.remove_instance({"host": "localhost", "schema": 'abs', "user": "sample", "fakeOption": 56})
 cluster.remove_instance("somehost:3306")
 cluster.remove_instance("second")
 

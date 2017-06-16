@@ -568,4 +568,18 @@ std::string get_home_dir() {
 
   return path;
 }
+
+bool create_file(const std::string& name, const std::string& content) {
+  bool ret_val = false;
+  std::ofstream file(name, std::ofstream::out | std::ofstream::trunc);
+
+  if (file.is_open()) {
+    file << content;
+    file.close();
+    ret_val = true;
+  }
+
+  return ret_val;
+}
+
 }

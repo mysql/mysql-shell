@@ -24,6 +24,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 //#include "mod_dba_instance.h"
 
 #include <string>
@@ -51,8 +52,6 @@ std::map<std::string, FunctionAvailability> AdminAPI_function_availability = {
   {"ReplicaSet.status", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
   {"Cluster.forceQuorumUsingPartitionOf", {GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}}
 };
-
-const std::set<std::string> _instance_options {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "sslCa", "sslCert", "sslKey"};
 
 namespace ManagedInstance {
 std::string describe(State state) {
@@ -606,6 +605,171 @@ void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> s
     session->execute_sql("SET sql_log_bin = 1");
     throw;
   }
+}
+
+/**
+ * Determines the value to use on the cluster for the SSL mode
+ * based on:
+ * - The instance having SSL available
+ * - The instance having require_secure_transport ON
+ * - The memberSslMode option given by the user
+ *
+ * Returns:
+ *   REQUIRED if SSL is supported and member_ssl_mode is either AUTO or REQUIRED
+ *   DISABLED if SSL is not supported and member_ssl_mode is either unspecified
+ *            DISABLED or AUTO.
+ *
+ * Error:
+ *   - If SSL is supported, require_secure_transport is ON and member_ssl_mode
+ *     is DISABLED
+ *   - If SSL mode is not supported and member_ssl_mode is REQUIRED
+ */
+std::string resolve_cluster_ssl_mode(mysqlsh::mysql::ClassicSession *session,
+                                     const std::string& member_ssl_mode) {
+  std::string ret_val;
+  std::string have_ssl;
+
+  get_server_variable(session->connection(), "global.have_ssl",
+                      have_ssl);
+
+  // The instance supports SSL
+  if (!shcore::str_casecmp(have_ssl.c_str(),"YES")) {
+
+    // memberSslMode is DISABLED
+    if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED")) {
+      int require_secure_transport = 0;
+      get_server_variable(session->connection(),
+                          "GLOBAL.require_secure_transport",
+                          require_secure_transport);
+
+      if (require_secure_transport) {
+        throw shcore::Exception::argument_error("The instance "
+          "'" + session->uri() + "' requires secure connections, to create the "
+          "cluster either turn off require_secure_transport or use the "
+          "memberSslMode option with 'REQUIRED' value.");
+      }
+
+      ret_val = dba::kMemberSSLModeDisabled;
+    } else {
+      // memberSslMode is either AUTO or REQUIRED
+      ret_val = dba::kMemberSSLModeRequired;
+    }
+
+  // The instance does not support SSL
+  } else {
+    // memberSslMode is REQUIRED
+    if (!shcore::str_casecmp(member_ssl_mode.c_str(), "REQUIRED")) {
+      throw shcore::Exception::argument_error("The instance "
+        "'" + session->uri() + "' does not have SSL enabled, to create the "
+        "cluster either use an instance with SSL enabled, remove the "
+        "memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.");
+    }
+
+    // memberSslMode is either not defined, DISABLED or AUTO
+    ret_val = dba::kMemberSSLModeDisabled;
+  }
+
+  return ret_val;
+}
+
+/**
+ * Determines the value to use on the instance for the SSL mode
+ * configured for the cluster, based on:
+ * - The instance having SSL available
+ * - The instance having require_secure_transport ON
+ * - The cluster SSL configuration
+ * - The memberSslMode option given by the user
+ *
+ * Returns:
+ *   REQUIRED if SSL is supported and member_ssl_mode is either AUTO or REQUIRED
+ *            and the cluster uses SSL
+ *   DISABLED if SSL is not supported and member_ssl_mode is either unspecified
+ *            DISABLED or AUTO and the cluster has SSL disabled.
+ *
+ * Error:
+ *   - Cluster has SSL enabled and member_ssl_mode is DISABLED or not specified
+ *   - Cluster has SSL enabled and SSL is not supported on the instance
+ *   - Cluster has SSL disabled and member_ssl_mode is REQUIRED
+ *   - Cluster has SSL disabled and the instance has require_secure_transport ON
+ */
+std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
+                               mysqlsh::mysql::ClassicSession *psession,
+                               const std::string& member_ssl_mode) {
+  std::string ret_val;
+  std::string gr_ssl_mode;
+
+  // Checks how memberSslMode was configured on the cluster
+  get_server_variable(psession->connection(),
+                      "global.group_replication_ssl_mode",
+                      gr_ssl_mode);
+
+  // The cluster REQUIRES SSL
+  if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "REQUIRED")) {
+
+    // memberSslMode is DISABLED
+    if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED"))
+      throw shcore::Exception::runtime_error(
+          "The cluster has SSL (encryption) enabled. "
+          "To add the instance '" + session->uri() + "to the cluster either "
+          "disable SSL on the cluster or use the memberSslMode option with any "
+          "of 'AUTO' or 'REQUIRED'.");
+
+    // Now checks if SSL is actually supported on the instance
+    std::string have_ssl;
+
+    get_server_variable(session->connection(), "global.have_ssl",
+                        have_ssl);
+
+    // SSL is not supported on the instance
+    if (shcore::str_casecmp(have_ssl.c_str(), "YES")) {
+      throw shcore::Exception::runtime_error(
+          "Instance '" + session->uri() + "' does not support SSL and cannot "
+          "join a cluster with SSL (encryption) enabled. "
+          "Enable SSL support on the instance and try again, otherwise it can "
+          "only be added to a cluster with SSL disabled.");
+    }
+
+    // memberSslMode is either AUTO or REQUIRED
+    ret_val = dba::kMemberSSLModeRequired;
+
+  // The cluster has SSL DISABLED
+  } else if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "DISABLED")) {
+
+    // memberSslMode is REQUIRED
+    if (!shcore::str_casecmp(member_ssl_mode.c_str(), "REQUIRED"))
+      throw shcore::Exception::runtime_error(
+          "The cluster has SSL (encryption) disabled. "
+          "To add the instance '" + session->uri() + "' to the cluster either "
+          "disable SSL on the cluster, remove the memberSslMode option or use "
+          "it with any of 'AUTO' or 'DISABLED'.");
+
+    // If the instance session requires SSL connections, then it can's
+    // Join a cluster with SSL disabled
+    int secure_transport_required = 0;
+    get_server_variable(session->connection(),
+                        "global.require_secure_transport",
+                        secure_transport_required);
+    if (secure_transport_required) {
+      throw shcore::Exception::runtime_error(
+          "The instance '" + session->uri() + "' is configured to require a "
+          "secure transport but the cluster has SSL disabled. To add the "
+          "instance to the cluster, either turn OFF the "
+          "require_secure_transport option on the instance or enable SSL on "
+          "the cluster.");
+    }
+
+    ret_val = dba::kMemberSSLModeDisabled;
+  } else {
+    // Only GR SSL mode "REQUIRED" and "DISABLED" are currently supported.
+    throw shcore::Exception::runtime_error(
+        "Unsupported Group Replication SSL Mode for the cluster: '"
+            + gr_ssl_mode + "'. If the cluster was created using "
+            "adoptFromGR:true make sure the group_replication_ssl_mode "
+            "variable is set with a supported value (DISABLED or REQUIRED) "
+            "for all cluster members.");
+  }
+
+  return ret_val;
 }
 
 } // dba

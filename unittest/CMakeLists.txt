@@ -44,12 +44,20 @@ if(WITH_TESTS)
         ${mysqlsh_tests_SRC}
         "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_main.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils.cc"
         "${CMAKE_SOURCE_DIR}/unittest/shell_script_tester.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/get_password.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/shell_cmdline_options.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/mysql_shell.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/shell_base_test.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/command_line_test.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/server_mock.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/admin_api_test.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_row.cc"        
 
         # NOTE: these sources are required because Mysql_shell is not part of a library used by the test system
         # but is ont the application level. At some point we should put Mysql_shell available in a alibrary
@@ -74,7 +82,6 @@ if(WITH_TESTS)
     endif()
 
     add_subdirectory(mysqld_mock)
-    add_subdirectory(test_utils)
 
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     add_dependencies(run_unit_tests
@@ -87,7 +94,6 @@ if(WITH_TESTS)
             mysqlxtest
             gtest
             gmock
-            test_utils
             ${MYSQL_LIBRARIES}
             ${PROTOBUF_LIBRARY}
             ${SSL_LIBRARIES}
