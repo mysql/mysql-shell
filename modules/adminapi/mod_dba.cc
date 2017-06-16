@@ -1307,7 +1307,7 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL14, "The options dictionary may c
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL15, "@li mycnfPath: The path to the MySQL configuration file of the instance.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL16, "@li password: The password to be used on the connection.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL17, "@li clusterAdmin: The name of the InnoDB cluster administrator "\
-                                                   "user to be created.");
+                                                   "user to be created. The supported format is the standard MySQL account name format.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL18, "@li clusterAdminPassword: The password for the InnoDB cluster administrator account.");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL19, "The connection password may be contained on the instance "\

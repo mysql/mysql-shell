@@ -63,7 +63,29 @@ TEST(utils_general, split_account) {
     {"'foo'", "foo", ""},
     {"'foo'''", "foo'", ""},
     {"''''''''", "'''", ""},
-    {"foo@", "foo", ""}
+    {"foo@", "foo", ""},
+    {"foo@''", "foo", ""},
+    {"foo@%", "foo", "%"},
+    {"ic@192.168.%", "ic", "192.168.%"},     // Regression test for BUG#25528695
+    {"foo@'::1'", "foo", "::1"},
+    {"foo@'ho\\'\\'st'", "foo", "ho\'\'st"},
+    {"foo@'\\'host'", "foo", "\'host"},
+    {"foo@'\\'ho\\'st'", "foo", "\'ho\'st"},
+    {"root@'ho\\'st'", "root", "ho\'st"},
+    {"foo@'host\\''", "foo", "host\'"},
+    {"foo@'192.167.1.___'", "foo", "192.167.1.___"},
+    {"foo@'192.168.1.%'", "foo", "192.168.1.%"},
+    {"foo@192.168.1.%", "foo", "192.168.1.%"},
+    {"foo@192.58.197.0/255.255.255.0", "foo", "192.58.197.0/255.255.255.0"},
+    {"foo@'192.58.197.0/255.255.255.0'", "foo", "192.58.197.0/255.255.255.0"},
+    {"foo@' .::1lol\\t\\n\\r\\b\\'\"&$%'", "foo", " .::1lol\t\n\r\b'\"&$%"},
+    {"`foo@`@`nope`", "foo@", "nope"},
+    {"foo@`'ho'st`", "foo", "'ho'st"},
+    {"foo@`1234`", "foo", "1234"},
+    {"foo@```1234`", "foo", "`1234"},
+    {"`foo`@```1234`", "foo", "`1234"},
+    {"```foo`@```1234`", "`foo", "`1234"},
+    {"foo@` .::1lol\\t\\n\\r\\b\\0'\"&$%`", "foo", " .::1lol\\t\\n\\r\\b\\0'\"&$%"},
   };
   for (auto &t : good_cases) {
     a.clear();
@@ -89,7 +111,19 @@ TEST(utils_general, split_account) {
     "\"foo\"-",
     "''foo''@",
     "@",
-    "''foo''@"
+    "''foo''@",
+    "foo@'",
+    "foo@''nope",
+    "foo@@'stuf'",
+    "foo@''host''",
+    "foo@'ho''st",
+    "foo@'host",
+    "foo@'ho'st",
+    "foo@ho'st",
+    "foo@host'",
+    "foo@ .::1lol\\t\\n\\'\"&$%",
+    "`foo@bar",
+    "foo@`bar",
   };
   for (auto &t : bad_cases) {
     SCOPED_TRACE(t);
