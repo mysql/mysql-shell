@@ -296,9 +296,11 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
   //@<OUT> Dba: checkInstanceConfiguration report with errors
   output_handler.passwords.push_back("root");
 
+  // TODO(rennox): This test case is not reliable since requires
+  // that no my.cnf exist on the default paths
   //@<OUT> Dba: configureLocalInstance error 2
-  output_handler.passwords.push_back(_pwd);
-  output_handler.prompts.push_back("");
+  //output_handler.passwords.push_back(_pwd);
+  //output_handler.prompts.push_back("");
 
   //@<OUT> Dba: configureLocalInstance error 3
   output_handler.passwords.push_back("root");

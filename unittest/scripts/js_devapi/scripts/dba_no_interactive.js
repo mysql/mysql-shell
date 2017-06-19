@@ -76,15 +76,15 @@ dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:
 //@<OUT> Dba: configureLocalInstance updating config file
 dba.configureLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
 
-//@<OUT> Dba: configureLocalInstance report fixed 1
+//@ Dba: configureLocalInstance report fixed 1
 var result = dba.configureLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
 print (result.status)
 
-//@<OUT> Dba: configureLocalInstance report fixed 2
+//@ Dba: configureLocalInstance report fixed 2
 var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', password:'root'});
 print (result.status)
 
-//@<OUT> Dba: configureLocalInstance report fixed 3
+//@ Dba: configureLocalInstance report fixed 3
 var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', dbPassword:'root'});
 print (result.status)
 

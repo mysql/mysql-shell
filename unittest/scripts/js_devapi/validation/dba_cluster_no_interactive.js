@@ -392,7 +392,7 @@
 ||Cluster.dissolve: Invalid values in dissolve options: foobar
 ||Cluster.dissolve: Argument 'force' is expected to be a bool
 
-//@<OUT> Cluster: final dissolve
+//@ Cluster: final dissolve
 ||
 
 //@ Cluster: no operations can be done on a dissolved cluster

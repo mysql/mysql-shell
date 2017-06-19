@@ -1,10 +1,11 @@
 #@ Initialization
 ||
 
-#@<OUT> connect and change vars
-Classic Session successfully established. No default schema selected.
-Query OK, 0 rows affected
-Query OK, 0 rows affected
+#@ connect and change vars
+|Creating a Classic Session to 'root@localhost:<<<__mysql_sandbox_port1>>>'|
+|Session successfully established. No default schema selected.|
+|Query OK, 0 rows affected|
+|Query OK, 0 rows affected|
 
 #@<OUT> Dba.createCluster: cancel
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.

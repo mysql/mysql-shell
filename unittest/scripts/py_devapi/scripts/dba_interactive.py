@@ -66,8 +66,10 @@ res = dba.check_instance_configuration(uri2, {'mycnfPath':'mybad.cnf'});
 #@ Dba: configure_local_instance error 1
 dba.configure_local_instance('someotherhost:' + str(__mysql_sandbox_port1));
 
-#@<OUT> Dba: configure_local_instance error 2
-dba.configure_local_instance('localhost:' + str(__mysql_port));
+# TODO(rennox): This test case is not reliable since requires
+# that no my.cnf exist on the default paths
+#--@<OUT> Dba: configure_local_instance error 2
+# dba.configure_local_instance('localhost:' + str(__mysql_port));
 
 #@<OUT> Dba: configure_local_instance error 3
 dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port1));

@@ -121,10 +121,8 @@
     }
 }
 
-#@<OUT> Persist the GR configuration
-{
-  "status": "ok"
-}
+#@ Persist the GR configuration
+|ok|
 
 #@ Kill instance, will auto join after start
 ||

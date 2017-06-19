@@ -140,7 +140,7 @@ cluster.dissolve()
 cluster.check_instance_state({'host': localhost, 'port': __mysql_sandbox_port3, 'password': 'root'})
 cluster.rescan()
 
-#@<OUT> Unmanaged Instance: create cluster
+#--@<OUT> Unmanaged Instance: create cluster
 # TODO: Uncomment this test case once the hostname resolution is fixed for adoptFromGR
 
 #cluster = dba.create_cluster('fromGR', {adoptFromGR:True})

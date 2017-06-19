@@ -135,19 +135,14 @@
     "status": "ok"
 }
 
-//@<OUT> Dba: configureLocalInstance report fixed 1
-{
-    "status": "ok"
-}
+//@ Dba: configureLocalInstance report fixed 1
+|ok|
 
-//@<OUT> Dba: configureLocalInstance report fixed 2
-{
-    "status": "ok"
-}
-//@<OUT> Dba: configureLocalInstance report fixed 3
-{
-    "status": "ok"
-}
+//@ Dba: configureLocalInstance report fixed 2
+|ok|
+
+//@ Dba: configureLocalInstance report fixed 3
+|ok|
 
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
