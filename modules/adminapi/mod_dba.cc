@@ -626,7 +626,7 @@ REGISTER_HELP(DBA_RESETSESSION_DETAIL, "Many of the Dba operations require an ac
 "use this function to define the session to be used.");
 REGISTER_HELP(DBA_RESETSESSION_DETAIL1, "At the moment only a Classic session type is supported.");
 REGISTER_HELP(DBA_RESETSESSION_DETAIL2, "If the session type is not defined, the global dba object will use the "\
-"established global session.");
+"active session.");
 
 /**
 * $(DBA_RESETSESSION_BRIEF)

@@ -37,5 +37,5 @@ void Global_schema::resolve() const {
       }
     }
   } else
-    throw shcore::Exception::logic_error("The db variable is not set, establish a global session first.\n");
+    throw shcore::Exception::logic_error("The db variable is not set, establish a session first.\n");
 }

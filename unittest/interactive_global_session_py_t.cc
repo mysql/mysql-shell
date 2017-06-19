@@ -25,7 +25,7 @@ public:
     _options->initial_mode = IShell_core::Mode::Python;
   };
 protected:
-  std::string no_session_message = "The global session is not set, do you want to establish a session?\n\n"\
+  std::string no_session_message = "There is no active session, do you want to establish one?\n\n"\
   "   1) MySQL Document Store Session through X Protocol\n"\
   "   2) Classic MySQL Session\n\n"\
   "Please select the session type or ENTER to cancel: ";
@@ -39,14 +39,14 @@ TEST_F(Interactive_global_session_py_test, undefined_session_usage) {
   // Answers no to the question if session should be established
   output_handler.prompts.push_back("");
   _interactive_shell->process_line("session.uri");
-  MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
+  MY_EXPECT_STDOUT_CONTAINS("There is no active session, do you want to establish one?");
   MY_EXPECT_STDERR_CONTAINS("unknown attribute: uri");
   output_handler.wipe_all();
 
   // Answers no to the question if session should be established
   output_handler.prompts.push_back("");
   _interactive_shell->process_line("session.get_uri()");
-  MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
+  MY_EXPECT_STDOUT_CONTAINS("There is no active session, do you want to establish one?");
   MY_EXPECT_STDERR_CONTAINS("unknown attribute: get_uri");
   output_handler.wipe_all();
 }

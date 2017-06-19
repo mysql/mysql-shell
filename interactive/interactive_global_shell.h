@@ -23,7 +23,7 @@
 #include "shellcore/interactive_object_wrapper.h"
 
 namespace shcore {
-  //! Interactive wrapper for the global session
+  //! Interactive wrapper for the active session
   class SHCORE_PUBLIC Global_shell : public Interactive_object_wrapper {
   public:
     Global_shell(Shell_core& shell_core) : Interactive_object_wrapper("shell", shell_core) { init(); }

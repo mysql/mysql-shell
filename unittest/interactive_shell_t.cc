@@ -400,7 +400,7 @@ TEST_F(Interactive_shell_test, shell_command_help_js) {
   MY_EXPECT_STDOUT_CONTAINS("\\warnings   (\\W)       Show warnings after every statement.");
   MY_EXPECT_STDOUT_CONTAINS("\\nowarnings (\\w)       Don't show warnings after every statement.");
   MY_EXPECT_STDOUT_CONTAINS("\\status     (\\s)       Print information about the current global connection.");
-  MY_EXPECT_STDOUT_CONTAINS("\\use        (\\u)       Set the current schema for the global session.");
+  MY_EXPECT_STDOUT_CONTAINS("\\use        (\\u)       Set the current schema for the active session.");
   MY_EXPECT_STDOUT_CONTAINS("For help on a specific command use the command as \\? <command>");
 
   execute("\\help \\source");
@@ -412,6 +412,7 @@ TEST_F(Interactive_shell_test, shell_command_help_js) {
   output_handler.wipe_all();
 
   execute("\\help \\use");
+  MY_EXPECT_STDOUT_CONTAINS("NOTE: This command works with the active session.\n");
   MY_EXPECT_STDOUT_CONTAINS("The global db variable will be updated to hold the requested schema.");
   output_handler.wipe_all();
 }

@@ -183,6 +183,18 @@ protected:
 
 };
 
+TEST_F(Shell_py_dba_tests, no_active_session_error) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("c = dba.get_cluster()");
+  MY_EXPECT_STDERR_CONTAINS("SystemError: LogicError: The Metadata is inaccessible, an active session is required");
+
+  execute("dba.verbose = True");
+  MY_EXPECT_STDERR_CONTAINS("SystemError: LogicError: The Metadata is inaccessible, an active session is required");
+
+}
+
 TEST_F(Shell_py_dba_tests, no_interactive_sandboxes) {
   _options->wizards = false;
   reset_shell();

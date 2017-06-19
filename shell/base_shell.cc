@@ -98,7 +98,7 @@ _options(options) {
     "EXAMPLES:\n"
     "   \\use mysql"
     "   \\u 'my schema'"
-    "NOTE: This command works with the global session.\n"
+    "NOTE: This command works with the active session.\n"
     "If it is either a Node or Classic session, the current schema will be updated (affects SQL mode).\n"
     "The global db variable will be updated to hold the requested schema.\n";
 
@@ -113,7 +113,7 @@ _options(options) {
   SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Base_shell::cmd_warnings);
   SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Base_shell::cmd_nowarnings);
   SET_SHELL_COMMAND("\\status|\\s", "Print information about the current global connection.", "", Base_shell::cmd_status);
-  SET_SHELL_COMMAND("\\use|\\u", "Set the current schema for the global session.", cmd_help_use, Base_shell::cmd_use);
+  SET_SHELL_COMMAND("\\use|\\u", "Set the current schema for the active session.", cmd_help_use, Base_shell::cmd_use);
 
   const std::string cmd_help_store_connection =
     "SYNTAX:\n"

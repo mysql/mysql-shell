@@ -179,6 +179,17 @@ protected:
 
 };
 
+TEST_F(Shell_js_dba_tests, no_active_session_error) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("var c = dba.getCluster()");
+  MY_EXPECT_STDERR_CONTAINS("The Metadata is inaccessible, an active session is required (LogicError)");
+
+  execute("dba.verbose = true;");
+  MY_EXPECT_STDERR_CONTAINS("The Metadata is inaccessible, an active session is required (LogicError)");
+}
+
 TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
   _options->wizards = false;
   reset_shell();
