@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #include <map>
 #include <memory>
 #include <thread>
-#include <gtest/gtest.h>
+#include "gtest_clean.h"
 #include <vector>
 #include "unittest/test_utils/server_mock.h"
 
