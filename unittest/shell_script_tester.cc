@@ -171,7 +171,7 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context, cons
       expected_lines[0] += "<------ INCONSISTENCY";
 
       SCOPED_TRACE(stream + " inconsistent: " +
-      shcore::join_strings(expected_lines, "\n"));
+      shcore::str_join<>(expected_lines, "\n"));
       ADD_FAILURE();
       ret_val = false;
   }
