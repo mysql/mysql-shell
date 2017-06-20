@@ -2,7 +2,8 @@
 ||
 
 //@<OUT> connect
-Classic Session successfully established. No default schema selected.
+Creating a Classic Session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
+Session successfully established. No default schema selected.
 
 //@<OUT> create cluster no misconfiguration: ok
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.

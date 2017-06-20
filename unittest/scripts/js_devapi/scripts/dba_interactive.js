@@ -58,8 +58,10 @@ var res = dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 //@ Dba: configureLocalInstance error 1
 dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
 
-//@<OUT> Dba: configureLocalInstance error 2
-dba.configureLocalInstance('localhost:' + __mysql_port);
+// TODO(rennox): This test case is not reliable since requires
+// that no my.cnf exist on the default paths
+//--@<OUT> Dba: configureLocalInstance error 2
+//dba.configureLocalInstance('localhost:' + __mysql_port);
 
 //@<OUT> Dba: configureLocalInstance error 3
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
@@ -116,7 +118,7 @@ print("Number of accounts: "+ row[0] + "\n");
 session.close();
 connect_to_sandbox([__mysql_sandbox_port1]);
 
-//@ Dba: configureLocalInstance updating config file
+//@<OUT> Dba: configureLocalInstance updating config file
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf'});
 
 //@ Dba: create an admin user with all needed privileges

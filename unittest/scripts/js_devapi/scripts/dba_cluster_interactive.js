@@ -152,7 +152,7 @@ wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 //@<OUT> Cluster: status for rejoin: success
 Cluster.status();
 
-//@<OUT> Cluster: final dissolve
+//@ Cluster: final dissolve
 Cluster.dissolve({force: true});
 
 //@ Cluster: no operations can be done on a dissolved cluster

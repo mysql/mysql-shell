@@ -45,7 +45,7 @@ wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 //@<OUT> Instance is back
 cluster.status()
 
-//@<OUT> Persist the GR configuration
+//@ Persist the GR configuration
 var cnfPath = __sandbox_dir + __mysql_sandbox_port3 + "/my.cnf";
 var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port3, {mycnfPath: cnfPath, dbPassword:'root'});
 print (result.status)

@@ -2,7 +2,7 @@
 #@ Initialization
 deployed_here = reset_or_deploy_sandboxes()
 
-#@<OUT> connect and change vars
+#@ connect and change vars
 shell.connect({'scheme': 'mysql', 'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 session.run_sql('SET GLOBAL binlog_checksum=CRC32');
 session.run_sql('SET GLOBAL binlog_format=MIXED');
