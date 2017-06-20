@@ -114,7 +114,7 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     "EXAMPLES:\n"
     "   \\use mysql"
     "   \\u 'my schema'"
-    "NOTE: This command works with the global session.\n"
+    "NOTE: This command works with the active session.\n"
     "If it is either a Node or Classic session, the current schema will be updated (affects SQL mode).\n"
     "The global db variable will be updated to hold the requested schema.\n";
 
@@ -147,7 +147,7 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
                     "Print information about the current global connection.",
                     "", Mysql_shell::cmd_status);
   SET_SHELL_COMMAND("\\use|\\u",
-                    "Set the current schema for the global session.",
+                    "Set the current schema for the active session.",
                     cmd_help_use, Mysql_shell::cmd_use);
 
   const std::string cmd_help_store_connection =
