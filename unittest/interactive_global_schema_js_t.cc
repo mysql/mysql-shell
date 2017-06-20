@@ -32,11 +32,11 @@ TEST_F(Interactive_global_schema_js_test, undefined_db_with_no_session) {
   output_handler.wipe_all();
 
   _interactive_shell->process_line("db.getName()");
-  MY_EXPECT_STDERR_CONTAINS("The db variable is not set, establish a global session first.");
+  MY_EXPECT_STDERR_CONTAINS("The db variable is not set, establish a session first.");
   output_handler.wipe_all();
 
   _interactive_shell->process_line("db.name");
-  MY_EXPECT_STDERR_CONTAINS("The db variable is not set, establish a global session first.");
+  MY_EXPECT_STDERR_CONTAINS("The db variable is not set, establish a session first.");
   output_handler.wipe_all();
 }
 

@@ -314,8 +314,8 @@ this function to define the session to be used.
 
 At the moment only a Classic session type is supported.
 
-If the session type is not defined, the global dba object will use the
-established global session.
+If the session type is not defined, the global dba object will use the active
+session.
 
 //@<OUT> Start Sandbox
 Starts an existing MySQL Server instance on localhost.

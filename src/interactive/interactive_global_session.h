@@ -26,7 +26,7 @@
 #include "modules/interactive_object_wrapper.h"
 
 namespace shcore {
-//! Interactive wrapper for the global session
+//! Interactive wrapper for the active session
 class Global_session : public Interactive_object_wrapper {
 public:
   Global_session(Shell_core& shell_core) : Interactive_object_wrapper("session", shell_core) { init(); }

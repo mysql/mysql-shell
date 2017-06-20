@@ -34,7 +34,7 @@ void Global_session::init() {
 void Global_session::resolve() const {
   std::string answer;
   bool error = true;
-  std::string message = "The global session is not set, do you want to establish a session?\n\n"\
+  std::string message = "There is no active session, do you want to establish one?\n\n"\
   "   1) MySQL Document Store Session through X Protocol\n"\
   "   2) Classic MySQL Session\n\n"\
   "Please select the session type or ENTER to cancel: ";
