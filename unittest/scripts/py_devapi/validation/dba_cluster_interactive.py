@@ -269,7 +269,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Invalid value for ipWhitelist, string value cannot be empty.
 
 #@<OUT> Cluster: rejoin_instance with interaction, ok
-The instance will try rejoining the InnoDB cluster. Depending on the original
+Rejoining the instance to the InnoDB cluster. Depending on the original
 problem that made the instance unavailable, the rejoin operation might not be
 successful and further manual steps will be needed to fix the underlying
 problem.
@@ -277,9 +277,11 @@ problem.
 Please monitor the output of the rejoin operation and take necessary action if
 the instance cannot rejoin.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Rejoining instance to the cluster ...
+Rejoining instance to the cluster ...
 
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
+
+The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the MySQL Cluster.
 
 #@<OUT> Cluster: status for rejoin: success
 {
@@ -315,7 +317,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoi
     }
 }
 
-#@<OUT> Cluster: final dissolve
+#@ Cluster: final dissolve
 |The cluster was successfully dissolved.|
 |Replication was disabled but user data was left intact.|
 

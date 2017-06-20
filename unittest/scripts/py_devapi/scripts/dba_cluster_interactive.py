@@ -155,7 +155,7 @@ wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 cluster.status()
 
 
-#@<OUT> Cluster: final dissolve
+#@ Cluster: final dissolve
 cluster.dissolve({'force': True})
 
 #@ Cluster: no operations can be done on a dissolved cluster errors

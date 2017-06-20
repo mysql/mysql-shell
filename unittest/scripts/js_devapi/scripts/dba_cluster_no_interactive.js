@@ -180,7 +180,7 @@ Cluster.dissolve("");
 Cluster.dissolve({foobar: true});
 Cluster.dissolve({force: "whatever"});
 
-//@<OUT> Cluster: final dissolve
+//@ Cluster: final dissolve
 Cluster.dissolve({force: true});
 
 //@ Cluster: no operations can be done on a dissolved cluster

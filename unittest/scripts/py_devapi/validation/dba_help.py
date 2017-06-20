@@ -1,6 +1,6 @@
 #@<OUT> Object Help
-The global variable 'dba' is used to access the MySQL AdminAPI functionality
-and perform DBA operations. It is used for managing MySQL InnoDB clusters.
+The global variable 'dba' is used to access the AdminAPI functionality and
+perform DBA operations. It is used for managing MySQL InnoDB clusters.
 
 The following properties are currently supported.
 

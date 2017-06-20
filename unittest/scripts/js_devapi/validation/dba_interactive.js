@@ -59,9 +59,9 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
 
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Validating instance...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
 
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' is not valid for Cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' is not valid for Cluster usage.
 
 The following issues were encountered:
 
@@ -75,10 +75,11 @@ The following issues were encountered:
 | disabled_storage_engines         | <not set>     | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update the config file |
 | enforce_gtid_consistency         | <not set>     | ON                                     | Update the config file |
 | gtid_mode                        | OFF           | ON                                     | Update the config file |
+| log_bin                          | <not set>     | <no value>                             | Update the config file |
 | log_slave_updates                | <not set>     | ON                                     | Update the config file |
 | master_info_repository           | <not set>     | TABLE                                  | Update the config file |
 | relay_log_info_repository        | <not set>     | TABLE                                  | Update the config file |
-| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>                                   | Update the config file |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>                                   | Update the config file |
 | transaction_write_set_extraction | <not set>     | XXHASH64                               | Update the config file |
 +----------------------------------+---------------+----------------------------------------+------------------------+
 
@@ -88,8 +89,13 @@ Please fix these issues and try again.
 //@ Dba: configureLocalInstance error 1
 ||Dba.configureLocalInstance: This function only works with local instances
 
-//@<OUT> Dba: configureLocalInstance error 2
-Please provide the password for 'root@localhost:<<<__mysql_port>>>': Please specify the path to the MySQL configuration file:
+// TODO(rennox): This test case is not reliable since requires
+// that no my.cnf exist on the default paths
+//--@<OUT> Dba: configureLocalInstance error 2
+Please provide the password for 'root@localhost:<<<__mysql_port>>>':
+Detecting the configuration file...
+Default file not found at the standard locations.
+Please specify the path to the MySQL configuration file:
 The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
 
 //@<OUT> Dba: configureLocalInstance error 3
@@ -98,9 +104,6 @@ Detected as sandbox instance.
 
 Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Validating instance...
-
-//@<ERR> Dba: configureLocalInstance error 3
-Dba.configureLocalInstance: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
