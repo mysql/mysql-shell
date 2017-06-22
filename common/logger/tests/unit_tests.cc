@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@ namespace tests
   TEST(Logger, simple)
 	{
     const std::string* filename = get_path("mylog.txt");
-    Logger::create_instance(filename->c_str(), true, Logger::LOG_WARNING);
+    Logger::setup_instance(filename->c_str(), true, Logger::LOG_WARNING);
 
     Logger *l= Logger::singleton();
 
@@ -130,7 +130,7 @@ namespace tests
     try
     {
       const std::string* filename = get_path("");
-      Logger::create_instance(filename->c_str(), true, Logger::LOG_WARNING);
+      Logger::setup_instance(filename->c_str(), true, Logger::LOG_WARNING);
       FAIL() << "Expected std::logic_error";
     }
     catch(const std::logic_error& e)

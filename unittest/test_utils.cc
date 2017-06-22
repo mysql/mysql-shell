@@ -43,7 +43,7 @@ Shell_test_output_handler::Shell_test_output_handler() {
   // Initialize the logger and attach the hook for error verification
   std::string log_path = shcore::get_binary_folder();
   log_path += "/mysqlsh.log";
-  ngcommon::Logger::create_instance(log_path.c_str(), false);
+  ngcommon::Logger::setup_instance(log_path.c_str(), false);
   _logger = ngcommon::Logger::singleton();
   _logger->attach_log_hook(log_hook);
 }

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -49,7 +49,8 @@ protected:
 
     std::string log_path = shcore::get_user_config_path();
     log_path += "mysqlsh.log";
-    ngcommon::Logger::create_instance(log_path.c_str(), false, ngcommon::Logger::LOG_ERROR);
+    ngcommon::Logger::setup_instance(log_path.c_str(), false,
+                                     ngcommon::Logger::LOG_ERROR);
     _logger = ngcommon::Logger::singleton();
     _logger->attach_log_hook(my_hook);
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -100,7 +100,8 @@ public:
   static Logger* singleton();
 
   // Creates singleton instance with proper parameters
-  static void create_instance(const char *filename, bool use_stderr = false, LOG_LEVEL level = LOG_INFO);
+  static void setup_instance(const char* filename, bool use_stderr = false,
+                             LOG_LEVEL level = LOG_INFO);
 
   static LOG_LEVEL get_level_by_name(const std::string& level_name);
 
@@ -164,6 +165,7 @@ private:
   LOG_LEVEL log_level;
   bool use_stderr;
   std::ofstream out;
+  std::string out_name;
   std::list<Log_hook> hook_list;
 
   friend class tests::LoggerTestProxy;
