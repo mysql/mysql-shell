@@ -17,6 +17,9 @@
  * 02110-1301  USA
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cmdline_shell.h"
 #include "shell_cmdline_options.h"
 #include "shell/shell_options.h"
@@ -31,6 +34,7 @@ mysqlsh::Command_line_shell* shell_ptr = NULL;
 #  include <io.h>
 #  include <windows.h>
 #  define isatty _isatty
+#  define snprintf _snprintf
 
 BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
   switch (fdwCtrlType) {

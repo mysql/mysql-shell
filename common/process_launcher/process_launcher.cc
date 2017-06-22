@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -304,12 +304,16 @@ uint64_t Process_launcher::get_fd_read() {
 
 void Process_launcher::start()
 {
+  assert(!is_alive);
+
   if( pipe(fd_in) < 0 )
   {
     report_error(NULL);
   }
   if( pipe(fd_out) < 0 )
   {
+    ::close(fd_in[0]);
+    ::close(fd_in[1]);
     report_error(NULL);
   }
 
@@ -319,6 +323,10 @@ void Process_launcher::start()
   childpid = fork();
   if(childpid == -1)
   {
+    ::close(fd_in[0]);
+    ::close(fd_in[1]);
+    ::close(fd_out[0]);
+    ::close(fd_out[1]);
     report_error(NULL);
   }
 
@@ -370,23 +378,18 @@ void Process_launcher::start()
   }
   else
   {
-    int status;
-
     ::close(fd_out[1]);
     ::close(fd_in[0]);
-    
     is_alive = true;
-    /*
-    _s_pollfd[0].fd = fd_out[0];
-    _s_pollfd[0].events = POLLIN;
-    _s_pollfd[1].fd = fd_in[1];
-    _s_pollfd[1].events = POLLOUT;
-    */
   }
 }
 
 void Process_launcher::close()
 {
+  is_alive = false;
+  ::close(fd_out[0]);
+  ::close(fd_in[1]);
+
   if(::kill(childpid, SIGTERM) < 0 && errno != ESRCH)
     report_error(NULL);
   if(errno != ESRCH)
@@ -395,23 +398,6 @@ void Process_launcher::close()
     if(::kill(childpid, SIGKILL) < 0 && errno != ESRCH)
       report_error(NULL);
   }
-
-  /*
-  while(::close(fd_out[0]) == -1)
-  {
-  if(errno == EINTR) continue;
-  else report_error(NULL);
-  }
-
-  while(::close(fd_in[1]) == -1)
-  {
-  if( errno == EINTR ) continue;
-  else report_error(NULL);
-  }*/
-
-  ::close(fd_out[0]);
-  ::close(fd_in[1]);
-  is_alive = false;
 }
 
 int Process_launcher::read_one_char()

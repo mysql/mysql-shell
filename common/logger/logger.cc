@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -254,8 +254,7 @@ Logger* Logger::singleton()
 }
 
 
-void Logger::out_to_stderr(const char* msg)
-{ 
+void Logger::out_to_stderr(const char* msg) {
 #ifdef WIN32
   OutputDebugString(msg);
 #else
@@ -315,6 +314,7 @@ void Logger::out_to_stderr(const char* msg)
 
 void Logger::create_instance(const char *filename, bool use_stderr, Logger::LOG_LEVEL log_level)
 {
+  delete instance;
   instance = new Logger(filename, use_stderr, log_level);
 }
 

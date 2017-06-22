@@ -215,13 +215,12 @@ void Server_mock::start(int port, const std::vector<Fake_result_data> &data) {
   usleep(5000);
 #endif
   _server.lock();
-
   // Deletes the temporary data file
   shcore::delete_file(data_path);
+  _server.unlock();
 
   if (!_server_listening)
     throw std::runtime_error(_server_output);
-  _server.unlock();
 }
 
 void Server_mock::stop() {

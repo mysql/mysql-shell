@@ -1,4 +1,4 @@
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ project(mysh_deb_init NONE)
 # Use the version variables from "version.cmake"
 # ----------------------------------------------------------------------
 
+set(ROOT_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../..")
 include(../../version.cmake)
 
 set(YEAR      2017)  # FIXME automate somehow
