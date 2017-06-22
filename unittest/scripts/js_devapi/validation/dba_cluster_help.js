@@ -31,8 +31,7 @@ It provides high-availability and scalability for the user's data.
 
 The following properties are currently supported.
 
- - name      Cluster name.
- - adminType Cluster Administration type.
+ - name Cluster name.
 
 
 The following functions are currently supported.
@@ -43,8 +42,6 @@ The following functions are currently supported.
  - describe                    Describe the structure of the cluster.
  - dissolve                    Dissolves the cluster.
  - forceQuorumUsingPartitionOf Restores the cluster from quorum loss.
- - getAdminType                Retrieves the Administration type of the
-                               cluster.
  - getName                     Retrieves the name of the cluster.
  - help                        Provides help about this class and it's members
  - rejoinInstance              Rejoins an Instance to the cluster.
@@ -346,14 +343,6 @@ in the network, but not accessible from your location.
 
 When this function is used, all the members that are ONLINE from the point of
 view of the given instance definition will be added to the group.
-
-//@<OUT> Get Admin Type
-
-Retrieves the Administration type of the cluster.
-
-SYNTAX
-
-  <Cluster>.getAdminType()
 
 //@<OUT> Get Name
 

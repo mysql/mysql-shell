@@ -29,8 +29,6 @@
 #define ACC_USER "username"
 #define ACC_PASSWORD "password"
 
-#define OPT_ADMIN_TYPE "adminType"
-
 #define ATT_DEFAULT "default"
 
 namespace mysqlsh {
@@ -99,7 +97,6 @@ public:
 
 #if DOXYGEN_JS
   String name; //!< $(CLUSTER_NAME_BRIEF)
-  String adminType; //!< $(CLUSTER_ADMINTYPE_BRIEF)
   String getName();
   String getAdminType();
   Undefined addInstance(InstanceDef instance, Dictionary options);
@@ -113,9 +110,7 @@ public:
   Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
 #elif DOXYGEN_PY
   str name; //!< $(CLUSTER_NAME_BRIEF)
-  std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)
   str get_name();
-  str get_admin_type();
   None add_instance(InstanceDef instance, dict options);
   None rejoin_instance(InstanceDef instance, dict options);
   None remove_instance(InstanceDef instance, str password);

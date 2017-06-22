@@ -27,9 +27,6 @@ cluster.help("dissolve")
 //@<OUT> Force Quorum Using Partition Of
 cluster.help("forceQuorumUsingPartitionOf")
 
-//@<OUT> Get Admin Type
-cluster.help("getAdminType")
-
 //@<OUT> Get Name
 cluster.help("getName")
 

@@ -600,12 +600,16 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_from_query(const std::stri
 
       cluster->set_id(row->get_value(0).as_int());
       cluster->set_description(row->get_value(3).as_string());
-      cluster->set_options(row->get_value(4).as_string());
       cluster->set_attributes(row->get_value(5).as_string());
+
+      auto options_val = row->get_value(4);
+      if(options_val.json() != "\"null\"")
+        cluster->set_options(options_val.as_string());
 
       auto rsetid_val = row->get_value(2);
       if (rsetid_val)
         cluster->set_default_replicaset(get_replicaset(rsetid_val.as_int()));
+
     }
   } catch (shcore::Exception &e) {
     std::string error = e.what();

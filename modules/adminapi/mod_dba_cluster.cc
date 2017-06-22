@@ -50,7 +50,6 @@ REGISTER_HELP(CLUSTER_CLOSING, "For more help on a specific function use: cluste
 REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
 
 REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
-REGISTER_HELP(CLUSTER_ADMINTYPE_BRIEF, "Cluster Administration type.");
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
 _name(name), _metadata_storage(metadata_storage), _dissolved(false) {
@@ -71,7 +70,6 @@ bool Cluster::operator == (const Object_bridge &other) const {
 
 void Cluster::init() {
   add_property("name", "getName");
-  add_property("adminType", "getAdminType");
   add_method("addInstance", std::bind(&Cluster::add_instance, this, _1), "data");
   add_method("rejoinInstance", std::bind(&Cluster::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1), "data");
@@ -106,8 +104,6 @@ shcore::Value Cluster::get_member(const std::string &prop) const {
 
   if (prop == "name")
     ret_val = shcore::Value(_name);
-  else if (prop == "adminType")
-    ret_val = (*_options)[OPT_ADMIN_TYPE];
   else
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
   return ret_val;
@@ -128,21 +124,6 @@ void Cluster::assert_not_dissolved(const std::string &option_name) const {
     }
   }
 }
-// Documentation of the getAdminType function
-REGISTER_HELP(CLUSTER_GETADMINTYPE_BRIEF, "Retrieves the Administration type of the cluster.");
-REGISTER_HELP(CLUSTER_GETADMINTYPE_RETURNSS, "@returns The Administration type of the cluster.");
-
-/**
-* $(CLUSTER_GETADMINTYPE_BRIEF)
-*
-* $(CLUSTER_GETADMINTYPE_RETURNSS)
-*
-*/
-#if DOXYGEN_JS
-String Cluster::getAdminType() {}
-#elif DOXYGEN_PY
-str Cluster::get_admin_type() {}
-#endif
 
 #if 0
 #if DOXYGEN_CPP
