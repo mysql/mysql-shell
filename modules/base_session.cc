@@ -57,7 +57,9 @@ std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session(
   return connect_session(args, session_type);
 }
 
-std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session(const shcore::Argument_list &args, SessionType session_type) {
+std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session
+  (const shcore::Argument_list &args,
+   SessionType session_type) {
   std::shared_ptr<ShellDevelopmentSession> ret_val;
 
   mysqlsh::SessionType type(session_type);
@@ -111,14 +113,13 @@ std::shared_ptr<mysqlsh::ShellDevelopmentSession> mysqlsh::connect_session(const
   return ret_val;
 }
 
-ShellBaseSession::ShellBaseSession() :
-_port(0) {
+ShellBaseSession::ShellBaseSession() : _port(0) {
   init();
 }
 
 ShellBaseSession::ShellBaseSession(const ShellBaseSession& s) :
-_user(s._user), _password(s._password), _host(s._host), _port(s._port), _sock(s._sock), _schema(s._schema),
-_ssl_info(s._ssl_info) {
+_user(s._user), _password(s._password), _host(s._host), _port(s._port),
+_sock(s._sock), _schema(s._schema), _ssl_info(s._ssl_info) {
   init();
 }
 
@@ -228,63 +229,45 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
       _password = (*options)[kPassword].as_string();
 
 
-    _ssl_info.skip = true;
-
-    if (options->has_key(kSslCa)) {
+    if (options->has_key(kSslCa))
       _ssl_info.ca = (*options)[kSslCa].as_string();
-      _ssl_info.skip = false;
-    } else {
+    else
       _ssl_info.ca = "";
-    }
 
-    if (options->has_key(kSslCert)) {
+    if (options->has_key(kSslCert))
       _ssl_info.cert = (*options)[kSslCert].as_string();
-      _ssl_info.skip = false;
-    } else {
+    else
       _ssl_info.cert = "";
-    }
 
-    if (options->has_key(kSslKey)) {
+    if (options->has_key(kSslKey))
       _ssl_info.key = (*options)[kSslKey].as_string();
-      _ssl_info.skip = false;
-    } else {
+    else
       _ssl_info.key = "";
-    }
 
-    if (options->has_key(kSslCaPath)) {
+    if (options->has_key(kSslCaPath))
       _ssl_info.capath = (*options)[kSslCaPath].as_string();
-      _ssl_info.skip = false;
-    } else {
+    else
       _ssl_info.capath = "";
-    }
 
-    if (options->has_key(kSslCrl)) {
+    if (options->has_key(kSslCrl))
       _ssl_info.crl = (*options)[kSslCrl].as_string();
-      _ssl_info.skip = false;
-    } else {
+    else
       _ssl_info.crl = "";
-    }
 
-    if (options->has_key(kSslCrlPath)) {
+    if (options->has_key(kSslCrlPath))
       _ssl_info.crlpath = (*options)[kSslCrlPath].as_string();
-      _ssl_info.skip = false;
-    } else {
+    else
       _ssl_info.crlpath = "";
-    }
 
-    if (options->has_key(kSslCiphers)) {
+    if (options->has_key(kSslCiphers))
       _ssl_info.ciphers = (*options)[kSslCiphers].as_string();
-      _ssl_info.skip = false;
-    } else {
+    else
       _ssl_info.ciphers = "";
-    }
 
-    if (options->has_key(kSslTlsVersion)) {
+    if (options->has_key(kSslTlsVersion))
       _ssl_info.tls_version = (*options)[kSslTlsVersion].as_string();
-      _ssl_info.skip = false;
-    } else {
+    else
       _ssl_info.tls_version = "";
-    }
 
     if (options->has_key(kSslMode)) {
       if ((*options)[kSslMode].type == String) {
@@ -292,12 +275,13 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
         int ssl_mode = MapSslModeNameToValue::get_value(s);
         if (ssl_mode == 0)
           throw std::runtime_error(
-          "Invalid value for mode (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
+          "Invalid value for mode (must be any of [DISABLED, PREFERRED, "
+          "REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
         _ssl_info.mode = ssl_mode;
-        _ssl_info.skip = false;
       } else {
         throw std::runtime_error(
-          "Invalid value for mode (must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
+          "Invalid value for mode (must be any of [DISABLED, PREFERRED, "
+          "REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
       }
     }
 
@@ -372,8 +356,7 @@ void ShellBaseSession::reconnect() {
   connect(args);
 }
 
-ShellDevelopmentSession::ShellDevelopmentSession() :
-ShellBaseSession() {
+ShellDevelopmentSession::ShellDevelopmentSession() : ShellBaseSession() {
   init();
 }
 

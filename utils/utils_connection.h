@@ -37,7 +37,6 @@ namespace shcore {
 struct SHCORE_PUBLIC SslInfo
 {
   SslInfo() {
-    skip = true;
     mode = 0;
     ca = "";
     cert = "";
@@ -50,7 +49,6 @@ struct SHCORE_PUBLIC SslInfo
 
   }
   SslInfo(const SslInfo& s);
-  bool skip;
   int mode;
   std::string ca;
   std::string capath;
@@ -61,8 +59,7 @@ struct SHCORE_PUBLIC SslInfo
   std::string cert;
   std::string key;
   bool has_data() {
-    return skip == false ||
-      mode != 0 ||
+    return mode != 0 ||
       !ca.empty() ||
       !capath.empty() ||
       !crl.empty() ||

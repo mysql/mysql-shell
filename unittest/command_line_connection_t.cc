@@ -22,6 +22,28 @@ namespace tests {
 
 class Command_line_connection_test : public Command_line_test {
 protected:
+  int execute_in_session(const std::string& uri,
+                         const std::string& session_type,
+                         const std::string& command = "",
+                         const std::string& mode = "--sql") {
+
+    std::string used_uri = uri.empty() ? _mysql_uri : uri;
+
+    std::string pwd_param = "--password=" + _pwd;
+    std::vector<const char *> args = { _mysqlsh,
+      session_type.c_str(),
+      mode.c_str(),
+      used_uri.c_str(),
+      "--interactive=full",
+      pwd_param.c_str(),
+      "-e",
+      command.empty() ? "\\status" : command.c_str(),
+      NULL
+    };
+
+    return execute(args);
+  }
+
   int test_classic_connection(const std::vector<const char*>& additional_args) {
     std::string pwd_param = "--password=" + _pwd;
     std::vector<const char *> args = { _mysqlsh,
@@ -94,4 +116,105 @@ TEST_F(Command_line_connection_test, bug25268670) {
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Shell.connect: Invalid values in connection data: invalid_option");
 };
+
+TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
+  bool have_ssl = false;
+
+  // Default sslMode as required must work regardless if the server has or not
+  // SSL enabled (i.e. commercial vs gpl)
+  execute_in_session(_mysql_uri, "--classic", "show variables like 'have_ssl';");
+  if (_output.find("YES") != std::string::npos)
+    have_ssl = true;
+
+  _output.clear();
+
+  if (have_ssl) {
+    // Having SSL enabled sets secure_transport_required=ON
+    bool require_secure_transport = false;
+    execute_in_session(_mysql_uri, "--classic", "show variables like 'require_secure_transport';");
+    if (_output.find("ON") != std::string::npos)
+      require_secure_transport = true;
+
+    _output.clear();
+
+    if (!require_secure_transport) {
+      execute_in_session(_mysql_uri, "--classic", "set global require_secure_transport=ON;");
+      _output.clear();
+    }
+
+    // Tests the sslMode=DISABLED to make sure it is not
+    // ignored when coming in a URI
+    std::string ssl_uri = _mysql_uri + "?sslMode=DISABLED";
+
+    execute_in_session(ssl_uri, "--classic");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic Session to");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 3159 (HY000): Connections using "
+                                  "insecure transport are prohibited while --require_secure_transport=ON.");
+    _output.clear();
+
+    if (!require_secure_transport)
+      execute_in_session(_mysql_uri, "--classic", "set global require_secure_transport=OFF;");
+  } else {
+    // Having SSL disabled test the sslMode=REQUIRED to make sure
+    // it is not ignored when coming in a URI
+
+    std::string ssl_uri = _mysql_uri + "?sslMode=REQUIRED";
+
+    execute_in_session(ssl_uri, "--classic");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic Session to");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 2026 (HY000): SSL connection error: SSL is required "
+                                  "but the server doesn't support it");
+    _output.clear();
+  }
+};
+
+  TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
+    bool have_ssl = false;
+
+    // Default sslMode as required must work regardless if the server has or not
+    // SSL enabled (i.e. commercial vs gpl)
+    execute_in_session(_mysql_uri, "--classic", "show variables like 'have_ssl';");
+    if (_output.find("YES") != std::string::npos)
+      have_ssl = true;
+
+    _output.clear();
+
+    if (have_ssl) {
+      // Having SSL enabled sets secure_transport_required=ON
+      bool require_secure_transport = false;
+      execute_in_session(_mysql_uri, "--classic", "show variables like 'require_secure_transport';");
+      if (_output.find("ON") != std::string::npos)
+        require_secure_transport = true;
+
+      _output.clear();
+
+      if (!require_secure_transport) {
+        execute_in_session(_mysql_uri, "--classic", "set global require_secure_transport=ON;");
+        _output.clear();
+      }
+
+      // Tests the sslMode=DISABLED to make sure it is not
+      // ignored when coming in a URI
+      std::string ssl_uri = _uri + "?sslMode=DISABLED";
+
+      execute_in_session(ssl_uri, "--node");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Node Session to");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 1045: Secure transport required. To log in you must use "
+                                    "TCP+SSL or UNIX socket connection.");
+      _output.clear();
+
+      if (!require_secure_transport)
+        execute_in_session(_mysql_uri, "--classic", "set global require_secure_transport=OFF;");
+    } else {
+      // Having SSL disabled test the sslMode=REQUIRED to make sure
+      // it is not ignored when coming in a URI
+
+      std::string ssl_uri = _uri + "?sslMode=REQUIRED";
+
+      execute_in_session(ssl_uri, "--node");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Node Session to");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 5001: Capability prepare failed for 'tls'");
+      _output.clear();
+    }
+  };
 }

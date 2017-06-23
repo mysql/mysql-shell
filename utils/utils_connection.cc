@@ -55,7 +55,7 @@ const std::string MapSslModeNameToValue::get_value(int value) {
   }
 }
 
-SslInfo::SslInfo(const SslInfo& s) : skip(s.skip), mode(s.mode), ca(s.ca), capath(s.capath),
+SslInfo::SslInfo(const SslInfo& s) : mode(s.mode), ca(s.ca), capath(s.capath),
     crl(s.crl), crlpath(s.crlpath), ciphers(s.ciphers), tls_version(s.tls_version),
     cert(s.cert), key(s.key)
 {}

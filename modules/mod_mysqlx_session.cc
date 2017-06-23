@@ -91,8 +91,8 @@ REGISTER_HELP(XSESSION_DETAIL, "In the future this class will be improved to sup
 REGISTER_HELP(NODESESSION_INTERACTIVE_BRIEF, "Represents the currently open MySQL session.");
 REGISTER_HELP(NODESESSION_BRIEF, "Enables interaction with an X Protocol enabled MySQL Server, this includes SQL Execution.");
 
-BaseSession::BaseSession()
-  : _case_sensitive_table_names(false) {
+BaseSession::BaseSession() : ShellDevelopmentSession(),
+  _case_sensitive_table_names(false) {
   init();
 }
 
@@ -145,15 +145,13 @@ Value BaseSession::connect(const Argument_list &args) {
     // Retrieves the connection data, whatever the source is
     load_connection_data(args);
 
+    // If no ssl mode is specified by the user, we use
+    // Preferred by default
     unsigned int ssl_mode;
-    if (_ssl_info.skip)
-      ssl_mode = static_cast<int>(shcore::SslMode::Disabled);
-    else {
-      if (_ssl_info.mode)
-        ssl_mode = _ssl_info.mode;
-      else
-        ssl_mode = static_cast<int>(shcore::SslMode::Preferred);
-    }
+    if (_ssl_info.mode)
+      ssl_mode = _ssl_info.mode;
+    else
+      ssl_mode = static_cast<int>(shcore::SslMode::Preferred);
 
     _session.open(_host, _port, _schema, _user, _password, _ssl_info.ca,
       _ssl_info.cert, _ssl_info.key, _ssl_info.capath, _ssl_info.crl, _ssl_info.crlpath,

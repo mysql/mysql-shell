@@ -252,8 +252,6 @@ void parse_mysql_connstring(const std::string &connstring,
     if (pwd_found)
       password = data.get_password();
 
-    ssl_info.skip = false;
-
     if (data.has_attribute(kSslCa))
       ssl_info.ca = data.get_attribute(kSslCa);
     else
@@ -500,9 +498,10 @@ Value::Map_type_ref get_connection_data(const std::string &uri, bool set_default
 // Overrides connection data parameters with specific values, also adds parameters with default values if missing
 void update_connection_data(Value::Map_type_ref data,
                             const std::string &user, const char *password,
-                            const std::string &host, int &port, const std::string& sock,
+                            const std::string &host, int &port,
+                            const std::string& sock,
                             const std::string &database,
-                            bool ssl, const struct shcore::SslInfo& ssl_info,
+                            const shcore::SslInfo& ssl_info,
                             const std::string &auth_method) {
   if (!user.empty())
     (*data)[kDbUser] = Value(user);
@@ -522,44 +521,32 @@ void update_connection_data(Value::Map_type_ref data,
   if (!sock.empty())
     (*data)[kSocket] = Value(sock);
 
-  if (ssl) {
-    if (!ssl_info.ca.empty())
-      (*data)[kSslCa] = Value(ssl_info.ca);
+  if (!ssl_info.ca.empty())
+    (*data)[kSslCa] = Value(ssl_info.ca);
 
-    if (!ssl_info.cert.empty())
-      (*data)[kSslCert] = Value(ssl_info.cert);
+  if (!ssl_info.cert.empty())
+    (*data)[kSslCert] = Value(ssl_info.cert);
 
-    if (!ssl_info.key.empty())
-      (*data)[kSslKey] = Value(ssl_info.key);
+  if (!ssl_info.key.empty())
+    (*data)[kSslKey] = Value(ssl_info.key);
 
-    if (!ssl_info.capath.empty())
-      (*data)[kSslCaPath] = Value(ssl_info.capath);
+  if (!ssl_info.capath.empty())
+    (*data)[kSslCaPath] = Value(ssl_info.capath);
 
-    if (!ssl_info.crl.empty())
-      (*data)[kSslCrl] = Value(ssl_info.crl);
+  if (!ssl_info.crl.empty())
+    (*data)[kSslCrl] = Value(ssl_info.crl);
 
-    if (!ssl_info.crlpath.empty())
-      (*data)[kSslCrlPath] = Value(ssl_info.crlpath);
+  if (!ssl_info.crlpath.empty())
+    (*data)[kSslCrlPath] = Value(ssl_info.crlpath);
 
-    if (!ssl_info.ciphers.empty())
-      (*data)[kSslCiphers] = Value(ssl_info.ciphers);
+  if (!ssl_info.ciphers.empty())
+    (*data)[kSslCiphers] = Value(ssl_info.ciphers);
 
-    if (!ssl_info.tls_version.empty())
-      (*data)[kSslTlsVersion] = Value(ssl_info.tls_version);
+  if (!ssl_info.tls_version.empty())
+    (*data)[kSslTlsVersion] = Value(ssl_info.tls_version);
 
-    if (ssl_info.mode != 0)
-      (*data)[kSslMode] = Value(shcore::MapSslModeNameToValue::get_value(ssl_info.mode));
-  } else {
-    data->erase(kSslCa);
-    data->erase(kSslCert);
-    data->erase(kSslKey);
-    data->erase(kSslCaPath);
-    data->erase(kSslCrl);
-    data->erase(kSslCrlPath);
-    data->erase(kSslCiphers);
-    data->erase(kSslTlsVersion);
-    data->erase(kSslMode);
-  }
+  if (ssl_info.mode != 0)
+    (*data)[kSslMode] = Value(shcore::MapSslModeNameToValue::get_value(ssl_info.mode));
 
   if (!auth_method.empty())
     (*data)[kAuthMethod] = Value(auth_method);

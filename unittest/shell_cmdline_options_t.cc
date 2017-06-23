@@ -106,8 +106,6 @@ public:
       return options->ssl_info.ciphers;
     else if (option == "tls-version")
       return options->ssl_info.tls_version;
-    else if (option == "ssl")
-      return AS__STRING(options->ssl_info.skip? 0 : 1);
     else if (option == "uri")
       return options->uri;
     else if (option == "output_format")
@@ -332,6 +330,29 @@ public:
     std::cerr.rdbuf(backup);
   }
 
+  void test_deprecated_ssl(const std::string& scope,
+                              std::vector<char *> &args,
+                              const std::string& error,
+                              int expected_exit_code,
+                              shcore::SslMode mode) {
+    // Redirect cerr.
+    std::streambuf* backup = std::cerr.rdbuf();
+    std::ostringstream cerr;
+    std::cerr.rdbuf(cerr.rdbuf());
+
+    SCOPED_TRACE("TESTING: " + scope);
+    Shell_command_line_options options(args.size()-1, &args[0]);
+
+    EXPECT_STREQ(error.c_str(), cerr.str().c_str());
+
+    EXPECT_EQ(expected_exit_code, options.exit_code);
+    if (!expected_exit_code)
+      EXPECT_EQ(static_cast<int>(mode), options.get_options().ssl_info.mode);
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
+  }
+
   void test_option_with_value(const std::string &option, const std::string &soption, const std::string &value, const std::string &defval, bool is_connection_data, bool nullable, const std::string& target_option = "", const char *target_value = NULL) {
     // --option=<value>
     test_option_equal_value(option, value, is_connection_data, target_option, target_value);
@@ -449,7 +470,6 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.schema.empty());
   EXPECT_EQ(options.session_type, mysqlsh::SessionType::Auto);
   EXPECT_TRUE(options.sock.empty());
-  EXPECT_EQ(options.ssl_info.skip, true);
   EXPECT_TRUE(options.ssl_info.ca.empty());
   EXPECT_TRUE(options.ssl_info.cert.empty());
   EXPECT_TRUE(options.ssl_info.key.empty());
@@ -489,10 +509,6 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_value("ssl-ca", "", "some_value", "", IS_CONNECTION_DATA, false);
   test_option_with_value("ssl-cert", "", "some_value", "", IS_CONNECTION_DATA, !IS_NULLABLE);
   test_option_with_value("ssl-key", "", "some_value", "", IS_CONNECTION_DATA, !IS_NULLABLE);
-  test_option_with_value("ssl", "", "1", "1", IS_CONNECTION_DATA, !IS_NULLABLE);
-  test_option_with_value("ssl", "", "0", "1", !IS_CONNECTION_DATA, !IS_NULLABLE);
-  test_option_with_value("ssl", "", "yes", "1", IS_CONNECTION_DATA, !IS_NULLABLE, "", "1");
-  //test_option_with_value("ssl", "", "no", "1", !IS_CONNECTION_DATA, !IS_NULLABLE, "", "0");
 
   test_option_with_value("execute", "e", "show databases;", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "execute_statement");
 
@@ -668,8 +684,7 @@ TEST_F(Shell_cmdline_options, test_help_details) {
   "  --log-level=value        The log level.",
   ngcommon::Logger::get_level_range_info(),
   "  -V, --version            Prints the version of MySQL Shell.",
-  "  --ssl                    Enable SSL for connection (automatically enabled",
-  "                           with other flags).",
+  "  --ssl                    Deprecated, use --ssl-mode instead",
   "  --ssl-key=name           X509 key in PEM format.",
   "  --ssl-cert=name          X509 cert in PEM format.",
   "  --ssl-ca=name            CA file in PEM format.",
@@ -951,4 +966,48 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   std::cerr.rdbuf(backup);
 }
 
+TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
+  {
+    std::string error = "The --ssl option is deprecated, use --ssl-mode instead";
+    std::vector<char *> options = {"ut", "--ssl", "something", NULL};
+    test_deprecated_ssl("--ssl=something", options, error, 1,
+                        shcore::SslMode::Preferred); // This last param is
+                                                     // ignored on this case
+  }
+
+  std::string wrequired = "WARNING: the --ssl option is deprecated, "
+                          "using --ssl-mode=REQUIRED";
+  {
+    std::vector<char *> options = {"ut", "--ssl", NULL};
+    test_deprecated_ssl("--ssl", options, wrequired, 0,
+                        shcore::SslMode::Required);
+  }
+  {
+    std::vector<char *> options = {"ut", "--ssl=1", NULL};
+    test_deprecated_ssl("--ssl=1", options, wrequired, 0,
+                        shcore::SslMode::Required);
+  }
+  {
+    std::vector<char *> options = {"ut", "--ssl=yes", NULL};
+    test_deprecated_ssl("--ssl=yes", options, wrequired, 0,
+                        shcore::SslMode::Required);
+  }
+
+  std::string wdisabled = "WARNING: the --ssl option is deprecated, "
+                          "using --ssl-mode=DISABLED";
+  {
+    std::vector<char *> options = {"ut", "--ssl=0", NULL};
+    test_deprecated_ssl("--ssl=0", options, wdisabled, 0,
+                        shcore::SslMode::Disabled);
+  }
+  {
+    std::vector<char *> options = {"ut", "--ssl=no", NULL};
+    test_deprecated_ssl("--ssl=no", options, wdisabled, 0,
+                        shcore::SslMode::Disabled);
+  }
 }
+
+}
+
+
+
