@@ -86,7 +86,7 @@ namespace tests
   TEST(Logger, simple)
 	{
     const std::string* filename = get_path("mylog.txt");
-    Logger::create_instance(filename->c_str(), true, Logger::LOG_WARNING);
+    Logger::setup_instance(filename->c_str(), true, Logger::LOG_WARNING);
 
     Logger *l= Logger::singleton();
 
@@ -127,7 +127,7 @@ namespace tests
     try
     {
       const std::string* filename = get_path("");
-      Logger::create_instance(filename->c_str(), true, Logger::LOG_WARNING);
+      Logger::setup_instance(filename->c_str(), true, Logger::LOG_WARNING);
       FAIL() << "Expected std::logic_error";
     }
     catch(const std::logic_error& e)

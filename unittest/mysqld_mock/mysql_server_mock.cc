@@ -129,6 +129,7 @@ MySQLServerMock::MySQLServerMock(const std::string &expected_queries_file,
 void MySQLServerMock::run() {
   setup_service();
   handle_connections();
+  close_socket(listener_);
 }
 
 void MySQLServerMock::setup_service() {

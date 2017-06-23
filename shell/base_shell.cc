@@ -50,7 +50,8 @@ _options(options) {
   try {
     _logger = ngcommon::Logger::singleton();
   } catch (std::logic_error &e) {
-    ngcommon::Logger::create_instance(log_path.c_str(), _options.log_to_stderr, _options.log_level);
+    ngcommon::Logger::setup_instance(log_path.c_str(), _options.log_to_stderr,
+                                     _options.log_level);
     _logger = ngcommon::Logger::singleton();
   }
 
@@ -332,14 +333,21 @@ shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mys
     std::string session_type = new_session->class_name();
     std::string message;
 
-    if (_options.session_type == mysqlsh::SessionType::Auto) {
-      if (session_type == "ClassicSession")
-        message = "Classic ";
-      else if (session_type == "NodeSession")
-        message = "Node ";
+    message = "Your MySQL connection id is " +
+              std::to_string(new_session->get_connection_id());
+    if (session_type == "NodeSession")
+      message += " (X protocol)";
+    try {
+      message += "\nServer version: " + new_session->query_one_string(
+          "select concat(@@version, ' ', @@version_comment)");
+    } catch (shcore::Exception &e) {
+      // ignore password expired errors
+      if (e.is_mysql() && e.code() == 1820)
+        ;
+      else
+        throw;
     }
-
-    message += "Session successfully established. ";
+    message += "\n";
 
     shcore::Value default_schema;
 
@@ -352,7 +360,7 @@ shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mys
       else
         message += "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
     } else
-      message += "No default schema selected.";
+      message += "No default schema selected; type \\use <schema> to set one.";
 
     println(message);
   }

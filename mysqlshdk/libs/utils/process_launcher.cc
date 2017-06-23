@@ -330,11 +330,16 @@ HANDLE Process_launcher::get_fd_read() {
 
 #else  // !WIN32
 
-void Process_launcher::start() {
+void Process_launcher::start()
+{
+  assert(!is_alive);
+
   if (pipe(fd_in) < 0) {
     report_error(NULL);
   }
   if (pipe(fd_out) < 0) {
+    ::close(fd_in[0]);
+    ::close(fd_in[1]);
     report_error(NULL);
   }
   // Ignore broken pipe signal
@@ -342,6 +347,10 @@ void Process_launcher::start() {
 
   childpid = fork();
   if (childpid == -1) {
+    ::close(fd_in[0]);
+    ::close(fd_in[1]);
+    ::close(fd_out[0]);
+    ::close(fd_out[1]);
     report_error(NULL);
   }
 
@@ -396,13 +405,16 @@ void Process_launcher::start() {
   {
     ::close(fd_out[1]);
     ::close(fd_in[0]);
-
     is_alive = true;
     _wait_pending = true;
   }
 }
 
 void Process_launcher::close() {
+  is_alive = false;
+  ::close(fd_out[0]);
+  ::close(fd_in[1]);
+
   if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH)
     report_error(NULL);
   if (errno != ESRCH) {
@@ -410,23 +422,6 @@ void Process_launcher::close() {
     if (::kill(childpid, SIGKILL) < 0 && errno != ESRCH)
       report_error(NULL);
   }
-
-  /*
-  while(::close(fd_out[0]) == -1)
-  {
-  if(errno == EINTR) continue;
-  else report_error(NULL);
-  }
-
-  while(::close(fd_in[1]) == -1)
-  {
-  if( errno == EINTR ) continue;
-  else report_error(NULL);
-  }*/
-
-  ::close(fd_out[0]);
-  ::close(fd_in[1]);
-  is_alive = false;
 }
 
 int Process_launcher::read_one_char() {

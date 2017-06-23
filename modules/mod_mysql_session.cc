@@ -939,3 +939,4 @@ std::string ClassicSession::query_one_string(const std::string &query) {
   }
   return "";
 }
+
