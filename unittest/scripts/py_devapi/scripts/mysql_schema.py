@@ -14,6 +14,15 @@ result = mySession.run_sql('create view view1 (my_name) as select name from tabl
 
 schema = mySession.get_schema('js_shell_test')
 
+# We need to know the lower_case_table_names option to
+# properly handle the table shadowing unit tests
+lcresult = mySession.run_sql('select @@lower_case_table_names')
+lcrow = lcresult.fetch_one()
+if lcrow[0] == 1:
+    name_get_table="gettable"
+else:
+    name_get_table="getTable"
+
 #@ Schema: validating members
 all_members = dir(schema)
 

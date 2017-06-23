@@ -957,6 +957,12 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {
+    if (shcore::is_folder(file)) {
+      print_error((boost::format("Failed to open file: '%s' is a "
+        "directory\n") % file.c_str()).str());
+      return ret_val;
+    }
+
     std::ifstream s(file.c_str());
 
     if (!s.fail()) {

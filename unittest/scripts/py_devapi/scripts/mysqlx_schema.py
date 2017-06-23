@@ -15,6 +15,18 @@ mySession.get_schema('js_shell_test').create_collection('collection1')
 
 schema = mySession.get_schema('js_shell_test');
 
+# We need to know the lower_case_table_names option to
+# properly handle the table shadowing unit tests
+lcresult = mySession.sql('select @@lower_case_table_names').execute()
+lcrow = lcresult.fetch_one()
+lower_case_table_names = lcrow[0]
+if lower_case_table_names == 1:
+    name_get_table="gettable"
+    name_get_collection="getcollection"
+else:
+    name_get_table="getTable"
+    name_get_collection="getCollection"
+
 #@ Schema: validating members
 all_members = dir(schema)
 
@@ -147,7 +159,10 @@ print schema.get_table('session')
 print schema.get_collection('getTable')
 
 #@ Testing name shadowing: getTable (not a python function)
-print schema.getTable
+if lower_case_table_names == 1:
+    print schema.gettable
+else:
+    print schema.getTable
 
 #@ Testing name shadowing: get_table('get_table')
 print schema.get_table('get_table')
@@ -156,7 +171,10 @@ print schema.get_table('get_table')
 print schema.get_collection('getCollection')
 
 #@ Testing name shadowing: getCollection (not a python function)
-print schema.getCollection
+if lower_case_table_names == 1:
+    print schema.getcollection
+else:
+    print schema.getCollection
 
 #@ Testing name shadowing: get_table('get_collection')
 print schema.get_table('get_collection')

@@ -79,7 +79,7 @@
 |<ClassicTable:session>|
 
 #@ Testing name shadowing: getTable('getTable')
-|<ClassicTable:getTable>|
+|<ClassicTable:<<<name_get_table>>>>|
 
 #@ Testing name shadowing: getTable('get_table')
 |<ClassicTable:get_table>|

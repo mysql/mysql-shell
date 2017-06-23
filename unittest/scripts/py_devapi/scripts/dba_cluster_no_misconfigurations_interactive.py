@@ -2,6 +2,7 @@
 #@ Initialization
 deployed_here = reset_or_deploy_sandboxes();
 
+#@ connect
 shell.connect({'scheme': 'mysql', 'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
 #@<OUT> create cluster no misconfiguration: ok
