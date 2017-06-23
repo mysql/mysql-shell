@@ -15,6 +15,8 @@
 
 cmake_minimum_required (VERSION 2.8)
 
+SET(ROOT_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../../")
+
 IF(NOT MYSH_VERSION)
   INCLUDE(${CMAKE_SOURCE_DIR}/../../version.cmake)
 ENDIF()

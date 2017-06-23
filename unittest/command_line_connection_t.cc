@@ -65,7 +65,7 @@ TEST_F(Command_line_connection_test, classic_no_socket_no_port) {
   // If the UT port is the default port, the connection will suceed
   if (_mysql_port == "3306") {
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Your MySQL connection id is");
-	MY_EXPECT_CMD_OUTPUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+	  MY_EXPECT_CMD_OUTPUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
   }
   else {

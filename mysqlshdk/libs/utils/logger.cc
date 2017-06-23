@@ -22,6 +22,7 @@
 
 #include <stdarg.h>
 #include <time.h>
+#include <utility>
 #include <vector>
 
 #if defined __GNUC__
@@ -278,9 +279,20 @@ void Logger::out_to_stderr(const char* msg) {
   return result;
 }
 
-void Logger::create_instance(const char* filename, bool use_stderr,
-                             Logger::LOG_LEVEL log_level) {
-  if (!instance) {
+void Logger::setup_instance(const char* filename, bool use_stderr,
+                            Logger::LOG_LEVEL log_level) {
+  if (instance) {
+    if (filename && instance->out_name.compare(filename) != 0) {
+      instance->out.close();
+      instance->out.open(filename, std::ios_base::app);
+      if (instance->out.fail())
+        throw std::logic_error(
+            std::string("Error in Logger::Logger when opening file '") +
+            filename + "' for writing");
+    }
+    instance->set_log_level(log_level);
+    instance->use_stderr = use_stderr;
+  } else {
     instance = new Logger(filename, use_stderr, log_level);
   }
 }
@@ -295,6 +307,7 @@ Logger::Logger(const char* filename, bool use_stderr_,
   this->use_stderr = use_stderr_;
   this->log_level = log_level_;
   if (filename != NULL) {
+    out_name = filename;
     out.open(filename, std::ios_base::app);
     if (out.fail())
       throw std::logic_error(
