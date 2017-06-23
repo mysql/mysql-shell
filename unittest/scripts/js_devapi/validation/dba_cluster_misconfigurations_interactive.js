@@ -3,7 +3,8 @@
 
 //@ connect and change vars
 |Creating a Classic Session to 'root@localhost:<<<__mysql_sandbox_port1>>>'|
-|Session successfully established. No default schema selected.|
+|Your MySQL connection id is|
+|No default schema selected; type \use <schema> to set one.|
 |Query OK, 0 rows affected|
 |Query OK, 0 rows affected|
 
