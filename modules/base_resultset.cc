@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -353,10 +353,26 @@ bool ShellBaseResult::operator == (const Object_bridge &other) const {
   return this == &other;
 }
 
-Column::Column(const std::string& schema, const std::string& table_name, const std::string& table_label, const std::string& column_name, const std::string& column_label,
-       shcore::Value type, uint64_t length, bool numeric, uint64_t fractional, bool is_signed, const std::string &collation, const std::string &charset, bool padded) :
-        _schema(schema), _table_name(table_name), _table_label(table_label), _column_name(column_name), _column_label(column_label), _collation(collation), _charset(charset),
-       _length(length), _type(type), _fractional(fractional), _signed(is_signed), _padded(padded), _numeric(numeric) {
+Column::Column(const std::string &schema, const std::string &table_name,
+               const std::string &table_label, const std::string &column_name,
+               const std::string &column_label, shcore::Value type,
+               uint64_t length, bool numeric, uint64_t fractional,
+               bool is_signed, const std::string &collation,
+               const std::string &charset, bool padded, bool zerofill)
+    : _schema(schema),
+      _table_name(table_name),
+      _table_label(table_label),
+      _column_name(column_name),
+      _column_label(column_label),
+      _collation(collation),
+      _charset(charset),
+      _length(length),
+      _type(type),
+      _fractional(fractional),
+      _signed(is_signed),
+      _padded(padded),
+      _zerofill(zerofill),
+      _numeric(numeric) {
   add_property("schemaName", "getSchemaName");
   add_property("tableName", "getTableName");
   add_property("tableLabel", "getTableLabel");
@@ -369,6 +385,7 @@ Column::Column(const std::string& schema, const std::string& table_name, const s
   add_property("collationName", "getCollationName");
   add_property("characterSetName", "getCharacterSetName");
   add_property("padded", "isPadded");
+  add_property("zeroFill", "isZeroFill");
 }
 
 bool Column::operator == (const Object_bridge &other) const {
@@ -393,6 +410,7 @@ bool Column::operator == (const Object_bridge &other) const {
  * \li collationName: returns a String object with the collation name of the Column.
  * \li characterSetName: returns a String object with the collation name of the Column.
  * \li padded: returns an boolean value indicating wether the Column is padded.
+ * \li zeroFill: returns an boolean value indicating wether the Column is to be left padded with 0s.
  */
 #endif
 shcore::Value Column::get_member(const std::string &prop) const {
@@ -421,6 +439,8 @@ shcore::Value Column::get_member(const std::string &prop) const {
     ret_val = shcore::Value(_charset);
   else if (prop == "padded")
     ret_val = shcore::Value(_padded);
+  else if (prop == "zeroFill")
+    ret_val = shcore::Value(_zerofill);
   else
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
 
@@ -445,7 +465,7 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
     if (indent >= 0)
       s_out.append((indent + 1) * 4, ' ');
 
-    value_array[index].first.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+    value_array[index].append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
   }
 
   s_out += nl;
@@ -461,7 +481,7 @@ void Row::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   for (size_t index = 0; index < value_array.size(); index++)
-    dumper.append_value(names[index], value_array[index].first);
+    dumper.append_value(names[index], value_array[index]);
 
   dumper.end_object();
 }
@@ -496,9 +516,9 @@ shcore::Value Row::get_field(const shcore::Argument_list &args) {
 }
 
 shcore::Value Row::get_field_(const std::string &field) {
-  auto iter = values.find(field);
-  if (iter != values.end())
-    return iter->second;
+  auto iter = std::find(names.begin(), names.end(), field);
+  if (iter != names.end())
+    return value_array[iter - names.begin()];
   else
     throw shcore::Exception::argument_error("Row.getField: Field " + field + " does not exist");
 }
@@ -529,9 +549,9 @@ shcore::Value Row::get_member(const std::string &prop) const {
   if (prop == "length")
     return shcore::Value((int)value_array.size());
   else {
-    std::map<std::string, shcore::Value>::const_iterator it;
-    if ((it = values.find(prop)) != values.end())
-      return it->second;
+    auto it = std::find(names.begin(), names.end(), prop);
+    if (it != names.end())
+      return value_array[it - names.begin()];
   }
 
   return shcore::Cpp_object_bridge::get_member(prop);
@@ -544,21 +564,14 @@ shcore::Value Row::get_member(const std::string &prop) const {
 #endif
 shcore::Value Row::get_member(size_t index) const {
   if (index < value_array.size())
-    return value_array[index].first;
+    return value_array[index];
   else
     return shcore::Value();
 }
 
-std::string Row::get_display_value(std::size_t index) const {
-  if (value_array[index].second.empty())
-    return value_array[index].first.descr();
-  return value_array[index].second;
-}
-
-void Row::add_item(const std::string &key, shcore::Value value,
-  const std::string &display_value) {
+void Row::add_item(const std::string &key, shcore::Value value) {
   // All the values are available through index
-  value_array.push_back({value, display_value});
+  value_array.push_back(value);
   names.push_back(key);
 
   // Values would be available as properties if they are valid identifier
@@ -567,11 +580,6 @@ void Row::add_item(const std::string &key, shcore::Value value,
   // row.property
   if (shcore::is_valid_identifier(key) && !has_member(key))
     add_property(key);
-
-  // Values would be retrievable with getMember if the name
-  // is an existing member as long as the name is not duplicate
-  if (values.find(key) == values.end())
-    values[key] = value;
 }
 
 }  // namespace mysqlsh

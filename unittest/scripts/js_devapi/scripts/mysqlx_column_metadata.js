@@ -34,6 +34,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on TinyInt Column
 column = columns[column_index]
@@ -50,6 +51,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Unsigned TinyInt Column
 column = columns[column_index]
@@ -66,6 +68,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on SmallInt Column
 column = columns[column_index]
@@ -82,6 +85,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Unsigned SmallInt Column
 column = columns[column_index]
@@ -98,6 +102,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on MediumInt Column
 column = columns[column_index]
@@ -114,6 +119,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Unsigned MediumInt Column
 column = columns[column_index]
@@ -130,6 +136,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Int Column
 column = columns[column_index]
@@ -146,6 +153,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Unsigned Int Column
 column = columns[column_index]
@@ -162,6 +170,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Float Column
 column = columns[column_index]
@@ -178,6 +187,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Unsigned Float Column
 column = columns[column_index]
@@ -194,6 +204,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Float Column with length and fractional digits
 column = columns[column_index]
@@ -210,6 +221,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Decimal Column
 column = columns[column_index]
@@ -226,6 +238,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Unsigned Decimal Column
 column = columns[column_index]
@@ -242,6 +255,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Decimal Column with length and fractional digits
 column = columns[column_index]
@@ -258,6 +272,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Double Column
 column = columns[column_index]
@@ -274,6 +289,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Unsigned Double Column
 column = columns[column_index]
@@ -290,6 +306,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Double Column with length and fractional digits
 column = columns[column_index]
@@ -306,6 +323,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 // Metadata Validation On Other Types
 result = mySession.sql("create table table2 (one json, two char(5) primary key, three varchar(20), four text, five time, six date, seven timestamp, eight set('1','2','3'), nine enum ('a','b','c'))").execute();
@@ -332,6 +350,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Char Column
 column = columns[column_index]
@@ -348,6 +367,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Varchar Column
 column = columns[column_index]
@@ -364,6 +384,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Text Column
 column = columns[column_index]
@@ -380,6 +401,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Time Column
 column = columns[column_index]
@@ -396,6 +418,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Date Column
 column = columns[column_index]
@@ -412,6 +435,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Timestamp Column
 column = columns[column_index]
@@ -428,6 +452,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Set Column
 column = columns[column_index]
@@ -444,6 +469,7 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 //@ Metadata on Enum Column
 column = columns[column_index]
@@ -460,5 +486,6 @@ print ('Is Number Signed:', column.isNumberSigned());
 print ('Collation Name:', column.getCollationName());
 print ('Charset Name:', column.getCharacterSetName());
 print ('Is Padded:', column.isPadded());
+print ('Is ZeroFill:', column.isZeroFill());
 
 mySession.close();

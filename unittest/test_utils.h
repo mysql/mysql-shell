@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -13,8 +13,9 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <string>
+
 #include <gtest/gtest.h>
-#include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
 #include "shellcore/shell_notifications.h"
@@ -141,7 +142,8 @@ protected:
   // This can be use to reinitialize the interactive shell with different options
   // First set the options on _options
   void reset_options() {
-    char **argv = NULL;
+    shcore::Shell_core_options::reset_instance();
+
     _options.reset(new mysqlsh::Shell_options());
   }
 
@@ -153,7 +155,6 @@ protected:
     _interactive_shell.reset(new mysqlsh::Base_shell(*_options.get(), &output_handler.deleg));
 
     set_defaults();
-
     _interactive_shell->finish_init();
   }
 
@@ -187,3 +188,5 @@ protected:
   // non listed functions are validated for unavailability
   void ensure_available_functions(const std::string& functions);
 };
+
+std::string random_string(std::string::size_type length);

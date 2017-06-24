@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -406,22 +406,22 @@ shcore::Value DocResult::get_metadata() const {
       orig_name = _result->columnMetadata()->at(0).name;
 
     std::shared_ptr<mysqlsh::Column> metadata(new mysqlsh::Column(
-      _result->columnMetadata()->at(0).schema,
-      orig_table,
-      _result->columnMetadata()->at(0).table,
-      orig_name,
-      _result->columnMetadata()->at(0).name,
-      data_type,
-      _result->columnMetadata()->at(0).length,
-      false, // IS NUMERIC
-      _result->columnMetadata()->at(0).fractional_digits,
-      false, // IS SIGNED
-      mysqlsh::charset::collation_name_from_collation_id(
-          _result->columnMetadata()->at(0).collation),
-      mysqlsh::charset::charset_name_from_collation_id(
-          _result->columnMetadata()->at(0).collation),       true)); // IS PADDED
+        _result->columnMetadata()->at(0).schema, orig_table,
+        _result->columnMetadata()->at(0).table, orig_name,
+        _result->columnMetadata()->at(0).name, data_type,
+        _result->columnMetadata()->at(0).length,
+        false,  // IS NUMERIC
+        _result->columnMetadata()->at(0).fractional_digits,
+        false,  // IS SIGNED
+        mysqlsh::charset::collation_name_from_collation_id(
+            _result->columnMetadata()->at(0).collation),
+        mysqlsh::charset::charset_name_from_collation_id(
+            _result->columnMetadata()->at(0).collation),
+        true,     // IS PADDED
+        false));  // ZEROFILL
 
-    _metadata = shcore::Value(std::static_pointer_cast<Object_bridge>(metadata));
+    _metadata =
+        shcore::Value(std::static_pointer_cast<Object_bridge>(metadata));
   }
 
   return _metadata;
@@ -554,10 +554,13 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
       std::string type_name;
       bool is_signed = false;
       bool is_padded = true;
+      bool is_zerofill = false;
       switch (_result->columnMetadata()->at(i).type) {
-        case ::mysqlx::SINT:
-          is_signed = true;
         case ::mysqlx::UINT:
+          is_zerofill = (_result->columnMetadata()->at(i).flags & 0x001) != 0;
+          is_signed = true;  // will be flipped after fall-through
+        case ::mysqlx::SINT:
+          is_signed = !is_signed;
           switch (_result->columnMetadata()->at(i).length) {
             case 3:
             case 4:
@@ -650,22 +653,20 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
         orig_name = _result->columnMetadata()->at(i).name;
 
       std::shared_ptr<mysqlsh::Column> column(new mysqlsh::Column(
-        _result->columnMetadata()->at(i).schema,
-        orig_table,
-        _result->columnMetadata()->at(i).table,
-        orig_name,
-        _result->columnMetadata()->at(i).name,
-        data_type,
-        _result->columnMetadata()->at(i).length,
-        is_numeric,
-        _result->columnMetadata()->at(i).fractional_digits,
-        is_signed,
-        mysqlsh::charset::collation_name_from_collation_id(
-          _result->columnMetadata()->at(i).collation),
-        mysqlsh::charset::charset_name_from_collation_id(
-          _result->columnMetadata()->at(i).collation),         is_padded));
+          _result->columnMetadata()->at(i).schema, orig_table,
+          _result->columnMetadata()->at(i).table, orig_name,
+          _result->columnMetadata()->at(i).name, data_type,
+          _result->columnMetadata()->at(i).length, is_numeric,
+          _result->columnMetadata()->at(i).fractional_digits, is_signed,
+          mysqlsh::charset::collation_name_from_collation_id(
+              _result->columnMetadata()->at(i).collation),
+          mysqlsh::charset::charset_name_from_collation_id(
+              _result->columnMetadata()->at(i).collation),
+          is_padded,
+          is_zerofill));
 
-      _columns->push_back(shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
+      _columns->push_back(
+          shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
     }
   }
 
@@ -691,9 +692,8 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
   try {
-    std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
-    std::string display_value;
-
+    std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata =
+        _result->columnMetadata();
     if (metadata->size() > 0) {
       std::shared_ptr< ::mysqlx::Row>row = _result->next();
       if (row) {
@@ -710,13 +710,6 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
                 field_value = Value(row->sInt64Field(index));
                 break;
               case ::mysqlx::UINT:
-                //Check if the ZEROFILL flag is set, if so then create proper display value
-                if (metadata->at(index).flags & 0x0001) {
-                  display_value = std::to_string(row->uInt64Field(index));
-                  int count = metadata->at(index).length - display_value.length();
-                  if (count > 0)
-                    display_value.insert(0, count, '0');
-                }
                 field_value = Value(row->uInt64Field(index));
                 break;
               case ::mysqlx::DOUBLE:
@@ -756,9 +749,7 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
                 break;
             }
           }
-          if (display_value.empty())
-            display_value = field_value.descr();
-          value_row->add_item(metadata->at(index).name, field_value, display_value);
+          value_row->add_item(metadata->at(index).name, field_value);
         }
 
         ret_val = shcore::Value::wrap(value_row);

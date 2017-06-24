@@ -11,6 +11,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on TinyInt Column
 |Schema Name: py_shell_test|
@@ -25,6 +26,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Unsigned TinyInt Column
 |Schema Name: py_shell_test|
@@ -39,6 +41,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on SmallInt Column
 |Schema Name: py_shell_test|
@@ -53,6 +56,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Unsigned SmallInt Column
 |Schema Name: py_shell_test|
@@ -67,6 +71,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on MediumInt Column
 |Schema Name: py_shell_test|
@@ -81,6 +86,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Unsigned MediumInt Column
 |Schema Name: py_shell_test|
@@ -95,6 +101,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Int Column
 |Schema Name: py_shell_test|
@@ -109,6 +116,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Unsigned Int Column
 |Schema Name: py_shell_test|
@@ -123,6 +131,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Float Column
 |Schema Name: py_shell_test|
@@ -137,6 +146,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Unsigned Float Column
 |Schema Name: py_shell_test|
@@ -151,6 +161,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Float Column with length and fractional digits
 |Schema Name: py_shell_test|
@@ -165,6 +176,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Decimal Column
 |Schema Name: py_shell_test|
@@ -179,6 +191,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Unsigned Decimal Column
 |Schema Name: py_shell_test|
@@ -193,6 +206,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Decimal Column with length and fractional digits
 |Schema Name: py_shell_test|
@@ -207,6 +221,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Double Column
 |Schema Name: py_shell_test|
@@ -221,6 +236,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Unsigned Double Column
 |Schema Name: py_shell_test|
@@ -235,6 +251,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Double Column with length and fractional digits
 |Schema Name: py_shell_test|
@@ -249,6 +266,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Json Column
 |Schema Name: py_shell_test|
@@ -262,6 +280,7 @@
 |Collation Name: binary|
 |Charset Name: binary|
 |Is Padded: false|
+|Is ZeroFill: false|
 
 //@ Metadata on Char Column
 |Schema Name: py_shell_test|
@@ -276,6 +295,7 @@
 |Collation Name: latin1_swedish_ci|
 |Charset Name: latin1|
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Varchar Column
 |Schema Name: py_shell_test|
@@ -290,6 +310,7 @@
 |Collation Name: latin1_swedish_ci|
 |Charset Name: latin1|
 |Is Padded: false|
+|Is ZeroFill: false|
 
 //@ Metadata on Text Column
 |Schema Name: py_shell_test|
@@ -304,6 +325,7 @@
 |Collation Name: latin1_swedish_ci|
 |Charset Name: latin1|
 |Is Padded: false|
+|Is ZeroFill: false|
 
 //@ Metadata on Time Column
 |Schema Name: py_shell_test|
@@ -318,6 +340,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Date Column
 |Schema Name: py_shell_test|
@@ -332,6 +355,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Timestamp Column
 |Schema Name: py_shell_test|
@@ -346,6 +370,7 @@
 |Collation Name: |
 |Charset Name: |
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Set Column
 |Schema Name: py_shell_test|
@@ -360,6 +385,7 @@
 |Collation Name: latin1_swedish_ci|
 |Charset Name: latin1|
 |Is Padded: true|
+|Is ZeroFill: false|
 
 //@ Metadata on Enum Column
 |Schema Name: py_shell_test|
@@ -374,3 +400,4 @@
 |Collation Name: latin1_swedish_ci|
 |Charset Name: latin1|
 |Is Padded: true|
+|Is ZeroFill: false|
