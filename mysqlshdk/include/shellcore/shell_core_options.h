@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -43,6 +43,7 @@ public:
 
   // Exposes the object to JS/PY to allow custom validations on options
   static std::shared_ptr<Shell_core_options> get_instance();
+  static void reset_instance();
 
   virtual std::string class_name() const;
   virtual bool operator == (const Object_bridge &other) const;

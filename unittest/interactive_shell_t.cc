@@ -20,11 +20,11 @@
 namespace shcore {
 namespace shell_core_tests {
 class Interactive_shell_test : public Shell_core_test_wrapper {
-public:
+ public:
   virtual void set_options() {
     _options->interactive = true;
     _options->wizards = true;
-  };
+  }
 };
 
 TEST_F(Interactive_shell_test, warning_insecure_password) {
@@ -34,7 +34,9 @@ TEST_F(Interactive_shell_test, warning_insecure_password) {
   output_handler.passwords.push_back("whatever");
 
   _interactive_shell->connect(true);
-  MY_EXPECT_STDOUT_NOT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
   output_handler.wipe_all();
 
   // Test non secure call passing uri and password with cmd line params
@@ -42,7 +44,9 @@ TEST_F(Interactive_shell_test, warning_insecure_password) {
   reset_shell();
 
   _interactive_shell->connect(true);
-  MY_EXPECT_STDOUT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
   output_handler.wipe_all();
 
   // Test secure call passing uri with empty password
@@ -51,7 +55,9 @@ TEST_F(Interactive_shell_test, warning_insecure_password) {
   reset_shell();
 
   _interactive_shell->connect(true);
-  MY_EXPECT_STDOUT_NOT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
   output_handler.wipe_all();
 
   // Test non secure call passing uri with password
@@ -59,16 +65,20 @@ TEST_F(Interactive_shell_test, warning_insecure_password) {
   reset_shell();
 
   _interactive_shell->connect(true);
-  MY_EXPECT_STDOUT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
   output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_node) {
   execute("\\connect -n " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd +
+                            "'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
   MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("session");
@@ -81,7 +91,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   execute("session.close()");
 
   execute("\\connect -n " + _uri + "/mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "/mysql'");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd +
+                            "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
   MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
   MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
@@ -102,7 +113,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   execute("\\connect -n " + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS("Requested session assumes MySQL X Protocol but '" + _host + ":" + _mysql_port + "' seems to speak the classic MySQL protocol");
+  MY_EXPECT_STDERR_CONTAINS("Requested session assumes MySQL X Protocol but '" +
+                            _host + ":" + _mysql_port +
+                            "' seems to speak the classic MySQL protocol");
   output_handler.wipe_all();
 
   // Invalid user/password
@@ -114,9 +127,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
 
 TEST_F(Interactive_shell_test, shell_command_connect_classic) {
   execute("\\connect -c " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" +
+                            _mysql_uri_nopasswd + "'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("session");
@@ -129,7 +144,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
   execute("session.close()");
 
   execute("\\connect -c " + _mysql_uri + "/mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "/mysql'");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" +
+                            _mysql_uri_nopasswd + "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
   MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
   output_handler.wipe_all();
@@ -155,7 +171,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     execute("\\connect " + _uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -168,9 +185,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   // Session type determined from connection success
   {
     execute("\\connect " + _mysql_uri);
-    MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd +
+                              "'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -183,9 +202,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   // Session type determined by the URI scheme
   {
     execute("\\connect mysql://" + _mysql_uri);
-    MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" +
+                              _mysql_uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -198,10 +219,12 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   // Session type determined by the URI scheme
   {
     execute("\\connect mysqlx://" + _uri);
-    MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd +
+                              "'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
     MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
-    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -213,9 +236,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
 }
 
 TEST_F(Interactive_shell_test, shell_function_connect_node) {
-  execute("shell.connect('mysqlx://" + _uri+"');");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  execute("shell.connect('mysqlx://" + _uri + "');");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd +
+                            "'");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("session");
@@ -228,7 +253,8 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
   execute("session.close()");
 
   execute("shell.connect('mysqlx://" + _uri + "/mysql');");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "/mysql'");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd +
+                            "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
   MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
   MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
@@ -247,8 +273,10 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
 
 TEST_F(Interactive_shell_test, shell_function_connect_classic) {
   execute("shell.connect('mysql://" + _mysql_uri + "');");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" +
+                            _mysql_uri_nopasswd + "'");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("session");
@@ -261,7 +289,8 @@ TEST_F(Interactive_shell_test, shell_function_connect_classic) {
   execute("session.close()");
 
   execute("shell.connect('mysql://" + _mysql_uri + "/mysql');");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "/mysql'");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to '" +
+                            _mysql_uri_nopasswd + "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
   MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
   output_handler.wipe_all();
@@ -282,7 +311,8 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
   {
     execute("shell.connect('" + _uri + "');");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -295,8 +325,10 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
   // Session type determined from connection success
   {
     execute("shell.connect('" + _mysql_uri + "');");
-    MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Session to '" + _mysql_uri_nopasswd +
+                              "'");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
     output_handler.wipe_all();
 
     execute("session");
@@ -313,7 +345,8 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   output_handler.wipe_all();
 
   execute("\\connect " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("db");
@@ -339,7 +372,8 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   execute("session.close()");
 
   execute("\\connect -n " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("db");
@@ -357,7 +391,8 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   execute("session.close()");
 
   execute("\\connect -c " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   execute("db");
@@ -404,29 +439,49 @@ TEST_F(Interactive_shell_test, shell_command_help_js) {
   execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Commands =====");
   MY_EXPECT_STDOUT_CONTAINS("\\help       (\\?,\\h)    Print this help.");
-  MY_EXPECT_STDOUT_CONTAINS("\\sql                   Switch to SQL processing mode.");
-  MY_EXPECT_STDOUT_CONTAINS("\\js                    Switch to JavaScript processing mode.");
-  MY_EXPECT_STDOUT_CONTAINS("\\py                    Switch to Python processing mode.");
-  MY_EXPECT_STDOUT_CONTAINS("\\source     (\\.)       Execute a script file. Takes a file name as an argument.");
-  MY_EXPECT_STDOUT_CONTAINS("\\                      Start multi-line input when in SQL mode.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\sql                   Switch to SQL processing mode.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\js                    Switch to JavaScript processing mode.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\py                    Switch to Python processing mode.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\source     (\\.)       Execute a script file. Takes a file name as an "
+      "argument.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\                      Start multi-line input when in SQL mode.");
   MY_EXPECT_STDOUT_CONTAINS("\\quit       (\\q,\\exit) Quit MySQL Shell.");
   MY_EXPECT_STDOUT_CONTAINS("\\connect    (\\c)       Connect to a server.");
-  MY_EXPECT_STDOUT_CONTAINS("\\warnings   (\\W)       Show warnings after every statement.");
-  MY_EXPECT_STDOUT_CONTAINS("\\nowarnings (\\w)       Don't show warnings after every statement.");
-  MY_EXPECT_STDOUT_CONTAINS("\\status     (\\s)       Print information about the current global connection.");
-  MY_EXPECT_STDOUT_CONTAINS("\\use        (\\u)       Set the current schema for the global session.");
-  MY_EXPECT_STDOUT_CONTAINS("For help on a specific command use the command as \\? <command>");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\warnings   (\\W)       Show warnings after every statement.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\nowarnings (\\w)       Don't show warnings after every statement.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\status     (\\s)       Print information about the current global "
+      "connection.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "\\use        (\\u)       Set the current schema for the global "
+      "session.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "For help on a specific command use the command as \\? <command>");
 
   execute("\\help \\source");
-  MY_EXPECT_STDOUT_CONTAINS("NOTE: Can execute files from the supported types: SQL, Javascript, or Python.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "NOTE: Can execute files from the supported types: SQL, Javascript, or "
+      "Python.");
   output_handler.wipe_all();
 
   execute("\\help \\connect");
-  MY_EXPECT_STDOUT_CONTAINS("If the session type is not specified, an Node session will be established.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "If the session type is not specified, an Node session will be "
+      "established.");
   output_handler.wipe_all();
 
   execute("\\help \\use");
-  MY_EXPECT_STDOUT_CONTAINS("The global db variable will be updated to hold the requested schema.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "NOTE: This command works with the global session.\n");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "The global db variable will be updated to hold the requested schema.");
   output_handler.wipe_all();
 }
 
@@ -436,13 +491,22 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_js) {
   execute("\\connect -n " + _uri + "/mysql");
   execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
-  MY_EXPECT_STDOUT_CONTAINS("db         Used to work with database schema objects.");
-  MY_EXPECT_STDOUT_CONTAINS("dba        Enables you to administer InnoDB clusters using the AdminAPI.");
-  MY_EXPECT_STDOUT_CONTAINS("mysql      Used to work with classic MySQL sessions using SQL.");
-  MY_EXPECT_STDOUT_CONTAINS("mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.");
-  MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
-  MY_EXPECT_STDOUT_CONTAINS("shell      Gives access to general purpose functions and properties.");
-  MY_EXPECT_STDOUT_CONTAINS("sys        Gives access to system specific parameters.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "db         Used to work with database schema objects.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "dba        Enables you to administer InnoDB clusters using the "
+      "AdminAPI.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "mysql      Used to work with classic MySQL sessions using SQL.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "mysqlx     Used to work with X Protocol sessions using the MySQL X "
+      "DevAPI.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "session    Represents the currently open MySQL session.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "shell      Gives access to general purpose functions and properties.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "sys        Gives access to system specific parameters.");
   execute("session.close()");
 
   output_handler.wipe_all();
@@ -454,13 +518,22 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_py) {
   execute("\\connect -n " + _uri + "/mysql");
   execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
-  MY_EXPECT_STDOUT_CONTAINS("db         Used to work with database schema objects.");
-  MY_EXPECT_STDOUT_CONTAINS("dba        Enables you to administer InnoDB clusters using the AdminAPI.");
-  MY_EXPECT_STDOUT_CONTAINS("mysql      Used to work with classic MySQL sessions using SQL.");
-  MY_EXPECT_STDOUT_CONTAINS("mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.");
-  MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
-  MY_EXPECT_STDOUT_CONTAINS("shell      Gives access to general purpose functions and properties.");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("sys        Gives access to system specific parameters.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "db         Used to work with database schema objects.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "dba        Enables you to administer InnoDB clusters using the "
+      "AdminAPI.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "mysql      Used to work with classic MySQL sessions using SQL.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "mysqlx     Used to work with X Protocol sessions using the MySQL X "
+      "DevAPI.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "session    Represents the currently open MySQL session.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "shell      Gives access to general purpose functions and properties.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "sys        Gives access to system specific parameters.");
   execute("session.close()");
 
   output_handler.wipe_all();
@@ -472,13 +545,22 @@ TEST_F(Interactive_shell_test, shell_command_help_global_objects_sql) {
   execute("\\connect -n " + _uri + "/mysql");
   execute("\\?");
   MY_EXPECT_STDOUT_CONTAINS("===== Global Objects =====");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("db         Used to work with database schema objects.");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("dba        Allows performing DBA operations using the MySQL X AdminAPI.");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("mysql      Used to work with classic MySQL sessions using SQL.");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.");
-  MY_EXPECT_STDOUT_CONTAINS("session    Represents the currently open MySQL session.");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("shell      Gives access to general purpose functions and properties.");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("sys        Gives access to system specific parameters.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "db         Used to work with database schema objects.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "dba        Allows performing DBA operations using the MySQL X "
+      "AdminAPI.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "mysql      Used to work with classic MySQL sessions using SQL.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "mysqlx     Used to work with X Protocol sessions using the MySQL X "
+      "DevAPI.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "session    Represents the currently open MySQL session.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "shell      Gives access to general purpose functions and properties.");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "sys        Gives access to system specific parameters.");
 
   // We have to change to a scripting mode to close the session
   execute("\\js");
@@ -500,7 +582,7 @@ TEST_F(Interactive_shell_test, shell_command_source_invalid_path_js) {
   std::string tmpdir = getenv("TMPDIR") ? getenv("TMPDIR") : ".";
   _interactive_shell->process_line("\\source " + tmpdir);
   MY_EXPECT_STDERR_CONTAINS("Failed to open file: '" + tmpdir +
-    "' is a directory");
+                            "' is a directory");
 
   output_handler.wipe_all();
 
@@ -509,7 +591,7 @@ TEST_F(Interactive_shell_test, shell_command_source_invalid_path_js) {
   // no such file
   _interactive_shell->process_line("\\source " + filename);
   MY_EXPECT_STDERR_CONTAINS("Failed to open file '" + filename +
-    "', error: No such file or directory");
+                            "', error: No such file or directory");
 
   output_handler.wipe_all();
 }
@@ -521,7 +603,7 @@ TEST_F(Interactive_shell_test, shell_command_source_invalid_path_py) {
   std::string tmpdir = getenv("TMPDIR") ? getenv("TMPDIR") : ".";
   _interactive_shell->process_line("\\source " + tmpdir);
   MY_EXPECT_STDERR_CONTAINS("Failed to open file: '" + tmpdir +
-    "' is a directory");
+                            "' is a directory");
 
   output_handler.wipe_all();
 
@@ -530,7 +612,7 @@ TEST_F(Interactive_shell_test, shell_command_source_invalid_path_py) {
   // no such file
   _interactive_shell->process_line("\\source " + filename);
   MY_EXPECT_STDERR_CONTAINS("Failed to open file '" + filename +
-    "', error: No such file or directory");
+                            "', error: No such file or directory");
 
   output_handler.wipe_all();
 }
@@ -773,13 +855,17 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
 
   // Connects with the expired account
   execute("\\c mysql://expired:sample@localhost:" + _mysql_port);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic Session to 'expired@localhost:" + _mysql_port + "'");
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Creating a Classic Session to 'expired@localhost:" + _mysql_port + "'");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   // Tests unable to execute any statement with an expired account
   execute("select host from mysql.user where user = 'expired';");
-  MY_EXPECT_STDERR_CONTAINS("ERROR: 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.");
+  MY_EXPECT_STDERR_CONTAINS(
+      "ERROR: 1820 (HY000): You must reset your password using ALTER USER "
+      "statement before executing this statement.");
   output_handler.wipe_all();
 
   // Tests allow reseting the password on an expired account
@@ -829,13 +915,17 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
 
   // Connects with the expired account
   execute("\\c mysqlx://expired:sample@localhost:" + _port);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Node Session to 'expired@localhost:" + _port + "'");
-  MY_EXPECT_STDOUT_CONTAINS("No default schema selected; type \\use <schema> to set one.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Creating a Node Session to 'expired@localhost:" + _port + "'");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
 
   // Tests unable to execute any statement with an expired account
   execute("select host from mysql.user where user = 'expired';");
-  MY_EXPECT_STDERR_CONTAINS("ERROR: 1820: You must reset your password using ALTER USER statement before executing this statement.");
+  MY_EXPECT_STDERR_CONTAINS(
+      "ERROR: 1820: You must reset your password using ALTER USER statement "
+      "before executing this statement.");
   output_handler.wipe_all();
 
   // Tests allow reseting the password on an expired account
@@ -857,5 +947,207 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
   execute("session.close()");
   MY_EXPECT_STDOUT_CONTAINS("");
 }
+
+TEST_F(Interactive_shell_test, classic_sql_result) {
+  execute("\\connect " + _mysql_uri);
+  execute("\\sql");
+  execute("drop schema itst;");
+  execute("create schema itst;");
+  execute(
+      "create table itst.tbl (a int, b varchar(30), c int(10), "
+      "              d int(8) unsigned zerofill, e int(2) zerofill);");
+  execute(
+      "insert into itst.tbl values (1, 'one', -42, 42, 42), "
+      "             (2, 'two', -12345, 12345, 12345),"
+      "             (3, 'three', 0, 0, 0);");
+  wipe_all();
+  execute("select 1, 'two', 3.3, null;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "+---+-----+-----+------+\n"
+      "| 1 | two | 3.3 | NULL |\n"
+      "+---+-----+-----+------+\n"
+      "| 1 | two | 3.3 | null |\n"
+      "+---+-----+-----+------+\n"
+      "1 row in set (");
+
+  wipe_all();
+  // test zerofill
+  execute("select * from itst.tbl;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "+---+-------+--------+----------+-------+\n"
+      "| a | b     | c      | d        | e     |\n"
+      "+---+-------+--------+----------+-------+\n"
+      "| 1 | one   |    -42 | 00000042 |    42 |\n"
+      "| 2 | two   | -12345 | 00012345 | 12345 |\n"
+      "| 3 | three |      0 | 00000000 |    00 |\n"
+      "+---+-------+--------+----------+-------+\n"
+      "3 rows in set (");
+
+  execute("\\js");
+  execute("shell.options['outputFormat']='vertical'");
+  execute("\\sql");
+  wipe_all();
+
+  execute("select * from itst.tbl;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "*************************** 1. row ***************************\n"
+      "a: 1\n"
+      "b: one\n"
+      "c: -42\n"
+      "d: 42\n"
+      "e: 42\n"
+      "*************************** 2. row ***************************\n"
+      "a: 2\n"
+      "b: two\n"
+      "c: -12345\n"
+      "d: 12345\n"
+      "e: 12345\n"
+      "*************************** 3. row ***************************\n"
+      "a: 3\n"
+      "b: three\n"
+      "c: 0\n"
+      "d: 0\n"
+      "e: 0\n"
+      "3 rows in set (");
+
+  execute("\\js");
+  execute("shell.options['outputFormat']='json'");
+  execute("\\sql");
+  wipe_all();
+
+  execute("select * from itst.tbl;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "    \"info\": \"\",\n"
+      "    \"rows\": [\n"
+      "        {\n"
+      "            \"a\": 1,\n"
+      "            \"b\": \"one\",\n"
+      "            \"c\": -42,\n"
+      "            \"d\": 42,\n"
+      "            \"e\": 42\n"
+      "        },\n"
+      "        {\n"
+      "            \"a\": 2,\n"
+      "            \"b\": \"two\",\n"
+      "            \"c\": -12345,\n"
+      "            \"d\": 12345,\n"
+      "            \"e\": 12345\n"
+      "        },\n"
+      "        {\n"
+      "            \"a\": 3,\n"
+      "            \"b\": \"three\",\n"
+      "            \"c\": 0,\n"
+      "            \"d\": 0,\n"
+      "            \"e\": 0\n"
+      "        }\n"
+      "    ],\n"
+      "    \"warningCount\": 0,\n"
+      "    \"warnings\": [],\n"
+      "    \"hasData\": true,\n"
+      "    \"affectedRowCount\": 0,\n");
+
+  execute("drop schema itst;");
 }
+
+TEST_F(Interactive_shell_test, x_sql_result) {
+  execute("\\connect " + _uri);
+  execute("\\sql");
+  execute("drop schema itst;");
+  execute("create schema itst;");
+  execute(
+      "create table itst.tbl (a int, b varchar(30), c int(10), "
+      "              d int(8) unsigned zerofill, e int(2) zerofill);");
+  execute(
+      "insert into itst.tbl values (1, 'one', -42, 42, 42), "
+      "             (2, 'two', -12345, 12345, 12345),"
+      "             (3, 'three', 0, 0, 0);");
+  wipe_all();
+  execute("select 1, 'two', 3.3, null;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "+---+-----+-----+------+\n"
+      "| 1 | two | 3.3 | NULL |\n"
+      "+---+-----+-----+------+\n"
+      "| 1 | two | 3.3 | null |\n"
+      "+---+-----+-----+------+\n"
+      "1 row in set (");
+
+  wipe_all();
+  // test zerofill
+  execute("select * from itst.tbl;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "+---+-------+--------+----------+-------+\n"
+      "| a | b     | c      | d        | e     |\n"
+      "+---+-------+--------+----------+-------+\n"
+      "| 1 | one   |    -42 | 00000042 |    42 |\n"
+      "| 2 | two   | -12345 | 00012345 | 12345 |\n"
+      "| 3 | three |      0 | 00000000 |    00 |\n"
+      "+---+-------+--------+----------+-------+\n"
+      "3 rows in set (");
+
+  execute("\\js");
+  execute("shell.options['outputFormat']='vertical'");
+  execute("\\sql");
+  wipe_all();
+
+  execute("select * from itst.tbl;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "*************************** 1. row ***************************\n"
+      "a: 1\n"
+      "b: one\n"
+      "c: -42\n"
+      "d: 42\n"
+      "e: 42\n"
+      "*************************** 2. row ***************************\n"
+      "a: 2\n"
+      "b: two\n"
+      "c: -12345\n"
+      "d: 12345\n"
+      "e: 12345\n"
+      "*************************** 3. row ***************************\n"
+      "a: 3\n"
+      "b: three\n"
+      "c: 0\n"
+      "d: 0\n"
+      "e: 0\n"
+      "3 rows in set (");
+
+  execute("\\js");
+  execute("shell.options['outputFormat']='json'");
+  execute("\\sql");
+  wipe_all();
+
+  execute("select * from itst.tbl;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "    \"warningCount\": 0,\n"
+      "    \"warnings\": [],\n"
+      "    \"rows\": [\n"
+      "        {\n"
+      "            \"a\": 1,\n"
+      "            \"b\": \"one\",\n"
+      "            \"c\": -42,\n"
+      "            \"d\": 42,\n"
+      "            \"e\": 42\n"
+      "        },\n"
+      "        {\n"
+      "            \"a\": 2,\n"
+      "            \"b\": \"two\",\n"
+      "            \"c\": -12345,\n"
+      "            \"d\": 12345,\n"
+      "            \"e\": 12345\n"
+      "        },\n"
+      "        {\n"
+      "            \"a\": 3,\n"
+      "            \"b\": \"three\",\n"
+      "            \"c\": 0,\n"
+      "            \"d\": 0,\n"
+      "            \"e\": 0\n"
+      "        }\n"
+      "    ],\n"
+      "    \"hasData\": true,\n"
+      "    \"affectedRowCount\": 0,\n");
+
+  execute("drop schema itst;");
 }
+
+}  // namespace shell_core_tests
+}  // namespace shcore

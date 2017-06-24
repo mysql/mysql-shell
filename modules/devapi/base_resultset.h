@@ -53,7 +53,8 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
          const std::string &table, const std::string &org_name,
          const std::string &name, shcore::Value type, uint64_t length,
          bool numeric, uint64_t fractional, bool is_signed,
-         const std::string &collation, const std::string &charset, bool padded);
+         const std::string &collation, const std::string &charset, bool padded,
+         bool zerofill);
 
   virtual bool operator==(const Object_bridge &other) const;
   virtual std::string class_name() const { return "Column"; }
@@ -76,6 +77,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   collationName;     //!< Same as getCollationName()
   characterSetName;  //!< Same as getCharacterSetName()
   padded;            //!< Same as isPadded()
+  zeroFill;           //!< Same as is_zero_fill()
 #elif DOXYGEN_PY
   schema_name;         //!< Same as get_schema_name()
   table_name;          //!< Same as get_table_name()
@@ -89,6 +91,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   collation_name;      //!< Same as get_collation_name()
   character_set_name;  //!< Same as get_character_set_name()
   padded;              //!< Same as is_padded()
+  zero_fill;           //!< Same as is_zero_fill()
 #endif
 
 /**
@@ -228,6 +231,17 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #endif
   bool is_padded() { return _padded; }
 
+/**
+ * Indicates if zerofill is set for the column
+ * \return a boolean indicating if zerofill flag is set for the column.
+ */
+#if DOXYGEN_JS
+  Bool isZeroFill() {}
+#elif DOXYGEN_PY
+  bool is_zero_fill() {}
+#endif
+  bool is_zerofill() { return _zerofill; }
+
  private:
   std::string _schema;
   std::string _table_name;
@@ -241,6 +255,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   uint64_t _fractional;
   bool _signed;
   bool _padded;
+  bool _zerofill;
   bool _numeric;
 };
 
@@ -290,9 +305,8 @@ class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
   Row();
   virtual std::string class_name() const { return "Row"; }
 
-  std::map<std::string, shcore::Value> values;
   std::vector<std::string> names;
-  std::vector<std::pair<shcore::Value, std::string>> value_array;
+  std::vector<shcore::Value> value_array;
 
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
                                     int quote_strings = 0) const;
@@ -306,13 +320,11 @@ class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
 
   virtual shcore::Value get_member(const std::string &prop) const;
   shcore::Value get_member(size_t index) const;
-  std::string get_display_value(std::size_t index) const;
 
-  size_t get_length() { return values.size(); }
+  size_t get_length() { return value_array.size(); }
   virtual bool is_indexed() const { return true; }
 
-  void add_item(const std::string &key, shcore::Value value,
-    const std::string &display_value = "");
+  void add_item(const std::string &key, shcore::Value value);
 };
 }  // namespace mysqlsh
 
