@@ -72,6 +72,9 @@ std::string describe(State state) {
     case Error:
       ret_val = "Error";
       break;
+    case Missing:
+      ret_val = "(Missing)";
+      break;
   }
   return ret_val;
 }

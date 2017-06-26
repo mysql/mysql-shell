@@ -54,6 +54,7 @@ public:
   virtual ~ReplicaSet();
 
   static std::set<std::string> _add_instance_opts;
+  static std::set<std::string> _remove_instance_opts;
 
   virtual std::string class_name() const { return "ReplicaSet"; }
   virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
@@ -85,7 +86,7 @@ public:
   String getName();
   Undefined addInstance(InstanceDef instance, Dictionary options);
   Undefined rejoinInstance(IndtanceDef instance, Dictionary options);
-  Undefined removeInstance(InstanceDef instance, String password);
+  Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined dissolve(Dictionary options);
   Undefined disable();
   Undefined rescan();
@@ -97,7 +98,7 @@ public:
   str get_name();
   None add_instance(InstanceDef instance, dict options);
   None rejoin_instance(InstanceDef instance, dict options);
-  None remove_instance(InstanceDef instance, str password);
+  None remove_instance(InstanceDef instance, dict options);
   None dissolve(Dictionary options);
   None disable();
   None rescan();
