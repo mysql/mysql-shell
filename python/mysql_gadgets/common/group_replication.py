@@ -67,6 +67,9 @@ _FOUR_COLS = "{{0:<{}}}  {{1:<{}}}  {{2:<{}}}  {{3:<{}}}".format(_C1, _C2,
 _TWO_COLS = "{{0:<{}}}  {{1:<{}}}".format(_C1, _C2)
 DISABLED_STORAGE_ENGINES = "disabled_storage_engines"
 
+AUTO_INCREMENT_INCREMENT = "auto_increment_increment"
+AUTO_INCREMENT_OFFSET = "auto_increment_offset"
+
 GR_PLUGIN_NAME = "group_replication"
 GR_ALLOW_LOCAL_LOWER_VERSION_JOIN = (
     "group_replication_allow_local_lower_version_join")
@@ -1986,7 +1989,8 @@ def get_rpl_usr(options=None):
 
 def get_gr_config_vars(local_address, options=None, options_parser=None,
                        peer_local_address=None,
-                       defaults_options=DEFAULTS_FILE_OPTIONS):
+                       defaults_options=DEFAULTS_FILE_OPTIONS,
+                       server_id=None):
     """config_vars
 
     :param local_address:   the host:port that member will expose itself to
@@ -2014,6 +2018,7 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
     :param defaults_options: the options to read from the defaults file.
                              By default DEFAULTS_FILE_OPTIONS_LIST is used.
     :type defaults_options: set
+    :param server_id: server_id of the server
 
     :return: config_vars
     :rtype: dict
@@ -2068,6 +2073,22 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
     # Set GR group seeds with the value from the peer local_address.
     if gr_config_vars[GR_GROUP_SEEDS] is None:
         gr_config_vars[GR_GROUP_SEEDS] = peer_local_address
+
+    # Pick auto_increment params depending on single_primary mode
+    if options.get("single_primary", None) == "ON":
+        # GR plugin will override auto_increment params to values that are
+        # suitable for multi-primary, even when in single-primary, except
+        # in 8.0; so we must override it back.
+        # offset of 2 is picked because if it's 1, the GR plugin will think
+        # is the default value and will override it
+        gr_config_vars[AUTO_INCREMENT_INCREMENT] = 1
+        gr_config_vars[AUTO_INCREMENT_OFFSET] = 2
+    else:
+        # If in multi-primary mode, we need to ensure that the offset value
+        # is smaller than auto_increment_increment (which defaults to 7)
+        if server_id:
+            gr_config_vars[AUTO_INCREMENT_OFFSET] = 1 + int(server_id) % 7
+            gr_config_vars[AUTO_INCREMENT_INCREMENT] = 7
 
     # Read values from option file if available.
     if options_parser is not None:
@@ -2125,6 +2146,7 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
     # Add surrounding quotes in case the option does not have it already.
     for option_name in gr_config_vars:
         if gr_config_vars[option_name] is not None and \
+           type(gr_config_vars[option_name]) is str and \
            gr_config_vars[option_name][0] not in ["'", '"']:
             gr_config_vars[option_name] = "'{0}'".format(
                 gr_config_vars[option_name])
@@ -2268,6 +2290,9 @@ def get_gr_configs_from_instance(server):
     """
     gr_configs = collections.OrderedDict()
     gr_vars = server.exec_query("show variables like 'group_replication_%'")
+    for variable_name, value in gr_vars:
+        gr_configs[variable_name] = value
+    gr_vars = server.exec_query("show variables like 'auto_increment_%'")
     for variable_name, value in gr_vars:
         gr_configs[variable_name] = value
     return gr_configs

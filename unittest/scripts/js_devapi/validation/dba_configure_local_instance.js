@@ -130,5 +130,17 @@
 //@ Start instance, will auto join the cluster
 ||
 
+//@<OUT> Check saved auto_inc settings are restored
+[
+    [
+        "auto_increment_increment",
+        "1"
+    ],
+    [
+        "auto_increment_offset",
+        "2"
+    ]
+]
+
 //@ Finalization
 ||
