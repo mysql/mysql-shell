@@ -84,8 +84,6 @@ void Session_recorder::connect(const std::string& host, int port,
 
     Mock_record::get() << "ssl_info.mode = " << ssl_info.mode << ";"
                        << std::endl;
-    Mock_record::get() << "ssl_info.skip = " << ssl_info.skip << ";"
-                       << std::endl;
   }
 
   Mock_record::get() << "EXPECT_CALL(session, connect(\"" << host << "\", "

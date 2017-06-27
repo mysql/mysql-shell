@@ -29,7 +29,10 @@ class Mysql_connection_test : public Shell_base_test {
 
 #ifdef _WIN32
 TEST_F(Mysql_connection_test, connect_default_pipe){
-  std::shared_ptr<mysqlsh::mysql::Connection> connection(new mysqlsh::mysql::Connection(_mysql_uri));
+  shcore::SslInfo info;
+  std::shared_ptr<mysqlsh::mysql::Connection> connection
+    (new mysqlsh::mysql::Connection(_host, _mysql_port_number,
+                                    "", _user, _pwd, "", info));
 
   auto result = connection->run_sql("show variables like 'named_pipe'");
   auto row = result->fetch_one();
@@ -69,7 +72,10 @@ TEST_F(Mysql_connection_test, connect_default_pipe){
 }
 
 TEST_F(Mysql_connection_test, connect_named_pipe){
-  std::shared_ptr<mysqlsh::mysql::Connection> connection(new mysqlsh::mysql::Connection(_mysql_uri));
+  shcore::SslInfo info;
+  std::shared_ptr<mysqlsh::mysql::Connection> connection
+    (new mysqlsh::mysql::Connection(_host, _mysql_port_number,
+    "", _user, _pwd, "", info));
 
   auto result = connection->run_sql("show variables like 'named_pipe'");
   auto row = result->fetch_one();
@@ -92,11 +98,12 @@ TEST_F(Mysql_connection_test, connect_named_pipe){
     try {
       // Test default named pipe connection using hostname = "."
       mysqlshdk::utils::Ssl_info info;
-      mysqlsh::mysql::Connection pipe_conn("", 0, named_pipe, _user, _pwd, "", info);
+      mysqlsh::mysql::Connection pipe_conn("", 0, named_pipe, _user, _pwd, "",
+                                           info);
       pipe_conn.close();
     }
     catch (const std::exception& e) {
-      std::string error = "Failed defaule named pipe connection: ";
+      std::string error = "Failed default named pipe connection: ";
       error.append(e.what());
       SCOPED_TRACE(error);
       FAIL();
@@ -106,7 +113,15 @@ TEST_F(Mysql_connection_test, connect_named_pipe){
 
 #else
 TEST_F(Mysql_connection_test, connect_socket){
-  std::shared_ptr<mysqlsh::mysql::Connection> connection(new mysqlsh::mysql::Connection(_mysql_uri));
+  mysqlshdk::utils::Ssl_info info;
+  std::shared_ptr<mysqlsh::mysql::Connection> connection
+      (new mysqlsh::mysql::Connection(_host,
+                                      _mysql_port_number,
+                                      "",
+                                      _user,
+                                      _pwd,
+                                      "",
+                                      info));
 
   auto result = connection->run_sql("show variables like 'socket'");
 
@@ -122,7 +137,8 @@ TEST_F(Mysql_connection_test, connect_socket){
   } else {
     try {
       mysqlshdk::utils::Ssl_info info;
-      mysqlsh::mysql::Connection socket_conn("localhost", 0, socket, _user, _pwd, "", info);
+      mysqlsh::mysql::Connection socket_conn("localhost", 0, socket, _user,
+                                             _pwd, "", info);
       socket_conn.close();
     } catch (const std::exception& e) {
       std::string error = "Failed creating a socket connection using: '";

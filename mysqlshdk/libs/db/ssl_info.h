@@ -32,12 +32,10 @@ namespace utils {
 struct SHCORE_PUBLIC Ssl_info
 {
   Ssl_info() {
-    skip = true;
     mode = 0;
   }
 
   Ssl_info(const Ssl_info& s);
-  bool skip;
   int mode;
   nullable<std::string> ca;
   nullable<std::string> capath;
@@ -49,8 +47,7 @@ struct SHCORE_PUBLIC Ssl_info
   nullable<std::string> key;
 
   bool has_data() const {
-    return skip == false ||
-      mode != 0 ||
+    return mode != 0 ||
       !ca.is_null() ||
       !capath.is_null() ||
       !crl.is_null() ||

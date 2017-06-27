@@ -22,7 +22,7 @@
 namespace mysqlshdk {
 namespace utils {
 
-Ssl_info::Ssl_info(const Ssl_info& s) : skip(s.skip), mode(s.mode), ca(s.ca), capath(s.capath),
+Ssl_info::Ssl_info(const Ssl_info& s) : mode(s.mode), ca(s.ca), capath(s.capath),
     crl(s.crl), crlpath(s.crlpath), ciphers(s.ciphers), tls_version(s.tls_version),
     cert(s.cert), key(s.key)
 {}

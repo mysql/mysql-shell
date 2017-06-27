@@ -292,8 +292,6 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
 bool Connection::setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info) {
   unsigned int value;
 
-  if (ssl_info.skip) return true;
-
   if (!ssl_info.ca.is_null())
     mysql_options(_mysql, MYSQL_OPT_SSL_CA, (*ssl_info.ca).c_str());
 
@@ -318,6 +316,8 @@ bool Connection::setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info) {
   if (!ssl_info.key.is_null())
     mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (*ssl_info.key).c_str());
 
+  // If no ssl mode is provided by the user
+  // We use Preferred by default
   if (ssl_info.mode)
     value = ssl_info.mode;
   else

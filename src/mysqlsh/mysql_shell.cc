@@ -191,7 +191,6 @@ bool Mysql_shell::connect(bool primary_session) {
                                      _options.user, _options.password,
                                      _options.host, _options.port,
                                      _options.sock, _options.schema,
-                                     !_options.ssl_info.skip,
                                      _options.ssl_info,
                                      _options.auth_method);
       if (_options.auth_method == "PLAIN")
