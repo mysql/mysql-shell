@@ -513,15 +513,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     shcore::Argument_list new_args;
     instance_def = get_connection_data(session->uri(), false);
 
-    std::string cnx_ssl_ca = session->get_ssl_ca();
-    std::string cnx_ssl_cert = session->get_ssl_cert();
-    std::string cnx_ssl_key = session->get_ssl_key();
-    if (!cnx_ssl_ca.empty())
-      (*instance_def)["sslCa"] = Value(cnx_ssl_ca);
-    if (!cnx_ssl_cert.empty())
-      (*instance_def)["sslCert"] = Value(cnx_ssl_cert);
-    if (!cnx_ssl_key.empty())
-      (*instance_def)["sslKey"] = Value(cnx_ssl_key);
+    if (session->get_ssl().ca)
+      (*instance_def)["sslCa"] = Value(session->get_ssl().ca);
+    if (session->get_ssl().cert)
+      (*instance_def)["sslCert"] = Value(session->get_ssl().cert);
+    if (session->get_ssl().key)
+      (*instance_def)["sslKey"] = Value(session->get_ssl().key);
 
     new_args.push_back(shcore::Value(instance_def));
 

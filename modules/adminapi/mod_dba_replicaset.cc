@@ -456,15 +456,12 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
         //Get SSL values to connect to peer instance
         Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
         auto peer_session = _metadata_storage->get_session();
-        std::string peer_ssl_ca = peer_session->get_ssl_ca();
-        std::string peer_ssl_cert = peer_session->get_ssl_cert();
-        std::string peer_ssl_key = peer_session->get_ssl_key();
-        if (!peer_ssl_ca.empty())
-          (*peer_instance_ssl_opts)["sslCa"] = Value(peer_ssl_ca);
-        if (!peer_ssl_cert.empty())
-          (*peer_instance_ssl_opts)["sslCert"] = Value(peer_ssl_cert);
-        if (!peer_ssl_key.empty())
-          (*peer_instance_ssl_opts)["sslKey"] = Value(peer_ssl_key);
+        if (peer_session->get_ssl().ca)
+          (*peer_instance_ssl_opts)["sslCa"] = Value(peer_session->get_ssl().ca);
+        if (peer_session->get_ssl().cert)
+          (*peer_instance_ssl_opts)["sslCert"] = Value(peer_session->get_ssl().cert);
+        if (peer_session->get_ssl().key)
+          (*peer_instance_ssl_opts)["sslKey"] = Value(peer_session->get_ssl().key);
 
       log_info("Joining '%s' to group using account %s@%s to peer '%s'",
           instance_address.c_str(),
@@ -715,15 +712,13 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
     //Get SSL values to connect to peer instance
     Value::Map_type_ref peer_instance_ssl_opts(new shcore::Value::Map_type);
-    std::string peer_ssl_ca = peer_session->get_ssl_ca();
-    std::string peer_ssl_cert = peer_session->get_ssl_cert();
-    std::string peer_ssl_key = peer_session->get_ssl_key();
-    if (!peer_ssl_ca.empty())
-      (*peer_instance_ssl_opts)["sslCa"] = Value(peer_ssl_ca);
-    if (!peer_ssl_cert.empty())
-      (*peer_instance_ssl_opts)["sslCert"] = Value(peer_ssl_cert);
-    if (!peer_ssl_key.empty())
-      (*peer_instance_ssl_opts)["sslKey"] = Value(peer_ssl_key);
+
+    if (peer_session->get_ssl().ca)
+      (*peer_instance_ssl_opts)["sslCa"] = Value(peer_session->get_ssl().ca);
+    if (peer_session->get_ssl().cert)
+      (*peer_instance_ssl_opts)["sslCert"] = Value(peer_session->get_ssl().cert);
+    if (peer_session->get_ssl().key)
+      (*peer_instance_ssl_opts)["sslKey"] = Value(peer_session->get_ssl().key);
 
     // Stop group-replication
     log_info("Stopping group-replication at instance %s",
@@ -759,15 +754,12 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
     // Get SSL values to connect to the seed instance
     Value::Map_type_ref seed_instance_ssl_opts(new shcore::Value::Map_type);
-    std::string seed_ssl_ca = seed_session->get_ssl_ca();
-    std::string seed_ssl_cert = seed_session->get_ssl_cert();
-    std::string seed_ssl_key = seed_session->get_ssl_key();
-    if (!seed_ssl_ca.empty())
-      (*seed_instance_ssl_opts)["sslCa"] = Value(seed_ssl_ca);
-    if (!seed_ssl_cert.empty())
-      (*seed_instance_ssl_opts)["sslCert"] = Value(seed_ssl_cert);
-    if (!seed_ssl_key.empty())
-      (*seed_instance_ssl_opts)["sslKey"] = Value(seed_ssl_key);
+    if (seed_session->get_ssl().ca)
+      (*seed_instance_ssl_opts)["sslCa"] = Value(seed_session->get_ssl().ca);
+    if (seed_session->get_ssl().cert)
+      (*seed_instance_ssl_opts)["sslCert"] = Value(seed_session->get_ssl().cert);
+    if (seed_session->get_ssl().key)
+      (*seed_instance_ssl_opts)["sslKey"] = Value(seed_session->get_ssl().key);
 
     // use mysqlprovision to rejoin the cluster.
     exit_code = _cluster->get_provisioning_interface()->join_replicaset(
@@ -1054,15 +1046,12 @@ void ReplicaSet::remove_instances_from_gr(const shcore::Value::Array_type_ref &i
   //      can be obtained from the cluster session.
   Value::Map_type_ref instance_ssl_opts(new shcore::Value::Map_type);
   auto cluster_session = _metadata_storage->get_session();
-  std::string ssl_ca = cluster_session->get_ssl_ca();
-  std::string ssl_cert = cluster_session->get_ssl_cert();
-  std::string ssl_key = cluster_session->get_ssl_key();
-  if (!ssl_ca.empty())
-    (*instance_ssl_opts)["sslCa"] = Value(ssl_ca);
-  if (!ssl_cert.empty())
-    (*instance_ssl_opts)["sslCert"] = Value(ssl_cert);
-  if (!ssl_key.empty())
-    (*instance_ssl_opts)["sslKey"] = Value(ssl_key);
+  if (cluster_session->get_ssl().ca)
+    (*instance_ssl_opts)["sslCa"] = Value(cluster_session->get_ssl().ca);
+  if (cluster_session->get_ssl().cert)
+    (*instance_ssl_opts)["sslCert"] = Value(cluster_session->get_ssl().cert);
+  if (cluster_session->get_ssl().key)
+    (*instance_ssl_opts)["sslKey"] = Value(cluster_session->get_ssl().key);
 
   for (auto value : *instances.get()) {
     auto row = value.as_object<mysqlsh::Row>();
