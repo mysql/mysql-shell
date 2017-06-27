@@ -29,7 +29,7 @@ class Mysql_connection_test : public Shell_base_test {
 
 #ifdef _WIN32
 TEST_F(Mysql_connection_test, connect_default_pipe){
-  shcore::SslInfo info;
+  mysqlshdk::utils::Ssl_info info;
   std::shared_ptr<mysqlsh::mysql::Connection> connection
     (new mysqlsh::mysql::Connection(_host, _mysql_port_number,
                                     "", _user, _pwd, "", info));
@@ -72,7 +72,7 @@ TEST_F(Mysql_connection_test, connect_default_pipe){
 }
 
 TEST_F(Mysql_connection_test, connect_named_pipe){
-  shcore::SslInfo info;
+  mysqlshdk::utils::Ssl_info info;
   std::shared_ptr<mysqlsh::mysql::Connection> connection
     (new mysqlsh::mysql::Connection(_host, _mysql_port_number,
     "", _user, _pwd, "", info));
