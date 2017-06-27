@@ -168,28 +168,20 @@ Shell_command_line_options::Shell_command_line_options(int argc, const char **ar
       _options.auth_method = value;
     else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value)) {
       _options.ssl_info.ca = value;
-      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value)) {
       _options.ssl_info.cert = value;
-      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value)) {
       _options.ssl_info.key = value;
-      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-capath", NULL, value)) {
       _options.ssl_info.capath = value;
-      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-crl", NULL, value)) {
       _options.ssl_info.crl = value;
-      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-crlpath", NULL, value)) {
       _options.ssl_info.crlpath = value;
-      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-cipher", NULL, value)) {
       _options.ssl_info.ciphers = value;
-      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--tls-version", NULL, value)) {
       _options.ssl_info.tls_version = value;
-_options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl-mode", NULL, value)) {
       int mode = shcore::MapSslModeNameToValue::get_value(value);
       if (mode == 0)
@@ -199,21 +191,10 @@ _options.ssl_info.skip = false;
         break;
       }
       _options.ssl_info.mode = mode;
-      _options.ssl_info.skip = false;
     } else if (check_arg_with_value(argv, i, "--ssl", NULL, value, true)) {
-      if (!value)
-        _options.ssl_info.skip = false;
-      else {
-        if (str_caseeq(value, "yes") || str_caseeq(value, "1"))
-          _options.ssl_info.skip = false;
-        else if (str_caseeq(value, "no") || str_caseeq(value, "0"))
-          _options.ssl_info.skip = true;
-        else {
-          std::cerr << "Value for --ssl must be any of 1|0|yes|no";
-          exit_code = 1;
-          break;
-        }
-      }
+      std::cerr << "The --ssl option is deprecated, use --ssl-mode instead";
+      exit_code = 1;
+      break;
     }
     else if (check_arg(argv, i, "--node", "--node"))
       override_session_type(mysqlsh::SessionType::Node, "--node");
@@ -528,8 +509,7 @@ std::vector<std::string> Shell_command_line_options::get_details() {
   "  --log-level=value        The log level.",
   ngcommon::Logger::get_level_range_info(),
   "  -V, --version            Prints the version of MySQL Shell.",
-  "  --ssl                    Enable SSL for connection (automatically enabled",
-  "                           with other flags).",
+  "  --ssl                    Deprecated, use --ssl-mode instead",
   "  --ssl-key=name           X509 key in PEM format.",
   "  --ssl-cert=name          X509 cert in PEM format.",
   "  --ssl-ca=name            CA file in PEM format.",

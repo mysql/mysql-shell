@@ -90,8 +90,6 @@ void Session_impl::connect(const std::string &host, int port, const std::string 
 bool Session_impl::setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info) {
   unsigned int value;
 
-  if (ssl_info.skip) return true;
-
   if (!ssl_info.ca.is_null())
     mysql_options(_mysql, MYSQL_OPT_SSL_CA, (*ssl_info.ca).c_str());
 

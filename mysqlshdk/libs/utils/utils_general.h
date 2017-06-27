@@ -44,10 +44,12 @@ void SHCORE_PUBLIC parse_mysql_connstring(const std::string &connstring,
 
 Value::Map_type_ref SHCORE_PUBLIC get_connection_data(const std::string &uri, bool set_defaults = true);
 void SHCORE_PUBLIC update_connection_data(Value::Map_type_ref data,
-                                          const std::string &user, const char *password,
-                                          const std::string &host, int &port, const std::string& sock,
+                                          const std::string &user,
+                                          const char *password,
+                                          const std::string &host,
+                                          int &port, const std::string& sock,
                                           const std::string &database,
-                                          bool ssl, const struct mysqlshdk::utils::Ssl_info& ssl_info,
+                                          const mysqlshdk::utils::Ssl_info& ssl_info,
                                           const std::string &auth_method);
 
 void SHCORE_PUBLIC set_default_connection_data(Value::Map_type_ref data);
