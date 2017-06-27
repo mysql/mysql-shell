@@ -81,6 +81,20 @@ void Admin_api_test::add_get_server_variable_query(
   });
 }
 
+void Admin_api_test::add_show_databases_query(
+    std::vector<testing::Fake_result_data> *data,
+    const std::string& variable,
+    const std::string& value) {
+  data->push_back({
+    "show databases like '" + variable + "'",
+    {variable},
+    {mysqlshdk::db::Type::VarString},
+    {
+      {value}
+    }
+  });
+}
+
 void Admin_api_test::add_replication_filters_query(
     std::vector<testing::Fake_result_data> *data,
     const std::string& binlog_do_db,
@@ -89,15 +103,77 @@ void Admin_api_test::add_replication_filters_query(
     "SHOW MASTER STATUS",
     {"File", "Position", "Binlog_Do_DB", "Binlog_Ignore_DB",
       "Executed_Gtid_Set"},
-    { 
-      mysqlshdk::db::Type::VarString, 
-      mysqlshdk::db::Type::LongLong, 
-      mysqlshdk::db::Type::VarString, 
+    {
+      mysqlshdk::db::Type::VarString,
+      mysqlshdk::db::Type::LongLong,
+      mysqlshdk::db::Type::VarString,
       mysqlshdk::db::Type::VarString,
       mysqlshdk::db::Type::VarString
     },
     {
       {"", "0", binlog_do_db.c_str(), binlog_ignore_db.c_str(), ""}
+    }
+  });
+}
+
+void Admin_api_test::add_ps_gr_group_members_query(
+    std::vector<testing::Fake_result_data> *data,
+    const std::vector<std::vector<std::string>> &values) {
+  data->push_back({
+    "SELECT member_id FROM performance_schema.replication_group_members",
+    {"member_id"},
+    {mysqlshdk::db::Type::VarString},
+    {
+      values
+    }
+  });
+}
+
+void Admin_api_test::add_ps_gr_group_members_full_query(
+    std::vector<testing::Fake_result_data> *data,
+    const std::string &member_id,
+    const std::vector<std::vector<std::string>> &values) {
+  data->push_back({
+    "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM "
+    "performance_schema.replication_group_members "
+    "WHERE MEMBER_ID = '" + member_id + "'",
+    {"MEMBER_ID", "MEMBER_HOST", "MEMBER_PORT"},
+    {mysqlshdk::db::Type::VarString, mysqlshdk::db::Type::VarString,
+        mysqlshdk::db::Type::LongLong},
+    {
+      values
+    }
+  });
+}
+
+void Admin_api_test::add_md_group_members_query(
+    std::vector<testing::Fake_result_data> *data,
+    const std::vector<std::vector<std::string>> &values) {
+  data->push_back({
+    "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances "
+    "WHERE replicaset_id = 1",
+    {"mysql_server_uuid"},
+    {mysqlshdk::db::Type::VarString},
+    {
+      values
+    }
+  });
+}
+
+void Admin_api_test::add_md_group_members_full_query(
+    std::vector<testing::Fake_result_data> *data,
+    const std::string &mysql_server_uuid,
+    const std::vector<std::vector<std::string>> &values) {
+  data->push_back({
+    "SELECT mysql_server_uuid, instance_name, "
+    "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host "
+    "FROM mysql_innodb_cluster_metadata.instances "
+    "WHERE mysql_server_uuid = '" + mysql_server_uuid + "'",
+    {"mysql_server_uuid", "instance_name", "host"},
+    {mysqlshdk::db::Type::VarString, mysqlshdk::db::Type::VarString,
+        mysqlshdk::db::Type::VarString},
+    {
+      values
     }
   });
 }

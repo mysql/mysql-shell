@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -19,7 +19,9 @@
 #include "gtest_clean.h"
 #include "unittest/test_utils/admin_api_test.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/mod_shell.h"
 #include "modules/mod_mysql_session.h"
+#include "modules/adminapi/mod_dba_metadata_storage.h"
 
 namespace tests {
 class Dba_common_test: public Admin_api_test {
@@ -31,6 +33,23 @@ class Dba_common_test: public Admin_api_test {
     shcore::Argument_list args;
     args.push_back(shcore::Value("user:@localhost:" + std::to_string(port)));
     session->connect(args);
+
+    return session;
+  }
+  std::shared_ptr<mysqlsh::ShellBaseSession> create_base_session(
+        int port) {
+    std::shared_ptr<mysqlsh::ShellBaseSession> session;
+
+    shcore::Argument_list session_args;
+    shcore::Value::Map_type_ref instance_options(new shcore::Value::Map_type);
+    (*instance_options)["host"] = shcore::Value("localhost");
+    (*instance_options)["port"] = shcore::Value(port);
+    (*instance_options)["password"] = shcore::Value("");
+    (*instance_options)["user"] = shcore::Value("user");
+
+    session_args.push_back(shcore::Value(instance_options));
+    session = mysqlsh::Shell::connect_session(session_args,
+                                              mysqlsh::SessionType::Classic);
 
     return session;
   }
@@ -788,5 +807,311 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_012) {
 
   stop_server_mock(_mysql_sandbox_nport1);
   stop_server_mock(_mysql_sandbox_nport2);
+}
+
+TEST_F(Dba_common_test, get_instances_gr) {
+// get_instances_gr():
+//
+// member_id
+// ------------------------------------
+// 851f0e89-5730-11e7-9e4f-b86b230042b9
+// 8a8ae9ce-5730-11e7-a437-b86b230042b9
+// 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  std::vector< testing::Fake_result_data > queries;
+  std::vector<std::vector<std::string>> values;
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_ps_gr_group_members_query(&queries, values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_base_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    auto result = mysqlsh::dba::get_instances_gr(metadata);
+
+    for (uint64_t i = 0; i < result.size(); i++)
+      EXPECT_STREQ(values[i][0].c_str(), result[i].c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at get_instances_gr");
+    ADD_FAILURE();
+  }
+
+  md_session->close();
+  stop_server_mock(_mysql_sandbox_nport1);
+}
+
+TEST_F(Dba_common_test, get_instances_md) {
+// get_instances_md():
+//
+// member_id
+// ------------------------------------
+// 851f0e89-5730-11e7-9e4f-b86b230042b9
+// 8fcb92c9-5730-11e7-aa60-b86b230042b9
+// 8a8ae9ce-5730-11e7-a437-b86b230042b9
+
+  std::vector< testing::Fake_result_data > queries;
+  std::vector<std::vector<std::string>> values;
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_md_group_members_query(&queries, values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_base_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    auto result = mysqlsh::dba::get_instances_md(metadata, 1);
+
+    for (uint64_t i = 0; i < result.size(); i++)
+      EXPECT_STREQ(values[i][0].c_str(), result[i].c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at get_instances_md");
+    ADD_FAILURE();
+  }
+
+  md_session->close();
+  stop_server_mock(_mysql_sandbox_nport1);
+}
+
+// If the information on the Metadata and the GR group
+// P_S info is the same get_newly_discovered_instances()
+// result return an empty list
+TEST_F(Dba_common_test, get_newly_discovered_instances_001) {
+// get_instances_gr() // get_instances_md():
+//
+// member_id
+// ------------------------------------
+// 851f0e89-5730-11e7-9e4f-b86b230042b9
+// 8a8ae9ce-5730-11e7-a437-b86b230042b9
+// 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  std::vector< testing::Fake_result_data > queries;
+
+  std::vector<std::vector<std::string>> values;
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_ps_gr_group_members_query(&queries, values);
+  add_md_group_members_query(&queries, values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_base_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    auto newly_discovered_instances_list(
+      get_newly_discovered_instances(metadata, 1));
+
+    EXPECT_TRUE(newly_discovered_instances_list.empty());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at get_instances_md");
+    ADD_FAILURE();
+  }
+
+  md_session->close();
+  stop_server_mock(_mysql_sandbox_nport1);
+}
+
+// If the information on the Metadata and the GR group
+// P_S info is the same but in different order,
+// get_newly_discovered_instances() should return an empty list
+//
+// Regression test for BUG #25534693
+TEST_F(Dba_common_test, get_newly_discovered_instances_002) {
+// get_instances_gr():
+//
+// member_id
+// ------------------------------------
+// 851f0e89-5730-11e7-9e4f-b86b230042b9
+// 8a8ae9ce-5730-11e7-a437-b86b230042b9
+// 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  std::vector< testing::Fake_result_data > queries;
+
+  std::vector<std::vector<std::string>> values;
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_ps_gr_group_members_query(&queries, values);
+
+// get_instances_md():
+//
+// member_id
+// ------------------------------------
+// 8fcb92c9-5730-11e7-aa60-b86b230042b9
+// 851f0e89-5730-11e7-9e4f-b86b230042b9
+// 8a8ae9ce-5730-11e7-a437-b86b230042b9
+
+  values = {{"8fcb92c9-5730-11e7-aa60-b86b230042b9"},
+            {"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"}};
+
+  add_md_group_members_query(&queries, values);
+
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9", "localhost", "3310"}};
+
+  add_ps_gr_group_members_full_query(&queries,
+      "851f0e89-5730-11e7-9e4f-b86b230042b9", values);
+
+  values = {{"8a8ae9ce-5730-11e7-a437-b86b230042b9", "localhost", "3320"}};
+
+  add_ps_gr_group_members_full_query(&queries,
+      "8a8ae9ce-5730-11e7-a437-b86b230042b9", values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_base_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    auto newly_discovered_instances_list(
+      get_newly_discovered_instances(metadata, 1));
+
+    EXPECT_TRUE(newly_discovered_instances_list.empty());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at get_instances_md");
+    ADD_FAILURE();
+  }
+
+  md_session->close();
+  stop_server_mock(_mysql_sandbox_nport1);
+}
+
+// If the information on the Metadata and the GR group
+// P_S info is the same get_unavailable_instances()
+// should return an empty list
+TEST_F(Dba_common_test, get_unavailable_instances_001) {
+// get_instances_gr() // get_instances_md():
+//
+// member_id
+// ------------------------------------
+// 851f0e89-5730-11e7-9e4f-b86b230042b9
+// 8a8ae9ce-5730-11e7-a437-b86b230042b9
+// 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  std::vector< testing::Fake_result_data > queries;
+
+  std::vector<std::vector<std::string>> values;
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_ps_gr_group_members_query(&queries, values);
+  add_md_group_members_query(&queries, values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_base_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    auto unavailable_instances_list(
+      get_unavailable_instances(metadata, 1));
+
+    EXPECT_TRUE(unavailable_instances_list.empty());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at get_instances_md");
+    ADD_FAILURE();
+  }
+
+  md_session->close();
+  stop_server_mock(_mysql_sandbox_nport1);
+}
+
+// If the information on the Metadata and the GR group
+// P_S info is the same but in different order,
+// get_unavailable_instances() should return an empty list
+//
+// Regression test for BUG #25534693
+TEST_F(Dba_common_test, get_unavailable_instances_002) {
+// get_instances_gr():
+//
+// member_id
+// ------------------------------------
+// 851f0e89-5730-11e7-9e4f-b86b230042b9
+// 8a8ae9ce-5730-11e7-a437-b86b230042b9
+// 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  std::vector< testing::Fake_result_data > queries;
+
+  std::vector<std::vector<std::string>> values;
+  values = {{"8fcb92c9-5730-11e7-aa60-b86b230042b9"},
+            {"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"}};
+
+  add_ps_gr_group_members_query(&queries, values);
+
+// get_instances_md():
+//
+// member_id
+// ------------------------------------
+// 8fcb92c9-5730-11e7-aa60-b86b230042b9
+// 851f0e89-5730-11e7-9e4f-b86b230042b9
+// 8a8ae9ce-5730-11e7-a437-b86b230042b9
+
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_md_group_members_query(&queries, values);
+
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9", "localhost:3330",
+              "localhost:3330"}};
+
+  add_md_group_members_full_query(&queries,
+      "851f0e89-5730-11e7-9e4f-b86b230042b9", values);
+
+  values = {{"8a8ae9ce-5730-11e7-a437-b86b230042b9", "localhost:3320",
+              "localhost:3320"}};
+
+  add_md_group_members_full_query(&queries,
+      "8a8ae9ce-5730-11e7-a437-b86b230042b9", values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_base_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    auto unavailable_instances_list(
+      get_unavailable_instances(metadata, 1));
+
+    EXPECT_TRUE(unavailable_instances_list.empty());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at get_instances_md");
+    ADD_FAILURE();
+  }
+
+  md_session->close();
+  stop_server_mock(_mysql_sandbox_nport1);
 }
 }  // namespace tests

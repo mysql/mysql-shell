@@ -20,9 +20,10 @@
 #ifndef _MODULES_ADMINAPI_MOD_DBA_COMMON_
 #define _MODULES_ADMINAPI_MOD_DBA_COMMON_
 
+#include <string>
+#include <vector>
 #include "scripting/types.h"
 #include "scripting/lang_base.h"
-#include "mysqlshdk/include/mysqlshdk_export.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 
@@ -50,6 +51,18 @@ enum class SlaveReplicationState {
   Recoverable,
   Diverged,
   Irrecoverable
+};
+
+struct NewInstanceInfo {
+  std::string member_id;
+  std::string host;
+  int port;
+};
+
+struct MissingInstanceInfo {
+  std::string id;
+  std::string label;
+  std::string host;
 };
 
 namespace ManagedInstance {
@@ -128,6 +141,14 @@ std::string SHCORE_PUBLIC resolve_instance_ssl_mode(
                             mysqlsh::mysql::ClassicSession *session,
                             mysqlsh::mysql::ClassicSession *psession,
                             const std::string& member_ssl_mode);
+std::vector<std::string> get_instances_gr(
+    const std::shared_ptr<MetadataStorage> &metadata);
+std::vector<std::string> get_instances_md(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+std::vector<NewInstanceInfo> get_newly_discovered_instances(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+std::vector<MissingInstanceInfo> get_unavailable_instances(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 }
 }
 #endif

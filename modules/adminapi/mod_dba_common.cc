@@ -772,5 +772,178 @@ std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
   return ret_val;
 }
 
-} // dba
-} // mysqlsh
+/**
+ * Gets the list of instances belonging to the GR group to which the metadata
+ * belongs to
+ *
+ * @param metadata metadata object which represents the session to the metadata
+ *                 storage
+ * @return a vector of strings with the list of member id's (member_id) of the
+ *         instances belonging to the GR group
+ */
+std::vector<std::string> get_instances_gr(
+    const std::shared_ptr<MetadataStorage> &metadata) {
+  // Get the list of instances belonging to the GR group
+  std::string query =
+      "SELECT member_id FROM performance_schema.replication_group_members";
+
+  auto result = metadata->execute_sql(query);
+  auto members_ids = result->call("fetchAll", shcore::Argument_list());
+
+  // build the instances array
+  auto instances_gr = members_ids.as_array();
+  std::vector<std::string> instances_gr_array;
+
+  for (auto value : *instances_gr.get()) {
+    auto row = value.as_object<mysqlsh::Row>();
+    instances_gr_array.push_back(row->get_member(0).as_string());
+  }
+
+  return instances_gr_array;
+}
+
+/**
+ * Gets the list of instances registered on the metadata for a specific
+ * ReplicaSet
+ *
+ * @param metadata metadata object which represents the session to the metadata
+ *                 storage
+ * @param rd_id the ReplicaSet id
+ * @return a vector of strings with the list of instances uuid's
+ *         (mysql_server_uuid) of the instances registered on the metadata, for
+ *         the replicaset with the id rs_id
+ */
+std::vector<std::string> get_instances_md(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id) {
+  // Get the list of instances registered on the Metadata
+  shcore::sqlstring query("SELECT mysql_server_uuid FROM " \
+                          "mysql_innodb_cluster_metadata.instances " \
+                          "WHERE replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
+
+  auto result = metadata->execute_sql(query);
+  auto mysql_server_uuids = result->call("fetchAll", shcore::Argument_list());
+
+  // build the instances array
+  auto instances_md = mysql_server_uuids.as_array();
+  std::vector<std::string> instances_md_array;
+
+  for (auto value : *instances_md.get()) {
+    auto row = value.as_object<mysqlsh::Row>();
+    instances_md_array.push_back(row->get_member(0).as_string());
+  }
+
+  return instances_md_array;
+}
+
+/**
+ * Gets the list of instances belonging to the GR group which are not
+ * registered on the metadata for a specific ReplicaSet.
+ *
+ * @param metadata metadata object which represents the session to the metadata
+ *                 storage
+ * @param rd_id the ReplicaSet id
+ * @return a vector of NewInstanceInfo with the list of instances found
+ * as belonging to the GR group but not registered on the Metadata
+ */
+std::vector<NewInstanceInfo> get_newly_discovered_instances(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id) {
+  std::vector<std::string> instances_gr_array, instances_md_array;
+
+  instances_gr_array = get_instances_gr(metadata);
+
+  instances_md_array = get_instances_md(metadata, rs_id);
+
+  // Check the differences between the two lists
+  std::vector<std::string> new_members;
+
+  // Sort the arrays in order to be able to use
+  // std::set_difference()
+  std::sort(instances_gr_array.begin(), instances_gr_array.end());
+  std::sort(instances_md_array.begin(), instances_md_array.end());
+
+  // Check if the instances_gr list has more members than the instances_md lists
+  // Meaning that an instance was added to the GR group outside of the AdminAPI
+  std::set_difference(instances_gr_array.begin(), instances_gr_array.end(),
+                      instances_md_array.begin(), instances_md_array.end(),
+                      std::inserter(new_members, new_members.begin()));
+
+  std::vector<NewInstanceInfo> ret;
+  for (auto i : new_members) {
+    shcore::sqlstring query(
+        "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT " \
+        "FROM performance_schema.replication_group_members " \
+        "WHERE MEMBER_ID = ?", 0);
+    query << i;
+    query.done();
+
+    auto result = metadata->execute_sql(query);
+    auto row = result->fetch_one();
+
+    NewInstanceInfo info;
+    info.member_id = row->get_value(0).as_string();
+    info.host = row->get_value(1).as_string();
+    info.port = row->get_value(2).as_int();
+
+    ret.push_back(info);
+  }
+
+  return ret;
+}
+
+/**
+ * Gets the list of instances registered on the Metadata, for a specific
+ * ReplicaSet, which do not belong in the GR group.
+ *
+ * @param metadata metadata object which represents the session to the metadata
+ *                 storage
+ * @param rd_id the ReplicaSet id
+ * @return a vector of MissingInstanceInfo with the list of instances found
+ * as registered on the Metadatada but not present in the GR group.
+ */
+std::vector<MissingInstanceInfo> get_unavailable_instances(
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id) {
+  std::vector<std::string> instances_gr_array, instances_md_array;
+
+  instances_gr_array = get_instances_gr(metadata);
+  instances_md_array = get_instances_md(metadata, rs_id);
+
+  // Check the differences between the two lists
+  std::vector<std::string> removed_members;
+
+  // Sort the arrays in order to be able to use
+  // std::set_difference()
+  std::sort(instances_gr_array.begin(), instances_gr_array.end());
+  std::sort(instances_md_array.begin(), instances_md_array.end());
+
+  // Check if the instances_md list has more members than the instances_gr
+  // lists. Meaning that an instance was removed from the GR group outside
+  // of the AdminAPI
+  std::set_difference(instances_md_array.begin(), instances_md_array.end(),
+                      instances_gr_array.begin(), instances_gr_array.end(),
+                      std::inserter(removed_members, removed_members.begin()));
+
+  std::vector<MissingInstanceInfo> ret;
+  for (auto i : removed_members) {
+    shcore::sqlstring query(
+        "SELECT mysql_server_uuid, instance_name, " \
+        "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host " \
+        "FROM mysql_innodb_cluster_metadata.instances " \
+        "WHERE mysql_server_uuid = ?", 0);
+    query << i;
+    query.done();
+
+    auto result = metadata->execute_sql(query);
+    auto row = result->fetch_one();
+    MissingInstanceInfo info;
+    info.id = row->get_value(0).as_string();
+    info.label = row->get_value(1).as_string();
+    info.host = row->get_value(2).as_string();
+    ret.push_back(info);
+  }
+
+  return ret;
+}
+}  // namespace dba
+}  // namespace mysqlsh
