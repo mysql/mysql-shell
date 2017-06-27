@@ -79,9 +79,7 @@ public:
   virtual void reconnect();
   virtual int get_default_port() = 0;
 
-  std::string get_ssl_ca() { return _ssl_info.ca; }
-  std::string get_ssl_key() { return _ssl_info.key; }
-  std::string get_ssl_cert() { return _ssl_info.cert; }
+  const mysqlshdk::utils::Ssl_info& get_ssl() { return _ssl_info; }
 
   std::string get_default_schema() { return _default_schema; }
 
@@ -102,7 +100,7 @@ protected:
   std::string _schema;
   std::string _auth_method;
   std::string _uri;
-  struct mysqlshdk::utils::Ssl_info _ssl_info;
+  mysqlshdk::utils::Ssl_info _ssl_info;
 
   void load_connection_data(const shcore::Argument_list &args);
 
