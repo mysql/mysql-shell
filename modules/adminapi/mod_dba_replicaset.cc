@@ -1605,10 +1605,11 @@ shcore::Value ReplicaSet::get_description() const {
   shcore::Value ret_val = shcore::Value::new_map();
   auto description = ret_val.as_map();
 
-  shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, role, " \
-                          "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host "
-                          "FROM mysql_innodb_cluster_metadata.instances "
-                          "WHERE replicaset_id = ?", 0);
+  shcore::sqlstring query(
+      "SELECT mysql_server_uuid, instance_name, role, " \
+      "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) AS host "
+      "FROM mysql_innodb_cluster_metadata.instances "
+      "WHERE replicaset_id = ?", 0);
   query << _id;
   query.done();
 
@@ -1658,11 +1659,12 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
     get_status_variable(classic->connection(), "group_replication_primary_member", master_uuid, false);
   }
 
-  shcore::sqlstring query("SELECT mysql_server_uuid, instance_name, role, MEMBER_STATE, "
-                          "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host "
-                          "FROM mysql_innodb_cluster_metadata.instances "
-                          "LEFT JOIN performance_schema.replication_group_members "
-                          "ON `mysql_server_uuid`=`MEMBER_ID` WHERE replicaset_id = ?", 0);
+  shcore::sqlstring query(
+      "SELECT mysql_server_uuid, instance_name, role, MEMBER_STATE, "
+      "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host "
+      "FROM mysql_innodb_cluster_metadata.instances "
+      "LEFT JOIN performance_schema.replication_group_members "
+      "ON `mysql_server_uuid`=`MEMBER_ID` WHERE replicaset_id = ?", 0);
   query << _id;
   query.done();
 
