@@ -13,6 +13,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <string>
 #include "gtest_clean.h"
 #include "scripting/lang_base.h"
 #include "shellcore/shell_core.h"
@@ -163,6 +164,10 @@ protected:
   // This can be use to reinitialize the interactive shell with different options
   // First set the options on _options
   void reset_options() {
+    extern char *g_mppath;
+    shcore::Shell_core_options::reset_instance();
+    (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] = shcore::Value(g_mppath);
+
     _options.reset(new mysqlsh::Shell_options());
   }
 
@@ -174,7 +179,6 @@ protected:
     _interactive_shell.reset(new mysqlsh::Mysql_shell(*_options.get(), &output_handler.deleg));
 
     set_defaults();
-std::string random_string(std::string::size_type length);
     _interactive_shell->finish_init();
   }
 
@@ -208,3 +212,5 @@ protected:
   // non listed functions are validated for unavailability
   void ensure_available_functions(const std::string& functions);
 };
+
+std::string random_string(std::string::size_type length);

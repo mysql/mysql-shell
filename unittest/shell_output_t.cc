@@ -50,26 +50,27 @@ protected:
       FAIL();
     }
     wipe_all();
+    options = Shell_core_options::get_instance();
   }
   virtual void TearDown() {
     _interactive_shell->process_line("\\js");
     _interactive_shell->process_line("session.close();");
   }
 
-  Value::Map_type_ref options = Shell_core_options::get();
+  std::shared_ptr<Shell_core_options> options;
 };
 
 TEST_F(Shell_output_test, table_output) {
-  std::stringstream stream("select 11 as a;");
+  std::stringstream stream("select 11 as a, 22 as b;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
   EXPECT_EQ(0, _ret_val);
 
   std::string expected_output =
-R"(+----+
-| a  |
-+----+
-| 11 |
-+----+)";
+R"(+----+----+
+| a  | b  |
++----+----+
+| 11 | 22 |
++----+----+)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
 
@@ -129,7 +130,7 @@ st)";
 }
 
 TEST_F(Shell_output_test, output_format_option) {
-  (*options)[SHCORE_OUTPUT_FORMAT] = Value("vertical");
+  options->set_member(SHCORE_OUTPUT_FORMAT, Value("vertical"));
 
   std::stringstream stream("select 11 as a;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
@@ -140,7 +141,7 @@ a: 11)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   wipe_all();
-  (*options)[SHCORE_OUTPUT_FORMAT] = Value("table");
+  options->set_member(SHCORE_OUTPUT_FORMAT, Value("table"));
   stream.clear();
   stream.str("select 12 as a;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
@@ -154,7 +155,7 @@ R"(+----+
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   wipe_all();
-  (*options)[SHCORE_OUTPUT_FORMAT] = Value("table");
+  options->set_member(SHCORE_OUTPUT_FORMAT, Value("table"));
   stream.clear();
   stream.str("select 13 as a\\G");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});

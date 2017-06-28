@@ -21,6 +21,10 @@ wait_slave_state(single, uri2, "ONLINE");
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 var singleSession2 = session;
 
+//@ Check auto_increment values for single-primary
+singleSession.runSql("show global variables like 'auto_increment_%'").fetchAll();
+singleSession2.runSql("show global variables like 'auto_increment_%'").fetchAll();
+
 //@ Get the cluster back
 var single = dba.getCluster();
 
@@ -37,6 +41,7 @@ single.forceQuorumUsingPartitionOf({host: localhost, port: __mysql_sandbox_port2
 
 //@ Success adding instance to the single cluster
 add_instance_to_cluster(single, __mysql_sandbox_port3);
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 
 //@ Remove the instance from the cluster
 single.removeInstance({host: localhost, port: __mysql_sandbox_port3});

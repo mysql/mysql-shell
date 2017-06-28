@@ -224,7 +224,7 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
     std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
-      std::string raw_value = row->get_display_value(field_index);
+      std::string raw_value = row->get_member(field_index).descr();
       _output_handler->print(_output_handler->user_data, raw_value.c_str());
       _output_handler->print(_output_handler->user_data, field_index < (field_count - 1) ? "\t" : "\n");
     }
@@ -268,27 +268,37 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
   std::vector<uint64_t> max_lengths;
   std::vector<std::string> column_names;
-  std::vector<bool> numerics;
+  std::vector<std::shared_ptr<mysqlsh::Column>> column_meta;
 
   size_t field_count = metadata->size();
 
   // Updates the max_length array with the maximum length between column name, min column length and column max length
   for (size_t field_index = 0; field_index < field_count; field_index++) {
-    std::shared_ptr<mysqlsh::Column> column = std::static_pointer_cast<mysqlsh::Column>(metadata->at(field_index).as_object());
+    auto column = std::static_pointer_cast<mysqlsh::Column>(
+        metadata->at(field_index).as_object());
 
     column_names.push_back(column->get_column_label());
-    numerics.push_back(column->is_numeric());
+    column_meta.push_back(column);
 
-    max_lengths.push_back(0);
-    max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], column->get_column_label().length());
+    if (column->is_zerofill()) {
+      max_lengths.push_back(column->get_length());
+    } else {
+      max_lengths.push_back(0);
+    }
+    max_lengths[field_index] = std::max<uint64_t>(
+        max_lengths[field_index], column->get_column_label().length());
+
   }
 
   // Now updates the length with the real column data lengths
   size_t row_index;
   for (row_index = 0; row_index < records->size(); row_index++) {
     std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
-    for (size_t field_index = 0; field_index < field_count; field_index++)
-      max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], row->get_display_value(field_index).length());
+    for (size_t field_index = 0; field_index < field_count; field_index++) {
+      max_lengths[field_index] =
+          std::max<uint64_t>(max_lengths[field_index],
+                             row->get_member(field_index).descr().length());
+    }
   }
 
   //-----------
@@ -322,8 +332,8 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
 
     // Once the header is printed, updates the numeric fields formats
     // so they are right aligned
-    if (numerics[index])
-    formats[index] = formats[index].replace(1, 1, "");
+    if (column_meta[index]->is_numeric())
+      formats[index] = formats[index].replace(1, 1, "");
   }
   _output_handler->print(_output_handler->user_data, "\n");
   _output_handler->print(_output_handler->user_data, separator.c_str());
@@ -335,9 +345,17 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
     std::shared_ptr<mysqlsh::Row> row = (*records)[row_index].as_object<mysqlsh::Row>();
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
-      std::string raw_value = row->get_display_value(field_index);
-      std::string data = shcore::str_format(formats[field_index].c_str(), raw_value.c_str());
+      std::string raw_value = row->get_member(field_index).descr();
 
+      if (column_meta[field_index]->is_zerofill()) {
+        raw_value.insert(
+            0,
+            std::max<int>(
+                0, column_meta[field_index]->get_length() - raw_value.length()),
+            '0');
+      }
+      std::string data =
+          shcore::str_format(formats[field_index].c_str(), raw_value.c_str());
       _output_handler->print(_output_handler->user_data, data.c_str());
     }
     _output_handler->print(_output_handler->user_data, "\n");

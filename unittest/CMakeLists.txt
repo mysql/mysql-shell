@@ -58,7 +58,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/test_utils/admin_api_test.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_row.cc"        
+        "${PROJECT_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/db/mock_row.cc"
 
         # NOTE: these sources are required because Mysql_shell is not part of a library used by the test system
         # but is ont the application level. At some point we should put Mysql_shell available in a alibrary

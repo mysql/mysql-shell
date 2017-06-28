@@ -48,6 +48,9 @@ _CREATE_RSA_SSL_FILES_CMD = "{mysql_ssl_rsa_setup_path} --datadir={datadir}"
 _WIN_SCRIPT = "echo \"{message}\" & {content}\n"
 _UNIX_SCRIPT = "#!/bin/sh\n\necho '{message}'; {content}\n"
 
+# default value for auto_increment_increment
+DEFAULT_AUTO_INCREMENT_INCREMENT = 7
+
 # Timeout to wait for mysqld to start listening to connections
 SANDBOX_TIMEOUT = 30
 _MAX_RMTREE_RETRIES = 5
@@ -516,6 +519,7 @@ def create_sandbox(**kwargs):
         "port": port,
         "loose_mysqlx_port": mysqlx_port,
         "server_id": server_id,
+        "auto_increment_offset": 1 + int(server_id) % DEFAULT_AUTO_INCREMENT_INCREMENT,
         "socket": "mysqld.sock",
         "loose_mysqlx_socket": "mysqlx.sock",
         "basedir": basedir.replace("\\", "/"),
