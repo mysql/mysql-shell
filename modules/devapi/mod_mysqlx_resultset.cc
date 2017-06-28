@@ -478,7 +478,8 @@ shcore::Value DocResult::get_metadata() const {
             _result->columnMetadata()->at(0).collation),
         mysqlshdk::db::charset::charset_name_from_collation_id(
             _result->columnMetadata()->at(0).collation),
-        true));  // IS PADDED
+        true,     // IS PADDED
+        false));  // ZEROFILL
 
     _metadata =
         shcore::Value(std::static_pointer_cast<Object_bridge>(metadata));
@@ -623,10 +624,13 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
       std::string type_name;
       bool is_signed = false;
       bool is_padded = true;
+      bool is_zerofill = false;
       switch (_result->columnMetadata()->at(i).type) {
-        case ::mysqlx::SINT:
-          is_signed = true;
         case ::mysqlx::UINT:
+          is_zerofill = (_result->columnMetadata()->at(i).flags & 0x001) != 0;
+          is_signed = true;  // will be flipped after fall-through
+        case ::mysqlx::SINT:
+          is_signed = !is_signed;
           switch (_result->columnMetadata()->at(i).length) {
             case 3:
             case 4:
@@ -731,7 +735,8 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
               _result->columnMetadata()->at(i).collation),
           mysqlshdk::db::charset::charset_name_from_collation_id(
               _result->columnMetadata()->at(i).collation),
-          is_padded));
+          is_padded,
+          is_zerofill));
 
       _columns->push_back(
           shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
@@ -765,7 +770,6 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
   try {
     std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata =
         _result->columnMetadata();
-    std::string display_value;
     if (metadata->size() > 0) {
       std::shared_ptr< ::mysqlx::Row> row = _result->next();
       if (row) {
@@ -782,13 +786,6 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
                 field_value = Value(row->sInt64Field(index));
                 break;
               case ::mysqlx::UINT:
-                //Check if the ZEROFILL flag is set, if so then create proper display value
-                if (metadata->at(index).flags & 0x0001) {
-                  display_value = std::to_string(row->uInt64Field(index));
-                  int count = metadata->at(index).length - display_value.length();
-                  if (count > 0)
-                    display_value.insert(0, count, '0');
-                }
                 field_value = Value(row->uInt64Field(index));
                 break;
               case ::mysqlx::DOUBLE:
@@ -829,9 +826,7 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
                 break;
             }
           }
-          if (display_value.empty())
-            display_value = field_value.descr();
-          value_row->add_item(metadata->at(index).name, field_value, display_value);
+          value_row->add_item(metadata->at(index).name, field_value);
         }
 
         ret_val = shcore::Value::wrap(value_row);

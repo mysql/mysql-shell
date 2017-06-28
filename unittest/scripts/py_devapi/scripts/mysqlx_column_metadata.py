@@ -45,6 +45,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on TinyInt Column
 column = columns[column_index]
@@ -61,6 +62,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Unsigned TinyInt Column
 column = columns[column_index]
@@ -77,6 +79,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on SmallInt Column
 column = columns[column_index]
@@ -93,6 +96,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Unsigned SmallInt Column
 column = columns[column_index]
@@ -109,6 +113,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on MediumInt Column
 column = columns[column_index]
@@ -125,6 +130,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Unsigned MediumInt Column
 column = columns[column_index]
@@ -141,6 +147,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Int Column
 column = columns[column_index]
@@ -157,6 +164,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Unsigned Int Column
 column = columns[column_index]
@@ -173,6 +181,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Float Column
 column = columns[column_index]
@@ -189,6 +198,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Unsigned Float Column
 column = columns[column_index]
@@ -205,6 +215,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Float Column with length and fractional digits
 column = columns[column_index]
@@ -221,6 +232,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Decimal Column
 column = columns[column_index]
@@ -237,6 +249,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Unsigned Decimal Column
 column = columns[column_index]
@@ -253,6 +266,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Decimal Column with length and fractional digits
 column = columns[column_index]
@@ -269,6 +283,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Double Column
 column = columns[column_index]
@@ -285,6 +300,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Unsigned Double Column
 column = columns[column_index]
@@ -301,6 +317,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Double Column with length and fractional digits
 column = columns[column_index]
@@ -317,6 +334,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 # Metadata Validation On Other Types
 result = mySession.sql("create table table2 (one json, two char(5) primary key, three varchar(20), four text, five time, six date, seven timestamp, eight set('1','2','3'), nine enum ('a','b','c'))").execute()
@@ -343,6 +361,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Char Column
 column = columns[column_index]
@@ -359,6 +378,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Varchar Column
 column = columns[column_index]
@@ -375,6 +395,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Text Column
 column = columns[column_index]
@@ -391,6 +412,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Time Column
 column = columns[column_index]
@@ -407,6 +429,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Date Column
 column = columns[column_index]
@@ -423,6 +446,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Timestamp Column
 column = columns[column_index]
@@ -439,6 +463,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', column.get_collation_name()
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Set Column
 column = columns[column_index]
@@ -455,6 +480,7 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 #@ Metadata on Enum Column
 column = columns[column_index]
@@ -471,5 +497,6 @@ print 'Is Number Signed:', column.is_number_signed()
 print 'Collation Name:', formatCollation(column.get_collation_name())
 print 'Charset Name:', column.get_character_set_name()
 print 'Is Padded:', column.is_padded()
+print 'Is ZeroFill:', column.is_zero_fill()
 
 mySession.close()

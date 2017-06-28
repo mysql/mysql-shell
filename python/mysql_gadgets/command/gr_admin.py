@@ -415,7 +415,8 @@ def start(server_info, **kwargs):
 
         option_parser = req_dict.get(OPTION_PARSER, None)
         gr_config_vars = get_gr_config_vars(local_address, kwargs,
-                                            option_parser)
+                option_parser,
+                server_id=server.select_variable("server_id"))
 
         if gr_config_vars[GR_GROUP_SEEDS] is None:
             gr_config_vars.pop(GR_GROUP_SEEDS)
@@ -819,9 +820,14 @@ def join(server_info, peer_server_info, **kwargs):
         # group_seeds.
         peer_local_address = get_gr_local_address_from(peer_server)
 
+        if peer_server.select_variable(
+            "group_replication_single_primary_mode") in ('1', 'ON'):
+            kwargs["single_primary"] = "ON"
+
         option_parser = req_dict.get(OPTION_PARSER, None)
         gr_config_vars = get_gr_config_vars(local_address, kwargs,
-                                            option_parser, peer_local_address)
+                            option_parser, peer_local_address,
+                            server_id=server.select_variable("server_id"))
 
         # Do several replication user related tasks if the
         # skip-replication-user option was not provided

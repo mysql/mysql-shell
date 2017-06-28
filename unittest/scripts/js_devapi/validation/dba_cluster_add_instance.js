@@ -7,6 +7,28 @@
 //@ Success adding instance
 ||
 
+//@<OUT> Check auto_increment values for single-primary
+[
+    [
+        "auto_increment_increment",
+        "1"
+    ],
+    [
+        "auto_increment_offset",
+        "2"
+    ]
+]
+[
+    [
+        "auto_increment_increment",
+        "1"
+    ],
+    [
+        "auto_increment_offset",
+        "2"
+    ]
+]
+
 //@ Get the cluster back
 ||
 

@@ -28,6 +28,7 @@
 extern "C" {
   const char *g_argv0 = nullptr;
 }
+char *g_mppath = nullptr;
 
 static void check_zombie_sandboxes() {
   int port = 3306;
@@ -218,6 +219,7 @@ int main(int argc, char **argv) {
   mppath.append("/../mysqlprovision");
   (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] = shcore::Value(mppath);
 #endif
+  g_mppath = strdup(mppath.c_str());
 
   int ret_val = RUN_ALL_TESTS();
 
