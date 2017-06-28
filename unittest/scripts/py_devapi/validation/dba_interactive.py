@@ -28,6 +28,15 @@
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Invalid value for ipWhitelist, string value cannot be empty.
 
+#@ Dba: createCluster with ANSI_QUOTES success
+|Current sql_mode is: ANSI_QUOTES|
+|Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.|
+|<Cluster:devCluster>|
+
+#@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
+|The cluster was successfully dissolved.|
+|Original SQL_MODE has been restored: True|
+
 #@<OUT> Dba: create_cluster with interaction
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 

@@ -358,12 +358,14 @@ shcore::Value get_master_status(mysqlsh::mysql::Connection *connection) {
  */
 std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection, const std::string &instance_host) {
   std::vector<std::string> ret_val;
-  shcore::sqlstring query = shcore::sqlstring("SELECT JSON_UNQUOTE(addresses->\"$.grLocal\") "\
-                                              "FROM mysql_innodb_cluster_metadata.instances "\
-                                              "WHERE addresses->\"$.mysqlClassic\" <> ? "\
-                                              "AND replicaset_id IN (SELECT replicaset_id "\
-                                                                    "FROM mysql_innodb_cluster_metadata.instances "\
-                                                                    "WHERE addresses->\"$.mysqlClassic\" = ?)", 0);
+  shcore::sqlstring query =
+      shcore::sqlstring(
+          "SELECT JSON_UNQUOTE(addresses->'$.grLocal') "\
+          "FROM mysql_innodb_cluster_metadata.instances "\
+          "WHERE addresses->'$.mysqlClassic' <> ? "\
+          "AND replicaset_id IN (SELECT replicaset_id "\
+          "FROM mysql_innodb_cluster_metadata.instances "\
+          "WHERE addresses->'$.mysqlClassic' = ?)", 0);
 
   query << instance_host.c_str();
   query << instance_host.c_str();

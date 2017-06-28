@@ -28,7 +28,14 @@
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Invalid value for ipWhitelist, string value cannot be empty.
 
-#@# Dba: create_cluster succeed
+#@ Dba: createCluster with ANSI_QUOTES success
+|Current sql_mode is: ANSI_QUOTES|
+|<Cluster:devCluster>|
+
+#@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
+|Original SQL_MODE has been restored: True|
+
+#@ Dba: create_cluster success
 |<Cluster:devCluster>|
 
 #@# Dba: create_cluster already exist

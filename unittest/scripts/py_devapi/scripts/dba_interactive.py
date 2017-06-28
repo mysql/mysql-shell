@@ -42,6 +42,35 @@ c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "RE
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "DISABLED"})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "ipWhitelist": " "})
 
+#@ Dba: createCluster with ANSI_QUOTES success
+# save current sql mode
+result = session.run_sql("SELECT @@GLOBAL.SQL_MODE")
+row = result.fetch_one()
+original_sql_mode = row[0]
+session.run_sql("SET @@GLOBAL.SQL_MODE = ANSI_QUOTES")
+# Check that sql mode has been changed
+result = session.run_sql("SELECT @@GLOBAL.SQL_MODE")
+row = result.fetch_one()
+print("Current sql_mode is: " + row[0] + "\n")
+
+if __have_ssl:
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
+else:
+    c1 = dba.create_cluster('devCluster')
+
+print c1
+
+#@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
+c1.dissolve({"force": True})
+
+# Set old_sql_mode
+session.run_sql("SET @@GLOBAL.SQL_MODE = '"+ original_sql_mode+ "'")
+result = session.run_sql("SELECT @@GLOBAL.SQL_MODE")
+row = result.fetch_one()
+restored_sql_mode = row[0]
+was_restored = restored_sql_mode == original_sql_mode
+print("Original SQL_MODE has been restored: " + str(was_restored) + "\n")
+
 #@<OUT> Dba: create_cluster with interaction
 if __have_ssl:
   c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
