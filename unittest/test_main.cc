@@ -29,6 +29,8 @@ extern "C" {
   const char *g_argv0 = nullptr;
 }
 
+std::string g_mppath;
+
 static void check_zombie_sandboxes() {
   int port = 3306;
   if (getenv("MYSQL_PORT")) {
@@ -205,18 +207,17 @@ int main(int argc, char **argv) {
     check_zombie_sandboxes();
   }
 
-  std::string mppath;
   char *p = strrchr(argv[0], '/');
   if (p) {
-    mppath = std::string(argv[0], p - argv[0]);
+    g_mppath = std::string(argv[0], p - argv[0]);
   } else {
     p = strrchr(argv[0], '\\');
-    mppath = std::string(argv[0], p - argv[0]);
+    g_mppath = std::string(argv[0], p - argv[0]);
   }
 #ifndef _WIN32
   // On linux, we need to tell the UTs where the mysqlprovision executable is
-  mppath.append("/../mysqlprovision");
-  (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] = shcore::Value(mppath);
+  g_mppath.append("/../mysqlprovision");
+  (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] = shcore::Value(g_mppath);
 #endif
 
   int ret_val = RUN_ALL_TESTS();

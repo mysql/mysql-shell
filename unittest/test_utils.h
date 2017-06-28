@@ -179,6 +179,11 @@ protected:
   // First set the options on _options
   void reset_options() {
     shcore::Shell_core_options::reset_instance();
+#ifndef _WIN32
+    extern std::string g_mppath;
+    (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] =
+        shcore::Value(g_mppath);
+#endif
     _options.reset(new mysqlsh::Shell_options());
   }
 
