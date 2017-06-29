@@ -142,13 +142,13 @@ std::string SHCORE_PUBLIC resolve_instance_ssl_mode(
                             mysqlsh::mysql::ClassicSession *session,
                             mysqlsh::mysql::ClassicSession *psession,
                             const std::string& member_ssl_mode);
-std::vector<std::string> get_instances_gr(
+std::vector<std::string> SHCORE_PUBLIC get_instances_gr(
     const std::shared_ptr<MetadataStorage> &metadata);
-std::vector<std::string> get_instances_md(
+std::vector<std::string> SHCORE_PUBLIC get_instances_md(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
-std::vector<NewInstanceInfo> get_newly_discovered_instances(
+std::vector<NewInstanceInfo> SHCORE_PUBLIC get_newly_discovered_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
-std::vector<MissingInstanceInfo> get_unavailable_instances(
+std::vector<MissingInstanceInfo> SHCORE_PUBLIC get_unavailable_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 }
 }

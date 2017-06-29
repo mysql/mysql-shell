@@ -23,6 +23,7 @@
 #include "mod_dba.h"
 #include "mod_dba_cluster.h"
 #include "mod_dba_replicaset.h"
+#include "shellcore/common.h"
 #include <string>
 
 #define ER_NOT_VALID_PASSWORD 1819
@@ -38,7 +39,7 @@ namespace dba {
 * Represents a Session to a Metadata Storage
 */
 #endif
-class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
+class SHCORE_PUBLIC MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 public:
   MetadataStorage(std::shared_ptr<mysqlsh::ShellDevelopmentSession> session);
   ~MetadataStorage();

@@ -25,6 +25,7 @@
 #define JSON_TOPOLOGY_OUTPUT 2
 #define JSON_RESCAN_OUTPUT 3
 
+#include "shellcore/common.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include <set>
@@ -46,7 +47,7 @@ class Cluster;
 * Represents a ReplicaSet
 */
 #endif
-class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge {
+class SHCORE_PUBLIC ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge {
 public:
   ReplicaSet(const std::string &name, const std::string &topology_type,
             std::shared_ptr<MetadataStorage> metadata_storage);
