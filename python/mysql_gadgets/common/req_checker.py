@@ -627,13 +627,13 @@ class RequirementChecker(object):
         compliance_qry = (
             "SELECT t.table_schema, t.table_name "
             "FROM information_schema.tables t "
-            "    LEFT JOIN information_schema.table_constraints c "
+            "    LEFT JOIN information_schema.columns c "
             "    ON t.table_schema = c.table_schema "
             "        AND t.table_name = c.table_name "
             "WHERE t.table_type = 'BASE TABLE' "
             "    AND t.table_schema NOT IN {0} "
             "GROUP BY t.table_schema, t.table_name "
-            "HAVING sum(if(c.constraint_type='PRIMARY KEY', 1, 0)) = 0"
+            "HAVING sum(if(c.column_key='PRI', 1, 0)) = 0"
             "".format(GR_COMPLIANCE_SKIP_SCHEMAS)
         )
         res = server.exec_query(compliance_qry)

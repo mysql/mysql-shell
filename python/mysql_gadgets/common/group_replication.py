@@ -285,12 +285,14 @@ ERROR_PEERS_VARIABLE = ("The value '{0}' in variable '{1}' differs from the "
 PEER_VARIABLES = (TRANSACTION_WRITE_SET_EXTRACTION, )
 
 INNODB_RQD_MSG = ("Group Replication requires tables to use InnoDB and "
-                  "have a PRIMARY key. Tables that do not follow these "
+                  "have a PRIMARY KEY or PRIMARY KEY Equivalent (non-null "
+                  "unique key). Tables that do not follow these "
                   "requirements will be readable but not updateable "
                   "when used with Group Replication. "
                   "If your applications make updates (INSERT, UPDATE or "
                   "DELETE) to these tables, ensure they use the InnoDB "
-                  "storage engine and have a PRIMARY KEY.")
+                  "storage engine and have a PRIMARY KEY or PRIMARY KEY "
+                  "Equivalent.")
 SKIP_SCHEMA_MSG = ("You can retry this command with the {0} option "
                    "if you'd like to enable Group Replication ignoring "
                    "this warning.".format(OPT_SKIP_CHECK_GR_SCHEMA_COMPLIANCE))
@@ -984,8 +986,9 @@ def check_compliance(req_checker, error_msgs=None):
                 _LOGGER.info("")
 
             if bad_pk:
-                _LOGGER.error("%i table(s) do not have a Primary Key",
-                              len(bad_pk))
+                _LOGGER.error(
+                    "%i table(s) do not have a Primary Key or Primary Key "
+                    "Equivalent (non-null unique key).", len(bad_pk))
                 _LOGGER.info("\t%s",
                              ", ".join(["{0}.{1}".format(s, t) for s, t
                                         in bad_pk]))
