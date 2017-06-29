@@ -35,6 +35,7 @@ if(WITH_TESTS)
     file(GLOB mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/*.h"
         "${PROJECT_SOURCE_DIR}/unittest/*_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/shell_cmdline_regressions_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"

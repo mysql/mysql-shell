@@ -43,6 +43,7 @@ namespace tests {
     std::string get_path_to_mysqlsh();
     std::string _output;
     int execute(const std::vector<const char *> &args);
+    std::string _new_line_char;
   };
 
 }

@@ -14,6 +14,7 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <fstream>
+#include <boost/algorithm/string.hpp>
 #include "unittest/test_utils/shell_base_test.h"
 #include "shellcore/types.h"
 #include "utils/utils_general.h"
@@ -98,6 +99,11 @@ void Shell_base_test::SetUp() {
       _sandbox_dir = shcore::get_binary_folder();
     }
   }
+
+  _new_line_char = "\n";
+#ifdef WIN32
+  _new_line_char = "\r\n";
+#endif
 }
 
 void Shell_base_test::TearDown() {
@@ -126,6 +132,112 @@ void Shell_base_test::check_string_expectation(const std::string& expected_str,
   }
 }
 
+/**
+ * Multiple value validation
+ * To be used on a single line
+ * Line may have an entry that may have one of several values, i.e. on an
+ * expected line like:
+ *
+ * My text line is {{empty|full}}
+ *
+ * Ths function would return true whenever the actual line is any of
+ *
+ * My text line is empty
+ * My text line is full
+ */
+bool Shell_base_test::multi_value_compare(const std::string& expected,
+                                          const std::string &actual) {
+  bool ret_val = false;
+
+  size_t start;
+  size_t end;
+
+  start = expected.find("{{");
+
+  if (start != std::string::npos) {
+    end = expected.find("}}");
+
+    std::string pre = expected.substr(0, start);
+    std::string post = expected.substr(end + 2);
+    std::string opts = expected.substr(start + 2, end - (start + 2));
+    auto options = shcore::split_string(opts, "|");
+
+    for (auto item : options) {
+      std::string exp = pre + item + post;
+      if ((ret_val = (exp == actual)))
+        break;
+    }
+  } else {
+    ret_val = (expected == actual);
+  }
+
+  return ret_val;
+}
+
+bool Shell_base_test::check_multiline_expect(const std::string& context,
+                                             const std::string &stream,
+                                             const std::string& expected,
+                                             const std::string &actual) {
+  bool ret_val = true;
+  auto expected_lines = shcore::split_string(expected, "\n");
+  auto actual_lines = shcore::split_string(actual, "\n");
+
+  // Identifies the index of the actual line containing the first expected line
+  size_t actual_index = 0;
+  while (actual_index < actual_lines.size()) {
+    if (actual_lines[actual_index].find(expected_lines[0]) != std::string::npos)
+      break;
+    else
+      actual_index++;
+  }
+
+  if (actual_index < actual_lines.size()) {
+    size_t expected_index;
+    for (expected_index = 0; expected_index < expected_lines.size();
+         expected_index++) {
+      // if there are less actual lines than the ones expected
+      if ((actual_index + expected_index) >= actual_lines.size()) {
+        SCOPED_TRACE(stream + " actual: " + actual);
+        expected_lines[expected_index] += "<------ MISSING";
+        SCOPED_TRACE(stream + " expected lines missing: " +
+            shcore::join_strings(expected_lines, "\n"));
+        ADD_FAILURE();
+        ret_val = false;
+        break;
+      }
+
+      auto act_str = boost::trim_right_copy(actual_lines[actual_index +
+          expected_index]);
+
+      auto exp_str = boost::trim_right_copy(expected_lines[expected_index]);
+      if (!multi_value_compare(exp_str, act_str)) {
+        SCOPED_TRACE("Executing: " + context);
+        SCOPED_TRACE(stream + " actual: " + actual);
+
+        expected_lines[expected_index] += "<------ INCONSISTENCY";
+
+        SCOPED_TRACE(stream + " inconsistent: " +
+            shcore::join_strings(expected_lines, "\n"));
+        ADD_FAILURE();
+        ret_val = false;
+        break;
+      }
+    }
+  } else {
+      SCOPED_TRACE("Executing: " + context);
+      SCOPED_TRACE(stream + " actual: " + actual);
+
+      expected_lines[0] += "<------ INCONSISTENCY";
+
+      SCOPED_TRACE(stream + " inconsistent: " +
+      shcore::join_strings(expected_lines, "\n"));
+      ADD_FAILURE();
+      ret_val = false;
+  }
+
+  return ret_val;
+}
+
 std::string Shell_base_test::start_server_mock
   (int port, const std::vector< Fake_result_data >& data) {
   std::string ret_val;
@@ -141,6 +253,10 @@ std::string Shell_base_test::start_server_mock
   }
 
   return ret_val;
+}
+
+std::string Shell_base_test::multiline(const std::vector<std::string> input) {
+  return shcore::join_strings(input, _new_line_char);
 }
 
 void Shell_base_test::stop_server_mock(int port) {

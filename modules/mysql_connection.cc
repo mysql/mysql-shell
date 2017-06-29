@@ -165,7 +165,10 @@ shcore::Value Row::get_value(int index) {
       case MYSQL_TYPE_INT24:
       case MYSQL_TYPE_LONG:
       case MYSQL_TYPE_LONGLONG:
-        return shcore::Value(boost::lexical_cast<int64_t>(_row[index]));
+        if ((*_metadata)[index].flags() & UNSIGNED_FLAG)
+          return shcore::Value(boost::lexical_cast<uint64_t>(_row[index]));
+        else
+          return shcore::Value(boost::lexical_cast<int64_t>(_row[index]));
 
       case MYSQL_TYPE_FLOAT:
       case MYSQL_TYPE_DOUBLE:
