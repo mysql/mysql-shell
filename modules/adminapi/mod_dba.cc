@@ -55,7 +55,7 @@ using namespace shcore;
 std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword", "allowRootFrom", "ignoreSslError"};
 std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password", "dbPassword"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
-std::set<std::string> Dba::_create_cluster_opts = {"clusterAdminType", "multiMaster", "adoptFromGR", "force", "memberSslMode", "ipWhitelist"};
+std::set<std::string> Dba::_create_cluster_opts = {"multiMaster", "adoptFromGR", "force", "memberSslMode", "ipWhitelist"};
 std::set<std::string> Dba::_reboot_cluster_opts = {"user", "dbUser", "password", "dbPassword", "removeInstances", "rejoinInstances"};
 
 // Documentation of the DBA Class
@@ -274,49 +274,41 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL, "Creates a MySQL InnoDB cluster taking "
                                         "session.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1, "The options dictionary can contain the next values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li clusterAdminType: defines the "\
-                                         "type of management to be done on the "\
-                                         "cluster instances.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li multiMaster: boolean value used "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value used "\
                                          "to define an InnoDB cluster with "\
                                          "multiple writable instances.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li force: boolean, confirms that "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL3, "@li force: boolean, confirms that "\
                                          "the multiMaster option must be "\
                                          "applied.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li adoptFromGR: boolean value used "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL4, "@li adoptFromGR: boolean value used "\
                                          "to create the InnoDB cluster based "\
                                          "on existing replication group.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li memberSslMode: SSL mode used to "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li memberSslMode: SSL mode used to "\
                                          "configure the members of the "\
                                          "cluster.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li ipWhitelist: The list of hosts "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li ipWhitelist: The list of hosts "\
                                          "allowed to connect to the instance "\
                                          "for group replication.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "The values for clusterAdminType options include: local, manual, "\
-                                         "guided or ssh, however, at the moment only "\
-                                         "local is supported and is used as default value if this "\
-                                         "attribute is not specified.");
-
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9,"A InnoDB cluster may be setup in two ways:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10, "@li Single Master: One member of the cluster allows write "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7,"A InnoDB cluster may be setup in two ways:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8, "@li Single Master: One member of the cluster allows write "\
                                           "operations while the rest are in read only mode.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11, "@li Multi Master: All the members "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9, "@li Multi Master: All the members "\
                                           "in the cluster support both read "\
                                           "and write operations.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "By default this function create a Single Master cluster, use "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10, "By default this function create a Single Master cluster, use "\
                                           "the multiMaster option set to true "\
                                           "if a Multi Master cluster is required.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13, "The memberSslMode option supports these values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14, "@li REQUIRED: if used, SSL (encryption) will be enabled for the "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11, "The memberSslMode option supports these values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "@li REQUIRED: if used, SSL (encryption) will be enabled for the "\
                                           "instances to communicate with other members of the cluster");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15, "@li DISABLED: if used, SSL (encryption) will be disabled");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16, "@li AUTO: if used, SSL (encryption) "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13, "@li DISABLED: if used, SSL (encryption) will be disabled");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14, "@li AUTO: if used, SSL (encryption) "\
                                           "will be enabled if supported by the "\
                                           "instance, otherwise disabled");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17, "If memberSslMode is not specified AUTO will be used by default.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15, "If memberSslMode is not specified AUTO will be used by default.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18, "The ipWhitelist format is a comma separated list of IP "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16, "The ipWhitelist format is a comma separated list of IP "\
                                           "addresses or subnet CIDR "\
                                           "notation, for example: 192.168.1.0/24,10.0.0.1. By default the "\
                                           "value is set to AUTOMATIC, allowing addresses "\
@@ -347,22 +339,20 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18, "The ipWhitelist format is a comma sep
  * $(DBA_CREATECLUSTER_DETAIL4)
  * $(DBA_CREATECLUSTER_DETAIL5)
  * $(DBA_CREATECLUSTER_DETAIL6)
+ *
  * $(DBA_CREATECLUSTER_DETAIL7)
  *
  * $(DBA_CREATECLUSTER_DETAIL8)
- *
  * $(DBA_CREATECLUSTER_DETAIL9)
  * $(DBA_CREATECLUSTER_DETAIL10)
+ *
  * $(DBA_CREATECLUSTER_DETAIL11)
  * $(DBA_CREATECLUSTER_DETAIL12)
- *
  * $(DBA_CREATECLUSTER_DETAIL13)
  * $(DBA_CREATECLUSTER_DETAIL14)
  * $(DBA_CREATECLUSTER_DETAIL15)
- * $(DBA_CREATECLUSTER_DETAIL16)
- * $(DBA_CREATECLUSTER_DETAIL17)
  *
- * $(DBA_CREATECLUSTER_DETAIL18)
+ * $(DBA_CREATECLUSTER_DETAIL16)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -398,7 +388,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   }
 
   // Available options
-  std::string cluster_admin_type = "local"; // Default is local
   Value ret_val;
   bool multi_master = false; // Default single/primary master
   bool adopt_from_gr = false;
@@ -434,21 +423,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       //Validate ip whitelist option
       validate_ip_whitelist_option(options);
 
-      if (opt_map.has_key("clusterAdminType"))
-        cluster_admin_type = opt_map.string_at("clusterAdminType");
-
       if (opt_map.has_key("multiMaster"))
         multi_master = opt_map.bool_at("multiMaster");
 
       if (opt_map.has_key("force"))
         force = opt_map.bool_at("force");
-
-      if (cluster_admin_type != "local" &&
-          cluster_admin_type != "guided" &&
-          cluster_admin_type != "manual" &&
-          cluster_admin_type != "ssh") {
-        throw shcore::Exception::argument_error("Cluster Administration Type invalid. Valid types are: 'local', 'guided', 'manual', 'ssh'");
-      }
 
       if (opt_map.has_key("adoptFromGR"))
         adopt_from_gr = opt_map.bool_at("adoptFromGR");
@@ -487,8 +466,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     // Update the properties
     // For V1.0, let's see the Cluster's description to "default"
     cluster->set_description("Default Cluster");
-
-    cluster->set_option(OPT_ADMIN_TYPE, shcore::Value(cluster_admin_type));
 
     cluster->set_attribute(ATT_DEFAULT, shcore::Value::True());
 

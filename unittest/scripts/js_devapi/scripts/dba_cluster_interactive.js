@@ -20,8 +20,6 @@ print("Cluster Members:", members.length);
 
 validateMember(members, 'name');
 validateMember(members, 'getName');
-validateMember(members, 'adminType');
-validateMember(members, 'getAdminType');
 validateMember(members, 'addInstance');
 validateMember(members, 'removeInstance');
 validateMember(members, 'rejoinInstance');
@@ -157,13 +155,11 @@ Cluster.dissolve({force: true});
 
 //@ Cluster: no operations can be done on a dissolved cluster
 Cluster.name;
-Cluster.adminType;
 Cluster.addInstance();
 Cluster.checkInstanceState();
 Cluster.describe();
 Cluster.dissolve();
 Cluster.forceQuorumUsingPartitionOf();
-Cluster.getAdminType();
 Cluster.getName();
 Cluster.rejoinInstance();
 Cluster.removeInstance();

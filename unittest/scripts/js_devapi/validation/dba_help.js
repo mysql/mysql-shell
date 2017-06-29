@@ -71,8 +71,6 @@ session.
 
 The options dictionary can contain the next values:
 
- - clusterAdminType: defines the type of management to be done on the cluster
-   instances.
  - multiMaster: boolean value used to define an InnoDB cluster with multiple
    writable instances.
  - force: boolean, confirms that the multiMaster option must be applied.
@@ -81,10 +79,6 @@ The options dictionary can contain the next values:
  - memberSslMode: SSL mode used to configure the members of the cluster.
  - ipWhitelist: The list of hosts allowed to connect to the instance for group
    replication.
-
-The values for clusterAdminType options include: local, manual, guided or ssh,
-however, at the moment only local is supported and is used as default value if
-this attribute is not specified.
 
 A InnoDB cluster may be setup in two ways:
 

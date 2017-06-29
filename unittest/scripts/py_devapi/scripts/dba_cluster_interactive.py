@@ -25,8 +25,6 @@ for member in all_members:
 print "Cluster Members: %d" % len(members)
 validateMember(members, 'name')
 validateMember(members, 'get_name')
-validateMember(members, 'admin_type')
-validateMember(members, 'get_admin_type')
 validateMember(members, 'add_instance')
 validateMember(members, 'remove_instance')
 validateMember(members, 'rejoin_instance')
@@ -160,13 +158,11 @@ cluster.dissolve({'force': True})
 
 #@ Cluster: no operations can be done on a dissolved cluster errors
 cluster.name
-cluster.admin_type
 cluster.add_instance()
 cluster.check_instance_state()
 cluster.describe()
 cluster.dissolve()
 cluster.force_quorum_using_partition_of()
-cluster.get_admin_type()
 cluster.get_name()
 cluster.rejoin_instance()
 cluster.remove_instance()

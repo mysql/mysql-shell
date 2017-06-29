@@ -30,9 +30,6 @@ cluster.help("dissolve")
 #@<OUT> Force Quorum Using Partition Of
 cluster.help("force_quorum_using_partition_of")
 
-#@<OUT> Get Admin Type
-cluster.help("get_admin_type")
-
 #@<OUT> Get Name
 cluster.help("get_name")
 
