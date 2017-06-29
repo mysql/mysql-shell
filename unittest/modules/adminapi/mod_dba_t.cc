@@ -36,7 +36,7 @@ class Dba_test: public Admin_api_test {
   virtual void TearDown() {
     _interactive_shell->shell_context()
                       ->get_dev_session()
-                      ->close(shcore::Argument_list());
+                      ->close();
 
     stop_server_mock(_mysql_sandbox_nport1);
 
@@ -60,7 +60,7 @@ class Dba_test: public Admin_api_test {
   }
 
   std::shared_ptr<mysqlsh::dba::Dba> _dba;
-  std::vector<tests::Fake_result_data> _queries;
+  std::vector<testing::Fake_result_data> _queries;
 };
 
 TEST_F(Dba_test, create_cluster_with_cluster_admin_type) {
@@ -69,7 +69,7 @@ TEST_F(Dba_test, create_cluster_with_cluster_admin_type) {
   add_replication_filters_query(&_queries, "", "");
   add_get_server_variable_query(&_queries,
                                 "GLOBAL.require_secure_transport",
-                                tests::Type::LongLong, "1");
+                                mysqlshdk::db::Type::LongLong, "1");
 
   init_test();
 
