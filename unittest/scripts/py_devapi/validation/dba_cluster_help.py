@@ -32,8 +32,7 @@ It provides high-availability and scalability for the user's data.
 
 The following properties are currently supported.
 
- - name       Cluster name.
- - admin_type Cluster Administration type.
+ - name Cluster name.
 
 
 The following functions are currently supported.
@@ -44,8 +43,6 @@ The following functions are currently supported.
  - describe                        Describe the structure of the cluster.
  - dissolve                        Dissolves the cluster.
  - force_quorum_using_partition_of Restores the cluster from quorum loss.
- - get_admin_type                  Retrieves the Administration type of the
-                                   cluster.
  - get_name                        Retrieves the name of the cluster.
  - help                            Provides help about this class and it's
                                    members
@@ -348,14 +345,6 @@ in the network, but not accessible from your location.
 
 When this function is used, all the members that are ONLINE from the point of
 view of the given instance definition will be added to the group.
-
-#@<OUT> Get Admin Type
-
-Retrieves the Administration type of the cluster.
-
-SYNTAX
-
-  <Cluster>.get_admin_type()
 
 #@<OUT> Get Name
 

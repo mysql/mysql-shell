@@ -1,9 +1,7 @@
 //@ Cluster: validating members
-|Cluster Members: 14|
+|Cluster Members: 12|
 |name: OK|
 |getName: OK|
-|adminType: OK|
-|getAdminType: OK|
 |addInstance: OK|
 |removeInstance: OK|
 |rejoinInstance: OK|
@@ -397,13 +395,11 @@
 
 //@ Cluster: no operations can be done on a dissolved cluster
 ||Cluster.name: Can't access object member 'name' on a dissolved cluster
-||Cluster.adminType: Can't access object member 'adminType' on a dissolved cluster
 ||Cluster.addInstance: Can't call function 'addInstance' on a dissolved cluster
 ||Cluster.checkInstanceState: Can't call function 'checkInstanceState' on a dissolved cluster
 ||Cluster.describe: Can't call function 'describe' on a dissolved cluster
 ||Cluster.dissolve: Can't call function 'dissolve' on a dissolved cluster
 ||Cluster.forceQuorumUsingPartitionOf: Can't call function 'forceQuorumUsingPartitionOf' on a dissolved cluster
-||Cluster.getAdminType: Can't call function 'getAdminType' on a dissolved cluster
 ||Cluster.getName: Can't call function 'getName' on a dissolved cluster
 ||Cluster.rejoinInstance: Can't call function 'rejoinInstance' on a dissolved cluster
 ||Cluster.removeInstance: Can't call function 'removeInstance' on a dissolved cluster
