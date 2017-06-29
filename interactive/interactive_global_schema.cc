@@ -25,15 +25,14 @@ void Global_schema::resolve() const {
 
   if (session) {
     std::string answer;
-    if (prompt("The db variable is not set, do you want to set the active schema? [y/N]:", answer)) {
-      if (!answer.compare("y") || !answer.compare("Y")) {
-        if (prompt("Please specify the schema:", answer)) {
-          std::string error;
-          if (answer.empty())
-            throw shcore::Exception::argument_error("Invalid schema specified.");
-          else
-            _shell_core.set_current_schema(answer);
-        }
+    if (prompt("The db variable is not set, do you want to set the active schema?",
+        Prompt_answer::NO) == Prompt_answer::YES) {
+      if (prompt("Please specify the schema:", answer)) {
+        std::string error;
+        if (answer.empty())
+          throw shcore::Exception::argument_error("Invalid schema specified.");
+        else
+          _shell_core.set_current_schema(answer);
       }
     }
   } else

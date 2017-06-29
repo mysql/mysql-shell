@@ -65,12 +65,9 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_
     object = cluster->get_default_replicaset();
   }
   if (object) {
-    std::string answer;
-
-    if (prompt("The default ReplicaSet is already initialized. Do you want to add a new instance? [Y|n]: ", answer)) {
-      if (!answer.compare("y") || !answer.compare("Y") || answer.empty())
-        function = "addInstance";
-    }
+    if (prompt("The default ReplicaSet is already initialized. \
+                Do you want to add a new instance?")  == Prompt_answer::YES)
+      function = "addInstance";
   } else
     function = "addSeedInstance";
 
@@ -110,12 +107,9 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
       object = cluster->get_default_replicaset();
 
     if (!object) {
-      std::string answer;
-
-      if (prompt("The default ReplicaSet is not initialized. Do you want to initialize it adding a seed instance? [Y|n]: ", answer)) {
-        if (!answer.compare("y") || !answer.compare("Y") || answer.empty())
+      if (prompt("The default ReplicaSet is not initialized. Do you want to \
+                  initialize it adding a seed instance?") == Prompt_answer::YES)
           function = "addSeedInstance";
-      }
     } else
       function = "addInstance";
 
@@ -420,33 +414,31 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
         println();
         println("A new instance '" + instance_map->get_string("host") + "' was discovered in the HA setup.");
 
-        std::string answer;
-        if (prompt("Would you like to add it to the cluster metadata? [Y|n]: ", answer)) {
-          if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
-            std::string full_host = instance_map->get_string("host");
+        if (prompt("Would you like to add it to the cluster metadata?")
+            == Prompt_answer::YES) {
+          std::string full_host = instance_map->get_string("host");
 
-            Value::Map_type_ref options(new shcore::Value::Map_type);
+          Value::Map_type_ref options(new shcore::Value::Map_type);
 
-            std::string delimiter = ":";
-            std::string host = full_host.substr(0, full_host.find(delimiter));
-            std::string port = full_host.substr(full_host.find(delimiter) + 1, full_host.length());
+          std::string delimiter = ":";
+          std::string host = full_host.substr(0, full_host.find(delimiter));
+          std::string port = full_host.substr(full_host.find(delimiter) + 1, full_host.length());
 
-            (*options)["host"] = shcore::Value(host);
-            (*options)["port"] = shcore::Value(atoi(port.c_str()));
-            mysqlsh::dba::resolve_instance_credentials(options, _delegate);
+          (*options)["host"] = shcore::Value(host);
+          (*options)["port"] = shcore::Value(atoi(port.c_str()));
+          mysqlsh::dba::resolve_instance_credentials(options, _delegate);
 
-            println("Adding instance to the cluster metadata...");
-            println();
+          println("Adding instance to the cluster metadata...");
+          println();
 
-            std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
+          std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
 
-            object = cluster->get_default_replicaset();
+          object = cluster->get_default_replicaset();
 
-            object->add_instance_metadata(options);
+          object->add_instance_metadata(options);
 
-            println("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster metadata.");
-            println();
-          }
+          println("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster metadata.");
+          println();
         }
       }
     }
@@ -463,33 +455,30 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
         println("You can try to add it to the cluster again with the cluster.rejoinInstance('" + instance_map->get_string("host") + "') "
                 "command or you can remove it from the cluster configuration.");
 
-        std::string answer;
-        if (prompt("Would you like to remove it from the cluster metadata? [Y|n]: ", answer)) {
-          if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
+        if (prompt("Would you like to remove it from the cluster metadata?") == Prompt_answer::YES) {
 
-            std::string full_host = instance_map->get_string("host");
+          std::string full_host = instance_map->get_string("host");
 
-            Value::Map_type_ref options(new shcore::Value::Map_type);
+          Value::Map_type_ref options(new shcore::Value::Map_type);
 
-            std::string delimiter = ":";
-            std::string host = full_host.substr(0, full_host.find(delimiter));
-            std::string port = full_host.substr(full_host.find(delimiter) + 1, full_host.length());
+          std::string delimiter = ":";
+          std::string host = full_host.substr(0, full_host.find(delimiter));
+          std::string port = full_host.substr(full_host.find(delimiter) + 1, full_host.length());
 
-            (*options)["host"] = shcore::Value(host);
-            (*options)["port"] = shcore::Value(atoi(port.c_str()));
+          (*options)["host"] = shcore::Value(host);
+          (*options)["port"] = shcore::Value(atoi(port.c_str()));
 
-            println("Removing instance from the cluster metadata...");
-            println();
+          println("Removing instance from the cluster metadata...");
+          println();
 
-            std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
+          std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
 
-            object = cluster->get_default_replicaset();
+          object = cluster->get_default_replicaset();
 
-            object->remove_instance_metadata(options);
+          object->remove_instance_metadata(options);
 
-            println("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster metadata.");
-            println();
-          }
+          println("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster metadata.");
+          println();
         }
       }
     }

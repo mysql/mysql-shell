@@ -87,12 +87,10 @@ shcore::Value Global_session::get_schema(const shcore::Argument_list &args) {
   } catch (shcore::Exception &e) {
     std::string error(e.what());
     if (error.find("Unknown database") != std::string::npos) {
-      std::string answer;
-      if (prompt((boost::format("The schema %1% does not exist, do you want to create it? [y/N]: ") % args.string_at(0)).str().c_str(), answer)) {
-        if (!answer.compare("y") || !answer.compare("Y")) {
+      if (prompt((boost::format("The schema %1% does not exist, do you want to\
+          create it?") % args.string_at(0)).str().c_str(), Prompt_answer::NO)
+          == Prompt_answer::YES)
           ret_val = call_target("createSchema", args);
-        }
-      }
     } else
       throw;
   }

@@ -192,6 +192,38 @@ bool Interactive_object_wrapper::prompt(const std::string& prompt, std::string &
   return ret;
 }
 
+shcore::Prompt_answer Interactive_object_wrapper::prompt(const std::string& prompt_str, Prompt_answer def) const {
+  assert(def != Prompt_answer::NONE);
+  Prompt_answer final_ans = Prompt_answer::NONE;
+  std::string ans;
+  while(final_ans == Prompt_answer::NONE) {
+    std::string def_str = "";
+    switch (def) {
+      case Prompt_answer::YES:
+        def_str = " [Y|n]: ";
+        break;
+      case Prompt_answer::NO:
+        def_str = " [y|N]: ";
+        break;
+    }
+    if (_shell_core.prompt(prompt_str + def_str, ans)) {
+      if (ans.empty())
+        final_ans = def;
+      else {
+        if (boost::iequals(ans, "y") || boost::iequals(ans, "yes"))
+          final_ans = Prompt_answer::YES;
+        else if (boost::iequals(ans, "n") || boost::iequals(ans, "no"))
+          final_ans = Prompt_answer::NO;
+        else
+          println("\nInvalid answer!");
+      }
+    }
+    else
+      break;
+  }
+  return final_ans;
+}
+
 bool Interactive_object_wrapper::password(const std::string& prompt, std::string &ret_val) const {
   return _shell_core.password(prompt, ret_val);
 }
