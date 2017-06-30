@@ -47,17 +47,8 @@
 #endif
 
 #include <boost/lexical_cast.hpp>
-using namespace shcore::uri;
-
-std::string Uri_parser::DELIMITERS = ":/?#[]@";
-std::string Uri_parser::SUBDELIMITERS = "!$&'()*+,;=";
-std::string Uri_parser::ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-std::string Uri_parser::DIGIT = "0123456789";
-std::string Uri_parser::HEXDIG = "ABCDEFabcdef0123456789";
-std::string Uri_parser::ALPHANUMERIC = ALPHA + DIGIT;
-std::string Uri_parser::RESERVED = DELIMITERS + SUBDELIMITERS;
-std::string Uri_parser::UNRESERVED = ALPHANUMERIC + "-._~";
-
+namespace shcore {
+namespace uri {
 #define URI_SCHEME "scheme"
 #define URI_TARGET "targetinfo"
 #define URI_USER_INFO "userinfo"
@@ -529,9 +520,11 @@ std::string Uri_parser::parse_unencoded_value(const std::pair<size_t, size_t>& r
   _tokenizer.reset();
   _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
 #ifdef _WIN32
-  _tokenizer.set_complex_token("unreserved", UNRESERVED + "\\:");
+  _tokenizer.set_complex_token("unreserved",
+                               std::string(UNRESERVED).append("\\:"));
 #else
-  _tokenizer.set_complex_token("unreserved", UNRESERVED + "/");
+  _tokenizer.set_complex_token("unreserved",
+                               std::string(UNRESERVED).append("/"));
 #endif
   _tokenizer.set_complex_token("delims", DELIMITERS);
 
@@ -712,3 +705,6 @@ bool Uri_parser::input_contains(const std::string& what, size_t index) {
 
   return ret_val;
 }
+
+}  // namespace uri
+}  // namespace shcore

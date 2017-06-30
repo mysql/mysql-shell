@@ -82,6 +82,7 @@ void BaseTokenizer::process(const std::pair<size_t, size_t> range) {
   _pos = 0;
 
   _tokens.clear();
+  _unknown_token.clear();
 
   get_tokens(range.first, range.second);
 }
