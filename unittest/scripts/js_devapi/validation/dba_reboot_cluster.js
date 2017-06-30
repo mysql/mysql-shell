@@ -28,7 +28,7 @@
 ||
 
 //@ Dba.rebootClusterFromCompleteOutage errors
-||Dba.rebootClusterFromCompleteOutage: The cluster name cannot be empty.
+||Dba.rebootClusterFromCompleteOutage: The Cluster name cannot be empty.
 ||Dba.rebootClusterFromCompleteOutage: Invalid values in the options: invalidOpt
 ||Dba.rebootClusterFromCompleteOutage: The cluster with the name 'dev2' does not exist.
 ||Dba.rebootClusterFromCompleteOutage: The cluster's instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.forceQuorumUsingPartitionOf() to restore the quorum loss
