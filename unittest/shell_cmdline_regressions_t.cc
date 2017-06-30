@@ -86,6 +86,48 @@ TEST_F(Command_line_test, bug23508428) {
 
   execute({_mysqlsh, uri.c_str(), "--classic", "--dba","enableXProtocol", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: X Protocol plugin is already enabled and listening for connections on port " + _port);
+
+}
+
+
+TEST_F(Command_line_test, bug24905066) {
+  // Tests URI formatting using classic protocol
+  {
+    execute({_mysqlsh, "--classic", "-i", "--uri",
+            "root:@(/path/to/whatever/socket.sock)", NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic Session to "
+                                  "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
+  }
+
+  // Tests URI formatting using X protocol
+  {
+    execute({_mysqlsh, "--node", "-i", "--uri",
+            "root:@(/path/to/whatever/socket.sock)", NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Node Session to "
+                                  "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
+  }
+
+  // Tests the connection fails if invalid schema is provided on classic session
+  {
+    std::string uri = _mysql_uri + "/some_unexisting_schema";
+
+    execute({_mysqlsh, "--classic", "-i", "--uri", uri.c_str(), NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 1049 (42000): Unknown database "
+                                  "'some_unexisting_schema'");
+  }
+
+  // Tests the connection fails if invalid schema is provided on x session
+  {
+    std::string uri = _uri + "/some_unexisting_schema";
+
+    execute({_mysqlsh, "--node", "-i", "--uri", uri.c_str(), NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: Unknown database "
+                                  "'some_unexisting_schema'");
+  }
 }
 
 }

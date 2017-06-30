@@ -26,6 +26,7 @@ set(utils_SOURCE
     base_tokenizer.cc
 	uri_data.cc
     uri_parser.cc
+    uri_encoder.cc
     logger.cc
     process_launcher.cc
 )

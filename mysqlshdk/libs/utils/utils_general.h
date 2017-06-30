@@ -36,7 +36,6 @@ namespace shcore {
 
 bool SHCORE_PUBLIC is_valid_identifier(const std::string& name);
 std::string SHCORE_PUBLIC build_connection_string(Value::Map_type_ref data, bool with_password);
-void SHCORE_PUBLIC conn_str_cat_ssl_data(std::string& uri, const mysqlshdk::utils::Ssl_info &ssl_info);
 void SHCORE_PUBLIC parse_mysql_connstring(const std::string &connstring,
                                           std::string &scheme, std::string &user, std::string &password,
                                           std::string &host, int &port, std::string &sock,

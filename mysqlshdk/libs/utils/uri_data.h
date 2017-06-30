@@ -34,6 +34,16 @@ enum TargetType {
   Pipe
 };
 
+extern const char *DELIMITERS;
+extern const char *SUBDELIMITERS;
+extern const char *ALPHA;
+extern const char *DIGIT;
+extern const char *HEXDIG;
+extern const char *DOT;
+extern const char *ALPHANUMERIC;
+extern const char *UNRESERVED;
+extern const char *RESERVED;
+
 class SHCORE_PUBLIC Uri_data {
 public:
   Uri_data();
@@ -50,7 +60,7 @@ public:
   int get_ssl_mode();
 
   std::string get_pipe();
-  std::string get_socket();
+  std::string get_socket() const;
 
   std::string get_db() { return _db; }
 
@@ -77,7 +87,14 @@ private:
   std::map<std::string, std::vector< std::string > > _attributes;
 
   friend class Uri_parser;
+  friend class Uri_encoder;
 };
+
+class SHCORE_PUBLIC Uri_error : public std::runtime_error {
+ public:
+  explicit Uri_error(const std::string& msg) : std::runtime_error(msg) {}
+};
+
 
 }
 }
