@@ -100,7 +100,6 @@ static int enable_x_protocol(mysqlsh::Command_line_shell &shell) {
 "      return 1;\n"\
 "    }\n"\
 "  }\n"\
-"\n"\
 "  print('enableXProtocol: Installing plugin mysqlx...\\n');\n"\
 "  var os = session.runSql('select @@version_compile_os').fetchOne();\n"\
 "  try {\n"\
@@ -114,10 +113,11 @@ static int enable_x_protocol(mysqlsh::Command_line_shell &shell) {
 "    }\n"\
 "    print(\"enableXProtocol: done\\n\");\n"\
 "  } catch (error) {\n"\
-"    print('enableXProtocol: Error installing the X Plugin: '+error['message']+'\\n');\n"
+"    print('enableXProtocol: Error installing the X Plugin: '+error['message']+'\\n');\n"\
 "  }\n"\
 "}\n"\
-"enableXProtocol(); print('');\n";
+"enableXProtocol(); print('');\n"\
+"\n";
   std::stringstream stream(script);
   return shell.process_stream(stream, "(command line)", {});
 }
