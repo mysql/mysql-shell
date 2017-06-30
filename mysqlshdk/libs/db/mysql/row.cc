@@ -192,7 +192,7 @@ int64_t Row::get_int(int index) const {
   if (validate_type(index, "int", true)) {
 
     if (!_metadata[index].is_signed()) {
-      uint64_t unsigned_val = strtoul(_row[index], nullptr, 0);
+      uint64_t unsigned_val = strtoul(_row[index], nullptr, 10);
 
       if ((errno == ERANGE && unsigned_val == ULONG_MAX)  ||
           unsigned_val > (std::numeric_limits<int64_t>::max)())
@@ -201,7 +201,7 @@ int64_t Row::get_int(int index) const {
 
       ret_val = static_cast<int64_t>(unsigned_val);
     } else {
-      ret_val = strtol(_row[index], nullptr, 0);
+      ret_val = strtol(_row[index], nullptr, 10);
 
       if (errno == ERANGE && (ret_val == LONG_MAX || ret_val == LONG_MIN))
         throw std::runtime_error("Error trying to fetch row data: integer "\
@@ -218,14 +218,14 @@ uint64_t Row::get_uint(int index) const {
   if (validate_type(index, "int", true)) {
 
     if (!_metadata[index].is_signed()) {
-      ret_val = strtoul(_row[index], nullptr, 0);
+      ret_val = strtoul(_row[index], nullptr, 10);
 
       if (ret_val == ULONG_MAX && errno == ERANGE)
         throw std::runtime_error("Error trying to fetch row data: unsigned "\
                                  "integer value exceeds allowed range");
     }
     else {
-      int64_t signed_val = strtol(_row[index], nullptr, 0);
+      int64_t signed_val = strtol(_row[index], nullptr, 10);
 
       if (signed_val < 0 || (errno == ERANGE &&
          (signed_val == LONG_MAX || signed_val == LONG_MIN)))

@@ -163,7 +163,14 @@ shcore::Value Row::get_value(int index) {
       case MYSQL_TYPE_INT24:
       case MYSQL_TYPE_LONG:
       case MYSQL_TYPE_LONGLONG:
-        return shcore::Value(static_cast<int64_t> (std::atoll(_row[index])));
+        if ((*_metadata)[index].flags() & UNSIGNED_FLAG) {
+          uint64_t value = strtoul(_row[index], nullptr, 10);
+          return shcore::Value(value);
+        }
+        else {
+          int64_t value = strtol(_row[index], nullptr, 10);
+          return shcore::Value(value);
+        }
 
       case MYSQL_TYPE_FLOAT:
       case MYSQL_TYPE_DOUBLE:
