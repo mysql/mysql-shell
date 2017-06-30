@@ -431,6 +431,7 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url,
                                       const std::string &super_user_password, const std::string &repl_user_password,
                                       bool multi_master, const std::string &ssl_mode,
                                       const std::string &ip_whitelist,
+                                      const std::string &group_name,
                                       shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
@@ -438,6 +439,7 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url,
   std::string repl_user_pwd = repl_user_password;
   std::string ssl_mode_opt;
   std::string ip_whitelist_opt;
+  std::string group_name_opt;
 
   instance_args = "--instance=" + instance_url;
   repl_user_args = "--replication-user=" + repl_user;
@@ -463,6 +465,11 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url,
     ip_whitelist_opt = "--ip-whitelist=" + ip_whitelist;
     args.push_back(ip_whitelist_opt.c_str());
   }
+  if (!group_name.empty()) {
+    group_name_opt = "--group-name=" + group_name;
+    args.push_back(group_name_opt.c_str());
+  }
+
   args.push_back("--stdin");
 
   return execute_mysqlprovision("start-replicaset", args, passwords, errors, _verbose);

@@ -1,4 +1,14 @@
 // Assumptions: smart deployment rountines available
+
+// Due to the fixes for BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE
+// GROUP_NAME INTO ACCOUNT
+// We must reset the instances to reset 'group_replication_group_name' since on
+// the previous test Shell_js_dba_tests.configure_local_instance the instances
+// configurations are persisted on my.cnf so upon the restart of any instance
+// it can bootstrap a new group, changing the value of
+// 'group_replication_group_name' and leading to a failure on forceQuorum
+cleanup_sandboxes(true);
+
 //@ Initialization
 var deployed_here = reset_or_deploy_sandboxes();
 

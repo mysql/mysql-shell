@@ -1037,6 +1037,55 @@ void SHCORE_PUBLIC validate_label(const std::string &label) {
   return;
 }
 
-} // dba
-} // mysqlsh
+/*
+ * Gets Group Replication Group Name variable: group_replication_group_name
+ *
+ * @param session object which represents the session to the instance
+ * @return string with the value of @@group_replication_group_name
+ */
+std::string get_gr_replicaset_group_name(
+      mysqlsh::mysql::ClassicSession *session) {
+  std::string group_name;
 
+  std::string query("SELECT @@group_replication_group_name");
+
+  // Any error will bubble up right away
+  auto result = session->execute_sql(query);
+  auto row = result->fetch_one();
+  if (row) {
+    group_name = row->get_value_as_string(0);
+  }
+  return group_name;
+}
+
+/**
+ * Validates if the current session instance 'group_replication_group_name'
+ * differs from the one registered in the corresponding ReplicaSet table of the
+ * Metadata
+ *
+ * @param metadata metadata object which represents the session to the metadata
+ *                 storage, i.e. the current instance session on this case
+ * @param rd_id the ReplicaSet id
+ * @return a boolean value indicating whether the replicaSet
+ * 'group_replication_group_name' is the same as the one registered in the
+ * corresponding replicaset in the Metadata
+ */
+bool validate_replicaset_group_name(
+    const std::shared_ptr<MetadataStorage> &metadata,
+    mysqlsh::mysql::ClassicSession *session,
+    uint64_t rs_id) {
+  std::string gr_group_name = get_gr_replicaset_group_name(session);
+  std::string md_group_name = metadata->get_replicaset_group_name(rs_id);
+
+  log_info("Group Replication 'group_name' value: %s", gr_group_name.c_str());
+  log_info("Metadata 'group_name' value: %s", md_group_name.c_str());
+
+  // If the value is NULL it means the instance does not belong to any GR group
+  // so it can be considered valid
+  if (gr_group_name == "NULL")
+    return true;
+
+  return (gr_group_name == md_group_name);
+}
+}  // namespace dba
+}  // namespace mysqlsh

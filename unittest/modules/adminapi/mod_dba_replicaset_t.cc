@@ -376,4 +376,137 @@ TEST_F(Dba_replicaset_test, rescan_cluster_004) {
   _dev_session->close(shcore::Argument_list());
   stop_server_mock(_mysql_sandbox_nport1);
 }
+
+// Regression test for BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE
+// GROUP_NAME INTO ACCOUNT
+TEST_F(Dba_replicaset_test, rejoin_instance_with_invalid_gr_group_name) {
+  // @@group_replication_group_name (instance)
+  //-------------------------------------
+  // fd4b70e8-5cb1-11e7-a68b-b86b230042b9
+  //-------------------------------------
+
+  // group_replication_group_name (metadata)
+  // ---------------------------------------
+  // fd4b70e8-5cb1-11e7-a68b-b86b230042b0
+  // ---------------------------------------
+
+  std::vector<tests::Fake_result_data> metadata_queries;
+
+  std::string instance_address =
+    "localhost:" + std::to_string(_mysql_sandbox_nport2);
+
+  add_is_instance_on_rs_query(&metadata_queries, "1", instance_address);
+
+  std::vector<tests::Fake_result_data> instance_queries;
+
+  add_get_server_variable_query(
+      &instance_queries,
+      "group_replication_group_name",
+      tests::Type::String, "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
+
+  add_show_databases_query(&metadata_queries, "mysql_innodb_cluster_metadata",
+                           "mysql_innodb_cluster_metadata");
+
+  add_md_group_name_query(&metadata_queries,
+      "fd4b70e8-5cb1-11e7-a68b-b86b230042b0");
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, metadata_queries);
+  START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
+
+  init_test();
+
+  shcore::Argument_list instance_args;
+  shcore::Value::Map_type_ref instance_options(new shcore::Value::Map_type);
+  (*instance_options)["host"] = shcore::Value("localhost");
+  (*instance_options)["port"] = shcore::Value(_mysql_sandbox_nport2);
+  (*instance_options)["password"] = shcore::Value("");
+  (*instance_options)["user"] = shcore::Value("user");
+
+  instance_args.push_back(shcore::Value(instance_options));
+
+  try {
+    _replicaset->rejoin_instance(instance_args);
+  } catch (const shcore::Exception &e) {
+    std::string error = e.what();
+
+    MY_EXPECT_OUTPUT_CONTAINS(
+      "The instance '" + instance_address + "' may belong to a different "
+      "ReplicaSet as the one registered in the Metadata since the value of "
+      "'group_replication_group_name' does not match the one registered in "
+      "the ReplicaSet's Metadata: possible split-brain scenario. Please "
+      "remove the instance from the cluster.",
+      error);
+  }
+
+  _dev_session->close(shcore::Argument_list());
+
+  stop_server_mock(_mysql_sandbox_nport2);
+  stop_server_mock(_mysql_sandbox_nport1);
+}
+
+// Regression test for BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE
+// GROUP_NAME INTO ACCOUNT
+TEST_F(Dba_replicaset_test, force_quorum_with_invalid_gr_group_name) {
+  // @@group_replication_group_name (instance)
+  //-------------------------------------
+  // fd4b70e8-5cb1-11e7-a68b-b86b230042b9
+  //-------------------------------------
+
+  // group_replication_group_name (metadata)
+  // ---------------------------------------
+  // fd4b70e8-5cb1-11e7-a68b-b86b230042b0
+  // ---------------------------------------
+
+  std::vector<tests::Fake_result_data> metadata_queries;
+
+  std::string instance_address =
+    "localhost:" + std::to_string(_mysql_sandbox_nport2);
+
+  add_is_instance_on_rs_query(&metadata_queries, "1", instance_address);
+
+  std::vector<tests::Fake_result_data> instance_queries;
+
+  add_get_server_variable_query(
+      &instance_queries,
+      "group_replication_group_name",
+      tests::Type::String, "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
+
+  add_show_databases_query(&metadata_queries, "mysql_innodb_cluster_metadata",
+                           "mysql_innodb_cluster_metadata");
+
+  add_md_group_name_query(&metadata_queries,
+      "fd4b70e8-5cb1-11e7-a68b-b86b230042b0");
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, metadata_queries);
+  START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
+
+  init_test();
+
+  shcore::Argument_list instance_args;
+  shcore::Value::Map_type_ref instance_options(new shcore::Value::Map_type);
+  (*instance_options)["host"] = shcore::Value("localhost");
+  (*instance_options)["port"] = shcore::Value(_mysql_sandbox_nport2);
+  (*instance_options)["password"] = shcore::Value("");
+  (*instance_options)["user"] = shcore::Value("user");
+
+  instance_args.push_back(shcore::Value(instance_options));
+
+  try {
+    _replicaset->force_quorum_using_partition_of(instance_args);
+  } catch (const shcore::Exception &e) {
+    std::string error = e.what();
+    MY_EXPECT_OUTPUT_CONTAINS(
+      "The instance '" + instance_address + "' cannot be used to restore the "
+      "cluster as it may belong to a different ReplicaSet as the one "
+      "registered in the Metadata since the value of "
+      "'group_replication_group_name' does not match the one registered in "
+      "the ReplicaSet's Metadata: possible split-brain scenario.",
+      error);
+  }
+
+  _dev_session->close(shcore::Argument_list());
+
+  stop_server_mock(_mysql_sandbox_nport2);
+  stop_server_mock(_mysql_sandbox_nport1);
+}
 }  // namespace tests

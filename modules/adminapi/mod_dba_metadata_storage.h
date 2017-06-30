@@ -61,7 +61,7 @@ public:
   void drop_replicaset(uint64_t rs_id);
   void disable_replicaset(uint64_t rs_id);
   bool is_replicaset_active(uint64_t rs_id);
-  std::string get_replicaset_group_name();
+  std::string get_replicaset_group_name(uint64_t rs_id);
   void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset, const std::string &group_name);
 
   std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name);

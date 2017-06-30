@@ -200,4 +200,105 @@ void Admin_api_test::add_member_state_query(
                    }
                   });
 }
+
+void Admin_api_test::add_md_group_name_query(
+    std::vector<tests::Fake_result_data> *data,
+    const std::string &value) {
+  data->push_back({
+    "SELECT JSON_UNQUOTE(JSON_EXTRACT(attributes, "
+    "\"$.group_replication_group_name\")) AS group_replication_group_name "
+    "FROM mysql_innodb_cluster_metadata.replicasets "
+    "WHERE replicaset_id = 1",
+    {"group_replication_group_name"},
+    {Type::VarString},
+    {
+      {value}
+    }
+  });
+}
+
+void Admin_api_test::add_get_replication_group_state_online_rw_query(
+    std::vector<tests::Fake_result_data> *data,
+    const std::string &member_id) {
+  data->push_back({
+    "SELECT @@server_uuid, VARIABLE_VALUE FROM "
+    "performance_schema.global_status WHERE VARIABLE_NAME "
+    "= 'group_replication_primary_member';",
+    {"@@server_uuid", "VARIABLE_VALUE"},
+    {Type::VarString, Type::VarString},
+    {
+      {member_id.c_str(), member_id.c_str()}
+    }
+  });
+
+  data->push_back({
+    "SELECT MEMBER_STATE FROM performance_schema.replication_group_members "
+    "WHERE MEMBER_ID = '" + member_id + "'",
+    {"MEMBER_STATE"},
+    {Type::VarString},
+    {
+      {"ONLINE"}
+    }
+  });
+
+  data->push_back({
+    "SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) "
+    "AS UNREACHABLE,  COUNT(*) AS TOTAL FROM "
+    "performance_schema.replication_group_members",
+    {"SIGNED", "UNREACHABLE"},
+    {Type::Long, Type::Long},
+    {
+      {"0", "2"}
+    }
+  });
+}
+
+void Admin_api_test::add_get_cluster_matching_query(
+    std::vector<tests::Fake_result_data> *data,
+    const std::string &cluster_name) {
+  data->push_back({
+    "SELECT cluster_id, cluster_name, default_replicaset, description, "
+    "options, attributes FROM mysql_innodb_cluster_metadata.clusters "
+    "WHERE cluster_name = '" + cluster_name + "'",
+    {"cluster_id", "cluster_name", "default_replicaset", "description",
+     "options", "attributes"},
+    {Type::Long, Type::VarString, Type::Long, Type::Blob,
+     Type::Json, Type::Json},
+    {
+      {"1", cluster_name.c_str(), "1", "Test Cluster", "null",
+        "{\"default\": true}"}
+    }
+  });
+}
+
+void Admin_api_test::add_get_replicaset_query(
+      std::vector<tests::Fake_result_data> *data,
+      const std::string &replicaset_name) {
+  data->push_back({
+    "SELECT replicaset_name, topology_type FROM "
+    "mysql_innodb_cluster_metadata.replicasets WHERE "
+    "replicaset_id = 1",
+    {"replicaset_name", "topology_type"},
+    {Type::String, Type::Enum},
+    {
+      {"default", "pm"}
+    }
+  });
+}
+
+void Admin_api_test::add_is_instance_on_rs_query(
+      std::vector<tests::Fake_result_data> *data,
+      const std::string &replicaset_id,
+      const std::string &instance_address) {
+  data->push_back({
+    "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances "
+    "WHERE replicaset_id = " + replicaset_id + " AND "
+    "addresses->'$.mysqlClassic' = '" + instance_address + "'",
+    {"count"},
+    {Type::Long},
+    {
+      {"1"}
+    }
+  });
+}
 }  // namespace tests

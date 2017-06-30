@@ -289,7 +289,8 @@ void ReplicaSet::validate_instance_address(std::shared_ptr<mysqlsh::mysql::Class
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                                        const std::string &existing_replication_user,
                                        const std::string &existing_replication_password,
-                                       bool overwrite_seed) {
+                                       bool overwrite_seed,
+                                       const std::string &group_name) {
   shcore::Value ret_val;
 
   bool seed_instance = false;
@@ -447,14 +448,16 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
       log_info("Joining '%s' to group using account %s@%s",
           instance_address.c_str(),
           user.c_str(), instance_address.c_str());
+      log_info("Using 'group_replication_group_name': %s",
+          group_name.c_str());
       // Call mysqlprovision to bootstrap the group using "start"
       do_join_replicaset(user + "@" + instance_address,
-                           instance_ssl_opts,
-                          "",
-                           nullptr,
-                          super_user_password,
-                          replication_user, replication_user_password,
-                           ssl_mode, ip_whitelist);
+                         instance_ssl_opts,
+                         "",
+                         nullptr,
+                         super_user_password,
+                         replication_user, replication_user_password,
+                         ssl_mode, ip_whitelist, group_name);
     } else {
       // We need to retrieve a peer instance, so let's use the Seed one
       std::string peer_instance = get_peer_instance();
@@ -503,7 +506,8 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                                     const std::string &repl_user,
                                     const std::string &repl_user_password,
                                     const std::string &ssl_mode,
-                                    const std::string &ip_whitelist) {
+                                    const std::string &ip_whitelist,
+                                    const std::string &group_name) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -519,6 +523,7 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                 repl_user_password,
                 _topology_type == kTopologyMultiMaster,
                 ssl_mode, ip_whitelist,
+                group_name,
                 errors);
   } else {
     exit_code = _cluster->get_provisioning_interface()->join_replicaset(instance_url,
@@ -643,8 +648,12 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     throw shcore::Exception::runtime_error(message);
   }
 
-  // Before rejoining an instance we must verify if the group has quorum and
-  // if the gr plugin is active otherwise we may end up hanging the system
+  // Before rejoining an instance we must verify if the instance's
+  // 'group_replication_group_name' matches the one registered in the
+  // Metadata (BUG #26159339)
+  //
+  // Before rejoining an instance we must also verify if the group has quorum
+  // and if the gr plugin is active otherwise we may end up hanging the system
 
   // In single-primary mode, the active session must be established to the seed
   // instance in order to be able to make changes on the cluster.
@@ -663,6 +672,38 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     instance_def->has_key("password") ? "password" : "dbPassword");
   std::string instance_user = instance_def->get_string(
     instance_def->has_key("user") ? "user" : "dbUser");
+
+  // Validate 'group_replication_group_name'
+  {
+    try {
+      log_info("Opening a new session to the rejoining instance %s",
+               instance_address.c_str());
+      shcore::Argument_list slave_args;
+      slave_args.push_back(shcore::Value(instance_def));
+      session = mysqlsh::connect_session(slave_args,
+                                         mysqlsh::SessionType::Classic);
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    } catch (std::exception &e) {
+      log_error("Could not open connection to '%s': %s",
+                instance_address.c_str(), e.what());
+      throw;
+    }
+
+    if (!validate_replicaset_group_name(
+            _metadata_storage, classic, _id)) {
+      std::string nice_error =
+          "The instance '" + instance_address + "' "\
+          "may belong to a different ReplicaSet as the one registered "\
+          "in the Metadata since the value of "\
+          "'group_replication_group_name' does not match the one "\
+          "registered in the ReplicaSet's Metadata: possible split-brain "\
+          "scenario. Please remove the instance from the cluster.";
+
+      session->close(shcore::Argument_list());
+
+      throw shcore::Exception::runtime_error(nice_error);
+    }
+  }
 
   // Verify if the group_replication plugin is active on the seed instance
   {
@@ -1552,6 +1593,41 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(const shcore::Argument
     message.append(" does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
     throw shcore::Exception::runtime_error(message);
+  }
+
+  // Before rejoining an instance we must verify if the instance's
+  // 'group_replication_group_name' matches the one registered in the
+  // Metadata (BUG #26159339)
+  {
+    try {
+      log_info("Opening a new session to the partition instance %s",
+               instance_address.c_str());
+      shcore::Argument_list slave_args;
+      slave_args.push_back(shcore::Value(instance_def));
+      session = mysqlsh::connect_session(slave_args,
+                                         mysqlsh::SessionType::Classic);
+      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    } catch (std::exception &e) {
+      log_error("Could not open connection to '%s': %s",
+                instance_address.c_str(), e.what());
+      throw;
+    }
+
+    if (!validate_replicaset_group_name(
+            _metadata_storage, classic, _id)) {
+      std::string nice_error =
+          "The instance '" + instance_address + "' "\
+          "cannot be used to restore the cluster as it "\
+          "may belong to a different ReplicaSet as the one registered "\
+          "in the Metadata since the value of "\
+          "'group_replication_group_name' does not match the one "\
+          "registered in the ReplicaSet's Metadata: possible split-brain "\
+          "scenario.";
+
+      session->close(shcore::Argument_list());
+
+      throw shcore::Exception::runtime_error(nice_error);
+    }
   }
 
   // Get the instance state
