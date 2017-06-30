@@ -1,14 +1,14 @@
 /* Copyright (c) 2009, 2015, Oracle and/or its affiliates. All rights reserved.
- 
+
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; version 2 of the License.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
@@ -17,7 +17,7 @@
 #define MYSH_CONFIG_H
 
 /*
- * From configure.cmake, in order of appearance 
+ * From configure.cmake, in order of appearance
  */
 #cmakedefine HAVE_LLVM_LIBCPP 1
 #cmakedefine _LARGEFILE_SOURCE 1
@@ -84,7 +84,7 @@
 #cmakedefine HAVE_FCHMOD 1
 #cmakedefine HAVE_FCNTL 1
 #cmakedefine HAVE_FDATASYNC 1
-#cmakedefine HAVE_DECL_FDATASYNC 1 
+#cmakedefine HAVE_DECL_FDATASYNC 1
 #cmakedefine HAVE_FEDISABLEEXCEPT 1
 #cmakedefine HAVE_FSEEKO 1
 #cmakedefine HAVE_FSYNC 1
@@ -94,6 +94,8 @@
 #cmakedefine HAVE_GETPASS 1
 #cmakedefine HAVE_GETPASSPHRASE 1
 #cmakedefine HAVE_GETPWNAM 1
+#cmakedefine HAVE_GETPWUID_R 1
+#cmakedefine HAVE_GETLOGIN_R 1
 #cmakedefine HAVE_GETPWUID 1
 #cmakedefine HAVE_GETRLIMIT 1
 #cmakedefine HAVE_GETRUSAGE 1
@@ -166,7 +168,7 @@
 #cmakedefine HAVE_POSIX_TIMERS 1
 
 /* Endianess */
-#cmakedefine WORDS_BIGENDIAN 1 
+#cmakedefine WORDS_BIGENDIAN 1
 
 /* Type sizes */
 #cmakedefine SIZEOF_VOIDP     @SIZEOF_VOIDP@
@@ -261,7 +263,7 @@
  * Readline
  */
 #cmakedefine HAVE_MBSTATE_T
-#cmakedefine HAVE_LANGINFO_CODESET 
+#cmakedefine HAVE_LANGINFO_CODESET
 #cmakedefine HAVE_WCSDUP
 #cmakedefine HAVE_WCHAR_T 1
 #cmakedefine HAVE_WINT_T 1
@@ -293,7 +295,7 @@
 #cmakedefine HAVE_CHARSET_cp1256 1
 #cmakedefine HAVE_CHARSET_cp1257 1
 #cmakedefine HAVE_CHARSET_cp850 1
-#cmakedefine HAVE_CHARSET_cp852 1 
+#cmakedefine HAVE_CHARSET_cp852 1
 #cmakedefine HAVE_CHARSET_cp866 1
 #cmakedefine HAVE_CHARSET_cp932 1
 #cmakedefine HAVE_CHARSET_dec8 1

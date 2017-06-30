@@ -23,6 +23,7 @@
 #include "utils/utils_file.h"
 #include "utils/utils_sqlstring.h"
 #include <locale>
+#include "include/mysh_config.h"
 #ifdef WIN32
 #include <WinSock2.h>
 #include <windows.h>
@@ -33,6 +34,9 @@
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>
+#ifdef HAVE_GETPWUID_R
+#include <pwd.h>
+#endif
 #endif
 #include "utils_connection.h"
 #include <cctype>
@@ -481,9 +485,43 @@ std::string get_system_user() {
     ret_val.assign(username);
   }
 #else
-  char username[30];
-  if (!getlogin_r(username, sizeof(username)))
-    ret_val.assign(username);
+  if (geteuid() == 0) {
+    ret_val = "root";    /* allow use of surun */
+  } else {
+# if defined(HAVE_GETPWUID_R) and defined(HAVE_GETLOGIN_R)
+    auto name_size = sysconf(_SC_LOGIN_NAME_MAX);
+    char *name = reinterpret_cast<char *>(malloc(name_size));
+    if (!getlogin_r(name, name_size)) {
+      ret_val.assign(name);
+    } else {
+      auto buffer_size = sysconf(_SC_GETPW_R_SIZE_MAX);
+      char *buffer = reinterpret_cast<char *>(malloc(buffer_size));
+      struct passwd pwd;
+      struct passwd *res;
+
+      if (!getpwuid_r(geteuid(), &pwd, buffer, buffer_size, &res) && res) {
+        ret_val.assign(pwd.pw_name);
+      } else {
+        char *str;
+        if ((str = getenv("USER")) || (str=getenv("LOGNAME")) ||
+        (str = getenv("LOGIN"))) {
+          ret_val.assign(str);
+        } else {
+          ret_val = "UNKNOWN_USER";
+        }
+      }
+      free(buffer);
+    }
+
+    free(name);
+# elif HAVE_CUSERID
+    char username[L_cuserid];
+    if (cuserid(username))
+      ret_val.assign(username);
+# else
+    ret_val = "UNKNOWN_USER";
+# endif
+  }
 #endif
 
   return ret_val;
