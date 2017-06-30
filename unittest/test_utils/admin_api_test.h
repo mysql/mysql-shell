@@ -50,6 +50,13 @@ class Admin_api_test: public Shell_core_test_wrapper {
         std::vector<testing::Fake_result_data> *data,
         const std::string &mysql_server_uuid,
         const std::vector<std::vector<std::string>> &values);
+  void add_gr_primary_member_query(std::vector<testing::Fake_result_data> *data,
+                                   const std::string &primary_uuid);
+  void add_member_state_query(std::vector<testing::Fake_result_data> *data,
+                              const std::string &address,
+                              const std::string &mysql_server_uuid,
+                              const std::string &instance_name,
+                              const std::string &member_state);
 };
 }  // namespace tests
 

@@ -101,7 +101,7 @@ public:
   String getAdminType();
   Undefined addInstance(InstanceDef instance, Dictionary options);
   Undefined rejoinInstance(InstanceDef instance, Dictionary options);
-  Undefined removeInstance(InstanceDef instance, String password);
+  Undefined removeInstance(InstanceDef instance, Dictionary options);
   Dictionary checkInstanceState(InstanceDef instance, String password);
   String describe();
   String status();
@@ -113,7 +113,7 @@ public:
   str get_name();
   None add_instance(InstanceDef instance, dict options);
   None rejoin_instance(InstanceDef instance, dict options);
-  None remove_instance(InstanceDef instance, str password);
+  None remove_instance(InstanceDef instance, dict options);
   dict check_instance_state(InstanceDef instance, str password);
   str describe();
   str status();

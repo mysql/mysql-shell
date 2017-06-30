@@ -73,7 +73,9 @@ enum State {
   Unreachable = 1 << 3,
   Offline = 1 << 4,
   Error = 1 << 5,
-  Any = OnlineRO | OnlineRW | Recovering | Unreachable | Offline | Error
+  Missing = 1 << 6,
+  Any = OnlineRO | OnlineRW | Recovering | Unreachable | Offline | Error |
+      Missing
 };
 
 std::string describe(State state);
