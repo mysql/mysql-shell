@@ -309,8 +309,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     }
 
     if (state.source_type == mysqlsh::dba::GRInstanceType::GroupReplication && !adopt_from_gr) {
-      if (prompt("You are connected to an instance that belongs to an unmanaged replication group.\n"\
-        "Do you want to setup an InnoDB cluster based on this replication group?", answer) && (answer == "y" || answer == "yes" || answer == "Yes"))
+      if (prompt("You are connected to an instance that belongs to an unmanaged\
+                  replication group.\nDo you want to setup an InnoDB cluster\
+                  based on this replication group?") == Prompt_answer::YES)
         (*options)["adoptFromGR"] = shcore::Value(true);
       else
         throw Exception::argument_error("Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
@@ -343,8 +344,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
               "to change the configuration.");
       println();
 
-      if (!(prompt("Should the configuration be changed accordingly? [Y|n]: ", r)
-          && (r == "y" || r == "Y" || r == "yes" || r == "Yes"))) {
+      if (prompt("Should the configuration be changed accordingly?",
+                  Prompt_answer::NO) == Prompt_answer::NO) {
         println();
         println("Cancelled");
         return shcore::Value();
@@ -362,7 +363,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       std::string r;
       println("I have read the MySQL InnoDB cluster manual and I understand the requirements\n"
               "and limitations of advanced Multi-Master Mode.");
-      if (!(prompt("Confirm [y|N]: ", r) && (r == "y" || r == "Y" || r == "yes" || r == "Yes"))) {
+      if (prompt("Confirm [y|N]: ", Prompt_answer::NO) == Prompt_answer::NO) {
         println();
         println("Cancelled");
         return shcore::Value();
@@ -414,16 +415,13 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
   bool force = false;
 
   if (args.size() < 1) {
-    std::string answer;
+    if (prompt("Are you sure you want to remove the Metadata? [y|N]: ",
+        Prompt_answer::NO)  == Prompt_answer::YES) {
+      Value::Map_type_ref options(new shcore::Value::Map_type);
 
-    if (prompt("Are you sure you want to remove the Metadata? [y|N]: ", answer)) {
-      if (!answer.compare("y") || !answer.compare("Y")) {
-        Value::Map_type_ref options(new shcore::Value::Map_type);
-
-        (*options)["force"] = shcore::Value(true);
-        new_args.push_back(shcore::Value(options));
-        force = true;
-      }
+      (*options)["force"] = shcore::Value(true);
+      new_args.push_back(shcore::Value(options));
+      force = true;
     }
   } else {
     try {
@@ -626,10 +624,9 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
         println();
         println("The instance '" + instance_address + "' was part of the cluster configuration.");
 
-        std::string answer;
-        if (prompt("Would you like to rejoin it to the cluster? [y|N]: ", answer)) {
-          if (!answer.compare("y") || !answer.compare("Y"))
-            confirmed_rescan_rejoins->push_back(shcore::Value(instance_address));
+        if (prompt("Would you like to rejoin it to the cluster?",
+                   Prompt_answer::NO) == Prompt_answer::YES) {
+          confirmed_rescan_rejoins->push_back(shcore::Value(instance_address));
         }
       }
     }
@@ -658,11 +655,9 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
         println();
         println("Could not open a connection to '" + instance_address + "': '" + instance_status + "'");
 
-        std::string answer;
-        if (prompt("Would you like to remove it from the cluster's metadata? [y|N]: ", answer)) {
-          if (!answer.compare("y") || !answer.compare("Y"))
+        if (prompt("Would you like to remove it from the cluster's metadata?",
+                   Prompt_answer::NO) == Prompt_answer::YES)
             confirmed_rescan_removes->push_back(shcore::Value(instance_address));
-        }
       }
     }
 
@@ -949,12 +944,10 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args,
         // Prompt the user to validate if shall use it or not
         println("Found configuration file at standard location: " + value);
 
-        std::string answer;
-        if (prompt("Do you want to modify this file? [Y|n]: ", answer)) {
-          if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
-            cnfPath = value;
-            break;
-          }
+        if (prompt("Do you want to modify this file? [Y|n]: ")
+            == Prompt_answer::YES) {
+          cnfPath = value;
+          break;
         }
       }
     }
@@ -965,20 +958,18 @@ bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args,
       println("Default file not found at the standard locations.");
 
       for (const auto &value : default_paths) {
-        std::string answer;
 
-        if (prompt("Do you want to create a file at: '" + value + "'? [Y|n]: ", answer)) {
-          if (!answer.compare("y") || !answer.compare("Y") || answer.empty()) {
-            std::ofstream cnf(value.c_str());
+        if (prompt("Do you want to create a file at: '" + value + "'?")
+            == Prompt_answer::YES) {
+          std::ofstream cnf(value.c_str());
 
-            if (!cnf.fail()) {
-              cnf << "[mysqld]\n";
-              cnf.close();
-              cnfPath = value;
-              break;
-            } else {
-              println("Failed to create file at: '" + value + "'");
-            }
+          if (!cnf.fail()) {
+            cnf << "[mysqld]\n";
+            cnf.close();
+            cnfPath = value;
+            break;
+          } else {
+            println("Failed to create file at: '" + value + "'");
           }
         }
       }

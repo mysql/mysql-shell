@@ -30,6 +30,13 @@
 namespace shcore {
 class Shell_core;
 
+enum class Prompt_answer {
+  NONE = 0,
+  YES = 1,
+  NO = 2,
+};
+
+
 /**
 * Base object to provide interaction capabilities on calls to the wrapped object
 * which on this context is called the Target Object.
@@ -120,9 +127,16 @@ protected:
   void println(const std::string& text = "", const std::string& tag = "") const;
   void print_value(const shcore::Value& value, const std::string& tag) const;
   bool prompt(const std::string& prompt, std::string &ret_val, bool trim_answer = true) const;
+  Prompt_answer prompt(const std::string& prompt, Prompt_answer def = Prompt_answer::YES) const;
   bool password(const std::string& prompt, std::string &ret_val) const;
 
   shcore::Value call_target(const std::string &name, const Argument_list &args);
+
+#ifdef FRIEND_TEST
+private:
+  friend class Interactive_object_wrapper_test;
+#endif
+
 };
 }
 
