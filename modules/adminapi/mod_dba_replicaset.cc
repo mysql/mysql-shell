@@ -332,10 +332,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
     if (add_options->has_key("ipWhitelist"))
       ip_whitelist = add_options->get_string("ipWhitelist");
 
-    if (add_options->has_key("label"))
+    if (add_options->has_key("label")) {
       instance_label = add_options->get_string("label");
+      mysqlsh::dba::validate_label(instance_label);
+    }
   }
-
 
   if (!instance_def->has_key("port"))
     (*instance_def)["port"] = shcore::Value(get_default_port());
@@ -620,6 +621,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
     if (rejoin_options->has_key("ipWhitelist"))
       ip_whitelist = rejoin_options->get_string("ipWhitelist");
+
   }
 
   if (!instance_def->has_key("port"))

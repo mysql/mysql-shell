@@ -939,5 +939,104 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
 
   return ret;
 }
-}  // namespace dba
-}  // namespace mysqlsh
+
+/**
+* Validate the given Cluster name.
+* Cluster name must be non-empty and no greater than 40 characters long and
+* start with an alphabetic or '_' character and just contain alphanumeric or
+* the '_' character.
+* @param name of the cluster
+* @throws shcore::Exception if the name is not valid.
+*/
+void SHCORE_PUBLIC validate_cluster_name(const std::string &name) {
+  bool valid = false;
+
+  if (!name.empty()) {
+    if (name.length() > 40) {
+      throw shcore::Exception::argument_error(
+        "The Cluster name can not be greater than 40 characters.");
+    }
+
+    std::locale locale;
+
+    valid = std::isalpha(name[0], locale) || name[0] == '_';
+    if (!valid) {
+      throw shcore::Exception::argument_error(
+        "The Cluster name can only start with an alphabetic or the '_' "
+        "character.");
+    }
+
+    size_t index = 1;
+    while (valid && index < name.size()) {
+      valid = std::isalnum(name[index], locale) || name[index] == '_';
+      if (!valid) {
+        std::string msg =
+          "The Cluster name can only contain alphanumerics or the '_' "
+          "character."
+          " Invalid character '";
+        msg.append(&(name.at(index)), 1);
+        msg.append("' found.");
+        throw shcore::Exception::argument_error(msg);
+      }
+      index++;
+    }
+  }
+  else {
+    throw shcore::Exception::argument_error(
+      "The Cluster name cannot be empty.");
+  }
+
+  return;
+}
+
+/**
+* Validate the given label name.
+* Cluster name must be non-empty and no greater than 256 characters long and
+* start with an alphanumeric or '_' character and can only contain alphanumerics,
+* Period ".", Underscore "_", Hyphen "-" or Colon ":" characters.
+* @param name of the cluster
+* @throws shcore::Exception if the name is not valid.
+*/
+void SHCORE_PUBLIC validate_label(const std::string &label) {
+  bool valid = false;
+
+  if (!label.empty()) {
+    if (label.length() > 256) {
+      throw shcore::Exception::argument_error(
+        "The label can not be greater than 256 characters.");
+    }
+
+    std::locale locale;
+
+    valid = std::isalnum(label[0], locale) || label[0] == '_';
+    if (!valid) {
+      throw shcore::Exception::argument_error(
+        "The label can only start with an alphanumeric or the '_' "
+        "character.");
+    }
+
+    size_t index = 1;
+    while (valid && index < label.size()) {
+      valid = std::isalnum(label[index], locale) || label[index] == '_' ||
+        label[index] == '.' || label[index] == '-' || label[index] == ':';
+      if (!valid) {
+        std::string msg =
+          "The label can only contain alphanumerics or the '_', '.', '-', "
+          "':' characters. Invalid character '";
+        msg.append(&(label.at(index)), 1);
+        msg.append("' found.");
+        throw shcore::Exception::argument_error(msg);
+      }
+      index++;
+    }
+  }
+  else {
+    throw shcore::Exception::argument_error("The label can not be empty.");
+  }
+
+  return;
+}
+
+} // dba
+} // mysqlsh
+

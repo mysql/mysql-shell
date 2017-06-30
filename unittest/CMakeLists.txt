@@ -42,6 +42,8 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_replicaset_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_sql_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_interactive_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_main.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_utils.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_script_tester.cc"

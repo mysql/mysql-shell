@@ -216,6 +216,8 @@ var c2 = dba.getCluster();
 var c2 = dba.getCluster(5);
 var c2 = dba.getCluster('', 5);
 var c2 = dba.getCluster('');
+var c2 = dba.getCluster('#');
+var c2 = dba.getCluster("over40chars_12345678901234567890123456789");
 var c2 = dba.getCluster('devCluster');
 var c2 = dba.getCluster('devCluster');
 

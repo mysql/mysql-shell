@@ -20,16 +20,22 @@
 #ifndef _MODULES_ADMINAPI_MOD_DBA_COMMON_
 #define _MODULES_ADMINAPI_MOD_DBA_COMMON_
 
+#include <locale>
 #include <string>
 #include <vector>
-#include "shellcore/common.h"
-#include "shellcore/types.h"
-#include "shellcore/lang_base.h"
-#include "modules/mod_mysql_session.h"
+
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "modules/mod_mysql_session.h"
+#include "shellcore/common.h"
+#include "shellcore/lang_base.h"
+#include "shellcore/types.h"
 
 namespace mysqlsh {
 namespace dba {
+
+void SHCORE_PUBLIC validate_cluster_name(const std::string& name);
+void SHCORE_PUBLIC validate_label(const std::string &lavel);
+
 class MetadataStorage;
 
 // Note that this structure may be initialized using initializer

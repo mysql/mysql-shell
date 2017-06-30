@@ -219,8 +219,8 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
       // Reloads the cluster (to avoid losing _default_cluster in case of error)
       cluster = _metadata_storage->get_default_cluster();
     } else {
-      if (cluster_name.empty())
-        throw Exception::argument_error("The Cluster name cannot be empty.");
+      // Validate the cluster_name
+      mysqlsh::dba::validate_cluster_name(cluster_name);
 
       cluster = _metadata_storage->get_cluster(cluster_name);
     }
@@ -396,11 +396,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   try {
     std::string cluster_name = args.string_at(0);
 
-    if (cluster_name.empty())
-      throw Exception::argument_error("The Cluster name cannot be empty.");
-
-    if (!shcore::is_valid_identifier(cluster_name))
-      throw Exception::argument_error("The Cluster name must be a valid identifier.");
+    // Validate the cluster_name
+    mysqlsh::dba::validate_cluster_name(cluster_name);
 
     if (args.size() > 1) {
       // Map with the options
@@ -1867,11 +1864,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
     if (default_cluster) {
       cluster = _metadata_storage->get_default_cluster();
     } else {
-      if (cluster_name.empty())
-        throw Exception::argument_error("The cluster name cannot be empty.");
-
-      if (!shcore::is_valid_identifier(cluster_name))
-        throw Exception::argument_error("The cluster name must be a valid identifier.");
+      // Validate the cluster_name
+      mysqlsh::dba::validate_cluster_name(cluster_name);
 
       cluster = _metadata_storage->get_cluster(cluster_name);
     }
