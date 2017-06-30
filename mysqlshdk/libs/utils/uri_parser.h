@@ -21,7 +21,7 @@
 #define _URI_PARSER_
 
 #include "base_tokenizer.h"
-#include "uri_data.h"
+#include "utils/uri_data.h"
 #include "scripting/types.h"
 #include <string>
 #include <vector>
@@ -81,16 +81,6 @@ private:
 
   bool input_contains(const std::string& what, size_t position = std::string::npos);
   void normalize_ssl_mode();
-
-  static std::string DELIMITERS;
-  static std::string SUBDELIMITERS;
-  static std::string ALPHA;
-  static std::string DIGIT;
-  static std::string HEXDIG;
-  static std::string DOT;
-  static std::string ALPHANUMERIC;
-  static std::string UNRESERVED;
-  static std::string RESERVED;
 
   static std::map<char, char> hex_literals;
 };

@@ -19,8 +19,24 @@
 #include <cassert>
 #include "uri_data.h"
 
+
 namespace shcore {
 namespace uri {
+
+const char *DELIMITERS = ":/?#[]@";
+const char *SUBDELIMITERS = "!$&'()*+,;=";
+const char *ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const char *DIGIT = "0123456789";
+const char *HEXDIG = "ABCDEFabcdef0123456789";
+const char *ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                           "abcdefghijklmnopqrstuvwxyz"
+                           "0123456789";
+const char *RESERVED = ":/?#[]@"       // DELIMITERS
+                       "!$&'()*+,;=";  // SUBDELIMITERS
+const char *UNRESERVED = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                         "abcdefghijklmnopqrstuvwxyz"
+                         "0123456789"
+                         "-._~";
 
 Uri_data::Uri_data() :_has_password(false), _has_port(false), _port(0) {
 #ifdef WIN32
@@ -54,7 +70,7 @@ std::string Uri_data::get_pipe() {
   return _pipe;
 }
 
-std::string Uri_data::get_socket() {
+std::string Uri_data::get_socket() const {
   assert(_type == Socket);
   return _socket;
 }
