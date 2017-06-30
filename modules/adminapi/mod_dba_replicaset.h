@@ -129,6 +129,7 @@ public:
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
                         const shcore::Value::Map_type_ref &options);
+
 private:
   //TODO these should go to a GroupReplication file
   friend Cluster;

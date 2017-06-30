@@ -194,7 +194,9 @@
 #@# Dba: get_cluster errors
 ||Invalid cluster name: Argument #1 is expected to be a string
 ||Invalid number of arguments in Dba.get_cluster, expected 0 to 1 but got 2
-||Dba.get_cluster: The Cluster name cannot be empty
+||Dba.get_cluster: The Cluster name cannot be empty.
+||Dba.get_cluster: The Cluster name can only start with an alphabetic or the '_' character.
+||Dba.get_cluster: The Cluster name can not be greater than 40 characters.
 
 #@ Dba: get_cluster
 |<Cluster:devCluster>|

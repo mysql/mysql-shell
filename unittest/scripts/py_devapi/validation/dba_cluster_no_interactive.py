@@ -25,8 +25,12 @@
 ||Cluster.add_instance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
-||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 ||Invalid value for ipWhitelist, string value cannot be empty.
+||Cluster.add_instance: The label can not be empty.
+||Cluster.add_instance: The label can only start with an alphanumeric or the '_' character.
+||Cluster.add_instance: The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.
+||Cluster.add_instance: The label can not be greater than 256 characters.
+||Cluster.add_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 
 #@ Cluster: add_instance 2
 ||
