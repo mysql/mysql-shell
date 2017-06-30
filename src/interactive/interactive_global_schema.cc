@@ -27,19 +27,18 @@ void Global_schema::resolve() const {
 
   if (session) {
     std::string answer;
-    if (prompt("The db variable is not set, do you want to set the active schema? [y/N]:", answer)) {
-      if (!answer.compare("y") || !answer.compare("Y")) {
-        if (prompt("Please specify the schema:", answer)) {
-          std::string error;
-          if (answer.empty())
-            throw shcore::Exception::argument_error("Invalid schema specified.");
-          else {
-            // Since this is an interactive global,
-            // it means the shell global is also interactive
-            auto shell_global = _shell_core.get_global("shell").as_object<Global_shell>();
-            auto shell_object = std::dynamic_pointer_cast<mysqlsh::Shell>(shell_global->get_target());
-            shell_object->set_current_schema(answer);
-          }
+    if (prompt("The db variable is not set, do you want to set the active schema?",
+        Prompt_answer::NO) == Prompt_answer::YES) {
+      if (prompt("Please specify the schema:", answer)) {
+        std::string error;
+        if (answer.empty())
+          throw shcore::Exception::argument_error("Invalid schema specified.");
+        else {
+          // Since this is an interactive global,
+          // it means the shell global is also interactive
+          auto shell_global = _shell_core.get_global("shell").as_object<Global_shell>();
+          auto shell_object = std::dynamic_pointer_cast<mysqlsh::Shell>(shell_global->get_target());
+          shell_object->set_current_schema(answer);
         }
       }
     }

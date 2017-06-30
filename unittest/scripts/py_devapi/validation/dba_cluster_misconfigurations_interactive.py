@@ -16,7 +16,7 @@ create an InnoDB cluster. To see which changes will be made, please
 use the dba.check_instance_configuration() function before confirming
 to change the configuration.
 
-Should the configuration be changed accordingly? [Y|n]:
+Should the configuration be changed accordingly? [y|N]: 
 Cancelled
 
 #@<OUT> Dba.createCluster: ok
@@ -27,7 +27,7 @@ create an InnoDB cluster. To see which changes will be made, please
 use the dba.check_instance_configuration() function before confirming
 to change the configuration.
 
-Should the configuration be changed accordingly? [Y|n]:
+Should the configuration be changed accordingly? [y|N]: 
 Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
