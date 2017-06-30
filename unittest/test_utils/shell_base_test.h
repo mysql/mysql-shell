@@ -19,6 +19,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #define MY_EXPECT_OUTPUT_CONTAINS(e,o) Shell_base_test::check_string_expectation(e,o,true)
 #define MY_EXPECT_OUTPUT_NOT_CONTAINS(e,o) Shell_base_test::check_string_expectation(e,o,false)
 
+#define MY_EXPECT_MULTILINE_OUTPUT(c, e, o)                       \
+  do {                                                          \
+    SCOPED_TRACE("...in stdout check\n");                       \
+    Shell_base_test::check_multiline_expect(c, "STDOUT", e, o); \
+  } while (0)
+
+
 #include <string>
 #include <map>
 #include <memory>
@@ -50,10 +57,21 @@ class Shell_base_test : public ::testing::Test {
   std::string _mysql_uri;
   std::string _mysql_uri_nopasswd;
 
+  std::string _new_line_char;
+
  public:
   static void check_string_expectation(const std::string &expected_str,
                                        const std::string &actual,
                                        bool expected);
+  bool multi_value_compare(const std::string& expected,
+                           const std::string &actual);
+  bool check_multiline_expect(const std::string& context,
+                              const std::string &stream,
+                              const std::string& expected,
+                              const std::string &actual);
+  std::string multiline(const std::vector<std::string> input);
+
+
   // TODO(rennox) These variables were originally for AdminAPI tests
   // But the values are useful for other means too, some cleanup should
   // Organize the tests in a better way

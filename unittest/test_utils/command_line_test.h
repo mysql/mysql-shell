@@ -56,6 +56,7 @@ class Command_line_test : public Shell_base_test {
   int execute(const std::vector<const char *> &args);
 
   void kill(int sig);
+  std::string _new_line_char;
 };
 
 }  // namespace tests
