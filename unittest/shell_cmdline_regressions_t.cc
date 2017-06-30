@@ -68,4 +68,24 @@ TEST_F(Command_line_test, bug24912358) {
       "+--------------+"}), _output);
   }
 };
+
+TEST_F(Command_line_test, bug23508428) {
+  // Test if the xplugin is installed using enableXProtocol in the --dba option
+  std::string uri = "--uri=" + _mysql_uri;
+
+  execute({ _mysqlsh, uri.c_str(), "--sqlc", "-e", "uninstall plugin mysqlx;", NULL });
+
+  execute({_mysqlsh, uri.c_str(), "--classic", "--dba","enableXProtocol", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: Installing plugin mysqlx...");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: done");
+
+  execute({ _mysqlsh, uri.c_str(), "--interactive=full", "-e", "session.runSql('SELECT COUNT(*) FROM information_schema.plugins WHERE PLUGIN_NAME=\"mysqlx\"').fetchOne()", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("[");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("    1");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("]");
+
+  execute({_mysqlsh, uri.c_str(), "--classic", "--dba","enableXProtocol", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: X Protocol plugin is already enabled and listening for connections on port " + _port);
+}
+
 }
