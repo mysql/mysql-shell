@@ -33,6 +33,7 @@ var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'AUT
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'REQUIRED'});
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DISABLED'});
 var c1 = dba.createCluster('devCluster', {ipWhitelist: "  "});
+var c1 = dba.createCluster('#');
 
 
 //@ Dba: createCluster with ANSI_QUOTES success
@@ -199,6 +200,8 @@ connect_to_sandbox([__mysql_sandbox_port1]);
 var c2 = dba.getCluster(5);
 var c2 = dba.getCluster('', 5);
 var c2 = dba.getCluster('');
+var c2 = dba.getCluster('#');
+var c2 = dba.getCluster("over40chars_12345678901234567890123456789");
 
 //@<OUT> Dba: getCluster with interaction
 var c2 = dba.getCluster('devCluster');

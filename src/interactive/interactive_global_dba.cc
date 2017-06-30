@@ -276,12 +276,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     bool multi_master = false;
     bool force = false;
     bool adopt_from_gr = false;
-
-    if (cluster_name.empty())
-      throw Exception::argument_error("The Cluster name cannot be empty.");
-
-    if (!shcore::is_valid_identifier(cluster_name))
-      throw Exception::argument_error("The Cluster name must be a valid identifier.");
+    // Validate the cluster_name
+    mysqlsh::dba::validate_cluster_name(cluster_name);
 
     if (args.size() > 1) {
       // Map with the options
@@ -518,11 +514,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
       println("Reconfiguring the default cluster from complete outage...");
     } else {
       // Validate the cluster_name
-      if (cluster_name.empty())
-        throw Exception::argument_error("The cluster name cannot be empty.");
-
-      if (!shcore::is_valid_identifier(cluster_name))
-        throw Exception::argument_error("The cluster name must be a valid identifier.");
+      mysqlsh::dba::validate_cluster_name(cluster_name);
 
       println("Reconfiguring the cluster '" + cluster_name + "' from complete outage...");
     }
