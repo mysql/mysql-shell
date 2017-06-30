@@ -187,6 +187,75 @@ ReplicationGroupState get_replication_group_state(mysqlsh::mysql::Connection* co
   return ret_val;
 }
 
+/**
+ * Get the state of the instance identified by the specified address.
+ *
+ * @param connection Connection to the cluster instance that is going to be
+ *                   used to obtain the status of the target instance.
+ *                   It can be any (alive) instance in the cluster that is not
+ *                   the target instance to check.
+ * @param address string in the format <host>:<port> with the address that
+ *                identifies the target cluster instance to obtain its state.
+ * @return ManagedInstance::State corresponding to the current state of the
+ *         instance identified by the given address from the point of view
+ *         of the instance used for the connection argument.
+ */
+ManagedInstance::State get_instance_state(
+    mysqlsh::mysql::Connection *connection, const std::string &address) {
+
+  // Get the primary uuid
+  std::string uuid_query(
+      "SELECT variable_value "
+      "FROM performance_schema.global_status "
+      "WHERE variable_name = 'group_replication_primary_member'");
+  auto result = connection->run_sql(uuid_query);
+  auto row = result->fetch_one();
+  std::string primary_uuid = row->get_value(0).as_string();
+
+  // Get the state information of the instance with the given address.
+  shcore::sqlstring query = shcore::sqlstring(
+      "SELECT mysql_server_uuid, instance_name, member_state "
+          "FROM mysql_innodb_cluster_metadata.instances "
+          "LEFT JOIN performance_schema.replication_group_members "
+          "ON `mysql_server_uuid`=`member_id` "
+          "WHERE addresses->\"$.mysqlClassic\" = ?",
+      0);
+  query << address;
+  query.done();
+
+  result = connection->run_sql(query);
+  row = result->fetch_one();
+  if (!row) {
+    throw shcore::Exception::runtime_error(
+        "Unable to retreive status information for the instance '" +
+        address + "'. The instance might no longer be part of the cluster.");
+  }
+  std::string instance_uuid = row->get_value_as_string(0);
+  std::string state = row->get_value_as_string(2);
+
+  if (state.compare("ONLINE") == 0) {
+    // For multimaster the primary uuid is empty
+    if (primary_uuid.empty() || primary_uuid.compare(instance_uuid) == 0)
+      return ManagedInstance::State::OnlineRW;
+    else
+      return ManagedInstance::State::OnlineRO;
+  } else if (state.compare("RECOVERING") == 0) {
+    return ManagedInstance::State::Recovering;
+  } else if (state.compare("OFFLINE") == 0) {
+    return ManagedInstance::State::Offline;
+  } else if (state.compare("UNREACHABLE") == 0) {
+    return ManagedInstance::State::Unreachable;
+  } else if (state.compare("ERROR") == 0) {
+    return ManagedInstance::State::Error;
+  } else if (state.compare("NULL") == 0) {
+    return ManagedInstance::State::Missing;
+  } else {
+    throw shcore::Exception::runtime_error(
+        "The instance '" + address + "' has an unexpected status: '" + state +
+        "'.");
+  }
+}
+
 std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::string plugin_name) {
   std::string query, status;
   query = shcore::sqlstring("SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = ?", 0) << plugin_name;

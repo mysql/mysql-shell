@@ -446,12 +446,12 @@ Removes an Instance from the cluster.
 
 SYNTAX
 
-  <Cluster>.removeInstance(instance[, password])
+  <Cluster>.removeInstance(instance[, options])
 
 WHERE
 
   instance: An instance definition.
-  password: Instance connection password.
+  options: Dictionary with options for the operation.
 
 EXCEPTIONS
 
@@ -461,7 +461,9 @@ EXCEPTIONS
   ArgumentError: if the instance definition is invalid.
   ArgumentError: if the instance definition is a connection dictionary but
                  empty.
-  RuntimeError: if the instance accounts are invalid
+  RuntimeError: if the instance accounts are invalid.
+  RuntimeError: if an error occurs when trying to remove the instance (e.g.,
+                instance is not reachable).
 
 RETURNS
 
@@ -490,8 +492,21 @@ The connection data dictionary may contain the following attributes:
  - sslCert: The path to the X509 certificate in PEM format.
  - sslKey: The path to the X509 key in PEM format.
 
-The password may be contained on the instance definition, however, it can be
-overwritten if it is specified as second parameter.
+The options dictionary may contain the following attributes:
+
+ - password/dbPassword: the instance connection password
+ - force: boolean, indicating if the instance must be removed (even if only
+   from metadata) in case it cannot be reached. By default, set to false.
+
+The password may be contained in the instance definition, however, it can be
+overwritten if it is specified on the options.
+
+The force option (set to true) must only be used to remove instances that are
+permanently not available (no longer reachable) or never to be reused again in
+a cluster. This allows to remove from the metadata an instance than can no
+longer be recovered. Otherwise, the instance must be brought back ONLINE and
+removed without the force option to avoid errors trying to add it back to a
+cluster.
 
 //@<OUT> Rescan
 

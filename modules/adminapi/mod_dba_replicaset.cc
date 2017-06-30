@@ -63,6 +63,7 @@ using namespace mysqlsh::dba;
 using namespace shcore;
 
 std::set<std::string> ReplicaSet::_add_instance_opts = {"label", "password", "dbPassword", "memberSslMode", "ipWhitelist"};
+std::set<std::string> ReplicaSet::_remove_instance_opts = {"password", "dbPassword", "force"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
@@ -832,10 +833,11 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
   std::string port;
+  bool force = false;  // By default force is false.
 
-  auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
+  auto instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
 
-  // No required options set before refactoring
+  // Retrieve and validate instance definitions.
   shcore::Argument_map opt_map(*instance_def);
   opt_map.ensure_keys({}, shcore::connection_attributes, "instance definition");
 
@@ -864,6 +866,16 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     instance_admin_user_password = instance_def->get_string("dbPassword");
   else
     get_default_password = true;
+
+  // Retrieve and validate options.
+  if (args.size() == 2) {
+    auto remove_options = args.map_at(1);
+    shcore::Argument_map remove_options_map(*remove_options);
+    remove_options_map.ensure_keys({}, _remove_instance_opts, "options");
+
+    if (remove_options->has_key("force"))
+      force = remove_options->get_bool("force");
+  }
 
   // get instance admin and user information from the metadata session which is the session saved on the cluster
   if (get_default_user || get_default_password) {
@@ -923,19 +935,27 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   //       - If removing the master instance, a new master will be promoted but this instance will never
   //         be removed from the cluster
 
-  // Get the instance row
+  // Get the instance row details (required later to add back the instance if
+  // needed)
   shcore::Value::Map_type_ref instance =
         _metadata_storage->get_instance(instance_address);
 
-  MetadataStorage::Transaction tx(_metadata_storage);
+  if (type == GRInstanceType::InnoDBCluster ||
+      type == GRInstanceType::GroupReplication) {
 
-  // Remove it from the MD
-  remove_instance_metadata(instance_def);
+    // Remove instance from the MD (metadata).
+    // NOTE: This operation MUST be performed before leave-replicaset to ensure
+    // that the MD change is also propagated to the target instance to
+    // remove (if ONLINE). This avoid issues removing and adding an instance
+    // again (error adding the instance because it is already in the MD).
+    MetadataStorage::Transaction tx(_metadata_storage);
+    remove_instance_metadata(instance_def);
+    tx.commit();
 
-  tx.commit();
-
-  if (type == GRInstanceType::InnoDBCluster || type == GRInstanceType::GroupReplication) {
-    // call provisioning to remove the instance from the replicaset
+    // Call provisioning to remove the instance from the replicaset
+    // NOTE: We always try (best effort) to execute leave_replicaset(), but
+    // ignore any error in that if force is used (even if the instance is not
+    // reachable, since it is already expected to fail).
     int exit_code = -1;
     std::string instance_url;
     shcore::Value::Array_type_ref errors;
@@ -958,17 +978,55 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
                                                                          instance_admin_user_password,
                                                                          errors);
 
+    // Only add the metadata back if the force option was not used.
     if (exit_code != 0) {
-      // If the the removal of the instance from the replicaset failed
-      // We must add it back to the MD
-      // NOTE: This is a temporary fix for the issue caused by the
-      // API not being atomic.
-      // As soon as the API becomes atomic, the following solution can
-      // be dropped
-      _metadata_storage->insert_instance(instance);
-      throw shcore::Exception::runtime_error(
+
+      if (!force) {
+        // If the the removal of the instance from the replicaset failed
+        // We must add it back to the MD if force is not used
+        // NOTE: This is a temporary fix for the issue caused by the
+        // API not being atomic.
+        // As soon as the API becomes atomic, the following solution can
+        // be dropped
+        _metadata_storage->insert_instance(instance);
+
+        // If leave replicaset failed and force was not used then check the
+        // state of the instance to assess the possible cause of the failure.
+        ManagedInstance::State state = get_instance_state(classic->connection(),
+                                                          instance_address);
+        if (state == ManagedInstance::Unreachable ||
+            state == ManagedInstance::Missing) {
+          // Send a diferent error if the instance is not reachable
+          // (and the force option was not used).
+          std::string message = "The instance '" + instance_address + "'";
+          message.append(" cannot be removed because it is on a '");
+          message.append(ManagedInstance::describe(
+              static_cast<ManagedInstance::State>(state)));
+          message.append("' state. Please bring the instance back ONLINE and "
+                         "try to remove it again. If the instance is "
+                         "permanently not reachable, then please use "
+                         "<Cluster>.");
+          message.append(get_member_name("removeInstance", naming_style));
+          message.append(
+              "() with the force option set to true to proceed with the "
+                  "operation and only remove the instance from the Cluster "
+                  "Metadata.");
+          throw shcore::Exception::runtime_error(message);
+        } else {
+          throw shcore::Exception::runtime_error(
               get_mysqlprovision_error_string(errors));
+        }
+      }
+      // If force is used do not add the instance back to the metadata,
+      // and ignore any leave-replicaset error.
     }
+  } else {
+    // Remove instance from the MD anyway in case it is standalone.
+    // NOTE: Added for safety and completness, this situation should not happen
+    //       (covered by preconditions).
+    MetadataStorage::Transaction tx(_metadata_storage);
+    remove_instance_metadata(instance_def);
+    tx.commit();
   }
 
   return shcore::Value();

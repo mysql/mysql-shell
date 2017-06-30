@@ -75,6 +75,9 @@ std::string describe(State state) {
     case Error:
       ret_val = "Error";
       break;
+    case Missing:
+      ret_val = "(Missing)";
+      break;
     case Any:
       assert(0);  // FIXME(anyone) avoid using enum as a bitmask
       break;

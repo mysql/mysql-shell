@@ -177,4 +177,38 @@ void Admin_api_test::add_md_group_members_full_query(
     }
   });
 }
+
+void Admin_api_test::add_gr_primary_member_query(
+    std::vector<testing::Fake_result_data> *data,
+    const std::string &primary_uuid) {
+  data->push_back({"SELECT variable_value "
+                   "FROM performance_schema.global_status "
+                   "WHERE variable_name = 'group_replication_primary_member'",
+                   {"variable_value"},
+                   {mysqlshdk::db::Type::VarString},
+                   {
+                     {primary_uuid}
+                   }});
+}
+
+void Admin_api_test::add_member_state_query(
+    std::vector<testing::Fake_result_data> *data,
+    const std::string &address,
+    const std::string &mysql_server_uuid,
+    const std::string &instance_name,
+    const std::string &member_state) {
+  data->push_back({"SELECT mysql_server_uuid, instance_name, member_state "
+                   "FROM mysql_innodb_cluster_metadata.instances "
+                     "LEFT JOIN performance_schema.replication_group_members "
+                     "ON `mysql_server_uuid`=`member_id` "
+                   "WHERE addresses->\"$.mysqlClassic\" = '" + address + "'",
+                   {"mysql_server_uuid", "instance_name", "member_state"},
+                   {mysqlshdk::db::Type::VarString,
+                    mysqlshdk::db::Type::VarString,
+                    mysqlshdk::db::Type::VarString},
+                   {
+                     {mysql_server_uuid, instance_name, member_state}
+                   }
+                  });
+}
 }  // namespace tests

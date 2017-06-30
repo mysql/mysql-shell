@@ -558,8 +558,8 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_BRIEF, "Removes an Instance from the cluster.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM1, "@param password Optional Instance "\
-                                             "connection password.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM1,
+  "@param options Optional dictionary with options for the operation.");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS, "@throws MetadataError if the "\
                                              "Metadata is inaccessible.");
@@ -568,7 +568,11 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS1, "@throws MetadataError if the "\
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS2, "@throws ArgumentError if the instance parameter is empty.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS3, "@throws ArgumentError if the instance definition is invalid.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS4, "@throws ArgumentError if the instance definition is a connection dictionary but empty.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS5, "@throws RuntimeError if the instance accounts are invalid");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS5,
+  "@throws RuntimeError if the instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS6,
+  "@throws RuntimeError if an error occurs when trying to remove the instance "\
+  "(e.g., instance is not reachable).");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_RETURNS, "@returns nothing.");
 
@@ -591,11 +595,24 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL10, "@li port: port number");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL11, "@li sslCat: the path to the X509 certificate authority in PEM format.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL14, "The password may be contained on the instance definition, "\
-                                               "however, it can be overwritten "\
-                                               "if it is specified as second parameter.");
-
-// REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5, "@li An Instance object.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL14,
+  "The options dictionary may contain the following attributes:");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL15,
+  "@li password/dbPassword: the instance connection password");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL16,
+  "@li force: boolean, indicating if the instance must be removed (even if "\
+  "only from metadata) in case it cannot be reached. By default, set to "\
+  "false.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL17,
+  "The password may be contained in the instance definition, however, it can "\
+  "be overwritten if it is specified on the options.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL18,
+  "The force option (set to true) must only be used to remove instances that "\
+  "are permanently not available (no longer reachable) or never to be reused "\
+  "again in a cluster. This allows to remove from the metadata an instance "\
+  "than can no longer be recovered. Otherwise, the instance must be brought "\
+  "back ONLINE and removed without the force option to avoid errors trying "\
+  "to add it back to a cluster.");
 
 /**
 * $(CLUSTER_REMOVEINSTANCE_BRIEF)
@@ -609,6 +626,7 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL14, "The password may be contained on
 * $(CLUSTER_REMOVEINSTANCE_THROWS3)
 * $(CLUSTER_REMOVEINSTANCE_THROWS4)
 * $(CLUSTER_REMOVEINSTANCE_THROWS5)
+* $(CLUSTER_REMOVEINSTANCE_THROWS6)
 *
 * $(CLUSTER_REMOVEINSTANCE_RETURNS)
 *
@@ -631,11 +649,17 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL14, "The password may be contained on
 * $(CLUSTER_REMOVEINSTANCE_DETAIL13)
 *
 * $(CLUSTER_REMOVEINSTANCE_DETAIL14)
+* $(CLUSTER_REMOVEINSTANCE_DETAIL15)
+* $(CLUSTER_REMOVEINSTANCE_DETAIL16)
+*
+* $(CLUSTER_REMOVEINSTANCE_DETAIL17)
+*
+* $(CLUSTER_REMOVEINSTANCE_DETAIL18)
 */
 #if DOXYGEN_JS
-Undefined Cluster::removeInstance(InstanceDef instance, String password) {}
+Undefined Cluster::removeInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-None Cluster::remove_instance(InstanceDef instance, str password) {}
+None Cluster::remove_instance(InstanceDef instance, dict options) {}
 #endif
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
