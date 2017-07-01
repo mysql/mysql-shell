@@ -231,6 +231,27 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
       cluster = _metadata_storage->get_cluster(cluster_name);
     }
     if (cluster) {
+      // Verify if the current session instance group_replication_group_name
+      // value differs from the one registered in the Metadata
+      auto current_session = get_active_session();
+      auto classic =
+          dynamic_cast<mysqlsh::mysql::ClassicSession*>(current_session.get());
+      if (!validate_replicaset_group_name(_metadata_storage,
+              classic,
+              cluster->get_default_replicaset()->get_id())) {
+        std::string nice_error =
+            get_function_name("getCluster") + ": Unable to get cluster. "\
+            "The instance '" + current_session->address() + "' may belong to "\
+            "a different ReplicaSet as the one registered in the Metadata "\
+            "since the value of 'group_replication_group_name' does "\
+            "not match the one registered in the ReplicaSet's "\
+            "Metadata: possible split-brain scenario. "\
+            "Please connect to another member of the ReplicaSet to get the "\
+            "Cluster.";
+
+        throw shcore::Exception::runtime_error(nice_error);
+      }
+
       // Set the provision interface pointer
       cluster->set_provisioning_interface(_provisioning_interface);
       ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
@@ -1989,9 +2010,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
     // with that information and including on the message the instance with the GTID superset
     validate_instances_gtid_reboot_cluster(&cluster_name, options, instance_session);
 
-    // Get the group_replication_group_name
-    group_replication_group_name = _metadata_storage->get_replicaset_group_name();
-
     // 6. Set the current session instance as the seed instance of the Cluster
     {
       shcore::Argument_list new_args;
@@ -2007,7 +2025,18 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
       replication_user = "";
       replication_user_password = "";
 
-      default_replicaset->add_instance(new_args, replication_user, replication_user_password, true);
+      // The current 'group_replication_group_name' must be kept otherwise
+      // if instances are rejoined later the operation may fail because
+      // a new group_name started being used.
+      // This must be done before rejoining the instances due to the fixes for
+      // BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE GROUP_NAME INTO ACCOUNT
+      std::string current_group_replication_group_name =
+          _metadata_storage->get_replicaset_group_name(
+              default_replicaset->get_id());
+
+      default_replicaset->add_instance(
+          new_args, replication_user, replication_user_password,
+          true, current_group_replication_group_name);
     }
 
     // 7. Update the Metadata Schema information
@@ -2016,15 +2045,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
 
     // 8. Rejoin the list of instances of "rejoinInstances"
     default_replicaset->rejoin_instances(rejoin_instances_list, options);
-
-    // check if @@group_replication_group_name changes after the reboot and
-    // if so, update the metadata accordingly
-    {
-      std::string current_group_replication_group_name = _metadata_storage->get_replicaset_group_name();
-
-      if (current_group_replication_group_name != group_replication_group_name)
-        _metadata_storage->set_replicaset_group_name(default_replicaset, current_group_replication_group_name);
-    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rebootClusterFromCompleteOutage"));
 

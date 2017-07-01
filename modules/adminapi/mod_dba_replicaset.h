@@ -110,7 +110,8 @@ public:
   shcore::Value add_instance(const shcore::Argument_list &args,
                              const std::string &existing_replication_user = "",
                              const std::string &existing_replication_password = "",
-                             bool overwrite_seed=false);
+                             bool overwrite_seed = false,
+                             const std::string &group_name = "");
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
@@ -152,7 +153,8 @@ private:
       const shcore::Value::Map_type_ref &peer_instance_ssl,
       const std::string &super_user_password,
       const std::string &repl_user, const std::string &repl_user_password,
-      const std::string &ssl_mode, const std::string &ip_whitelist);
+      const std::string &ssl_mode, const std::string &ip_whitelist,
+      const std::string &group_name = "");
 
 
   std::string get_peer_instance();
