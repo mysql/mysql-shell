@@ -23,17 +23,18 @@
 namespace shcore {
 namespace uri {
 
-const char *DELIMITERS = ":/?#[]@";
-const char *SUBDELIMITERS = "!$&'()*+,;=";
-const char *ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-const char *DIGIT = "0123456789";
-const char *HEXDIG = "ABCDEFabcdef0123456789";
-const char *ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+SHCORE_PUBLIC const char *DELIMITERS = ":/?#[]@";
+SHCORE_PUBLIC const char *SUBDELIMITERS = "!$&'()*+,;=";
+SHCORE_PUBLIC const char *ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                  "abcdefghijklmnopqrstuvwxyz";
+SHCORE_PUBLIC const char *DIGIT = "0123456789";
+SHCORE_PUBLIC const char *HEXDIG = "ABCDEFabcdef0123456789";
+SHCORE_PUBLIC const char *ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                            "abcdefghijklmnopqrstuvwxyz"
                            "0123456789";
-const char *RESERVED = ":/?#[]@"       // DELIMITERS
+SHCORE_PUBLIC const char *RESERVED = ":/?#[]@"       // DELIMITERS
                        "!$&'()*+,;=";  // SUBDELIMITERS
-const char *UNRESERVED = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+SHCORE_PUBLIC const char *UNRESERVED = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
                          "0123456789"
                          "-._~";

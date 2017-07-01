@@ -213,8 +213,9 @@ std::string Uri_encoder::pct_encode(const std::string& data) {
     auto hex_data = buffer.str();
 
     std::string upper_hex_data;
+    std::locale locale;
     for (auto hex_digit : hex_data)
-      upper_hex_data += std::toupper(hex_digit);
+      upper_hex_data += std::toupper(hex_digit, locale);
 
     if (hex_data.size() == 1)
       ret_val += "%0" + upper_hex_data;

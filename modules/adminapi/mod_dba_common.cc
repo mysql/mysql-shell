@@ -197,12 +197,17 @@ shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list
 std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref &errors) {
   std::vector<std::string> str_errors;
 
-  for (auto error : *errors) {
-    auto data = error.as_map();
-    auto error_type = data->get_string("type");
-    auto error_text = data->get_string("msg");
+  if (errors) {
+    for (auto error : *errors) {
+      auto data = error.as_map();
+      auto error_type = data->get_string("type");
+      auto error_text = data->get_string("msg");
 
-    str_errors.push_back(error_type + ": " + error_text);
+      str_errors.push_back(error_type + ": " + error_text);
+    }
+  } else {
+    str_errors.push_back("Unexpected error calling mysqlprovision, "
+      "see the shell log for more details");
   }
 
   return shcore::join_strings(str_errors, "\n");

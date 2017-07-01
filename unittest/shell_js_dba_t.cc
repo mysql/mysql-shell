@@ -139,17 +139,22 @@ protected:
     code = "var __path_splitter = '\\\\';";
     exec_and_out_equals(code);
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
-    if (!tokens.at(tokens.size() - 1).empty()) {
+    if (!tokens.at(tokens.size() - 1).empty())
       tokens.push_back("");
-      tokens.push_back("");
-    }
 
-    _sandbox_dir = shcore::join_strings(tokens, "\\\\");
-    code = "var __sandbox_dir = '" + _sandbox_dir + "';";
+    // The sandbox dir for C++
+    _sandbox_dir = shcore::join_strings(tokens, "\\");
+
+    // The sandbox dir for JS
+    code = "var __sandbox_dir = '" +
+        shcore::join_strings(tokens, "\\\\") + "';";
+
     exec_and_out_equals(code);
 
     // output sandbox dir
-    code = "var __output_sandbox_dir = '" + shcore::join_strings(tokens, "\\") + "';";
+    code = "var __output_sandbox_dir = '" +
+        shcore::join_strings(tokens, "\\\\") + "';";
+
     exec_and_out_equals(code);
 #else
     code = "var __path_splitter = '/';";
@@ -529,6 +534,7 @@ TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
 }
 
 TEST_F(Shell_js_dba_tests, function_preconditions_interactive) {
+  create_file("mybad.cnf", "[sample]\n");
   validate_interactive("dba_preconditions.js");
 }
 
@@ -580,9 +586,9 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
   // In order to avoid the following bug we ensure the sandboxes are freshly deployed:
   // BUG #25071492: SERVER SESSION ASSERT FAILURE ON SERVER RESTART
   execute("cleanup_sandboxes(true);");
-  execute("var deployed1 = reset_or_deploy_sandbox(" + _mysql_sandbox_port1 + ");");
-  execute("var deployed2 = reset_or_deploy_sandbox(" + _mysql_sandbox_port2 + ");");
-  execute("var deployed3 = reset_or_deploy_sandbox(" + _mysql_sandbox_port3 + ");");
+  execute("var deployed1 = reset_or_deploy_sandbox(__mysql_sandbox_port1);");
+  execute("var deployed2 = reset_or_deploy_sandbox(__mysql_sandbox_port2);");
+  execute("var deployed3 = reset_or_deploy_sandbox(__mysql_sandbox_port3);");
 
 #ifdef _WIN32
   std::string path_splitter = "\\";
@@ -591,45 +597,50 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
 #endif
 
   // Restart sandbox instances with specific binlog filtering option.
-  std::string stop_options = "{password: 'root'";
-  if (!_sandbox_dir.empty()) {
-    stop_options.append(", sandboxDir: '" + _sandbox_dir + "'");
-  }
-  stop_options.append("}");
+  std::string stop_options = "{password: 'root', sandboxDir: __sandbox_dir}";
+
   std::string cfgpath1 = _sandbox_dir + path_splitter + _mysql_sandbox_port1
       + path_splitter + "my.cnf";
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", " + stop_options + ");");
-  add_to_cfg_file(cfgpath1, "[mysqld]\nbinlog-do-db=db1,mysql_innodb_cluster_metadata,db2");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port1 + ");");
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port1, " +
+                                   stop_options + ");");
+  add_to_cfg_file(cfgpath1, "[mysqld]\nbinlog-do-db=db1,"
+                            "mysql_innodb_cluster_metadata,db2");
+  execute("try_restart_sandbox(__mysql_sandbox_port1);");
   std::string cfgpath2 = _sandbox_dir + path_splitter + _mysql_sandbox_port2
       + path_splitter + "my.cnf";
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", " + stop_options + ");");
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port2, " +
+                                   stop_options + ");");
   add_to_cfg_file(cfgpath2, "[mysqld]\nbinlog-do-db=db1,db2");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port2 + ");");
+  execute("try_restart_sandbox(__mysql_sandbox_port2);");
   std::string cfgpath3 = _sandbox_dir + path_splitter + _mysql_sandbox_port3
       + path_splitter + "my.cnf";
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", " + stop_options + ");");
-  add_to_cfg_file(cfgpath3, "[mysqld]\nbinlog-ignore-db=db1,mysql_innodb_cluster_metadata,db2");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port3 + ");");
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port3, " +
+                                   stop_options + ");");
+  add_to_cfg_file(cfgpath3, "[mysqld]\nbinlog-ignore-db=db1,"
+                            "mysql_innodb_cluster_metadata,db2");
+  execute("try_restart_sandbox(__mysql_sandbox_port3);");
 
   // Validate test script.
   validate_interactive("dba_rpl_filter_check_no_interactive.js");
 
   // Restart sandbox instances without specific binlog filtering option.
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port1 + ", " + stop_options + ");");
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port1, " +
+                                   stop_options + ");");
   remove_from_cfg_file(cfgpath1, "binlog-do-db");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port1 + ");");
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port2 + ", " + stop_options + ");");
+  execute("try_restart_sandbox(__mysql_sandbox_port1);");
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port2, " +
+                                   stop_options + ");");
   remove_from_cfg_file(cfgpath2, "binlog-do-db");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port2 + ");");
-  execute("dba.stopSandboxInstance(" + _mysql_sandbox_port3 + ", " + stop_options + ");");
+  execute("try_restart_sandbox(__mysql_sandbox_port2);");
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port3, " +
+                                   stop_options + ");");
   remove_from_cfg_file(cfgpath3, "binlog-ignore-db");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port3 + ");");
+  execute("try_restart_sandbox(__mysql_sandbox_port3);");
 
   // Clean deployed sandboxes.
-  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port1 + ", deployed1);");
-  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port2 + ", deployed2);");
-  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port3 + ", deployed3);");
+  execute("cleanup_or_reset_sandbox(__mysql_sandbox_port1, deployed1);");
+  execute("cleanup_or_reset_sandbox(__mysql_sandbox_port2, deployed2);");
+  execute("cleanup_or_reset_sandbox(__mysql_sandbox_port3, deployed3);");
 }
 
 TEST_F(Shell_js_dba_tests, dba_cluster_change_topology_type) {
@@ -642,6 +653,12 @@ TEST_F(Shell_js_dba_tests, dba_cluster_change_topology_type) {
 TEST_F(Shell_js_dba_tests, dba_cluster_rpl_user_password) {
   _options->wizards = false;
   reset_shell();
+
+#ifdef _WIN32
+  execute("var __plugin='validate_password.dll'");
+#else
+  execute("var __plugin='validate_password.so'");
+#endif
 
   validate_interactive("dba_cluster_rpl_user_password.js");
 }

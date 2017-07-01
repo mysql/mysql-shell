@@ -34,15 +34,15 @@ enum TargetType {
   Pipe
 };
 
-extern const char *DELIMITERS;
-extern const char *SUBDELIMITERS;
-extern const char *ALPHA;
-extern const char *DIGIT;
-extern const char *HEXDIG;
-extern const char *DOT;
-extern const char *ALPHANUMERIC;
-extern const char *UNRESERVED;
-extern const char *RESERVED;
+SHCORE_PUBLIC extern const char *DELIMITERS;
+SHCORE_PUBLIC extern const char *SUBDELIMITERS;
+SHCORE_PUBLIC extern const char *ALPHA;
+SHCORE_PUBLIC extern const char *DIGIT;
+SHCORE_PUBLIC extern const char *HEXDIG;
+SHCORE_PUBLIC extern const char *DOT;
+SHCORE_PUBLIC extern const char *ALPHANUMERIC;
+SHCORE_PUBLIC extern const char *UNRESERVED;
+SHCORE_PUBLIC extern const char *RESERVED;
 
 class SHCORE_PUBLIC Uri_data {
 public:
