@@ -1,0 +1,27 @@
+--- unittest/test_utils/admin_api_test.h
++++ unittest/test_utils/admin_api_test.h
+@@ -58,19 +58,19 @@ class Admin_api_test: public Shell_core_test_wrapper {
+                               const std::string &instance_name,
+                               const std::string &member_state);
+   void add_md_group_name_query(
+-        std::vector<tests::Fake_result_data> *data,
++        std::vector<testing::Fake_result_data> *data,
+         const std::string &value);
+   void add_get_replication_group_state_online_rw_query(
+-        std::vector<tests::Fake_result_data> *data,
++        std::vector<testing::Fake_result_data> *data,
+         const std::string &member_id);
+   void add_get_cluster_matching_query(
+-      std::vector<tests::Fake_result_data> *data,
++      std::vector<testing::Fake_result_data> *data,
+       const std::string &cluster_name);
+   void add_get_replicaset_query(
+-      std::vector<tests::Fake_result_data> *data,
++      std::vector<testing::Fake_result_data> *data,
+       const std::string &replicaset_name);
+   void add_is_instance_on_rs_query(
+-      std::vector<tests::Fake_result_data> *data,
++      std::vector<testing::Fake_result_data> *data,
+       const std::string &replicast_id,
+       const std::string &instance_address);
+ };

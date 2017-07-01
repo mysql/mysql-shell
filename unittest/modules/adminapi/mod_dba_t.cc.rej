@@ -1,0 +1,32 @@
+--- unittest/modules/adminapi/mod_dba_t.cc
++++ unittest/modules/adminapi/mod_dba_t.cc
+@@ -59,9 +59,9 @@ class Dba_test: public Admin_api_test {
+     return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
+   }
+ 
+-  std::shared_ptr<mysqlsh::ShellDevelopmentSession> create_dev_session(
++  std::shared_ptr<mysqlsh::ShellBaseSession> create_base_session(
+         int port) {
+-    std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
++    std::shared_ptr<mysqlsh::ShellBaseSession> session;
+ 
+     shcore::Argument_list session_args;
+     shcore::Value::Map_type_ref instance_options(new shcore::Value::Map_type);
+@@ -71,7 +71,7 @@ class Dba_test: public Admin_api_test {
+     (*instance_options)["user"] = shcore::Value("user");
+ 
+     session_args.push_back(shcore::Value(instance_options));
+-    session = mysqlsh::connect_session(session_args,
++    session = mysqlsh::Shell::connect_session(session_args,
+                                        mysqlsh::SessionType::Classic);
+ 
+     return session;
+@@ -134,7 +134,7 @@ TEST_F(Dba_test, get_cluster_with_invalid_gr_group_name_001) {
+   add_get_server_variable_query(
+       &_queries,
+       "group_replication_group_name",
+-      tests::Type::String, "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
++      mysqlshdk::db::Type::String, "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
+ 
+   add_show_databases_query(&_queries, "mysql_innodb_cluster_metadata",
+                            "mysql_innodb_cluster_metadata");
