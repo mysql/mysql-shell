@@ -64,6 +64,7 @@ public:
                  const std::string &repl_user,
                  const std::string &super_user_password, const std::string &repl_user_password,
                  bool multi_master, const std::string &ssl_mode, const std::string &ip_whitelist,
+                 const std::string &group_name,
                  shcore::Value::Array_type_ref &errors);
   int join_replicaset(const std::string &instance_url,
                  const shcore::Value::Map_type_ref &instance_ssl,

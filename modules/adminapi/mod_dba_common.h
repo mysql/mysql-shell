@@ -157,6 +157,11 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 std::vector<MissingInstanceInfo> get_unavailable_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+std::string SHCORE_PUBLIC get_gr_replicaset_group_name(
+    mysqlsh::mysql::ClassicSession *session);
+bool SHCORE_PUBLIC validate_replicaset_group_name(
+    const std::shared_ptr<MetadataStorage> &metadata,
+    mysqlsh::mysql::ClassicSession *session, uint64_t rs_id);
 }
 }
 #endif

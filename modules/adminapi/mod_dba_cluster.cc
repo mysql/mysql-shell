@@ -186,7 +186,11 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
   // Add the Instance to the Default ReplicaSet passing already created replication user
   ret_val = _default_replica_set->add_instance(args, replication_user, replication_pwd);
 
-  std::string group_replication_group_name = _metadata_storage->get_replicaset_group_name();
+  auto metadata_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
+                              _metadata_storage->get_session().get());
+
+  std::string group_replication_group_name =
+      get_gr_replicaset_group_name(metadata_session);
   _metadata_storage->set_replicaset_group_name(_default_replica_set, group_replication_group_name);
 
   tx.commit();
