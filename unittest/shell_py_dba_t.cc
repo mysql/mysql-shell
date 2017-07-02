@@ -155,10 +155,7 @@ protected:
     exec_and_out_equals(code);
 
     // output sandbox dir
-    code = "__output_sandbox_dir = '" +
-        shcore::join_strings(tokens, "\\\\") + "';";
-
-    exec_and_out_equals(code);
+    _output_tokens["__output_sandbox_dir"] = shcore::join_strings(tokens, "\\");
 #else
     code = "__path_splitter = '/';";
     exec_and_out_equals(code);
@@ -300,6 +297,9 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
   std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
   create_file("mybad.cnf", bad_config);
 
+  _options->interactive = true;
+  reset_shell();
+
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Dba: checkInstanceConfiguration error
@@ -368,6 +368,9 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
 }
 
 TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
+  _options->interactive = true;
+  reset_shell();
+
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Cluster: rejoin_instance with interaction, error
@@ -438,6 +441,8 @@ TEST_F(Shell_py_dba_tests, force_quorum) {
 }
 
 TEST_F(Shell_py_dba_tests, force_quorum_interactive) {
+  _options->interactive = true;
+  reset_shell();
 
   //@ Cluster.forceQuorumUsingPartitionOf error interactive
   output_handler.passwords.push_back("root");
@@ -456,6 +461,9 @@ TEST_F(Shell_py_dba_tests, reboot_cluster) {
 }
 
 TEST_F(Shell_py_dba_tests, reboot_cluster_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   //@ Dba.rebootClusterFromCompleteOutage success
   output_handler.prompts.push_back("y");
   output_handler.prompts.push_back("y");
@@ -478,6 +486,9 @@ TEST_F(Shell_py_dba_tests, cluster_misconfigurations) {
 }
 
 TEST_F(Shell_py_dba_tests, cluster_misconfigurations_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   //@<OUT> Dba.createCluster: cancel
@@ -510,6 +521,9 @@ TEST_F(Shell_py_dba_tests, cluster_no_misconfigurations) {
 }
 
 TEST_F(Shell_py_dba_tests, cluster_no_misconfigurations_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   validate_interactive("dba_cluster_no_misconfigurations_interactive.py");
@@ -536,6 +550,9 @@ TEST_F(Shell_py_dba_tests, no_interactive_drop_metadata_schema) {
 }
 
 TEST_F(Shell_py_dba_tests, function_preconditions_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   create_file("mybad.cnf", "[sample]\n");
   validate_interactive("dba_preconditions.py");
 }
@@ -565,6 +582,9 @@ TEST_F(Shell_py_dba_tests, dba_cluster_check_instance_state) {
 }
 
 TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
+  _options->interactive = true;
+  reset_shell();
+
   //@# drop metadata: no user response
   output_handler.prompts.push_back("");
 

@@ -96,14 +96,14 @@ protected:
     code = "var __xhost_port = '" + host + ":" + _port + "';";
     exec_and_out_equals(code);
     if (_mysql_port.empty()) {
-      code = "__host_port = '" + host + ":3306';";
+      code = "var __host_port = '" + host + ":3306';";
       exec_and_out_equals(code);
-      code = "__mysql_port = 3306;";
+      code = "var __mysql_port = 3306;";
       exec_and_out_equals(code);
     } else {
-      code = "__host_port = '" + host + ":" + _mysql_port + "';";
+      code = "var __host_port = '" + host + ":" + _mysql_port + "';";
       exec_and_out_equals(code);
-      code = "__mysql_port = " + _mysql_port + ";";
+      code = "var __mysql_port = " + _mysql_port + ";";
       exec_and_out_equals(code);
       code = "var __mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
       exec_and_out_equals(code);
@@ -121,16 +121,16 @@ protected:
     std::string str_have_ssl = _have_ssl ? "true" : "false";
     code = "var __have_ssl = " + str_have_ssl + ";";
     exec_and_out_equals(code);
-    code = "localhost = 'localhost'";
+    code = "var localhost = 'localhost'";
     exec_and_out_equals(code);
-    code = "add_instance_options = {host:localhost, port: 0000, password:'root'};";
+    code = "var add_instance_options = {host:localhost, port: 0000, password:'root'};";
     exec_and_out_equals(code);
 
 
     if (_have_ssl)
-      code = "add_instance_extra_opts = {memberSslMode: 'REQUIRED'};";
+      code = "var add_instance_extra_opts = {memberSslMode: 'REQUIRED'};";
     else
-      code = "add_instance_extra_opts = {memberSslMode: 'AUTO'};";
+      code = "var add_instance_extra_opts = {memberSslMode: 'AUTO'};";
 
     exec_and_out_equals(code);
 
@@ -152,10 +152,7 @@ protected:
     exec_and_out_equals(code);
 
     // output sandbox dir
-    code = "var __output_sandbox_dir = '" +
-        shcore::join_strings(tokens, "\\\\") + "';";
-
-    exec_and_out_equals(code);
+    _output_tokens["__output_sandbox_dir"] = shcore::join_strings(tokens, "\\");
 #else
     code = "var __path_splitter = '/';";
     exec_and_out_equals(code);
@@ -297,6 +294,9 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
   create_file("mybad.cnf", bad_config);
 
+  _options->interactive = true;
+  reset_shell();
+
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Dba: checkInstanceConfiguration error
@@ -365,6 +365,9 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
 }
 
 TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
+  _options->interactive = true;
+  reset_shell();
+
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Cluster: rejoin_instance with interaction, error
@@ -437,6 +440,9 @@ TEST_F(Shell_js_dba_tests, force_quorum) {
 }
 
 TEST_F(Shell_js_dba_tests, force_quorum_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   //@ Cluster.forceQuorumUsingPartitionOf error interactive
   output_handler.passwords.push_back("root");
 
@@ -454,6 +460,9 @@ TEST_F(Shell_js_dba_tests, reboot_cluster) {
 }
 
 TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   //@ Dba.rebootClusterFromCompleteOutage success
   output_handler.prompts.push_back("y");
   output_handler.prompts.push_back("y");
@@ -476,6 +485,9 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
 }
 
 TEST_F(Shell_js_dba_tests, cluster_misconfigurations_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   //@<OUT> Dba.createCluster: cancel
@@ -508,6 +520,9 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
 }
 
 TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   validate_interactive("dba_cluster_no_misconfigurations_interactive.js");
@@ -534,6 +549,9 @@ TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
 }
 
 TEST_F(Shell_js_dba_tests, function_preconditions_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   create_file("mybad.cnf", "[sample]\n");
   validate_interactive("dba_preconditions.js");
 }
@@ -563,6 +581,9 @@ TEST_F(Shell_js_dba_tests, dba_cluster_check_instance_state) {
 }
 
 TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {
+  _options->interactive = true;
+  reset_shell();
+
   //@# drop metadata: no user response
   output_handler.prompts.push_back("");
 

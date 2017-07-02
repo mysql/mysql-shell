@@ -63,9 +63,15 @@ std::string Shell_script_tester::resolve_string(const std::string& source) {
     // This will make the variable to be printed on the stdout
     output_handler.wipe_out();
 
-    execute(token);
-
-    std::string value = output_handler.std_out;
+    std::string value;
+    // If the token was registered in C++ uses it
+    if (_output_tokens.count(token)) {
+      value = _output_tokens[token];
+    } else {
+      // If not, we use whatever is defined on the scripting language
+      execute(token);
+      value = output_handler.std_out;
+    }
 
     boost::trim(value);
 
@@ -430,7 +436,7 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
 
       // Processes the script
-      _interactive_shell->process_stream(stream, script, {});
+      _interactive_shell->process_stream(stream, script, {}, true);
 
       // When path is empty it is processing a setup script
       // If an error is found it will be printed here

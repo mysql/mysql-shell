@@ -139,7 +139,7 @@ session.close();
 // PERMISSIONS, CREATES A WRONG NEW USER
 dba.configureLocalInstance('missingprivileges:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "missingprivileges", clusterAdminPassword:"",
-     mycnfPath:__output_sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+     mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
 
 //@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 // Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
@@ -176,13 +176,13 @@ session.close();
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "dba_test", clusterAdminPassword:"",
-        mycnfPath:__output_sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+        mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "dba_test", clusterAdminPassword:"",
-        mycnfPath:__output_sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+        mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
 
 //@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
 connect_to_sandbox([__mysql_sandbox_port2]);
@@ -195,7 +195,7 @@ session.close();
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "dba_test", clusterAdminPassword:"",
-        mycnfPath:__output_sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+        mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
 
 //@ Dba: Delete previously create an admin user with all needed privileges
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE

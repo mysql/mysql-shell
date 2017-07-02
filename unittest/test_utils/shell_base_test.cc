@@ -88,11 +88,6 @@ void Shell_base_test::SetUp() {
     const char *tmpdir = getenv("TMPDIR");
     if (tmpdir) {
       _sandbox_dir.assign(tmpdir);
-
-  #ifdef WIN32
-      auto tokens = shcore::split_string(_sandbox_dir, "\\");
-      _sandbox_dir = shcore::join_strings(tokens, "\\\\");
-  #endif
     } else {
       // If not specified, the tests will create the sandboxes on the
       // binary folder
