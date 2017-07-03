@@ -1004,7 +1004,6 @@ def check_compliance(req_checker, error_msgs=None):
             if bad_engine or bad_pk:
                 error_msgs.append("Non-compatible tables found in database.")
                 _LOGGER.info(INNODB_RQD_MSG)
-                _LOGGER.info(SKIP_SCHEMA_MSG)
                 _LOGGER.info("")
 
 

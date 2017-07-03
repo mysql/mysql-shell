@@ -42,6 +42,18 @@ session.runSql('SET sql_log_bin=1');
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 var cluster = dba.createCluster('dev');
 
+//@ Enable verbose
+// Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
+dba.verbose = 1;
+
+//@<ERR> Create cluster fails (one table is not compatible) - verbose mode
+// Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
+var cluster = dba.createCluster('dev');
+
+//@ Disable verbose
+// Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
+dba.verbose = 0;
+
 // Clean-up test schema with PK, PKE, and UK
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 session.runSql('SET sql_log_bin=0');

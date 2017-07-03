@@ -42,6 +42,18 @@ session.run_sql('SET sql_log_bin=1')
 # Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 cluster = dba.create_cluster('dev')
 
+#@ Enable verbose
+# Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
+dba.verbose = 1
+
+#@<ERR> Create cluster fails (one table is not compatible) - verbose mode
+# Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
+cluster = dba.create_cluster('dev')
+
+#@ Disable verbose
+# Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
+dba.verbose = 0
+
 # Clean-up test schema with PK, PKE, and UK
 # Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 session.run_sql('SET sql_log_bin=0')
