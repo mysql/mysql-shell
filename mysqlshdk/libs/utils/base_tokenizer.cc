@@ -258,10 +258,11 @@ bool BaseTokenizer::tokens_available() {
   return _pos < _tokens.size();
 }
 
-void BaseTokenizer::set_complex_token(const std::string &type, std::function<bool(const std::string& input, size_t&, std::string&)>function) {
+void BaseTokenizer::set_complex_token_callback(const std::string &type,
+  std::function<bool(const std::string& input, size_t&, std::string&)>func) {
   if (std::find(_custom_tokens.begin(), _custom_tokens.end(), type) == _custom_tokens.end()) {
     _custom_tokens.push_back(type);
-    _token_functions[type] = function;
+    _token_functions[type] = func;
   }
 }
 

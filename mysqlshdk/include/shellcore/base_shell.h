@@ -28,7 +28,7 @@ class SHCORE_PUBLIC Base_shell {
 public:
   Base_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate);
   int process_stream(std::istream & stream, const std::string& source,
-                     const std::vector<std::string> &argv);
+                     const std::vector<std::string> &argv, bool force_batch = false);
   int process_file(const std::string& file, const std::vector<std::string> &argv);
 
   /** Finalize initialization steps after basic init of the shell is already done

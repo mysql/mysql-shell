@@ -4,10 +4,11 @@
 dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port1, 'password': 'root'})
 
 #@ First Sandbox
-reset_or_deploy_sandbox(__mysql_sandbox_port1)
+deployed_here = reset_or_deploy_sandbox(__mysql_sandbox_port1)
 
 #@ Check Instance Configuration ok with a session
 dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port1, 'password': 'root'})
 
 # Remove the sandbox
-cleanup_sandbox(__mysql_sandbox_port1);
+if deployed_here:
+	cleanup_sandbox(__mysql_sandbox_port1);

@@ -206,12 +206,17 @@ std::string get_mysqlprovision_error_string(
     return "mysqlprovision error";
   std::vector<std::string> str_errors;
 
-  for (auto error : *errors) {
-    auto data = error.as_map();
-    auto error_type = data->get_string("type");
-    auto error_text = data->get_string("msg");
+  if (errors) {
+    for (auto error : *errors) {
+      auto data = error.as_map();
+      auto error_type = data->get_string("type");
+      auto error_text = data->get_string("msg");
 
-    str_errors.push_back(error_type + ": " + error_text);
+      str_errors.push_back(error_type + ": " + error_text);
+    }
+  } else {
+    str_errors.push_back("Unexpected error calling mysqlprovision, "
+      "see the shell log for more details");
   }
 
   return shcore::str_join(str_errors, "\n");
