@@ -559,7 +559,8 @@ std::vector<std::string> Shell_command_handler::split_command_line(const std::st
 
   _tokenizer.set_complex_token("escaped-quote", escaped_quotes);
   _tokenizer.set_complex_token("quote", quote);
-  _tokenizer.set_complex_token("space", [](const std::string& input, size_t& index, std::string& text)->bool {
+  _tokenizer.set_complex_token_callback("space",
+    [](const std::string& input, size_t& index, std::string& text)->bool {
     std::locale locale;
     while (std::isspace(input[index], locale))
       text += input[index++];

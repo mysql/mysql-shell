@@ -144,17 +144,18 @@ protected:
     code = "__path_splitter = '\\\\';";
     exec_and_out_equals(code);
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
-    if (!tokens.at(tokens.size() - 1).empty()) {
+    if (!tokens.at(tokens.size() - 1).empty())
       tokens.push_back("");
-    }
 
-    _sandbox_dir = shcore::str_join(tokens, "\\\\");
-    code = "__sandbox_dir = '" + _sandbox_dir + "';";
+    // The sandbox dir for C++
+    _sandbox_dir = shcore::join_strings(tokens, "\\");
+
+    // The sandbox dir for PY
+    code = "__sandbox_dir = '" + shcore::join_strings(tokens, "\\\\") + "';";
     exec_and_out_equals(code);
 
     // output sandbox dir
-    code = "__output_sandbox_dir = '" + _sandbox_dir + "';";
-    exec_and_out_equals(code);
+    _output_tokens["__output_sandbox_dir"] = shcore::join_strings(tokens, "\\");
 #else
     code = "__path_splitter = '/';";
     exec_and_out_equals(code);
@@ -296,6 +297,9 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
   std::string bad_config = "[mysqld]\ngtid_mode = OFF\n";
   create_file("mybad.cnf", bad_config);
 
+  _options->interactive = true;
+  reset_shell();
+
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Dba: checkInstanceConfiguration error
@@ -364,6 +368,9 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
 }
 
 TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
+  _options->interactive = true;
+  reset_shell();
+
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Cluster: rejoin_instance with interaction, error
@@ -434,6 +441,8 @@ TEST_F(Shell_py_dba_tests, force_quorum) {
 }
 
 TEST_F(Shell_py_dba_tests, force_quorum_interactive) {
+  _options->interactive = true;
+  reset_shell();
 
   //@ Cluster.forceQuorumUsingPartitionOf error interactive
   output_handler.passwords.push_back("root");
@@ -452,6 +461,9 @@ TEST_F(Shell_py_dba_tests, reboot_cluster) {
 }
 
 TEST_F(Shell_py_dba_tests, reboot_cluster_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   //@ Dba.rebootClusterFromCompleteOutage success
   output_handler.prompts.push_back("y");
   output_handler.prompts.push_back("y");
@@ -474,6 +486,9 @@ TEST_F(Shell_py_dba_tests, cluster_misconfigurations) {
 }
 
 TEST_F(Shell_py_dba_tests, cluster_misconfigurations_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   //@<OUT> Dba.createCluster: cancel
@@ -506,6 +521,9 @@ TEST_F(Shell_py_dba_tests, cluster_no_misconfigurations) {
 }
 
 TEST_F(Shell_py_dba_tests, cluster_no_misconfigurations_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   validate_interactive("dba_cluster_no_misconfigurations_interactive.py");
@@ -532,6 +550,10 @@ TEST_F(Shell_py_dba_tests, no_interactive_drop_metadata_schema) {
 }
 
 TEST_F(Shell_py_dba_tests, function_preconditions_interactive) {
+  _options->interactive = true;
+  reset_shell();
+
+  create_file("mybad.cnf", "[sample]\n");
   validate_interactive("dba_preconditions.py");
 }
 
@@ -560,6 +582,9 @@ TEST_F(Shell_py_dba_tests, dba_cluster_check_instance_state) {
 }
 
 TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
+  _options->interactive = true;
+  reset_shell();
+
   //@# drop metadata: no user response
   output_handler.prompts.push_back("");
 
@@ -583,6 +608,13 @@ TEST_F(Shell_py_dba_tests, dba_cluster_rpl_user_password) {
   _options->wizards = false;
   reset_shell();
 
+#ifdef _WIN32
+  execute("__plugin='validate_password.dll'");
+#else
+  execute("__plugin='validate_password.so'");
+#endif
+
+
   validate_interactive("dba_cluster_rpl_user_password.py");
 }
 
@@ -604,9 +636,9 @@ TEST_F(Shell_py_dba_tests, no_interactive_rpl_filter_check) {
   // In order to avoid the following bug we ensure the sandboxes are freshly deployed:
   // BUG #25071492: SERVER SESSION ASSERT FAILURE ON SERVER RESTART
   execute("cleanup_sandboxes(True)");
-  execute("deployed1 = reset_or_deploy_sandbox(" + _mysql_sandbox_port1 + ")");
-  execute("deployed2 = reset_or_deploy_sandbox(" + _mysql_sandbox_port2 + ")");
-  execute("deployed3 = reset_or_deploy_sandbox(" + _mysql_sandbox_port3 + ")");
+  execute("deployed1 = reset_or_deploy_sandbox(__mysql_sandbox_port1)");
+  execute("deployed2 = reset_or_deploy_sandbox(__mysql_sandbox_port2)");
+  execute("deployed3 = reset_or_deploy_sandbox(__mysql_sandbox_port3)");
 
 #ifdef _WIN32
   std::string path_splitter = "\\";
@@ -615,45 +647,51 @@ TEST_F(Shell_py_dba_tests, no_interactive_rpl_filter_check) {
 #endif
 
   // Restart sandbox instances with specific binlog filtering option.
-  std::string stop_options = "{'password': 'root'";
-  if (!_sandbox_dir.empty()) {
-    stop_options.append(", 'sandboxDir': '" + _sandbox_dir + "'");
-  }
-  stop_options.append("}");
+  std::string stop_options = "{'password': 'root',"
+                              "'sandboxDir': __sandbox_dir}";
   std::string cfgpath1 = _sandbox_dir + path_splitter + _mysql_sandbox_port1
       + path_splitter + "my.cnf";
-  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", " + stop_options + ")");
-  add_to_cfg_file(cfgpath1, "[mysqld]\nbinlog-do-db=db1,mysql_innodb_cluster_metadata,db2");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port1 + ")");
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port1, " +
+                                     stop_options + ")");
+  add_to_cfg_file(cfgpath1, "[mysqld]\nbinlog-do-db=db1,"
+                            "mysql_innodb_cluster_metadata,db2");
+  execute("try_restart_sandbox(__mysql_sandbox_port1)");
   std::string cfgpath2 = _sandbox_dir + path_splitter + _mysql_sandbox_port2
       + path_splitter + "my.cnf";
-  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", " + stop_options + ")");
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port2, " +
+                                     stop_options + ")");
+
   add_to_cfg_file(cfgpath2, "[mysqld]\nbinlog-do-db=db1,db2");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port2 + ")");
+  execute("try_restart_sandbox(__mysql_sandbox_port2)");
   std::string cfgpath3 = _sandbox_dir + path_splitter + _mysql_sandbox_port3
       + path_splitter + "my.cnf";
-  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ", " + stop_options + ")");
-  add_to_cfg_file(cfgpath3, "[mysqld]\nbinlog-ignore-db=db1,mysql_innodb_cluster_metadata,db2");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port3 + ")");
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port3, " +
+                                     stop_options + ")");
+  add_to_cfg_file(cfgpath3, "[mysqld]\nbinlog-ignore-db=db1,"
+                            "mysql_innodb_cluster_metadata,db2");
+  execute("try_restart_sandbox(__mysql_sandbox_port3)");
 
   // Validate test script.
   validate_interactive("dba_rpl_filter_check_no_interactive.py");
 
   // Restart sandbox instances without specific binlog filtering option.
-  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port1 + ", " + stop_options + ")");
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port1, " +
+                                     stop_options + ")");
   remove_from_cfg_file(cfgpath1, "binlog-do-db");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port1 + ")");
-  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port2 + ", " + stop_options + ")");
+  execute("try_restart_sandbox(__mysql_sandbox_port1)");
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port2, " +
+                                     stop_options + ")");
   remove_from_cfg_file(cfgpath2, "binlog-do-db");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port2 + ")");
-  execute("dba.stop_sandbox_instance(" + _mysql_sandbox_port3 + ", " + stop_options + ")");
+  execute("try_restart_sandbox(__mysql_sandbox_port2)");
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port3, " +
+                                     stop_options + ")");
   remove_from_cfg_file(cfgpath3, "binlog-ignore-db");
-  execute("try_restart_sandbox(" + _mysql_sandbox_port3 + ")");
+  execute("try_restart_sandbox(__mysql_sandbox_port3)");
 
   // Clean deployed sandbox.
-  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port1 + ", deployed1)");
-  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port2 + ", deployed2)");
-  execute("cleanup_or_reset_sandbox(" + _mysql_sandbox_port3 + ", deployed3)");
+  execute("cleanup_or_reset_sandbox(__mysql_sandbox_port1, deployed1)");
+  execute("cleanup_or_reset_sandbox(__mysql_sandbox_port2, deployed2)");
+  execute("cleanup_or_reset_sandbox(__mysql_sandbox_port3, deployed3)");
 }
 
 TEST_F(Shell_py_dba_tests, dba_cluster_mts) {

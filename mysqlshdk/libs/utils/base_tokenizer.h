@@ -121,7 +121,8 @@ public:
 
   // Sets rule for tokens created based on a custom function
   // this is meant o be used with labndas defning a token based on whatever logic, so for complicated cases
-  void set_complex_token(const std::string &type, std::function<bool(const std::string& input, size_t&, std::string&)> function);
+  void set_complex_token_callback(const std::string &type,
+    std::function<bool(const std::string& input, size_t&, std::string&)> func);
 
   // Sets rule for tokens created with sequences of chars
   // A token of the given type would be created with all the consecutive characters that contained in the defined group

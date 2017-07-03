@@ -13,6 +13,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <map>
 #include "test_utils.h"
 
 enum class ValidationType {
@@ -72,6 +73,7 @@ protected:
   std::string _setup_script; // Name of the active script
   std::string _scripts_home; // Path to the scripts to be tested
   std::string _shell_scripts_home; // Id of the folder containing the setup and validation scripts
+  std::map<std::string, std::string> _output_tokens;
 
   // The name of the folder containing the setup and validation scripts
   void set_config_folder(const std::string &name);
