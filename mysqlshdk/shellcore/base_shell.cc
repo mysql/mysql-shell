@@ -386,10 +386,10 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
 }
 
 int Base_shell::process_stream(std::istream & stream, const std::string& source,
-    const std::vector<std::string> &argv) {
+    const std::vector<std::string> &argv, bool force_batch) {
   // If interactive is set, it means that the shell was started with the option to
   // Emulate interactive mode while processing the stream
-  if (_options.interactive) {
+  if (force_batch && _options.interactive) {
     if (_options.full_interactive)
       _shell->print(prompt());
 
