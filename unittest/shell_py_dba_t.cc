@@ -148,14 +148,14 @@ protected:
       tokens.push_back("");
 
     // The sandbox dir for C++
-    _sandbox_dir = shcore::join_strings(tokens, "\\");
+    _sandbox_dir = shcore::str_join(tokens, "\\");
 
     // The sandbox dir for PY
-    code = "__sandbox_dir = '" + shcore::join_strings(tokens, "\\\\") + "';";
+    code = "__sandbox_dir = '" + shcore::str_join(tokens, "\\\\") + "';";
     exec_and_out_equals(code);
 
     // output sandbox dir
-    _output_tokens["__output_sandbox_dir"] = shcore::join_strings(tokens, "\\");
+    _output_tokens["__output_sandbox_dir"] = shcore::str_join(tokens, "\\");
 #else
     code = "__path_splitter = '/';";
     exec_and_out_equals(code);

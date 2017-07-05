@@ -72,8 +72,8 @@ _options(options) {
 }
 
 void Base_shell::finish_init() {
-  load_default_modules(_options.initial_mode);
-  init_scripts(_options.initial_mode);
+  load_default_modules(_shell->interactive_mode());
+  init_scripts(_shell->interactive_mode());
 }
 
 void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::string& uri, const std::string& sessionid) {
@@ -389,7 +389,7 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
     const std::vector<std::string> &argv, bool force_batch) {
   // If interactive is set, it means that the shell was started with the option to
   // Emulate interactive mode while processing the stream
-  if (force_batch && _options.interactive) {
+  if (!force_batch && _options.interactive) {
     if (_options.full_interactive)
       _shell->print(prompt());
 
