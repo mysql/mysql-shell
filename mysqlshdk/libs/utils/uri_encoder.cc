@@ -20,21 +20,13 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <algorithm>
 #include "utils/utils_string.h"
 #include "utils/uri_encoder.h"
 #include "utils/utils_general.h"
 
 namespace shcore {
 namespace uri {
-
-std::string Uri_encoder::encode(const Uri_data& data) {
-  std::string ret_val;
-
-  // TODO(rennox): We should add the logic to encode a URI string
-  // from a URI_data struct
-
-  return ret_val;
-}
 
 std::string Uri_encoder::encode_scheme(const std::string &data) {
   std::string ret_val;
@@ -212,15 +204,12 @@ std::string Uri_encoder::pct_encode(const std::string& data) {
     buffer << std::hex << static_cast<int>(c);
     auto hex_data = buffer.str();
 
-    std::string upper_hex_data;
-    std::locale locale;
-    for (auto hex_digit : hex_data)
-      upper_hex_data += std::toupper(hex_digit, locale);
-
+    std::transform(hex_data.begin(), hex_data.end(),
+                   hex_data.begin(), ::toupper);
     if (hex_data.size() == 1)
-      ret_val += "%0" + upper_hex_data;
+      ret_val += "%0" + hex_data;
     else
-      ret_val += "%" + upper_hex_data;
+      ret_val += "%" + hex_data;
   }
 
   return ret_val;

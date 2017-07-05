@@ -29,7 +29,7 @@ namespace shcore {
 namespace uri {
 class SHCORE_PUBLIC Uri_encoder {
  public:
-  std::string encode(const Uri_data& data);
+  // TODO(rennox): We should add an encode method that works with a URI_data
   std::string encode_scheme(const std::string& data);
   std::string encode_socket(const std::string &socket);
   std::string encode_userinfo(const std::string& data);
