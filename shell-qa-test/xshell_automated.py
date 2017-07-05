@@ -4945,22 +4945,22 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema('world_x').getCollection('countryinfo').existsInDatabase();\n", "true"),
-                  ("var myColl = session.getSchema('world_x').getCollection('countryinfo');\n", "mysql-js>"),
+        x_cmds = [("session.getSchema('world_x').getCollection('CountryInfo').existsInDatabase();\n", "true"),
+                  ("var myColl = session.getSchema('world_x').getCollection('CountryInfo');\n", "mysql-js>"),
                   (
-                  "myColl.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent']);\n",
-                  "1 document"),
+                      "myColl.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent']);\n",
+                      "1 document"),
                   (
-                  "myColl.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4);\n",
-                  "4 documents"),
+                      "myColl.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4);\n",
+                      "4 documents"),
                   ("\\py\n", "mysql-py>"),
-                  ("myColl2 = session.get_schema('world_x').get_collection('countryinfo')\n", "mysql-py>"),
+                  ("myColl2 = session.get_schema('world_x').get_collection('CountryInfo')\n", "mysql-py>"),
                   (
-                  "myColl2.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent'])\n",
-                  "1 document"),
+                      "myColl2.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent'])\n",
+                      "1 document"),
                   (
-                  "myColl2.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4)\n",
-                  "4 documents"),
+                      "myColl2.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4)\n",
+                      "4 documents"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -4968,19 +4968,20 @@ class XShell_TestCases(unittest.TestCase):
     def test_4_6_05_1(self):
         '''[4.6.005] JS Modify document with Set and Unset with node session: NODE SESSION'''
         results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
+                        '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n", "true"),
-                  ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n", "mysql-js>"),
+        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"CountryInfo\").existsInDatabase();\n", "true"),
+                  ("var myColl = session.getSchema(\'world_x\').getCollection(\"CountryInfo\");\n", "mysql-js>"),
                   (
-                  "myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n",
-                  "Query OK, 1 item affected"),
+                      "myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n",
+                      "Query OK, 1 item affected"),
                   (
-                  "myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n",
-                  "Query OK, 1 item affected"),
+                      "myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n",
+                      "Query OK, 1 item affected"),
                   # ("\\py\n","mysql-py>"),
-                  # ("myColl2 = session.getSchema(\'world_x\').getCollection(\"countryinfo\")\n","mysql-py>"),
+                  # ("myColl2 = session.getSchema(\'world_x\').getCollection(\"CountryInfo\")\n","mysql-py>"),
                   # ("myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n","Query OK, 1 item affected"),
                   # ("myColl2.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\')\n","Query OK, 1 item affected"),
                   ]
@@ -5018,21 +5019,22 @@ class XShell_TestCases(unittest.TestCase):
     def test_4_6_07_1(self):
         '''[4.6.007] PY Modify document with Set and Unset with node session: NODE SESSION'''
         results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
+                        '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n", "true"),
-                  # ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
+        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"CountryInfo\").existsInDatabase();\n", "true"),
+                  # ("var myColl = session.getSchema(\'world_x\').getCollection(\"CountryInfo\");\n","mysql-js>"),
                   # ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                   # ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                   ("\\py\n", "mysql-py>"),
-                  ("myColl2 = session.get_schema(\'world_x\').get_collection(\"countryinfo\")\n", "mysql-py>"),
+                  ("myColl2 = session.get_schema(\'world_x\').get_collection(\"CountryInfo\")\n", "mysql-py>"),
                   (
-                  "myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n",
-                  "Query OK, 1 item affected"),
+                      "myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n",
+                      "Query OK, 1 item affected"),
                   (
-                  "myColl2.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\')\n",
-                  "Query OK, 1 item affected"),
+                      "myColl2.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\')\n",
+                      "Query OK, 1 item affected"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7039,7 +7041,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
-                  ("db.name\n", "The db variable is not set, establish a global session first."),
+                  ("db.name\n", "The db variable is not set, establish a session first."),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8096,10 +8098,10 @@ class XShell_TestCases(unittest.TestCase):
               "\\warnings   (\\W)       Show warnings after every statement." + os.linesep + \
               "\\nowarnings (\\w)       Don't show warnings after every statement." + os.linesep + \
               "\\status     (\\s)       Print information about the current global connection." + os.linesep + \
-              "\\use        (\\u)       Set the current schema for the global session." + os.linesep
-              # "\\saveconn   (\\savec)   Store a session configuration." + os.linesep + \
-              # "\\rmconn     (\\rmc)     Remove the stored session configuration." + os.linesep + \
-              # "\\lsconn     (\\lsc)     List stored session configurations."
+              "\\use        (\\u)       Set the current schema for the active session." + os.linesep
+        # "\\saveconn   (\\savec)   Store a session configuration." + os.linesep + \
+        # "\\rmconn     (\\rmc)     Remove the stored session configuration." + os.linesep + \
+        # "\\lsconn     (\\lsc)     List stored session configurations."
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\help\n", var)
                   ]
@@ -8447,7 +8449,7 @@ class XShell_TestCases(unittest.TestCase):
               "geography: { Continent: \"Europe\", Region: \"British Islands\", SurfaceArea: 193}," + \
               "government: { GovernmentForm: \"Monarchy\", HeadOfState: \"Michael Bates\"}}"
 
-        x_cmds = [("var myColl = session.getSchema('world_x').getCollection('countryinfo');\n", "mysql-js>"),
+        x_cmds = [("var myColl = session.getSchema('world_x').getCollection('CountryInfo');\n", "mysql-js>"),
                   ("var result = myColl.add(" + var + " ).execute();\n", "mysql-js>"),
                   ("result.getLastDocumentId();\n", "SEA"),
                   ]
@@ -8483,7 +8485,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[MYS-542]:Session.uri display wrong menu data to the user'''
         results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-        x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
+        x_cmds = [("session.uri\n", "There is no active session, do you want to establish one?"),
                   ("2\n", "specify the MySQL server URI"),
                   ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port), "Enter password"),
                   ("{0}\n".format(LOCALHOST.password), "{0}@{1}:{2}".format(LOCALHOST.user, LOCALHOST.host,
@@ -8520,7 +8522,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[MYS-542]:Session.uri display wrong menu data to the user'''
         results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-        x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
+        x_cmds = [("session.uri\n", "There is no active session, do you want to establish one?"),
                   ("1\n", "specify the MySQL server URI"),
                   ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port),
                    "Enter password"),
@@ -8699,48 +8701,18 @@ class XShell_TestCases(unittest.TestCase):
                    "\\warnings   (\\W)       Show warnings after every statement." + os.linesep +
                    "\\nowarnings (\\w)       Don't show warnings after every statement." + os.linesep +
                    "\\status     (\\s)       Print information about the current global connection." + os.linesep +
-                   "\\use        (\\u)       Set the current schema for the global session."+ os.linesep +
-                   ""+ os.linesep +
-                   "For help on a specific command use the command as \? <command>"+ os.linesep +
+                   "\\use        (\\u)       Set the current schema for the active session." + os.linesep +
                    "" + os.linesep +
-                   "===== Global Objects ====="  + os.linesep +
+                   "For help on a specific command use the command as \? <command>" + os.linesep +
+                   "" + os.linesep +
+                   "===== Global Objects =====" + os.linesep +
                    "db         Used to work with database schema objects."+ os.linesep +
                    "dba        Enables you to administer InnoDB clusters using the AdminAPI."+ os.linesep +
                    "mysql      Used to work with classic MySQL sessions using SQL."+ os.linesep +
                    "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI."+ os.linesep +
                    "session    Represents the currently open MySQL session."+ os.linesep +
-                   "shell      Gives access to general purpose functions and properties."+ os.linesep +
-                   "sys        Gives access to system specific parameters."+ os.linesep +
-                   "" + os.linesep )
-                   #"mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.")
-                   # (#"\\py\n",
-                   #"mysql-py>"),
-                   #("\\h\n", "===== Global Objects =====" + os.linesep +
-                   #"db         Used to work with database schema objects." + os.linesep +
-                   #"dba        Allows performing DBA operations using the MySQL X AdminAPI." + os.linesep +
-                   #"mysql      Used to work with classic MySQL sessions using SQL." + os.linesep +
-                   #"mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep +
-                   #"session    Represents the currently open MySQL session." + os.linesep +
-                   #"shell      Gives access to general purpose functions and properties." + os.linesep +
-                   #"" + os.linesep +
-                   #"Please note that MySQL Document Store APIs are subject to change in future" + os.linesep +
-                   #"releases." + os.linesep +
-                   #"" + os.linesep +
-                   #"For more help on a global variable use <var>.help(), e.g. dba.help()" + os.linesep +
-                   #"" + os.linesep +
-                   #"mysql-py> "),
-                   #("\\sql\n",
-                   #"mysql-sql>"),
-                   #("\\h\n", "===== Global Objects =====" + os.linesep +
-                   #"session    Represents the currently open MySQL session." + os.linesep +
-                   #"" + os.linesep +
-                   #"Please note that MySQL Document Store APIs are subject to change in future" + os.linesep +
-                   #"releases." + os.linesep +
-                   #"" + os.linesep +
-                   #"For more help on a global variable use <var>.help(), e.g. dba.help()" + os.linesep +
-                   #"" + os.linesep +
-                   #"mysql-sql> ")
-                  ]
+                   "shell      Gives access to general purpose functions and properties." + os.linesep +
+                   "sys        Gives access to system specific parameters." + os.linesep )]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
