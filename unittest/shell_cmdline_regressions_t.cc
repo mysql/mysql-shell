@@ -14,6 +14,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <string>
+#include "mysh_config.h"
 #include "unittest/test_utils/command_line_test.h"
 #include "utils/utils_file.h"
 
@@ -50,11 +51,20 @@ TEST_F(Command_line_test, bug24912358) {
     std::string uri = "--uri=" + _mysql_uri;
     execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
     MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1", multiline({
+#if SIZEOF_LONG == 8
       "+----------------------+",
       "| -127 << 1.1          |",
       "+----------------------+",
       "| 18446744073709551362 |",
-      "+----------------------+"}), _output);
+      "+----------------------+"
+#else
+      "+-------------+",
+      "| -127 << 1.1 |",
+      "+-------------+",
+      "|  4294967295 |",
+      "+-------------+"
+#endif
+      }), _output);
   }
 
   {
