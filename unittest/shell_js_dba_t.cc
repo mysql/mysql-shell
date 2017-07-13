@@ -67,10 +67,10 @@ protected:
     try {
       session = mysqlsh::connect_session(session_args, mysqlsh::SessionType::Classic);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-      mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
+      mysqlsh::dba::get_server_variable(classic->connection(), "version_comment",
                                         have_ssl);
       std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
-      _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
+      _have_ssl = (have_ssl.find("COMMERCIAL") != std::string::npos) ? true : false;
       shcore::Argument_list args;
       classic->close(args);
     } catch(shcore::Exception &e) {

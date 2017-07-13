@@ -32,7 +32,7 @@
 #include <google/protobuf/wire_format_lite_inl.h>
 #include <google/protobuf/dynamic_message.h>
 
-
+#undef ERROR
 #include "mysqlx.pb.h"
 
 #ifdef WIN32

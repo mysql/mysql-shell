@@ -78,6 +78,18 @@ add_definitions(-DX_PROTOCOL_ENABLED) # Preprocessor variable for generated proj
 
 add_definitions(-DMYSQLXTEST_STANDALONE)
 
+IF(WIN32)
+	# Speed up build process excluding unused header files
+	# Also definitely resolves the trouble of using both
+	# windows.h and winsock2.h
+	ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
+  ADD_DEFINITIONS(-DNOMINMAX)
+
+	# Sets the windows versions that should be supported
+	ADD_DEFINITIONS(-DNTDDI_VERSION=0x06000100 -D_WIN32_WINNT=0x0600)
+ENDIF()
+
+
 IF ( V8_INCLUDE_DIR AND V8_LIB_DIR )
   set(HAVE_V8 "YES")         # Variable for CMake processing
   add_definitions(-DHAVE_V8) # Preprocessor variable for generated projects

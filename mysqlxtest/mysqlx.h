@@ -67,7 +67,6 @@ namespace mysqlx
 
   class Schema;
   class Connection;
-  struct Ssl_config;
 
   class ArgumentValue
   {
@@ -220,6 +219,14 @@ namespace mysqlx
 
     std::shared_ptr<Connection> connection() { return m_connection; }
 
+    void set_trace_protocol(bool value);
+
+    bool expired_account();
+
+    ArgumentValue get_capability(const std::string& name);
+
+    uint64_t client_id();
+
     void close();
   private:
     std::shared_ptr<Connection> m_connection;
@@ -227,13 +234,12 @@ namespace mysqlx
   };
   typedef std::shared_ptr<Session> SessionRef;
 
-  SessionRef openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config,
-                         const bool cap_expired_password, const std::size_t timeout, const bool get_caps = false);
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass,
-                         const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password, 
+                         const mysqlx::Ssl_config &ssl_config, bool cap_expired_password,
                          const std::size_t timeout,
-                         const std::string &auth_method = "MYSQL41", const bool get_caps = false);
+                         const std::string &auth_method,
+                         const bool get_caps);
 
   enum FieldType
   {

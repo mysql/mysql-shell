@@ -38,7 +38,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
-#include "mysqlx_connection.h"
 #include "logger/logger.h"
 
 #include <stdlib.h>
@@ -807,7 +806,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args) {
     (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
     (*status)["CURRENT_USER"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
     (*status)["CONNECTION_ID"] = shcore::Value(_session.get_client_id());
-    //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+    (*status)["SSL_CIPHER"] = shcore::Value(_session.get_ssl_cipher());
     //(*status)["SKIP_UPDATES"] = shcore::Value(???);
     //(*status)["DELIMITER"] = shcore::Value(???);
 

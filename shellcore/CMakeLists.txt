@@ -302,6 +302,7 @@ add_definitions(-DSHCORE_EXPORT )
 add_definitions(-DNGCOMMON_EXPORTS )
 add_definitions(-DBOOST_ALL_NO_LIB )
 add_definitions(-Dmyjson_EXPORTS )
+
 if(WIN32)
   remove_definitions(-DUNICODE)
 endif()

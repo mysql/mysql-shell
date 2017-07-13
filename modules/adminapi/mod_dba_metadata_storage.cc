@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+#include <errmsg.h>
 #include "utils/utils_sqlstring.h"
 #include "mod_dba_metadata_storage.h"
 #include "modules/adminapi/metadata-model_definitions.h"
@@ -25,7 +26,6 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mysql_connection.h"
 #include "modules/adminapi/mod_dba_sql.h"
-#include "mysqlx_connection.h" // for error codes
 #include "mysqlxtest/password_hasher.h"
 
 #include "utils/utils_file.h"
@@ -63,7 +63,7 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(const std::st
       // If reached here it means there were no errors
       retry_count = 0;
     } catch (shcore::Exception& e) {
-      if (CR_SERVER_GONE_ERROR == e.code()) {
+      if (CR_SERVER_GONE_ERROR== e.code()) {
         log_debug("%s", e.format().c_str());
         log_debug("DBA: The Metadata is inaccessible");
         throw Exception::metadata_error("The Metadata is inaccessible");
@@ -306,8 +306,6 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
   std::string grendpoint;
 
   shcore::sqlstring query;
-  std::shared_ptr< ::mysqlx::Result> result;
-  std::shared_ptr< ::mysqlx::Row> row;
 
   if (host_id == 0)
     host_id = (*options)["host_id"].as_uint();

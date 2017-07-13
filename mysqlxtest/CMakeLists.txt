@@ -23,7 +23,7 @@ include_directories(${SSL_INCLUDE_DIRS}
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
-add_definitions(${SSL_DEFINES} -DUSE_SYS_STL -DWITH_LOGGER)
+add_definitions(${SSL_DEFINES} -DUSE_SYS_STL -DWITH_LOGGER -DDISABLE_ALL_PSI)
 
 file(GLOB libmysqlxtest_SRC
       "common/*.cc"

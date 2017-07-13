@@ -41,5 +41,35 @@
  # define MYSQLXTEST_PUBLIC SHCORE_PUBLIC
  #endif
 
-#endif
+#include <mysql.h>
 
+namespace mysqlx
+{
+  struct Ssl_config
+  {
+    Ssl_config()
+    {
+      key      = NULL;
+      ca       = NULL;
+      ca_path  = NULL;
+      cert     = NULL;
+      cipher   = NULL;
+      crl = NULL;
+      crl_path = NULL;
+      tls_version = NULL;
+      mode = SSL_MODE_PREFERRED;
+    }
+
+    const char *key;
+    const char *ca;
+    const char *ca_path;
+    const char *cert;
+    const char *cipher;
+    const char *crl;
+    const char *crl_path;
+    const char *tls_version;
+    int mode;
+  };
+};
+
+#endif

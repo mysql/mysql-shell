@@ -17,10 +17,10 @@
  * 02110-1301  USA
  */
 
+#include <errmsg.h>
 #include "utils/utils_sqlstring.h"
 #include "mod_mysqlx_session_handle.h"
 #include "mysqlxtest_utils.h"
-#include "mysqlx_connection.h"
 #include "utils/utils_general.h"
 #include <boost/algorithm/string.hpp>
 
@@ -45,14 +45,15 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
 
   std::string my_ssl_ca(ssl_ca);
 
-  ssl.ca = my_ssl_ca.c_str();
-  ssl.cert = ssl_cert.c_str();
-  ssl.key = ssl_key.c_str();
-  ssl.ca_path = ssl_ca_path.c_str();
-  ssl.crl = ssl_crl.c_str();
-  ssl.crl_path = ssl_crl_path.c_str();
-  ssl.tls_version = ssl_tls_version.c_str();
-  ssl.cipher = ssl_ciphers.c_str();
+
+  ssl.ca = my_ssl_ca.empty() ? nullptr : my_ssl_ca.c_str();
+  ssl.cert = ssl_cert.empty() ? nullptr : ssl_cert.c_str();
+  ssl.key = ssl_key.empty() ? nullptr : ssl_key.c_str();
+  ssl.ca_path = ssl_ca_path.empty() ? nullptr : ssl_ca_path.c_str();
+  ssl.crl = ssl_crl.empty() ? nullptr : ssl_crl.c_str();
+  ssl.crl_path = ssl_crl_path.empty() ? nullptr : ssl_crl_path.c_str();
+  ssl.tls_version = ssl_tls_version.empty() ? nullptr : ssl_tls_version.c_str();
+  ssl.cipher = ssl_ciphers.empty() ? nullptr : ssl_ciphers.c_str();
   ssl.mode = ssl_mode;
 
   // TODO: Define a proper timeout for the session creation
@@ -60,7 +61,7 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
     _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, true, timeout, auth_method, true);
 
     // If the account is not expired, retrieves additional session information
-    _expired_account = _session->connection()->expired_account();
+    _expired_account = _session->expired_account();
     if (!_expired_account)
       load_session_info();
   } catch (const ::mysqlx::Error& error) {
@@ -86,7 +87,7 @@ std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_sql(const std::string 
 }
 
 void SessionHandle::enable_protocol_trace(bool value) {
-  _session->connection()->set_trace_protocol(value);
+  _session->set_trace_protocol(value);
 }
 
 void SessionHandle::reset() {
@@ -226,17 +227,33 @@ shcore::Value SessionHandle::get_capability(const std::string& name) {
   shcore::Value ret_val;
 
   if (_session) {
-    const Mysqlx::Connection::Capabilities &caps(_session->connection()->capabilities());
-    for (int c = caps.capabilities_size(), i = 0; i < c; i++) {
-      if (caps.capabilities(i).name() == name) {
-        const Mysqlx::Connection::Capability &cap(caps.capabilities(i));
-        if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
-            cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_STRING)
-            ret_val = shcore::Value(cap.value().scalar().v_string().value());
-        else if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
-                 cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS)
-                 ret_val = shcore::Value(cap.value().scalar().v_octets().value());
-      }
+    ::mysqlx::ArgumentValue cap = _session->get_capability(name);
+
+    switch (cap.type()) {
+      case ::mysqlx::ArgumentValue::TInteger:
+        ret_val = shcore::Value(static_cast<int64_t>(cap));
+        break;
+      case ::mysqlx::ArgumentValue::TUInteger:
+        ret_val = shcore::Value(static_cast<uint64_t>(cap));
+        break;
+      case ::mysqlx::ArgumentValue::TNull:
+        ret_val = shcore::Value();
+        break;
+      case ::mysqlx::ArgumentValue::TDouble:
+        ret_val = shcore::Value(static_cast<double>(cap));
+        break;
+      case ::mysqlx::ArgumentValue::TFloat:
+        ret_val = shcore::Value(static_cast<float>(cap));
+        break;
+      case ::mysqlx::ArgumentValue::TBool:
+        ret_val = shcore::Value(static_cast<bool>(cap));
+        break;
+      case ::mysqlx::ArgumentValue::TString:
+      case ::mysqlx::ArgumentValue::TOctets:
+        ret_val = shcore::Value(std::string(cap));
+        break;
+      default:
+        break;
     }
   }
 
@@ -245,7 +262,7 @@ shcore::Value SessionHandle::get_capability(const std::string& name) {
 
 uint64_t SessionHandle::get_client_id() {
   if (_session) {
-    return _session->connection()->client_id();
+    return _session->client_id();
   } else
     return 0;
 }
@@ -254,7 +271,10 @@ void SessionHandle::load_session_info() const {
   try {
     if (is_connected()) {
       // TODO: update this logic properly
-      std::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select @@lower_case_table_names, connection_id()");
+      std::shared_ptr< ::mysqlx::Result> result = _session->executeSql(
+          "select @@lower_case_table_names, connection_id(), "
+          "variable_value from performance_schema.session_status where "
+          "variable_name = 'mysqlx_ssl_cipher'");
       result->wait();
 
       std::shared_ptr< ::mysqlx::Row>row = result->next();
@@ -264,6 +284,9 @@ void SessionHandle::load_session_info() const {
 
       if (!row->isNullField(1))
         _connection_id = row->uInt64Field(1);
+
+      if (!row->isNullField(2))
+        _ssl_cipher = row->stringField(2);
 
       result->flush();
     }

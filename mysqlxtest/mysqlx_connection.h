@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,15 +32,8 @@
 #pragma warning (disable : 4018 4996)
 #endif
 
-#include "mysqlx.pb.h"
-#include "mysqlx_connection.pb.h"
-#include "mysqlx_crud.pb.h"
-#include "mysqlx_datatypes.pb.h"
-#include "mysqlx_expr.pb.h"
-#include "mysqlx_expect.pb.h"
-#include "mysqlx_session.pb.h"
-#include "mysqlx_sql.pb.h"
-#include "mysqlx.h"
+#include "ngs_common/protocol_protobuf.h"
+#include <boost/enable_shared_from_this.hpp>
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
@@ -48,18 +41,18 @@
 #pragma warning (pop)
 #endif
 
-#include <boost/asio.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <list>
 
 #include "mysqlx_sync_connection.h"
 #include "mysqlx_common.h"
-#include "mysql.h"
 
 #define CR_UNKNOWN_ERROR        2000
 #define CR_CONNECTION_ERROR     2002
 #define CR_UNKNOWN_HOST         2005
 #define CR_SERVER_GONE_ERROR    2006
+#define CR_BROKEN_PIPE          2007
 #define CR_WRONG_HOST_INFO      2009
 #define CR_COMMANDS_OUT_OF_SYNC 2014
 #define CR_SSL_CONNECTION_ERROR 2026
@@ -69,33 +62,7 @@
 
 namespace mysqlx
 {
-  typedef boost::function<bool(int, std::string)> Local_notice_handler;
-
-  struct Ssl_config
-  {
-    Ssl_config()
-    {
-      key = NULL;
-      ca = NULL;
-      ca_path = NULL;
-      cert = NULL;
-      cipher = NULL;
-      crl = NULL;
-      crl_path = NULL;
-      tls_version = NULL;
-      mode = SSL_MODE_PREFERRED;
-    }
-
-    const char *key;
-    const char *ca;
-    const char *ca_path;
-    const char *cert;
-    const char *cipher;
-    const char *crl;
-    const char *crl_path;
-    const char *tls_version;
-    int mode;
-  };
+  typedef boost::function<bool (int,std::string)> Local_notice_handler;
 
   class MYSQLXTEST_PUBLIC Connection : public std::enable_shared_from_this<Connection>
   {
@@ -109,8 +76,7 @@ namespace mysqlx
     void push_local_notice_handler(Local_notice_handler handler);
     void pop_local_notice_handler();
 
-    void connect(const std::string &uri, const std::string &pass, const bool cap_expired_password = false); //XXX capabilities flags
-    void connect(const std::string &host, int port, const bool cap_expired_password = false);
+    void connect(const std::string &host, int port, bool cap_expired_password = false);
 
     void close();
     void set_closed();
@@ -123,7 +89,7 @@ namespace mysqlx
 
     Message *recv_raw(int &mid);
     Message *recv_payload(const int mid, const std::size_t msglen);
-    Message *recv_raw_with_deadline(int &mid, const std::size_t deadline_miliseconds);
+    Message *recv_raw_with_deadline(int &mid, const int deadline_milliseconds);
 
     std::shared_ptr<Result> recv_result();
 
@@ -147,7 +113,6 @@ namespace mysqlx
     void send(const Mysqlx::Connection::CapabilitiesSet &m) { send(Mysqlx::ClientMessages::CON_CAPABILITIES_SET, m); };
     void send(const Mysqlx::Connection::Close &m) { send(Mysqlx::ClientMessages::CON_CLOSE, m); };
 
-    //    boost::asio::ip::tcp::socket &socket() { return m_socket; }
   public:
     std::shared_ptr<Result> execute_sql(const std::string &sql);
     std::shared_ptr<Result> execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args);
@@ -162,32 +127,28 @@ namespace mysqlx
     void setup_capability(const std::string &name, const bool value, int& out_error, std::string &out_error_msg, bool should_throw = false);
 
     void authenticate(const std::string &user, const std::string &pass, const std::string &schema,
-      int ssl_mode = SSL_MODE_PREFERRED, const std::string& auth_method = "MYSQL41");
+      int ssl_mode, const std::string& auth_method = "MYSQL41");
     void authenticate_plain(const std::string &user, const std::string &pass, const std::string &db);
     void authenticate_mysql41(const std::string &user, const std::string &pass, const std::string &db);
 
     void send_bytes(const std::string &data);
 
     void set_trace_protocol(bool flag) { m_trace_packets = flag; }
-
     bool expired_account() { return m_account_expired; }
     std::shared_ptr<Result> new_empty_result();
+
   private:
     void perform_close();
     void dispatch_notice(Mysqlx::Notice::Frame *frame);
-    Message *recv_message_with_header(int &mid, char(&header_buffer)[5], const std::size_t header_offset);
+    Message *recv_message_with_header(int &mid, char (&header_buffer)[5], const std::size_t header_offset);
     void throw_mysqlx_error(const boost::system::error_code &ec);
     std::shared_ptr<Result> new_result(bool expect_data);
 
   private:
-    typedef boost::asio::ip::tcp tcp;
-
     std::list<Local_notice_handler> m_local_notice_handlers;
     Mysqlx::Connection::Capabilities m_capabilities;
 
-    boost::asio::io_service m_ios;
     Mysqlx_sync_connection m_sync_connection;
-    boost::asio::deadline_timer m_deadline;
     uint64_t m_client_id;
     bool m_account_expired;
     bool m_trace_packets;

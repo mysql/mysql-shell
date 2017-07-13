@@ -32,7 +32,6 @@
 #include "utils/utils_general.h"
 #include "modules/mysqlxtest_utils.h"
 #include "xerrmsg.h"
-#include "mysqlx_connection.h"
 #include "shellcore/shell_core_options.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_resultset.h"
@@ -54,7 +53,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
+#include <netdb.h>
 #include <unistd.h>
 #endif
 
@@ -233,7 +232,7 @@ static bool check_if_local_host(const std::string &hostname) {
   if (is_local_host(hostname, false)) {
     return true;
   } else {
-    struct hostent *he;
+    struct hostent *he = NULL;
     // if the host is not local, we try to resolve it and see if it points to
     // a loopback
     he = gethostbyname(hostname.c_str());

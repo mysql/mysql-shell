@@ -20,6 +20,7 @@
 #ifndef _MOD_MYSQLX_SESSION_HANDLE_H_
 #define _MOD_MYSQLX_SESSION_HANDLE_H_
 
+#include <string>
 #include "mod_common.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
@@ -59,11 +60,15 @@ public:
   uint64_t get_client_id();
   uint64_t get_connection_id() { return _connection_id; }
 
+  const std::string &get_ssl_cipher() const { return _ssl_cipher; }
+
+
 private:
   mutable std::shared_ptr< ::mysqlx::Result> _last_result;
   std::shared_ptr< ::mysqlx::Session> _session;
   mutable bool _case_sensitive_table_names;
   mutable uint64_t _connection_id;
+  mutable std::string _ssl_cipher;
   mutable bool _expired_account;
 
   ::mysqlx::ArgumentValue get_argument_value(shcore::Value source) const;

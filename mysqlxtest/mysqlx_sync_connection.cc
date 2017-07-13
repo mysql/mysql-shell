@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,337 +20,244 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-
+#include <cassert>
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
-
-#include "myasio/connection_dynamic_tls.h"
-#include "myasio/connection_factory_openssl.h"
-#include "myasio/connection_factory_yassl.h"
-#include "myasio/connection_factory_raw.h"
+#ifdef WIN32
+#pragma warning(push, 0)
+#endif
+#include <boost/asio/error.hpp>
+#ifdef WIN32
+#pragma warning(pop)
+#endif
 #include "mysqlx_sync_connection.h"
-#include "mysql.h"
 
 namespace mysqlx
 {
 
-
 using namespace boost::system;
-using namespace boost::asio::ip;
-using namespace ngs;
 
 
-namespace details
+const char* ssl_error::name() const BOOST_NOEXCEPT
 {
-
-
-class Callback_executor
-{
-public:
-  Callback_executor(boost::asio::io_service &service)
-  : m_num_of_bytes(0U),
-    m_error(boost::system::errc::make_error_code(boost::system::errc::io_error)),
-    m_service(service)
-  {}
-
-  virtual ~Callback_executor() {}
-
-  error_code wait()
-  {
-    bool executed;
-
-    return wait(executed);
-  }
-
-  error_code wait(bool &executed)
-  {
-    m_service.reset();
-    executed = m_service.run() > 0;
-
-    return m_error;
-  }
-
-  std::size_t get_number_of_bytes()
-  {
-    return m_num_of_bytes;
-  }
-
-  void connect(ngs::IConnection_ptr async_connection, const Endpoint &endpoint)
-  {
-    preproces(async_connection);
-    async_connection->async_connect(endpoint, get_status_callback(), On_asio_status_callback());
-  }
-
-  void accept(ngs::IConnection_ptr async_connection, boost::asio::ip::tcp::acceptor &acceptor)
-  {
-    preproces(async_connection);
-    async_connection->async_accept(acceptor, get_status_callback(), On_asio_status_callback());
-  }
-
-  void write(ngs::IConnection_ptr async_connection, const Const_buffer_sequence &data)
-  {
-    preproces(async_connection);
-    async_connection->async_write(data, get_data_callback());
-  }
-
-  void read(ngs::IConnection_ptr async_connection, const Mutable_buffer_sequence &data)
-  {
-    preproces(async_connection);
-    async_connection->async_read(data, get_data_callback());
-  }
-
-  void activate_tls(ngs::IConnection_ptr async_connection)
-  {
-    preproces(async_connection);
-    async_connection->async_activate_tls(get_status_callback());
-  }
-
-protected:
-  virtual void preproces(ngs::IConnection_ptr async_connection) {}
-
-  On_asio_status_callback get_status_callback()
-  {
-    return boost::bind(&Callback_executor::callback, this, boost::asio::placeholders::error, 0);
-  }
-
-
-  On_asio_data_callback get_data_callback()
-  {
-    return boost::bind(&Callback_executor::callback, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred);
-  }
-
-
-  virtual void callback(const error_code &ec, std::size_t num_of_bytes)
-  {
-    m_error = ec;
-    m_num_of_bytes += num_of_bytes;
-  }
-
-  std::size_t m_num_of_bytes;
-  error_code  m_error;
-  boost::asio::io_service &m_service;
-};
-
-
-class Callback_executor_with_timeout : public Callback_executor
-{
-public:
-  Callback_executor_with_timeout(boost::asio::io_service &io_service,
-                                 const std::size_t timeout_in_miliseconds)
-  : Callback_executor(io_service), m_deadline(io_service),
-    m_timeout(timeout_in_miliseconds),
-    m_is_expired(false)
-  {}
-
-  bool is_expired() const { return m_is_expired; }
-
-private:
-  virtual void preproces(ngs::IConnection_ptr async_connection)
-  {
-    m_is_expired = false;
-    m_deadline.expires_from_now(boost::posix_time::milliseconds(m_timeout));
-    m_deadline.async_wait(boost::bind(&Callback_executor_with_timeout::timeout_callback, this, _1, async_connection));
-  }
-
-
-  void timeout_callback(const error_code &ec, ngs::IConnection_ptr async_connection)
-  {
-    if (ec == boost::asio::error::operation_aborted)
-      return;
-    async_connection->close();
-    m_is_expired = true;
-  }
-
-
-  void callback(const error_code &ec, std::size_t num_of_bytes)
-  {
-    Callback_executor::callback(ec, num_of_bytes);
-    m_deadline.cancel();
-  }
-
-
-  boost::asio::deadline_timer m_deadline;
-  const std::size_t m_timeout;
-  bool m_is_expired;
-};
-
-Callback_executor *get_callback_executor(boost::asio::io_service &service, const std::size_t timeout)
-{
-  return timeout ?
-      new Callback_executor_with_timeout(service, timeout) :
-      new Callback_executor(service);
+  return "SSL";
 }
 
-typedef Memory_new<Callback_executor>::Unique_ptr Callback_executor_ptr;
+std::string ssl_error::message(int value) const
+{
+  std::string r;
 
-} // namespace details
+  r.resize(1024);
+  return ERR_error_string(value, &r[0]);
+}
 
+const char* ssl_init_error::name() const BOOST_NOEXCEPT
+{
+  return "SSL INIT";
+}
 
-Mysqlx_sync_connection::Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key,
+std::string ssl_init_error::message(int value) const
+{
+  return sslGetErrString((enum_ssl_init_error)value);
+}
+
+Mysqlx_sync_connection::Mysqlx_sync_connection(const char *ssl_key,
                                                const char *ssl_ca, const char *ssl_ca_path,
                                                const char *ssl_cert, const char *ssl_cipher,
-                                               const char *ssl_crl, const char *ssl_crl_path,
-                                               const char *ssl_tls_version, int ssl_mode,
+                                               const char *tls_version,
+                                               const char *ssl_crl,
+                                               const char *ssl_crl_path,
                                                const std::size_t timeout)
-: m_service(service), m_timeout(timeout)
+: m_timeout(timeout),
+  m_vio(NULL),
+  m_ssl_acvtive(false),
+  m_ssl_init_error(SSL_INITERR_NOERROR)
 {
-  m_async_factory    = get_async_connection_factory(ssl_key, ssl_ca, ssl_ca_path, ssl_cert, ssl_cipher, ssl_crl, ssl_crl_path, ssl_tls_version, ssl_mode);
+  long ssl_ctx_flags = process_tls_version(tls_version);
 
-  ngs::IConnection_unique_ptr async_connection = m_async_factory->create_connection(m_service);
-
-  m_async_connection.reset(async_connection.release());
+  m_vioSslFd = new_VioSSLConnectorFd(ssl_key, ssl_cert, ssl_ca, ssl_ca_path,
+                                     ssl_cipher, &m_ssl_init_error, ssl_crl,
+                                     ssl_crl_path, ssl_ctx_flags);
 }
 
-ngs::Connection_factory_ptr Mysqlx_sync_connection::get_async_connection_factory(const char *ssl_key, const char *ssl_ca,
-  const char *ssl_ca_path, const char *ssl_cert, const char *ssl_cipher, const char *ssl_crl, const char *ssl_crl_path,
-  const char *ssl_tls_version, int ssl_mode)
+Mysqlx_sync_connection::~Mysqlx_sync_connection()
 {
-  const bool is_client = true;
+  close();
 
-  // If mode is any of PREFERRED (default), REQUIRED, VERIFY_CA, VERIFY_IDENTITY
-  if (ssl_mode >= SSL_MODE_PREFERRED) {
-#if !defined(DISABLE_SSL_ON_XPLUGIN)
-    ngs::Connection_factory_ptr factory;
+  if (NULL != m_vioSslFd)
+  {
+    free_vio_ssl_acceptor_fd(m_vioSslFd);
+    m_vioSslFd = NULL;
+  }
+}
 
-    ssl_key      = ssl_key      ? ssl_key      : "";
-    ssl_ca       = ssl_ca       ? ssl_ca       : "";
-    ssl_ca_path  = ssl_ca_path  ? ssl_ca_path  : "";
-    ssl_cert     = ssl_cert     ? ssl_cert     : "";
-    ssl_cipher   = ssl_cipher   ? ssl_cipher   : "";
-    ssl_crl      = ssl_crl      ? ssl_crl      : "";
-    ssl_crl_path = ssl_crl_path ? ssl_crl_path : "";
-    if (!ssl_tls_version)
-      ssl_tls_version = "";
+error_code Mysqlx_sync_connection::connect(sockaddr_in *addr, const std::size_t addr_size)
+{
+  int err = 0;
+  while(true)
+  {
+    my_socket s = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-
-#if !defined(HAVE_YASSL)
-    factory = boost::make_shared<ngs::Connection_openssl_factory>(ssl_key, ssl_cert, ssl_ca, ssl_ca_path,
-                                                                  ssl_cipher, ssl_crl, ssl_crl_path, 
-                                                                  ssl_tls_version, ssl_mode, is_client);
-
+#ifdef WIN32
+    if (s == INVALID_SOCKET)
+      break;
 #else
-    factory = boost::make_shared<ngs::Connection_yassl_factory>(ssl_key, ssl_cert, ssl_ca, ssl_ca_path,
-                                                                ssl_cipher, ssl_crl, ssl_crl_path, 
-                                                                ssl_tls_version, ssl_mode, is_client);
+    if (s < 0)
+      break;
+#endif
 
-#endif // HAVE_YASSL
+    int res = ::connect(s, (const sockaddr*)addr, (socklen_t)addr_size);
+    if (0 != res)
+    {
+#ifdef WIN32
+      err = WSAGetLastError();
+      ::closesocket(s);
+#else
+      err = errno;
+      ::close(s);
+#endif
+      break;
+    }
 
-     return factory;
-
-#endif // !defined(DISABLE_SSL_ON_XPLUGIN)
+    m_vio = vio_new(s, VIO_TYPE_TCPIP, 0);
+    return error_code();
   }
 
-  return boost::make_shared<ngs::Connection_raw_factory>();
+  return error_code(err, boost::asio::error::get_system_category());
 }
 
-
-error_code Mysqlx_sync_connection::connect(const Endpoint &ep)
+error_code Mysqlx_sync_connection::get_ssl_error(int error_id)
 {
-  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
-  executor->connect(m_async_connection, ep);
-  return executor->wait();
+  static ssl_error error_category;
+
+  return error_code(error_id, error_category);
 }
 
-
-error_code Mysqlx_sync_connection::accept(const Endpoint &ep)
+error_code Mysqlx_sync_connection::get_ssl_init_error(const int init_error_id)
 {
-  boost::asio::ip::tcp::acceptor acceptor(m_service, ep);
-  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
-  executor->accept(m_async_connection, acceptor);
-  return executor->wait();
-}
+  static ssl_init_error error_category;
 
+  return error_code(init_error_id, error_category);
+}
 
 error_code Mysqlx_sync_connection::activate_tls()
 {
-  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
-  executor->activate_tls(m_async_connection);
-  return executor->wait();
+  if (NULL == m_vioSslFd)
+      return get_ssl_init_error(m_ssl_init_error);
+
+  unsigned long error;
+  if (0 != sslconnect(m_vioSslFd, m_vio, 60, &error))
+  {
+    return get_ssl_error(error);
+  }
+
+  m_ssl_acvtive = true;
+
+  return error_code();
 }
 
-
-error_code Mysqlx_sync_connection::shutdown(boost::asio::socket_base::shutdown_type how_to_shutdown)
+error_code Mysqlx_sync_connection::shutdown(Shutdown_type how_to_shutdown)
 {
-  error_code result;
-  m_async_connection->shutdown(how_to_shutdown, result);
-  return result;
-}
+  if ( 0 != ::shutdown(vio_fd(m_vio), (int)how_to_shutdown) )
+    return error_code( errno, posix_category);
 
+  return error_code();
+}
 
 error_code Mysqlx_sync_connection::write(const void *data, const std::size_t data_length)
 {
-  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
-  Const_buffer_sequence buffers;
+  std::size_t left_data_to_write = data_length;
+  const unsigned char* data_to_send = (const unsigned char*)data;
 
-  for (;;)
+  do
   {
-    buffers.push_back(boost::asio::buffer((char*)data + executor->get_number_of_bytes(),
-                                    data_length - executor->get_number_of_bytes()));
+    const int result = (int)vio_write(m_vio, data_to_send, left_data_to_write);
+    //
 
-    executor->write(m_async_connection, buffers);
-    error_code err = executor->wait();
-    if (err)
-      return err;
-    if (executor->get_number_of_bytes() < data_length)
+    if (-1 == result)
     {
-      buffers.clear();
+      const int vio_error = vio_errno(m_vio);
+
+      return error_code(vio_error, boost::asio::error::get_system_category());
     }
-    else
-      return err;
-  }
+    else if (0 == result)
+      return error_code(boost::asio::error::connection_reset, boost::asio::error::get_system_category());
+
+    left_data_to_write -= result;
+    data_to_send += result;
+  }while(left_data_to_write > 0);
+
+  return error_code();
 }
 
-error_code Mysqlx_sync_connection::read(void *data, const std::size_t data_length)
+error_code Mysqlx_sync_connection::read(void *data_head, const std::size_t data_length)
 {
-  error_code error;
-  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
+  int result = 0;
+  std::size_t data_to_send = data_length;
+  char *data = (char*)data_head;
 
-  while(!error && data_length != executor->get_number_of_bytes())
+  do
   {
-    Mutable_buffer_sequence buffers;
-    std::size_t in_buffer = executor->get_number_of_bytes();
-    buffers.push_back(boost::asio::buffer((char*)data + in_buffer,  data_length - in_buffer));
-    executor->read(m_async_connection, buffers);
-    error = executor->wait();
-  }
+    result = (int)vio_read(m_vio, (unsigned char*)data, data_to_send);
 
-  return error;
+    if (-1 == result)
+    {
+      int vio_error = vio_errno(m_vio);
+
+      vio_error = vio_error == 0 ? boost::asio::error::connection_reset : vio_error;
+      return error_code(vio_error, boost::asio::error::get_system_category());
+    }
+    else if (0 == result)
+      return error_code(boost::asio::error::connection_reset, boost::asio::error::get_system_category());
+
+    data_to_send -= result;
+    data += result;
+  }while(data_to_send != 0);
+
+  return error_code();
 }
 
-
-error_code Mysqlx_sync_connection::read_with_timeout(void *data, std::size_t &data_length, const std::size_t deadline_miliseconds)
+error_code Mysqlx_sync_connection::read_with_timeout(void *data, std::size_t &data_length, const int deadline_milliseconds)
 {
-  error_code error;
-  details::Callback_executor_with_timeout executor(m_service, deadline_miliseconds);
+  int result = vio_io_wait(m_vio, VIO_IO_EVENT_READ, deadline_milliseconds);
 
-  while(!error && data_length != executor.get_number_of_bytes())
+  if (-1 == result)
   {
-    Mutable_buffer_sequence buffers;
-    std::size_t in_buffer = executor.get_number_of_bytes();
-    buffers.push_back(boost::asio::buffer((char*)data + in_buffer,  data_length - in_buffer));
-    executor.read(m_async_connection, buffers);
-    error = executor.wait();
+    int vio_error = vio_errno(m_vio);
+    vio_error = vio_error == 0 ? boost::asio::error::connection_reset : vio_error;
+
+    return error_code(vio_error, boost::asio::error::get_system_category());
   }
-  if (executor.is_expired())
+  else if (0 == result)
+  {
     data_length = 0;
-  return error;
-}
+  }
+  else
+  {
+    return read(data, data_length);
+  }
 
+  return error_code();
+}
 
 void Mysqlx_sync_connection::close()
 {
-  m_async_connection->close();
-}
-
-bool Mysqlx_sync_connection::supports_ssl()
-{
-  return m_async_connection->options()->supports_tls();;
+  if (m_vio)
+  {
+#ifdef WIN32
+    ::closesocket(vio_fd(m_vio));
+#else
+    ::close(vio_fd(m_vio));
+#endif // WIN32
+    vio_delete(m_vio);
+    m_vio = NULL; // memory leak
+  }
 }
 
 
 bool Mysqlx_sync_connection::is_set(const char *string)
 {
-  return string ? strlen(string) > 0 : false;
+  return false;
 }
 
 } // namespace mysqlx

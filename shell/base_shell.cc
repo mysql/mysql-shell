@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+#include <mysql.h>
 #include "shell/base_shell.h"
 #include "modules/base_session.h"
 #include "utils/utils_file.h"
@@ -138,6 +139,10 @@ _options(options) {
   _shell->switch_mode(_options.initial_mode, lang_initialized);
 
   _result_processor = std::bind(&Base_shell::process_result, this, _1);
+
+  // This call is to initialize the SSL engine
+  auto handle = mysql_init(NULL);
+  mysql_close(handle);
 }
 
 void Base_shell::finish_init() {
@@ -709,8 +714,8 @@ bool Base_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
         if (status->has_key("CURRENT_USER"))
           println((boost::format(format) % "Current user: " % (*status)["CURRENT_USER"].descr(true)).str());
 
-        if (status->has_key("SSL_CIPHER"))
-          println((boost::format(format) % "SSL: Cipher in use: " % (*status)["SSL_CIPHER"].descr(true)).str());
+        if (status->has_key("SSL_CIPHER") && (*status)["SSL_CIPHER"].type == shcore::String)
+          println((boost::format(format) % "SSL: " % ("Cipher in use: " + (*status)["SSL_CIPHER"].descr(true))).str());
         else
           println((boost::format(format) % "SSL:" % "Not in use.").str());
 

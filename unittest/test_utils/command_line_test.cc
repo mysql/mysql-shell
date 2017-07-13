@@ -63,15 +63,14 @@ namespace tests {
       // Starts the process
       p.start();
 
+      // Reads all produced output, until stdout is closed
+      while (p.read(&c, 1) > 0) {
+        _output += c;
+      }
+
       // Wait until it finishes
       exit_code = p.wait();
-
-      // Now reads all the produced output
-      while (p.read(&c, 1) > 0)
-        _output += c;
-
-    }
-    catch (const std::system_error &e) {
+    } catch (const std::system_error &e) {
       _output = e.what();
       exit_code = 256; // This error code will indicate an error happened launching the process
     }

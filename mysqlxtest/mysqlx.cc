@@ -187,41 +187,37 @@ Session::~Session()
   m_connection.reset();
 }
 
-std::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config,
-                                               const bool cap_expired_password, const std::size_t timeout, const bool get_caps)
+SessionRef mysqlx::openSession(const std::string &host, int port, const std::string &schema,
+                                               const std::string &user, const std::string &pass,
+                                               const mysqlx::Ssl_config &ssl_config, bool cap_expired_password,
+                                               const std::size_t timeout,
+                                               const std::string &auth_method,
+                                               const bool get_caps)
 {
-  std::shared_ptr<Session> session(new Session(ssl_config, timeout));
-  session->connection()->connect(uri, pass, cap_expired_password);
-  if (get_caps)
-    session->connection()->fetch_capabilities();
-  return session;
-}
-
-std::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, const std::string &schema,
-                                             const std::string &user, const std::string &pass,
-                                             const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password,
-                                             const std::size_t timeout,
-                                             const std::string &auth_method,
-                                             const bool get_caps)
-{
-  const std::string my_auth_method = auth_method.empty() ? "MYSQL41" : auth_method;
-  std::shared_ptr<Session> session(new Session(ssl_config, timeout));
+  SessionRef session(new Session(ssl_config, timeout));
   session->connection()->connect(host, port, cap_expired_password);
-
   if (get_caps)
     session->connection()->fetch_capabilities();
-  session->connection()->authenticate(user, pass, schema, ssl_config.mode, my_auth_method);  
+  if (auth_method.empty())
+    session->connection()->authenticate(user, pass, schema, ssl_config.mode);
+  else
+  {
+    if (auth_method == "PLAIN" || auth_method == "MYSQL41")
+      session->connection()->authenticate(user, pass, schema, ssl_config.mode, auth_method);
+    else
+      throw Error(CR_INVALID_AUTH_METHOD, "Invalid authentication method " + auth_method);
+  }
   return session;
 }
 
 Connection::Connection(const Ssl_config &ssl_config, const std::size_t timeout, const bool dont_wait_for_disconnect)
-  : m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path,
-                    ssl_config.cert, ssl_config.cipher, ssl_config.crl, ssl_config.crl_path,
-                    ssl_config.tls_version, ssl_config.mode, timeout),
-    m_account_expired(false),
-    m_deadline(m_ios), m_client_id(0),
-    m_trace_packets(false), m_closed(true),
-    m_dont_wait_for_disconnect(dont_wait_for_disconnect)
+: m_sync_connection(ssl_config.key, ssl_config.ca, ssl_config.ca_path,
+                    ssl_config.cert, ssl_config.cipher, ssl_config.tls_version, ssl_config.crl, ssl_config.crl_path,
+                     timeout),
+  m_account_expired(false),
+  m_client_id(0),
+  m_trace_packets(false), m_closed(true),
+  m_dont_wait_for_disconnect(dont_wait_for_disconnect)
 {
   if (getenv("MYSQLX_TRACE_CONNECTION"))
     m_trace_packets = true;
@@ -239,65 +235,36 @@ Connection::~Connection()
   }
 }
 
-void Connection::connect(const std::string &uri, const std::string &pass, const bool cap_expired_password)
-{
-  std::string protocol, host, schema, user, password;
-  std::string sock;
-  int pwd_found = 0;
-  int port = 33060;
-
-  if (!parse_mysql_connstring(uri, protocol, user, password, host, port, sock, schema, pwd_found))
-    throw Error(CR_WRONG_HOST_INFO, "Unable to parse connection string");
-
-  if (protocol != "mysqlx" && !protocol.empty())
-    throw Error(CR_WRONG_HOST_INFO, "Unsupported protocol " + protocol);
-
-  if (!pass.empty())
-    password = pass;
-
-  connect(host, port);
-
-  if (cap_expired_password) {
-    try {
-      setup_capability("client.pwd_expire_ok", true);
-    } catch (Error &e) {
-      // When the connection is to a classic port, the error may only appear
-      // Until the capability is being setup, we need to handle this case and
-      // emulate the error that indicated the connectoin was to a classic port
-      if (!strcmp(e.what(), "MySQL server has gone away"))
-        throw Error(CR_MALFORMED_PACKET, "Unknown message received from server 10");
-      else
-        throw;
-    }
-  }
-
-  authenticate(user, pass.empty() ? password : pass, schema);
-}
-
 void Connection::connect(const std::string &host, int port, const bool cap_expired_password)
 {
-  tcp::resolver resolver(m_ios);
-  char ports[8];
-  snprintf(ports, sizeof(ports), "%i", port);
-  tcp::resolver::query query(host, ports);
-
+  struct addrinfo *res_lst, hints, *t_res;
+  int gai_errno;
   boost::system::error_code error;
-  tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, error);
-  tcp::resolver::iterator end;
+  char port_buf[NI_MAXSERV];
 
-  if (error)
-    throw Error(CR_UNKNOWN_HOST, error.message());
+  snprintf(port_buf, NI_MAXSERV, "%d", port);
 
-  error = boost::asio::error::fault;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_socktype= SOCK_STREAM;
+  hints.ai_protocol= IPPROTO_TCP;
+  hints.ai_family= AF_INET;
 
-  while (error && endpoint_iterator != end)
+  gai_errno= getaddrinfo(host.c_str(), port_buf, &hints, &res_lst);
+  if (gai_errno != 0)
+    throw Error(CR_UNKNOWN_HOST, "No such host is known '" + host + "'");
+
+  for (t_res= res_lst; t_res; t_res= t_res->ai_next)
   {
-    m_sync_connection.close();
-    error = m_sync_connection.connect(*endpoint_iterator++);
-  }
+    error = m_sync_connection.connect((sockaddr_in*)t_res->ai_addr, t_res->ai_addrlen);
 
-  if (error)
-    throw Error(CR_CONNECTION_ERROR, error.message() + " connecting to " + host + ":" + ports);
+    if (!error)
+      break;
+  }
+  freeaddrinfo(res_lst);
+
+  if (error) {
+    throw Error(CR_CONNECTION_ERROR, error.message()+" connecting to "+host+":"+port_buf);
+  }
 
   if (cap_expired_password) {
     try {
@@ -320,7 +287,6 @@ void Connection::connect(const std::string &host, int port, const bool cap_expir
 void Connection::authenticate(const std::string &user, const std::string &pass, const std::string &schema,
   int ssl_mode, const std::string& auth_method)
 {
-  if (ssl_mode > SSL_MODE_DISABLED)
   {
     if (ssl_mode == SSL_MODE_PREFERRED) {
       int error = 0;
@@ -330,9 +296,9 @@ void Connection::authenticate(const std::string &user, const std::string &pass, 
         enable_tls();
       else if (error != 0 && error != 5001)
         throw Error(error, msg);
-    } else {
-    setup_capability("tls", true);
-    enable_tls();
+    } else if (ssl_mode != SSL_MODE_DISABLED) {
+      setup_capability("tls", true);
+      enable_tls();
     }
   }
   if (auth_method == "PLAIN")
@@ -516,7 +482,7 @@ std::shared_ptr<Result> Connection::execute_delete(const Mysqlx::Crud::Delete &m
   return new_result(false);
 }
 
-void Connection::setup_capability(const std::string &name, const bool value, int& out_error, std::string &out_error_msg, bool should_throw /*= false*/)
+void Connection::setup_capability(const std::string &name, const bool value, int& out_error, std::string &out_error_msg, bool should_throw)
 {
   Mysqlx::Connection::CapabilitiesSet capSet;
   Mysqlx::Connection::Capability     *cap = capSet.mutable_capabilities()->add_capabilities();
@@ -799,11 +765,11 @@ Message *Connection::recv_next(int &mid)
   }
 }
 
-Message *Connection::recv_raw_with_deadline(int &mid, const std::size_t deadline_miliseconds)
+Message *Connection::recv_raw_with_deadline(int &mid, const int deadline_milliseconds)
 {
   char header_buffer[5];
   std::size_t data = sizeof(header_buffer);
-  boost::system::error_code error = m_sync_connection.read_with_timeout(header_buffer, data, deadline_miliseconds);
+  boost::system::error_code error = m_sync_connection.read_with_timeout(header_buffer, data, deadline_milliseconds);
 
   if (0 == data)
   {
@@ -822,7 +788,8 @@ Message *Connection::recv_payload(const int mid, const std::size_t msglen)
   Message* ret_val = NULL;
   char *mbuf = new char[msglen];
 
-  error = m_sync_connection.read(mbuf, msglen);
+  if (msglen > 0)
+    error = m_sync_connection.read(mbuf, msglen);
 
   if (!error)
   {
@@ -998,6 +965,37 @@ std::shared_ptr<Result> Session::executeStmt(const std::string &ns, const std::s
                              const std::vector<ArgumentValue> &args)
 {
   return m_connection->execute_stmt(ns, stmt, args);
+}
+
+bool Session::expired_account() {
+  return m_connection->expired_account();
+}
+
+ArgumentValue Session::get_capability(const std::string& name) {
+  ArgumentValue ret_val;
+
+  const Mysqlx::Connection::Capabilities &caps(m_connection->capabilities());
+  for (int c = caps.capabilities_size(), i = 0; i < c; i++) {
+    if (caps.capabilities(i).name() == name) {
+      const Mysqlx::Connection::Capability &cap(caps.capabilities(i));
+      if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
+          cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_STRING)
+          ret_val = ArgumentValue(cap.value().scalar().v_string().value());
+      else if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
+                cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS)
+                ret_val = ArgumentValue(cap.value().scalar().v_octets().value());
+    }
+  }
+
+  return ret_val;
+}
+
+uint64_t Session::client_id() {
+  return m_connection->client_id();
+}
+
+void Session::set_trace_protocol(bool value) {
+  m_connection->set_trace_protocol(value);
 }
 
 void Session::close()
