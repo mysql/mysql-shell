@@ -25,6 +25,10 @@
 #include "unittest/gtest_clean.h"
 #include "shellcore/shell_core_options.h"
 
+#ifdef WIN32
+#define putenv _putenv
+#endif
+
 extern "C" {
   const char *g_argv0 = nullptr;
 }
@@ -116,6 +120,20 @@ int main(int argc, char **argv) {
     std::cerr << "Note: Use MYSQL_PORT to define the MySQL protocol port (if != 3306)\n";
     std::cerr << "Note: Use MYSQLX_PORT to define the XProtocol port (if != 33060)\n";
     exit(1);
+  }
+
+  if (!getenv("MYSQL_PORT")) {
+    if (putenv(const_cast<char *>("MYSQL_PORT=3306")) != 0) {
+      std::cerr << "MYSQL_PORT was not set and putenv failed to set it\n";
+      exit(1);
+    }
+  }
+
+  if (!getenv("MYSQLX_PORT")) {
+    if (putenv(const_cast<char *>("MYSQLX_PORT=33060")) != 0) {
+      std::cerr << "MYSQLX_PORT was not set and putenv failed to set it\n";
+      exit(1);
+    }
   }
 
   // Override the configuration home for tests, to not mess with custom data
