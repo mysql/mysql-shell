@@ -31,7 +31,10 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root',
 dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port1, 'password':'root'})
 
 #@ Create cluster (succeed: parallel type updated).
-cluster = dba.create_cluster('mtsCluster')
+if __have_ssl:
+    cluster = dba.create_cluster('mtsCluster', {'memberSslMode':'REQUIRED'})
+else:
+    cluster = dba.create_cluster('mtsCluster', {'memberSslMode':'DISABLED'})
 
 #@<OUT> check instance with invalid commit order.
 dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_port2, 'password':'root'})

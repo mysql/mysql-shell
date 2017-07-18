@@ -13,7 +13,7 @@ dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port1, passwo
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
 else
-  var cluster = dba.createCluster('dev');
+  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
 
 cluster.status();
 session.close();
@@ -122,7 +122,7 @@ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1
 if (__have_ssl)
   cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'}, {memberSslMode: 'REQUIRED'});
 else
-  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'});
+  cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'}, {memberSslMode: 'DISABLED'});
 
 wait_slave_state(cluster, uri2, "ONLINE");
 

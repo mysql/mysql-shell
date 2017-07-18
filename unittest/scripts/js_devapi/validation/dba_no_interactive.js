@@ -35,6 +35,12 @@
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
 |Original SQL_MODE has been restored: true|
 
+//@ Dba: create cluster with memberSslMode AUTO succeed
+|<Cluster:devCluster>|
+
+//@ Dba: dissolve cluster created with memberSslMode AUTO
+||
+
 //@ Dba: createCluster success
 |<Cluster:devCluster>|
 

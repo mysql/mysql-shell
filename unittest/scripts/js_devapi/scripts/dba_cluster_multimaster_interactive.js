@@ -8,7 +8,7 @@ dba.createCluster('devCluster', {multiMaster: true});
 if (__have_ssl)
   dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'REQUIRED'});
 else
-  dba.createCluster('devCluster', {multiMaster: true});
+  dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED'});
 
 var Cluster = dba.getCluster('devCluster');
 
@@ -102,7 +102,7 @@ Cluster.rejoinInstance("somehost:3306");
 if (__have_ssl)
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, memberSslMode: 'REQUIRED'});
 else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3});
+  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, memberSslMode: 'DISABLED'});
 
 wait_slave_state(Cluster, uri3, "ONLINE")
 

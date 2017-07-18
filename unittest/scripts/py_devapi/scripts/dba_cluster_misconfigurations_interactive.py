@@ -11,13 +11,13 @@ session.run_sql('SET GLOBAL binlog_format=MIXED');
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode':'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode':'DISABLED'})
 
 #@<OUT> Dba.createCluster: ok
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode':'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode':'DISABLED'})
 
 #@ Finalization
 # Will delete the sandboxes ONLY if this test was executed standalone

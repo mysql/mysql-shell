@@ -9,7 +9,7 @@ shell.connect({'scheme': 'mysql', 'scheme': 'mysql', 'host': localhost, 'port': 
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode':'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode':'DISABLED'})
 
 #@ Finalization
 # Will delete the sandboxes ONLY if this test was executed standalone

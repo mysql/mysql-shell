@@ -8,7 +8,7 @@ dba.drop_metadata_schema({'force':True})
 if __have_ssl:
   cluster = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('devCluster')
+  cluster = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED'})
 
 rset = cluster.get_replica_set()
 

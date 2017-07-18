@@ -5,7 +5,7 @@
 if __have_ssl:
   dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'REQUIRED'})
 else:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True})
+  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'DISABLED'})
 
 cluster = dba.get_cluster('devCluster');
 
@@ -95,7 +95,7 @@ cluster.rejoin_instance("somehost:3306");
 if __have_ssl:
   cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'memberSslMode': 'REQUIRED'}, 'root');
 else:
-  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3}, 'root');
+  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'memberSslMode': 'DISABLED'}, 'root');
 
 check_slave_online_multimaster(cluster, uri3);
 

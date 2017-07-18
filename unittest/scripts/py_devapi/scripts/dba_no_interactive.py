@@ -56,7 +56,7 @@ print("Current sql_mode is: " + row[0] + "\n")
 if __have_ssl:
     c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
 else:
-    c1 = dba.create_cluster('devCluster')
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED'})
 
 print c1
 
@@ -71,11 +71,18 @@ restored_sql_mode = row[0]
 was_restored = restored_sql_mode == original_sql_mode
 print("Original SQL_MODE has been restored: " + str(was_restored) + "\n")
 
+#@ Dba: create cluster with memberSslMode AUTO succeed
+c1 = dba.create_cluster('devCluster', {'memberSslMode': 'AUTO'})
+c1
+
+#@ Dba: dissolve cluster created with memberSslMode AUTO
+c1.dissolve({'force': True})
+
 #@ Dba: create_cluster success
 if __have_ssl:
   c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
 else:
-  c1 = dba.create_cluster('devCluster')
+  c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED'})
 
 print c1
 

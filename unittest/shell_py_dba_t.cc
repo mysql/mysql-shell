@@ -107,11 +107,15 @@ protected:
     exec_and_out_equals(code);
 
 
-    if (_have_ssl)
+    if (_have_ssl) {
       code = "add_instance_extra_opts = {'memberSslMode': 'REQUIRED'}";
-    else
-      code = "add_instance_extra_opts = {'memberSslMode': 'AUTO'}";
-
+      exec_and_out_equals(code);
+      code = "__ssl_mode = 'REQUIRED'";
+    } else {
+      code = "add_instance_extra_opts = {'memberSslMode': 'DISABLED'}";
+      exec_and_out_equals(code);
+      code = "__ssl_mode = 'DISABLED'";
+    }
     exec_and_out_equals(code);
 
 

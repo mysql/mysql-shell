@@ -17,6 +17,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
@@ -94,6 +95,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
@@ -173,6 +175,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "NO_QUORUM",
         "statusText": "Cluster has no quorum as visible from '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 1 member is not active",
         "topology": {
@@ -216,6 +219,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "{{OK|OK_NO_TOLERANCE}}",
         "statusText": "{{Cluster tolerant to up to ONE failure.|Cluster is NOT tolerant to any failures.}}",
         "topology": {

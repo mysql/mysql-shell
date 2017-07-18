@@ -50,7 +50,7 @@ print("Current sql_mode is: "+ row[0] + "\n");
 if (__have_ssl)
     var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
 else
-    var c1 = dba.createCluster('devCluster');
+    var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED'});
 print(c1);
 
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
@@ -66,9 +66,9 @@ print("Original SQL_MODE has been restored: "+ was_restored + "\n");
 
 //@<OUT> Dba: createCluster with interaction
 if (__have_ssl)
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'})
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
 else
-  var c1 = dba.createCluster('devCluster')
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED'});
 
 // TODO: add multi-master unit-tests
 

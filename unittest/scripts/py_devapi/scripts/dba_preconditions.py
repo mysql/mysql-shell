@@ -13,7 +13,7 @@ dba.configure_local_instance({'host': localhost, 'port': __mysql_sandbox_port1, 
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode': 'DISABLED'})
 
 cluster.status()
 session.close()
@@ -121,7 +121,7 @@ cluster.force_quorum_using_partition_of({'host':localhost, 'port': __mysql_sandb
 if __have_ssl:
   cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'}, {'memberSslMode': 'REQUIRED'})
 else:
-  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'})
+  cluster.rejoin_instance({'host':localhost, 'port': __mysql_sandbox_port2, 'password':'root'}, {'memberSslMode': 'DISABLED'})
 
 wait_slave_state(cluster, uri2, ["ONLINE"])
 

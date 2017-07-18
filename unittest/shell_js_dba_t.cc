@@ -105,12 +105,15 @@ protected:
     code = "var add_instance_options = {host:localhost, port: 0000, password:'root'};";
     exec_and_out_equals(code);
 
-
-    if (_have_ssl)
+    if (_have_ssl) {
       code = "var add_instance_extra_opts = {memberSslMode: 'REQUIRED'};";
-    else
-      code = "var add_instance_extra_opts = {memberSslMode: 'AUTO'};";
-
+      exec_and_out_equals(code);
+      code = "var __ssl_mode = 'REQUIRED';";
+    } else {
+      code = "var add_instance_extra_opts = {memberSslMode: 'DISABLED'};";
+      exec_and_out_equals(code);
+      code = "var __ssl_mode = 'DISABLED';";
+    }
     exec_and_out_equals(code);
 
 

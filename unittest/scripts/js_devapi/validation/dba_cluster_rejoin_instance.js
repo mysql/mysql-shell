@@ -19,6 +19,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active",
         "topology": {
@@ -56,6 +57,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {

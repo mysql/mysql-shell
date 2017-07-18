@@ -2,6 +2,10 @@
 #@ Initialization
 deployed_here = reset_or_deploy_sandboxes()
 
+# Update __have_ssl and other with the real instance SSL support.
+# NOTE: Workaround BUG#25503817 to display the right ssl info for status()
+update_have_ssl(__mysql_sandbox_port1)
+
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 cluster_session = session
 
@@ -9,7 +13,7 @@ cluster_session = session
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode':'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode':'DISABLED'})
 
 # session is stored on the cluster object so changing the global session should not affect cluster operations
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})

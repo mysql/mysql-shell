@@ -9,7 +9,7 @@ var singleSession = session;
 if (__have_ssl)
   var single = dba.createCluster('single', {memberSslMode:'REQUIRED'});
 else
-  var single = dba.createCluster('single');
+  var single = dba.createCluster('single', {memberSslMode:'DISABLED'});
 
 //@ Success adding instance
 add_instance_to_cluster(single, __mysql_sandbox_port2);
@@ -53,7 +53,7 @@ var multiSession = session;
 if (__have_ssl)
   var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiMaster:true, force:true});
 else
-  var multi = dba.createCluster('multi', {multiMaster:true, force:true});
+  var multi = dba.createCluster('multi', {memberSslMode:'DISABLED', multiMaster:true, force:true});
 
 //@ Failure adding instance from multi cluster into single
 add_instance_options['port'] = __mysql_sandbox_port3;

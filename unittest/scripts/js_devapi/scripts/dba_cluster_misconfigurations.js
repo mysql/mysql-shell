@@ -12,7 +12,7 @@ session.runSql('SET GLOBAL binlog_format=MIXED');
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED'});
 else
-  var cluster = dba.createCluster('dev');
+  var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
 
 //@ Dissolve cluster (to re-create again)
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION

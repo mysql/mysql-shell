@@ -31,7 +31,10 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, password:'root'});
 
 //@ Create cluster (succeed: parallel type updated).
-var cluster = dba.createCluster('mtsCluster');
+if (__have_ssl)
+    var cluster = dba.createCluster('mtsCluster', {memberSslMode:'REQUIRED'});
+else
+    var cluster = dba.createCluster('mtsCluster', {memberSslMode:'DISABLED'});
 
 //@<OUT> check instance with invalid commit order.
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port2, password:'root'});

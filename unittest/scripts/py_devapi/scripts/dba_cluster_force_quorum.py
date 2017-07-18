@@ -19,7 +19,7 @@ cluster_session = session
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode': 'DISABLED'})
 
 # session is stored on the cluster object so changing the global session should not affect cluster operations
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
@@ -90,7 +90,7 @@ cluster.status();
 if __have_ssl:
   cluster.rejoin_instance({'host': localhost, 'port': __mysql_sandbox_port2, 'password': 'root'}, {'memberSslMode': 'REQUIRED'})
 else:
-  cluster.rejoin_instance({'host': localhost, 'port': __mysql_sandbox_port2, 'password': 'root'})
+  cluster.rejoin_instance({'host': localhost, 'port': __mysql_sandbox_port2, 'password': 'root'}, {'memberSslMode': 'DISABLED'})
 
 # Waiting for the second rejoined instance to become online
 wait_slave_state(cluster, uri2, "ONLINE")
@@ -99,7 +99,7 @@ wait_slave_state(cluster, uri2, "ONLINE")
 if __have_ssl:
   cluster.rejoin_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password': 'root'}, {'memberSslMode': 'REQUIRED'})
 else:
-  cluster.rejoin_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password': 'root'})
+  cluster.rejoin_instance({'host': localhost, 'port': __mysql_sandbox_port3, 'password': 'root'}, {'memberSslMode': 'DISABLED'})
 
 # Waiting for the third rejoined instance to become online
 wait_slave_state(cluster, uri3, "ONLINE")
