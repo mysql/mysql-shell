@@ -47,38 +47,17 @@ protected:
     int port = 33060, pwd_found;
     std::string protocol, user, password, host, sock, schema;
     mysqlshdk::utils::Ssl_info ssl_info;
-    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_info);
-    std::string mysql_uri = "mysql://";
-    shcore::Argument_list session_args;
-    std::shared_ptr<mysqlsh::ShellBaseSession> session;
-    mysqlsh::mysql::ClassicSession *classic;
-    std::string have_ssl;
-    _have_ssl = false;
+    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port,
+                                   sock, schema, pwd_found, ssl_info);
 
-    if (_port.empty())
+    // This tells whether SSL is available in sandboxes
+    _have_ssl = has_openssl_binary();
+
+    if (_port.empty()) {
       _port = "33060";
-
-    // Connect to test server and check if SSL is enabled
-    mysql_uri.append(_mysql_uri);
+    }
     if (_mysql_port.empty()) {
       _mysql_port = "3306";
-      mysql_uri.append(_mysql_port);
-    }
-    session_args.push_back(Value(mysql_uri));
-    try {
-      session = mysqlsh::Shell::connect_session(session_args, mysqlsh::SessionType::Classic);
-      classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-      mysqlsh::dba::get_server_variable(classic->connection(), "have_ssl",
-                                        have_ssl);
-      std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
-      _have_ssl = (have_ssl.compare("YES") == 0) ? true : false;
-      classic->close();
-    } catch(shcore::Exception &e) {
-      std::string error ("Connection to the base server failed: ");
-      error.append(e.what());
-      output_handler.debug_print(error);
-      output_handler.debug_print("Unable to determine if SSL is available, disabling it by default");
-      output_handler.flush_debug_log();
     }
 
     std::string code = "var __user = '" + user + "';";

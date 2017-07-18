@@ -542,4 +542,14 @@ int Process_launcher::get_fd_read() {
 void Process_launcher::kill() {
   close();
 }
+
+std::string Process_launcher::read_line() {
+  std::string s;
+  char c;
+  while (read(&c, 1) > 0) {
+    s.push_back(c);
+  }
+  return s;
+}
+
 }  // namespace shcore

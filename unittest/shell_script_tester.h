@@ -93,6 +93,8 @@ protected:
   void add_to_cfg_file(const std::string &cfgfile_path, const std::string &option);
   void remove_from_cfg_file(const std::string &cfgfile_path, const std::string &option);
 
+  bool has_openssl_binary();
+
 private:
   // Chunks of code will be stored here
   std::map<std::string, std::vector<std::string>> _chunks;
