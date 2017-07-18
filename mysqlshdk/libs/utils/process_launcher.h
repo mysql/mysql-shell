@@ -70,6 +70,11 @@ class Process_launcher {
   int read_one_char();  // read from stdout of child process
 
   /**
+   * Reads a single line from stdout
+   */
+  std::string read_line();
+
+  /**
    * Read up to a 'count' bytes from the stdout of the child process.
    * This method blocks until the amount of bytes is read.
    * @param buf already allocated buffer where the read data will be stored.

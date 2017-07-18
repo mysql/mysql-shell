@@ -14,9 +14,11 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "shell_script_tester.h"
+#include <string>
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
+#include "utils/process_launcher.h"
 #include "shellcore/ishell_core.h"
 
 using namespace shcore;
@@ -569,4 +571,16 @@ void Shell_script_tester::remove_from_cfg_file(const std::string &cfgfile_path,
   new_cfgfile.close();
   std::remove(cfgfile_path.c_str());
   std::rename(new_cfgfile_path.c_str(), cfgfile_path.c_str());
+}
+
+// Check whether openssl executable is accessible via PATH
+bool Shell_script_tester::has_openssl_binary() {
+  const char *argv[] = {"openssl", "version", nullptr};
+  shcore::Process_launcher p(argv);
+  p.start();
+  std::string s = p.read_line();
+  if (p.wait() == 0) {
+    return shcore::str_beginswith(s, "OpenSSL");
+  }
+  return false;
 }
