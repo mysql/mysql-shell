@@ -9,7 +9,7 @@ shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_por
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode': 'DISABLED'})
 
 #@<OUT> check_instance_state: two arguments
 cluster.check_instance_state('root@localhost:%d' % __mysql_sandbox_port1, 'root')

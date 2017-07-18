@@ -7,6 +7,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
@@ -33,6 +34,7 @@
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "NO_QUORUM",
         "statusText": "Cluster has no quorum as visible from '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' and cannot process write transactions. 2 members are not active",
         "topology": {
@@ -85,6 +87,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active",
         "topology": {
@@ -125,6 +128,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "<<<__ssl_mode>>>",
         "status": "OK",
         "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {

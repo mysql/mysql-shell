@@ -9,7 +9,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', passw
 if (__have_ssl)
   var cluster = dba.createCluster('pmCluster', {memberSslMode: 'REQUIRED'});
 else
-  var cluster = dba.createCluster('pmCluster');
+  var cluster = dba.createCluster('pmCluster', {memberSslMode: 'DISABLED'});
 
 //@ Adding instances to cluster
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);

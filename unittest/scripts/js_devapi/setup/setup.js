@@ -415,7 +415,6 @@ function try_restart_sandbox(port) {
   }
 }
 
-
 //Function to delete sandbox (only succeed after full server shutdown).
 function try_delete_sandbox(port, sandbox_dir) {
     var deleted = false;
@@ -440,5 +439,32 @@ function try_delete_sandbox(port, sandbox_dir) {
         println('Delete succeeded at: ' + port);
     } else {
         println('Delete failed at: ' + port);
+    }
+}
+
+// Check if the instance (sandbox) on the given port has SSL enabled and update
+// the global SSL values used by the test scripts accordingly.
+function update_have_ssl(port) {
+    // Check the instance SSL support
+    var res = false;
+    var connected = connect_to_sandbox([port]);
+    if (connected) {
+        var result = session.runSql("SELECT @@GLOBAL.have_ssl;");
+        var row = result.fetchOne();
+        var value = row[0];
+        if (value == 'YES') {
+            res = true;
+        }
+        session.close();
+    }
+    println("Value of 'have_ssl' for instance on " + port + ": " + value);
+    // Update SSL global values used by test scripts
+    __have_ssl = res;
+    if (__have_ssl) {
+        add_instance_extra_opts = {memberSslMode: 'REQUIRED'};
+        __ssl_mode = 'REQUIRED';
+    } else {
+        add_instance_extra_opts = {memberSslMode: 'DISABLED'};
+        __ssl_mode = 'DISABLED';
     }
 }

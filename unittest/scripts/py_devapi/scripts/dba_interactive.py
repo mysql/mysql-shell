@@ -56,7 +56,7 @@ print("Current sql_mode is: " + row[0] + "\n")
 if __have_ssl:
     c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
 else:
-    c1 = dba.create_cluster('devCluster')
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED'})
 
 print c1
 
@@ -75,7 +75,7 @@ print("Original SQL_MODE has been restored: " + str(was_restored) + "\n")
 if __have_ssl:
   c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
 else:
-  c1 = dba.create_cluster('devCluster')
+  c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED'})
 
 # TODO: add multi-master unit-tests
 

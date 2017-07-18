@@ -1786,14 +1786,21 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
 
   bool single_primary_mode = _topology_type == kTopologyPrimaryMaster;
 
+  // get the current cluster session from the metadata
+  auto instance_session = _metadata_storage->get_session();
+  auto classic =
+      dynamic_cast<mysqlsh::mysql::ClassicSession *>(instance_session.get());
+
   // Identifies the master node
   std::string master_uuid;
   if (single_primary_mode) {
-    // get the current cluster session from the metadata
-    auto instance_session = _metadata_storage->get_session();
-    auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
     get_status_variable(classic->connection(), "group_replication_primary_member", master_uuid, false);
   }
+
+  // Get SSL Mode used by the cluster (same on all members of the replicaset).
+  std::string gr_ssl_mode;
+  get_server_variable(classic->connection(), "group_replication_ssl_mode",
+                      gr_ssl_mode, true);
 
   shcore::sqlstring query(
       "SELECT mysql_server_uuid, instance_name, role, MEMBER_STATE, "
@@ -1881,6 +1888,7 @@ shcore::Value ReplicaSet::get_status(const mysqlsh::dba::ReplicationGroupState &
   (*status)["name"] = shcore::Value(_name);
   (*status)["statusText"] = shcore::Value(desc_status);
   (*status)["status"] = shcore::Value(ReplicaSetStatus::describe(rs_status));
+  (*status)["ssl"] = shcore::Value(gr_ssl_mode);
 
   // In single primary mode we need to add the "primary" field
   if (single_primary_mode && master)

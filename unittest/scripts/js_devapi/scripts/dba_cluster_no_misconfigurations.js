@@ -8,7 +8,7 @@ shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, us
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED'});
 else
-  var cluster = dba.createCluster('dev');
+  var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
 
 //@ Finalization
 // Will delete the sandboxes ONLY if this test was executed standalone

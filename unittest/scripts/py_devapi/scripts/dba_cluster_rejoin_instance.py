@@ -33,7 +33,7 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'foo', 
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode': 'DISABLED'})
 
 #@ Adding instance 2 using the root account
 cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port':__mysql_sandbox_port2}, {'password': 'root'})
@@ -67,9 +67,9 @@ cluster.status()
 
 #@ Rejoin instance 2
 if __have_ssl:
-  cluster.rejoin_instance({'dbUser': 'foo', 'host': 'localhost', 'port':__mysql_sandbox_port2}, {'memberSslMode': 'AUTO', 'password': 'bar'})
+  cluster.rejoin_instance({'dbUser': 'foo', 'host': 'localhost', 'port':__mysql_sandbox_port2}, {'memberSslMode': 'REQUIRED', 'password': 'bar'})
 else:
-  cluster.rejoin_instance({'dbUser': 'foo', 'host': 'localhost', 'port':__mysql_sandbox_port2}, {'password': 'bar'})
+  cluster.rejoin_instance({'dbUser': 'foo', 'host': 'localhost', 'port':__mysql_sandbox_port2}, {'memberSslMode': 'DISABLED', 'password': 'bar'})
 
 # Waiting for instance 2 to become back online
 wait_slave_state(cluster, uri2, "ONLINE")

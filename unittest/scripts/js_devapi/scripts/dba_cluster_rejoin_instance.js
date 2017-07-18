@@ -33,7 +33,7 @@ shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'foo', passwo
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
 else
-  var cluster = dba.createCluster('dev');
+  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
 
 //@ Adding instance 2 using the root account
 cluster.addInstance({dbUser: 'root', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'root'});
@@ -67,9 +67,9 @@ cluster.status()
 
 //@ Rejoin instance 2
 if (__have_ssl)
-  cluster.rejoinInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port2}, {memberSslMode: 'AUTO', password: 'bar'});
+  cluster.rejoinInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port2}, {memberSslMode: 'REQUIRED', password: 'bar'});
 else
-  cluster.rejoinInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'bar'});
+  cluster.rejoinInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port2}, {memberSslMode: 'DISABLED', password: 'bar'});
 
 // Waiting for instance 2 to become back online
 wait_slave_state(cluster, uri2, "ONLINE");

@@ -9,7 +9,7 @@ shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root',
 if __have_ssl:
   cluster = dba.create_cluster('pmCluster', {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('pmCluster')
+  cluster = dba.create_cluster('pmCluster', {'memberSslMode': 'DISABLED'})
 
 #@ Adding instances to cluster
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)

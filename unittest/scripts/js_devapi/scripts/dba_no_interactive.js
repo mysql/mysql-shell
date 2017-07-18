@@ -49,7 +49,7 @@ print("Current sql_mode is: "+ row[0] + "\n");
 if (__have_ssl)
     var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
 else
-    var c1 = dba.createCluster('devCluster');
+    var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED'});
 print(c1);
 
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
@@ -63,14 +63,18 @@ var restored_sql_mode = row[0];
 var was_restored = restored_sql_mode == original_sql_mode;
 print("Original SQL_MODE has been restored: "+ was_restored + "\n");
 
-// Unset SUPER_READ_ONLY, which is automatically set when GR is stopped
-session.runSql("SET GLOBAL SUPER_READ_ONLY = 0;");
+//@ Dba: create cluster with memberSslMode AUTO succeed
+var c1 = dba.createCluster("devCluster", {memberSslMode: 'AUTO'});
+c1
+
+//@ Dba: dissolve cluster created with memberSslMode AUTO
+c1.dissolve({force:true});
 
 //@ Dba: createCluster success
 if (__have_ssl)
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'})
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
 else
-  var c1 = dba.createCluster('devCluster')
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED'});
 print(c1)
 
 //@# Dba: createCluster already exist

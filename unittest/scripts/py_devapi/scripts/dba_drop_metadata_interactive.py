@@ -8,7 +8,7 @@ shell.connect({'scheme': 'mysql', 'user':'root', 'password': 'root', 'host':'loc
 if __have_ssl:
   dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED"})
 else:
-  dba.create_cluster("tempCluster")
+  dba.create_cluster("tempCluster", {"memberSslMode": "DISABLED"})
 
 #@# Invalid drop_metadata_schema call
 dba.drop_metadata_schema(1,2,3,4,5);
@@ -35,7 +35,7 @@ shell.connect({'scheme': 'mysql', 'user':'root', 'password': 'root', 'host':'loc
 if __have_ssl:
   dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED"})
 else:
-  dba.create_cluster("tempCluster")
+  dba.create_cluster("tempCluster", {"memberSslMode": "DISABLED"})
 
 dba.drop_metadata_schema()
 

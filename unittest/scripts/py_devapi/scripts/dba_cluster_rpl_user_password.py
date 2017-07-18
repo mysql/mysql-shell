@@ -19,7 +19,7 @@ session.run_sql('SET GLOBAL validate_password_policy=\'MEDIUM\'');
 if __have_ssl:
   cluster = dba.create_cluster('pmCluster', {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('pmCluster')
+  cluster = dba.create_cluster('pmCluster', {'memberSslMode': 'DISABLED'})
 
 # configure the validate_password plugin for the strong policy
 session.run_sql('SET GLOBAL validate_password_policy=\'STRONG\'');

@@ -9,7 +9,7 @@ single_session = session
 if __have_ssl:
   single = dba.create_cluster('single', {'memberSslMode':'REQUIRED'})
 else:
-  single = dba.create_cluster('single')
+  single = dba.create_cluster('single', {'memberSslMode':'DISABLED'})
 
 #@ Success adding instance
 add_instance_to_cluster(single, __mysql_sandbox_port2)
@@ -48,7 +48,7 @@ multi_session = session
 if __have_ssl:
   multi = dba.create_cluster('multi', {'memberSslMode':'REQUIRED', 'multiMaster':True, 'force':True})
 else:
-  multi = dba.create_cluster('multi', {'multiMaster':True, 'force':True})
+  multi = dba.create_cluster('multi', {'memberSslMode':'DISABLED', 'multiMaster':True, 'force':True})
 
 #@ Failure adding instance from multi cluster into single
 add_instance_options['port'] = __mysql_sandbox_port3

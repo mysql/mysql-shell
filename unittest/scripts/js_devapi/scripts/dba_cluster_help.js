@@ -5,7 +5,10 @@ var deployed_here = reset_or_deploy_sandboxes();
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@<OUT> create cluster
-var cluster = dba.createCluster('dev');
+if (__have_ssl)
+  var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
+else
+  var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
 
 cluster.status()
 

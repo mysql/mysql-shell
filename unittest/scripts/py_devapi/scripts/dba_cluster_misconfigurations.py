@@ -12,7 +12,7 @@ session.run_sql('SET GLOBAL binlog_format=MIXED');
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode':'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode':'DISABLED'})
 
 #@ Dissolve cluster (to re-create again)
 # Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION

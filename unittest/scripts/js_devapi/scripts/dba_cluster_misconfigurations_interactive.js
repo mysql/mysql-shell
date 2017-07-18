@@ -11,13 +11,13 @@ session.runSql('SET GLOBAL binlog_format=MIXED');
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED'});
 else
-  var cluster = dba.createCluster('dev');
+  var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
 
 //@<OUT> Dba.createCluster: ok
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED'});
 else
-  var cluster = dba.createCluster('dev');
+  var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
 
 //@ Finalization
 // Will delete the sandboxes ONLY if this test was executed standalone

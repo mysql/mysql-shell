@@ -8,7 +8,7 @@ shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_por
 if __have_ssl:
   cluster = dba.create_cluster('dev', {'memberSslMode': 'REQUIRED'})
 else:
-  cluster = dba.create_cluster('dev')
+  cluster = dba.create_cluster('dev', {'memberSslMode': 'DISABLED'})
 
 cluster.status();
 
