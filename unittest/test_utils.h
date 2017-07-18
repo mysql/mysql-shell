@@ -81,6 +81,37 @@ public:\
 
 std::string random_string(std::string::size_type length);
 
+inline std::string makered(const std::string &s) {
+  if (!getenv("COLOR_DEBUG"))
+    return s;
+  return "\e[31m"+s+"\e[0m";
+}
+
+inline std::string makeredbg(const std::string &s) {
+  if (!getenv("COLOR_DEBUG"))
+    return s;
+  return "\e[41m"+s+"\e[0m";
+}
+
+inline std::string makeblue(const std::string &s) {
+  if (!getenv("COLOR_DEBUG"))
+    return s;
+  return "\e[36m"+s+"\e[0m";
+}
+
+inline std::string makegreen(const std::string &s) {
+  if (!getenv("COLOR_DEBUG"))
+    return s;
+  return "\e[32m"+s+"\e[0m";
+}
+
+inline std::string makeyellow(const std::string &s) {
+  if (!getenv("COLOR_DEBUG"))
+    return s;
+  return "\e[33m"+s+"\e[0m";
+}
+
+
 class Shell_test_output_handler {
 public:
   // You can define per-test set-up and tear-down logic as usual.

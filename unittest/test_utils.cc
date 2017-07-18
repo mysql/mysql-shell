@@ -78,10 +78,10 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
 void Shell_test_output_handler::deleg_print_error(void *user_data, const char *text) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
 
-  target->full_output << text << std::endl;
+  target->full_output << makered(text) << std::endl;
 
   if (target->debug || g_test_debug)
-    std::cerr << text << std::endl;
+    std::cerr << makered(text) << std::endl;
 
   target->std_err.append(text);
 }
@@ -327,7 +327,7 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
 
-  std::string executed_input = "mysql---> " + _code;
+  std::string executed_input = makeblue("mysql---> " + _code);
   output_handler.debug_print(executed_input);
 
   if (debug || g_test_debug)
