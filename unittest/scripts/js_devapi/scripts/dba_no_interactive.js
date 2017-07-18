@@ -63,6 +63,9 @@ var restored_sql_mode = row[0];
 var was_restored = restored_sql_mode == original_sql_mode;
 print("Original SQL_MODE has been restored: "+ was_restored + "\n");
 
+// Unset SUPER_READ_ONLY, which is automatically set when GR is stopped
+session.runSql("SET GLOBAL SUPER_READ_ONLY = 0;");
+
 //@ Dba: createCluster success
 if (__have_ssl)
   var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'})

@@ -403,9 +403,9 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         // Prints debugging information
         std::string chunk_log = "CHUNK: " + _chunk_order[index];
         std::string splitter(chunk_log.length(), '-');
-        output_handler.debug_print(splitter);
-        output_handler.debug_print(chunk_log);
-        output_handler.debug_print(splitter);
+        output_handler.debug_print(makeyellow(splitter));
+        output_handler.debug_print(makeyellow(chunk_log));
+        output_handler.debug_print(makeyellow(splitter));
 
         // Executes the file line by line
         for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]].size(); chunk_item++) {
@@ -426,9 +426,13 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         // Validation contexts is at chunk level
         _custom_context = path + "@[" + _chunk_order[index] + " validation]";
         if (!validate(path, _chunk_order[index])) {
-          std::cerr << "---------- Failure Log Begin ----------" << std::endl;
+          std::cerr << makeredbg(
+                           "----------vvvv Failure Log Begin vvvv----------")
+                    << std::endl;
           output_handler.flush_debug_log();
-          std::cerr << "---------- Failure Log End ------------" << std::endl;
+          std::cerr << makeredbg(
+                           "----------^^^^ Failure Log End ^^^^------------")
+                    << std::endl;
         }
         else
           output_handler.whipe_debug_log();
@@ -454,9 +458,11 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         // If processing a tets script, performs the validations over it
         (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
         if (!validate(script)) {
-          std::cerr << "---------- Failure Log ----------" << std::endl;
+          std::cerr << makeredbg("----------vvvv Failure Log vvvv----------")
+                    << std::endl;
           output_handler.flush_debug_log();
-          std::cerr << "---------------------------------" << std::endl;
+          std::cerr << makeredbg("----------^^^^^^^^^^^^^^^^^^^^^----------")
+                    << std::endl;
         }
         else
           output_handler.whipe_debug_log();
