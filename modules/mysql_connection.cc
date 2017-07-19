@@ -164,11 +164,11 @@ shcore::Value Row::get_value(int index) {
       case MYSQL_TYPE_LONG:
       case MYSQL_TYPE_LONGLONG:
         if ((*_metadata)[index].flags() & UNSIGNED_FLAG) {
-          uint64_t value = strtoul(_row[index], nullptr, 10);
+          uint64_t value = strtoull(_row[index], nullptr, 10);
           return shcore::Value(value);
         }
         else {
-          int64_t value = strtol(_row[index], nullptr, 10);
+          int64_t value = strtoll(_row[index], nullptr, 10);
           return shcore::Value(value);
         }
 
