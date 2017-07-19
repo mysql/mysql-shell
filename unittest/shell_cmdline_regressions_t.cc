@@ -48,18 +48,13 @@ TEST_F(Command_line_test, bug24912358) {
 
   // Tests with Classic Session
   {
-#if SIZEOF_LONG == 8
-    const char *answer = "| 18446744073709551362 |";
-#else
-    const char *answer = "|  4294967295 |";
-#endif
     std::string uri = "--uri=" + _mysql_uri;
     execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
     MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1", multiline({
       "+----------------------+",
       "| -127 << 1.1          |",
       "+----------------------+",
-      answer,
+      "| 18446744073709551362 |",
       "+----------------------+"
       }), _output);
   }
