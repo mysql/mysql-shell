@@ -12,13 +12,13 @@ function ensure_session(){
   if (type(testSession) == "Null")
   {
     print("Creating testSession...\n");
-    var  uri = os.getenv('MYSQL_URI');
+    var  uri = "root@localhost";
     var  port = os.getenv('MYSQLX_PORT');
     var  pwd = os.getenv('MYSQLX_PWD');
 
     if (port)
       uri = uri + ":" + port;
-    
+
     if (pwd)
       testSession = mysqlx.getNodeSession(uri, pwd);
     else

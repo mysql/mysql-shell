@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -75,16 +75,12 @@ protected:
   }
 
   void connect() {
-    const char *uri = getenv("MYSQL_URI");
     const char *pwd = getenv("MYSQL_PWD");
     const char *port = getenv("MYSQL_PORT");
 
-    std::string mysql_uri = "mysql://";
-    mysql_uri.append(uri);
-    if (port) {
-      mysql_uri.append(":");
-      mysql_uri.append(port);
-    }
+    std::string mysql_uri = "mysql://root@localhost";
+    mysql_uri.append(":");
+    mysql_uri.append(port);
 
     Argument_list args;
     args.push_back(Value(mysql_uri));

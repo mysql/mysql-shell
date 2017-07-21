@@ -18,19 +18,19 @@
 #endif
 
 #include <mysql.h>
+#include <stdlib.h>
 #include <fstream>
 #include <iostream>
-#include <stdlib.h>
 
-#include "unittest/gtest_clean.h"
 #include "shellcore/shell_core_options.h"
+#include "unittest/gtest_clean.h"
 
 #ifdef WIN32
 #define putenv _putenv
 #endif
 
 extern "C" {
-  const char *g_argv0 = nullptr;
+const char *g_argv0 = nullptr;
 }
 char *g_mppath = nullptr;
 
@@ -70,7 +70,7 @@ static void check_zombie_sandboxes() {
   if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport1, NULL,
                          0) ||
       mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
-    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) <<"\n";
+    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) << "\n";
     std::cout << "Server already running on port " << sport1 << "\n";
     have_zombies = true;
   }
@@ -79,7 +79,7 @@ static void check_zombie_sandboxes() {
   if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport2, NULL,
                          0) ||
       mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
-    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) <<"\n";
+    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) << "\n";
     std::cout << "Server already running on port " << sport2 << "\n";
     have_zombies = true;
   }
@@ -88,7 +88,7 @@ static void check_zombie_sandboxes() {
   if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport3, NULL,
                          0) ||
       mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
-    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) <<"\n";
+    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) << "\n";
     std::cout << "Server already running on port " << sport3 << "\n";
     have_zombies = true;
   }
@@ -105,7 +105,6 @@ static void check_zombie_sandboxes() {
   }
 }
 
-
 int main(int argc, char **argv) {
   g_argv0 = argv[0];
 #ifdef HAVE_V8
@@ -114,11 +113,33 @@ int main(int argc, char **argv) {
   JScript_context_init();
 #endif
 
-  if (!getenv("MYSQL_URI")) {
-    std::cerr << "WARNING: The MYSQL_URI MYSQL_PWD and MYSQL_PORT environment variables are not set\n";
-    std::cerr << "Note: MYSQL_URI must not contain the port number\n";
-    std::cerr << "Note: Use MYSQL_PORT to define the MySQL protocol port (if != 3306)\n";
-    std::cerr << "Note: Use MYSQLX_PORT to define the XProtocol port (if != 33060)\n";
+  bool show_help = false;
+  if (const char *uri = getenv("MYSQL_URI")) {
+    if (strcmp(uri, "root@localhost") != 0 &&
+        strcmp(uri, "root@127.0.0.1") != 0) {
+      std::cerr << "MYSQL_URI is set to " << getenv("MYSQL_URI") << "\n";
+      std::cerr << "MYSQL_URI environment variable is no longer supported.\n";
+      std::cerr << "Tests must run against local server using root user.\n";
+      show_help = true;
+    }
+  }
+
+  if (show_help) {
+    std::cerr
+        << "The following environment variables are available:\n"
+        << "MYSQL_PORT classic protocol port for local MySQL (default 3306)\n"
+        << "MYSQLX_PORT X protocol port for local MySQL (default 33060)\n"
+        << "MYSQL_PWD root password for local MySQL server (default "
+           ")\n"
+        // << "MYSQL_REMOTE_HOST for tests against remove MySQL (default not
+        // set)\n"
+        // << "MYSQL_REMOTE_PWD root password for remote MySQL server (default
+        // "")\n"
+        // << "MYSQL_REMOTE_PORT classic port for remote MySQL (default 3306)\n"
+        // << "MYSQLX_REMOTE_PORT X port for remote MySQL (default 33060)\n\n"
+        << "MYSQL_SANDBOX_PORT1, MYSQL_SANDBOX_PORT2, MYSQL_SANDBOX_PORT3\n"
+        << "    ports to use for test sandbox instances. X protocol will use\n"
+        << "    MYSQL_SANDBOX_PORT1 * 10\n";
     exit(1);
   }
 
@@ -136,7 +157,39 @@ int main(int argc, char **argv) {
     }
   }
 
-  // Override the configuration home for tests, to not mess with custom data
+  if (!getenv("MYSQL_REMOTE_HOST")) {
+    static char hostname[1024] = "MYSQL_REMOTE_HOST=";
+    if (gethostname(hostname + strlen(hostname),
+                    sizeof(hostname) - strlen(hostname)) != 0) {
+      std::cerr << "gethostname() returned error: " << strerror(errno) << "\n";
+      std::cerr << "Set MYSQL_REMOTE_HOST\n";
+      // exit(1); this option is not used for now, so no need to fail
+    }
+    if (putenv(hostname) != 0) {
+      std::cerr
+          << "MYSQL_REMOTE_HOST was not set and putenv failed to set it\n";
+      // exit(1);
+    }
+    std::cout << "Set default " << hostname << "\n";
+  }
+
+  if (!getenv("MYSQL_REMOTE_PORT")) {
+    if (putenv(const_cast<char *>("MYSQL_REMOTE_PORT=3306")) != 0) {
+      std::cerr
+          << "MYSQL_REMOTE_PORT was not set and putenv failed to set it\n";
+      // exit(1);
+    }
+  }
+
+  if (!getenv("MYSQLX_REMOTE_PORT")) {
+    if (putenv(const_cast<char *>("MYSQLX_REMOTE_PORT=33060")) != 0) {
+      std::cerr
+          << "MYSQLX_REMOTE_PORT was not set and putenv failed to set it\n";
+      // exit(1);
+    }
+  }
+
+// Override the configuration home for tests, to not mess with custom data
 #ifdef WIN32
   _putenv_s("MYSQLSH_USER_CONFIG_HOME", ".");
 #else
@@ -157,45 +210,85 @@ int main(int argc, char **argv) {
     else if (flags == "DBAPY")
       new_flags = "Shell_py_dba_tests.*";
     else if (flags == "DBAJSNIG")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_interactive_classic_global*";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
+          "interactive_classic_global*";
     else if (flags == "DBAPYNIG")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_interactive_classic_global*";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
+          "interactive_classic_global*";
     else if (flags == "DBAJSNIGDBA")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_interactive_classic_global_dba";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
+          "interactive_classic_global_dba";
     else if (flags == "DBAPYNIGDBA")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_interactive_classic_global_dba";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
+          "interactive_classic_global_dba";
     else if (flags == "DBAJSNIC")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_interactive_classic_custom*";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
+          "interactive_classic_custom*";
     else if (flags == "DBAPYNIC")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_interactive_classic_custom*";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
+          "interactive_classic_custom*";
     else if (flags == "DBAJSNICDBA")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_interactive_classic_custom_dba";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
+          "interactive_classic_custom_dba";
     else if (flags == "DBAPYNICDBA")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_interactive_classic_custom_dba";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
+          "interactive_classic_custom_dba";
     else if (flags == "DBAJSNI")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_interactive_classic_*";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
+          "interactive_classic_*";
     else if (flags == "DBAPYNI")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_interactive_classic_*";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
+          "interactive_classic_*";
     else if (flags == "DBAJSIG")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.interactive_classic_global*";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
+          "interactive_classic_global*";
     else if (flags == "DBAPYIG")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.interactive_classic_global*";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
+          "interactive_classic_global*";
     else if (flags == "DBAJSIGDBA")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.interactive_classic_global_dba";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
+          "interactive_classic_global_dba";
     else if (flags == "DBAPYIGDBA")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.interactive_classic_global_dba";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
+          "interactive_classic_global_dba";
     else if (flags == "DBAJSIC")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.interactive_classic_custom*";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
+          "interactive_classic_custom*";
     else if (flags == "DBAPYIC")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.interactive_classic_custom*";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
+          "interactive_classic_custom*";
     else if (flags == "DBAJSICDBA")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.interactive_classic_custom_dba";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
+          "interactive_classic_custom_dba";
     else if (flags == "DBAPYICDBA")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.interactive_classic_custom_dba";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
+          "interactive_classic_custom_dba";
     else if (flags == "DBAJSI")
-      new_flags = "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.interactive_classic_*";
+      new_flags =
+          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
+          "interactive_classic_*";
     else if (flags == "DBAPYI")
-      new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.interactive_classic_*";
+      new_flags =
+          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
+          "interactive_classic_*";
     else if (flags == "ALLBUTDBA")
       new_flags = "*:-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
 
@@ -204,7 +297,8 @@ int main(int argc, char **argv) {
   }
 
   const char *generate_option = "--generate_test_groups=";
-  if (argc > 1 && strncmp(argv[1], generate_option, strlen(generate_option)) == 0) {
+  if (argc > 1 &&
+      strncmp(argv[1], generate_option, strlen(generate_option)) == 0) {
     const char *path = strchr(argv[1], '=') + 1;
     std::ofstream f(path);
 
@@ -214,7 +308,8 @@ int main(int argc, char **argv) {
     ::testing::UnitTest *ut = ::testing::UnitTest::GetInstance();
     for (int i = 0; i < ut->total_test_case_count(); i++) {
       const char *name = ut->GetTestCase(i)->name();
-      f << "add_test(" << name << " run_unit_tests --gtest_filter=" << name << ".*)\n";
+      f << "add_test(" << name << " run_unit_tests --gtest_filter=" << name
+        << ".*)\n";
     }
     return 0;
   }
@@ -235,7 +330,8 @@ int main(int argc, char **argv) {
 #ifndef _WIN32
   // On linux, we need to tell the UTs where the mysqlprovision executable is
   mppath.append("/../mysqlprovision");
-  (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] = shcore::Value(mppath);
+  (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] =
+      shcore::Value(mppath);
 #endif
   g_mppath = strdup(mppath.c_str());
 
