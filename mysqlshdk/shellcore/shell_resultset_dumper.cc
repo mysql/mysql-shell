@@ -23,9 +23,6 @@
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "utils/utils_string.h"
 
-#define MAX_COLUMN_LENGTH 1024
-#define MIN_COLUMN_LENGTH 4
-
 using options = shcore::Shell_core_options;
 
 ResultsetDumper::ResultsetDumper(

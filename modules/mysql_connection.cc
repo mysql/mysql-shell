@@ -30,9 +30,6 @@ using namespace mysqlsh::mysql;
 #include "scripting/common.h"
 #include <stdlib.h>
 
-#define MAX_COLUMN_LENGTH 1024
-#define MIN_COLUMN_LENGTH 4
-
 Result::Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, uint64_t last_insert_id, const char *info_)
   : _connection(owner), _affected_rows(affected_rows_), _last_insert_id(last_insert_id), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false) {
   if (info_)
