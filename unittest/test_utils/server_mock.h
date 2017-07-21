@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #include <memory>
 #include <thread>
 #include <mutex>
-#include <gtest/gtest.h>
+#include "unittest/gtest_clean.h"
 #include "unittest/mysqld_mock/mysql_server_mock.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
@@ -45,8 +45,6 @@ private:
   std::shared_ptr<server_mock::MySQLServerMock> _server_mock;
   std::shared_ptr<std::thread> _thread;
   std::shared_ptr<shcore::Process_launcher> _process;
-  std::mutex _server;
-  bool _server_listening;
   std::string _server_output;
 };
 }

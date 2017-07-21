@@ -13,27 +13,28 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <vector>
 #include "unittest/test_utils/server_mock.h"
-#include "unittest/test_utils/shell_base_test.h"
-#include "mysqlshdk/libs/db/column.h"
-#include "utils/utils_general.h"
-#include "utils/utils_json.h"
-#include "utils/utils_file.h"
+#include <condition_variable>
 #include <fstream>
 #include <random>
+#include <vector>
+#include "mysqlshdk/libs/db/column.h"
+#include "unittest/test_utils/shell_base_test.h"
+#include "utils/utils_file.h"
+#include "utils/utils_general.h"
+#include "utils/utils_json.h"
 
 namespace tests {
 
 // TODO(rennox) This function should be deleted and a UUID should be used
 // instead
-std::string random_json_name(std::string::size_type length)
-{
+std::string random_json_name(std::string::size_type length) {
   std::string alphanum =
-    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   std::random_device seed;
   std::mt19937 rng{seed()};
-  std::uniform_int_distribution<std::string::size_type> dist(0, alphanum.size() - 1);
+  std::uniform_int_distribution<std::string::size_type> dist(
+      0, alphanum.size() - 1);
 
   std::string result;
   result.reserve(length);
@@ -43,10 +44,10 @@ std::string random_json_name(std::string::size_type length)
   return result + ".json";
 }
 
-Server_mock::Server_mock():_server_listening(false) {
-}
+Server_mock::Server_mock() {}
 
-std::string Server_mock::create_data_file(const std::vector<testing::Fake_result_data> &data) {
+std::string Server_mock::create_data_file(
+    const std::vector<testing::Fake_result_data> &data) {
   shcore::JSON_dumper dumper;
 
   dumper.start_object();
@@ -75,7 +76,7 @@ std::string Server_mock::create_data_file(const std::vector<testing::Fake_result
     dumper.start_array();
     for (auto row : result.rows) {
       dumper.start_array();
-      for(size_t field_index=0; field_index < row.size(); field_index++) {
+      for (size_t field_index = 0; field_index < row.size(); field_index++) {
         auto type = map_column_type(result.types[field_index]);
         if (type == "STRING")
           dumper.append_string(row[field_index]);
@@ -151,7 +152,6 @@ std::string Server_mock::map_column_type(mysqlshdk::db::Type type) {
 }
 
 std::string Server_mock::get_path_to_binary() {
-
   std::string command;
 
   std::string prefix = shcore::get_binary_folder();
@@ -165,67 +165,71 @@ std::string Server_mock::get_path_to_binary() {
   return command;
 }
 
-void Server_mock::start(int port, const std::vector<testing::Fake_result_data> &data) {
+void Server_mock::start(int port,
+                        const std::vector<testing::Fake_result_data> &data) {
   std::string binary_path = get_path_to_binary();
   std::string data_path = create_data_file(data);
   std::string strport = std::to_string(port);
+  int server_status = -1;
+  bool started = false;
+  std::mutex mutex;
+  std::condition_variable cond;
 
-  std::vector<const char *> args = {
-    binary_path.c_str(),
-    data_path.c_str(),
-    strport.c_str(),
-    NULL
-  };
+  std::vector<const char *> args = {binary_path.c_str(), data_path.c_str(),
+                                    strport.c_str(), NULL};
 
   _thread = std::shared_ptr<std::thread>(
-    new std::thread([this, args](){
-      try {
-        _server.lock();
+      new std::thread([this, args, &server_status, &cond, &mutex, &started]() {
+        try {
+          _process.reset(new shcore::Process_launcher(&args[0]));
+          _process->start();
 
-        _process.reset(new shcore::Process_launcher(&args[0]));
-        _process->start();
-
-        char c;
-        while (_process->read(&c, 1) > 0) {
-          _server_output += c;
-          if (_server_output.find("Starting to handle connections") !=
-              std::string::npos) {
-            if (!_server_listening) {
-              _server_listening = true;
-              _server.unlock();
+          char c;
+          while (_process->read(&c, 1) > 0) {
+            _server_output += c;
+            if (_server_output.find("Starting to handle connections") !=
+                std::string::npos) {
+              if (server_status < 0) {
+                started = true;
+                {
+                  std::unique_lock<std::mutex> lock(mutex);
+                  server_status = 0;
+                }
+                cond.notify_one();
+              }
             }
           }
+
+          int exit_code = _process->wait();
+          if (server_status < 0) {
+            {
+              std::unique_lock<std::mutex> lock(mutex);
+              server_status = exit_code;
+            }
+            cond.notify_one();
+          }
+        } catch (const std::exception &e) {
+          std::cerr << e.what() << std::endl;
         }
+      }));
 
-        _process->wait();
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    cond.wait(lock, [&server_status](){ return server_status != -1; });
+  }
 
-        // If the server is not listening, it is still locked
-        if (!_server_listening)
-          _server.unlock();
-      }
-      catch (const std::exception& e) {
-        std::cout << e.what() << std::endl;
-      }
-    }));
-
-  // This delay is required to guarantee the _server is locked first on the
-  // mock server thread
-#ifdef _WIN32
-  Sleep(5);
-#else
-  usleep(5000);
-#endif
-  _server.lock();
   // Deletes the temporary data file
   shcore::delete_file(data_path);
-  _server.unlock();
 
-  if (!_server_listening)
-    throw std::runtime_error(_server_output);
+  if (!started)
+    throw std::runtime_error(
+        _server_output +
+        (server_status > 0 ? "(exit code " + std::to_string(server_status) + ")"
+                           : 0));
 }
 
 void Server_mock::stop() {
   _thread->join();
 }
 
-}
+}  // namespace tests
