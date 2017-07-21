@@ -45,9 +45,6 @@
 
 #include "shellcore/utils_help.h"
 
-#define MAX_COLUMN_LENGTH 1024
-#define MIN_COLUMN_LENGTH 4
-
 #if _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #define mystrdup _strdup

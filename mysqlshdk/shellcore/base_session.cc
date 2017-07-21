@@ -32,9 +32,6 @@
 #include "utils/utils_string.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 
-#define MAX_COLUMN_LENGTH 1024
-#define MIN_COLUMN_LENGTH 4
-
 using namespace mysqlsh;
 using namespace shcore;
 
