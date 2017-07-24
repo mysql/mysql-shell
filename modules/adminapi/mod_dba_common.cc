@@ -716,9 +716,9 @@ std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
     if (!member_ssl_mode.compare("DISABLED"))
       throw shcore::Exception::runtime_error(
           "The cluster has SSL (encryption) enabled. "
-          "To add the instance '" + session->uri() + "to the cluster either "
-          "disable SSL on the cluster or use the memberSslMode option with any "
-          "of 'AUTO' or 'REQUIRED'.");
+          "To add the instance '" + session->uri() + "' to the cluster either "
+          "disable SSL on the cluster, remove the memberSslMode option or use "
+          "it with any of 'AUTO' or 'REQUIRED'.");
 
     // Now checks if SSL is actually supported on the instance
     std::string have_ssl;
@@ -746,7 +746,7 @@ std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
       throw shcore::Exception::runtime_error(
           "The cluster has SSL (encryption) disabled. "
           "To add the instance '" + session->uri() + "' to the cluster either "
-          "disable SSL on the cluster, remove the memberSslMode option or use "
+          "enable SSL on the cluster, remove the memberSslMode option or use "
           "it with any of 'AUTO' or 'DISABLED'.");
 
     // If the instance session requires SSL connections, then it can's

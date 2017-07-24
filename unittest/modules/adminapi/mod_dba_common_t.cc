@@ -398,9 +398,9 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_002) {
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS("The cluster has SSL (encryption) enabled. "
-          "To add the instance '" + instance_session->uri() + "to the cluster "
-          "either disable SSL on the cluster or use the memberSslMode option "
-          "with any of 'AUTO' or 'REQUIRED'.",
+          "To add the instance '" + instance_session->uri() + "' to the "
+          "cluster either disable SSL on the cluster, remove the memberSslMode "
+          "option or use it with any of 'AUTO' or 'REQUIRED'.",
           error);
   }
 
@@ -598,7 +598,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_007) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS("The cluster has SSL (encryption) disabled. "
           "To add the instance '" + instance_session->uri() + "' to the "
-          "cluster either disable SSL on the cluster, remove the memberSslMode "
+          "cluster either enable SSL on the cluster, remove the memberSslMode "
           "option or use it with any of 'AUTO' or 'DISABLED'.",
           error);
   }
