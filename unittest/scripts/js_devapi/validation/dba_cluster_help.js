@@ -105,7 +105,7 @@ The connection data dictionary may contain the following attributes:
  - password/dbPassword: username password
  - host: hostname or IP address
  - port: port number
- - sslCat: the path to the X509 certificate authority in PEM format.
+ - sslCa: the path to the X509 certificate authority in PEM format.
  - sslCert: The path to the X509 certificate in PEM format.
  - sslKey: The path to the X509 key in PEM format.
 
@@ -177,7 +177,7 @@ The connection data dictionary may contain the following attributes:
  - password/dbPassword: username password
  - host: hostname or IP address
  - port: port number
- - sslCat: the path to the X509 certificate authority in PEM format.
+ - sslCa: the path to the X509 certificate authority in PEM format.
  - sslCert: The path to the X509 certificate in PEM format.
  - sslKey: The path to the X509 key in PEM format.
 
@@ -322,7 +322,7 @@ The connection data dictionary may contain the following attributes:
  - password/dbPassword: username password
  - host: hostname or IP address
  - port: port number
- - sslCat: the path to the X509 certificate authority in PEM format.
+ - sslCa: the path to the X509 certificate authority in PEM format.
  - sslCert: The path to the X509 certificate in PEM format.
  - sslKey: The path to the X509 key in PEM format.
 
@@ -411,7 +411,7 @@ The connection data dictionary may contain the following attributes:
  - password/dbPassword: username password
  - host: hostname or IP address
  - port: port number
- - sslCat: the path to the X509 certificate authority in PEM format.
+ - sslCa: the path to the X509 certificate authority in PEM format.
  - sslCert: The path to the X509 certificate in PEM format.
  - sslKey: The path to the X509 key in PEM format.
 
@@ -489,7 +489,7 @@ The connection data dictionary may contain the following attributes:
  - password/dbPassword: username password
  - host: hostname or IP address
  - port: port number
- - sslCat: the path to the X509 certificate authority in PEM format.
+ - sslCa: the path to the X509 certificate authority in PEM format.
  - sslCert: The path to the X509 certificate in PEM format.
  - sslKey: The path to the X509 key in PEM format.
 

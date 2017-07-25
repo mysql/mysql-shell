@@ -98,8 +98,7 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     "        If the session type is not specified, an Node session will be established.\n"
     "   URI is in the format of: [user[:password]@]hostname[:port]\n\n"
     "EXAMPLES:\n"
-    "   \\connect root@localhost\n"
-    "   \\connect -n $my_cfg_name";
+    "   \\connect root@localhost\n";
 
   std::string cmd_help_source =
     "SYNTAX:\n"
@@ -496,7 +495,7 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string>& args) {
     error = true;
 
   if (error)
-    print_error("\\connect [-<type>] <uri or $name>\n");
+    print_error("\\connect [-<type>] <uri>\n");
 
   return true;
 }
