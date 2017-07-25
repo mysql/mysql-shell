@@ -1,22 +1,21 @@
 /*
-* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License as
-* published by the Free Software Foundation; version 2 of the
-* License.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-* 02110-1301  USA
-*/
-
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; version 2 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301  USA
+ */
 
 #include "gtest_clean.h"
 #include "unittest/test_utils/shell_base_test.h"
@@ -24,8 +23,8 @@
 #include "mysqlshdk/libs/db/ssl_info.h"
 
 namespace tests {
-class Mysql_connection_test : public Shell_base_test {
-};
+
+class Mysql_connection_test : public Shell_base_test {};
 
 #ifdef _WIN32
 TEST_F(Mysql_connection_test, connect_default_pipe){
@@ -50,17 +49,16 @@ TEST_F(Mysql_connection_test, connect_default_pipe){
   if (named_pipe.empty()) {
     SCOPED_TRACE("Named Pipe Connections are Disabled, they must be enabled.");
     FAIL();
-  }
-  else {
+  } else {
     try {
       // Test default named pipe connection using hostname = "."
       mysqlshdk::utils::Ssl_info info;
       mysqlsh::mysql::Connection pipe_conn(".", 0, "", _user, _pwd, "", info);
       pipe_conn.close();
-    }
-    catch (const std::exception& e) {
+    } catch (const std::exception& e) {
       if (named_pipe != "MySQL") {
-        MY_EXPECT_OUTPUT_CONTAINS("Can't open named pipe to host: .  pipe: MySQL", e.what());
+        MY_EXPECT_OUTPUT_CONTAINS(
+            "Can't open named pipe to host: .  pipe: MySQL", e.what());
       } else {
         std::string error = "Failed default named pipe connection: ";
         error.append(e.what());
@@ -93,8 +91,7 @@ TEST_F(Mysql_connection_test, connect_named_pipe){
   if (named_pipe.empty()) {
     SCOPED_TRACE("Named Pipe Connections are Disabled, they must be enabled.");
     FAIL();
-  }
-  else {
+  } else {
     try {
       // Test default named pipe connection using hostname = "."
       mysqlshdk::utils::Ssl_info info;
@@ -152,4 +149,4 @@ TEST_F(Mysql_connection_test, connect_socket){
 }
 #endif
 
-}
+}  // namespace tests

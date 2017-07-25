@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,11 +36,13 @@ public:
   virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);
 
   virtual std::string prompt();
-  virtual void abort();
   virtual bool is_module(const std::string& file_name);
   virtual void execute_module(const std::string& file_name, std::function<void(shcore::Value)> result_processor);
 private:
   std::shared_ptr<Python_context> _py;
+  bool _aborted = false;
+
+  void abort(long tid) noexcept;
 };
 };
 

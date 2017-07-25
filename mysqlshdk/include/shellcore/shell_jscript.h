@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,8 +34,8 @@ public:
   virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);
 
   virtual std::string prompt();
-  virtual void abort();
 private:
+  void abort() noexcept;
   std::shared_ptr<JScript_context> _js;
 };
 };

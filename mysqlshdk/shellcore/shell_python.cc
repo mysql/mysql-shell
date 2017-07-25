@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,6 +21,9 @@
 #include "shellcore/shell_python.h"
 #include "scripting/python_utils.h"
 #include "shellcore/base_session.h"
+#include "shellcore/interrupt_handler.h"
+
+#include "pythread.h"
 
 using namespace shcore;
 
@@ -53,6 +56,18 @@ std::string Shell_python::preprocess_input_line(const std::string &s) {
 void Shell_python::handle_input(std::string &code, Input_state &state,
     std::function<void(shcore::Value)> result_processor) {
   Value result;
+
+  auto tid = PyThread_get_thread_ident();
+  shcore::Interrupt_handler inth([this, tid]() {
+    _aborted = true;
+    abort(tid);
+    return true;
+  });
+  if (_aborted) {
+    WillEnterPython lock;
+    PyThreadState_SetAsyncExc(tid, NULL);
+    _aborted = false;
+  }
 
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()) {
     WillEnterPython lock;
@@ -106,8 +121,17 @@ void Shell_python::set_global(const std::string &name, const Value &value) {
   _py->set_global(name, value);
 }
 
-void Shell_python::abort() {
-  // TODO:
+static int check_signals(void *) {
+  return PyErr_CheckSignals();
+}
+
+void Shell_python::abort(long thread_id) noexcept {
+  log_info("User aborted Python execution (^C)");
+
+  Py_AddPendingCall(check_signals, nullptr);
+  PyGILState_STATE state = PyGILState_Ensure();
+  PyThreadState_SetAsyncExc(thread_id, PyExc_KeyboardInterrupt);
+  PyGILState_Release(state);
 }
 
 bool Shell_python::is_module(const std::string& file_name) {

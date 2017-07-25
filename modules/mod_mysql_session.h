@@ -66,7 +66,7 @@ class SHCORE_PUBLIC ClassicSession : public ShellBaseSession, public std::enable
 public:
   ClassicSession();
   ClassicSession(const ClassicSession& session);
-  virtual ~ClassicSession() { try { close(); } catch (...) {} };
+  virtual ~ClassicSession();
 
 // We need to hide this from doxygen to avoid warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
@@ -120,6 +120,12 @@ public:
 
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const;
   shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
+
+  virtual SessionType session_type() const {
+    return SessionType::Classic;
+  }
+
+  virtual void kill_query() const;
 
 #if DOXYGEN_JS
   String uri; //!< Same as getUri()
@@ -177,7 +183,7 @@ public:
 #endif
   virtual bool is_open() const;
 
-  virtual int get_default_port();
+  virtual int get_default_port() const;
 
 private:
   void init();

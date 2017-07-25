@@ -225,3 +225,43 @@ TEST(UtilsString, join) {
   std::set<std::string> s({"a", "b"});
   EXPECT_EQ("a,b", shcore::str_join(s.begin(), s.end(), ","));
 }
+
+
+TEST(UtilsString, replace) {
+  EXPECT_EQ("", shcore::str_replace("", "", ""));
+
+  EXPECT_EQ("", shcore::str_replace("", "fo", ""));
+  EXPECT_EQ("", shcore::str_replace("", "fo", "bar"));
+  EXPECT_EQ("bar", shcore::str_replace("", "", "bar"));
+
+  EXPECT_EQ("foo", shcore::str_replace("foo", "", ""));
+  EXPECT_EQ("o", shcore::str_replace("foo", "fo", ""));
+  EXPECT_EQ("baro", shcore::str_replace("foo", "fo", "bar"));
+  EXPECT_EQ("barfbarobarobar", shcore::str_replace("foo", "", "bar"));
+
+  EXPECT_EQ("fofoo", shcore::str_replace("fofoo", "", ""));
+  EXPECT_EQ("o", shcore::str_replace("fofoo", "fo", ""));
+  EXPECT_EQ("barbaro", shcore::str_replace("fofoo", "fo", "bar"));
+  EXPECT_EQ("barfbarobarfbarobarobar", shcore::str_replace("fofoo", "", "bar"));
+
+  EXPECT_EQ("barfoo", shcore::str_replace("barfoo", "", ""));
+  EXPECT_EQ("baro", shcore::str_replace("barfoo", "fo", ""));
+  EXPECT_EQ("barbaro", shcore::str_replace("barfoo", "fo", "bar"));
+  EXPECT_EQ("barbbarabarrbarfbarobarobar",
+            shcore::str_replace("barfoo", "", "bar"));
+
+  EXPECT_EQ("barfo", shcore::str_replace("barfo", "", ""));
+  EXPECT_EQ("bar", shcore::str_replace("barfo", "fo", ""));
+  EXPECT_EQ("barbar", shcore::str_replace("barfo", "fo", "bar"));
+  EXPECT_EQ("barbbarabarrbarfbarobar", shcore::str_replace("barfo", "", "bar"));
+
+  EXPECT_EQ("fofo", shcore::str_replace("fofo", "", ""));
+  EXPECT_EQ("", shcore::str_replace("fofo", "fo", ""));
+  EXPECT_EQ("barbar", shcore::str_replace("fofo", "fo", "bar"));
+  EXPECT_EQ("barfbarobarfbarobar", shcore::str_replace("fofo", "", "bar"));
+
+  EXPECT_EQ("bar", shcore::str_replace("bar", "", ""));
+  EXPECT_EQ("bar", shcore::str_replace("bar", "fo", ""));
+  EXPECT_EQ("bar", shcore::str_replace("bar", "fo", "bar"));
+  EXPECT_EQ("barbbarabarrbar", shcore::str_replace("bar", "", "bar"));
+}

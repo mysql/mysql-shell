@@ -205,7 +205,7 @@ std::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, 
 
   if (get_caps)
     session->connection()->fetch_capabilities();
-  session->connection()->authenticate(user, pass, schema, ssl_config.mode, my_auth_method);  
+  session->connection()->authenticate(user, pass, schema, ssl_config.mode, my_auth_method);
   return session;
 }
 
@@ -218,8 +218,6 @@ Connection::Connection(const Ssl_config &ssl_config, const std::size_t timeout, 
     m_trace_packets(false), m_closed(true),
     m_dont_wait_for_disconnect(dont_wait_for_disconnect)
 {
-  if (getenv("MYSQLX_TRACE_CONNECTION"))
-    m_trace_packets = true;
 }
 
 Connection::~Connection()
@@ -706,13 +704,13 @@ void Connection::send(int mid, const Message &msg)
 #endif
   buf[4] = mid;
 
-  if (m_trace_packets)
+  if (m_trace_packets || getenv("MYSQLX_TRACE_CONNECTION"))
   {
     std::string out;
     google::protobuf::TextFormat::Printer p;
     p.SetInitialIndentLevel(1);
     p.PrintToString(msg, &out);
-    std::cout << ">>>> SEND " << msg.ByteSize() + 1 << " " << msg.GetDescriptor()->full_name() << " {\n" << out << "}\n";
+    std::cout << this << " >>>> SEND " << msg.ByteSize() + 1 << " " << msg.GetDescriptor()->full_name() << " {\n" << out << "}\n";
   }
 
   error = m_sync_connection.write(buf, 5);
@@ -870,13 +868,13 @@ Message *Connection::recv_payload(const int mid, const std::size_t msglen)
     // Parses the received message
     ret_val->ParseFromString(std::string(mbuf, msglen));
 
-    if (m_trace_packets)
+    if (m_trace_packets || getenv("MYSQLX_TRACE_CONNECTION"))
     {
       std::string out;
       google::protobuf::TextFormat::Printer p;
       p.SetInitialIndentLevel(1);
       p.PrintToString(*ret_val, &out);
-      std::cout << "<<<< RECEIVE " << msglen << " " << ret_val->GetDescriptor()->full_name() << " {\n" << out << "}\n";
+      std::cout << this << " <<<< RECEIVE " << msglen << " " << ret_val->GetDescriptor()->full_name() << " {\n" << out << "}\n";
     }
 
     if (!ret_val->IsInitialized())

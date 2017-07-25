@@ -13,6 +13,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <memory>
 #include <random>
 #include <string>
 #include "test_utils.h"
@@ -70,8 +71,9 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   target->full_output << text << std::endl;
 
   if (target->debug || g_test_debug)
-    std::cout << text << std::endl;
+    std::cout << text << std::flush;
 
+  std::lock_guard<std::mutex> lock(target->stdout_mutex);
   target->std_out.append(text);
 }
 
@@ -91,7 +93,10 @@ bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt
   std::string answer;
 
   target->full_output << prompt;
-  target->std_out.append(prompt);
+  {
+    std::lock_guard<std::mutex> lock(target->stdout_mutex);
+    target->std_out.append(prompt);
+  }
 
   bool ret_val = false;
   if (!target->prompts.empty()) {
@@ -110,7 +115,10 @@ bool Shell_test_output_handler::deleg_password(void *user_data, const char *prom
   std::string answer;
 
   target->full_output << prompt;
-  target->std_out.append(prompt);
+  {
+    std::lock_guard<std::mutex> lock(target->stdout_mutex);
+    target->std_out.append(prompt);
+  }
 
   bool ret_val = false;
   if (!target->passwords.empty()) {
@@ -129,9 +137,11 @@ void Shell_test_output_handler::validate_stdout_content(const std::string& conte
 
   if (found != expected) {
     std::string error = expected ? "Missing" : "Unexpected";
-    error += " Output: " + content;
-    SCOPED_TRACE("STDOUT Actual: " + std_out);
-    SCOPED_TRACE("STDERR Actual: " + std_err);
+    error += " Output: " + shcore::str_replace(content, "\n", "\n\t");
+    SCOPED_TRACE("STDOUT Actual: " +
+                 shcore::str_replace(std_out, "\n", "\n\t"));
+    SCOPED_TRACE("STDERR Actual: " +
+                 shcore::str_replace(std_err, "\n", "\n\t"));
     SCOPED_TRACE(error);
     ADD_FAILURE();
   }
@@ -141,8 +151,9 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
   if (content.empty()) {
     if (std_err.empty() != expected) {
       std::string error = std_err.empty() ? "Missing" : "Unexpected";
-      error += " Error: " + content;
-      SCOPED_TRACE("STDERR Actual: " + std_err);
+      error += " Error: " + shcore::str_replace(content, "\n", "\n\t");
+      SCOPED_TRACE("STDERR Actual: " +
+                   shcore::str_replace(std_err, "\n", "\n\t"));
       SCOPED_TRACE(error);
       ADD_FAILURE();
     }
@@ -151,8 +162,9 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
 
     if (found != expected) {
       std::string error = expected ? "Missing" : "Unexpected";
-      error += " Error: " + content;
-      SCOPED_TRACE("STDERR Actual: " + std_err);
+      error += " Error: " + shcore::str_replace(content, "\n", "\n\t");
+      SCOPED_TRACE("STDERR Actual: " +
+                   shcore::str_replace(std_err, "\n", "\n\t"));
       SCOPED_TRACE(error);
       ADD_FAILURE();
     }
@@ -454,4 +466,26 @@ std::string random_string(std::string::size_type length) {
     result += alphanum[dist(rng)];
 
   return result;
+}
+
+void run_script_classic(const std::vector<std::string> &sql) {
+  std::shared_ptr<mysqlsh::ShellBaseSession> session(
+      new mysqlsh::mysql::ClassicSession());
+  shcore::Argument_list args;
+  args.push_back(shcore::Value(std::string() + getenv("MYSQL_URI") + ":" +
+                 (getenv("MYSQL_PORT") ? getenv("MYSQL_PORT") : "3306")));
+  if (getenv("MYSQL_PWD"))
+    args.push_back(shcore::Value(getenv("MYSQL_PWD")));
+  session->connect(args);
+
+  for (const auto &s : sql) {
+    try {
+      session->raw_execute_sql(s);
+    } catch (std::exception &e) {
+      std::cerr << "EXCEPTION DURING SETUP: " << e.what() << "\n";
+      std::cerr << "QUERY: " << s << "\n";
+      throw;
+    }
+  }
+  session->close();
 }

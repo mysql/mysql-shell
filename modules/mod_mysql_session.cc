@@ -17,17 +17,10 @@
  * 02110-1301  USA
  */
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-private-field"
-#endif
-
-#include "utils/utils_sqlstring.h"
 #include "mod_mysql_session.h"
 
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+#include <set>
+#include <thread>
 
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
@@ -37,12 +30,11 @@
 #include "scripting/proxy_object.h"
 #include "mysqlxtest_utils.h"
 
-#include <set>
-
 #include "modules/mysql_connection.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_schema.h"
 #include "utils/utils_general.h"
+#include "utils/utils_sqlstring.h"
 #include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
@@ -68,6 +60,17 @@ ClassicSession::ClassicSession() {
 ClassicSession::ClassicSession(const ClassicSession& session) :
 ShellBaseSession(session), _conn(session._conn) {
   init();
+}
+
+ClassicSession::~ClassicSession() {
+  try {
+    // our own close() method will send out a notification with a
+    // shared_from_this(), which we can't call from d-tor
+    if (_conn)
+      _conn->close();
+    _conn.reset();
+  } catch (...) {
+  }
 }
 
 void ClassicSession::init() {
@@ -203,6 +206,7 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) const {
     throw Exception::logic_error("Not connected.");
   else {
     try {
+      Interruptible intr(this);
       ret_val = execute_sql(args.string_at(0), shcore::Argument_list());
     } catch (shcore::Exception & e) {
       // Connection lost, sends a notification
@@ -228,10 +232,12 @@ shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore
   if (!_conn)
     throw Exception::logic_error("Not connected.");
   else {
-    if (query.empty())
+    if (query.empty()) {
       throw Exception::argument_error("No query specified.");
-    else
+    } else {
+      Interruptible intr(this);
       ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(query))));
+    }
   }
   return ret_val;
 }
@@ -395,7 +401,7 @@ Value ClassicSession::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-int ClassicSession::get_default_port() {
+int ClassicSession::get_default_port() const {
   int default_port = 0;
 #ifdef _WIN32
   // Default port is used only on windows if:
@@ -937,3 +943,13 @@ std::string ClassicSession::query_one_string(const std::string &query) {
   return "";
 }
 
+void ClassicSession::kill_query() const {
+  uint64_t cid = get_connection_id();
+  try {
+    std::shared_ptr<Connection> kill_conn(new Connection(
+        _host, _port, _sock, _user, _password, _schema, _ssl_info));
+    kill_conn->run_sql("kill query " + std::to_string(cid));
+  } catch (std::exception &e) {
+    log_warning("Error cancelling SQL query: %s", e.what());
+  }
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,6 +37,7 @@
 #include <iostream>
 
 using namespace shcore;
+
 
 JScript_type_bridger::JScript_type_bridger(JScript_context *context)
   : owner(context), object_wrapper(NULL), indexed_object_wrapper(NULL), function_wrapper(NULL), map_wrapper(NULL), array_wrapper(NULL) {}
@@ -219,6 +220,7 @@ v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value
       break;
     case Map:
       // maybe convert fully
+      // r = native_map_to_js(*value.value.map);
       r = map_wrapper->wrap(*value.value.map);
       break;
     case MapRef:

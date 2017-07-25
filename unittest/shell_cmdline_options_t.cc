@@ -654,7 +654,7 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
 
 TEST_F(Shell_cmdline_options, test_help_details) {
   const std::vector<std::string> exp_details = {
-    "  --help                   Display this help and exit.",
+  "  -?, --help               Display this help and exit.",
   "  -f, --file=file          Process file.",
   "  -e, --execute=<cmd>      Execute command and quit.",
   "  --uri                    Connect to Uniform Resource Identifier.",

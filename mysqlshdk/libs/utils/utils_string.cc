@@ -85,4 +85,31 @@ std::string str_format(const char* formats, ...) {
   return buffer;
 }
 
+std::string str_replace(const std::string &s, const std::string &from,
+                        const std::string &to) {
+  std::string str;
+  int offs = from.length();
+  str.reserve(s.length());
+
+  if (from.empty()) {
+    str.append(to);
+    for (char c : s) {
+      str.push_back(c);
+      str.append(to);
+    }
+  } else {
+    std::string::size_type start = 0, p = s.find(from);
+    while (p != std::string::npos) {
+      if (p > start)
+        str.append(s, start, p - start);
+      str.append(to);
+      start = p + offs;
+      p = s.find(from, start);
+    }
+    if (start < s.length())
+      str.append(s, start, s.length() - start);
+  }
+  return str;
+}
+
 }

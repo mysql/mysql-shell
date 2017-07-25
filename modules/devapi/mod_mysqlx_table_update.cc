@@ -428,18 +428,17 @@ Result TableUpdate::execute() {}
 Result TableUpdate::execute() {}
 #endif
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args) {
-  mysqlx::Result *result = NULL;
+  std::unique_ptr<mysqlx::Result> result;
 
   try {
     args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
     timer.start();
-    result = new mysqlx::Result(
-        std::shared_ptr< ::mysqlx::Result>(_update_statement->execute()));
+    result.reset(new mysqlx::Result(safe_exec(*_update_statement)));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
-  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
+  return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }

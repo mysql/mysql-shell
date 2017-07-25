@@ -58,7 +58,7 @@ if(WIN32)
     install(FILES "${CMAKE_SOURCE_DIR}/python/mysqlprovision.cmd" COMPONENT dev DESTINATION ${INSTALL_BINDIR})
   ENDIF()
 
-  if(CMAKE_BUILD_TYPE MATCHES Debug)
+  if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     add_custom_command(TARGET mysqlsh PRE_BUILD
                        COMMAND ${CMAKE_COMMAND} -E copy
                        "${CMAKE_SOURCE_DIR}/python/mysqlprovision.cmd" $<TARGET_FILE_DIR:mysqlsh>)

@@ -55,19 +55,19 @@ v8::Handle<v8::Object> JScript_map_wrapper::wrap(std::shared_ptr<Value::Map_type
   v8::Handle<v8::ObjectTemplate> templ = v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _map_template);
 
   v8::Handle<v8::Object> obj(templ->NewInstance());
+  if (!obj.IsEmpty()) {
+    obj->SetAlignedPointerInInternalField(0, &magic_pointer);
 
-  obj->SetAlignedPointerInInternalField(0, &magic_pointer);
+    Collectable *tmp = new Collectable();
+    tmp->data = map;
+    obj->SetAlignedPointerInInternalField(1, tmp);
+    obj->SetAlignedPointerInInternalField(2, this);
 
-  Collectable *tmp = new Collectable();
-  tmp->data = map;
-  obj->SetAlignedPointerInInternalField(1, tmp);
-  obj->SetAlignedPointerInInternalField(2, this);
-
-  // marks the persistent instance to be garbage collectable, with a callback called on deletion
-  tmp->handle.Reset(_context->isolate(), v8::Persistent<v8::Object>(_context->isolate(), obj));
-  tmp->handle.SetWeak(tmp, wrapper_deleted);
-  tmp->handle.MarkIndependent();
-
+    // marks the persistent instance to be garbage collectable, with a callback called on deletion
+    tmp->handle.Reset(_context->isolate(), v8::Persistent<v8::Object>(_context->isolate(), obj));
+    tmp->handle.SetWeak(tmp, wrapper_deleted);
+    tmp->handle.MarkIndependent();
+  }
   return obj;
 }
 

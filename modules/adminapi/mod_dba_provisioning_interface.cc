@@ -22,6 +22,7 @@
 #include <system_error>
 #include <vector>
 
+#include "shellcore/interrupt_handler.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -50,6 +51,12 @@ int ProvisioningInterface::execute_mysqlprovision(
   char c;
   int exit_code = 0;
   std::string full_output;
+
+  // suppress ^C propagation, mp should handle ^C itself and signal us about it
+  shcore::Interrupt_handler intr([](){
+    // don't propagate up the ^C
+    return false;
+  });
 
   // set _local_mysqlprovision_path if empty
   if (_local_mysqlprovision_path.empty()) {

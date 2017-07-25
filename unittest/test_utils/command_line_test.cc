@@ -25,6 +25,7 @@ namespace tests {
 void Command_line_test::SetUp() {
   _mysqlsh_path = get_path_to_mysqlsh();
   _mysqlsh = _mysqlsh_path.c_str();
+  _process = nullptr;
 
   Shell_base_test::SetUp();
 }
@@ -68,6 +69,9 @@ int Command_line_test::execute(const std::vector<const char *> &args) {
     std::lock_guard<std::mutex> lock(_process_mutex);
     _process = new shcore::Process_launcher(&args[0]);
   }
+#ifdef _WIN32
+  _process->set_create_process_group();
+#endif
   try {
     // Starts the process
     _process->start();
@@ -102,11 +106,16 @@ bool Command_line_test::grep_stdout(const std::string &s) {
   return _output.find(s) != std::string::npos;
 }
 
-void Command_line_test::kill(int sig) {
-#ifndef _WIN32
+void Command_line_test::send_ctrlc() {
+#ifdef _WIN32
   std::lock_guard<std::mutex> lock(_process_mutex);
   if (_process) {
-    ::kill(_process->get_pid(), sig);
+    GenerateConsoleCtrlEvent(CTRL_C_EVENT, _process->get_process_id());
+  }
+#else
+  std::lock_guard<std::mutex> lock(_process_mutex);
+  if (_process) {
+    ::kill(_process->get_pid(), SIGINT);
   }
 #endif
 }

@@ -26,6 +26,7 @@
 #include "mysqlshdk/libs/utils/utils_connection.h"
 
 #include "scripting/proxy_object.h"
+#include "shellcore/interrupt_handler.h"
 
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
@@ -255,4 +256,20 @@ shcore::Object_bridge_ref ShellBaseSession::get_schema(const std::string &name) 
   }
 
   return ret_val;
+}
+
+void ShellBaseSession::begin_query() const {
+  if (_guard_active++ == 0) {
+    // Install kill query as ^C handler
+    Interrupts::push_handler([this]() {
+      kill_query();
+      return true;
+    });
+  }
+}
+
+void ShellBaseSession::end_query() const {
+  if (--_guard_active == 0) {
+    Interrupts::pop_handler();
+  }
 }

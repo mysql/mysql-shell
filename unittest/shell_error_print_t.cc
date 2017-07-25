@@ -98,8 +98,8 @@ TEST_F(Shell_error_printing, js_stack) {
   EXPECT_EQ("Deploying new MySQL instance...\n", output_handler.std_out);
   EXPECT_EQ(
       "Dba.deploySandboxInstance: Invalid value for 'port': Please use a valid "
-      "TCP port number >= 1024 and <= 65535 (ArgumentError)\n"
-      " at :1:4\nin dba.deploySandboxInstance(-1, {'password':''})\n       ^\n",
+      "TCP port number >= 1024 and <= 65535 (ArgumentError)\n at :1:4\nin "
+      "dba.deploySandboxInstance(-1, {'password':''})\n       ^\n",
       output_handler.std_err);
 }
 

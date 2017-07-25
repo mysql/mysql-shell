@@ -4,7 +4,7 @@ DELIMITER $$
 CREATE PROCEDURE InsertInfoSQL(IN rowQuantity int)
 BEGIN
 	DECLARE id_k int;
-    DECLARE namevalue varchar(50); 
+    DECLARE namevalue varchar(50);
     SET id_k = 1;
 	WHILE id_k <= rowQuantity DO
 #		select rowQuantity;

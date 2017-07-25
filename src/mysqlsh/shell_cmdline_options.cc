@@ -468,7 +468,7 @@ void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_
 
 std::vector<std::string> Shell_command_line_options::get_details() {
   const std::vector<std::string> details = {
-  "  --help                   Display this help and exit.",
+  "  -?, --help               Display this help and exit.",
   "  -f, --file=file          Process file.",
   "  -e, --execute=<cmd>      Execute command and quit.",
   "  --uri                    Connect to Uniform Resource Identifier.",

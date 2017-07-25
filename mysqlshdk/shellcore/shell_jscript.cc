@@ -20,6 +20,7 @@
 #include "shellcore/shell_jscript.h"
 #include "scripting/jscript_context.h"
 #include "shellcore/base_session.h"
+#include "shellcore/interrupt_handler.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 
 using namespace shcore;
@@ -33,6 +34,11 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state,
     std::function<void(shcore::Value)> result_processor) {
   // Undefined to be returned in case of errors
   Value result;
+
+  shcore::Interrupt_handler inth([this]() {
+    abort();
+    return true;
+  });
 
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
     result = _js->execute_interactive(code, state);
@@ -74,40 +80,10 @@ void Shell_javascript::set_global(const std::string &name, const Value &value) {
   _js->set_global(name, value);
 }
 
-void Shell_javascript::abort() {
-  /*
-  // TODO: this way to gather the session is wrong in JS, because there sessions are typically created with getNodeSession
-
-  Value session_wrapper = _owner->active_session();
-  std::shared_ptr<mysqlsh::ShellBaseSession> session = session_wrapper.as_object<mysqlsh::ShellBaseSession>();
-  // duplicate the connection
-  std::shared_ptr<mysqlsh::mysqlx::BaseSession> kill_session = NULL;
-  mysqlsh::mysqlx::NodeSession* node_session = dynamic_cast<mysqlsh::mysqlx::NodeSession*>(session.get());
-  mysqlsh::mysqlx::XSession* x_session = dynamic_cast<mysqlsh::mysqlx::XSession*>(session.get());
-
-  if (node_session != NULL)
-  {
-  kill_session.reset(new mysqlsh::mysqlx::NodeSession(*node_session));
-  }
-  else if (x_session != NULL)
-  {
-  kill_session.reset(new mysqlsh::mysqlx::XSession(*x_session));
-  }
-  else
-  throw std::runtime_error("Unexpected session type");
-
-  uint64_t connection_id = session->get_connection_id();
-  if (connection_id != 0)
-  {
-  shcore::Argument_list a;
-  a.push_back(shcore::Value(""));
-  kill_session->connect(a);
-  if (!kill_session)
-  {
-  throw std::runtime_error(boost::format().str());
-  }
-  std::string cmd = (boost::format("kill query %u") % connection_id).str();
-  a.clear();
-  kill_session->execute_sql(cmd, a);
-  }*/
+void Shell_javascript::abort() noexcept {
+  // Abort execution of JS code
+  // To abort execution of MySQL query called during JS code, a separate
+  // handler should be pushed into the stack in the code that performs the query
+  log_info("User aborted JavaScript execution (^C)");
+  _js->terminate();
 }

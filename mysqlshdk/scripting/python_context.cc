@@ -231,8 +231,8 @@ Value Python_context::execute_interactive(
   if (!py_result) {
     PyObject *exc, *value, *tb;
     // check whether this is a SyntaxError: unexpected EOF while parsing
-    // that would indicate that the command is not complete and needs more input
-    // til it's completed
+    // that would indicate that the command is not complete and needs more
+    // input til it's completed
     PyErr_Fetch(&exc, &value, &tb);
     if (PyErr_GivenExceptionMatches(exc, PyExc_SyntaxError)) {
       const char *msg;
@@ -242,8 +242,8 @@ Value Python_context::execute_interactive(
                     "unexpected character after line continuation character",
                     strlen("unexpected character after line continuation "
                            "character")) == 0) {
-          // NOTE: These two characters will come if explicit line continuation
-          // is specified
+          // NOTE: These two characters will come if explicit line
+          // continuation is specified
           if (code[code.length() - 2] == '\\' &&
               code[code.length() - 1] == '\n')
             r_state = Input_state::ContinuedSingle;
@@ -263,7 +263,6 @@ Value Python_context::execute_interactive(
       PyErr_Clear();
     else
       PyErr_Print();
-
     return Value();
     // If no error was found butthe line has the implicit line continuation
     // we need to indicate so

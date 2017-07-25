@@ -156,6 +156,10 @@ std::string SHCORE_PUBLIC str_join(const C &container, const std::string &sep) {
   return str_join(container.begin(), container.end(), sep);
 }
 
+std::string SHCORE_PUBLIC str_replace(const std::string &s,
+                                      const std::string &from,
+                                      const std::string &to);
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_

@@ -169,6 +169,8 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   virtual uint64_t get_connection_id() const;
   virtual std::string query_one_string(const std::string &query);
 
+  virtual void kill_query() const;
+
  protected:
   shcore::Value executeStmt(const std::string &domain,
                             const std::string &command, bool expect_data,
@@ -182,13 +184,16 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   }
   std::string _retrieve_current_schema();
 
-  virtual int get_default_port();
+  virtual int get_default_port() const;
 
   SessionHandle _session;
 
   bool _case_sensitive_table_names;
   void init();
   uint64_t _connection_id;
+
+ private:
+  void reset_session();
 };
 
 /**
@@ -211,6 +216,10 @@ class SHCORE_PUBLIC XSession : public BaseSession,
       const shcore::Argument_list &args);
 
   virtual std::shared_ptr<BaseSession> _get_shared_this() const;
+
+  virtual SessionType session_type() const {
+    return SessionType::X;
+  }
 };
 
 /**
@@ -257,6 +266,9 @@ class SHCORE_PUBLIC NodeSession
 
   shcore::Value _set_current_schema(const shcore::Argument_list &args);
 
+  virtual SessionType session_type() const {
+    return SessionType::Node;
+  }
  protected:
   void init();
 };

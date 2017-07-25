@@ -20,9 +20,11 @@
 #ifndef _SHELLCORE_H_
 #define _SHELLCORE_H_
 
+#include <atomic>
 #include <iostream>
 #include <list>
 #include <utility>
+
 #include "scripting/common.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h"
@@ -79,7 +81,7 @@ public:
 
 class SHCORE_PUBLIC Shell_language {
 public:
-  Shell_language(IShell_core *owner) : _killed(false), _owner(owner) {}
+  explicit Shell_language(IShell_core *owner) : _owner(owner) {}
 
   virtual ~Shell_language() {}
 
@@ -90,12 +92,11 @@ public:
   virtual bool handle_shell_command(const std::string &code) { return _shell_command_handler.process(code); }
   virtual std::string get_handled_input() { return _last_handled; }
   virtual std::string prompt() = 0;
+  virtual void clear_input() {}
   virtual bool print_help(const std::string&) { return false; }
-  virtual void abort() = 0;
   virtual bool is_module(const std::string& UNUSED(file_name)) { return false; }
   virtual void execute_module(const std::string& UNUSED(file_name), std::function<void(shcore::Value)> UNUSED(result_processor)) { /* Does Nothing by default*/ }
 protected:
-  bool _killed;
   IShell_core *_owner;
   std::string _last_handled;
   Shell_command_handler _shell_command_handler;
@@ -142,11 +143,9 @@ public:
   virtual void execute_module(const std::string &file_name, std::function<void(shcore::Value)> result_processor, const std::vector<std::string> &argv);
 
   virtual std::string prompt();
+  virtual void clear_input();
 
   virtual Interpreter_delegate *get_delegate() { return &_delegate; }
-
-  bool is_running_query() { return _running_query; }
-  virtual void abort();
 
   // To be used to stop processing from caller
   void set_error_processing() { _global_return_code = 1; }
@@ -157,6 +156,7 @@ public:
   virtual void print_error(const std::string &s);
   virtual bool password(const std::string &s, std::string &ret_pass);
   bool prompt(const std::string &s, std::string &ret_val);
+  void cancel_input();
   virtual const std::string& get_input_source() { return _input_source; }
   virtual const std::vector<std::string>& get_input_args() { return _input_args; }
   virtual bool print_help(const std::string& topic);
@@ -194,7 +194,6 @@ private:
   std::vector<std::string> _input_args;
   Mode _mode;
   int _global_return_code;
-  bool _running_query;
   bool _reconnect_session;
 };
 };

@@ -59,7 +59,7 @@ public:
 
   std::shared_ptr<ShellBaseSession> get_active_session() const;
   ReplicationGroupState check_preconditions(const std::string& function_name) const;
-  virtual int get_default_port() { return 33060; };
+  virtual int get_default_port() const { return 33060; }
   int get_default_instance_port() { return 3306; }
 
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);

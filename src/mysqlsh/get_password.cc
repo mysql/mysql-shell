@@ -21,9 +21,17 @@
 // modified to be standalone for mysqlsh
 
 #include "mysh_config.h"
+
+#if defined(HAVE_GETPASS) && !defined(__APPLE__)
+// Don't use getpass() since it doesn't handle ^C (and it's deprecated)
+// Except in macos, where it works
+#undef HAVE_GETPASS
+#endif
+
 #include <cstring>
 #include <cstdio>
 #include <ctype.h>
+#include <errno.h>
 #include <stdlib.h>
 
 #include "mysqlsh/get_password.h"
@@ -115,7 +123,7 @@ char *mysh_get_tty_password(const char *opt_message) {
 *  to will not include the eol characters.
 */
 
-static void get_password(char *to, int length, int fd, bool echo)
+static int get_password(char *to, int length, int fd, bool echo)
 {
   char *pos=to,*end=to+length;
 
@@ -137,8 +145,10 @@ static void get_password(char *to, int length, int fd, bool echo)
         continue;
       }
     }
-    if (tmp == '\n' || tmp == '\r' || tmp == 3)
+    if (tmp == '\n' || tmp == '\r')
       break;
+    if (tmp == 3)
+      return -1;
     if (iscntrl(tmp) || pos == end)
       continue;
     if (echo)
@@ -151,7 +161,7 @@ static void get_password(char *to, int length, int fd, bool echo)
   while (pos != to && isspace(pos[-1]) == ' ')
     pos--;					/* Allow dummy space at end */
   *pos=0;
-  return;
+  return 0;
 }
 
 #endif /* ! HAVE_GETPASS */
@@ -196,7 +206,9 @@ char *mysh_get_tty_password(const char *opt_message)
   tmp.c_cc[VMIN] = 1;
   tmp.c_cc[VTIME] = 0;
   tcsetattr(fileno(stdin), TCSADRAIN, &tmp);
-  get_password(buff, sizeof(buff)-1, fileno(stdin), isatty(fileno(stderr)));
+  if (get_password(buff, sizeof(buff)-1, fileno(stdin), isatty(fileno(stderr)))
+      < 0)
+    return nullptr;
   tcsetattr(fileno(stdin), TCSADRAIN, &org);
 #elif defined(HAVE_TERMIO_H)
   ioctl(fileno(stdin), (int) TCGETA, &org);
@@ -205,7 +217,9 @@ char *mysh_get_tty_password(const char *opt_message)
   tmp.c_cc[VMIN] = 1;
   tmp.c_cc[VTIME]= 0;
   ioctl(fileno(stdin),(int) TCSETA, &tmp);
-  get_password(buff,sizeof(buff)-1,fileno(stdin),isatty(fileno(stderr)));
+  if (get_password(buff, sizeof(buff)-1, fileno(stdin), isatty(fileno(stderr)))
+      < 0)
+    return nullptr;
   ioctl(fileno(stdin),(int) TCSETA, &org);
 #else
   gtty(fileno(stdin), &org);
@@ -213,7 +227,9 @@ char *mysh_get_tty_password(const char *opt_message)
   tmp.sg_flags &= ~ECHO;
   tmp.sg_flags |= RAW;
   stty(fileno(stdin), &tmp);
-  get_password(buff,sizeof(buff)-1,fileno(stdin),isatty(fileno(stderr)));
+  if (get_password(buff, sizeof(buff)-1, fileno(stdin), isatty(fileno(stderr)))
+      < 0)
+    return nullptr;
   stty(fileno(stdin), &org);
 #endif
   if (isatty(fileno(stderr)))

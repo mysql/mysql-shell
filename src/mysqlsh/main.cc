@@ -22,32 +22,33 @@
 #include <cstdio>
 #include <sstream>
 
-#include "cmdline_shell.h"
-#include "shell_cmdline_options.h"
-#include "shellcore/shell_options.h"
 #include "mysh_config.h"
+#include "mysqlsh/cmdline_shell.h"
+#include "mysqlsh/shell_cmdline_options.h"
+#include "shellcore/interrupt_handler.h"
 
 #ifndef WIN32
 #include <unistd.h>
 #endif
 
-mysqlsh::Command_line_shell* shell_ptr = NULL;
+static mysqlsh::Command_line_shell *g_shell_ptr = NULL;
 
 #ifdef WIN32
-#  include <io.h>
-#  include <windows.h>
-#  define isatty _isatty
-#  define snprintf _snprintf
+#include <io.h>
+#include <windows.h>
+#define isatty _isatty
+#define snprintf _snprintf
 
-BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
+static BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
   switch (fdwCtrlType) {
     case CTRL_C_EVENT:
     case CTRL_BREAK_EVENT:
-      if (shell_ptr != NULL) {
-        shell_ptr->abort();
-        shell_ptr->println("^C");
-        //shell_ptr->print(shell_ptr->prompt());
+      try {
+        shcore::Interrupts::interrupt();
+      } catch (std::exception &e) {
+        log_error("Unhandled exception in SIGINT handler: %s", e.what());
       }
+      // Don't let the default handler terminate us
       return TRUE;
     case CTRL_CLOSE_EVENT:
     case CTRL_LOGOFF_EVENT:
@@ -59,29 +60,86 @@ BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
   return FALSE;
 }
 
-#else
+class Interrupt_helper : public shcore::Interrupt_helper {
+ public:
+  virtual void setup() {
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
+  }
 
-#  include <signal.h>
+  virtual void block() {}
+
+  virtual void unblock(bool clear_pending) {}
+};
+
+#else  // !WIN32
+
+#include <signal.h>
 
 /**
 SIGINT signal handler.
 
 @description
-This function handles SIGINT (Ctrl - C). It sends a 'KILL [QUERY]' command
-to the server if a query is currently executing. On Windows, 'Ctrl - Break'
-is treated alike.
+This function handles SIGINT (Ctrl-C). It will call a shell function
+which should handle the interruption in an appropriate fashion.
+If the interrupt() function returns false, it will interret as a signal
+that the shell itself should abort immediately.
 
 @param [IN]               Signal number
 */
 
-void handle_ctrlc_signal(int sig) {
-  if (shell_ptr != NULL) {
-    shell_ptr->abort();
-    shell_ptr->println("^C");
+static void handle_ctrlc_signal(int sig) {
+  int errno_save = errno;
+  try {
+    shcore::Interrupts::interrupt();
+  } catch (std::exception &e) {
+    log_error("Unhandled exception in SIGINT handler: %s", e.what());
   }
+  if (shcore::Interrupts::propagates_interrupt()) {
+    // propagate the ^C to the caller of the shell
+    // this is the usual handling when we're running in batch mode
+    signal(SIGINT, SIG_DFL);
+    kill(getpid(), SIGINT);
+  }
+  errno = errno_save;
 }
 
-#endif
+static void install_signal_handler() {
+  signal(SIGINT, handle_ctrlc_signal);
+}
+
+class Interrupt_helper : public shcore::Interrupt_helper {
+ public:
+  virtual void setup() { install_signal_handler(); }
+
+  virtual void block() {
+    sigset_t sigset;
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGINT);
+    sigprocmask(SIG_BLOCK, &sigset, nullptr);
+  }
+
+  virtual void unblock(bool clear_pending) {
+    sigset_t sigset;
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGINT);
+
+    if (clear_pending && sigpending(&sigset)) {
+      struct sigaction ign, old;
+      // set to ignore SIGINT
+      ign.sa_handler = SIG_IGN;
+      ign.sa_flags = 0;
+      sigaction(SIGINT, &ign, &old);
+      // unblock and let SIGINT be delivered (and ignored)
+      sigprocmask(SIG_UNBLOCK, &sigset, nullptr);
+      // resore orignal SIGINT handler
+      sigaction(SIGINT, &old, nullptr);
+    } else {
+      sigprocmask(SIG_UNBLOCK, &sigset, nullptr);
+    }
+  }
+};
+
+#endif  //! WIN32
 
 static int enable_x_protocol(mysqlsh::Command_line_shell &shell) {
   static const char *script = "function enableXProtocol()\n"\
@@ -122,36 +180,44 @@ static int enable_x_protocol(mysqlsh::Command_line_shell &shell) {
   return shell.process_stream(stream, "(command line)", {});
 }
 
-// Execute a Administrative DB command passed from the command line via the --dba option
-// Currently, only the enableXProtocol command is supported.
-int execute_dba_command(mysqlsh::Command_line_shell &shell, const std::string &command) {
+// Execute a Administrative DB command passed from the command line via the
+// --dba option Currently, only the enableXProtocol command is supported.
+int execute_dba_command(mysqlsh::Command_line_shell *shell,
+                        const std::string &command) {
   if (command != "enableXProtocol") {
-    shell.print_error("Unsupported dba command " + command);
+    shell->print_error("Unsupported dba command " + command);
     return 1;
   }
 
   // this is a temporary solution, ideally there will be a dba object/module
-  // that implements all commands are the requested command will be invoked as dba.command()
-  // with param handling and others, from both interactive shell and cmdline
+  // that implements all commands are the requested command will be invoked as
+  // dba.command() with param handling and others, from both interactive shell
+  // and cmdline
 
-  return enable_x_protocol(shell);
+  return enable_x_protocol(*shell);
 }
 
 // Detects whether the shell will be running in interactive mode or not
 // Non interactive mode is used when:
 // - A file is processed using the --file option
 // - A file is processed through the OS redirection mechanism
+// - stdin is not a tty
 //
 // Interactive mode is used when:
-// - A file is processed using the --interactive option
-// - No file is processed
+// - stdin is a tty
+// - --interactive option is passed
 //
 // An error occurs when both --file and STDIN redirection are used
-std::string detect_interactive(mysqlsh::Shell_options &options, bool &from_stdin) {
+std::string detect_interactive(mysqlsh::Shell_options *options,
+                               bool *from_stdin, bool *stdout_is_tty) {
+  assert(options);
+  assert(from_stdin);
+
   bool is_interactive = true;
   std::string error;
 
-  from_stdin = false;
+  *from_stdin = false;
+  *stdout_is_tty = false;
 
   int __stdin_fileno;
   int __stdout_fileno;
@@ -163,39 +229,41 @@ std::string detect_interactive(mysqlsh::Shell_options &options, bool &from_stdin
   __stdin_fileno = STDIN_FILENO;
   __stdout_fileno = STDOUT_FILENO;
 #endif
+  *from_stdin = !isatty(__stdin_fileno);
 
   if (!isatty(__stdin_fileno)) {
     // Here we know the input comes from stdin
-    from_stdin = true;
+    *from_stdin = true;
   }
+
+  *stdout_is_tty = isatty(__stdout_fileno) != 0;
+
   if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
     is_interactive = false;
   else
-    is_interactive = options.run_file.empty() && options.execute_statement.empty();
+    is_interactive =
+        options->run_file.empty() && options->execute_statement.empty();
 
   // The --interactive option forces the shell to work emulating the
   // interactive mode no matter if:
   // - Input is being redirected from file
   // - Input is being redirected from STDIN
   // - It is not running on a terminal
-  if (options.interactive)
+  if (options->interactive)
     is_interactive = true;
 
-  options.interactive = is_interactive;
+  options->interactive = is_interactive;
   return error;
 }
 
 int main(int argc, char **argv) {
-#ifdef WIN32
-  // Sets console handler (Ctrl+C)
-  SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
-#else
-  signal(SIGINT, handle_ctrlc_signal);          // Catch SIGINT to clean up
-#endif
-
   int ret_val = 0;
+  Interrupt_helper sighelper;
 
-  Shell_command_line_options cmd_line_options(argc, const_cast<const char**>(argv));
+  shcore::Interrupts::init(&sighelper);
+
+  Shell_command_line_options cmd_line_options(argc,
+                                              const_cast<const char **>(argv));
   mysqlsh::Shell_options options = cmd_line_options.get_options();
 
   if (options.exit_code != 0)
@@ -209,11 +277,26 @@ int main(int argc, char **argv) {
 
   {
     bool from_stdin = false;
-    std::string error = detect_interactive(options, from_stdin);
+    bool stdout_is_tty = false;
+    std::string error =
+        detect_interactive(&options, &from_stdin, &stdout_is_tty);
 
     // Usage of wizards will be disabled if running in non interactive mode
     if (!options.interactive)
       options.wizards = false;
+    // Switch default output format to tab separated instead of table
+    if (!options.interactive && options.output_format.empty() && !stdout_is_tty)
+      options.output_format = "tabbed";
+
+#ifndef _WIN32
+    bool interrupted = false;
+    if (!options.interactive) {
+      shcore::Interrupts::push_handler([&interrupted]() {
+        interrupted = true;
+        return false;
+      });
+    }
+#endif
 
     mysqlsh::Command_line_shell shell(options);
 
@@ -224,15 +307,14 @@ int main(int argc, char **argv) {
       char version_msg[1024];
       if (*MYSH_BUILD_ID && options.print_version_extra) {
         snprintf(version_msg, sizeof(version_msg),
-                "%s   Ver %s for %s on %s - for MySQL %s (%s) - build %s",
-                argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
-                LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT,
-                MYSH_BUILD_ID);
+                 "%s   Ver %s for %s on %s - for MySQL %s (%s) - build %s",
+                 argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
+                 LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT, MYSH_BUILD_ID);
       } else {
         snprintf(version_msg, sizeof(version_msg),
-                 "%s   Ver %s for %s on %s - for MySQL %s (%s)",
-                 argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
-                 LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT);
+                 "%s   Ver %s for %s on %s - for MySQL %s (%s)", argv[0],
+                 MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE, LIBMYSQL_VERSION,
+                 MYSQL_COMPILATION_COMMENT);
       }
       shell.println(version_msg);
       ret_val = options.exit_code;
@@ -254,28 +336,41 @@ int main(int argc, char **argv) {
         }
       }
 
-      shell_ptr = &shell;
+      // This must be set after all initialization is done, otherwise
+      // a signal could be caught at a time that the shell is in an
+      // inconsistent state
+      g_shell_ptr = &shell;
 
       if (!options.execute_statement.empty()) {
         std::stringstream stream(options.execute_statement);
         ret_val = shell.process_stream(stream, "(command line)", {});
       } else if (!options.execute_dba_statement.empty()) {
         if (options.initial_mode != shcore::IShell_core::Mode::JavaScript) {
-          shell.print_error("The --dba option can only be used in JavaScript mode\n");
+          shell.print_error(
+              "The --dba option can only be used in JavaScript mode\n");
           ret_val = 1;
-        } else
-          ret_val = execute_dba_command(shell, options.execute_dba_statement);
-      } else if (!options.run_file.empty())
+        } else {
+          ret_val = execute_dba_command(&shell, options.execute_dba_statement);
+        }
+      } else if (!options.run_file.empty()) {
         ret_val = shell.process_file(options.run_file, options.script_argv);
-      else if (from_stdin) {
-        ret_val = shell.process_stream(std::cin, "STDIN", {});
       } else if (options.interactive) {
-        shell.print_banner();
+        if (!from_stdin)
+          shell.print_banner();
         shell.command_loop();
         ret_val = 0;
+      } else {
+        ret_val = shell.process_stream(std::cin, "STDIN", {});
       }
     }
+#ifdef _WIN32
+    ret_val = 130;
+#else
+    if (interrupted) {
+      signal(SIGINT, SIG_DFL);
+      kill(getpid(), SIGINT);
+    }
+#endif
   }
-
   return ret_val;
 }

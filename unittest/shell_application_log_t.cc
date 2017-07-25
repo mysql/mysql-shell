@@ -75,8 +75,7 @@ TEST_F(Shell_application_log_tests, test) {
   error = "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1";
   execute("session.runSql('select * from sakila.actor1 limit');");
   // The hook was invoked
-  // TODO: Review why 3 and not 2
-  EXPECT_EQ(3, Shell_application_log_tests::i);
+  EXPECT_EQ(2, Shell_application_log_tests::i);
 
   execute("session.close();");
 }

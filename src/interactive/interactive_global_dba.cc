@@ -212,7 +212,7 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
 
   println();
   println(progressive + " MySQL instance...");
-
+try {
   shcore::Value ret_val = call_target(fname, valid_args);
 
   println();
@@ -220,6 +220,9 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
   println();
 
   return ret_val;
+} catch (shcore::Exception &e) {
+  println(shcore::Value(e.error()).repr());
+}
 }
 
 shcore::Value Global_dba::delete_sandbox_instance(const shcore::Argument_list &args) {

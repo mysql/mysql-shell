@@ -26,6 +26,7 @@
 #include "modules/devapi/dynamic_object.h"
 #include "scripting/common.h"
 #include "scripting/types_cpp.h"
+#include "mysqlxtest/mysqlx_crud.h"
 
 #include <memory>
 #include <set>
@@ -57,8 +58,9 @@ class Crud_definition : public Dynamic_object {
 
   // The last step on CRUD operations
   virtual shcore::Value execute(const shcore::Argument_list &args) = 0;
-
  protected:
+  std::shared_ptr<::mysqlx::Result> safe_exec(::mysqlx::Statement &stmt);
+
   std::weak_ptr<DatabaseObject> _owner;
 
   void parse_string_list(const shcore::Argument_list &args,

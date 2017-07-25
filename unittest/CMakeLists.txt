@@ -37,6 +37,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/mysql/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/db/mysql_session_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/utils/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/*/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*/*_t.cc")
 

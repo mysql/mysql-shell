@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -45,18 +45,18 @@ struct shcore::JScript_function_wrapper::Collectable {
 
 v8::Handle<v8::Object> JScript_function_wrapper::wrap(std::shared_ptr<Function_base> function) {
   v8::Handle<v8::Object> obj(v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)->NewInstance());
+  if (!obj.IsEmpty()) {
+    obj->SetAlignedPointerInInternalField(0, &magic_pointer);
+    Collectable *tmp = new Collectable();
+    tmp->data = function;
+    obj->SetAlignedPointerInInternalField(1, tmp);
+    obj->SetAlignedPointerInInternalField(2, this);
 
-  obj->SetAlignedPointerInInternalField(0, &magic_pointer);
-  Collectable *tmp = new Collectable();
-  tmp->data = function;
-  obj->SetAlignedPointerInInternalField(1, tmp);
-  obj->SetAlignedPointerInInternalField(2, this);
-
-  // marks the persistent instance to be garbage collectable, with a callback called on deletion
-  tmp->handle.Reset(_context->isolate(), v8::Persistent<v8::Object>(_context->isolate(), obj));
-  tmp->handle.SetWeak(tmp, wrapper_deleted);
-  tmp->handle.MarkIndependent();
-
+    // marks the persistent instance to be garbage collectable, with a callback called on deletion
+    tmp->handle.Reset(_context->isolate(), v8::Persistent<v8::Object>(_context->isolate(), obj));
+    tmp->handle.SetWeak(tmp, wrapper_deleted);
+    tmp->handle.MarkIndependent();
+  }
   return obj;
 }
 
@@ -71,15 +71,16 @@ void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Ob
 void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Handle<v8::Object> obj(args.Holder());
   JScript_function_wrapper *self = static_cast<JScript_function_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-
   std::shared_ptr<Function_base> *shared_ptr_data = static_cast<std::shared_ptr<Function_base>*>(obj->GetAlignedPointerFromInternalField(1));
-
+  std::string name =(*shared_ptr_data)->name();
   try {
     Value r = (*shared_ptr_data)->invoke(self->_context->convert_args(args));
-
     args.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(r));
   } catch (Exception &exc) {
-    args.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+    auto jsexc = self->_context->shcore_value_to_v8_value(Value(exc.error()));
+    if (jsexc.IsEmpty())
+      jsexc = self->_context->shcore_value_to_v8_value(Value(exc.format()));
+    args.GetIsolate()->ThrowException(jsexc);
   } catch (std::exception &exc) {
     args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), exc.what()));
   }

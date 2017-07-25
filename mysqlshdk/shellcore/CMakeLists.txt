@@ -26,6 +26,7 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 set(SHELLCORE_SOURCES
   base_shell.cc
   base_session.cc
+  interrupt_handler.cc
   ishell_core.cc
   shell_core.cc
   shell_core_options.cc

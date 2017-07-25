@@ -162,6 +162,14 @@ public:
   const char* get_stats() { _prev_result.reset(); return mysql_stat(_mysql); }
   const char* get_ssl_cipher() { _prev_result.reset(); return mysql_get_ssl_cipher(_mysql); }
 
+  const char *get_last_error(int *out_code, const char **out_sqlstate) {
+    if (out_code)
+      *out_code = mysql_errno(_mysql);
+    if (out_sqlstate)
+      *out_sqlstate = mysql_sqlstate(_mysql);
+    return mysql_error(_mysql);
+  }
+
 private:
   bool setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info);
   void throw_on_connection_fail();
