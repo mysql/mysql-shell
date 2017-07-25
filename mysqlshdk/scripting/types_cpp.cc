@@ -336,7 +336,9 @@ void Cpp_object_bridge::add_method(const std::string &name,
                                    ...) {
   auto f = _funcs.find(name);
   if (f != _funcs.end()) {
+#ifndef NDEBUG
     log_warning("Attempt to register a duplicate method: %s", name.c_str());
+#endif
     // overloading not supported in old API, erase the previous one
     _funcs.erase(f);
   }
@@ -369,7 +371,9 @@ void Cpp_object_bridge::add_varargs_method(const std::string &name,
                                            Cpp_function::Function func) {
   auto f = _funcs.find(name);
   if (f != _funcs.end()) {
+#ifndef NDEBUG
     log_warning("Attempt to register a duplicate method: %s", name.c_str());
+#endif
     // overloading not supported in old API, erase the previous one
     _funcs.erase(f);
   }
