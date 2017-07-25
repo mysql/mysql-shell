@@ -115,7 +115,6 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args) {
     update_functions("sql");
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sql"));
-  //}
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

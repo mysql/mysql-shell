@@ -97,7 +97,11 @@ public:
     }
 
     ~Transaction() {
-      if (_md) _md->rollback();
+      try {
+        if (_md) _md->rollback();
+      } catch (std::exception &e) {
+        log_error("Error implicitly rolling back transaction: %s", e.what());
+      }
     }
 
     void commit() {

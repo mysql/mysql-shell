@@ -40,8 +40,7 @@ namespace mysqlx {
 */
 class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
  public:
-  explicit BaseResult(std::shared_ptr< ::mysqlx::Result> result);
-  virtual ~BaseResult() {}
+  explicit BaseResult(std::shared_ptr<::mysqlx::Result> result);
 
   virtual shcore::Value get_member(const std::string &prop) const;
   virtual void append_json(shcore::JSON_dumper &dumper) const;
@@ -100,8 +99,6 @@ class SHCORE_PUBLIC Result : public BaseResult {
  public:
   explicit Result(std::shared_ptr< ::mysqlx::Result> result);
 
-  virtual ~Result() {}
-
   virtual std::string class_name() const { return "Result"; }
   virtual shcore::Value get_member(const std::string &prop) const;
   virtual void append_json(shcore::JSON_dumper &dumper) const;
@@ -139,8 +136,6 @@ class SHCORE_PUBLIC DocResult : public BaseResult {
  public:
   explicit DocResult(std::shared_ptr< ::mysqlx::Result> result);
 
-  virtual ~DocResult() {}
-
   shcore::Value fetch_one(const shcore::Argument_list &args) const;
   shcore::Value fetch_all(const shcore::Argument_list &args) const;
 
@@ -168,8 +163,6 @@ class SHCORE_PUBLIC DocResult : public BaseResult {
 class SHCORE_PUBLIC RowResult : public BaseResult {
  public:
   explicit RowResult(std::shared_ptr< ::mysqlx::Result> result);
-
-  virtual ~RowResult() {}
 
   shcore::Value fetch_one(const shcore::Argument_list &args) const;
   shcore::Value fetch_all(const shcore::Argument_list &args) const;
@@ -219,8 +212,6 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
 class SHCORE_PUBLIC SqlResult : public RowResult {
  public:
   explicit SqlResult(std::shared_ptr< ::mysqlx::Result> result);
-
-  virtual ~SqlResult() {}
 
   virtual std::string class_name() const { return "SqlResult"; }
   virtual shcore::Value get_member(const std::string &prop) const;

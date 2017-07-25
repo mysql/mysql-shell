@@ -715,18 +715,17 @@ DocResult CollectionFind::execute() {}
 #endif
 //@}
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {
-  mysqlx::DocResult *result = NULL;
+  std::unique_ptr<mysqlx::DocResult> result;
 
   try {
     args.ensure_count(0, "CollectionFind.execute");
     MySQL_timer timer;
     timer.start();
-    result = new mysqlx::DocResult(
-        std::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
+    result.reset(new mysqlx::DocResult(safe_exec(*_find_statement)));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.execute");
 
-  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
+  return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }

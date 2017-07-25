@@ -50,6 +50,7 @@ protected:
   bool _show_warnings;
   bool _interactive;
   bool _buffer_data;
+  bool _cancelled;
 
   void dump_json();
   void dump_normal();
@@ -62,9 +63,9 @@ protected:
   std::string get_affected_stats(const std::string& member, const std::string &legend);
   int get_warning_and_execution_time_stats(std::string& output_stats);
   void dump_records(std::string& output_stats);
-  void dump_tabbed(shcore::Value::Array_type_ref records);
-  void dump_table(shcore::Value::Array_type_ref records);
-  void dump_vertical(shcore::Value::Array_type_ref records);
+  size_t dump_tabbed(shcore::Value::Array_type_ref records);
+  size_t dump_table(shcore::Value::Array_type_ref records);
+  size_t dump_vertical(shcore::Value::Array_type_ref records);
   void dump_warnings(bool classic = false);
 };
 #endif

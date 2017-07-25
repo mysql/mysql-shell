@@ -133,8 +133,11 @@ void Process_launcher::start() {
   // Create Process
   std::string cmd = make_windows_cmdline(argv);
   LPTSTR lp_cmd = const_cast<char *>(cmd.c_str());
-
+  DWORD creation_flags = 0;
   BOOL bSuccess = FALSE;
+
+  if (create_process_group)
+    creation_flags |= CREATE_NEW_PROCESS_GROUP;
 
   ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
 
@@ -146,17 +149,16 @@ void Process_launcher::start() {
   si.hStdInput = child_in_rd;
   si.dwFlags |= STARTF_USESTDHANDLES;
 
-  bSuccess = CreateProcess(
-    NULL,          // lpApplicationName
-    lp_cmd,        // lpCommandLine
-    NULL,          // lpProcessAttributes
-    NULL,          // lpThreadAttributes
-    TRUE,          // bInheritHandles
-    0,             // dwCreationFlags
-    NULL,          // lpEnvironment
-    NULL,          // lpCurrentDirectory
-    &si,           // lpStartupInfo
-    &pi);          // lpProcessInformation
+  bSuccess = CreateProcess(NULL,            // lpApplicationName
+                           lp_cmd,          // lpCommandLine
+                           NULL,            // lpProcessAttributes
+                           NULL,            // lpThreadAttributes
+                           TRUE,            // bInheritHandles
+                           creation_flags,  // dwCreationFlags
+                           NULL,            // lpEnvironment
+                           NULL,            // lpCurrentDirectory
+                           &si,             // lpStartupInfo
+                           &pi);            // lpProcessInformation
 
   if (!bSuccess) {
     report_error(NULL);

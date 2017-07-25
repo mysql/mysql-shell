@@ -90,7 +90,6 @@ class SHCORE_PUBLIC IShell_core {
   virtual const std::string& get_input_source() = 0;
   virtual const std::vector<std::string>& get_input_args() = 0;
   virtual bool print_help(const std::string& topic) = 0;
-  virtual void abort() = 0;
 };
 };
 

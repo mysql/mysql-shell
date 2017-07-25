@@ -51,9 +51,13 @@ public:
 
   void set_global_item(const std::string& global_name, const std::string& item_name, const Value &value);
 
+  bool is_terminating() const { return _terminating; }
+  void terminate();
+
 private:
   struct JScript_context_impl;
   JScript_context_impl *_impl;
+  bool _terminating = false;
 
   Object_registry *_registry;
 

@@ -25,7 +25,9 @@
 #include "modules/devapi/base_database_object.h"
 #include "modules/devapi/crud_definition.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
-#include "utils/utils_string.h"
+#include "modules/mod_mysql_session.h"
+#include "shellcore/interrupt_handler.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -83,4 +85,43 @@ void Crud_definition::parse_string_list(const shcore::Argument_list &args,
     for (size_t index = 0; index < args.size(); index++)
       data.push_back(args.string_at(index));
   }
+}
+
+
+std::shared_ptr<::mysqlx::Result> Crud_definition::safe_exec(
+    ::mysqlx::Statement &stmt) {
+
+  bool interrupted = false;
+
+  std::shared_ptr<DatabaseObject> owner(_owner.lock());
+  std::shared_ptr<ShellBaseSession> session(owner->get_session());
+
+  shcore::Interrupt_handler intrl([session, &interrupted]() {
+    try {
+      if (session) {
+        session->kill_query();
+        interrupted = true;
+      }
+    } catch (std::exception &e) {
+      log_warning("Exception trying to kill query: %s", e.what());
+    }
+    // don't propagate
+    return false;
+  });
+  auto result = std::shared_ptr<::mysqlx::Result>(stmt.execute());
+  if (result && interrupted) {
+    // If the query was interrupted but it didn't throw an exception
+    // from "Error 1317 Query execution was interrupted", it means the
+    // interruption happened at a time the query was not active. But we
+    // still need to take action, because for the caller the query will look
+    // like it was interrupted and no results will be expected. That will
+    // leave the result data waiting on the wire, messing up the protocol
+    // ordering.
+    log_warning("Flushing resultset data from interrupted query...");
+    while (result && result->nextDataSet()) {}
+    result.reset();
+    throw shcore::Exception::runtime_error(
+        "Query interrupted. Results where flushed");
+  }
+  return result;
 }

@@ -71,17 +71,15 @@ Value Shell_sql::process_sql(const std::string &query_str,
           session->class_name() + ") can't be used for SQL execution.");
 
     // If reached this point, processes the returned result object
-    if (!_killed) {
-      auto shcore_options = Shell_core_options::get();
-      auto old_format = (*shcore_options)[SHCORE_OUTPUT_FORMAT];
-      if (delimiter == "\\G")
-        (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value("vertical");
-      result_processor(ret_val);
-      (*shcore_options)[SHCORE_OUTPUT_FORMAT] = old_format;
-    }
-    _killed = false;
+    auto shcore_options = Shell_core_options::get();
+    auto old_format = (*shcore_options)[SHCORE_OUTPUT_FORMAT];
+    if (delimiter == "\\G")
+      (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value("vertical");
+    result_processor(ret_val);
+    (*shcore_options)[SHCORE_OUTPUT_FORMAT] = old_format;
   } catch (shcore::Exception &exc) {
     print_exception(exc);
+    ret_val = Value();
   }
 
   _last_handled += query_str + delimiter;
@@ -89,7 +87,8 @@ Value Shell_sql::process_sql(const std::string &query_str,
   return ret_val;
 }
 
-void Shell_sql::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
+void Shell_sql::handle_input(std::string &code, Input_state &state,
+    std::function<void(shcore::Value)> result_processor) {
   Value ret_val;
   state = Input_state::Ok;
   auto session = _owner->get_dev_session();
@@ -197,6 +196,11 @@ std::string Shell_sql::prompt() {
   }
 }
 
+void Shell_sql::clear_input() {
+  std::stack<std::string> empty;
+  _parsing_context_stack.swap(empty);
+}
+
 bool Shell_sql::print_help(const std::string& topic) {
   bool ret_val = true;
   if (topic.empty())
@@ -217,50 +221,4 @@ void Shell_sql::print_exception(const shcore::Exception &e) {
   // Sends a description of the exception data to the error handler wich will define the final format.
   shcore::Value exception(e.error());
   _owner->get_delegate()->print_value(_owner->get_delegate()->user_data, exception, "error");
-}
-
-void Shell_sql::abort() {
-  std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
-  if (!session) {
-    return;
-  }
-
-  // duplicate the connection
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> kill_session;
-  std::shared_ptr<mysqlsh::mysqlx::NodeSession> kill_session2;
-  mysqlsh::mysql::ClassicSession* classic = NULL;
-  mysqlsh::mysqlx::NodeSession* node = NULL;
-  classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-  node = dynamic_cast<mysqlsh::mysqlx::NodeSession*>(session.get());
-  if (classic) {
-    kill_session.reset(new mysqlsh::mysql::ClassicSession(*dynamic_cast<mysqlsh::mysql::ClassicSession*>(classic)));
-  } else if (node) {
-    kill_session2.reset(new mysqlsh::mysqlx::NodeSession(*dynamic_cast<mysqlsh::mysqlx::NodeSession*>(node)));
-  }
-  uint64_t connection_id = session->get_connection_id();
-  if (connection_id != 0) {
-    shcore::Argument_list a;
-    a.push_back(shcore::Value(""));
-    if (classic) {
-      kill_session->connect(a);
-      if (!kill_session) {
-        throw std::runtime_error(str_format("Error duplicating classic connection"));
-      }
-      std::ostringstream cmd;
-      cmd << "kill query " << connection_id;
-      a.clear();
-      a.push_back(shcore::Value(cmd.str()));
-      kill_session->run_sql(a);
-    } else if (node) {
-      kill_session2->connect(a);
-      if (!kill_session2) {
-        throw std::runtime_error(str_format("Error duplicating xplugin connection"));
-      }
-      std::ostringstream cmd;
-      cmd << "kill query " << connection_id;
-      a.clear();
-      shcore::Value v = kill_session2->execute_sql(cmd.str(), a);
-    }
-    _killed = true;
-  }
 }

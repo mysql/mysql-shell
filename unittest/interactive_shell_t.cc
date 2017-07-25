@@ -951,22 +951,28 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
 TEST_F(Interactive_shell_test, classic_sql_result) {
   execute("\\connect " + _mysql_uri);
   execute("\\sql");
-  execute("drop schema itst;");
+  execute("drop schema if exists itst;");
   execute("create schema itst;");
+  // Regression test for
+  // Bug#26406214 WRONG VALUE FOR SMALLINT ZEROFILL COLUMNS HOLDING NULL VALUE
   execute(
       "create table itst.tbl (a int, b varchar(30), c int(10), "
-      "              d int(8) unsigned zerofill, e int(2) zerofill);");
+      "      d int(8) unsigned zerofill, e int(2) zerofill, "
+      "      f smallint unsigned zerofill, ggggg tinyint unsigned zerofill, "
+      "      h bigint unsigned zerofill, i double unsigned zerofill);");
   execute(
-      "insert into itst.tbl values (1, 'one', -42, 42, 42), "
-      "             (2, 'two', -12345, 12345, 12345),"
-      "             (3, 'three', 0, 0, 0);");
+      "insert into itst.tbl values (1, 'one', -42, 42, 42, 42, 42, 42, 42), "
+      "         (2, 'two', -12345, 12345, 12345, 12345, 123, 12345, 12345),"
+      "         (3, 'three', 0, 0, 0, 0, 0, 0, 0),"
+      "         (4, 'four', null, null, null, null, null, null, null);");
+  EXPECT_EQ("", output_handler.std_err);
   wipe_all();
   execute("select 1, 'two', 3.3, null;");
   MY_EXPECT_STDOUT_CONTAINS(
       "+---+-----+-----+------+\n"
       "| 1 | two | 3.3 | NULL |\n"
       "+---+-----+-----+------+\n"
-      "| 1 | two | 3.3 | null |\n"
+      "| 1 | two | 3.3 | NULL |\n"
       "+---+-----+-----+------+\n"
       "1 row in set (");
 
@@ -974,14 +980,23 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
   // test zerofill
   execute("select * from itst.tbl;");
   MY_EXPECT_STDOUT_CONTAINS(
-      "+---+-------+--------+----------+-------+\n"
-      "| a | b     | c      | d        | e     |\n"
-      "+---+-------+--------+----------+-------+\n"
-      "| 1 | one   |    -42 | 00000042 |    42 |\n"
-      "| 2 | two   | -12345 | 00012345 | 12345 |\n"
-      "| 3 | three |      0 | 00000000 |    00 |\n"
-      "+---+-------+--------+----------+-------+\n"
-      "3 rows in set (");
+      "+---+-------+--------+----------+-------+-------+-------+---------------"
+      "-------+------------------------+\n"
+      "| a | b     | c      | d        | e     | f     | ggggg | h             "
+      "       | i                      |\n"
+      "+---+-------+--------+----------+-------+-------+-------+---------------"
+      "-------+------------------------+\n"
+      "| 1 | one   |    -42 | 00000042 |    42 | 00042 |   042 | "
+      "00000000000000000042 | 0000000000000000000042 |\n"
+      "| 2 | two   | -12345 | 00012345 | 12345 | 12345 |   123 | "
+      "00000000000000012345 | 0000000000000000012345 |\n"
+      "| 3 | three |      0 | 00000000 |    00 | 00000 |   000 | "
+      "00000000000000000000 | 0000000000000000000000 |\n"
+      "| 4 | four  |   NULL |     NULL |  NULL |  NULL |  NULL |               "
+      "  NULL |                   NULL |\n"
+      "+---+-------+--------+----------+-------+-------+-------+---------------"
+      "-------+------------------------+\n"
+      "4 rows in set (");
 
   execute("\\js");
   execute("shell.options['outputFormat']='vertical'");
@@ -991,24 +1006,46 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
   execute("select * from itst.tbl;");
   MY_EXPECT_STDOUT_CONTAINS(
       "*************************** 1. row ***************************\n"
-      "a: 1\n"
-      "b: one\n"
-      "c: -42\n"
-      "d: 42\n"
-      "e: 42\n"
+      "    a: 1\n"
+      "    b: one\n"
+      "    c: -42\n"
+      "    d: 00000042\n"
+      "    e: 42\n"
+      "    f: 00042\n"
+      "ggggg: 042\n"
+      "    h: 00000000000000000042\n"
+      "    i: 0000000000000000000042\n"
       "*************************** 2. row ***************************\n"
-      "a: 2\n"
-      "b: two\n"
-      "c: -12345\n"
-      "d: 12345\n"
-      "e: 12345\n"
+      "    a: 2\n"
+      "    b: two\n"
+      "    c: -12345\n"
+      "    d: 00012345\n"
+      "    e: 12345\n"
+      "    f: 12345\n"
+      "ggggg: 123\n"
+      "    h: 00000000000000012345\n"
+      "    i: 0000000000000000012345\n"
       "*************************** 3. row ***************************\n"
-      "a: 3\n"
-      "b: three\n"
-      "c: 0\n"
-      "d: 0\n"
-      "e: 0\n"
-      "3 rows in set (");
+      "    a: 3\n"
+      "    b: three\n"
+      "    c: 0\n"
+      "    d: 00000000\n"
+      "    e: 00\n"
+      "    f: 00000\n"
+      "ggggg: 000\n"
+      "    h: 00000000000000000000\n"
+      "    i: 0000000000000000000000\n"
+      "*************************** 4. row ***************************\n"
+      "    a: 4\n"
+      "    b: four\n"
+      "    c: NULL\n"
+      "    d: NULL\n"
+      "    e: NULL\n"
+      "    f: NULL\n"
+      "ggggg: NULL\n"
+      "    h: NULL\n"
+      "    i: NULL\n"
+      "4 rows in set");
 
   execute("\\js");
   execute("shell.options['outputFormat']='json'");
@@ -1024,27 +1061,52 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "            \"b\": \"one\",\n"
       "            \"c\": -42,\n"
       "            \"d\": 42,\n"
-      "            \"e\": 42\n"
+      "            \"e\": 42,\n"
+      "            \"f\": 42,\n"
+      "            \"ggggg\": 42,\n"
+      "            \"h\": 42,\n"
+      "            \"i\": 42.0\n"
       "        },\n"
       "        {\n"
       "            \"a\": 2,\n"
       "            \"b\": \"two\",\n"
       "            \"c\": -12345,\n"
       "            \"d\": 12345,\n"
-      "            \"e\": 12345\n"
+      "            \"e\": 12345,\n"
+      "            \"f\": 12345,\n"
+      "            \"ggggg\": 123,\n"
+      "            \"h\": 12345,\n"
+      "            \"i\": 12345.0\n"
       "        },\n"
       "        {\n"
       "            \"a\": 3,\n"
       "            \"b\": \"three\",\n"
       "            \"c\": 0,\n"
       "            \"d\": 0,\n"
-      "            \"e\": 0\n"
+      "            \"e\": 0,\n"
+      "            \"f\": 0,\n"
+      "            \"ggggg\": 0,\n"
+      "            \"h\": 0,\n"
+      "            \"i\": 0.0\n"
+      "        },\n"
+      "        {\n"
+      "            \"a\": 4,\n"
+      "            \"b\": \"four\",\n"
+      "            \"c\": null,\n"
+      "            \"d\": null,\n"
+      "            \"e\": null,\n"
+      "            \"f\": null,\n"
+      "            \"ggggg\": null,\n"
+      "            \"h\": null,\n"
+      "            \"i\": null\n"
       "        }\n"
       "    ],\n"
       "    \"warningCount\": 0,\n"
       "    \"warnings\": [],\n"
       "    \"hasData\": true,\n"
-      "    \"affectedRowCount\": 0,\n");
+      "    \"affectedRowCount\": 0,\n"
+      "    \"autoIncrementValue\": 0\n"
+      "}\n");
 
   execute("drop schema itst;");
 }
@@ -1052,37 +1114,51 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
 TEST_F(Interactive_shell_test, x_sql_result) {
   execute("\\connect " + _uri);
   execute("\\sql");
-  execute("drop schema itst;");
+  execute("drop schema if exists itst;");
   execute("create schema itst;");
   execute(
       "create table itst.tbl (a int, b varchar(30), c int(10), "
-      "              d int(8) unsigned zerofill, e int(2) zerofill);");
+      "    d int(8) unsigned zerofill, e int(2) zerofill, "
+      "    f smallint unsigned zerofill, ggggg tinyint unsigned zerofill, "
+      "    h bigint unsigned zerofill, i double unsigned zerofill);");
   execute(
-      "insert into itst.tbl values (1, 'one', -42, 42, 42), "
-      "             (2, 'two', -12345, 12345, 12345),"
-      "             (3, 'three', 0, 0, 0);");
+      "insert into itst.tbl values (1, 'one', -42, 42, 42, 42, 42, 42, 42), "
+      "       (2, 'two', -12345, 12345, 12345, 12345, 123, 12345, 12345),"
+      "       (3, 'three', 0, 0, 0, 0, 0, 0, 0),"
+      "       (4, 'four', null, null, null, null, null, null, null);");
+  EXPECT_EQ("", output_handler.std_err);
   wipe_all();
   execute("select 1, 'two', 3.3, null;");
   MY_EXPECT_STDOUT_CONTAINS(
       "+---+-----+-----+------+\n"
       "| 1 | two | 3.3 | NULL |\n"
       "+---+-----+-----+------+\n"
-      "| 1 | two | 3.3 | null |\n"
+      "| 1 | two | 3.3 | NULL |\n"
       "+---+-----+-----+------+\n"
       "1 row in set (");
 
   wipe_all();
   // test zerofill
   execute("select * from itst.tbl;");
+  // NOTE: X protocol does not support zerofill for double atm
   MY_EXPECT_STDOUT_CONTAINS(
-      "+---+-------+--------+----------+-------+\n"
-      "| a | b     | c      | d        | e     |\n"
-      "+---+-------+--------+----------+-------+\n"
-      "| 1 | one   |    -42 | 00000042 |    42 |\n"
-      "| 2 | two   | -12345 | 00012345 | 12345 |\n"
-      "| 3 | three |      0 | 00000000 |    00 |\n"
-      "+---+-------+--------+----------+-------+\n"
-      "3 rows in set (");
+      "+---+-------+--------+----------+-------+-------+-------+---------------"
+      "-------+-------+\n"
+      "| a | b     | c      | d        | e     | f     | ggggg | h             "
+      "       | i     |\n"
+      "+---+-------+--------+----------+-------+-------+-------+---------------"
+      "-------+-------+\n"
+      "| 1 | one   |    -42 | 00000042 |    42 | 00042 |   042 | "
+      "00000000000000000042 |    42 |\n"
+      "| 2 | two   | -12345 | 00012345 | 12345 | 12345 |   123 | "
+      "00000000000000012345 | 12345 |\n"
+      "| 3 | three |      0 | 00000000 |    00 | 00000 |   000 | "
+      "00000000000000000000 |     0 |\n"
+      "| 4 | four  |   NULL |     NULL |  NULL |  NULL |  NULL |               "
+      "  NULL |  NULL |\n"
+      "+---+-------+--------+----------+-------+-------+-------+---------------"
+      "-------+-------+\n"
+      "4 rows in set (");
 
   execute("\\js");
   execute("shell.options['outputFormat']='vertical'");
@@ -1092,24 +1168,46 @@ TEST_F(Interactive_shell_test, x_sql_result) {
   execute("select * from itst.tbl;");
   MY_EXPECT_STDOUT_CONTAINS(
       "*************************** 1. row ***************************\n"
-      "a: 1\n"
-      "b: one\n"
-      "c: -42\n"
-      "d: 42\n"
-      "e: 42\n"
+      "    a: 1\n"
+      "    b: one\n"
+      "    c: -42\n"
+      "    d: 00000042\n"
+      "    e: 42\n"
+      "    f: 00042\n"
+      "ggggg: 042\n"
+      "    h: 00000000000000000042\n"
+      "    i: 42\n"
       "*************************** 2. row ***************************\n"
-      "a: 2\n"
-      "b: two\n"
-      "c: -12345\n"
-      "d: 12345\n"
-      "e: 12345\n"
+      "    a: 2\n"
+      "    b: two\n"
+      "    c: -12345\n"
+      "    d: 00012345\n"
+      "    e: 12345\n"
+      "    f: 12345\n"
+      "ggggg: 123\n"
+      "    h: 00000000000000012345\n"
+      "    i: 12345\n"
       "*************************** 3. row ***************************\n"
-      "a: 3\n"
-      "b: three\n"
-      "c: 0\n"
-      "d: 0\n"
-      "e: 0\n"
-      "3 rows in set (");
+      "    a: 3\n"
+      "    b: three\n"
+      "    c: 0\n"
+      "    d: 00000000\n"
+      "    e: 00\n"
+      "    f: 00000\n"
+      "ggggg: 000\n"
+      "    h: 00000000000000000000\n"
+      "    i: 0\n"
+      "*************************** 4. row ***************************\n"
+      "    a: 4\n"
+      "    b: four\n"
+      "    c: NULL\n"
+      "    d: NULL\n"
+      "    e: NULL\n"
+      "    f: NULL\n"
+      "ggggg: NULL\n"
+      "    h: NULL\n"
+      "    i: NULL\n"
+      "4 rows in set");
 
   execute("\\js");
   execute("shell.options['outputFormat']='json'");
@@ -1126,21 +1224,44 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "            \"b\": \"one\",\n"
       "            \"c\": -42,\n"
       "            \"d\": 42,\n"
-      "            \"e\": 42\n"
+      "            \"e\": 42,\n"
+      "            \"f\": 42,\n"
+      "            \"ggggg\": 42,\n"
+      "            \"h\": 42,\n"
+      "            \"i\": 42.0\n"
       "        },\n"
       "        {\n"
       "            \"a\": 2,\n"
       "            \"b\": \"two\",\n"
       "            \"c\": -12345,\n"
       "            \"d\": 12345,\n"
-      "            \"e\": 12345\n"
+      "            \"e\": 12345,\n"
+      "            \"f\": 12345,\n"
+      "            \"ggggg\": 123,\n"
+      "            \"h\": 12345,\n"
+      "            \"i\": 12345.0\n"
       "        },\n"
       "        {\n"
       "            \"a\": 3,\n"
       "            \"b\": \"three\",\n"
       "            \"c\": 0,\n"
       "            \"d\": 0,\n"
-      "            \"e\": 0\n"
+      "            \"e\": 0,\n"
+      "            \"f\": 0,\n"
+      "            \"ggggg\": 0,\n"
+      "            \"h\": 0,\n"
+      "            \"i\": 0.0\n"
+      "        },\n"
+      "        {\n"
+      "            \"a\": 4,\n"
+      "            \"b\": \"four\",\n"
+      "            \"c\": null,\n"
+      "            \"d\": null,\n"
+      "            \"e\": null,\n"
+      "            \"f\": null,\n"
+      "            \"ggggg\": null,\n"
+      "            \"h\": null,\n"
+      "            \"i\": null\n"
       "        }\n"
       "    ],\n"
       "    \"hasData\": true,\n"

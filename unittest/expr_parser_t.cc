@@ -53,7 +53,8 @@ void parse_and_assert_expr(const std::string& input,
   std::stringstream out, out_tokens;
   Expr_parser p(input, document_mode);
   print_tokens(p, out_tokens);
-  ASSERT_TRUE(token_list == out_tokens.str());
+  SCOPED_TRACE(input);
+  ASSERT_EQ(token_list, out_tokens.str());
   std::unique_ptr<Mysqlx::Expr::Expr> e(p.expr());
   std::string s = Expr_unparser::expr_to_string(*(e.get()));
   if (expr != NULL)

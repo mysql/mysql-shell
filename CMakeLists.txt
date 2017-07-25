@@ -98,7 +98,6 @@ IF ( V8_INCLUDE_DIR AND V8_LIB_DIR )
 ELSE()
   message(WARNING "V8 is unavailable: building without JavaScript support.")
 ENDIF()
-
 IF(PYTHONLIBS_FOUND)
   set(HAVE_PYTHON "YES")         # Variable for CMake processing
   add_definitions(-DHAVE_PYTHON) # Preprocessor variable for generated projects

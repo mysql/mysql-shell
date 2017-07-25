@@ -60,6 +60,12 @@ class Process_launcher {
       close();
   }
 
+#ifdef _WIN32
+  void set_create_process_group() {
+    create_process_group = true;
+  }
+#endif
+
   /** Launches the child process, and makes pipes available for read/write. */
   void start();
 
@@ -106,6 +112,10 @@ class Process_launcher {
    */
 #ifdef _WIN32
   HANDLE get_pid();
+
+  DWORD get_process_id() const {
+    return pi.dwProcessId;
+  }
 #else
   pid_t get_pid();
 #endif
@@ -166,6 +176,7 @@ private:
   HANDLE child_out_wr;
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
+  bool create_process_group = false;
 #else
   pid_t childpid;
   int fd_in[2];

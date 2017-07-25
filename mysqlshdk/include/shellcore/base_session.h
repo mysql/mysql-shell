@@ -20,8 +20,8 @@
 // Interactive session access module
 // Exposed as "session" in the shell
 
-#ifndef _MOD_CORE_SESSION_H_
-#define _MOD_CORE_SESSION_H_
+#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SESSION_H_
+#define MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SESSION_H_
 
 #include <functional>
 
@@ -63,8 +63,10 @@ public:
   // Using this name temporarily, at the end only one execute_sql
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const = 0;
 
-  std::string uri() { return _uri; };
   std::string address();
+  const std::string &uri() const { return _uri; }
+
+  virtual SessionType session_type() const = 0;
 
   virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const = 0;
 
@@ -77,7 +79,7 @@ public:
   std::string get_host() {return _host; }
 
   virtual void reconnect();
-  virtual int get_default_port() = 0;
+  virtual int get_default_port() const = 0;
 
   const mysqlshdk::utils::Ssl_info& get_ssl() { return _ssl_info; }
 
@@ -86,6 +88,8 @@ public:
   virtual void start_transaction() = 0;
   virtual void commit() = 0;
   virtual void rollback() = 0;
+
+  virtual void kill_query() const = 0;
 
 protected:
   std::string get_quoted_name(const std::string& name);
@@ -104,15 +108,43 @@ protected:
 
   void load_connection_data(const shcore::Argument_list &args);
 
-protected:
+ protected:
+  // Wrap around query executions, to make them cancellable
+  // If a lot of statements must be executed in a loop, it may be a good idea
+  // to wrap the whole loop with an Interruptible block, so that a single
+  // handler is used for the whole loop.
+  class Interruptible {
+   public:
+    explicit Interruptible(const ShellBaseSession *owner) : _owner(owner) {
+      _owner->begin_query();
+    }
+
+    ~Interruptible() { _owner->end_query(); }
+
+   private:
+    const ShellBaseSession *_owner;
+  };
+
   std::string _default_schema;
   mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
   std::function<void(const std::string&, bool exists)> update_schema_cache;
+
   int _tx_deep;
-};
 
-std::shared_ptr<mysqlsh::ShellBaseSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
-std::shared_ptr<mysqlsh::ShellBaseSession> SHCORE_PUBLIC connect_session(const std::string &uri, const std::string &password, SessionType session_type);
-};
+ private:
+  void init();
 
+  friend class Query_guard;
+  void begin_query() const;
+  void end_query() const;
+  mutable int _guard_active = 0;
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Interrupt_mysql, sql_classic);
+  FRIEND_TEST(Interrupt_mysql, sql_node);
 #endif
+};
+
+}  // namespace mysqlsh
+
+#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SESSION_H_

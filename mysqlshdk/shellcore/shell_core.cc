@@ -38,8 +38,9 @@
 using namespace std::placeholders;
 using namespace shcore;
 
+
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-  : IShell_core(), _client_delegate(shdelegate), _running_query(false), _reconnect_session(false) {
+  : IShell_core(), _client_delegate(shdelegate), _reconnect_session(false) {
   _mode = Mode::None;
   _registry = new Object_registry();
 
@@ -159,11 +160,13 @@ bool Shell_core::prompt(const std::string &s, std::string &ret_val) {
   std::string prompt(s);
 
   // When using JSON output ALL must be JSON
-  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format =
+      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
   if (format.find("json") != std::string::npos)
     prompt = format_json_output(prompt, "prompt");
 
-    return _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(), ret_val);
+  return _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(),
+                                  ret_val);
 }
 
 std::string Shell_core::preprocess_input_line(const std::string &s) {
@@ -172,16 +175,10 @@ std::string Shell_core::preprocess_input_line(const std::string &s) {
 
 void Shell_core::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
   try {
-    _running_query = true;
     _langs[_mode]->handle_input(code, state, result_processor);
   } catch (...) {
-    _running_query = false;
     throw;
   }
-}
-
-void Shell_core::abort() {
-  _langs[_mode]->abort();
 }
 
 std::string Shell_core::get_handled_input() {
@@ -345,6 +342,10 @@ std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
 
 std::string Shell_core::prompt() {
   return _langs[interactive_mode()]->prompt();
+}
+
+void Shell_core::clear_input() {
+  _langs[interactive_mode()]->clear_input();
 }
 
 bool Shell_core::handle_shell_command(const std::string &line) {

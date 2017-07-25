@@ -14,15 +14,18 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <string>
+#include <mutex>
+#include <set>
+#include <fstream>
+#include <vector>
+#include <list>
+#include <thread>
+
 #include "gtest_clean.h"
 #include "scripting/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "scripting/common.h"
 #include "shellcore/shell_notifications.h"
-#include <set>
-#include <fstream>
-#include <vector>
-#include <list>
 #include "src/mysqlsh/mysql_shell.h"
 #include "unittest/test_utils/shell_base_test.h"
 
@@ -126,15 +129,25 @@ public:
   static bool deleg_prompt(void *user_data, const char *UNUSED(prompt), std::string &ret);
   static bool deleg_password(void *user_data, const char *UNUSED(prompt), std::string &ret);
 
-  void wipe_out() { std_out.clear(); }
+  void wipe_out() {
+    std::lock_guard<std::mutex> lock(stdout_mutex);
+    std_out.clear();
+  }
+
   void wipe_err() { std_err.clear(); }
   void wipe_log() { log.clear(); }
-  void wipe_all() { std_out.clear(); std_err.clear(); }
+  void wipe_all() { wipe_out(); std_err.clear(); }
+
+  bool grep_stdout_thread_safe(const std::string &text) {
+    std::lock_guard<std::mutex> lock(stdout_mutex);
+    return (std_out.find(text) != std::string::npos);
+  }
 
   shcore::Interpreter_delegate deleg;
   std::string std_err;
   std::string std_out;
   std::stringstream full_output;
+  std::mutex stdout_mutex;
   static std::vector<std::string> log;
 
   void set_log_level(ngcommon::Logger::LOG_LEVEL log_level) {
@@ -166,16 +179,40 @@ protected:
   static void log_hook(const char *message, ngcommon::Logger::LOG_LEVEL level, const char *domain);
 };
 
-#define MY_EXPECT_STDOUT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stdout_content(x,true); } while (0)
-#define MY_EXPECT_STDERR_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,true); } while (0)
-#define MY_EXPECT_LOG_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,true); } while (0)
-#define MY_EXPECT_STDOUT_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stdout_content(x,false); } while (0)
-#define MY_EXPECT_STDERR_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,false); } while (0)
-#define MY_EXPECT_LOG_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,false); } while (0)
+#define MY_EXPECT_STDOUT_CONTAINS(x)                 \
+  do {                                               \
+    SCOPED_TRACE("...in stdout check\n");            \
+    output_handler.validate_stdout_content(x, true); \
+  } while (0)
+#define MY_EXPECT_STDERR_CONTAINS(x)                 \
+  do {                                               \
+    SCOPED_TRACE("...in stderr check\n");            \
+    output_handler.validate_stderr_content(x, true); \
+  } while (0)
+#define MY_EXPECT_LOG_CONTAINS(x)                 \
+  do {                                            \
+    SCOPED_TRACE("...in log check\n");            \
+    output_handler.validate_log_content(x, true); \
+  } while (0)
+#define MY_EXPECT_STDOUT_NOT_CONTAINS(x)              \
+  do {                                                \
+    SCOPED_TRACE("...in stdout check\n");             \
+    output_handler.validate_stdout_content(x, false); \
+  } while (0)
+#define MY_EXPECT_STDERR_NOT_CONTAINS(x)              \
+  do {                                                \
+    SCOPED_TRACE("...in stderr check\n");             \
+    output_handler.validate_stderr_content(x, false); \
+  } while (0)
+#define MY_EXPECT_LOG_NOT_CONTAINS(x)              \
+  do {                                             \
+    SCOPED_TRACE("...in log check\n");             \
+    output_handler.validate_log_content(x, false); \
+  } while (0)
 
 class Shell_core_test_wrapper : public tests::Shell_base_test,
                                 public shcore::NotificationObserver {
-protected:
+ protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
   virtual void TearDown();
@@ -245,3 +282,5 @@ protected:
 };
 
 std::string random_string(std::string::size_type length);
+
+void run_script_classic(const std::vector<std::string> &script);

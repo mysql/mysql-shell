@@ -1,2 +1,2 @@
-#!/usr/bin/mysqlsh -f 
-print("Hello World\n");
+#!../bld/mysqlsh -f
+print("Hello World");

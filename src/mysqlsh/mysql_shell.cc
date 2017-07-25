@@ -19,6 +19,9 @@
 
 #include "mysql_shell.h"
 
+#include <memory>
+#include <string>
+
 #include "modules/mod_mysql.h"
 #include "modules/devapi/mod_mysqlx.h"
 #include "src/interactive/interactive_global_dba.h"
@@ -27,10 +30,11 @@
 #include "src/interactive/interactive_global_session.h"
 #include "src/interactive/interactive_global_shell.h"
 #include "utils/utils_general.h"
+#include "scripting/shexcept.h"
 #include "shellcore/utils_help.h"
+#include "shellcore/interrupt_handler.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
-#include <string>
 
 namespace mysqlsh {
 Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate) : mysqlsh::Base_shell(options, custom_delegate) {
@@ -178,9 +182,9 @@ bool Mysql_shell::connect(bool primary_session) {
       connection_data = shcore::get_connection_data(_options.uri);
       if (connection_data->has_key("dbPassword") && !connection_data->get_string("dbPassword").empty())
         secure_password = false;
-    } else
+    } else {
       connection_data.reset(new shcore::Value::Map_type);
-
+    }
     // If the session is being created from command line
     // Individual parameters will override whatever was defined on the URI/stored connection
     if (primary_session) {
@@ -236,7 +240,7 @@ bool Mysql_shell::connect(bool primary_session) {
     _shell->print_value(shcore::Value(exc.error()), "error");
     return false;
   } catch (std::exception &exc) {
-    print_error(exc.what());
+    print_error(std::string(exc.what())+"\n");
     return false;
   }
 
@@ -267,11 +271,25 @@ shcore::Value Mysql_shell::connect_session(const shcore::Argument_list &args, my
   if (!connection_data->has_key("dbPassword") || _options.prompt_password) {
     if (_shell->password("Enter password: ", pass))
       connect_args.push_back(shcore::Value(pass));
+    else
+      throw shcore::cancelled("Cancelled");
   }
 
+  std::shared_ptr<mysqlsh::ShellBaseSession> old_session(
+      _shell->get_dev_session());
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> old_session(_shell->get_dev_session()),
-                                                   new_session(_global_shell->connect_session(connect_args, session_type));
+  std::shared_ptr<mysqlsh::ShellBaseSession> new_session;
+  {
+    // allow SIGINT to interrupt the connect()
+    bool cancelled = false;
+    shcore::Interrupt_handler intr([&cancelled]() {
+      cancelled = true;
+      return true;
+    });
+    new_session = _global_shell->connect_session(connect_args, session_type);
+    if (cancelled)
+      throw shcore::cancelled("Cancelled");
+  }
 
   _global_shell->set_dev_session(new_session);
 

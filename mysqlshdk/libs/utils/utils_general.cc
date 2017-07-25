@@ -1141,4 +1141,12 @@ void split_account(const std::string &account, std::string *out_user,
 std::string make_account(const std::string& user, const std::string &host) {
   return shcore::sqlstring("?@?", 0) << user << host;
 }
+
+void sleep_ms(uint32_t ms) {
+#ifdef _WIN32
+  Sleep(ms);
+#else
+  usleep(ms * 1000);
+#endif
+}
 } // namespace

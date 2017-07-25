@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -83,13 +83,12 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
   try {
     Value result;
     {
-      std::shared_ptr<shcore::Python_function> pfunc(std::static_pointer_cast<shcore::Python_function>(func));
+      auto pfunc(std::static_pointer_cast<shcore::Python_function>(func));
 
-      if (pfunc)
+      if (pfunc) {
         result = func->invoke(r);
-      else {
+      } else {
         WillLeavePython lock;
-
         result = func->invoke(r);
       }
     }

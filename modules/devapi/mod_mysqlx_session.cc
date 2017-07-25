@@ -17,13 +17,19 @@
 * 02110-1301  USA
 */
 
+#include "mod_mysqlx_session.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <set>
+#include <thread>
+
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/mod_mysqlx_constants.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session_sql.h"
-#include "scripting/lang_base.h"
 #include "scripting/object_factory.h"
 #include "scripting/proxy_object.h"
 #include "shellcore/shell_core.h"
@@ -36,13 +42,6 @@
 #include "mysqlxtest_utils.h"
 
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlx_connection.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <memory>
-#include <string>
-
 #include "shellcore/utils_help.h"
 
 #if _MSC_VER
@@ -61,8 +60,6 @@ REGISTER_OBJECT(mysqlx, NodeSession);
 REGISTER_OBJECT(mysqlx, Expression);
 REGISTER_OBJECT(mysqlx, Type);
 REGISTER_OBJECT(mysqlx, IndexType);
-
-#include <set>
 
 #ifdef WIN32
 #define strcasecmp _stricmp
@@ -200,7 +197,7 @@ void BaseSession::set_option(const char *option, int value) {
 }
 
 uint64_t BaseSession::get_connection_id() const {
-  return _connection_id;
+  return _session.get_connection_id();
 }
 
 bool BaseSession::table_name_compare(const std::string &n1,
@@ -465,6 +462,7 @@ std::shared_ptr<::mysqlx::Result> BaseSession::execute_sql(
     const std::string &sql) const {
   std::shared_ptr<::mysqlx::Result> result;
   try {
+    Interruptible intr(this);
     result = _session.execute_sql(sql);
   } catch (const ::mysqlx::Error &e) {
     if (e.error() == 2006 || e.error() == 5166 || e.error() == 2013) {
@@ -499,10 +497,11 @@ Value BaseSession::executeStmt(const std::string &domain,
 
   try {
     timer.start();
-
-    std::shared_ptr<::mysqlx::Result> exec_result =
-        _session.execute_statement(domain, command, args);
-
+    std::shared_ptr< ::mysqlx::Result> exec_result;
+    {
+      Interruptible intr(this);
+      exec_result = _session.execute_statement(domain, command, args);
+    }
     timer.end();
 
     if (expect_data) {
@@ -898,6 +897,7 @@ shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args,
 std::string BaseSession::db_object_exists(std::string &type,
                                           const std::string &name,
                                           const std::string &owner) const {
+  Interruptible intr(this);
   return _session.db_object_exists(type, name, owner);
 }
 
@@ -938,10 +938,10 @@ shcore::Value::Map_type_ref BaseSession::get_status() {
     (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
     (*status)["CURRENT_USER"] =
         shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
-    (*status)["CONNECTION_ID"] = shcore::Value(_session.get_client_id());
-    // (*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
-    // (*status)["SKIP_UPDATES"] = shcore::Value(???);
-    // (*status)["DELIMITER"] = shcore::Value(???);
+    (*status)["CONNECTION_ID"] = shcore::Value(_session.get_connection_id());
+    //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+    //(*status)["SKIP_UPDATES"] = shcore::Value(???);
+    //(*status)["DELIMITER"] = shcore::Value(???);
 
     // (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
 
@@ -951,7 +951,9 @@ shcore::Value::Map_type_ref BaseSession::get_status() {
     // (*status)["INSERT_ID"] = shcore::Value(???);
 
     result = execute_sql(
-        "select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
+        "select @@character_set_client, @@character_set_connection, "
+        "@@character_set_server, @@character_set_database, @@version_comment "
+        "limit 1");
     row = result->next();
     (*status)["CLIENT_CHARSET"] =
         shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
@@ -1017,7 +1019,7 @@ std::string BaseSession::query_one_string(const std::string &query) {
   return "";
 }
 
-int BaseSession::get_default_port() {
+int BaseSession::get_default_port() const {
   int default_port = 0;
 
   if (_port == 0 && _sock.empty())
@@ -1026,6 +1028,18 @@ int BaseSession::get_default_port() {
   return default_port;
 }
 
+void BaseSession::kill_query() const {
+  uint64_t cid = get_connection_id();
+
+  SessionHandle session;
+  try {
+    session.open(_host, _port, _schema, _user, _password, _ssl_info, 60000,
+                 _auth_method, true);
+    session.execute_sql(shcore::sqlstring("kill query ?", 0) << cid);
+  } catch (std::exception &e) {
+    log_warning("Error cancelling SQL query: %s", e.what());
+  }
+}
 
 std::shared_ptr<BaseSession> XSession::_get_shared_this() const {
   std::shared_ptr<const XSession> shared = shared_from_this();

@@ -18,11 +18,19 @@
  */
 
 #include "cmdline_shell.h"
+
+#ifdef _WIN32
+#include <io.h>
+#define isatty _isatty
+#else
+#include <unistd.h>
+#endif
 #include "shellcore/base_session.h"
 #include "shell_cmdline_options.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h" // <---
+#include "shellcore/interrupt_handler.h"
 #include "modules/devapi/base_resultset.h"
 #include "utils/utils_time.h"
 #include "shellcore/utils_help.h"
@@ -32,11 +40,14 @@
 //const int MAX_READLINE_BUF = 65536;
 extern char *mysh_get_tty_password(const char *opt_message);
 
+#define CTRL_C_STR "\003"
+
 namespace mysqlsh {
 Command_line_shell::Command_line_shell(const Shell_options &options) : mysqlsh::Mysql_shell(options, &_delegate) {
 #ifndef WIN32
   rl_initialize();
 #endif
+  shcore::Interrupts::setup();
 
   _delegate.user_data = this;
   _delegate.print = &Command_line_shell::deleg_print;
@@ -75,8 +86,8 @@ char *Command_line_shell::readline(const char *prompt) {
 
   size_t pos = prompt_line.rfind("\n");
   if (pos != std::string::npos) {
-    auto all_lines = prompt_line.substr(0, pos+1);
-    prompt_line = prompt_line.substr(pos+1);
+    auto all_lines = prompt_line.substr(0, pos + 1);
+    prompt_line = prompt_line.substr(pos + 1);
 
     if (!all_lines.empty())
       std::cout << all_lines << std::flush;
@@ -89,41 +100,78 @@ char *Command_line_shell::readline(const char *prompt) {
 
   std::getline(std::cin, line);
 
-  if (!std::cin.fail())
+  if (!std::cin.eof()) {
     tmp = strdup(line.c_str());
+  } else {
+    if (std::cin.fail())
+      std::cin.clear();
+    tmp = strdup(CTRL_C_STR);  // ^C control char
+  }
 #endif
 
   return tmp;
 }
 
-bool Command_line_shell::deleg_prompt(void *UNUSED(cdata), const char *prompt, std::string &ret) {
-  char *tmp = Command_line_shell::readline(prompt);
-  if (!tmp)
-    return false;
+void Command_line_shell::handle_interrupt() {
+  _interrupted = true;
+}
 
+bool Command_line_shell::deleg_prompt(void *cdata, const char *prompt,
+                                      std::string &ret) {
+  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
+  self->_interrupted = false;
+
+  shcore::Interrupt_handler inth(
+    [self]() {
+      self->handle_interrupt();
+      return true;
+    });
+
+  char *tmp = Command_line_shell::readline(prompt);
+  if (!tmp || self->_interrupted || strcmp(tmp, CTRL_C_STR) == 0) {
+    if (tmp) free(tmp);
+    return false;
+  }
   ret = tmp;
   free(tmp);
-
   return true;
 }
 
-bool Command_line_shell::deleg_password(void *cdata, const char *prompt, std::string &ret) {
-  Command_line_shell *self = (Command_line_shell*)cdata;
-  char *tmp = self->_options.passwords_from_stdin ? shcore::mysh_get_stdin_password(prompt) : mysh_get_tty_password(prompt);
-  if (!tmp)
+bool Command_line_shell::deleg_password(void *cdata, const char *prompt,
+                                        std::string &ret) {
+  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
+  self->_interrupted = false;
+  shcore::Interrupt_handler inth(
+    [self]() {
+      self->handle_interrupt();
+      return true;
+    });
+  char *tmp = self->_options.passwords_from_stdin
+                  ? shcore::mysh_get_stdin_password(prompt)
+                  : mysh_get_tty_password(prompt);
+  if (!tmp || self->_interrupted || strcmp(tmp, CTRL_C_STR) == 0) {
+    if (tmp) free(tmp);
     return false;
+  }
   ret = tmp;
   free(tmp);
   return true;
 }
 
 void Command_line_shell::deleg_source(void *cdata, const char *module) {
-  Command_line_shell *self = (Command_line_shell*)cdata;
+  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->process_file(module, {});
 }
 
 void Command_line_shell::command_loop() {
-  if (_options.interactive) // check if interactive
+  bool using_tty = false;
+#if defined(WIN32)
+  using_tty = isatty(_fileno(stdin));
+#else
+  using_tty = isatty(STDIN_FILENO);
+#endif
+
+  if (_options.full_interactive && using_tty)
   {
     std::string message;
     auto session = _shell->get_dev_session();
@@ -153,15 +201,55 @@ void Command_line_shell::command_loop() {
   }
 
   while (_options.interactive) {
-    char *cmd = Command_line_shell::readline(prompt().c_str());
-    if (!cmd)
-      break;
-
+    std::string cmd;
+    {
+      shcore::Interrupt_handler handler([this]() {
+        handle_interrupt();
+        return true;
+      });
+      if (using_tty) {
+        char *tmp = Command_line_shell::readline(prompt().c_str());
+        if (tmp && strcmp(tmp, CTRL_C_STR) != 0) {
+          cmd = tmp;
+          free(tmp);
+        } else {
+          if (tmp) {
+            if (strcmp(tmp, CTRL_C_STR) == 0)
+              _interrupted = true;
+            free(tmp);
+          }
+          if (_interrupted) {
+            println("^C");
+            clear_input();
+            _interrupted = false;
+            continue;
+          }
+          break;
+        }
+      } else {
+        if (_options.full_interactive)
+          std::cout << prompt() << std::flush;
+        if (!std::getline(std::cin, cmd)) {
+          if (_interrupted || !std::cin.eof()) {
+            _interrupted = false;
+            continue;
+          }
+          break;
+        }
+      }
+      if (_options.full_interactive)
+        std::cout << cmd << "\n";
+    }
     process_line(cmd);
-    free(cmd);
   }
 
   std::cout << "Bye!\n";
+}
+
+void Command_line_shell::clear_input() {
+  _input_mode = shcore::Input_state::Ok;
+  _input_buffer.clear();
+  _shell->clear_input();
 }
 
 void Command_line_shell::print_banner() {

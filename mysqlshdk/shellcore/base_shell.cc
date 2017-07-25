@@ -22,6 +22,7 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
+#include "shellcore/interrupt_handler.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h" // <---
 #include "shellcore/shell_notifications.h"
@@ -35,8 +36,11 @@
 extern char *mysh_get_tty_password(const char *opt_message);
 
 namespace mysqlsh {
-Base_shell::Base_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate) :
-_options(options) {
+Base_shell::Base_shell(const Shell_options &options,
+                       shcore::Interpreter_delegate *custom_delegate)
+    : _options(options) {
+  shcore::Interrupts::setup();
+
   std::string log_path = shcore::get_user_config_path();
   log_path += "mysqlsh.log";
 
@@ -187,7 +191,6 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
     _input_mode = shcore::Input_state::Ok;
     _input_buffer.clear();
 
-    //XXX reset the history... history should be specific to each shell mode
     switch (mode) {
       case shcore::Shell_core::Mode::None:
         break;
@@ -279,18 +282,6 @@ void Base_shell::notify_executed_statement(const std::string& line) {
     shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr, data);
 }
 
-void Base_shell::abort() {
-  if (!_shell) return;
-
-  if (_shell->is_running_query()) {
-    try {
-      _shell->abort();
-    } catch (std::runtime_error& e) {
-      log_exception("Error when killing connection ", e);
-    }
-  }
-}
-
 void Base_shell::process_result(shcore::Value result) {
   if ((*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()
       || _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
@@ -349,13 +340,13 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {
-	if (shcore::is_folder(file)) {
-		print_error(shcore::str_format("Failed to open file: '%s' is a "
-			"directory\n", file.c_str()));
-		return ret_val;
-	}
+    if (shcore::is_folder(file)) {
+        print_error(shcore::str_format("Failed to open file: '%s' is a "
+            "directory\n", file.c_str()));
+        return ret_val;
+    }
 
-	std::ifstream s(file.c_str());
+    std::ifstream s(file.c_str());
     if (!s.fail()) {
 
       // The return value now depends on the stream processing

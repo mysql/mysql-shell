@@ -107,8 +107,8 @@ bool Shell_script_tester::validate(const std::string& context, const std::string
         // Before cleaning up, prints any error found on the script execution
         if (valindex == 0 && !original_std_err.empty()) {
           ret_val = false;
-          SCOPED_TRACE("File: " + context);
           SCOPED_TRACE("Unexpected Error: " + original_std_err);
+          SCOPED_TRACE("File: " + context);
           ADD_FAILURE();
         }
 
@@ -128,9 +128,9 @@ bool Shell_script_tester::validate(const std::string& context, const std::string
       if (validations[valindex].expected_error.empty() &&
           !original_std_err.empty()) {
         ret_val = false;
+        SCOPED_TRACE("Unexpected Error: " + original_std_err);
         SCOPED_TRACE("File: " + context);
         SCOPED_TRACE("Executing: " + chunk_id);
-        SCOPED_TRACE("Unexpected Error: " + original_std_err);
         ADD_FAILURE();
       }
 
@@ -142,10 +142,10 @@ bool Shell_script_tester::validate(const std::string& context, const std::string
 
         if (out != "*") {
           if (validations[valindex].type == ValidationType::Simple) {
-            SCOPED_TRACE("File: " + context);
-            SCOPED_TRACE("Executing: " + chunk_id);
             SCOPED_TRACE("STDOUT missing: " + out);
             SCOPED_TRACE("STDOUT actual: " + original_std_out);
+            SCOPED_TRACE("File: " + context);
+            SCOPED_TRACE("Executing: " + chunk_id);
             if (original_std_out.find(out) == std::string::npos) {
               ret_val = false;
               ADD_FAILURE();
@@ -162,10 +162,10 @@ bool Shell_script_tester::validate(const std::string& context, const std::string
 
         out = resolve_string(out);
 
-        SCOPED_TRACE("File: " + context);
-        SCOPED_TRACE("Executing: " + chunk_id);
         SCOPED_TRACE("STDOUT unexpected: " + out);
         SCOPED_TRACE("STDOUT actual: " + original_std_out);
+        SCOPED_TRACE("File: " + context);
+        SCOPED_TRACE("Executing: " + chunk_id);
         if (original_std_out.find(out) != std::string::npos) {
           ret_val = false;
           ADD_FAILURE();
@@ -180,10 +180,10 @@ bool Shell_script_tester::validate(const std::string& context, const std::string
 
         if (error != "*") {
           if (validations[valindex].type == ValidationType::Simple) {
-            SCOPED_TRACE("File: " + context);
-            SCOPED_TRACE("Executing: " + chunk_id);
             SCOPED_TRACE("STDERR missing: " + error);
             SCOPED_TRACE("STDERR actual: " + original_std_err);
+            SCOPED_TRACE("File: " + context);
+            SCOPED_TRACE("Executing: " + chunk_id);
             if (original_std_err.find(error) == std::string::npos) {
               ret_val = false;
               ADD_FAILURE();
@@ -199,9 +199,9 @@ bool Shell_script_tester::validate(const std::string& context, const std::string
     // Every defined validation chunk MUST have validations
     // or should not be defined as a validation chunk
     if (chunk_id != "__global__") {
+      SCOPED_TRACE("MISSING VALIDATIONS!!!");
       SCOPED_TRACE("File: " + context);
       SCOPED_TRACE("Executing: " + chunk_id);
-      SCOPED_TRACE("MISSING VALIDATIONS!!!");
       ADD_FAILURE();
       ret_val = false;
     } else

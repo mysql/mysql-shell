@@ -460,15 +460,10 @@ struct JScript_context::JScript_context_impl {
   static void os_sleep(const v8::FunctionCallbackInfo<v8::Value>& args) {
     v8::HandleScope handle_scope(args.GetIsolate());
 
-    if (args.Length() != 1 || !args[0]->IsNumber())
+    if (args.Length() != 1 || !args[0]->IsNumber()) {
       args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "sleep(<number>) takes 1 numeric argument"));
-    else {
-#ifdef HAVE_SLEEP
-      sleep(args[0]->ToNumber()->Value());
-#elif defined(WIN32)
-      Sleep((DWORD)(args[0]->ToNumber()->Value() * 1000));
-#endif
-      args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+    } else {
+      shcore::sleep_ms(args[0]->ToNumber()->Value() * 1000.0);
     }
   }
 
@@ -686,21 +681,29 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
     args->push_back(Value(arg));
   }
 
+  _terminating = false;
+
   if (!script.IsEmpty()) {
     v8::Handle<v8::Value> result = script->Run();
-    if (!result.IsEmpty()) {
+    if (try_catch.HasTerminated()) {
+      v8::V8::CancelTerminateExecution(_impl->isolate);
+      _impl->delegate->print_error(_impl->delegate->user_data,
+                             "Script execution interrupted by user.\n");
+       return Value();
+    } else if (!result.IsEmpty()) {
       ret_val = v8_value_to_shcore_value(result);
       executed_ok = true;
     }
-  }
+    if (!executed_ok) {
+      if (try_catch.HasCaught()) {
+        Value e = get_v8_exception_data(&try_catch, false);
 
-  if (!executed_ok) {
-    if (try_catch.HasCaught()) {
-      Value e = get_v8_exception_data(&try_catch, false);
-
-      throw Exception::scripting_error(format_exception(e));
-    } else
-      throw shcore::Exception::logic_error("Unexpected error processing script, no exception caught!");
+        throw Exception::scripting_error(format_exception(e));
+      } else {
+        throw shcore::Exception::logic_error(
+            "Unexpected error processing script, no exception caught!");
+      }
+    }
   }
 
   return ret_val;
@@ -721,6 +724,8 @@ Value JScript_context::execute_interactive(const std::string &code_str, Input_st
   v8::Handle<v8::String> code = v8::String::NewFromUtf8(_impl->isolate, code_str.c_str());
   v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
 
+  _terminating = false;
+
   r_state = Input_state::Ok;
 
   if (script.IsEmpty()) {
@@ -734,9 +739,18 @@ Value JScript_context::execute_interactive(const std::string &code_str, Input_st
       _impl->print_exception(format_exception(get_v8_exception_data(&try_catch, true)));
   } else {
     v8::Handle<v8::Value> result = script->Run();
-    if (result.IsEmpty())
-      _impl->print_exception(format_exception(get_v8_exception_data(&try_catch, true)));
-    else {
+    if (try_catch.HasTerminated()) {
+      v8::V8::CancelTerminateExecution(_impl->isolate);
+      _impl->delegate->print_error(_impl->delegate->user_data,
+                             "Script execution interrupted by user.\n");
+    } else if (result.IsEmpty()) {
+      Value exc(get_v8_exception_data(&try_catch, true));
+      if (exc)
+        _impl->print_exception(format_exception(exc));
+      else
+        _impl->delegate->print_error(_impl->delegate->user_data,
+                                     "Error executing script\n");
+    } else {
       try {
         return Value(v8_value_to_shcore_value(result));
       } catch (std::exception &exc) {
@@ -781,6 +795,9 @@ std::string JScript_context::format_exception(const shcore::Value &exc) {
 Value JScript_context::get_v8_exception_data(v8::TryCatch *exc, bool interactive) {
   Value::Map_type_ref data;
 
+  if (exc->Exception().IsEmpty() || exc->Exception()->IsUndefined())
+    return Value();
+
   v8::String::Utf8Value exec_error(exc->Exception());
   if (*exec_error) {
     // JS errors produced by V8 most likely will fall on this branch
@@ -821,4 +838,10 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc, bool interactive
   }
 
   return Value(data);
+}
+
+
+void JScript_context::terminate() {
+  _terminating = true;
+  v8::V8::TerminateExecution(isolate());
 }

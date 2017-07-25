@@ -169,7 +169,7 @@ private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
 protected:
-  virtual int get_default_port() { return 3306; };
+  virtual int get_default_port() const { return 3306; }
 };
 }
 }

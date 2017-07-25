@@ -22,7 +22,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "shellcore/shell_core_options.h"
+#include "shellcore/interrupt_handler.h"
 #include "unittest/gtest_clean.h"
 
 #ifdef WIN32
@@ -103,6 +105,33 @@ static void check_zombie_sandboxes() {
                  "test sandboxes\n";
     exit(1);
   }
+
+  const char *tmpdir = getenv("TMPDIR");
+  if (tmpdir) {
+    std::string zombies;
+    std::string d;
+    d = tmpdir;
+    d.append("/").append(std::to_string(sport1));
+    if (shcore::file_exists(d)) {
+      zombies.append(d).append("\n");
+    }
+    d = tmpdir;
+    d.append("/").append(std::to_string(sport2));
+    if (shcore::file_exists(d)) {
+      zombies.append(d).append("\n");
+    }
+    d = tmpdir;
+    d.append("/").append(std::to_string(sport3));
+    if (shcore::file_exists(d)) {
+      zombies.append(d).append("\n");
+    }
+    if (!zombies.empty()) {
+      std::cout << "The following sandbox directories seem to be leftover and "
+                   "must be deleted:\n";
+      std::cout << zombies;
+      exit(1);
+    }
+  }
 }
 
 int main(int argc, char **argv) {
@@ -112,6 +141,9 @@ int main(int argc, char **argv) {
 
   JScript_context_init();
 #endif
+  // init the ^C handler, so it knows what's the main thread
+  shcore::Interrupts::init(nullptr);
+
 
   bool show_help = false;
   if (const char *uri = getenv("MYSQL_URI")) {
@@ -318,7 +350,6 @@ int main(int argc, char **argv) {
   if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
     check_zombie_sandboxes();
   }
-
   std::string mppath;
   char *p = strrchr(argv[0], '/');
   if (p) {

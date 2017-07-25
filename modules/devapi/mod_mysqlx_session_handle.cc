@@ -283,7 +283,7 @@ shcore::Value SessionHandle::get_capability(const std::string &name) {
   return ret_val;
 }
 
-uint64_t SessionHandle::get_client_id() {
+uint64_t SessionHandle::get_client_id() const {
   if (_session) {
     return _session->connection()->client_id();
   } else

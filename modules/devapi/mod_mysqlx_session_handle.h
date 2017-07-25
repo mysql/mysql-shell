@@ -60,8 +60,8 @@ class SHCORE_PUBLIC SessionHandle {
   bool expired_account() { return _expired_account; }
   void load_session_info() const;
 
-  uint64_t get_client_id();
-  uint64_t get_connection_id() { return _connection_id; }
+  uint64_t get_client_id() const;
+  uint64_t get_connection_id() const { return _connection_id; }
 
  private:
   mutable std::shared_ptr< ::mysqlx::Result> _last_result;

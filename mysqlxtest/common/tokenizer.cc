@@ -456,8 +456,9 @@ void Tokenizer::get_tokens() {
             if ((i + 1) >= _input.size())
               break;
             val.append(1, _input[++i]);
-          } else
+          } else {
             val.append(1, c);
+          }
           ++i;
         }
         if ((i >= _input.size()) && (_input[i] != quote_char)) {

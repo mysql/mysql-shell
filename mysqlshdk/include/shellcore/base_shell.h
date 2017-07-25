@@ -49,7 +49,6 @@ public:
 
   virtual void process_line(const std::string &line);
   void notify_executed_statement(const std::string& line);
-  void abort();
   std::string prompt();
 
   std::shared_ptr<shcore::Shell_core> shell_context() const { return _shell; }

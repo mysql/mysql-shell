@@ -85,6 +85,13 @@ std::unique_ptr<Row> Result::fetch_one() {
 
         // Each read row increases the count
         _fetched_row_count++;
+      } else {
+        int code = 0;
+        const char *state;
+        const char *err = _connection->get_last_error(&code, &state);
+        if (code != 0)
+          throw shcore::Exception::mysql_error_with_code_and_state(err, code,
+                                                                   state);
       }
     }
   }
@@ -392,12 +399,29 @@ bool Connection::next_data_set(Result *target, bool first_result) {
     // Retrieves the next result
     MYSQL_RES* result = mysql_use_result(_mysql);
 
-    if (result)
+    if (result) {
       _prev_result = std::shared_ptr<MYSQL_RES>(result, &free_result<MYSQL_RES>);
+    } else {
+      // Error occurred
+      int code = 0;
+      const char *state;
+      const char *err = get_last_error(&code, &state);
+      if (code != 0)
+        throw shcore::Exception::mysql_error_with_code_and_state(err, code,
+                                                                 state);
+    }
 
     // Only returns true when this method was called and there were
     // Additional results
     ret_val = true;
+  } else if (more_results > 0) {
+    // Error occurred
+    int code = 0;
+    const char *state;
+    const char *err = get_last_error(&code, &state);
+    if (code != 0)
+      throw shcore::Exception::mysql_error_with_code_and_state(err, code,
+                                                               state);
   }
 
   _timer.end();
