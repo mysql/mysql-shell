@@ -689,7 +689,7 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7, "@li user/dbUser: username
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8, "@li password/dbPassword: username password");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9, "@li host: hostname or IP address");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL10, "@li port: port number");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL11, "@li sslCat: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL11, "@li sslCa: the path to the X509 certificate authority in PEM format.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
 
@@ -1291,7 +1291,7 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7, "@li user/dbUser: username");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8, "@li password/dbPassword: username password");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9, "@li host: hostname or IP address");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL11, "@li sslCat: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL11, "@li sslCa: the path to the X509 certificate authority in PEM format.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
 

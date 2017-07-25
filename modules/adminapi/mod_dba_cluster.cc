@@ -251,7 +251,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL8, "@li password/dbPassword: username "\
                                            "password");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL9, "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11, "@li sslCat: the path to the X509 "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11, "@li sslCa: the path to the X509 "\
                                             "certificate authority in PEM "\
                                             "format.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12, "@li sslCert: The path to the X509 "\
@@ -430,7 +430,7 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8, "@li password/dbPassword: username
                                               "password");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9, "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11, "@li sslCat: the path to the X509 "\
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11, "@li sslCa: the path to the X509 "\
                                                "certificate authority in PEM format.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12, "@li sslCert: The path to the X509 "\
                                                "certificate in PEM format.");
@@ -596,7 +596,7 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL7, "@li user/dbUser: username");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL8, "@li password/dbPassword: username password");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL9, "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL11, "@li sslCat: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL11, "@li sslCa: the path to the X509 certificate authority in PEM format.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL14,
@@ -1125,7 +1125,7 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4, "@li user/dbUser: use
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5, "@li password/dbPassword: username password");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6, "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7, "@li port: port number");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8, "@li sslCat: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8, "@li sslCa: the path to the X509 certificate authority in PEM format.");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9, "@li sslCert: The path to the X509 certificate in PEM format.");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10, "@li sslKey: The path to the X509 key in PEM format.");
 
@@ -1264,7 +1264,7 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL7, "@li user/dbUser: username");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL8, "@li password/dbPassword: username password");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL9, "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL11, "@li sslCat: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL11, "@li sslCa: the path to the X509 certificate authority in PEM format.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
 // REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5, "@li An Instance object.");
