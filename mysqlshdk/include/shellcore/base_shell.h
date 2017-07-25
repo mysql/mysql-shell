@@ -47,8 +47,6 @@ public:
   void print_connection_message(mysqlsh::SessionType type, const std::string& uri, const std::string& sessionid);
   shcore::IShell_core::Mode interactive_mode() const { return _shell->interactive_mode(); }
 
-  void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
-
   virtual void process_line(const std::string &line);
   void notify_executed_statement(const std::string& line);
   void abort();
@@ -70,7 +68,6 @@ protected:
 
 private:
   void process_result(shcore::Value result);
-  ngcommon::Logger* _logger;
 
   std::function<void(shcore::Value)> _result_processor;
 

@@ -40,16 +40,8 @@ _options(options) {
   std::string log_path = shcore::get_user_config_path();
   log_path += "mysqlsh.log";
 
-  // The logger is a singleton, we would initialize it ONLY
-  // if it has not been already initialized
-  // If several instance should be allowed it requires refactoring
-  // on the logger  code
-  try {
-    _logger = ngcommon::Logger::singleton();
-  } catch (std::logic_error &e) {
-    ngcommon::Logger::setup_instance(log_path.c_str(), _options.log_to_stderr, _options.log_level);
-    _logger = ngcommon::Logger::singleton();
-  }
+  ngcommon::Logger::setup_instance(log_path.c_str(), _options.log_to_stderr,
+                                   _options.log_level);
 
   _input_mode = shcore::Input_state::Ok;
 
