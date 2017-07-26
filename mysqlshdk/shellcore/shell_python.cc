@@ -121,17 +121,20 @@ void Shell_python::set_global(const std::string &name, const Value &value) {
   _py->set_global(name, value);
 }
 
-static int check_signals(void *) {
+int Shell_python::check_signals(void *thread_id) {
+  Shell_python *self = static_cast<Shell_python*>(thread_id);
+  PyThreadState_SetAsyncExc(self->_pending_interrupt_thread,
+                            PyExc_KeyboardInterrupt);
   return PyErr_CheckSignals();
 }
 
 void Shell_python::abort(long thread_id) noexcept {
-  log_info("User aborted Python execution (^C)");
-
-  Py_AddPendingCall(check_signals, nullptr);
-  PyGILState_STATE state = PyGILState_Ensure();
-  PyThreadState_SetAsyncExc(thread_id, PyExc_KeyboardInterrupt);
-  PyGILState_Release(state);
+  _pending_interrupt_thread = thread_id;
+  if (Py_AddPendingCall(&Shell_python::check_signals,
+                        static_cast<void*>(this)) < 0)
+    log_warning("Could not interrupt Python");
+  else
+    log_info("User aborted Python execution (^C)");
 }
 
 bool Shell_python::is_module(const std::string& file_name) {
