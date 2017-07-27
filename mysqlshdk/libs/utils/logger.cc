@@ -68,7 +68,7 @@
 
 namespace ngcommon {
 
-Logger* Logger::instance = NULL;
+std::unique_ptr<Logger> Logger::instance(nullptr);
 
 Logger::Logger_levels_table Logger::log_levels_table;
 
@@ -97,9 +97,10 @@ Logger::LOG_LEVEL Logger::get_log_level() {
 }
 
 void Logger::assert_logger_initialized() {
-  if (instance == NULL) {
+  if (instance.get() == nullptr) {
     const char* msg_noinit =
         "Logger: Tried to log to an uninitialized logger.\n";
+
 #ifdef WIN32
     ::write(fileno(stderr), msg_noinit, strlen(msg_noinit));
 #else
@@ -132,7 +133,7 @@ std::string Logger::format(const char* formats, ...) {
 void Logger::log_text(LOG_LEVEL level, const char* domain, const char* text) {
   assert_logger_initialized();
 
-  if (instance && level <= instance->log_level) {
+  if (instance.get() != nullptr && level <= instance->log_level) {
     std::string s = instance->format_message(domain, text, level);
     s += "\n";
     const char* buf = s.c_str();
@@ -155,7 +156,7 @@ void Logger::log(LOG_LEVEL level, const char* domain, const char* formats,
                  ...) {
   assert_logger_initialized();
 
-  if (instance && level <= instance->log_level) {
+  if (instance.get() != nullptr && level <= instance->log_level) {
     char* mybuf;
     va_list args;
     va_start(args, formats);
@@ -193,7 +194,7 @@ void Logger::log(LOG_LEVEL level, const char* domain, const char* formats,
 void Logger::log_exc(const char* domain, const char* message,
                      const std::exception& exc) {
   assert_logger_initialized();
-  if (instance) {
+  if (instance.get() != nullptr) {
     Logger::LOG_LEVEL level = Logger::LOG_ERROR;
     std::string s = instance->format_message(domain, message, exc);
     const char* buf = s.c_str();
@@ -215,8 +216,8 @@ void Logger::log_exc(const char* domain, const char* message,
 }
 
 Logger* Logger::singleton() {
-  if (instance) {
-    return instance;
+  if (instance.get() != nullptr) {
+    return instance.get();
   } else {
     throw std::logic_error("ngcommon::Logger not initialized");
   }
@@ -281,7 +282,7 @@ void Logger::out_to_stderr(const char* msg) {
 
 void Logger::setup_instance(const char* filename, bool use_stderr,
                             Logger::LOG_LEVEL log_level) {
-  if (instance) {
+  if (instance.get() != nullptr) {
     if (filename && instance->out_name.compare(filename) != 0) {
       instance->out.close();
       instance->out.open(filename, std::ios_base::app);
@@ -293,7 +294,7 @@ void Logger::setup_instance(const char* filename, bool use_stderr,
     instance->set_log_level(log_level);
     instance->use_stderr = use_stderr;
   } else {
-    instance = new Logger(filename, use_stderr, log_level);
+    instance.reset(new Logger(filename, use_stderr, log_level));
   }
 }
 

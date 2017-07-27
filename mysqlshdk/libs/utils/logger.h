@@ -28,6 +28,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include <memory>
 
 #ifdef _MSC_VER
 #  include <sal.h>
@@ -110,6 +111,8 @@ public:
   static bool is_level_none(const std::string& tag);
 
   static std::string get_level_range_info();
+  
+  ~Logger();
 
 private:
   struct Case_insensitive_comp
@@ -151,7 +154,7 @@ private:
 
   // Outputs to stderr or OutputDebugStringA in Windows
   Logger(const char *filename, bool use_stderr = false, LOG_LEVEL log_level = LOG_INFO);
-  ~Logger();
+
   void out_to_stderr(const char* msg);
   static std::string format_message(const char* domain, const char* message, LOG_LEVEL log_level);
   static std::string format_message(const char* domain, const char*,         const std::exception& exc);
@@ -159,7 +162,7 @@ private:
   static const char* get_log_level_desc(LOG_LEVEL log_level);
   static void assert_logger_initialized();
 
-  static Logger* instance;
+  static std::unique_ptr<Logger> instance;
   static struct Logger_levels_table log_levels_table;
 
   LOG_LEVEL log_level;
