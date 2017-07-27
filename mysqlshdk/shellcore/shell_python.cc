@@ -123,8 +123,10 @@ void Shell_python::set_global(const std::string &name, const Value &value) {
 
 int Shell_python::check_signals(void *thread_id) {
   Shell_python *self = static_cast<Shell_python*>(thread_id);
-  PyThreadState_SetAsyncExc(self->_pending_interrupt_thread,
-                            PyExc_KeyboardInterrupt);
+  if (self->_aborted) {
+    PyThreadState_SetAsyncExc(self->_pending_interrupt_thread,
+                              PyExc_KeyboardInterrupt);
+  }
   return PyErr_CheckSignals();
 }
 
