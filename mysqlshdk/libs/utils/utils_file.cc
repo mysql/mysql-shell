@@ -87,8 +87,12 @@ std::string get_user_config_path() {
     path_separator = "/";
     char* cpath = std::getenv("HOME");
 
-    if (cpath != NULL)
+    if (cpath != NULL) {
+      if (access(cpath, X_OK) != 0)
+        throw std::runtime_error(str_format(
+            "Home folder '%s' does not exist or is not accessible", cpath));
       path.assign(cpath);
+    }
 
     to_append.push_back(".mysqlsh");
 #endif

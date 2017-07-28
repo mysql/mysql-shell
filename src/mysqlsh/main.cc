@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <cstdio>
 #include <sstream>
+#include <iostream>
 
 #include "mysh_config.h"
 #include "mysqlsh/cmdline_shell.h"
@@ -275,7 +276,7 @@ int main(int argc, char **argv) {
   JScript_context_init();
 #endif
 
-  {
+  try {
     bool from_stdin = false;
     bool stdout_is_tty = false;
     std::string error =
@@ -371,6 +372,9 @@ int main(int argc, char **argv) {
       kill(getpid(), SIGINT);
     }
 #endif
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    ret_val = 1;
   }
   return ret_val;
 }
