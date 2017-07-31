@@ -167,7 +167,7 @@ if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfil
     XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml"
 else:
     # **** LOCAL EXECUTION ****
-    config=json.load(open('config_local.json'))
+    config = json.load(open('config_local.json'))
     MYSQL_SHELL = str(config["general"]["xshell_path"])
     Exec_files_location = str(config["general"]["aux_files_path"])
     XMLReportFilePath = "xshell_qa_test.xml"
@@ -4911,7 +4911,8 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_4_6_03_1(self):
-        '''[4.6.003]:1 JS PY Add Documents to a collection with node session: NODE SESSION'''
+        '''[4.6.003]:1 JS PY Add Documents to a collection with node session: NODE SESSION
+        Affected by Bug: https://clustra.no.oracle.com/orabugs/bug.php?id=26552804 '''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
@@ -6676,7 +6677,8 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_MYS_286_01(self):
-        """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-286 with classic session"""
+        """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-286 with classic session
+        Affected by bug: https://clustra.no.oracle.com/orabugs/bug.php?id=26552838 """
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
@@ -6685,7 +6687,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("Table = session.getSchema(\'world_x\').getTable(\'mys286\')\n", "<Table:mys286>"),
                   ("Table.insert().values('2016-03-14 12:36:37')\n", "Query OK, 1 item affected"),
                   ("Table.select()\n", "2016-04-14 12:36:37"),
-                  ("session.sql(\'DROP TABLE world_x.mys286;\')\n", "Query OK")
+                  ("Table.insert().values('2016-03-14 12:36:37')\n", "Query OK")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6793,19 +6795,17 @@ class XShell_TestCases(unittest.TestCase):
     def test_MYS_303_00(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-303 with --help """
         results = 'FAIL'
-        expectedValue = '  --help                   Display this help and exit.'
-        target_vm = r'"%s"' % MYSQL_SHELL
-        init_command_str = target_vm + ' --help'
+        expectedValue = '--help               Display this help and exit.'
+        init_command = [MYSQL_SHELL, '--interactive=full', '--help']
         # init_command_str = MYSQL_SHELL + ' --help'
-        p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
-                             shell=True)
-        stdin, stdout = p.communicate()
-        stdin_splitted = stdin.splitlines()
+        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        stdout, stderror = p.communicate()
+        stdin_splitted = stdout.splitlines()
         for line in stdin_splitted:
-            if str(line) == expectedValue:
+            if line.find(expectedValue, 0, len(line)) >= 0:
                 results = 'PASS'
                 break
-        self.assertEqual(results, 'PASS', str(stdout))
+        self.assertEqual(results, 'PASS')
 
     def test_MYS_309_00(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-309 with classic session and - as part of schema name"""
@@ -8572,7 +8572,8 @@ class XShell_TestCases(unittest.TestCase):
 
     def test_MYS_583(self):
         '''[MYS-583]: https://jira.oraclecorp.com/jira/browse/MYS-583
-      URI parsing does not decode PCT before passing to other systems'''
+      URI parsing does not decode PCT before passing to other systems
+      Affected by bug: https://clustra.no.oracle.com/orabugs/bug.php?id=26422790 '''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--classic', '--sqlc', '--uri={0}:{1}@{2}:{3}'.
             format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port), '-e',
@@ -8727,7 +8728,65 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
-        # ----------------------------------------------------------------------
+    def test_Bug_26402917(self):
+        ''' https://clustra.no.oracle.com/orabugs/bug.php?id=26402917
+        Test bug behavior db.<table>.select() validate expected data in rows '''
+        results = ''
+        init_command = [MYSQL_SHELL, '--interactive=full', '--uri={0}:{1}@{2}:{3}/world_x'.
+            format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port)]
+        expectedDataInFirst20Rows = \
+            "+------+------------------------------------+-------------+------------------------+--------------------------+" + os.linesep + \
+            "| ID   | Name                               | CountryCode | District               | Info                     |" + os.linesep + \
+            "+------+------------------------------------+-------------+------------------------+--------------------------+" + os.linesep + \
+            "|    1 | Kabul                              | AFG         | Kabol                  | {\"Population\": 1780000}  |" + os.linesep + \
+            "|    2 | Qandahar                           | AFG         | Qandahar               | {\"Population\": 237500}   |" + os.linesep + \
+            "|    3 | Herat                              | AFG         | Herat                  | {\"Population\": 186800}   |" + os.linesep + \
+            "|    4 | Mazar-e-Sharif                     | AFG         | Balkh                  | {\"Population\": 127800}   |" + os.linesep + \
+            "|    5 | Amsterdam                          | NLD         | Noord-Holland          | {\"Population\": 731200}   |" + os.linesep + \
+            "|    6 | Rotterdam                          | NLD         | Zuid-Holland           | {\"Population\": 593321}   |" + os.linesep + \
+            "|    7 | Haag                               | NLD         | Zuid-Holland           | {\"Population\": 440900}   |" + os.linesep + \
+            "|    8 | Utrecht                            | NLD         | Utrecht                | {\"Population\": 234323}   |" + os.linesep + \
+            "|    9 | Eindhoven                          | NLD         | Noord-Brabant          | {\"Population\": 201843}   |" + os.linesep + \
+            "|   10 | Tilburg                            | NLD         | Noord-Brabant          | {\"Population\": 193238}   |" + os.linesep + \
+            "|   11 | Groningen                          | NLD         | Groningen              | {\"Population\": 172701}   |" + os.linesep + \
+            "|   12 | Breda                              | NLD         | Noord-Brabant          | {\"Population\": 160398}   |" + os.linesep + \
+            "|   13 | Apeldoorn                          | NLD         | Gelderland             | {\"Population\": 153491}   |" + os.linesep + \
+            "|   14 | Nijmegen                           | NLD         | Gelderland             | {\"Population\": 152463}   |" + os.linesep + \
+            "|   15 | Enschede                           | NLD         | Overijssel             | {\"Population\": 149544}   |" + os.linesep + \
+            "|   16 | Haarlem                            | NLD         | Noord-Holland          | {\"Population\": 148772}   |" + os.linesep + \
+            "|   17 | Almere                             | NLD         | Flevoland              | {\"Population\": 142465}   |" + os.linesep + \
+            "|   18 | Arnhem                             | NLD         | Gelderland             | {\"Population\": 138020}   |" + os.linesep + \
+            "|   19 | Zaanstad                           | NLD         | Noord-Holland          | {\"Population\": 135621}   |"
+        expectedDataInLast20Rows = \
+            "| 4060 | Santa Monica                       | USA         | California             | {\"Population\": 91084}    |" + os.linesep + \
+            "| 4061 | Fall River                         | USA         | Massachusetts          | {\"Population\": 90555}    |" + os.linesep + \
+            "| 4062 | Kenosha                            | USA         | Wisconsin              | {\"Population\": 89447}    |" + os.linesep + \
+            "| 4063 | Elgin                              | USA         | Illinois               | {\"Population\": 89408}    |" + os.linesep + \
+            "| 4064 | Odessa                             | USA         | Texas                  | {\"Population\": 89293}    |" + os.linesep + \
+            "| 4065 | Carson                             | USA         | California             | {\"Population\": 89089}    |" + os.linesep + \
+            "| 4066 | Charleston                         | USA         | South Carolina         | {\"Population\": 89063}    |" + os.linesep + \
+            "| 4067 | Charlotte Amalie                   | VIR         | St Thomas              | {\"Population\": 13000}    |" + os.linesep + \
+            "| 4068 | Harare                             | ZWE         | Harare                 | {\"Population\": 1410000}  |" + os.linesep + \
+            "| 4069 | Bulawayo                           | ZWE         | Bulawayo               | {\"Population\": 621742}   |" + os.linesep + \
+            "| 4070 | Chitungwiza                        | ZWE         | Harare                 | {\"Population\": 274912}   |" + os.linesep + \
+            "| 4071 | Mount Darwin                       | ZWE         | Harare                 | {\"Population\": 164362}   |" + os.linesep + \
+            "| 4072 | Mutare                             | ZWE         | Manicaland             | {\"Population\": 131367}   |" + os.linesep + \
+            "| 4073 | Gweru                              | ZWE         | Midlands               | {\"Population\": 128037}   |" + os.linesep + \
+            "| 4074 | Gaza                               | PSE         | Gaza                   | {\"Population\": 353632}   |" + os.linesep + \
+            "| 4075 | Khan Yunis                         | PSE         | Khan Yunis             | {\"Population\": 123175}   |" + os.linesep + \
+            "| 4076 | Hebron                             | PSE         | Hebron                 | {\"Population\": 119401}   |" + os.linesep + \
+            "| 4077 | Jabaliya                           | PSE         | North Gaza             | {\"Population\": 113901}   |" + os.linesep + \
+            "| 4078 | Nablus                             | PSE         | Nablus                 | {\"Population\": 100231}   |" + os.linesep + \
+            "| 4079 | Rafah                              | PSE         | Rafah                  | {\"Population\": 92020}    |" + os.linesep + \
+            "+------+------------------------------------+-------------+------------------------+--------------------------+" + os.linesep + \
+            "4079 rows in set"
+        x_cmds = [("city = db.getTable('City')\n", "mysql-js>"),
+                  ("city.select()\n", expectedDataInFirst20Rows),
+                  ("city.select()\n", expectedDataInLast20Rows)]
+        results = exec_xshell_commands(init_command, x_cmds)
+        self.assertEqual(results, 'PASS')
+
+# ----------------------------------------------------------------------
 
 if __name__ == '__main__':
   unittest.main( testRunner=xmlrunner.XMLTestRunner(file(XMLReportFilePath,"w")))
