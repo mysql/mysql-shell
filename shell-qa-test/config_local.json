@@ -2,6 +2,7 @@
 "general": {
         "xshell_path" : "/home/guidev/Downloads/mysql-shell-1.0.5-labs-linux-ubuntu16.04-x86-64bit/bin/mysqlsh",
         "aux_files_path" : "/home/guidev/Downloads/AdminAPI_Scripts/aux_files/",
+        "MYSQLSH_PROMPT_THEME" : "/home/guidev/Downloads/AdminAPI_Scripts/prompt_256_customized4.json",
         "cluster_path" : "/tmp"
     },
 "local":{

@@ -1,7 +1,8 @@
 {
 "general": {
         "xshell_path" : "/var/lib/jenkins-ng/workspace/XShell/label/linux/mybuild/mysqlx",
-        "aux_files_path" : "/var/lib/jenkins-ng/workspace/XShell/label/linux/shell-qa-test/aux_files"
+        "aux_files_path" : "/var/lib/jenkins-ng/workspace/XShell/label/linux/shell-qa-test/aux_files",
+        "MYSQLSH_PROMPT_THEME" : "/home/gdlommen/Hudson/workspace/DWexQA.XShellAutomationPyTestForOL7/ngshell/shell-qa-test/prompt_256_customized4.json"
     },
 "local":{
         "user" : "root",

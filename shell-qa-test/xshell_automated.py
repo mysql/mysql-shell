@@ -165,12 +165,14 @@ if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfil
     Exec_files_location = os.environ['AUX_FILES_PATH']
     XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
     XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml"
+
 else:
     # **** LOCAL EXECUTION ****
     config=json.load(open('config_local.json'))
     MYSQL_SHELL = str(config["general"]["xshell_path"])
     Exec_files_location = str(config["general"]["aux_files_path"])
     XMLReportFilePath = "xshell_qa_test.xml"
+
 
 #########################################################################
 
@@ -185,6 +187,9 @@ REMOTEHOST.password = str(config["remote"]["password"])
 REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
+
+MYSQLSH_PROMPT_THEME = str(config["general"]["MYSQLSH_PROMPT_THEME"])
+os.environ['MYSQLSH_PROMPT_THEME'] = MYSQLSH_PROMPT_THEME
 
 
 class globalvar:
