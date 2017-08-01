@@ -36,7 +36,11 @@ std::string Command_line_test::get_path_to_mysqlsh() {
 #ifdef _WIN32
   // For now, on windows the executable is expected to be on the same path as
   // the unit tests
-  command = "mysqlsh.exe";
+  char buf[MAX_PATH];
+  GetModuleFileNameA(NULL, buf, MAX_PATH);
+  command = buf;
+  command.resize(command.rfind('\\')+1);
+  command += "mysqlsh.exe";
 #else
   std::string prefix = g_argv0;
   // strip unittest/run_unit_tests

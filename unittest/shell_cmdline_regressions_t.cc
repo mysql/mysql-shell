@@ -119,4 +119,43 @@ TEST_F(Command_line_test, bug24905066) {
   }
 }
 
+TEST_F(Command_line_test, bug24967838) {
+  // Check if processor is available
+  ASSERT_NE(system(NULL), 0);
+#ifndef MAX_PATH
+  const int MAX_PATH = 4096;
+#endif
+
+  // Tests that if error happens when executing script, return code should be
+  // different then 0
+  {
+    char cmd[MAX_PATH];
+    std::snprintf(cmd, MAX_PATH,
+#ifdef _WIN32
+                  "echo no error | %s --uri=%s --sql --database=mysql "
+                  "2> nul",
+#else
+                  "echo \"no error\" | %s --uri=%s --sql --database=mysql "
+                  "2> /dev/null",
+#endif
+                  _mysqlsh, _uri.c_str());
+
+    EXPECT_NE(system(cmd), 0);
+  }
+
+  // Test that 0 (130 on Windows) is returned of successful run of the command
+  {
+    char cmd[MAX_PATH];
+    std::snprintf(cmd, MAX_PATH,
+#ifdef _WIN32
+                  "echo DROP TABLE IF EXISTS test; | %s --uri=%s "
+#else
+                  "echo \"DROP TABLE IF EXISTS test;\" | %s --uri=%s "
+#endif
+                  "--sql --database=mysql",
+                  _mysqlsh, _uri.c_str());
+
+    EXPECT_EQ(system(cmd), 0);
+  }
+}
 }
