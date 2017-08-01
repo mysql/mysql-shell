@@ -289,7 +289,6 @@ int main(int argc, char **argv) {
     if (!options.interactive && options.output_format.empty() && !stdout_is_tty)
       options.output_format = "tabbed";
 
-#ifndef _WIN32
     bool interrupted = false;
     if (!options.interactive) {
       shcore::Interrupts::push_handler([&interrupted]() {
@@ -297,7 +296,6 @@ int main(int argc, char **argv) {
         return false;
       });
     }
-#endif
 
     mysqlsh::Command_line_shell shell(options);
 
@@ -364,14 +362,14 @@ int main(int argc, char **argv) {
         ret_val = shell.process_stream(std::cin, "STDIN", {});
       }
     }
-#ifdef _WIN32
-    ret_val = 130;
-#else
     if (interrupted) {
+#ifdef _WIN32
+      ret_val = 130;
+#else
       signal(SIGINT, SIG_DFL);
       kill(getpid(), SIGINT);
-    }
 #endif
+    }
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     ret_val = 1;
