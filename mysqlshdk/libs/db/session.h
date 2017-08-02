@@ -20,29 +20,43 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _CORELIBS_DB_ISESSION_H_
-#define _CORELIBS_DB_ISESSION_H_
-
-#include "mysqlshdk_export.h"
-#include "mysqlshdk/libs/db/result.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
+#ifndef MYSQLSHDK_LIBS_DB_SESSION_H_
+#define MYSQLSHDK_LIBS_DB_SESSION_H_
 
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <string>
+
+#include "mysqlshdk/libs/db/result.h"
+#include "mysqlshdk/libs/db/ssl_info.h"
+#include "mysqlshdk_export.h"
+#include "scripting/shexcept.h"  // FIXME: for db error exception.. move it here
 
 namespace mysqlshdk {
 namespace db {
 class SHCORE_PUBLIC ISession {
-public:
+ public:
   // Connection
-  virtual void connect(const std::string& uri, const char *password = NULL) = 0;
-  virtual void connect(const std::string &host, int port, const std::string &socket,
-                        const std::string &user, const std::string &password, const std::string &schema,
-                        const mysqlshdk::utils::Ssl_info& ssl_info) = 0;
+  virtual void connect(const std::string& uri, const char* password = NULL) = 0;
+  virtual void connect(const std::string& host, int port,
+                       const std::string& socket, const std::string& user,
+                       const std::string& password, const std::string& schema,
+                       const mysqlshdk::utils::Ssl_info& ssl_info) = 0;
 
   // Execution
-  std::unique_ptr<IResult> query(const std::string& sql) { return query(sql, false); }
-  virtual std::unique_ptr<IResult> query(const std::string& sql, bool buffered) = 0;
+  std::unique_ptr<IRow> query_one(const std::string& sql) {
+    auto result(query(sql, true));
+    if (result) {
+      auto row = result->fetch_one();
+      if (row)
+        return row;
+    }
+    throw std::logic_error("Query did not return result");
+  }
+
+  virtual std::shared_ptr<IResult> query(const std::string& sql,
+                                         bool buffered = false) = 0;
   virtual void execute(const std::string& sql) = 0;
   virtual void start_transaction() = 0;
   virtual void commit() = 0;
@@ -54,6 +68,6 @@ public:
 
   virtual ~ISession() {}
 };
-}
-}
-#endif
+}  // namespace db
+}  // namespace mysqlshdk
+#endif  // MYSQLSHDK_LIBS_DB_SESSION_H_

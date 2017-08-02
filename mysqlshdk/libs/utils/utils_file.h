@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,6 +37,7 @@ bool SHCORE_PUBLIC load_text_file(const std::string& path, std::string& data);
 void SHCORE_PUBLIC delete_file(const std::string& filename);
 bool SHCORE_PUBLIC create_file(const std::string& name,
                                const std::string& content);
+void SHCORE_PUBLIC copy_file(const std::string& from, const std::string& to);
 std::string SHCORE_PUBLIC get_home_dir();
 }
 #endif /* defined(__mysh__utils_file__) */

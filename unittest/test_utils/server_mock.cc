@@ -114,34 +114,20 @@ std::string Server_mock::map_column_type(mysqlshdk::db::Type type) {
     case mysqlshdk::db::Type::Null:
       return "null";
     case mysqlshdk::db::Type::Date:
-    case mysqlshdk::db::Type::NewDate:
     case mysqlshdk::db::Type::Time:
-    case mysqlshdk::db::Type::VarChar:
     case mysqlshdk::db::Type::String:
-    case mysqlshdk::db::Type::VarString:
-    case mysqlshdk::db::Type::TinyBlob:
-    case mysqlshdk::db::Type::MediumBlob:
-    case mysqlshdk::db::Type::LongBlob:
     case mysqlshdk::db::Type::Blob:
     case mysqlshdk::db::Type::Geometry:
     case mysqlshdk::db::Type::Json:
     case mysqlshdk::db::Type::DateTime:
-    case mysqlshdk::db::Type::Timestamp:
     case mysqlshdk::db::Type::Enum:
     case mysqlshdk::db::Type::Set:
       return "STRING";
-    case mysqlshdk::db::Type::NewDecimal:
-    case mysqlshdk::db::Type::Float:
-    case mysqlshdk::db::Type::LongLong:
+    case mysqlshdk::db::Type::Integer:
     case mysqlshdk::db::Type::Double:
       return "LONGLONG";
     case mysqlshdk::db::Type::Decimal:
-    case mysqlshdk::db::Type::Year:
-    case mysqlshdk::db::Type::Short:
-    case mysqlshdk::db::Type::Int24:
-    case mysqlshdk::db::Type::Long:
       return "LONG";
-    case mysqlshdk::db::Type::Tiny:
     case mysqlshdk::db::Type::Bit:
       return "TINY";
   }

@@ -586,4 +586,29 @@ bool create_file(const std::string& name, const std::string& content) {
   return ret_val;
 }
 
+void copy_file(const std::string& from, const std::string& to) {
+  std::ofstream ofile;
+  std::ifstream ifile;
+
+  ofile.open(to,
+             std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+  if (ofile.fail()) {
+    char error[1024];
+    strerror_r(errno, error, sizeof(error));
+    throw std::runtime_error("Could not create file '" + to +
+                             "': " + error);
+  }
+  ifile.open(from, std::ofstream::in | std::ofstream::binary);
+  if (ifile.fail()) {
+    char error[1024];
+    strerror_r(errno, error, sizeof(error));
+    throw std::runtime_error("Could not open file '" + from +
+                             "': " + error);
+  }
+
+  ofile << ifile.rdbuf();
+
+  ofile.close();
+  ifile.close();
+}
 }

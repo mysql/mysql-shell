@@ -36,9 +36,11 @@ namespace mysqlshdk {
 namespace db {
 namespace mysql {
 class Session_impl;
-class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult {
+class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
+                             public std::enable_shared_from_this<Result> {
   friend class Session_impl;
-public:
+
+ public:
   virtual ~Result();
 
   // Data Retrieving
@@ -47,17 +49,19 @@ public:
   virtual std::unique_ptr<IRow> fetch_one_warning();
 
   // Metadata retrieval
-  virtual int64_t get_auto_increment_value() const { return _last_insert_id; };
+  virtual int64_t get_auto_increment_value() const { return _last_insert_id; }
   virtual bool has_resultset() { return _has_resultset; }
   virtual uint64_t get_affected_row_count() const { return _affected_rows; }
-  virtual uint64_t get_fetched_row_count() const { return _fetched_row_count; };
-  virtual uint64_t get_warning_count() const { return _warning_count; };
-  virtual unsigned long get_execution_time() const { return _execution_time; };
-  virtual std::string get_info() const { return _info; };
+  virtual uint64_t get_fetched_row_count() const { return _fetched_row_count; }
+  virtual uint64_t get_warning_count() const { return _warning_count; }
+  virtual unsigned long get_execution_time() const { return _execution_time; }
+  virtual std::string get_info() const { return _info; }
   virtual const std::vector<Column>& get_metadata() const { return _metadata; }
 
-private:
-  Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner, uint64_t affected_rows, unsigned int warning_count, uint64_t last_insert_id, const char *info);
+ private:
+  Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
+         uint64_t affected_rows, unsigned int warning_count,
+         uint64_t last_insert_id, const char* info);
   void reset(std::shared_ptr<MYSQL_RES> res);
   int fetch_metadata();
   Type map_data_type(int raw_type);
@@ -74,9 +78,9 @@ private:
   unsigned long _execution_time;
   bool _has_resultset;
   bool _fetch_started;
-  IResult * _warnings;
+  std::shared_ptr<IResult> _warnings;
 };
-}
-}
-}
+}  // namespace mysql
+}  // namespace db
+}  // namespace mysqlshdk
 #endif

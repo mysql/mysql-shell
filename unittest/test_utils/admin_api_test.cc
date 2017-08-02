@@ -46,7 +46,7 @@ void Admin_api_test::add_instance_type_queries
     "where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL "
     "AND MEMBER_STATE <> 'OFFLINE';",
     {"count(*)"},
-    {mysqlshdk::db::Type::LongLong},
+    {mysqlshdk::db::Type::Integer},
     {
       {type == mysqlsh::dba::Standalone ? "0" : "1"}
     }
@@ -58,7 +58,7 @@ void Admin_api_test::add_instance_type_queries
     "from mysql_innodb_cluster_metadata.instances "
     "where mysql_server_uuid = @@server_uuid",
     {"count(*)"},
-    { mysqlshdk::db::Type::LongLong},
+    { mysqlshdk::db::Type::Integer},
     {
       {type == mysqlsh::dba::InnoDBCluster ? "1" : "0"}
     }
@@ -88,7 +88,7 @@ void Admin_api_test::add_show_databases_query(
   data->push_back({
     "show databases like '" + variable + "'",
     {variable},
-    {mysqlshdk::db::Type::VarString},
+    {mysqlshdk::db::Type::String},
     {
       {value}
     }
@@ -104,11 +104,11 @@ void Admin_api_test::add_replication_filters_query(
     {"File", "Position", "Binlog_Do_DB", "Binlog_Ignore_DB",
       "Executed_Gtid_Set"},
     {
-      mysqlshdk::db::Type::VarString,
-      mysqlshdk::db::Type::LongLong,
-      mysqlshdk::db::Type::VarString,
-      mysqlshdk::db::Type::VarString,
-      mysqlshdk::db::Type::VarString
+      mysqlshdk::db::Type::String,
+      mysqlshdk::db::Type::Integer,
+      mysqlshdk::db::Type::String,
+      mysqlshdk::db::Type::String,
+      mysqlshdk::db::Type::String
     },
     {
       {"", "0", binlog_do_db.c_str(), binlog_ignore_db.c_str(), ""}
@@ -122,7 +122,7 @@ void Admin_api_test::add_ps_gr_group_members_query(
   data->push_back({
     "SELECT member_id FROM performance_schema.replication_group_members",
     {"member_id"},
-    {mysqlshdk::db::Type::VarString},
+    {mysqlshdk::db::Type::String},
     {
       values
     }
@@ -138,8 +138,8 @@ void Admin_api_test::add_ps_gr_group_members_full_query(
     "performance_schema.replication_group_members "
     "WHERE MEMBER_ID = '" + member_id + "'",
     {"MEMBER_ID", "MEMBER_HOST", "MEMBER_PORT"},
-    {mysqlshdk::db::Type::VarString, mysqlshdk::db::Type::VarString,
-        mysqlshdk::db::Type::LongLong},
+    {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String,
+        mysqlshdk::db::Type::Integer},
     {
       values
     }
@@ -153,7 +153,7 @@ void Admin_api_test::add_md_group_members_query(
     "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances "
     "WHERE replicaset_id = 1",
     {"mysql_server_uuid"},
-    {mysqlshdk::db::Type::VarString},
+    {mysqlshdk::db::Type::String},
     {
       values
     }
@@ -170,8 +170,8 @@ void Admin_api_test::add_md_group_members_full_query(
     "FROM mysql_innodb_cluster_metadata.instances "
     "WHERE mysql_server_uuid = '" + mysql_server_uuid + "'",
     {"mysql_server_uuid", "instance_name", "host"},
-    {mysqlshdk::db::Type::VarString, mysqlshdk::db::Type::VarString,
-        mysqlshdk::db::Type::VarString},
+    {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String,
+        mysqlshdk::db::Type::String},
     {
       values
     }
@@ -185,7 +185,7 @@ void Admin_api_test::add_gr_primary_member_query(
                    "FROM performance_schema.global_status "
                    "WHERE variable_name = 'group_replication_primary_member'",
                    {"variable_value"},
-                   {mysqlshdk::db::Type::VarString},
+                   {mysqlshdk::db::Type::String},
                    {
                      {primary_uuid}
                    }});
@@ -203,9 +203,9 @@ void Admin_api_test::add_member_state_query(
                      "ON `mysql_server_uuid`=`member_id` "
                    "WHERE addresses->\"$.mysqlClassic\" = '" + address + "'",
                    {"mysql_server_uuid", "instance_name", "member_state"},
-                   {mysqlshdk::db::Type::VarString,
-                    mysqlshdk::db::Type::VarString,
-                    mysqlshdk::db::Type::VarString},
+                   {mysqlshdk::db::Type::String,
+                    mysqlshdk::db::Type::String,
+                    mysqlshdk::db::Type::String},
                    {
                      {mysql_server_uuid, instance_name, member_state}
                    }
@@ -221,7 +221,7 @@ void Admin_api_test::add_md_group_name_query(
     "FROM mysql_innodb_cluster_metadata.replicasets "
     "WHERE replicaset_id = 1",
     {"group_replication_group_name"},
-    {mysqlshdk::db::Type::VarString},
+    {mysqlshdk::db::Type::String},
     {
       {value}
     }
@@ -236,7 +236,7 @@ void Admin_api_test::add_get_replication_group_state_online_rw_query(
     "performance_schema.global_status WHERE VARIABLE_NAME "
     "= 'group_replication_primary_member';",
     {"@@server_uuid", "VARIABLE_VALUE"},
-    {mysqlshdk::db::Type::VarString, mysqlshdk::db::Type::VarString},
+    {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
     {
       {member_id.c_str(), member_id.c_str()}
     }
@@ -246,7 +246,7 @@ void Admin_api_test::add_get_replication_group_state_online_rw_query(
     "SELECT MEMBER_STATE FROM performance_schema.replication_group_members "
     "WHERE MEMBER_ID = '" + member_id + "'",
     {"MEMBER_STATE"},
-    {mysqlshdk::db::Type::VarString},
+    {mysqlshdk::db::Type::String},
     {
       {"ONLINE"}
     }
@@ -257,7 +257,7 @@ void Admin_api_test::add_get_replication_group_state_online_rw_query(
     "AS UNREACHABLE,  COUNT(*) AS TOTAL FROM "
     "performance_schema.replication_group_members",
     {"SIGNED", "UNREACHABLE"},
-    {mysqlshdk::db::Type::Long, mysqlshdk::db::Type::Long},
+    {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Integer},
     {
       {"0", "2"}
     }
@@ -273,8 +273,8 @@ void Admin_api_test::add_get_cluster_matching_query(
     "WHERE cluster_name = '" + cluster_name + "'",
     {"cluster_id", "cluster_name", "default_replicaset", "description",
      "options", "attributes"},
-    {mysqlshdk::db::Type::Long, mysqlshdk::db::Type::VarString,
-     mysqlshdk::db::Type::Long, mysqlshdk::db::Type::Blob,
+    {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::String,
+     mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Blob,
      mysqlshdk::db::Type::Json, mysqlshdk::db::Type::Json},
     {
       {"1", cluster_name.c_str(), "1", "Test Cluster", "null",
@@ -307,7 +307,7 @@ void Admin_api_test::add_is_instance_on_rs_query(
     "WHERE replicaset_id = " + replicaset_id + " AND "
     "addresses->'$.mysqlClassic' = '" + instance_address + "'",
     {"count"},
-    {mysqlshdk::db::Type::Long},
+    {mysqlshdk::db::Type::Integer},
     {
       {"1"}
     }

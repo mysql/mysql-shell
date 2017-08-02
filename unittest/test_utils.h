@@ -82,6 +82,16 @@ public:\
     }                                                                         \
   }
 
+#define EXPECT_BECOMES_TRUE(timeout, pred)\
+    do {\
+      auto t = time(nullptr);\
+      bool ok = false;\
+      while (time(nullptr) - t < (timeout)) {\
+        if ((pred)) { ok = true; break; }\
+      }\
+      if (!ok) FAIL() << "Timeout waiting for " # pred;\
+    } while (0)
+
 std::string random_string(std::string::size_type length);
 
 inline std::string makered(const std::string &s) {

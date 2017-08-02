@@ -94,9 +94,9 @@ void Session_recorder::connect(const std::string& host, int port,
   _target->connect(host, port, socket, user, password, schema, ssl_info);
 }
 
-std::unique_ptr<IResult> Session_recorder::query(const std::string& sql,
+std::shared_ptr<IResult> Session_recorder::query(const std::string& sql,
                                                  bool /*buffered*/) {
-  std::unique_ptr<IResult> ret_val;
+  std::shared_ptr<IResult> ret_val;
 
   // While mock recording, all is buffered
   try {
@@ -372,50 +372,22 @@ std::string Result_recorder::map_column_type(Type type) {
       return "Type::Decimal";
     case Type::Date:
       return "Type::Date";
-    case Type::NewDate:
-      return "Type::NewDate";
     case Type::Time:
       return "Type::Time";
     case Type::String:
       return "Type::String";
-    case Type::VarChar:
-      return "Type::Varchar";
-    case Type::VarString:
-      return "Type::VarString";
-    case Type::NewDecimal:
-      return "Type::NewDecimal";
-    case Type::TinyBlob:
-      return "Type::TinyBlob";
-    case Type::MediumBlob:
-      return "Type::MediumBlob";
-    case Type::LongBlob:
-      return "Type::LongBlob";
     case Type::Blob:
       return "Type::Blob";
     case Type::Geometry:
       return "Type::Geometry";
     case Type::Json:
       return "Type::Json";
-    case Type::Year:
-      return "Type::Year";
-    case Type::Tiny:
-      return "Type::Tiny";
-    case Type::Short:
-      return "Type::Short:";
-    case Type::Int24:
-      return "Type::Int24;";
-    case Type::Long:
-      return "Type::Long";
-    case Type::LongLong:
-      return "Type::LongLong";
-    case Type::Float:
-      return "Type::Float";
+    case Type::Integer:
+      return "Type::Integer;";
     case Type::Double:
       return "Type::Double";
     case Type::DateTime:
       return "Type::DateTime";
-    case Type::Timestamp:
-      return "Type::Timestamp";
     case Type::Bit:
       return "Type::Bit";
     case Type::Enum:

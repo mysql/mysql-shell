@@ -60,7 +60,7 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
         "show variables where `variable_name` in"
         " ('server_uuid')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {
           { "server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00" }
         }
@@ -90,7 +90,7 @@ TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
         "show variables where `variable_name` in"
         " ('unexisting_variable')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {}  // No Records...
       }
   });
@@ -117,7 +117,7 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
         "show variables where `variable_name` in"
         " ('sql_warnings')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {
           { "sql_warnings", "OFF" }
         }
@@ -148,7 +148,7 @@ TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
         "show variables where `variable_name` in"
         " ('unexisting_variable')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {}  // No Records...
       }
   });
@@ -175,7 +175,7 @@ TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
         "show variables where `variable_name` in"
         " ('server_uuid')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {
           { "server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00" }
         }
@@ -200,7 +200,7 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
         "show variables where `variable_name` in"
         " ('server_id')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {
           { "server_id", "0" }
         }
@@ -231,7 +231,7 @@ TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
         "show variables where `variable_name` in"
         " ('unexisting_variable')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {}  // No Records...
       }
   });
@@ -258,7 +258,7 @@ TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
         "show variables where `variable_name` in"
         " ('server_uuid')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {
           { "server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00" }
         }
@@ -283,7 +283,7 @@ TEST_F(Instance_test, get_system_variables) {
         "show variables where `variable_name` in"
         " ('server_id', 'server_uuid', 'unexisting_variable')",
         { "Variable_name", "Value" },
-        { Type::VarString, Type::VarString },
+        { Type::String, Type::String },
         {
           { "server_id", "0" },
           { "server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00" }

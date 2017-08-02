@@ -35,11 +35,10 @@
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
-
-class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow{
+class Result;
+class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow {
 public:
-  Row(MYSQL_ROW row, unsigned long *lengths,
-      const std::vector<Column> &metadata);
+  Row(std::shared_ptr<Result> result, MYSQL_ROW row, unsigned long *lengths);
   virtual ~Row() {}
 
   virtual size_t size() const;
@@ -61,9 +60,9 @@ public:
   virtual bool is_binary(int index) const;
 
 private:
+  std::shared_ptr<Result> _result;
   MYSQL_ROW _row;
   std::vector<unsigned long> _lengths;
-  const std::vector<Column> &_metadata;
 
   static std::map<std::string, std::set<Type> > _type_mappings;
   static std::string resolve_mysql_data_type(Type type);
