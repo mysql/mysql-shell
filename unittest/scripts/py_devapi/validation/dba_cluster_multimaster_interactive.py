@@ -1,5 +1,5 @@
 #@<OUT> Dba: create_cluster multiMaster with interaction, cancel
-A new InnoDB cluster will be created on instance 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
 Before continuing you have to confirm that you understand the requirements and
@@ -8,10 +8,11 @@ limitations of Multi-Master Mode. Please read the manual before proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Master Mode.
-Confirm (Yes/No): Cancelled
+Confirm [y|N]:
+Cancelled
 
 #@<OUT> Dba: create_cluster multiMaster with interaction, ok
-A new InnoDB cluster will be created on instance 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
 Before continuing you have to confirm that you understand the requirements and
@@ -20,7 +21,8 @@ limitations of Multi-Master Mode. Please read the manual before proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Master Mode.
-Confirm (Yes/No): Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+Confirm [y|N]:
+Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
@@ -78,26 +80,28 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "ssl": "<<<__ssl_mode>>>",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -133,19 +137,21 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.",
+        "ssl": "<<<__ssl_mode>>>",
+        "status": "OK_NO_TOLERANCE",
+        "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -156,27 +162,31 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 #@ Cluster: remove_instance 3
 ||
 
-#@ Cluster: remove_instance last
-||
+#@ Cluster: Error cannot remove last instance
+||SystemError: LogicError: Cluster.remove_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster.
 
-#@<OUT> Cluster: describe3
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "instances": [],
-        "name": "default"
-    }
-}
+#@ Dissolve cluster with success
+|The cluster was successfully dissolved.|
 
-#@<OUT> Cluster: status3
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.",
-        "topology": {}
-    }
-}
+#@<OUT> Dba: create_cluster multiMaster with interaction 2, ok
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+
+The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
+Before continuing you have to confirm that you understand the requirements and
+limitations of Multi-Master Mode. Please read the manual before proceeding.
+
+
+I have read the MySQL InnoDB cluster manual and I understand the requirements
+and limitations of advanced Multi-Master Mode.
+Confirm [y|N]:
+Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+Adding Seed Instance...
+
+Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+<Cluster:devCluster>
 
 #@<OUT> Cluster: add_instance with interaction, ok 2
 A new instance will be added to the InnoDB cluster. Depending on the amount of
@@ -184,17 +194,9 @@ data on the cluster this might take from a few seconds to several hours.
 
 Adding instance to the cluster ...
 
-The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' was successfully added to the cluster.
-
-#@<OUT> Cluster: add_instance with interaction, ok 3
-A new instance will be added to the InnoDB cluster. Depending on the amount of
-data on the cluster this might take from a few seconds to several hours.
-
-Adding instance to the cluster ...
-
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-#@<OUT> Cluster: add_instance with interaction, ok 4
+#@<OUT> Cluster: add_instance with interaction, ok 3
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -207,26 +209,28 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "ssl": "<<<__ssl_mode>>>",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -245,11 +249,10 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Invalid number of arguments in Cluster.rejoin_instance, expected 1 to 2 but got 3
 ||Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.rejoin_instance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
-||Cluster.rejoin_instance: Invalid values in connection options: authMethod, schema
 ||Cluster.rejoin_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 #@<OUT> Cluster: rejoin_instance with interaction, ok
-The instance will try rejoining the InnoDB cluster. Depending on the original
+Rejoining the instance to the InnoDB cluster. Depending on the original
 problem that made the instance unavailable, the rejoin operation might not be
 successful and further manual steps will be needed to fix the underlying
 problem.
@@ -266,26 +269,28 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoi
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "ssl": "<<<__ssl_mode>>>",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
