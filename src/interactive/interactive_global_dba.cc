@@ -341,8 +341,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     auto instance_map = mysqlsh::get_connection_map(instance_def);
     args.push_back(shcore::Value(instance_map));
 
-    Value::Map_type_ref options(new shcore::Value::Map_type);
-    args.push_back(shcore::Value(options));
+    Value::Map_type_ref options_check_instance(new shcore::Value::Map_type);
+    args.push_back(shcore::Value(options_check_instance));
 
     shcore::Value check_report = call_target("checkInstanceConfiguration", args);
     auto result = check_report.as_map();
@@ -361,8 +361,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
         println();
         println("Cancelled");
         return shcore::Value();
-      } else
-        println();
+      }
+      println();
     }
 
     if (multi_master && !force) {
@@ -375,7 +375,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       std::string r;
       println("I have read the MySQL InnoDB cluster manual and I understand the requirements\n"
               "and limitations of advanced Multi-Master Mode.");
-      if (prompt("Confirm [y|N]: ", Prompt_answer::NO) == Prompt_answer::NO) {
+      if (prompt("Confirm", Prompt_answer::NO) == Prompt_answer::NO) {
         println();
         println("Cancelled");
         return shcore::Value();
