@@ -20,16 +20,19 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _CORELIBS_DB_MYSQL_SESSION_H_
-#define _CORELIBS_DB_MYSQL_SESSION_H_
+#ifndef MYSQLSHDK_LIBS_DB_MYSQL_SESSION_H_
+#define MYSQLSHDK_LIBS_DB_MYSQL_SESSION_H_
 
 #include <mysql.h>
+#include <mysqld_error.h>
+#include <memory>
 #include <set>
+#include <string>
 
-#include "utils/utils_time.h"
-#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
+#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/ssl_info.h"
+#include "utils/utils_time.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -43,21 +46,22 @@ namespace mysql {
  * the Session that generated them.
  */
 class Session_impl : public std::enable_shared_from_this<Session_impl> {
-  friend class Session; // The Session class instantiates this class
-  friend class Result;  // The Reslt class uses some functions of this class
+  friend class Session;  // The Session class instantiates this class
+  friend class Result;   // The Reslt class uses some functions of this class
 
-public:
+ public:
   ~Session_impl();
 
-private:
+ private:
   Session_impl();
   void connect(const std::string &uri, const char *password = NULL);
-  void connect(const std::string &host, int port, const std::string &socket, const std::string &user,
-                       const std::string &password, const std::string &schema,
-                       const mysqlshdk::utils::Ssl_info& ssl_info);
+  void connect(const std::string &host, int port, const std::string &socket,
+               const std::string &user, const std::string &password,
+               const std::string &schema,
+               const mysqlshdk::utils::Ssl_info &ssl_info);
 
-  IResult* query(const std::string& sql, bool buffered);
-  void execute(const std::string& sql);
+  std::shared_ptr<IResult> query(const std::string &sql, bool buffered);
+  void execute(const std::string &sql);
 
   void start_transaction();
   void commit();
@@ -71,15 +75,34 @@ private:
   std::string uri() { return _uri; }
 
   // Utility functions to retriev session status
-  unsigned long get_thread_id() { _prev_result.reset(); return mysql_thread_id(_mysql); }
-  unsigned long get_protocol_info() { _prev_result.reset(); return mysql_get_proto_info(_mysql); }
-  const char* get_connection_info() { _prev_result.reset(); return mysql_get_host_info(_mysql); }
-  const char* get_server_info() { _prev_result.reset(); return mysql_get_server_info(_mysql); }
-  const char* get_stats() { _prev_result.reset(); return mysql_stat(_mysql); }
-  const char* get_ssl_cipher() { _prev_result.reset(); return mysql_get_ssl_cipher(_mysql); }
+  unsigned long get_thread_id() {
+    _prev_result.reset();
+    return mysql_thread_id(_mysql);
+  }
+  unsigned long get_protocol_info() {
+    _prev_result.reset();
+    return mysql_get_proto_info(_mysql);
+  }
+  const char *get_connection_info() {
+    _prev_result.reset();
+    return mysql_get_host_info(_mysql);
+  }
+  const char *get_server_info() {
+    _prev_result.reset();
+    return mysql_get_server_info(_mysql);
+  }
+  const char *get_stats() {
+    _prev_result.reset();
+    return mysql_stat(_mysql);
+  }
+  const char *get_ssl_cipher() {
+    _prev_result.reset();
+    return mysql_get_ssl_cipher(_mysql);
+  }
 
-  Result* run_sql(const std::string &sql, bool lazy_fetch = true);
-  bool setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info);
+  std::shared_ptr<IResult> run_sql(const std::string &sql,
+                                   bool lazy_fetch = true);
+  bool setup_ssl(const mysqlshdk::utils::Ssl_info &ssl_info);
   void throw_on_connection_fail();
   std::string _uri;
   MYSQL *_mysql;
@@ -89,34 +112,39 @@ private:
   std::shared_ptr<MYSQL_RES> _prev_result;
 };
 
-class SHCORE_PUBLIC Session : public ISession, public std::enable_shared_from_this<Session> {
-public:
+class SHCORE_PUBLIC Session : public ISession,
+                              public std::enable_shared_from_this<Session> {
+ public:
   Session() { _impl.reset(new Session_impl()); }
   virtual void connect(const std::string &uri, const char *password = NULL) {
     _impl->connect(uri, password);
   }
 
-  virtual void connect(const std::string &host, int port, const std::string &socket, const std::string &user,
-                       const std::string &password, const std::string &schema,
-                       const struct mysqlshdk::utils::Ssl_info& ssl_info) {
+  virtual void connect(const std::string &host, int port,
+                       const std::string &socket, const std::string &user,
+                       const std::string &password,
+                       const std::string &schema = "",
+                       const struct mysqlshdk::utils::Ssl_info &ssl_info =
+                           mysqlshdk::utils::Ssl_info()) {
     _impl->connect(host, port, socket, user, password, schema, ssl_info);
   }
 
-  virtual std::unique_ptr<IResult> query(const std::string& sql,
-      bool buffered) {
-    return std::unique_ptr<IResult>(_impl->query(sql, buffered));
+  virtual std::shared_ptr<IResult> query(const std::string &sql,
+                                         bool buffered = false) {
+    return _impl->query(sql, buffered);
   }
-  virtual void execute(const std::string& sql) { _impl->execute(sql); }
+
+  virtual void execute(const std::string &sql) { _impl->execute(sql); }
   virtual void start_transaction() { _impl->start_transaction(); }
   virtual void commit() { _impl->commit(); }
   virtual void rollback() { _impl->rollback(); }
   virtual void close() { _impl->close(); }
-  virtual const char* get_ssl_cipher() { return _impl->get_ssl_cipher(); }
+  virtual const char *get_ssl_cipher() { return _impl->get_ssl_cipher(); }
 
-private:
+ private:
   std::shared_ptr<Session_impl> _impl;
 };
-}
-}
-}
-#endif
+}  // namespace mysql
+}  // namespace db
+}  // namespace mysqlshdk
+#endif  // MYSQLSHDK_LIBS_DB_MYSQL_SESSION_H_

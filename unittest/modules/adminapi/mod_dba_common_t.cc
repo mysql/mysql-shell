@@ -69,7 +69,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_001) {
                                 mysqlshdk::db::Type::String, "YES");
   add_get_server_variable_query(&queries,
                                 "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "1");
+                                mysqlshdk::db::Type::Integer, "1");
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
 
@@ -98,7 +98,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_002) {
                                 mysqlshdk::db::Type::String, "YES");
   add_get_server_variable_query(&queries,
                                 "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "0");
+                                mysqlshdk::db::Type::Integer, "0");
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
 
@@ -127,7 +127,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_003) {
                                 mysqlshdk::db::Type::String, "YES");
   add_get_server_variable_query(&queries,
                                 "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "1");
+                                mysqlshdk::db::Type::Integer, "1");
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
   auto session = create_session(_mysql_sandbox_nport1);
@@ -159,7 +159,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_004) {
                                 mysqlshdk::db::Type::String, "YES");
   add_get_server_variable_query(&queries,
                                 "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "0");
+                                mysqlshdk::db::Type::Integer, "0");
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
   auto session = create_session(_mysql_sandbox_nport1);
@@ -627,7 +627,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_008) {
   std::vector< testing::Fake_result_data > queries;
   add_get_server_variable_query(&queries,
                                 "global.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "1");
+                                mysqlshdk::db::Type::Integer, "1");
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
@@ -670,7 +670,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_009) {
   std::vector< testing::Fake_result_data > queries;
   add_get_server_variable_query(&queries,
                                 "global.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "0");
+                                mysqlshdk::db::Type::Integer, "0");
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
@@ -708,7 +708,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_010) {
   std::vector< testing::Fake_result_data > queries;
   add_get_server_variable_query(&queries,
                                 "global.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "1");
+                                mysqlshdk::db::Type::Integer, "1");
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
@@ -751,7 +751,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_011) {
   std::vector< testing::Fake_result_data > queries;
   add_get_server_variable_query(&queries,
                                 "global.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "0");
+                                mysqlshdk::db::Type::Integer, "0");
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
   auto instance_session = create_session(_mysql_sandbox_nport2);
 

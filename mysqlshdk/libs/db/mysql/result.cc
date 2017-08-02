@@ -87,7 +87,7 @@ std::unique_ptr<IRow> Result::fetch_one() {
         unsigned long *lengths;
         lengths = mysql_fetch_lengths(res.get());
 
-        ret_val.reset(new Row(mysql_row, lengths, _metadata));
+        ret_val.reset(new Row(shared_from_this(), mysql_row, lengths));
 
         // Each read row increases the count
         _fetched_row_count++;
@@ -134,32 +134,22 @@ Type Result::map_data_type(int raw_type) {
   switch (raw_type) {
     case MYSQL_TYPE_NULL:
       return Type::Null;
+    case MYSQL_TYPE_NEWDECIMAL:
     case MYSQL_TYPE_DECIMAL:
       return Type::Decimal;
     case MYSQL_TYPE_DATE:
-      return Type::Date;
     case MYSQL_TYPE_NEWDATE:
-      return Type::NewDate;
+      return Type::Date;
+    case MYSQL_TYPE_TIME2:
     case MYSQL_TYPE_TIME:
       return Type::Time;
-#if MYSQL_MAJOR_VERSION > 5 || (MYSQL_MAJOR_VERSION == 5 && MYSQL_MINOR_VERSION >= 7)
-    case MYSQL_TYPE_TIME2:
-      return Type::Time2;
-#endif
     case MYSQL_TYPE_STRING:
-      return Type::String;
     case MYSQL_TYPE_VARCHAR:
-      return Type::VarChar;
     case MYSQL_TYPE_VAR_STRING:
-      return Type::VarString;
-    case MYSQL_TYPE_NEWDECIMAL:
-      return Type::NewDecimal;
+      return Type::String;
     case MYSQL_TYPE_TINY_BLOB:
-      return Type::TinyBlob;
     case MYSQL_TYPE_MEDIUM_BLOB:
-      return Type::MediumBlob;
     case MYSQL_TYPE_LONG_BLOB:
-      return Type::LongBlob;
     case MYSQL_TYPE_BLOB:
       return Type::Blob;
     case MYSQL_TYPE_GEOMETRY:
@@ -167,31 +157,20 @@ Type Result::map_data_type(int raw_type) {
     case MYSQL_TYPE_JSON:
       return Type::Json;
     case MYSQL_TYPE_YEAR:
-      return Type::Year;
     case MYSQL_TYPE_TINY:
-      return Type::Tiny;
     case MYSQL_TYPE_SHORT:
-      return Type::Short;
     case MYSQL_TYPE_INT24:
-      return Type::Int24;
     case MYSQL_TYPE_LONG:
-      return Type::Long;
     case MYSQL_TYPE_LONGLONG:
-      return Type::LongLong;
+      return Type::Integer;
     case MYSQL_TYPE_FLOAT:
-      return Type::Float;
     case MYSQL_TYPE_DOUBLE:
       return Type::Double;
     case MYSQL_TYPE_DATETIME:
-      return Type::DateTime;
     case MYSQL_TYPE_TIMESTAMP:
-      return Type::Timestamp;
-#if MYSQL_MAJOR_VERSION > 5 || (MYSQL_MAJOR_VERSION == 5 && MYSQL_MINOR_VERSION >= 7)
     case MYSQL_TYPE_DATETIME2:
-      return Type::DateTime;
     case MYSQL_TYPE_TIMESTAMP2:
-      return Type::Timestamp2;
-#endif
+      return Type::DateTime;
     case MYSQL_TYPE_BIT:
       return Type::Bit;
     case MYSQL_TYPE_ENUM:

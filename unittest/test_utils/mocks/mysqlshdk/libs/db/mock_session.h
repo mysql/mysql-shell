@@ -59,7 +59,7 @@ class Mock_session : public mysqlshdk::db::ISession {
                     const mysqlshdk::utils::Ssl_info &ssl_info));
 
   // Execution
-  virtual std::unique_ptr<mysqlshdk::db::IResult> query(const std::string &sql,
+  virtual std::shared_ptr<mysqlshdk::db::IResult> query(const std::string &sql,
                                                         bool buffered);
   MOCK_METHOD1(execute, void(const std::string &sql));
   MOCK_METHOD0(start_transaction, void());
@@ -78,7 +78,7 @@ class Mock_session : public mysqlshdk::db::ISession {
  private:
   size_t _last_query;
   std::vector<std::string> _queries;
-  std::map<std::string, std::unique_ptr<mysqlshdk::db::IResult> > _results;
+  std::map<std::string, std::shared_ptr<mysqlshdk::db::IResult> > _results;
   std::vector<bool> _throws;
 };
 }  // namespace testing

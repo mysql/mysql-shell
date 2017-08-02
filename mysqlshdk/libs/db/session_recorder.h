@@ -66,7 +66,7 @@ public:
   virtual void connect(const std::string &host, int port, const std::string &socket,
                         const std::string &user, const std::string &password, const std::string &schema,
                         const mysqlshdk::utils::Ssl_info& ssl_info);
-  virtual std::unique_ptr<IResult> query(const std::string& sql, bool buffered);
+  virtual std::shared_ptr<IResult> query(const std::string& sql, bool buffered = false);
   virtual void execute(const std::string& sql);
   virtual void start_transaction();
   virtual void commit();

@@ -35,30 +35,16 @@ namespace db {
  */
 enum class SHCORE_PUBLIC Type {
   Null,
-  Decimal,
-  Date,
-  NewDate,
-  Time,
   String,
-  VarChar,
-  VarString,
-  NewDecimal,
-  TinyBlob,
-  MediumBlob,
-  LongBlob,
+  Integer,
+  Double,
+  Decimal,
   Blob,
   Geometry,
   Json,
-  Year,
-  Tiny,
-  Short,
-  Int24,
-  Long,
-  LongLong,
-  Float,
-  Double,
   DateTime,
-  Timestamp,
+  Date,
+  Time,
   Bit,
   Enum,
   Set
@@ -83,17 +69,17 @@ public:
          int decimals, int charset, bool unsigned_, bool zerofill, bool binary,
          bool numeric);
 
-  const std::string& get_schema() const { return _schema; };
-  const std::string& get_table_name() const { return _table_name; };
-  const std::string& get_table_label() const { return _table_label; };
-  const std::string& get_column_name() const { return _column_name; };
-  const std::string& get_column_label() const { return _column_label; };
+  const std::string& get_schema() const { return _schema; }
+  const std::string& get_table_name() const { return _table_name; }
+  const std::string& get_table_label() const { return _table_label; }
+  const std::string& get_column_name() const { return _column_name; }
+  const std::string& get_column_label() const { return _column_label; }
   long get_length() const { return _length; }
   Type get_type() const { return _type; }
   std::string get_collation() const { return _collation; }
   int get_charset() const { return _charset; }
 
-  bool is_signed() const { return _unsigned; }
+  bool is_unsigned() const { return _unsigned; }
   bool is_zerofill() const { return _zerofill; }
   bool is_binary() const { return _binary; }
   bool is_numeric() const { return _numeric; }

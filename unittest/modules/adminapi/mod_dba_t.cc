@@ -87,7 +87,7 @@ TEST_F(Dba_test, create_cluster_with_cluster_admin_type) {
   add_replication_filters_query(&_queries, "", "");
   add_get_server_variable_query(&_queries,
                                 "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::LongLong, "1");
+                                mysqlshdk::db::Type::Integer, "1");
 
   init_test();
 

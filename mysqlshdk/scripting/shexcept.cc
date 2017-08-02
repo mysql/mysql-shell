@@ -24,6 +24,13 @@ namespace shcore {
 database_error::database_error(const char *what, int code, const char *error)
     : std::runtime_error(what), code_(code), error_(error) {}
 
+database_error::database_error(const char *what, int code, const char *error,
+                               const char *sqlstate)
+    : std::runtime_error(what),
+      code_(code),
+      error_(error),
+      sqlstate_(sqlstate ? sqlstate : "") {}
+
 user_input_error::user_input_error(const char *what, const char *parameter)
     : std::runtime_error(what), param_(parameter) {}
 

@@ -29,7 +29,7 @@ Fake_result::Fake_result(const std::vector<std::string>& names,
                          const std::vector<mysqlshdk::db::Type>& types)
     : _index(0), _windex(0), _names(names), _types(types) {
   _wnames = {"code", "level", "message"};
-  _wtypes = {mysqlshdk::db::Type::Int24, mysqlshdk::db::Type::String,
+  _wtypes = {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::String,
              mysqlshdk::db::Type::String};
 }
 

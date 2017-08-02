@@ -34,11 +34,11 @@ Mock_session& Mock_session::expect_query(const std::string& query) {
 
 void Mock_session::then_return(const std::vector<Fake_result_data>& data) {
   if (_last_query < _queries.size()) {
-    auto result = std::unique_ptr<Mock_result>(new Mock_result());
+    auto result = std::shared_ptr<Mock_result>(new Mock_result());
 
     result->set_data(data);
 
-    _results[_queries[_last_query++]] = std::move(result);
+    _results[_queries[_last_query++]] = result;
   } else {
     throw std::logic_error("Attempted to set result with no query.");
   }
@@ -51,7 +51,7 @@ void Mock_session::then_throw() {
     throw std::logic_error("Attempted to set throw condition with no query.");
 }
 
-std::unique_ptr<mysqlshdk::db::IResult> Mock_session::query(
+std::shared_ptr<mysqlshdk::db::IResult> Mock_session::query(
     const std::string& sql, bool buffered) {
   // Ensures the expected query got received
   EXPECT_EQ(sql, _queries[0]);
@@ -66,7 +66,7 @@ std::unique_ptr<mysqlshdk::db::IResult> Mock_session::query(
   }
 
   // Returns the assigned result if that's the plan
-  return std::move(_results[sql]);
+  return _results[sql];
 }
 
 }  // namespace testing

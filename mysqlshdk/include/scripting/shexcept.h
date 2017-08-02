@@ -20,8 +20,8 @@
 #ifndef MYSQLSHDK_INCLUDE_SCRIPTING_SHEXCEPT_H_
 #define MYSQLSHDK_INCLUDE_SCRIPTING_SHEXCEPT_H_
 
-#include <string>
 #include <stdexcept>
+#include <string>
 
 namespace shcore {
 
@@ -33,17 +33,17 @@ namespace shcore {
 class database_error : public std::runtime_error {
  public:
   database_error(const char *what, int code, const char *error);
+  database_error(const char *what, int code, const char *error,
+                 const char *sqlstate);
 
-  int code() const {
-    return code_;
-  }
-  const std::string &error() const {
-    return error_;
-  }
+  int code() const { return code_; }
+  const std::string &error() const { return error_; }
+  const std::string &sqlstate() const { return sqlstate_; }
 
  private:
   int code_;
   std::string error_;
+  std::string sqlstate_;
 };
 
 /** Invalid input from the user

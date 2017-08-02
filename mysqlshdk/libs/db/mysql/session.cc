@@ -1,40 +1,41 @@
 /*
-* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License as
-* published by the Free Software Foundation; version 2 of the
-* License.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-* 02110-1301  USA
-*/
+ * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; version 2 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301  USA
+ */
 
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "utils/utils_general.h"
-
 #include <sstream>
+#include <vector>
+
+#include "utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
 //-------------------------- Session Implementation ----------------------------
 void Session_impl::throw_on_connection_fail() {
-  std::string local_error(mysql_error(_mysql));
-  auto local_errno = mysql_errno(_mysql);
-  std::string local_sqlstate(mysql_sqlstate(_mysql));
+  auto exception =
+      shcore::database_error(mysql_error(_mysql), mysql_errno(_mysql),
+                             mysql_error(_mysql), mysql_sqlstate(_mysql));
   close();
-  throw shcore::Exception::mysql_error_with_code_and_state(local_error, local_errno, local_sqlstate.c_str());
+  throw exception;
 }
 
-Session_impl::Session_impl() : _mysql(NULL), _tx_deep(0) {};
+Session_impl::Session_impl() : _mysql(NULL), _tx_deep(0) {}
 
 void Session_impl::connect(const std::string &uri_, const char *password) {
   std::string protocol;
@@ -53,7 +54,8 @@ void Session_impl::connect(const std::string &uri_, const char *password) {
   _mysql = mysql_init(NULL);
 
   mysqlshdk::utils::Ssl_info ssl_info;
-  shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_info);
+  shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock,
+                                 db, pwd_found, ssl_info);
 
   if (password)
     pass.assign(password);
@@ -63,13 +65,18 @@ void Session_impl::connect(const std::string &uri_, const char *password) {
   setup_ssl(ssl_info);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags)) {
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(),
+                          db.empty() ? NULL : db.c_str(), port,
+                          sock.empty() ? NULL : sock.c_str(), flags)) {
     throw_on_connection_fail();
   }
 }
 
-void Session_impl::connect(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
-  const mysqlshdk::utils::Ssl_info& ssl_info) {
+void Session_impl::connect(const std::string &host, int port,
+                           const std::string &socket, const std::string &user,
+                           const std::string &password,
+                           const std::string &schema,
+                           const mysqlshdk::utils::Ssl_info &ssl_info) {
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
 
   _mysql = mysql_init(NULL);
@@ -82,12 +89,14 @@ void Session_impl::connect(const std::string &host, int port, const std::string 
 
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags)) {
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(),
+                          schema.empty() ? NULL : schema.c_str(), port,
+                          socket.empty() ? NULL : socket.c_str(), flags)) {
     throw_on_connection_fail();
   }
 }
 
-bool Session_impl::setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info) {
+bool Session_impl::setup_ssl(const mysqlshdk::utils::Ssl_info &ssl_info) {
   unsigned int value;
 
   if (!ssl_info.ca.is_null())
@@ -106,7 +115,8 @@ bool Session_impl::setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info) {
     mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER, (*ssl_info.ciphers).c_str());
 
   if (!ssl_info.tls_version.is_null())
-    mysql_options(_mysql, MYSQL_OPT_TLS_VERSION, (*ssl_info.tls_version).c_str());
+    mysql_options(_mysql, MYSQL_OPT_TLS_VERSION,
+                  (*ssl_info.tls_version).c_str());
 
   if (!ssl_info.cert.is_null())
     mysql_options(_mysql, MYSQL_OPT_SSL_CERT, (*ssl_info.cert).c_str());
@@ -135,20 +145,22 @@ void Session_impl::close() {
   _mysql = nullptr;
 }
 
-IResult* Session_impl::query(const std::string& sql, bool buffered) {
+std::shared_ptr<IResult> Session_impl::query(const std::string &sql,
+                                             bool buffered) {
   return run_sql(sql, buffered);
 }
 
-void Session_impl::execute(const std::string& sql) {
-  auto result = std::unique_ptr<IResult>(run_sql(sql, true));
+void Session_impl::execute(const std::string &sql) {
+  auto result = run_sql(sql, true);
 }
 
-Result* Session_impl::run_sql(const std::string &query, bool buffered) {
+std::shared_ptr<IResult> Session_impl::run_sql(const std::string &query,
+                                               bool buffered) {
   if (_mysql == nullptr)
     throw std::logic_error("Not connected");
-  if (_prev_result)
+  if (_prev_result) {
     _prev_result.reset();
-  else {
+  } else {
     MYSQL_RES *unread_result = mysql_use_result(_mysql);
     mysql_free_result(unread_result);
   }
@@ -162,21 +174,25 @@ Result* Session_impl::run_sql(const std::string &query, bool buffered) {
   _timer.start();
 
   if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0) {
-    throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+    _timer.end();
+    throw shcore::database_error(mysql_error(_mysql), mysql_errno(_mysql),
+                                 mysql_error(_mysql), mysql_sqlstate(_mysql));
   }
 
-  Result *result = new Result(shared_from_this(),
-      mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_insert_id(_mysql), mysql_info(_mysql));
+  std::shared_ptr<Result> result(
+      new Result(shared_from_this(), mysql_affected_rows(_mysql),
+                 mysql_warning_count(_mysql), mysql_insert_id(_mysql),
+                 mysql_info(_mysql)));
 
   _timer.end();
 
-  prepare_fetch(result, buffered);
+  prepare_fetch(result.get(), buffered);
 
-  return result;
+  return std::static_pointer_cast<IResult>(result);
 }
 
 template <class T>
-static void free_result(T* result) {
+static void free_result(T *result) {
   mysql_free_result(result);
   result = NULL;
 }
@@ -189,13 +205,13 @@ bool Session_impl::next_data_set() {
 }
 
 void Session_impl::prepare_fetch(Result *target, bool buffered) {
-  Result *real_target = dynamic_cast<Result *> (target);
+  Result *real_target = dynamic_cast<Result *>(target);
 
   // Sets the execution time performing the last query
   unsigned long execution_time = _timer.raw_duration();
   _timer.start();
 
-  MYSQL_RES* result;
+  MYSQL_RES *result;
 
   if (buffered)
     result = mysql_store_result(_mysql);
@@ -254,13 +270,15 @@ Session_impl::~Session_impl() {
 //----------------------------- Session Recorder ------------------------------
 
 #ifdef MOCK_RECORDING
-Mock_record* Mock_record::_instance = NULL;
+Mock_record *Mock_record::_instance = NULL;
 
 void Session_recorder::connect(const std::string &uri, const char *password) {
   if (password)
-    Mock_record::get() << "EXPECT_CALL(session, connect(\"" << uri << "\", \"" << password << "\"));" << std::endl;
+    Mock_record::get() << "EXPECT_CALL(session, connect(\"" << uri << "\", \""
+                       << password << "\"));" << std::endl;
   else
-    Mock_record::get() << "EXPECT_CALL(session, connect(\"" << uri << "\"));" << std::endl;
+    Mock_record::get() << "EXPECT_CALL(session, connect(\"" << uri << "\"));"
+                       << std::endl;
 
   Session::connect(uri, password);
 }
@@ -273,61 +291,78 @@ Session_recorder::Session_recorder() : Session() {
   }*/
 }
 
-void Session_recorder::connect(const std::string &host, int port, const std::string &socket, const std::string &user,
-                      const std::string &password, const std::string &schema,
-                      const mysqlshdk::utils::Ssl_info& ssl_info) {
+void Session_recorder::connect(const std::string &host, int port,
+                               const std::string &socket,
+                               const std::string &user,
+                               const std::string &password,
+                               const std::string &schema,
+                               const mysqlshdk::utils::Ssl_info &ssl_info) {
   Mock_record::get() << "mysqlshdk::utils::Ssl_info ssl_info;" << std::endl;
 
   if (!ssl_info.ca.is_null())
     Mock_record::get() << "ssl_info.ca = " << *ssl_info.ca << ";" << std::endl;
 
   if (!ssl_info.capath.is_null())
-    Mock_record::get() << "ssl_info.capath = " << *ssl_info.capath << ";" << std::endl;
+    Mock_record::get() << "ssl_info.capath = " << *ssl_info.capath << ";"
+                       << std::endl;
 
   if (!ssl_info.cert.is_null())
-    Mock_record::get() << "ssl_info.cert = " << *ssl_info.cert << ";" << std::endl;
+    Mock_record::get() << "ssl_info.cert = " << *ssl_info.cert << ";"
+                       << std::endl;
 
   if (!ssl_info.ciphers.is_null())
-    Mock_record::get() << "ssl_info.ciphers = " << *ssl_info.ciphers << ";" << std::endl;
+    Mock_record::get() << "ssl_info.ciphers = " << *ssl_info.ciphers << ";"
+                       << std::endl;
 
   if (!ssl_info.crl.is_null())
-    Mock_record::get() << "ssl_info.crl = " << *ssl_info.crl << ";" << std::endl;
+    Mock_record::get() << "ssl_info.crl = " << *ssl_info.crl << ";"
+                       << std::endl;
 
   if (!ssl_info.crlpath.is_null())
-    Mock_record::get() << "ssl_info.crlpath = " << *ssl_info.crlpath << ";" << std::endl;
+    Mock_record::get() << "ssl_info.crlpath = " << *ssl_info.crlpath << ";"
+                       << std::endl;
 
   if (!ssl_info.key.is_null())
-    Mock_record::get() << "ssl_info.key = " << *ssl_info.key << ";" << std::endl;
+    Mock_record::get() << "ssl_info.key = " << *ssl_info.key << ";"
+                       << std::endl;
 
   if (!ssl_info.tls_version.is_null())
-    Mock_record::get() << "ssl_info.tls_version = " << *ssl_info.tls_version << ";" << std::endl;
+    Mock_record::get() << "ssl_info.tls_version = " << *ssl_info.tls_version
+                       << ";" << std::endl;
 
   Mock_record::get() << "ssl_info.mode = " << ssl_info.mode << ";" << std::endl;
-  Mock_record::get() << "ssl_info.skip = " << ssl_info.skip<< ";" << std::endl;
+  Mock_record::get() << "ssl_info.skip = " << ssl_info.skip << ";" << std::endl;
 
-  Mock_record::get() << "EXPECT_CALL(session, connect(\"" << host << "\", " << port << ", \"" << socket << "\", \"" << user << "\", \"" << password << "\", " << schema << ", ssl_info));" << std::endl;
+  Mock_record::get() << "EXPECT_CALL(session, connect(\"" << host << "\", "
+                     << port << ", \"" << socket << "\", \"" << user << "\", \""
+                     << password << "\", " << schema << ", ssl_info));"
+                     << std::endl;
 
   Session::connect(host, port, socket, user, password, schema, ssl_info);
 }
 
-IResult* Session_recorder::query(const std::string& sql, bool buffered) {
+std::shared_ptr<IResult> Session_recorder::query(const std::string &sql,
+                                                bool buffered) {
   // While mock recording, all is buffered
   auto result = Session::query(sql, true);
 
   Result_recorder *ret_val = new Result_recorder(result);
 
-  Mock_record::get() << "EXPECT_CALL(session, query(\"" << sql << "\", " << buffered << ").WillOnce(Return(&result));" << std::endl;
+  Mock_record::get() << "EXPECT_CALL(session, query(\"" << sql << "\", "
+                     << buffered << ").WillOnce(Return(&result));" << std::endl;
 
-  return ret_val;
+  return std::shared_ptr<IResult>(ret_val);
 }
 
-void Session_recorder::execute(const std::string& sql) {
-  Mock_record::get() << "EXPECT_CALL(session, execute(\"" << sql << "\");" << std::endl;
+void Session_recorder::execute(const std::string &sql) {
+  Mock_record::get() << "EXPECT_CALL(session, execute(\"" << sql << "\");"
+                     << std::endl;
   Session::execute(sql);
 }
 
 void Session_recorder::start_transaction() {
-  Mock_record::get() << "EXPECT_CALL(session, start_transaction());" << std::endl;
+  Mock_record::get() << "EXPECT_CALL(session, start_transaction());"
+                     << std::endl;
   Session::start_transaction();
 }
 
@@ -346,12 +381,12 @@ void Session_recorder::close() {
   Session::close();
 }
 
-const char* Session_recorder::get_ssl_cipher() {
+const char *Session_recorder::get_ssl_cipher() {
   Mock_record::get() << "EXPECT_CALL(session, get_ssl_cipher());" << std::endl;
   return Session::get_ssl_cipher();
 }
 
-Result_recorder::Result_recorder(IResult* target): _target(target) {
+Result_recorder::Result_recorder(IResult *target) : _target(target) {
   save_result();
 
   _rset_index = 0;
@@ -371,7 +406,7 @@ void Result_recorder::save_result() {
 
   save_current_result(metadata, rset);
 
-  while ( _target->next_data_set() ) {
+  while (_target->next_data_set()) {
     auto metadata = _target->get_metadata();
     auto rset = _target->fetch_all();
     auto warnings = _target->fetch_warnings();
@@ -384,7 +419,8 @@ void Result_recorder::save_result() {
   }
 }
 
-void Result_recorder::save_current_result(const std::vector<Column>& columns, const std::vector<IRow*>& rows) {
+void Result_recorder::save_current_result(const std::vector<Column> &columns,
+                                          const std::vector<IRow *> &rows) {
   std::string names = "{\"" + columns[0].get_column_label() + "\"";
   std::string types = "{" + map_column_type(columns[0].get_type());
 
@@ -396,12 +432,13 @@ void Result_recorder::save_current_result(const std::vector<Column>& columns, co
   names.append("}");
   types.append("}");
 
-  Mock_record::get() << "auto fake_result = result.add_result(" << names << ", " << types << ");" << std::endl;
+  Mock_record::get() << "auto fake_result = result.add_result(" << names << ", "
+                     << types << ");" << std::endl;
 
-  for( auto row: rows) {
+  for (auto row : rows) {
     Mock_record::get() << "fake_result->add_row({";
 
-    for(size_t index = 0; index < row->size(); index++) {
+    for (size_t index = 0; index < row->size(); index++) {
       if (row->is_date(index))
         Mock_record::get() << "\"" << row->get_date(index) << "\"";
       else if (row->is_double(index))
@@ -423,7 +460,7 @@ void Result_recorder::save_current_result(const std::vector<Column>& columns, co
   }
 }
 
-IRow* Result_recorder::fetch_one() {
+IRow *Result_recorder::fetch_one() {
   Mock_record::get() << "EXPECT_CALL(result, fetch_one());" << std::endl;
 
   if (_row_index < _all_results[_rset_index].size())
@@ -432,12 +469,12 @@ IRow* Result_recorder::fetch_one() {
     return nullptr;
 }
 
-std::vector<IRow*> Result_recorder::fetch_all() {
+std::vector<IRow *> Result_recorder::fetch_all() {
   Mock_record::get() << "EXPECT_CALL(result, fetch_all());" << std::endl;
   if (_rset_index < _all_results.size())
     return _all_results[_rset_index];
   else
-    return std::vector<IRow*>();
+    return std::vector<IRow *>();
 }
 
 bool Result_recorder::next_data_set() {
@@ -449,16 +486,17 @@ bool Result_recorder::next_data_set() {
     return false;
 }
 
-std::vector<IRow*> Result_recorder::fetch_warnings() {
+std::vector<IRow *> Result_recorder::fetch_warnings() {
   Mock_record::get() << "EXPECT_CALL(result, fetch_warnings());" << std::endl;
   if (_rset_index < _all_results.size())
     return _all_warnings[_rset_index];
   else
-    return std::vector<IRow*>();
+    return std::vector<IRow *>();
 }
 
 int64_t Result_recorder::get_auto_increment_value() const {
-  Mock_record::get() << "EXPECT_CALL(result, get_auto_increment_value());" << std::endl;
+  Mock_record::get() << "EXPECT_CALL(result, get_auto_increment_value());"
+                     << std::endl;
   return _target->get_auto_increment_value();
 }
 
@@ -468,21 +506,25 @@ bool Result_recorder::has_resultset() {
 }
 
 uint64_t Result_recorder::get_affected_row_count() const {
-  Mock_record::get() << "EXPECT_CALL(result, get_affected_row_count());" << std::endl;
+  Mock_record::get() << "EXPECT_CALL(result, get_affected_row_count());"
+                     << std::endl;
   return _target->get_affected_row_count();
 }
 uint64_t Result_recorder::get_fetched_row_count() const {
-  Mock_record::get() << "EXPECT_CALL(result, get_fetched_row_count());" << std::endl;
+  Mock_record::get() << "EXPECT_CALL(result, get_fetched_row_count());"
+                     << std::endl;
   return _target->get_fetched_row_count();
 }
 
 uint64_t Result_recorder::get_warning_count() const {
-  Mock_record::get() << "EXPECT_CALL(result, get_warning_count());" << std::endl;
+  Mock_record::get() << "EXPECT_CALL(result, get_warning_count());"
+                     << std::endl;
   return _target->get_warning_count();
 }
 
 unsigned long Result_recorder::get_execution_time() const {
-  Mock_record::get() << "EXPECT_CALL(result, get_execution_time());" << std::endl;
+  Mock_record::get() << "EXPECT_CALL(result, get_execution_time());"
+                     << std::endl;
   return _target->get_execution_time();
 }
 
@@ -491,7 +533,7 @@ std::string Result_recorder::get_info() const {
   return _target->get_info();
 }
 
-const std::vector<Column>& Result_recorder::get_metadata() const {
+const std::vector<Column> &Result_recorder::get_metadata() const {
   Mock_record::get() << "EXPECT_CALL(result, get_metadata());" << std::endl;
   if (_rset_index < _all_results.size())
     return *_all_metadata[_rset_index];
@@ -500,7 +542,7 @@ const std::vector<Column>& Result_recorder::get_metadata() const {
 }
 
 std::string Result_recorder::map_column_type(Type type) {
-  switch(type) {
+  switch (type) {
     case Type::Null:
 
     case Type::Decimal:
@@ -517,16 +559,16 @@ std::string Result_recorder::map_column_type(Type type) {
       return "Type::String";
     case Type::Varchar:
       return "Type::Varchar";
-    case Type::VarString:
-      return "Type::VarString";
+    case Type::String:
+      return "Type::String";
     case Type::NewDecimal:
       return "Type::NewDecimal";
     case Type::TinyBlob:
       return "Type::TinyBlob";
     case Type::MediumBlob:
       return "Type::MediumBlob";
-    case Type::LongBlob:
-      return "Type::LongBlob";
+    case Type::IntegerBlob:
+      return "Type::IntegerBlob";
     case Type::Blob:
       return "Type::Blob";
     case Type::Geometry:
@@ -541,10 +583,10 @@ std::string Result_recorder::map_column_type(Type type) {
       return "Type::Short:";
     case Type::Int24:
       return "Type::Int24;";
-    case Type::Long:
-      return "Type::Long";
-    case Type::LongLong:
-      return "Type::LongLong";
+    case Type::Integer:
+      return "Type::Integer";
+    case Type::Integer:
+      return "Type::Integer";
     case Type::Float:
       return "Type::Float";
     case Type::Double:
@@ -567,6 +609,6 @@ std::string Result_recorder::map_column_type(Type type) {
 }
 
 #endif
-}
-}
-}
+}  // namespace mysql
+}  // namespace db
+}  // namespace mysqlshdk
