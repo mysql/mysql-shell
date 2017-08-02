@@ -63,6 +63,7 @@ class Shell_base_test : public ::testing::Test {
   static void check_string_expectation(const std::string &expected_str,
                                        const std::string &actual,
                                        bool expected);
+  static std::string get_path_to_mysqlsh();
   bool multi_value_compare(const std::string& expected,
                            const std::string &actual);
   bool check_multiline_expect(const std::string& context,

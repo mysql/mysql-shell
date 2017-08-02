@@ -473,9 +473,10 @@ std::shared_ptr<::mysqlx::Result> BaseSession::execute_sql(
           std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
     }
 
-    // Rethrows the exception for normal flow
-    throw;
+    // Rethrows the exception for normal flow after translating it to shell exception
+    translate_exception();
   }
+  CATCH_AND_TRANSLATE();
 
   return result;
 }

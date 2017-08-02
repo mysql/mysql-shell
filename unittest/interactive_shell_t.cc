@@ -16,6 +16,7 @@
 #include <cstdio>
 #include "test_utils.h"
 #include "utils/utils_file.h"
+#include <regex>
 
 namespace shcore {
 namespace shell_core_tests {
@@ -1268,6 +1269,35 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "    \"affectedRowCount\": 0,\n");
 
   execute("drop schema itst;");
+}
+
+TEST_F(Interactive_shell_test, BUG25974014) {
+  // We are going to test if shell attempts to reconnect after session is
+  // disconnected
+  _options->uri = _uri + "/mysql";
+  _options->interactive = true;
+  _options->initial_mode = IShell_core::Mode::SQL;
+  reset_shell();
+  _interactive_shell->connect(true);
+  output_handler.wipe_all();
+  std::stringstream cmd;
+  cmd << get_path_to_mysqlsh() << " " << _mysql_uri << " --sql -e \"kill "
+      << _interactive_shell->shell_context()
+             ->get_dev_session()
+             ->get_connection_id()
+      << "\"";
+  EXPECT_EQ(system(cmd.str().c_str()), 0);
+  output_handler.wipe_all();
+
+  // After the kill first command receives interrupted error
+  execute("\\use mysql");
+  MY_EXPECT_STDERR_CONTAINS("interrupted");
+  output_handler.wipe_all();
+
+  // On second execution shell should attempt to reconnect
+  execute("\\use mysql");
+  MY_EXPECT_STDOUT_CONTAINS("Attempting to reconnect");
+  output_handler.wipe_all();
 }
 
 }  // namespace shell_core_tests

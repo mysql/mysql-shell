@@ -50,7 +50,6 @@ class Command_line_test : public Shell_base_test {
   shcore::Process_launcher *_process = nullptr;
   std::mutex _process_mutex;
 
-  std::string get_path_to_mysqlsh();
   std::string _output;
   std::mutex _output_mutex;
   int execute(const std::vector<const char *> &args);
