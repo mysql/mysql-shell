@@ -23,6 +23,7 @@ from collections import OrderedDict
 import os
 import re
 import sys
+import stat
 
 from mysql_gadgets.exceptions import GadgetConfigParserError
 from mysql_gadgets.common.tools import get_abs_path
@@ -868,14 +869,22 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                     "'{0}' is not an absolute path. Please provide an "
                     "absolute path to the backup file")
             else:
+                orig_perms = stat.S_IMODE(os.stat(self.filename).st_mode)
+                # ensure that permissions are at most 640 but respect
+                # original ones if they are tighter
+                backup_perms = orig_perms & (
+                stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP)
+                # set flag to create file in write only mode
+                flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
                 try:
-                    with open(backup_file_path, 'w') as bf:
+                    fd = os.open(backup_file_path, flags, backup_perms)
+                    with os.fdopen(fd, 'w') as bf:
                         bf.writelines(lines)
-                except IOError as err:
+                except Exception as err:
                     raise GadgetConfigParserError(
-                        "Backup file '{0}' is not writable: "
-                        "'{1}'".format(backup_file_path, str(err)),
-                        cause=err)
+                        "Cannot create backup file '{0}': "
+                        "'{1}'".format(backup_file_path, str(err)), cause=err)
+
         f = None
         try:
             f = open(self.filename, 'w')
