@@ -38,9 +38,8 @@ std::string session_type_name(mysqlsh::SessionType type) {
     case mysqlsh::SessionType::Classic:
       ret_val = "Classic";
       break;
-    // TODO(rennox): this should return the proper session type name
     case mysqlsh::SessionType::X:
-      ret_val = "X";
+      ret_val = "X protocol";
       break;
   }
 
@@ -442,11 +441,18 @@ class Shell_cmdline_options : public ::testing::Test {
 
       EXPECT_EQ(ret_code, options.exit_code);
 
-      std::string error =
-          options.exit_code ? "Session type already configured to " + firstST +
-                                  ", unable to change to " + secondST +
-                                  " with option " + secondArg + "\n"
-                            : "";
+      std::string error = "";
+      if (options.exit_code) {
+        if (firstST.empty())
+          error = "Automatic protocol detection is enabled, unable to change to "
+                  + secondST + " with option " + secondArg + "\n";
+        else if (secondST.empty())
+          error = "Session type already configured to " + firstST +
+                  ", automatic protocol detection (-ma) can't be enabled.\n";
+        else
+          error = "Session type already configured to " + firstST + ", unable to"
+                  " change to " + secondST + " with option " + secondArg + "\n";
+      }
       EXPECT_STREQ(error.c_str(), cerr.str().c_str());
     }
 
@@ -569,9 +575,9 @@ TEST_F(Shell_cmdline_options, app) {
                          !IS_CONNECTION_DATA, !IS_NULLABLE,
                          "execute_statement");
 
-  test_option_with_no_value("--classic", "session-type",
+  test_option_with_no_value("--mysql", "session-type",
                             session_type_name(mysqlsh::SessionType::Classic));
-  test_option_with_no_value("--node", "session-type",
+  test_option_with_no_value("--mysqlx", "session-type",
                             session_type_name(mysqlsh::SessionType::X));
 
   test_option_with_no_value("--sql", "session-type",
@@ -584,9 +590,9 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_no_value("--sqlc", "initial-mode",
                             shell_mode_name(IShell_core::Mode::SQL));
 
-  test_option_with_no_value("--sqln", "session-type",
+  test_option_with_no_value("--sqlx", "session-type",
                             session_type_name(mysqlsh::SessionType::X));
-  test_option_with_no_value("--sqln", "initial-mode",
+  test_option_with_no_value("--sqlx", "initial-mode",
                             shell_mode_name(IShell_core::Mode::SQL));
 
   test_option_with_no_value("--javascript", "initial-mode",
@@ -627,25 +633,76 @@ TEST_F(Shell_cmdline_options, app) {
 
 TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
   test_session_type_conflicts("--sqlc", "--sqlc", "Classic", "Classic", 0);
-  test_session_type_conflicts("--sqlc", "--classic", "Classic", "Classic", 0);
-  test_session_type_conflicts("--sqlc", "--node", "Classic", "Node", 1);
-  test_session_type_conflicts("--sqlc", "--sqln", "Classic", "Node", 1);
+  test_session_type_conflicts("--sqlc", "--mysql", "Classic", "Classic", 0);
+  test_session_type_conflicts("--sqlc", "--mysqlx", "Classic", "X protocol", 1);
+  test_session_type_conflicts("--sqlc", "--sqlx", "Classic", "X protocol", 1);
 
-  test_session_type_conflicts("--sqln", "--sqln", "Node", "Node", 0);
-  test_session_type_conflicts("--sqln", "--node", "Node", "Node", 0);
-  test_session_type_conflicts("--sqln", "--classic", "Node", "Classic", 1);
-  test_session_type_conflicts("--sqln", "--sqlc", "Node", "Classic", 1);
+  test_session_type_conflicts("--sqlx", "--sqlx", "X protocol", "X protocol", 0);
+  test_session_type_conflicts("--sqlx", "--mysqlx", "X protocol", "X protocol", 0);
+  test_session_type_conflicts("--sqlx", "--mysql", "X protocol", "Classic", 1);
+  test_session_type_conflicts("--sqlx", "--sqlc", "X protocol", "Classic", 1);
 
-  test_session_type_conflicts("--node", "--node", "Node", "Node", 0);
-  test_session_type_conflicts("--node", "--sqln", "Node", "Node", 0);
-  test_session_type_conflicts("--node", "--classic", "Node", "Classic", 1);
-  test_session_type_conflicts("--node", "--sqlc", "Node", "Classic", 1);
+  test_session_type_conflicts("-mx", "--mysqlx", "X protocol", "X protocol", 0);
+  test_session_type_conflicts("--mysqlx", "--sqlx", "X protocol", "X protocol", 0);
+  test_session_type_conflicts("-mx", "--mysql", "X protocol", "Classic", 1);
+  test_session_type_conflicts("--mysqlx", "--sqlc", "X protocol", "Classic", 1);
+  test_session_type_conflicts("--mysqlx", "--mysql", "X protocol", "Classic", 1);
 
-  test_session_type_conflicts("--classic", "--classic", "Classic", "Classic",
-                              0);
-  test_session_type_conflicts("--classic", "--sqlc", "Classic", "Classic", 0);
-  test_session_type_conflicts("--classic", "--node", "Classic", "Node", 1);
-  test_session_type_conflicts("--classic", "--sqln", "Classic", "Node", 1);
+  test_session_type_conflicts("-mc", "--mysql", "Classic", "Classic", 0);
+  test_session_type_conflicts("--mysql", "--sqlc", "Classic", "Classic", 0);
+  test_session_type_conflicts("-mc", "--mysqlx", "Classic", "X protocol", 1);
+  test_session_type_conflicts("--mysql", "--sqlx", "Classic", "X protocol", 1);
+  test_session_type_conflicts("--mysql", "--mysqlx", "Classic", "X protocol", 1);
+
+  test_session_type_conflicts("-ma", "--mysql", "", "Classic", 1);
+  test_session_type_conflicts("--mysql", "-ma", "Classic", "", 1);
+  test_session_type_conflicts("-ma", "--mysqlx", "", "X protocol", 1);
+  test_session_type_conflicts("--mysqlx", "-ma", "X protocol", "", 1);
+  test_session_type_conflicts("-mc", "-ma", "Classic", "", 1);
+  test_session_type_conflicts("-mx", "-ma", "X protocol", "", 1);
+}
+
+TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
+
+  // Redirect cerr.
+  std::streambuf* backup = std::cerr.rdbuf();
+  std::ostringstream cerr;
+  std::cerr.rdbuf(cerr.rdbuf());
+  std::string firstArg, secondArg;
+
+  SCOPED_TRACE("TESTING: deprecated --node argument");
+  firstArg = "root@localhost:3301";
+  secondArg = "--node";
+
+  const char *argv[] {("ut"),
+                (firstArg.c_str()), (secondArg.c_str()), NULL};
+  Shell_command_line_options cmd_options(3, argv);
+  mysqlsh::Shell_options options = cmd_options.get_options();
+
+
+  EXPECT_EQ(1, options.exit_code);
+  EXPECT_STREQ(options.uri.c_str(), "root@localhost:3301");
+  EXPECT_STREQ("The --node option has been deprecated, "
+               "please use --mysqlx or -mx instead.\n", cerr.str().c_str());
+
+  SCOPED_TRACE("TESTING: deprecated --classic argument");
+  firstArg = "root@localhost:3301";
+  secondArg = "--classic";
+  cerr.str("");
+  cerr.clear();
+
+  const char *argv2[] {("ut"),
+                (firstArg.c_str()), (secondArg.c_str()), NULL};
+  cmd_options = Shell_command_line_options(3, argv2);
+  options = cmd_options.get_options();
+
+  EXPECT_EQ(1, options.exit_code);
+  EXPECT_STREQ(options.uri.c_str(), "root@localhost:3301");
+  EXPECT_STREQ("The --classic option has been deprecated, "
+               "please use --mysql or -mc instead.\n", cerr.str().c_str());
+
+  // Restore old cerr.
+  std::cerr.rdbuf(backup);
 }
 
 TEST_F(Shell_cmdline_options, test_positional_argument) {
@@ -722,79 +779,69 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
 
 TEST_F(Shell_cmdline_options, test_help_details) {
   const std::vector<std::string> exp_details = {
-      "  -?, --help               Display this help and exit.",
-      "  -f, --file=file          Process file.",
-      "  -e, --execute=<cmd>      Execute command and quit.",
-      "  --uri                    Connect to Uniform Resource Identifier.",
-      "                           Format: [user[:pass]@]host[:port][/db]",
-      "  -h, --host=name          Connect to host.",
-      "  -P, --port=#             Port number to use for connection.",
-      "  -S, --socket=sock        Socket name to use in UNIX, pipe name to use "
-      "in",
-      "                           Windows (only classic sessions).",
-      "  -u, --dbuser=name        User for the connection to the server.",
-      "  --user=name              An alias for dbuser.",
-      "  --dbpassword=name        Password to use when connecting to server",
-      "  -p, --password=name      An alias for dbpassword.",
-      "  -p                       Request password prompt to set the password",
-      "  -D, --schema=name        Schema to use.",
-      "  --recreate-schema        Drop and recreate the specified schema.",
-      "                           Schema will be deleted if it exists!",
-      "  --database=name          An alias for --schema.",
-      "  --node                   Uses connection data to create a Node "
-      "Session.",
-      "  --classic                Uses connection data to create a Classic "
-      "Session.",
-      "  --sql                    Start in SQL mode.",
-      "  --sqlc                   Start in SQL mode using a classic session.",
-      "  --sqln                   Start in SQL mode using a node session.",
-      "  --js, --javascript       Start in JavaScript mode.",
-      "  --py, --python           Start in Python mode.",
-      "  --json[=format]          Produce output in JSON format, allowed "
-      "values:",
-      "                           raw, pretty. If no format is specified",
-      "                           pretty format is produced.",
-      "  --table                  Produce output in table format (default for",
-      "                           interactive mode). This option can be used "
-      "to",
-      "                           force that format when running in batch "
-      "mode.",
-      "  -E, --vertical           Print the output of a query (rows) "
-      "vertically.",
-      "  -i, --interactive[=full] To use in batch mode, it forces emulation of",
-      "                           interactive mode processing. Each line on "
-      "the ",
-      "                           batch is processed as if it were in ",
-      "                           interactive mode.",
-      "  --force                  To use in SQL batch mode, forces processing "
-      "to",
-      "                           continue if an error is found.",
-      "  --log-level=value        The log level.",
-      ngcommon::Logger::get_level_range_info(),
-      "  -V, --version            Prints the version of MySQL Shell.",
-      "  --ssl                    Deprecated, use --ssl-mode instead",
-      "  --ssl-key=name           X509 key in PEM format.",
-      "  --ssl-cert=name          X509 cert in PEM format.",
-      "  --ssl-ca=name            CA file in PEM format.",
-      "  --ssl-capath=dir         CA directory.",
-      "  --ssl-cipher=name        SSL Cipher to use.",
-      "  --ssl-crl=name           Certificate revocation list.",
-      "  --ssl-crlpath=dir        Certificate revocation list path.",
-      "  --ssl-mode=mode          SSL mode to use, allowed values: DISABLED,",
-      "                           PREFERRED, REQUIRED, VERIFY_CA, "
-      "VERIFY_IDENTITY.",
-      "  --tls-version=version    TLS version to use, permitted values are :",
-      "                           TLSv1, TLSv1.1.",
-      "  --passwords-from-stdin   Read passwords from stdin instead of the "
-      "tty.",
-      "  --auth-method=method     Authentication method to use.",
-      "  --show-warnings          Automatically display SQL warnings on SQL "
-      "mode",
-      "                           if available.",
-      "  --dba enableXProtocol    Enable the X Protocol in the server "
-      "connected to.",
-      "                           Must be used with --classic.",
-      "  --nw, --no-wizard        Disables wizard mode."};
+  "  -?, --help               Display this help and exit.",
+  "  -f, --file=file          Process file.",
+  "  -e, --execute=<cmd>      Execute command and quit.",
+  "  --uri                    Connect to Uniform Resource Identifier.",
+  "                           Format: [user[:pass]@]host[:port][/db]",
+  "  -h, --host=name          Connect to host.",
+  "  -P, --port=#             Port number to use for connection.",
+  "  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in",
+  "                           Windows (only classic sessions).",
+  "  -u, --dbuser=name        User for the connection to the server.",
+  "  --user=name              An alias for dbuser.",
+  "  --dbpassword=name        Password to use when connecting to server",
+  "  -p, --password=name      An alias for dbpassword.",
+  "  -p                       Request password prompt to set the password",
+  "  -D, --schema=name        Schema to use.",
+  "  --recreate-schema        Drop and recreate the specified schema.",
+  "                           Schema will be deleted if it exists!",
+  "  --database=name          An alias for --schema.",
+  "  -mx, --mysqlx            Uses connection data to create Creating an X protocol session.",
+  "  -mc, --mysql             Uses connection data to create a Classic Session.",
+  "  -ma                      Uses the connection data to create the session with",
+  "                           automatic protocol detection.",
+  "  --sql                    Start in SQL mode.",
+  "  --sqlc                   Start in SQL mode using a classic session.",
+  "  --sqlx                   Start in SQL mode using Creating an X protocol session.",
+  "  --js, --javascript       Start in JavaScript mode.",
+  "  --py, --python           Start in Python mode.",
+  "  --json[=format]          Produce output in JSON format, allowed values:",
+  "                           raw, pretty. If no format is specified",
+  "                           pretty format is produced.",
+  "  --table                  Produce output in table format (default for",
+  "                           interactive mode). This option can be used to",
+  "                           force that format when running in batch mode.",
+  "  -E, --vertical           Print the output of a query (rows) vertically.",
+  "  -i, --interactive[=full] To use in batch mode, it forces emulation of",
+  "                           interactive mode processing. Each line on the ",
+  "                           batch is processed as if it were in ",
+  "                           interactive mode.",
+  "  --force                  To use in SQL batch mode, forces processing to",
+  "                           continue if an error is found.",
+  "  --log-level=value        The log level.",
+  ngcommon::Logger::get_level_range_info(),
+  "  -V, --version            Prints the version of MySQL Shell.",
+  "  --ssl                    Deprecated, use --ssl-mode instead",
+  "  --ssl-key=name           X509 key in PEM format.",
+  "  --ssl-cert=name          X509 cert in PEM format.",
+  "  --ssl-ca=name            CA file in PEM format.",
+  "  --ssl-capath=dir         CA directory.",
+  "  --ssl-cipher=name        SSL Cipher to use.",
+  "  --ssl-crl=name           Certificate revocation list.",
+  "  --ssl-crlpath=dir        Certificate revocation list path.",
+  "  --ssl-mode=mode          SSL mode to use, allowed values: DISABLED,",
+  "                           PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
+  "  --tls-version=version    TLS version to use, permitted values are :",
+  "                           TLSv1, TLSv1.1.",
+  "  --passwords-from-stdin   Read passwords from stdin instead of the tty.",
+  "  --auth-method=method     Authentication method to use.",
+  "  --show-warnings          Automatically display SQL warnings on SQL mode",
+  "                           if available.",
+  "  --dba enableXProtocol    Enable the X Protocol in the server connected to.",
+  "                           Must be used with --mysql.",
+  "  --nw, --no-wizard        Disables wizard mode."
+  };
   std::vector<std::string> details = Shell_command_line_options::get_details();
   int i = 0;
   for (std::string exp_sentence : exp_details) {
@@ -805,47 +852,55 @@ TEST_F(Shell_cmdline_options, test_help_details) {
 
 TEST_F(Shell_cmdline_options, conflicts_session_type) {
   {
-    auto error =
-        "Conflicting options: provided URI is not compatible with "
-        "Classic session configured with --classic.\n";
+    auto error = "Provided URI is not compatible with "
+                  "Classic session configured with --mysql.\n";
 
-    const char *argv0[] = {"ut", "--classic", "--uri=mysqlx://root@localhost",
-                           NULL};
+    const char *argv0[] = {
+        "ut",
+        "--mysql",
+        "--uri=mysqlx://root@localhost",
+        NULL
+      };
 
-    test_conflicting_options("--classic --uri", 3, argv0, error);
+    test_conflicting_options("--mysql --uri", 3, argv0, error);
   }
 
   {
-    auto error =
-        "Conflicting options: provided URI is not compatible with "
-        "Classic session configured with --sqlc.\n";
+    auto error = "Provided URI is not compatible with "
+                  "Classic session configured with --sqlc.\n";
 
     const char *argv0[] = {"ut", "--sqlc", "--uri=mysqlx://root@localhost",
                            NULL};
 
-    test_conflicting_options("--classic --uri", 3, argv0, error);
+    test_conflicting_options("--mysql --uri", 3, argv0, error);
   }
 
   {
-    auto error =
-        "Conflicting options: provided URI is not compatible with "
-        "Node session configured with --node.\n";
+    auto error = "Provided URI is not compatible with "
+                  "X protocol session configured with --mysqlx.\n";
 
-    const char *argv1[] = {"ut", "--node", "--uri=mysql://root@localhost",
-                           NULL};
+    const char *argv1[] = {
+        "ut",
+        "--mysqlx",
+        "--uri=mysql://root@localhost",
+        NULL
+      };
 
-    test_conflicting_options("--classic --uri", 3, argv1, error);
+    test_conflicting_options("--mysql --uri", 3, argv1, error);
   }
 
   {
-    auto error =
-        "Conflicting options: provided URI is not compatible with "
-        "Node session configured with --sqln.\n";
+    auto error = "Provided URI is not compatible with "
+                  "X protocol session configured with --sqlx.\n";
 
-    const char *argv1[] = {"ut", "--sqln", "--uri=mysql://root@localhost",
-                           NULL};
+    const char *argv1[] = {
+        "ut",
+        "--sqlx",
+        "--uri=mysql://root@localhost",
+        NULL
+      };
 
-    test_conflicting_options("--classic --uri", 3, argv1, error);
+    test_conflicting_options("--mysql --uri", 3, argv1, error);
   }
 }
 

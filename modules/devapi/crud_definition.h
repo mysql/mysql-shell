@@ -57,7 +57,7 @@ class Crud_definition : public Dynamic_object {
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> safe_exec(
       std::function<std::shared_ptr<mysqlshdk::db::IResult>()> func);
 
-  std::shared_ptr<NodeSession> session();
+  std::shared_ptr<Session> session();
   std::shared_ptr<DatabaseObject> _owner;
 
   void parse_string_list(const shcore::Argument_list &args,

@@ -83,7 +83,7 @@ class XShell_TestCases(unittest.TestCase):
       instance = "3322"
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+                      '-h' + LOCALHOST.host, '-P' + instance, '--mysql']
       x_cmds = [("dba.getCluster('devClusterz');\n", "The cluster with the name 'devClusterz' does not exist.")]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')

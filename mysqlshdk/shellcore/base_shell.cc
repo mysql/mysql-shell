@@ -81,8 +81,7 @@ void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::
 
   switch (type) {
     case mysqlsh::SessionType::X:
-      // TODO(rennox): This should print the proper message for an X Protocol session
-      stype = "a Node";
+      stype = "an X protocol";
       break;
     case mysqlsh::SessionType::Classic:
       stype = "a Classic";
@@ -93,10 +92,7 @@ void Base_shell::print_connection_message(mysqlsh::SessionType type, const std::
   }
 
   std::string message;
-  //if (!sessionid.empty())
-  //  message = "Using '" + sessionid + "' stored connection\n";
-
-  message += "Creating " + stype + " Session to '" + uri + "'";
+  message += "Creating " + stype + " session to '" + uri + "'";
 
   println(message);
 }

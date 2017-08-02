@@ -135,11 +135,11 @@ print mySession.quote_name('`sample`')
 print mySession.quote_name('`sample')
 print mySession.quote_name('sample`')
 
-#@# nodeSession: bad params
-mysqlx.get_node_session()
-mysqlx.get_node_session(42)
-mysqlx.get_node_session(["bla"])
-mysqlx.get_node_session(None)
+#@# Session: bad params
+mysqlx.get_session()
+mysqlx.get_session(42)
+mysqlx.get_session(["bla"])
+mysqlx.get_session(None)
 
 # Cleanup
 mySession.close()

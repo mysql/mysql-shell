@@ -195,10 +195,22 @@ Shell_command_line_options::Shell_command_line_options(int argc,
       exit_code = 1;
       break;
     } else if (check_arg(argv, i, "--node", "--node")) {
-      override_session_type(mysqlsh::SessionType::Node, "--node");
+      std::cerr << "The --node option has been deprecated, "
+                   "please use --mysqlx or -mx instead.\n";
+      exit_code = 1;
+      break;
     } else if (check_arg(argv, i, "--classic", "--classic")) {
-      override_session_type(mysqlsh::SessionType::Classic, "--classic");
-    } else if (check_arg(argv, i, "--sql", "--sql")) {
+      std::cerr << "The --classic option has been deprecated, "
+                   "please use --mysql or -mc instead.\n";
+      exit_code = 1;
+      break;
+    } else if (check_arg(argv, i, "-mc", "--mysql"))
+      override_session_type(mysqlsh::SessionType::Classic, "--mysql");
+    else if (check_arg(argv, i, "-mx", "--mysqlx"))
+      override_session_type(mysqlsh::SessionType::X, "--mysqlx");
+    else if (check_arg(argv, i, "-ma", "-ma"))
+      override_session_type(mysqlsh::SessionType::Auto, "-ma");
+    else if (check_arg(argv, i, "--sql", "--sql")) {
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
     } else if (check_arg(argv, i, "--js", "--javascript")) {
 #ifdef HAVE_V8
@@ -220,8 +232,13 @@ Shell_command_line_options::Shell_command_line_options(int argc,
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
       override_session_type(mysqlsh::SessionType::Classic, "--sqlc");
     } else if (check_arg(argv, i, NULL, "--sqln")) {
+      std::cerr << "The --sqln option has been deprecated, \
+                    please use --sqlx instead.";
+      exit_code = 1;
+      break;
+    } else if (check_arg(argv, i, NULL, "--sqlx")) {
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
-      override_session_type(mysqlsh::SessionType::X, "--sqln");
+      override_session_type(mysqlsh::SessionType::X, "--sqlx");
     } else if (check_arg_with_value(argv, i, "--json", NULL, value, true)) {
       if (!value || strcmp(value, "pretty") == 0) {
         _options.output_format = "json";
@@ -336,7 +353,7 @@ void Shell_command_line_options::check_session_type_conflicts() {
       _uri_data.get_scheme() != "mysql") ||
       (_options.session_type == mysqlsh::SessionType::X &&
       _uri_data.get_scheme() != "mysqlx")) {
-      auto error = "Conflicting options: provided URI is not compatible with " +
+      auto error = "Provided URI is not compatible with " +\
                    get_session_type_name(_options.session_type) + " session "
                    "configured with " + _session_type_arg + ".";
       throw std::runtime_error(error);
@@ -435,12 +452,13 @@ std::string Shell_command_line_options::get_session_type_name(
   std::string label;
   switch (type) {
     case mysqlsh::SessionType::X:
-      label = "X";
+      label = "X protocol";
       break;
     case mysqlsh::SessionType::Classic:
       label = "Classic";
       break;
     case mysqlsh::SessionType::Auto:
+      label = "";
       break;
   }
 
@@ -450,12 +468,24 @@ std::string Shell_command_line_options::get_session_type_name(
 void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value) {
   if (new_type != _options.session_type) {
     if (!_options.default_session_type) {
-      std::string msg = "Session type already configured to ";
-      msg.append(get_session_type_name(_options.session_type));
-      msg.append(", unable to change to ");
-      msg.append(get_session_type_name(new_type));
-      msg.append(" with option ");
-      msg.append(option);
+      std::string msg = "";
+      if (_options.session_type == mysqlsh::SessionType::Auto) {
+        msg.append("Automatic protocol detection is enabled, unable to change to ");
+        msg.append(get_session_type_name(new_type));
+        msg.append(" with option ");
+        msg.append(option);
+      } else if (new_type == mysqlsh::SessionType::Auto) {
+        msg.append("Session type already configured to ");
+        msg.append(get_session_type_name(_options.session_type));
+        msg.append(", automatic protocol detection (-ma) can't be enabled.");
+      } else {
+        msg.append("Session type already configured to ");
+        msg.append(get_session_type_name(_options.session_type));
+        msg.append(", unable to change to ");
+        msg.append(get_session_type_name(new_type));
+        msg.append(" with option ");
+        msg.append(option);
+      }
 
       if (value) {
         msg.append("=");
@@ -493,11 +523,13 @@ std::vector<std::string> Shell_command_line_options::get_details() {
   "  --recreate-schema        Drop and recreate the specified schema.",
   "                           Schema will be deleted if it exists!",
   "  --database=name          An alias for --schema.",
-  "  --node                   Uses connection data to create a Node Session.",
-  "  --classic                Uses connection data to create a Classic Session.",
+  "  -mx, --mysqlx            Uses connection data to create Creating an X protocol session.",
+  "  -mc, --mysql             Uses connection data to create a Classic Session.",
+  "  -ma                      Uses the connection data to create the session with",
+  "                           automatic protocol detection.",
   "  --sql                    Start in SQL mode.",
   "  --sqlc                   Start in SQL mode using a classic session.",
-  "  --sqln                   Start in SQL mode using a node session.",
+  "  --sqlx                   Start in SQL mode using Creating an X protocol session.",
   "  --js, --javascript       Start in JavaScript mode.",
   "  --py, --python           Start in Python mode.",
   "  --json[=format]          Produce output in JSON format, allowed values:",
@@ -533,7 +565,7 @@ std::vector<std::string> Shell_command_line_options::get_details() {
   "  --show-warnings          Automatically display SQL warnings on SQL mode",
   "                           if available.",
   "  --dba enableXProtocol    Enable the X Protocol in the server connected to.",
-  "                           Must be used with --classic.",
+  "                           Must be used with --mysql.",
   "  --nw, --no-wizard        Disables wizard mode.",
   "  --histignore=patterns    A colon-separated list of patterns to keep SQL",
   "                           input from getting logged into mysqlsh history."

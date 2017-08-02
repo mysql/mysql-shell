@@ -67,15 +67,16 @@ REGISTER_OBJECT(mysqlx, IndexType);
 REGISTER_HELP(SESSION_PARENTS, "ShellBaseSession");
 
 // Documentation of BaseSession class
-REGISTER_HELP(SESSION_BRIEF,
-    "Enables interaction with an X Protocol enabled MySQL Server.");
 REGISTER_HELP(SESSION_DETAIL,
+    "Document Store functionality can be used through this object, in addition "
+    "to SQL.");
+REGISTER_HELP(SESSION_DETAIL1,
     "This class allows performing database operations such as:");
-REGISTER_HELP(SESSION_DETAIL1, "@li Schema management operations.");
-REGISTER_HELP(SESSION_DETAIL2, "@li Access to relational tables.");
-REGISTER_HELP(SESSION_DETAIL3, "@li Access to Document Store collections.");
-REGISTER_HELP(SESSION_DETAIL4, "@li Enabling/disabling warning generation.");
-REGISTER_HELP(SESSION_DETAIL5, "@li Retrieval of connection information.");
+REGISTER_HELP(SESSION_DETAIL2, "@li Schema management operations.");
+REGISTER_HELP(SESSION_DETAIL3, "@li Access to relational tables.");
+REGISTER_HELP(SESSION_DETAIL4, "@li Access to Document Store collections.");
+REGISTER_HELP(SESSION_DETAIL5, "@li Enabling/disabling warning generation.");
+REGISTER_HELP(SESSION_DETAIL6, "@li Retrieval of connection information.");
 
 // Documentation of Session class
 REGISTER_HELP(SESSION_INTERACTIVE_BRIEF,
@@ -92,9 +93,9 @@ REGISTER_HELP(SESSION_ISOPEN_BRIEF,
 * $(SESSION_ISOPEN_BRIEF)
 */
 #if DOXYGEN_JS
-Bool NodeSession::isOpen() {}
+Bool Session::isOpen() {}
 #elif DOXYGEN_PY
-bool NodeSession::is_open() {}
+bool Session::is_open() {}
 #endif
 bool Session::is_open() const {
   return _session->valid();
@@ -116,7 +117,7 @@ Session::~Session() {
     close();
 }
 
-void NodeSession::init() {
+void Session::init() {
   add_method("close", std::bind(&Session::_close, this, _1), "data");
   add_method("setFetchWarnings",
              std::bind(&Session::set_fetch_warnings, this, _1), "data");
@@ -138,7 +139,7 @@ void NodeSession::init() {
              "data");
   add_method(
       "dropCollection",
-      std::bind(&NodeSession::drop_schema_object, this, _1, "Collection"),
+      std::bind(&Session::drop_schema_object, this, _1, "Collection"),
       "data");
   add_method("dropView",
              std::bind(&Session::drop_schema_object, this, _1, "View"),
@@ -217,9 +218,9 @@ REGISTER_HELP(SESSION_CLOSE_DETAIL, "After closing the session it is "
 * $(SESSION_CLOSE_DETAIL)
 */
 #if DOXYGEN_JS
-Undefined NodeSession::close() {}
+Undefined Session::close() {}
 #elif DOXYGEN_PY
-None NodeSession::close() {}
+None Session::close() {}
 #endif
 Value Session::_close(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("close").c_str());
@@ -277,9 +278,9 @@ REGISTER_HELP(SESSION_CREATESCHEMA_EXCEPTION,
 * $(SESSION_CREATESCHEMA_EXCEPTION)
 */
 #if DOXYGEN_JS
-Schema NodeSession::createSchema(String name) {}
+Schema Session::createSchema(String name) {}
 #elif DOXYGEN_PY
-Schema NodeSession::create_schema(str name) {}
+Schema Session::create_schema(str name) {}
 #endif
 Value Session::_create_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("createSchema").c_str());
@@ -337,9 +338,9 @@ REGISTER_HELP(SESSION_STARTTRANSACTION_DETAIL3,
 * $(SESSION_STARTTRANSACTION_DETAIL3)
 */
 #if DOXYGEN_JS
-Result NodeSession::startTransaction() {}
+Result Session::startTransaction() {}
 #elif DOXYGEN_PY
-Result NodeSession::start_transaction() {}
+Result Session::start_transaction() {}
 #endif
 shcore::Value Session::_start_transaction(
     const shcore::Argument_list &args) {
@@ -367,18 +368,18 @@ REGISTER_HELP(SESSION_COMMIT_DETAIL1,
               "before calling startTransaction().");
 
 /**
- * $(NODESESSION_COMMIT_BRIEF)
+ * $(SESSION_COMMIT_BRIEF)
  *
- * $(NODESESSION_COMMIT_RETURNS)
+ * $(SESSION_COMMIT_RETURNS)
  *
- * $(NODESESSION_COMMIT_DETAIL)
+ * $(SESSION_COMMIT_DETAIL)
  *
- * $(NODESESSION_COMMIT_DETAIL1)
+ * $(SESSION_COMMIT_DETAIL1)
  */
 #if DOXYGEN_JS
-Result NodeSession::commit() {}
+Result Session::commit() {}
 #elif DOXYGEN_PY
-Result NodeSession::commit() {}
+Result Session::commit() {}
 #endif
 shcore::Value Session::_commit(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("commit").c_str());
@@ -406,18 +407,18 @@ REGISTER_HELP(SESSION_ROLLBACK_DETAIL1,
               "before calling startTransaction().");
 
 /**
- * $(NODESESSION_ROLLBACK_BRIEF)
+ * $(SESSION_ROLLBACK_BRIEF)
  *
- * $(NODESESSION_ROLLBACK_RETURNS)
+ * $(SESSION_ROLLBACK_RETURNS)
  *
- * $(NODESESSION_ROLLBACK_DETAIL)
+ * $(SESSION_ROLLBACK_DETAIL)
  *
- * $(NODESESSION_ROLLBACK_DETAIL1)
+ * $(SESSION_ROLLBACK_DETAIL1)
  */
 #if DOXYGEN_JS
-Result NodeSession::rollback() {}
+Result Session::rollback() {}
 #elif DOXYGEN_PY
-Result NodeSession::rollback() {}
+Result Session::rollback() {}
 #endif
 shcore::Value Session::_rollback(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("rollback").c_str());
@@ -445,14 +446,14 @@ REGISTER_HELP(SESSION_GETDEFAULTSCHEMA_RETURNS,
 
 #if DOXYGEN_JS || DOXYGEN_PY
 /**
- * $(NODESESSION_GETDEFAULTSCHEMA_BRIEF)
+ * $(SESSION_GETDEFAULTSCHEMA_BRIEF)
  *
- * $(NODESESSION_GETDEFAULTSCHEMA_RETURNS)
+ * $(SESSION_GETDEFAULTSCHEMA_RETURNS)
  */
 #if DOXYGEN_JS
-Schema NodeSession::getDefaultSchema() {}
+Schema Session::getDefaultSchema() {}
 #elif DOXYGEN_PY
-Schema NodeSession::get_default_schema() {}
+Schema Session::get_default_schema() {}
 #endif
 
 /**
@@ -461,9 +462,9 @@ Schema NodeSession::get_default_schema() {}
 * $(SESSION_GETURI_RETURNS)
 */
 #if DOXYGEN_JS
-String NodeSession::getUri() {}
+String Session::getUri() {}
 #elif DOXYGEN_PY
-str NodeSession::get_uri() {}
+str Session::get_uri() {}
 #endif
 #endif
 
@@ -504,9 +505,9 @@ REGISTER_HELP(SESSION_GETSCHEMA_EXCEPTION,
  * \sa Schema
  */
 #if DOXYGEN_JS
-Schema NodeSession::getSchema(String name) {}
+Schema Session::getSchema(String name) {}
 #elif DOXYGEN_PY
-Schema NodeSession::get_schema(str name) {}
+Schema Session::get_schema(str name) {}
 #endif
 shcore::Object_bridge_ref Session::get_schema(const std::string &name) {
   auto ret_val = ShellBaseSession::get_schema(name);
@@ -541,9 +542,9 @@ REGISTER_HELP(
  * $(SESSION_GETSCHEMAS_RETURNS)
  */
 #if DOXYGEN_JS
-List NodeSession::getSchemas() {}
+List Session::getSchemas() {}
 #elif DOXYGEN_PY
-list NodeSession::get_schemas() {}
+list Session::get_schemas() {}
 #endif
 shcore::Value Session::get_schemas(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getSchemas").c_str());
@@ -608,9 +609,9 @@ REGISTER_HELP(
  * $(SESSION_SETFETCHWARNINGS_DETAIL2)
  */
 #if DOXYGEN_JS
-Result NodeSession::setFetchWarnings(Boolean enable) {}
+Result Session::setFetchWarnings(Boolean enable) {}
 #elif DOXYGEN_PY
-Result NodeSession::set_fetch_warnings(bool enable) {}
+Result Session::set_fetch_warnings(bool enable) {}
 #endif
 shcore::Value Session::set_fetch_warnings(
     const shcore::Argument_list &args) {
@@ -647,9 +648,9 @@ REGISTER_HELP(SESSION_DROPSCHEMA_EXCEPTION,
  * $(SESSION_DROPSCHEMA_EXCEPTION)
  */
 #if DOXYGEN_JS
-Result NodeSession::dropSchema(String name) {}
+Result Session::dropSchema(String name) {}
 #elif DOXYGEN_PY
-Result NodeSession::drop_schema(str name) {}
+Result Session::drop_schema(str name) {}
 #endif
 void Session::drop_schema(const std::string &name) {
   execute_sql(sqlstring("drop schema !", 0) << name, shcore::Argument_list());
@@ -687,9 +688,9 @@ REGISTER_HELP(SESSION_DROPTABLE_EXCEPTION,
  * $(SESSION_DROPTABLE_EXCEPTION)
  */
 #if DOXYGEN_JS
-Result NodeSession::dropTable(String schema, String name) {}
+Result Session::dropTable(String schema, String name) {}
 #elif DOXYGEN_PY
-Result NodeSession::drop_table(str schema, str name) {}
+Result Session::drop_table(str schema, str name) {}
 #endif
 
 // Documentation of dropCollection function
@@ -708,9 +709,9 @@ REGISTER_HELP(SESSION_DROPCOLLECTION_EXCEPTION,
  * $(SESSION_DROPCOLLECTION_EXCEPTION)
  */
 #if DOXYGEN_JS
-Result NodeSession::dropCollection(String schema, String name) {}
+Result Session::dropCollection(String schema, String name) {}
 #elif DOXYGEN_PY
-Result NodeSession::drop_collection(str schema, str name) {}
+Result Session::drop_collection(str schema, str name) {}
 #endif
 
 // Documentation of dropView function
@@ -729,9 +730,9 @@ REGISTER_HELP(SESSION_DROPVIEW_EXCEPTION,
  * $(SESSION_DROPVIEW_EXCEPTION)
  */
 #if DOXYGEN_JS
-Result NodeSession::dropView(String schema, String name) {}
+Result Session::dropView(String schema, String name) {}
 #elif DOXYGEN_PY
-Result NodeSession::drop_view(str schema, str name) {}
+Result Session::drop_view(str schema, str name) {}
 #endif
 
 shcore::Value Session::drop_schema_object(const shcore::Argument_list &args,
@@ -827,7 +828,7 @@ unsigned long mysql_get_client_version(void);
 shcore::Value::Map_type_ref Session::get_status() {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
-  (*status)["SESSION_TYPE"] = shcore::Value("Node");
+  (*status)["SESSION_TYPE"] = shcore::Value("X");
 
   (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
 
@@ -969,7 +970,7 @@ void Session::kill_query() {
 
 
 /* Sql Execution Function */
-shcore::Object_bridge_ref NodeSession::raw_execute_sql(
+shcore::Object_bridge_ref Session::raw_execute_sql(
     const std::string &query) {
   return _execute_sql(query, shcore::Argument_list()).as_object();
 }
@@ -1107,9 +1108,7 @@ std::shared_ptr<shcore::Object_bridge> Session::create(
   session->connect(
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING));
 
-#ifdef DEBUG_SESSION_CREATE_CLOSE
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
-#endif
 
   return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
 }
@@ -1155,7 +1154,7 @@ SqlExecute BaseSession::sql(str sql) {}
 #endif
 shcore::Value Session::sql(const shcore::Argument_list &args) {
   std::shared_ptr<SqlExecute> sql_execute(new SqlExecute(
-      std::static_pointer_cast<NodeSession>(shared_from_this())));
+      std::static_pointer_cast<Session>(shared_from_this())));
 
   return sql_execute->sql(args);
 }
@@ -1192,7 +1191,7 @@ Schema BaseSession::get_current_schema() {}
 
 Value Session::get_member(const std::string &prop) const {
   Value ret_val;
-  NodeSession *session = const_cast<NodeSession *>(this);
+  Session *session = const_cast<Session *>(this);
 
   if (prop == "__connection_info") {
     // FIXME: temporary code until ISession refactoring

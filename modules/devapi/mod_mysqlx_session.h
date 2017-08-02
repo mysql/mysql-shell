@@ -128,11 +128,11 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   virtual shcore::Value get_member(const std::string &prop) const;
 
   virtual std::string get_node_type() {
-    return "Node";
+    return "X";
   }
 
   virtual SessionType session_type() const {
-    return SessionType::Node;
+    return SessionType::X;
   }
 
   static std::shared_ptr<shcore::Object_bridge> create(
@@ -164,14 +164,6 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   shcore::Value _set_current_schema(const shcore::Argument_list &args);
   shcore::Value sql(const shcore::Argument_list &args);
   shcore::Value quote_name(const shcore::Argument_list &args);
-
-
-  virtual shcore::Value get_member(const std::string &prop) const;
-
-  shcore::Value sql(const shcore::Argument_list &args);
-  shcore::Value quote_name(const shcore::Argument_list &args);
-
-  shcore::Value _set_current_schema(const shcore::Argument_list &args);
 
 
   virtual bool is_open() const;

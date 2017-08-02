@@ -71,7 +71,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
   ASSERT_EQ("SN_SESSION_CLOSED", n.name);
   ASSERT_EQ("Session", n.sender->class_name());
 
-  _interactive_shell->process_line("\\connect -c " + _mysql_uri);
+  _interactive_shell->process_line("\\connect -mc " + _mysql_uri);
 
   ASSERT_EQ(1, _notifications.size());
   n = _notifications.front();
@@ -91,7 +91,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
   this->ignore_notification("SN_SESSION_CONNECTED");
   this->ignore_notification("SN_SESSION_CLOSED");
 
-  _interactive_shell->process_line("\\connect -c " + _mysql_uri);
+  _interactive_shell->process_line("\\connect -mc " + _mysql_uri);
 
   ASSERT_EQ(0, _notifications.size());
 
@@ -99,7 +99,7 @@ TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands) {
 
   ASSERT_EQ(0, _notifications.size());
 
-  _interactive_shell->process_line("\\connect -n " + _uri);
+  _interactive_shell->process_line("\\connect -mx " + _uri);
 
   ASSERT_EQ(0, _notifications.size());
 

@@ -43,7 +43,7 @@ protected:
     Shell_core_test_wrapper::SetUp();
 
     _interactive_shell->process_line("\\sql");
-    _interactive_shell->process_line("\\connect -c " + _mysql_uri);
+    _interactive_shell->process_line("\\connect -mc " + _mysql_uri);
     if (!output_handler.std_err.empty()) {
       std::cerr << "ERROR connecting to "<<_mysql_uri<<":"<<output_handler.std_err<<"\n";
       std::cerr << "Test environment is probably wrong. Please check values of MYSQL_URI, MYSQL_PORT, MYSQL_PWD environment variables.\n";

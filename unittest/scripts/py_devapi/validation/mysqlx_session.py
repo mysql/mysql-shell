@@ -17,6 +17,14 @@
 Document Store functionality can be used through this object, in addition to
 SQL.
 
+This class allows performing database operations such as:
+
+ - Schema management operations.
+ - Access to relational tables.
+ - Access to Document Store collections.
+ - Enabling/disabling warning generation.
+ - Retrieval of connection information.
+
 The following properties are currently supported.
 
  - uri            Retrieves the URI for the current session.
@@ -120,7 +128,7 @@ The following functions are currently supported.
 |```sample`|
 |`sample```|
 
-#@# nodeSession: bad params
+#@# Session: bad params
 ||Invalid connection options, expected either a URI or a Dictionary.
 ||Invalid connection options, expected either a URI or a Dictionary.
 ||Invalid connection options, expected either a URI or a Dictionary.

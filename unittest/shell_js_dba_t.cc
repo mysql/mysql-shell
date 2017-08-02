@@ -240,7 +240,7 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_global_dba) {
   _options->wizards = false;
   reset_shell();
 
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+  execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
@@ -253,7 +253,7 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_global_cluster) {
   _options->wizards = false;
   reset_shell();
 
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+  execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
   // Tests cluster functionality, adding, removing instances
   // error conditions
   // Lets the cluster empty
@@ -266,7 +266,7 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_global_cluster_multimaster) {
   _options->wizards = false;
   reset_shell();
 
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+  execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
   // Tests cluster functionality, adding, removing instances
   // error conditions
   // Lets the cluster empty
@@ -283,6 +283,8 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
 
   _options->interactive = true;
   reset_shell();
+
+  execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Dba: checkInstanceConfiguration error
   output_handler.passwords.push_back("root");
@@ -351,7 +353,7 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
   _options->interactive = true;
   reset_shell();
 
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+  execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Cluster: rejoin_instance with interaction, error
   output_handler.passwords.push_back("n");
@@ -374,7 +376,7 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster_multimaster) {
   _options->interactive = true;
   reset_shell();
 
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+  execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@<OUT> Dba: createCluster multiMaster with interaction, cancel
   output_handler.prompts.push_back("no");

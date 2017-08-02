@@ -18,7 +18,7 @@ It uses  exec_xshell_commands(init_command, x_cmds) function in order to execute
 
 init_command: set of arguments for opening a xshell session
 init_command example:
-     init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql']
+     init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--sql']
 
 x_cmds: set of commands to be executed in xshell session and its expected results
 x_cmds example:

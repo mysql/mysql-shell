@@ -61,7 +61,8 @@ class Command_line_test : public Shell_base_test {
   bool _strip_carriage_returns = true;
   std::string _output;
   std::mutex _output_mutex;
-  int execute(const std::vector<const char *> &args);
+  int execute(const std::vector<const char *> &args,
+              const char *password = NULL);
 
   void send_ctrlc();
 };

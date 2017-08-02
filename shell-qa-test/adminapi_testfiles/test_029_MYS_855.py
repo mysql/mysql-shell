@@ -84,7 +84,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       findString = "The instance '" + LOCALHOST.host + ":" + instance + "' is valid for the cluster." + os.linesep + "The instance is fully recoverable."
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + instance, '--classic', '--passwords-from-stdin']
+                      '-h' + LOCALHOST.host, '-P' + instance, '--mysql', '--passwords-from-stdin']
       x_cmds = [("cluster= dba.getCluster(\"Cluster1\");\n", "<Cluster:Cluster1>"),
                 ("cluster.checkInstanceState('" + LOCALHOST.host + ":" + instance + "');\n","Please provide the password "),
                 (LOCALHOST.password + '\n', "is valid for the cluster."),

@@ -35,7 +35,7 @@
 ||TableInsert.insert: Argument #2 is expected to be a string
 ||TableInsert.insert: Element #2 is expected to be a string
 ||ERROR: 5014: Wrong number of fields in row being inserted
-||Unsupported value received: <NodeSession
+||Unsupported value received: <Session
 ||Unknown column 'id' in 'field list'
 
 //@ Collection.add single document

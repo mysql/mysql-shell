@@ -82,7 +82,7 @@ class XShell_TestCases(unittest.TestCase):
       instance = "3312"
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+                      '-h' + LOCALHOST.host, '-P' + instance, '--mysql']
       x_cmds = [("cluster = dba.getCluster();\n", "<Cluster:Cluster1>" + os.linesep),
                 ("cluster.getName();\n", os.linesep + "Cluster1" + os.linesep),
                 ("session\n", "Classic")]

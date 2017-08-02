@@ -84,7 +84,7 @@ class XShell_TestCases(unittest.TestCase):
       instance5 = "3323"
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P ' + instance5, '--classic']
+                      '-h' + LOCALHOST.host, '-P ' + instance5, '--mysql']
       x_cmds = [("dba.verbose=2\n","2"),
                 ("cluster = dba.getCluster('Cluster2');\n", "<Cluster:Cluster2>"),
                 ("cluster.addInstance(\"{0}:{1}@{2}:".format(LOCALHOST.user, LOCALHOST.password,

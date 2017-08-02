@@ -48,7 +48,7 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   if (instance_def.has_scheme()) {
     if (instance_def.get_scheme() == "mysqlx")
-      stype = "a Node";
+      stype = "an X protocol";
     else
       stype = "a Classic";
   }
@@ -58,7 +58,7 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   // Messages prior to the connection
   std::string message;
-  message += "Creating " + stype + " Session to '" +
+  message += "Creating " + stype + " session to '" +
     instance_def.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + "'";
 
   println(message);

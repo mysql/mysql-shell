@@ -351,9 +351,9 @@ REGISTER_HELP(SHELL_CONNECT_DETAIL24, "The password may be included on the conne
 "if the connectionData does not contain it already. If both are specified the password parameter will override the password defined on "\
 "the connectionData.");
 REGISTER_HELP(SHELL_CONNECT_DETAIL25, "The type of session will be determined by the given scheme:");
-REGISTER_HELP(SHELL_CONNECT_DETAIL26, "@li If mysqlx scheme, a NodeSession will be created");
+REGISTER_HELP(SHELL_CONNECT_DETAIL26, "@li If mysqlx scheme, a Session will be created");
 REGISTER_HELP(SHELL_CONNECT_DETAIL27, "@li If mysql scheme, a ClassicSession will be created");
-REGISTER_HELP(SHELL_CONNECT_DETAIL28, "@li If 'scheme' is not provided, the shell will first attempt establish a NodeSession and if it detects "\
+REGISTER_HELP(SHELL_CONNECT_DETAIL28, "@li If 'scheme' is not provided, the shell will first attempt establish a Session and if it detects "\
                                       "the used port is for the mysql protocol, it will attempt a ClassicSession");
 /**
  * $(SHELL_CONNECT_BRIEF)
@@ -418,7 +418,7 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
     SessionType type = SessionType::Auto;
     if (connection_options.has_scheme()) {
       if (connection_options.get_scheme() == "mysqlx")
-        type = SessionType::Node;
+        type = SessionType::X;
       else if (connection_options.get_scheme() == "mysql")
         type = SessionType::Classic;
     }
@@ -591,10 +591,8 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
     try {
       ret_val->connect(connection_options);
 
-#ifdef DEBUG_SESSION_CREATE_CLOSE
       shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED",
                                                 ret_val);
-#endif
 
       return ret_val;
     } catch (shcore::Exception &e) {
@@ -648,9 +646,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
     }
   }
 
-#ifdef DEBUG_SESSION_CREATE_CLOSE
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
-#endif
 
   return ret_val;
 }

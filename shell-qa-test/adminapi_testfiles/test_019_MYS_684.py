@@ -89,7 +89,7 @@ class XShell_TestCases(unittest.TestCase):
       #################################### createCluster  #################################################
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + instance1, '--classic']
+                      '-h' + LOCALHOST.host, '-P' + instance1, '--mysql']
       x_cmds = [("cluster = dba.getCluster('Cluster1');\n", "<Cluster:Cluster1>"),
                 ("cluster.removeInstance(\"localhost:" + instance3 + "\");\n", "was successfully removed from the cluster.")]
       results = exec_xshell_commands(init_command, x_cmds)

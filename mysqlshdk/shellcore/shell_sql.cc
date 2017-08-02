@@ -64,7 +64,7 @@ Value Shell_sql::process_sql(const std::string &query_str,
       // ClassicSession has runSql and returns a ClassicResult object
       if (session->has_member("runSql")) {
         ret_val = session->call("runSql", query);
-      } else if (session->session_type() == mysqlsh::SessionType::Node) {
+      } else if (session->session_type() == mysqlsh::SessionType::X) {
         try {
           ret_val =
               std::static_pointer_cast<mysqlsh::mysqlx::Session>(session)

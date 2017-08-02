@@ -212,7 +212,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   std::shared_ptr<mysqlsh::ShellBaseSession> connect_node(
       const std::string &uri, const std::string &password) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
-        new mysqlsh::mysqlx::NodeSession());
+        new mysqlsh::mysqlx::Session());
     shcore::Argument_list args;
     auto connection_options = shcore::get_connection_options(_uri);
     session->connect(connection_options);
@@ -373,7 +373,7 @@ TEST_F(Interrupt_mysqlx, sql_x) {
 
   session = _interactive_shell->shell_context()->get_dev_session();
   ASSERT_TRUE(session.get());
-  ASSERT_EQ("NodeSession", session->class_name());
+  ASSERT_EQ("Session", session->class_name());
 
   // Test that a query doing a sleep() on classic gets interrupted
   {

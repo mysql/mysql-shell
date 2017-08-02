@@ -100,13 +100,14 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     "SYNTAX:\n"
     "   \\connect [-<TYPE>] <URI>\n\n"
     "WHERE:\n"
-    "   TYPE is an optional parameter to specify the session type. Accepts the next values:\n"
-    "        n: to establish an Node session\n"
-    "        c: to establish a Classic session\n"
-    "        If the session type is not specified, an Node session will be established.\n"
+    "   TYPE is an optional parameter to specify the session type. Accepts the following values:\n"
+    "        -mx, --mysqlx: to establish Creating an X protocol session\n"
+    "        -mc, --mysql: to establish a Classic session\n"
+    "        -ma: to establish a session selected by performing automatic protocol selection\n"
+    "        If the session type is not specified, Creating an X protocol session will be established.\n"
     "   URI is in the format of: [user[:password]@]hostname[:port]\n\n"
-    "EXAMPLES:\n"
-    "   \\connect root@localhost\n";
+    "EXAMPLE:\n"
+    "   \\connect -mx root@localhost";
 
   std::string cmd_help_source =
     "SYNTAX:\n"
@@ -126,8 +127,8 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     "   \\use mysql"
     "   \\u 'my schema'"
     "NOTE: This command works with the active session.\n"
-    "If it is either a Node or Classic session, the current schema will be updated (affects SQL mode).\n"
-    "The global db variable will be updated to hold the requested schema.\n";
+    "If it is either an X protocol or a Classic session, the current schema will be updated (affects SQL mode).\n"
+    "The global 'db' variable will be updated to hold the requested schema.\n";
 
   SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "",
                     Mysql_shell::cmd_print_shell_help);
@@ -225,10 +226,10 @@ bool Mysql_shell::connect(bool primary_session) {
       } else {
         if (scheme == "mysqlx") {
           if (_options.session_type == mysqlsh::SessionType::Classic)
-            error = "Invalid URI for Classic session";
+            error = "Provided URI is not compatible with Classic session configured with --mysql.";
         } else if (scheme == "mysql") {
           if (_options.session_type == mysqlsh::SessionType::X)
-            error = "Invalid URI for Node session";
+            error = "Provided URI is not compatible with X protocol session configured with --mysqlx.";
         }
       }
 
@@ -489,12 +490,18 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string>& args) {
 
     if (arg.empty())
       error = true;
-    else if (!arg.compare("-n") || !arg.compare("-N"))
+    else if (!arg.compare("-n") || !arg.compare("-N")) {
+      error = true;
+      print_error("The -n option is deprecated, please use --mysqlx or -mx instead\n");
+    } else if (!arg.compare("-c") || !arg.compare("-C")) {
+      error = true;
+      print_error("The -c option is deprecated, please use --mysql or -mc instead\n");
+    } else if (!arg.compare("-mx") || !arg.compare("--mysqlx"))
       _options.session_type = mysqlsh::SessionType::X;
-    else if (!arg.compare("-c") || !arg.compare("-C"))
+    else if (!arg.compare("-mc") || !arg.compare("--mysql"))
       _options.session_type = mysqlsh::SessionType::Classic;
     else {
-      if (args.size() == 3)
+      if (args.size() == 3 && arg.compare("-ma"))
         error = true;
       else
         uri = true;
@@ -515,7 +522,7 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string>& args) {
     error = true;
 
   if (error)
-    print_error("\\connect [-<type>] <uri>\n");
+    print_error("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
 
   return true;
 }

@@ -152,9 +152,7 @@ void ClassicSession::close() {
 
   _conn.reset();
 
-#ifdef DEBUG_SESSION_CREATE_CLOSE
   ShellNotifications::get()->notify("SN_SESSION_CLOSED", shared_from_this());
-#endif
 }
 
 Value ClassicSession::_close(const shcore::Argument_list &args) {
@@ -576,9 +574,7 @@ std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argu
 
   session->connect(connection_options);
 
-#ifdef DEBUG_SESSION_CREATE_CLOSE
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
-#endif
 
   return std::dynamic_pointer_cast<shcore::Object_bridge>(session);
 }
