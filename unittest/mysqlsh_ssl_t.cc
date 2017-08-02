@@ -46,14 +46,14 @@ class Mysqlsh_ssl : public tests::Command_line_test {
   }
 
   enum class Proto {
-    X,       // --node explicit port
-    C,       // --classic explicit port
-    X_sock,  // --node via explicit socket
-    C_sock,  // --classic via explicit socket
-    X_dflt,  // --node default port
-    C_dflt,  // --classic default port
-    X_auto,  // X protocol port but without --node
-    C_auto   // classic port but without --classic
+    X,       // --mysqlx explicit port
+    C,       // --mysql explicit port
+    X_sock,  // --mysqlx via explicit socket
+    C_sock,  // --mysql via explicit socket
+    X_dflt,  // --mysqlx default port
+    C_dflt,  // --mysql default port
+    X_auto,  // X protocol port but without --mysqlx
+    C_auto   // classic port but without --mysql
   };
   enum class Ssl { Dflt = -1, Disab = 0, Pref, Req, Ver_ca, Ver_id };
 
@@ -97,7 +97,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
 
     switch (protocol) {
       case Proto::X:
-        argv.push_back("--node");
+        argv.push_back("--mysqlx");
       case Proto::X_auto:
         switch (server) {
           case Srv::Main:
@@ -111,7 +111,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
         }
         break;
       case Proto::C:
-        argv.push_back("--classic");
+        argv.push_back("--mysql");
       case Proto::C_auto:
         switch (server) {
           case Srv::Main:
@@ -125,20 +125,20 @@ class Mysqlsh_ssl : public tests::Command_line_test {
         }
         break;
       case Proto::X_dflt:
-        argv.push_back("--node");
+        argv.push_back("--mysqlx");
         break;
       case Proto::C_dflt:
-        argv.push_back("--classic");
+        argv.push_back("--mysql");
         break;
       case Proto::X_sock:
         argv.push_back("-S");
         argv.push_back(_socket.c_str());
-        argv.push_back("--node");
+        argv.push_back("--mysqlx");
         break;
       case Proto::C_sock:
         argv.push_back("-S");
         argv.push_back(_mysql_socket.c_str());
-        argv.push_back("--classic");
+        argv.push_back("--mysql");
         break;
     }
 

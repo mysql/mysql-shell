@@ -82,7 +82,7 @@ class XShell_TestCases(unittest.TestCase):
       instance = "3312"
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+                      '-h' + LOCALHOST.host, '-P' + instance, '--mysql']
       x_cmds = [("dba.createCluster();\n", "Invalid number of arguments in Dba.createCluster, expected 1 to 2 but got 0")
                 ]
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)

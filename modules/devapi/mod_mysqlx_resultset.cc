@@ -226,7 +226,7 @@ REGISTER_HELP(RESULT_DETAIL,
 REGISTER_HELP(RESULT_DETAIL1, "@li On Table: insert, update and delete");
 REGISTER_HELP(RESULT_DETAIL2, "@li On Collection: add, modify and remove");
 REGISTER_HELP(RESULT_DETAIL3,
-              "Other functions on the NodeSession class also return an "
+              "Other functions on the Session class also return an "
               "instance of this class:");
 REGISTER_HELP(RESULT_DETAIL4, "@li Transaction handling functions");
 REGISTER_HELP(RESULT_DETAIL5, "@li Transaction handling functions");
@@ -795,7 +795,7 @@ void RowResult::append_json(shcore::JSON_dumper &dumper) const {
 // Documentation of SqlResult class
 REGISTER_HELP(SQLRESULT_BRIEF,
               "Allows browsing through the result information after performing "
-              "an operation on the database done through NodeSession.sql");
+              "an operation on the database done through Session.sql");
 
 SqlResult::SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : RowResult(result) {

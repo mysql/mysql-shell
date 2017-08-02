@@ -124,9 +124,9 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
   return std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(result);
 }
 
-std::shared_ptr<NodeSession> Crud_definition::session() {
+std::shared_ptr<Session> Crud_definition::session() {
   if (_owner) {
-    return std::static_pointer_cast<NodeSession>(_owner->session());
+    return std::static_pointer_cast<Session>(_owner->session());
   }
   return {};
 }

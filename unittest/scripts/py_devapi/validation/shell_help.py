@@ -128,11 +128,11 @@ connectionData.
 
 The type of session will be determined by the given scheme:
 
- - If mysqlx scheme, a NodeSession will be created
+ - If mysqlx scheme, a Session will be created
  - If mysql scheme, a ClassicSession will be created
  - If 'scheme' is not provided, the shell will first attempt establish a
-   NodeSession and if it detects the used port is for the mysql protocol, it
-   will attempt a ClassicSession
+   Session and if it detects the used port is for the mysql protocol, it will
+   attempt a ClassicSession
 
 
 #@<OUT> Help

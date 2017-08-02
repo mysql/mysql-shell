@@ -86,7 +86,7 @@ class XShell_TestCases(unittest.TestCase):
       # install xplugin
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--dba', 'enableXProtocol']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--mysql', '--dba', 'enableXProtocol']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       p.stdin.flush()
       stdin, stdout = p.communicate()
@@ -99,13 +99,13 @@ class XShell_TestCases(unittest.TestCase):
       # def test_0_1(self):
       # create world_x and world_x-data
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic',
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--mysql',
                       '--file=' + Exec_files_location + 'world_x.sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       stdin, stdout = p.communicate()
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n", "mysql-sql>"),
                 ("use world_x;\n", "mysql-sql>"),
                 ("show tables ;\n", "4 rows in set"),
@@ -117,12 +117,12 @@ class XShell_TestCases(unittest.TestCase):
 
       # create sakila and sakila-data
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic',
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--mysql',
                       '--file=' + Exec_files_location + 'sakila-schema.sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       stdin, stdout = p.communicate()
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic',
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--mysql',
                       '--file=' + Exec_files_location + 'sakila-data-5712.sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       stdin, stdout = p.communicate()
@@ -130,7 +130,7 @@ class XShell_TestCases(unittest.TestCase):
       #  self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n", "mysql-sql>"),
                 ("use sakila;\n", "mysql-sql>"),
                 ("select count(*) from actor;\n", "200"),
@@ -143,13 +143,13 @@ class XShell_TestCases(unittest.TestCase):
 
       # create sakila_x
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic',
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--mysql',
                       '--file=' + Exec_files_location + 'sakila_x.sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
       stdin, stdout = p.communicate()
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n", "mysql-sql>"),
                 ("use sakila_x;\n", "mysql-sql>"),
                 ("select count(*) from movies;\n", "1 row in set"),

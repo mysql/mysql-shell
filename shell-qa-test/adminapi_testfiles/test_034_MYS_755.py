@@ -84,7 +84,7 @@ class XShell_TestCases(unittest.TestCase):
       instance2 = "3323"
       results = ''
       init_command =  [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin', '-u' + LOCALHOST.user,
-                       '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P ' + instance2, '--classic']
+                       '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P ' + instance2, '--mysql']
       x_cmds = [("c = dba.getCluster('Cluster2')\n",'<Cluster:Cluster2>'),
                 ("c.removeInstance('localhost:3322')\n", 'was successfully removed from the cluster'),
                 ("dba.stopSandboxInstance("+instance+", { sandboxDir: \""+cluster_Path+

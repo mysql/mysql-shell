@@ -96,7 +96,7 @@ class XShell_TestCases(unittest.TestCase):
               self.assertEqual('FAIL', 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + instance, '--classic']
+                      '-h' + LOCALHOST.host, '-P' + instance, '--mysql']
       x_cmds = [("dba.createCluster(\"Cluster2\", {\"clusterAdminType\": \"local\"});\n", "<Cluster:Cluster2>"),
                 ("dba.getCluster('Cluster2');\n", "<Cluster:Cluster2>"),
                 ]

@@ -2,7 +2,7 @@
 ||
 
 //@ connect
-|Creating a Classic Session to 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'|
+|Creating a Classic session to 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'|
 |Your MySQL connection id is|
 |No default schema selected; type \use <schema> to set one.|
 

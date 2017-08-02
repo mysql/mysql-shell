@@ -46,8 +46,8 @@ struct Instance_definition {
 
 #if DOXYGEN_CPP
 /**
- * Represents a Session to a Metadata Storage
- */
+* Represents a session to a Metadata Storage
+*/
 #endif
 class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
  public:

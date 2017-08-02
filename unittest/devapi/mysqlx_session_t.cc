@@ -85,7 +85,7 @@ class Mysqlx_session : public tests::Shell_base_test {
 
 TEST_F(Mysqlx_session, connect) {
   {
-    std::shared_ptr<NodeSession> session(new NodeSession());
+    std::shared_ptr<Session> session(new Session());
     EXPECT_THROW_NOTHING(
         session->connect(mysqlshdk::db::Connection_options(_uri)));
   }
@@ -93,7 +93,7 @@ TEST_F(Mysqlx_session, connect) {
   {
     // FIXME when exception cleanup happens, these should expect nested
     // FIXME exceptions with db::Error inside
-    std::unique_ptr<NodeSession> session(new NodeSession());
+    std::unique_ptr<Session> session(new Session());
     mysqlshdk::db::Connection_options opts(_uri_nopasswd);
     opts.set_password("???");
     EXPECT_THROW_LIKE(session->connect(opts), shcore::Exception,
@@ -101,7 +101,7 @@ TEST_F(Mysqlx_session, connect) {
   }
 
   {
-    std::unique_ptr<NodeSession> session(new NodeSession());
+    std::unique_ptr<Session> session(new Session());
     mysqlshdk::db::Connection_options opts;
     opts.set_host("blabla");
     EXPECT_THROW_LIKE(session->connect(opts), shcore::Exception,
@@ -111,7 +111,7 @@ TEST_F(Mysqlx_session, connect) {
 
 TEST_F(Mysqlx_session, create_schema) {
   {
-    std::shared_ptr<NodeSession> session(new NodeSession());
+    std::shared_ptr<Session> session(new Session());
     EXPECT_THROW_NOTHING(
         session->connect(mysqlshdk::db::Connection_options(_uri)));
 

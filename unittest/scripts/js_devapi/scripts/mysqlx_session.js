@@ -131,11 +131,11 @@ print(mySession.quoteName('`sample`'));
 print(mySession.quoteName('`sample'));
 print(mySession.quoteName('sample`'));
 
-//@# nodeSession: bad params
-mysqlx.getNodeSession()
-mysqlx.getNodeSession(42)
-mysqlx.getNodeSession(["bla"])
-mysqlx.getNodeSession(null)
+//@# Session: bad params
+mysqlx.getSession()
+mysqlx.getSession(42)
+mysqlx.getSession(["bla"])
+mysqlx.getSession(null)
 
 // Cleanup
 mySession.close();

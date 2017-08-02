@@ -84,7 +84,7 @@ class XShell_TestCases(unittest.TestCase):
       #################################### createCluster  #################################################
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + instance1, '--classic']
+                      '-h' + LOCALHOST.host, '-P' + instance1, '--mysql']
       x_cmds = [("cluster = dba.getCluster('Cluster2');\n", "<Cluster:Cluster2>"),
                 ("cluster.removeInstance(\"{0}:3399\");\n".format(LOCALHOST.host),
                  "does not belong to the ReplicaSet")
