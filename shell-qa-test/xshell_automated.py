@@ -1728,19 +1728,19 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.port),
-                   "Classic Session successfully established. No default schema selected."),
+                   "Your MySQL connection id is"),
                   (
                   "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.port),
-                  "Classic Session successfully established. Default schema set to `sakila`."),
+                  "Your MySQL connection id is"),
                   ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.xprotocol_port),
-                   "Node Session successfully established. No default schema selected."),
+                   "Your MySQL connection id is"),
                   (
                       "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                          LOCALHOST.host,
                                                                          LOCALHOST.xprotocol_port),
-                      "Node Session successfully established. Default schema `sakila` accessible through db."),
+                      "Your MySQL connection id is"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1751,19 +1751,19 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--js']
         x_cmds = [("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.port),
-                   "Classic Session successfully established. No default schema selected."),
+                   "Your MySQL connection id is"),
                   (
                   "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.port),
-                  "Classic Session successfully established. Default schema set to `sakila`."),
+                  "Your MySQL connection id is"),
                   ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.xprotocol_port),
-                   "Node Session successfully established. No default schema selected."),
+                   "Your MySQL connection id is"),
                   (
                       "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                          LOCALHOST.host,
                                                                          LOCALHOST.xprotocol_port),
-                      "Node Session successfully established. Default schema `sakila` accessible through db."),
+                      "Your MySQL connection id is"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
