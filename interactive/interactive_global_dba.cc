@@ -327,9 +327,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     instance_def = get_connection_data(session->uri(), false);
     args.push_back(shcore::Value(instance_def));
 
-    Value::Map_type_ref options(new shcore::Value::Map_type);
-    (*options)["password"] = shcore::Value(session->get_password());
-    args.push_back(shcore::Value(options));
+    Value::Map_type_ref options_check_instance(new shcore::Value::Map_type);
+    (*options_check_instance)["password"] = shcore::Value(session->get_password());
+    args.push_back(shcore::Value(options_check_instance));
 
     try {
       shcore::Value check_report =
@@ -350,9 +350,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
           println();
           println("Cancelled");
           return shcore::Value();
-        } else {
-          println();
         }
+        println();
       }
     } catch (shcore::Exception &e) {
       // We must ignore the two possible exceptions of
@@ -384,7 +383,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       std::string r;
       println("I have read the MySQL InnoDB cluster manual and I understand the requirements\n"
               "and limitations of advanced Multi-Master Mode.");
-      if (prompt("Confirm [y|N]: ", Prompt_answer::NO) == Prompt_answer::NO) {
+      if (prompt("Confirm", Prompt_answer::NO) == Prompt_answer::NO) {
         println();
         println("Cancelled");
         return shcore::Value();
@@ -451,7 +450,7 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
       opt_map.ensure_keys({}, {"force"}, "drop options");
       force = opt_map.bool_at("force");
     }
-    CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
+    CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"));
   }
 
   if (force) {

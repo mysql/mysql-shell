@@ -37,26 +37,27 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -93,19 +94,20 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.",
+        "status": "OK_NO_TOLERANCE",
+        "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -116,29 +118,13 @@
 #@ Cluster: remove_instance 3
 ||
 
-#@ Cluster: remove_instance 1
+#@ Cluster: Error cannot remove last instance
+||SystemError: LogicError: Cluster.remove_instance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster.
+
+#@ Dissolve cluster with success
 ||
 
-#@<OUT> Cluster: describe
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "instances": [],
-        "name": "default"
-    }
-}
-
-#@<OUT> Cluster: status
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "status": "Cluster is NOT tolerant to any failures.",
-        "topology": {}
-    }
-}
-
-#@ Cluster: add_instance 1
+#@ Dba: create_cluster multiMaster 2, ok
 ||
 
 #@ Cluster: add_instance 2
@@ -152,26 +138,27 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }
@@ -189,7 +176,7 @@
 ||Invalid number of arguments in Cluster.rejoin_instance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.rejoin_instance, expected 1 to 2 but got 3
 ||Cluster.rejoin_instance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.rejoin_instance: Invalid values in instance definition: authMethod, schema
+||Cluster.rejoin_instance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 ||Cluster.rejoin_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 #@#: Dba: rejoin instance 3 ok
@@ -200,26 +187,27 @@
     "clusterName": "devCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "status": "Cluster tolerant to up to ONE failure.",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "leaves": {},
                 "mode": "R/W",
+                "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             }

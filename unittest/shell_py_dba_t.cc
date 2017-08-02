@@ -278,7 +278,7 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_global_cluster) {
   execute("session.close()");
 }
 
-TEST_F(Shell_py_dba_tests, DISABLED_no_interactive_classic_global_cluster_multimaster) {
+TEST_F(Shell_py_dba_tests, no_interactive_classic_global_cluster_multimaster) {
   _options->wizards = false;
   reset_shell();
 
@@ -390,13 +390,16 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
   execute("session.close();");
 }
 
-TEST_F(Shell_py_dba_tests, DISABLED_interactive_classic_global_cluster_multimaster) {
+TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster_multimaster) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@<OUT> Dba: createCluster multiMaster with interaction, cancel
   output_handler.prompts.push_back("no");
 
   //@<OUT> Dba: createCluster multiMaster with interaction, ok
+  output_handler.prompts.push_back("yes");
+
+  //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
   output_handler.prompts.push_back("yes");
 
   //@# Cluster: rejoin_instance with interaction, error

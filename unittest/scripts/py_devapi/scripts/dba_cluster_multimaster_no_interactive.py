@@ -1,5 +1,4 @@
-# Assumptions: check_slave_online_multimaster and check_slave_offline_multimaster
-# are defined
+# Assumptions: wait_slave_state is defined
 
 #@ Dba: create_cluster multiMaster, ok
 if __have_ssl:
@@ -7,17 +6,17 @@ if __have_ssl:
 else:
   dba.create_cluster('devCluster', {'multiMaster': True, 'force': True})
 
-cluster = dba.get_cluster('devCluster');
+cluster = dba.get_cluster('devCluster')
 
 #@ Cluster: add_instance 2
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
-check_slave_online_multimaster(Cluster, uri2);
+wait_slave_state(Cluster, uri2, "ONLINE")
 
 #@ Cluster: add_instance 3
 add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
-check_slave_online_multimaster(cluster, uri3);
+wait_slave_state(cluster, uri3, "ONLINE")
 
 #@<OUT> Cluster: describe cluster with instance
 cluster.describe()
@@ -37,29 +36,29 @@ cluster.status()
 #@ Cluster: remove_instance 3
 cluster.remove_instance(uri3)
 
-#@ Cluster: remove_instance 1
+#@ Cluster: Error cannot remove last instance
 cluster.remove_instance(uri1)
 
-#@<OUT> Cluster: describe
-cluster.describe()
+#@ Dissolve cluster with success
+cluster.dissolve({'force': True})
 
-#@<OUT> Cluster: status
-cluster.status()
+#@ Dba: create_cluster multiMaster 2, ok
+if __have_ssl:
+  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'REQUIRED'})
+else:
+  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'DISABLED'})
 
-#@ Cluster: add_instance 1
-add_instance_to_cluster(cluster, __mysql_sandbox_port1)
-
-check_slave_online_multimaster(cluster, uri1);
+cluster = dba.get_cluster('devCluster')
 
 #@ Cluster: add_instance 2
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
-check_slave_online_multimaster(cluster, uri2);
+wait_slave_state(cluster, uri2, "ONLINE")
 
 #@ Cluster: add_instance 3
 add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 
-check_slave_online_multimaster(cluster, uri3);
+wait_slave_state(cluster, uri3, "ONLINE")
 
 #@<OUT> Cluster: status: success
 cluster.status()
@@ -75,7 +74,7 @@ else:
 # XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
 # But won't be available for the GA release. So we need to wait until the instance is reported
 # as offline
-check_slave_offline_multimaster(cluster, uri3);
+wait_slave_state(cluster, uri3, "ONLINE")
 
 #@# Dba: start instance 3
 if __sandbox_dir:
@@ -84,22 +83,23 @@ else:
   dba.start_sandbox_instance(__mysql_sandbox_port3)
 
 #@ Cluster: rejoin_instance errors
-cluster.rejoin_instance();
-cluster.rejoin_instance(1,2,3);
-cluster.rejoin_instance(1);
-cluster.rejoin_instance({'host': 'localhost'});
-cluster.rejoin_instance({'host': 'localhost', 'schema': 'abs', 'authMethod': 56});
-cluster.rejoin_instance("somehost:3306");
+cluster.rejoin_instance()
+cluster.rejoin_instance(1,2,3)
+cluster.rejoin_instance(1)
+cluster.rejoin_instance({'host': 'localhost'})
+cluster.rejoin_instance("somehost:3306")
 
 #@#: Dba: rejoin instance 3 ok
 if __have_ssl:
-  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'memberSslMode': 'REQUIRED'}, 'root');
+  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'password': 'root'}, {'memberSslMode': 'REQUIRED'})
 else:
-  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3}, 'root');
+  cluster.rejoin_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_sandbox_port3, 'password': 'root'}, {'memberSslMode': 'DISABLED'})
 
-check_slave_online_multimaster(cluster, uri3);
+wait_slave_state(cluster, uri3, "ONLINE")
 
 # Verify if the cluster is OK
 
 #@<OUT> Cluster: status for rejoin: success
 cluster.status()
+
+cluster.dissolve({'force': True})
