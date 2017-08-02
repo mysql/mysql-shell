@@ -102,11 +102,8 @@ std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_sql(
     const std::string &sql) const {
   std::shared_ptr< ::mysqlx::Result> ret_val;
 
-  try {
-    ret_val = _session->executeSql(sql);
-    ret_val->wait();
-  }
-  CATCH_AND_TRANSLATE();
+  ret_val = _session->executeSql(sql);
+  ret_val->wait();
 
   return ret_val;
 }

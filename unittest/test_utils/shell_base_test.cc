@@ -125,6 +125,34 @@ void Shell_base_test::check_string_expectation(const std::string& expected_str,
   }
 }
 
+std::string Shell_base_test::get_path_to_mysqlsh() {
+  std::string command;
+
+#ifdef _WIN32
+  // For now, on windows the executable is expected to be on the same path as
+  // the unit tests
+  char buf[MAX_PATH];
+  GetModuleFileNameA(NULL, buf, MAX_PATH);
+  command = buf;
+  command.resize(command.rfind('\\') + 1);
+  command += "mysqlsh.exe";
+#else
+  std::string prefix = g_argv0;
+  // strip unittest/run_unit_tests
+  size_t pos = prefix.rfind('/');
+  prefix = prefix.substr(0, pos);
+  pos = prefix.rfind('/');
+  if (pos == std::string::npos)
+    prefix = ".";
+  else
+    prefix = prefix.substr(0, pos);
+
+  command = prefix + "/mysqlsh";
+#endif
+
+  return command;
+}
+
 /**
  * Multiple value validation
  * To be used on a single line
