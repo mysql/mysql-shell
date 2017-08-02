@@ -188,7 +188,7 @@ REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
 
-#os.environ['MYSQLSH_PROMPT_THEME'] = str(config["general"]["MYSQLSH_PROMPT_THEME"])
+os.environ['MYSQLSH_PROMPT_THEME'] = str(config["general"]["MYSQLSH_PROMPT_THEME"])
 
 
 class globalvar:
