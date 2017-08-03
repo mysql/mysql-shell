@@ -8,7 +8,7 @@
     "Py" : {
     },
     "schema" : {
-      "text": "%schema%"
+      "text": ""
     },
     "noschema" : {
       "text": ""
@@ -16,21 +16,21 @@
     "disconnected": {
     },
     "host" : {
-      "text": "%host%:%port%"
+      "text": ""
     },
     "hostx" : {
     },
     "hostc" : {
-      "text": "%host%:%port%"
+      "text": ""
     },
     "SSLhost" : {
-      "text": "%host%:%port% ssl"
+      "text": ""
     },
     "SSLhostx" : {
-      "text": "%host%:%port%+ ssl"
+      "text": ""
     },
     "SSLhostc" : {
-      "text": "%host%:%port% ssl"
+      "text": ""
     },
 
     "production" : {
