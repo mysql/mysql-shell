@@ -22,6 +22,7 @@
 #include <time.h>
 #include <cstdio>
 
+#include "mysqlx.h"
 #include "scripting/common.h"
 #include "utils/utils_string.h"
 #include "utils/utils_json.h"
@@ -55,11 +56,13 @@ bool Date::operator == (const Date &other) const {
 std::string &Date::append_descr(std::string &s_out, int UNUSED(indent), int quote_strings) const {
   if (quote_strings)
     s_out.push_back((char)quote_strings);
-  if ((double)(int)_sec != _sec)
 
-    s_out.append(str_format("%04d-%02d-%02d %d:%02d:%02.10g", _year, (_month + 1), _day, _hour, _min, _sec));
+  if ((double)(int)_sec != _sec)
+    s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%09.6f", _year,
+                            (_month + 1), _day, _hour, _min, _sec));
   else
-    s_out.append(str_format("%04d-%02d-%02d %d:%02d:%02d", _year, (_month + 1), _day, _hour, _min, (int)_sec));
+    s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%02d", _year,
+                            (_month + 1), _day, _hour, _min, (int)_sec));
   if (quote_strings)
     s_out.push_back((char)quote_strings);
   return s_out;
@@ -110,7 +113,8 @@ Object_bridge_ref Date::unrepr(const std::string &s) {
   int min = 0;
   double sec = 0.0;
 
-  sscanf(s.c_str(), "%i-%i-%i %i:%i:%lf", &year, &month, &day, &hour, &min, &sec);
+  int ret = sscanf(s.c_str(), "%d-%d-%d %d:%d:%lf", &year, &month, &day, &hour,
+                   &min, &sec);
   return Object_bridge_ref(new Date(year, month - 1, day, hour, min, sec));
 }
 
@@ -142,4 +146,10 @@ Object_bridge_ref Date::from_ms(int64_t ms_since_epoch) {
 
   return Object_bridge_ref(new Date(t.tm_year + 1900, t.tm_mon, t.tm_mday,
                                     t.tm_hour, t.tm_min, t.tm_sec + (double)ms / 1000.0));
+}
+
+Object_bridge_ref Date::from_mysqlx_datetime(const mysqlx::DateTime &date) {
+  return Object_bridge_ref(new Date(
+      date.year(), date.month()-1, date.day(), date.hour(), date.minutes(),
+      date.seconds() + ((double)date.useconds() / 1000000)));
 }
