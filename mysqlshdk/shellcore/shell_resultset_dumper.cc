@@ -93,6 +93,12 @@ class Field_formatter {
         break;
       }
 
+      case shcore::Object: {
+        std::string val = value.descr();
+        append(val.data(), val.length());
+        break;
+      }
+
       default:
         break;
     }

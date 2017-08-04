@@ -22,6 +22,10 @@
 #ifndef _SHCORE_OBJ_DATE_H_
 #define _SHCORE_OBJ_DATE_H_
 
+namespace mysqlx {
+class DateTime;
+}
+
 namespace shcore {
 class SHCORE_PUBLIC Date : public Cpp_object_bridge {
 public:
@@ -52,6 +56,7 @@ public:
   static Object_bridge_ref create(const shcore::Argument_list &args);
   static Object_bridge_ref unrepr(const std::string &s);
   static Object_bridge_ref from_ms(int64_t ms_since_epoch);
+  static Object_bridge_ref from_mysqlx_datetime(const mysqlx::DateTime &dt);
 
 private:
   int _year;
