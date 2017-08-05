@@ -16,19 +16,21 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include "mysql_connection.h"
+
+#include "modules/mysql_connection.h"
+#include <sstream>
+#include <stdlib.h>
+#include <string>
 #include "shellcore/base_session.h"
 #include "utils/utils_general.h"
-
+#include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/obj_date.h"
 
-#include <sstream>
 
 using namespace mysqlsh::mysql;
 
 #include "scripting/object_factory.h"
 #include "scripting/common.h"
-#include <stdlib.h>
 
 Result::Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, uint64_t last_insert_id, const char *info_)
   : _connection(owner), _affected_rows(affected_rows_), _last_insert_id(last_insert_id), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false) {
@@ -213,126 +215,84 @@ void Connection::throw_on_connection_fail() {
   close();
   throw shcore::Exception::mysql_error_with_code_and_state(local_error, local_errno, local_sqlstate.c_str());
 }
+Connection::Connection
+  (const mysqlshdk::db::Connection_options& connection_options) {
 
-Connection::Connection(const std::string &uri_, const char *password)
-  : _mysql(NULL) {
-  std::string protocol;
-  std::string user;
-  std::string pass;
-  std::string host;
-  int port = 0;
-  std::string sock;
-  std::string db;
-  std::string ssl_ca;
-  std::string ssl_cert;
-  std::string ssl_key;
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
-  int pwd_found;
-
-  struct mysqlshdk::utils::Ssl_info ssl_info;
-  shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_info);
-
-  // No option should be silently ignored, on conflicts an error is raised
-  if (port != 0 && !sock.empty())
-    throw shcore::Exception::argument_error("Conflicting connection options: both port and socket were specified.");
-
-  // Sets the default port only if no port was specified
-  if (port == 0 && sock.empty())
-    port = 3306;
-
-  if (password)
-    pass.assign(password);
-
-  _uri = shcore::strip_password(uri_);
-
   _mysql = mysql_init(NULL);
 
-  setup_ssl(ssl_info);
-  if (port != 0) {
+  setup_ssl(connection_options.get_ssl_options());
+  if (connection_options.has_transport_type() &&
+      connection_options.get_transport_type() == mysqlshdk::db::Tcp) {
     unsigned int tcp = MYSQL_PROTOCOL_TCP;
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   }
 
 #ifdef _WIN32
   // Enable pipe connection if required
-  if (port == 0 && (host == "." || (host.empty() && !sock.empty()))) {
+  if (!connection_options.has_port() &&
+     ((connection_options.has_host() && connection_options.get_host() == ".") ||
+       connection_options.has_pipe())) {
     unsigned int pipe = MYSQL_PROTOCOL_PIPE;
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
   }
 #endif
 
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags)) {
+  if (!mysql_real_connect(_mysql,
+                          connection_options.has_host() ?
+                          connection_options.get_host().c_str() : NULL,
+                          connection_options.has_user() ?
+                          connection_options.get_user().c_str() : NULL,
+                          connection_options.has_password() ?
+                          connection_options.get_password().c_str() : NULL,
+                          connection_options.has_schema() ?
+                          connection_options.get_schema().c_str() : NULL,
+                          connection_options.has_port() ?
+                          connection_options.get_port() : 0,
+                          connection_options.has_socket() ?
+                          connection_options.get_socket().c_str() : NULL,
+                          flags)) {
     throw_on_connection_fail();
   }
 }
 
-Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
-  const struct mysqlshdk::utils::Ssl_info& ssl_info)
-: _mysql(NULL) {
-  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
-
-  // No option should be silently ignored, on conflicts an error is raised
-  if (port != 0 && !socket.empty())
-    throw shcore::Exception::argument_error("Conflicting connection options: both port and socket were specified.");
-
-  std::stringstream str;
-  str << user << "@" << host << ":" << port;
-  _uri = str.str();
-
-  _mysql = mysql_init(NULL);
-
-  setup_ssl(ssl_info);
-
-  if (port != 0) {
-    unsigned int tcp = MYSQL_PROTOCOL_TCP;
-    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  }
-#ifdef _WIN32
-  // Enable pipe connection if required
-  if (port == 0 && (host == "." || (host.empty() && !socket.empty()))) {
-    unsigned int pipe = MYSQL_PROTOCOL_PIPE;
-    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
-  }
-#endif
-
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags)) {
-    throw_on_connection_fail();
-  }
-}
-
-bool Connection::setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info) {
+bool Connection::setup_ssl(const mysqlshdk::db::Ssl_options &ssl_options) {
   unsigned int value;
 
-  if (!ssl_info.ca.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CA, (*ssl_info.ca).c_str());
+  if (ssl_options.has_ca())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CA, ssl_options.get_ca().c_str());
 
-  if (!ssl_info.capath.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH, (*ssl_info.capath).c_str());
+  if (ssl_options.has_capath())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH,
+                  ssl_options.get_capath().c_str());
 
-  if (!ssl_info.crl.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CRL, (*ssl_info.crl).c_str());
+  if (ssl_options.has_crl())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CRL, ssl_options.get_crl().c_str());
 
-  if (!ssl_info.crlpath.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH, (*ssl_info.crlpath).c_str());
+  if (ssl_options.has_crlpath())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH,
+                  ssl_options.get_crlpath().c_str());
 
-  if (!ssl_info.ciphers.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER, (*ssl_info.ciphers).c_str());
+  if (ssl_options.has_ciphers())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER,
+                  ssl_options.get_ciphers().c_str());
 
-  if (!ssl_info.tls_version.is_null())
-    mysql_options(_mysql, MYSQL_OPT_TLS_VERSION, (*ssl_info.tls_version).c_str());
+  if (ssl_options.has_tls_version())
+    mysql_options(_mysql, MYSQL_OPT_TLS_VERSION,
+                  ssl_options.get_tls_version().c_str());
 
-  if (!ssl_info.cert.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CERT, (*ssl_info.cert).c_str());
+  if (ssl_options.has_cert())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CERT, ssl_options.get_cert().c_str());
 
-  if (!ssl_info.key.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (*ssl_info.key).c_str());
+  if (ssl_options.has_key())
+    mysql_options(_mysql, MYSQL_OPT_SSL_KEY, ssl_options.get_key().c_str());
 
   // If no ssl mode is provided by the user
   // We use Preferred by default
-  if (ssl_info.mode)
-    value = ssl_info.mode;
+  if (ssl_options.has_mode())
+    value = ssl_options.get_mode();
   else
-    value = static_cast<int>(mysqlshdk::utils::Ssl_mode::Preferred);
+    value = static_cast<int>(mysqlshdk::db::Ssl_mode::Preferred);
 
   mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
 
@@ -364,11 +324,14 @@ std::unique_ptr<Result> Connection::run_sql(const std::string &query) {
   _timer.start();
 
   if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0) {
-    throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
-  auto result = std::unique_ptr<Result>(new Result(shared_from_this(),
-      mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_insert_id(_mysql), mysql_info(_mysql)));
+  auto result = std::unique_ptr<Result>(
+      new Result(shared_from_this(), mysql_affected_rows(_mysql),
+                 mysql_warning_count(_mysql), mysql_insert_id(_mysql),
+                 mysql_info(_mysql)));
 
   next_data_set(result.get(), true);
 
@@ -400,7 +363,8 @@ bool Connection::next_data_set(Result *target, bool first_result) {
     MYSQL_RES* result = mysql_use_result(_mysql);
 
     if (result) {
-      _prev_result = std::shared_ptr<MYSQL_RES>(result, &free_result<MYSQL_RES>);
+      _prev_result =
+          std::shared_ptr<MYSQL_RES>(result, &free_result<MYSQL_RES>);
     } else {
       // Error occurred
       int code = 0;

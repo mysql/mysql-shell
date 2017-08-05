@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "shellcore/ishell_core.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
+#include "mysqlshdk/libs/db/ssl_options.h"
 
 namespace mysqlsh {
 struct SHCORE_PUBLIC Shell_options {
@@ -46,7 +46,7 @@ public:
   std::string protocol;
 
   // SSL connection parameters
-  mysqlshdk::utils::Ssl_info ssl_info;
+  mysqlshdk::db::Ssl_options ssl_options;
 
   std::string uri;
 

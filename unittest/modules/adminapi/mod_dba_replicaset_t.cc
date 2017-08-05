@@ -21,6 +21,7 @@
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/mod_shell.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace tests {
 
@@ -30,15 +31,14 @@ class Dba_replicaset_test: public Admin_api_test {
         int port) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
-    shcore::Argument_list session_args;
-    shcore::Value::Map_type_ref instance_options(new shcore::Value::Map_type);
-    (*instance_options)["host"] = shcore::Value("localhost");
-    (*instance_options)["port"] = shcore::Value(port);
-    (*instance_options)["password"] = shcore::Value("");
-    (*instance_options)["user"] = shcore::Value("user");
+    mysqlshdk::db::Connection_options connection_options;
 
-    session_args.push_back(shcore::Value(instance_options));
-    session = mysqlsh::Shell::connect_session(session_args,
+    connection_options.set_host("localhost");
+    connection_options.set_port(port);
+    connection_options.set_user("user");
+    connection_options.set_password("");
+
+    session = mysqlsh::Shell::connect_session(connection_options,
                                               mysqlsh::SessionType::Classic);
 
     return session;
@@ -416,17 +416,15 @@ TEST_F(Dba_replicaset_test, rejoin_instance_with_invalid_gr_group_name) {
 
   init_test();
 
-  shcore::Argument_list instance_args;
-  shcore::Value::Map_type_ref instance_options(new shcore::Value::Map_type);
-  (*instance_options)["host"] = shcore::Value("localhost");
-  (*instance_options)["port"] = shcore::Value(_mysql_sandbox_nport2);
-  (*instance_options)["password"] = shcore::Value("");
-  (*instance_options)["user"] = shcore::Value("user");
+  mysqlshdk::db::Connection_options instance_def;
+  instance_def.set_host("localhost");
+  instance_def.set_port(_mysql_sandbox_nport2);
+  instance_def.set_user("user");
+  instance_def.set_password("");
 
-  instance_args.push_back(shcore::Value(instance_options));
 
   try {
-    _replicaset->rejoin_instance(instance_args);
+    _replicaset->rejoin_instance(&instance_def, shcore::Value::Map_type_ref());
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
 

@@ -471,12 +471,14 @@ std::string random_string(std::string::size_type length) {
 void run_script_classic(const std::vector<std::string> &sql) {
   std::shared_ptr<mysqlsh::ShellBaseSession> session(
       new mysqlsh::mysql::ClassicSession());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(std::string() + getenv("MYSQL_URI") + ":" +
-                 (getenv("MYSQL_PORT") ? getenv("MYSQL_PORT") : "3306")));
+  auto connection_options = shcore::get_connection_options(std::string() +
+    getenv("MYSQL_URI") + ":" + (getenv("MYSQL_PORT") ? getenv("MYSQL_PORT") :
+    "3306"));
+
   if (getenv("MYSQL_PWD"))
-    args.push_back(shcore::Value(getenv("MYSQL_PWD")));
-  session->connect(args);
+    connection_options.set_password(getenv("MYSQL_PWD"));
+
+  session->connect(connection_options);
 
   for (const auto &s : sql) {
     try {

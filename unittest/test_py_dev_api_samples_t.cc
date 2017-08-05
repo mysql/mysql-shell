@@ -15,7 +15,6 @@
 
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
 
 namespace shcore {
 class Shell_py_dev_api_sample_tester : public Shell_py_script_tester {
@@ -24,10 +23,17 @@ protected:
   virtual void SetUp() {
     Shell_py_script_tester::SetUp();
 
-    int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysqlshdk::utils::Ssl_info ssl_info;
-    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_info);
+    std::string user, host, password;
+    auto connection_options = shcore::get_connection_options(_uri);
+
+    if (connection_options.has_user())
+      user = connection_options.get_user();
+
+    if (connection_options.has_host())
+      host = connection_options.get_host();
+
+    if (connection_options.has_password())
+      password = connection_options.get_password();
 
     if (_port.empty())
       _port = "33060";

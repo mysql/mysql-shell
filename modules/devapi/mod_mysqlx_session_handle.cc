@@ -36,50 +36,65 @@ SessionHandle::SessionHandle()
       _connection_id(0),
       _expired_account(false) {}
 
-void SessionHandle::open(const std::string &host, int port,
-                         const std::string &schema, const std::string &user,
-                         const std::string &pass,
-                         const mysqlshdk::utils::Ssl_info &ssl_info,
-                         const std::size_t timeout,
-                         const std::string &auth_method, const bool get_caps) {
+void SessionHandle::open(
+    const mysqlshdk::db::Connection_options &connection_options,
+    const std::size_t timeout, const bool get_caps) {
   ::mysqlx::Ssl_config ssl;
   memset(&ssl, 0, sizeof(ssl));
 
-  std::string my_ssl_ca;
+  auto ssl_options = connection_options.get_ssl_options();
 
-  if (ssl_info.ca)
-    my_ssl_ca = ssl_info.ca;
+  if (ssl_options.has_ca())
+    ssl.ca = ssl_options.get_ca().c_str();
 
-  if (ssl_info.ca)
-    ssl.ca = (*ssl_info.ca).c_str();
+  if (ssl_options.has_cert())
+    ssl.cert = ssl_options.get_cert().c_str();
 
-  if (ssl_info.cert)
-    ssl.cert = (*ssl_info.cert).c_str();
+  if (ssl_options.has_key())
+    ssl.key = ssl_options.get_key().c_str();
 
-  if (ssl_info.key)
-    ssl.key = (*ssl_info.key).c_str();
+  if (ssl_options.has_capath())
+    ssl.ca_path = ssl_options.get_capath().c_str();
 
-  if (ssl_info.capath)
-    ssl.ca_path = (*ssl_info.capath).c_str();
+  if (ssl_options.has_crl())
+    ssl.crl = ssl_options.get_crl().c_str();
 
-  if (ssl_info.crl)
-    ssl.crl = (*ssl_info.crl).c_str();
+  if (ssl_options.has_crlpath())
+    ssl.crl_path = ssl_options.get_crlpath().c_str();
 
-  if (ssl_info.crlpath)
-    ssl.crl_path = (*ssl_info.crlpath).c_str();
+  if (ssl_options.has_tls_version())
+    ssl.tls_version = ssl_options.get_tls_version().c_str();
 
-  if (ssl_info.tls_version)
-    ssl.tls_version = (*ssl_info.tls_version).c_str();
+  if (ssl_options.has_ciphers())
+    ssl.cipher = ssl_options.get_ciphers().c_str();
 
-  if (ssl_info.ciphers)
-    ssl.cipher = (*ssl_info.ciphers).c_str();
-
-  ssl.mode = ssl_info.mode;
+  if (ssl_options.has_mode())
+    ssl.mode = ssl_options.get_mode();
 
   // TODO: Define a proper timeout for the session creation
+  std::string host;
+  int port;
   try {
-    _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, true,
-                                     timeout, auth_method, true);
+    // Here is where defaults are used if not available
+    host = connection_options.has_host() ? connection_options.get_host()
+                                         : "localhost";
+    port =
+        connection_options.has_port() ? connection_options.get_port() : 33060;
+    auto s = connection_options.has_schema() ? connection_options.get_schema()
+                                             : "localhost";
+    auto u = connection_options.has_user() ? connection_options.get_user()
+                                           : get_system_user();
+    auto pwd = connection_options.has_password()
+                   ? connection_options.get_password()
+                   : "";
+    auto h = connection_options.has_host() ? connection_options.get_host()
+                                           : "localhost";
+    auto aum = (connection_options.has(mysqlshdk::db::kAuthMethod) &&
+                connection_options.has_value(mysqlshdk::db::kAuthMethod))
+                   ? connection_options.get(mysqlshdk::db::kAuthMethod)
+                   : "MYSQL41";
+    _session = ::mysqlx::openSession(host, port, s, u, pwd, ssl, true, timeout,
+                                     aum, true);
 
     // If the account is not expired, retrieves additional session information
     _expired_account = _session->connection()->expired_account();
@@ -93,8 +108,9 @@ void SessionHandle::open(const std::string &host, int port,
                             "' seems to speak the classic MySQL protocol";
       throw shcore::Exception::error_with_code("RuntimeError", message,
                                                CR_MALFORMED_PACKET);
-    } else
+    } else {
       throw;
+    }
   }
 }
 

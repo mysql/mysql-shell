@@ -25,12 +25,14 @@
 #define JSON_TOPOLOGY_OUTPUT 2
 #define JSON_RESCAN_OUTPUT 3
 
+#include <string>
+#include <set>
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
-#include <set>
 #include "mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/mod_mysql_resultset.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 namespace mysql {
@@ -71,8 +73,12 @@ public:
 
   std::string get_topology_type() const { return _topology_type; }
 
-  void add_instance_metadata(const shcore::Value::Map_type_ref &instance_definition, const std::string& label = "");
-  void remove_instance_metadata(const shcore::Value::Map_type_ref &instance_def);
+  void add_instance_metadata
+    (const mysqlshdk::db::Connection_options &instance_definition,
+     const std::string& label = "");
+
+  void remove_instance_metadata
+    (const mysqlshdk::db::Connection_options &instance_def);
 
   void adopt_from_gr();
 
@@ -107,14 +113,18 @@ public:
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
-  shcore::Value add_instance(const shcore::Argument_list &args,
-                             const std::string &existing_replication_user = "",
-                             const std::string &existing_replication_password = "",
-                             bool overwrite_seed = false,
-                             const std::string &group_name = "");
+  shcore::Value add_instance
+    (const mysqlshdk::db::Connection_options& connection_options,
+     const shcore::Argument_list &args,
+     const std::string &existing_replication_user = "",
+     const std::string &existing_replication_password = "",
+     bool overwrite_seed = false, const std::string &group_name = "");
+
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
-  shcore::Value rejoin_instance(const shcore::Argument_list &args);
+  shcore::Value rejoin_instance
+    (mysqlshdk::db::Connection_options *instance_def,
+     const shcore::Value::Map_type_ref &options);
   shcore::Value remove_instance_(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
@@ -126,6 +136,8 @@ public:
   shcore::Value get_status(const mysqlsh::dba::ReplicationGroupState &state) const;
 
   void remove_instances_from_gr(const shcore::Value::Array_type_ref &instances);
+  void remove_instance_from_gr(const std::string& instance_str,
+                               const mysqlshdk::db::Connection_options& data);
   ReplicationGroupState check_preconditions(const std::string& function_name) const;
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
@@ -147,20 +159,20 @@ protected:
 private:
   void init();
 
-  bool do_join_replicaset(const std::string &instance_url,
-      const shcore::Value::Map_type_ref &instance_ssl,
-      const std::string &peer_instance_url,
-      const shcore::Value::Map_type_ref &peer_instance_ssl,
-      const std::string &super_user_password,
-      const std::string &repl_user, const std::string &repl_user_password,
-      const std::string &ssl_mode, const std::string &ip_whitelist,
-      const std::string &group_name = "");
-
+  bool do_join_replicaset(const mysqlshdk::db::Connection_options &instance,
+                          mysqlshdk::db::Connection_options *peer,
+                          const std::string &super_user_password,
+                          const std::string &repl_user,
+                          const std::string &repl_user_password,
+                          const std::string &ssl_mode,
+                          const std::string &ip_whitelist,
+                          const std::string &group_name = "");
 
   std::string get_peer_instance();
 
-  void validate_instance_address(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
-                                 const std::string &hostname, int port);
+  void validate_instance_address(
+      std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+      const std::string &hostname, int port);
 
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
 
@@ -168,7 +180,7 @@ private:
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
-protected:
+ protected:
   virtual int get_default_port() const { return 3306; }
 };
 }

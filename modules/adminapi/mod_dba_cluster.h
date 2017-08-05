@@ -25,6 +25,7 @@
 
 #include "mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 #define ACC_USER "username"
 #define ACC_PASSWORD "password"
@@ -76,12 +77,12 @@ public:
     _provisioning_interface = provisioning_interface;
   }
 
-  shcore::Value add_seed_instance(const shcore::Argument_list &args,
-                                  bool multi_master, bool is_adopted,
-                                  const std::string &replication_user,
-                                  const std::string &replication_pwd);
+  shcore::Value add_seed_instance(
+      const mysqlshdk::db::Connection_options &connection_options,
+      const shcore::Argument_list &args, bool multi_master, bool is_adopted,
+      const std::string &replication_user, const std::string &replication_pwd);
 
-public:
+ public:
   shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);

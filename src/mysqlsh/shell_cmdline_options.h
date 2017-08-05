@@ -24,7 +24,7 @@
 #include <iostream>
 #include "cmdline_options.h"
 #include "shellcore/shell_options.h"
-#include "utils/uri_data.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 class Shell_command_line_options : public Command_line_options {
 public:
@@ -45,7 +45,7 @@ private:
   void check_socket_conflicts();
   void check_port_socket_conflicts();
 
-  shcore::uri::Uri_data _uri_data;
+  mysqlshdk::db::Connection_options _uri_data;
   mysqlsh::Shell_options _options;
   std::string _session_type_arg;
 };

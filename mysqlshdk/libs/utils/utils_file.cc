@@ -29,6 +29,7 @@
 #ifdef WIN32
 #  include <ShlObj.h>
 #  include <comdef.h>
+#define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else
 #  include <sys/file.h>
 #  include <errno.h>

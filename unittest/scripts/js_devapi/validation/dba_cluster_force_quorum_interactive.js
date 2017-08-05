@@ -66,7 +66,7 @@
 //@ Cluster.forceQuorumUsingPartitionOf errors
 ||Invalid number of arguments in Cluster.forceQuorumUsingPartitionOf, expected 1 to 2 but got 0
 ||Cluster.forceQuorumUsingPartitionOf: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.forceQuorumUsingPartitionOf: Connection definition is empty
+||Cluster.forceQuorumUsingPartitionOf: Invalid URI: empty.
 ||Cluster.forceQuorumUsingPartitionOf: Invalid connection options, expected either a URI or a Dictionary
 
 //@ Cluster.forceQuorumUsingPartitionOf error interactive

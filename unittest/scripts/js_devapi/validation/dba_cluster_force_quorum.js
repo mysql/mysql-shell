@@ -66,7 +66,7 @@
 //@ Cluster.forceQuorumUsingPartitionOf errors
 ||Invalid number of arguments in Cluster.forceQuorumUsingPartitionOf, expected 1 to 2 but got 0
 ||Cluster.forceQuorumUsingPartitionOf: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.forceQuorumUsingPartitionOf: Connection definition is empty
+||Cluster.forceQuorumUsingPartitionOf: Invalid URI: empty.
 ||Cluster.forceQuorumUsingPartitionOf: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.forceQuorumUsingPartitionOf: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it is not an active member of replication group.
 

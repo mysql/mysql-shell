@@ -20,6 +20,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/base_session.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 
 #ifndef _MODULES_MOD_SHELL_H_
@@ -69,10 +70,11 @@ namespace mysqlsh {
     std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellBaseSession>& session);
     std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session();
 
-    static std::shared_ptr<mysqlsh::ShellBaseSession> connect_session(const std::string &uri, const std::string &password, SessionType session_type);
-    static std::shared_ptr<mysqlsh::ShellBaseSession> connect_session(const shcore::Argument_list &args, SessionType session_type);
+    static std::shared_ptr<mysqlsh::ShellBaseSession> connect_session(
+        const mysqlshdk::db::Connection_options &connection_options,
+        SessionType session_type);
 
-  protected:
+   protected:
     void init();
 
     shcore::Value _custom_prompt[2];

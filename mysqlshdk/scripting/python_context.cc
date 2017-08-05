@@ -30,6 +30,7 @@
 #include "scripting/python_type_conversion.h"
 
 #include "shellcore/shell_core_options.h"
+#include "modules/mod_utils.h"
 
 #ifdef _WINDOWS
 #include <windows.h>
@@ -547,17 +548,19 @@ PyObject *Python_context::shell_parse_uri(PyObject *UNUSED(self),
     if (count != 1)
       throw std::runtime_error("Invalid number of parameters");
 
-    shcore::Value connection_data;
+    shcore::Value uri;
     if (PyArg_ParseTuple(args, "S", &pyUri))
-      connection_data = ctx->pyobj_to_shcore_value(pyUri);
+      uri = ctx->pyobj_to_shcore_value(pyUri);
     else
       throw std::runtime_error("Expected a string parameter");
 
-    // Parses the connection data
-    connection_data = shcore::Value(
-        shcore::get_connection_data(connection_data.as_string(), false));
+    shcore::Argument_list args;
+    args.push_back(uri);
+    auto options =
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
+    auto map = mysqlsh::get_connection_map(options);
 
-    ret_val = ctx->shcore_value_to_pyobj(connection_data);
+    ret_val = ctx->shcore_value_to_pyobj(shcore::Value(map));
   } catch (std::exception &e) {
     Python_context::set_python_error(PyExc_SystemError, e.what());
   }

@@ -18,9 +18,13 @@ set(db_SOURCE
     result.h
     row.h
     column.cc
-    ssl_info.cc
     charset.cc
     session_recorder.cc
+    uri_parser.cc
+    uri_encoder.cc
+    connection_options.cc
+    ssl_options.cc
+    utils_connection.cc
     mysql/session.cc
     mysql/result.cc
     mysql/row.cc

@@ -24,79 +24,82 @@
 namespace tests {
 
 void Shell_base_test::SetUp() {
-  // Creates connection data and recreates URI, this will fix URI if no
-  // password is defined So the UT don't prompt for password ever
-  shcore::Value::Map_type_ref data =
-      shcore::get_connection_data("root@localhost");
+  const char *uri = getenv("MYSQL_URI");
+  if (uri) {
+    // Creates connection data and recreates URI, this will fix URI if no
+    // password is defined So the UT don't prompt for password ever
+    auto data = shcore::get_connection_options(uri);
 
-  _host = data->get_string("host");
-  _user = data->get_string("dbUser");
+    _host = data.get_host();
+    _user = data.get_user();
 
-  const char *pwd = getenv("MYSQL_PWD");
-  if (pwd) {
-    _pwd.assign(pwd);
-    (*data)["dbPassword"] = shcore::Value(_pwd);
+    const char *pwd = getenv("MYSQL_PWD");
+    if (pwd) {
+      _pwd.assign(pwd);
+      data.set_password(_pwd);
+    } else {
+      data.set_password("");
+    }
+
+    _uri = data.as_uri(mysqlshdk::db::uri::formats::full());
+    _mysql_uri = _uri;
+
+    const char *xport = getenv("MYSQLX_PORT");
+    if (xport) {
+      _port_number = atoi(xport);
+      _port.assign(xport);
+      _uri += ":" + _port;
+    }
+    _uri_nopasswd = shcore::strip_password(_uri);
+
+    const char *port = getenv("MYSQL_PORT");
+    if (port) {
+      _mysql_port_number = atoi(port);
+      _mysql_port.assign(port);
+      _mysql_uri += ":" + _mysql_port;
+    }
+
+    _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
+
+
+    const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
+    if (sandbox_port1)
+      _mysql_sandbox_port1.assign(sandbox_port1);
+    else
+      _mysql_sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
+
+    _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
+
+    const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
+    if (sandbox_port2)
+      _mysql_sandbox_port2.assign(sandbox_port2);
+    else
+      _mysql_sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
+
+    _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
+
+    const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
+    if (sandbox_port3)
+      _mysql_sandbox_port3.assign(sandbox_port3);
+    else
+      _mysql_sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
+
+    _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
+
+    const char *tmpdir = getenv("TMPDIR");
+    if (tmpdir) {
+      _sandbox_dir.assign(tmpdir);
+    } else {
+      // If not specified, the tests will create the sandboxes on the
+      // binary folder
+      _sandbox_dir = shcore::get_binary_folder();
+    }
+
+    _new_line_char = "\n";
+  #ifdef WIN32
+    _new_line_char = "\r\n";
+  #endif
   }
-
-  _uri = shcore::build_connection_string(data, true);
-  _mysql_uri = _uri;
-
-  const char *xport = getenv("MYSQLX_PORT");
-  if (xport) {
-    _port_number = atoi(xport);
-    _port.assign(xport);
-    (*data)["port"] = shcore::Value(_pwd);
-    _uri += ":" + _port;
-  }
-  _uri_nopasswd = shcore::strip_password(_uri);
-
-  const char *port = getenv("MYSQL_PORT");
-  if (port) {
-    _mysql_port_number = atoi(port);
-    _mysql_port.assign(port);
-    _mysql_uri += ":" + _mysql_port;
-  }
-
-  _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
-
-
-  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-  if (sandbox_port1)
-    _mysql_sandbox_port1.assign(sandbox_port1);
-  else
-    _mysql_sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
-
-  _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
-
-  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-  if (sandbox_port2)
-    _mysql_sandbox_port2.assign(sandbox_port2);
-  else
-    _mysql_sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
-
-  _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
-
-  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-  if (sandbox_port3)
-    _mysql_sandbox_port3.assign(sandbox_port3);
-  else
-    _mysql_sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
-
-  _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
-
-  const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir) {
-    _sandbox_dir.assign(tmpdir);
-  } else {
-    // If not specified, the tests will create the sandboxes on the
-    // binary folder
-    _sandbox_dir = shcore::get_binary_folder();
-  }
-
-  _new_line_char = "\n";
-#ifdef WIN32
-  _new_line_char = "\r\n";
-#endif
 }
 
 void Shell_base_test::TearDown() {

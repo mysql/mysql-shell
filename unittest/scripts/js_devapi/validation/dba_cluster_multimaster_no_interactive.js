@@ -189,7 +189,7 @@
 ||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 3
 ||Cluster.rejoinInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.rejoinInstance: Invalid values in instance definition: authMethod, schema
+||Cluster.rejoinInstance: Invalid values in connection options: authMethod, schema
 ||Cluster.rejoinInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 //@#: Dba: rejoin instance 3 ok

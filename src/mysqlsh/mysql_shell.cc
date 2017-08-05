@@ -35,6 +35,8 @@
 #include "shellcore/interrupt_handler.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
+#include "modules/mod_utils.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate) : mysqlsh::Base_shell(options, custom_delegate) {
@@ -174,27 +176,25 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
 
 bool Mysql_shell::connect(bool primary_session) {
   try {
-    shcore::Argument_list args;
-    shcore::Value::Map_type_ref connection_data;
+    mysqlshdk::db::Connection_options connection_options;
     bool secure_password = true;
     if (!_options.uri.empty()) {
-      connection_data = shcore::get_connection_data(_options.uri);
-      if (connection_data->has_key("dbPassword") && !connection_data->get_string("dbPassword").empty())
+      connection_options = shcore::get_connection_options(_options.uri);
+      if (connection_options.has_password())
         secure_password = false;
-    } else {
-      connection_data.reset(new shcore::Value::Map_type);
     }
+
     // If the session is being created from command line
     // Individual parameters will override whatever was defined on the URI/stored connection
     if (primary_session) {
       if (_options.password)
         secure_password = false;
 
-      shcore::update_connection_data(connection_data,
+      shcore::update_connection_data(&connection_options,
                                      _options.user, _options.password,
                                      _options.host, _options.port,
                                      _options.sock, _options.schema,
-                                     _options.ssl_info,
+                                     _options.ssl_options,
                                      _options.auth_method);
       if (_options.auth_method == "PLAIN")
         println("mysqlx: [Warning] PLAIN authentication method is NOT secure!");
@@ -204,8 +204,8 @@ bool Mysql_shell::connect(bool primary_session) {
     }
 
     // If a scheme is given on the URI the session type must match the URI scheme
-    if (connection_data->has_key("scheme")) {
-      std::string scheme = connection_data->get_string("scheme");
+    if (connection_options.has_scheme()) {
+      std::string scheme = connection_options.get_scheme();
       std::string error;
 
       if (_options.session_type == mysqlsh::SessionType::Auto) {
@@ -227,14 +227,19 @@ bool Mysql_shell::connect(bool primary_session) {
         throw shcore::Exception::argument_error(error);
     }
 
-    shcore::set_default_connection_data(connection_data);
+    // TODO(rennox): Analize if this should actually exist... or if it
+    // should be done right before connection for the missing data
+    shcore::set_default_connection_data(&connection_options);
 
     if (_options.interactive)
-      print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), /*_options.app*/"");
+      print_connection_message(
+          _options.session_type,
+          connection_options.as_uri(
+              mysqlshdk::db::uri::formats::full_no_password()),
+          /*_options.app*/ "");
 
-    args.push_back(shcore::Value(connection_data));
-
-    connect_session(args, _options.session_type, primary_session ? _options.recreate_database : false);
+    connect_session(&connection_options, _options.session_type,
+                    primary_session ? _options.recreate_database : false);
   } catch (shcore::Exception &exc) {
     _shell->print_value(shcore::Value(exc.error()), "error");
     return false;
@@ -245,37 +250,35 @@ bool Mysql_shell::connect(bool primary_session) {
 
   return true;
 }
-
-shcore::Value Mysql_shell::connect_session(const shcore::Argument_list &args, mysqlsh::SessionType session_type, bool recreate_schema) {
+// TODO(rennox): Maybe call resolve connection credentials before calling
+// this function... and pass const &
+// doesn't sound like the credential resolution should be done here
+shcore::Value Mysql_shell::connect_session
+  (mysqlshdk::db::Connection_options *connection_options,
+   mysqlsh::SessionType session_type, bool recreate_schema) {
   std::string pass;
   std::string schema_name;
 
-  shcore::Value::Map_type_ref connection_data = args.map_at(0);
-
   // Retrieves the schema on which the session will work on
   shcore::Argument_list schema_arg;
-  if (connection_data->has_key("schema")) {
-    schema_name = (*connection_data)["schema"].as_string();
+  if (connection_options->has_schema()) {
+    schema_name = connection_options->get_schema();
     schema_arg.push_back(shcore::Value(schema_name));
   }
 
   if (recreate_schema && schema_name.empty())
-      throw shcore::Exception::runtime_error("Recreate schema requested, but no schema specified");
-
-  // Creates the argument list for the real connection call
-  shcore::Argument_list connect_args;
-  connect_args.push_back(shcore::Value(connection_data));
+    throw shcore::Exception::runtime_error(
+        "Recreate schema requested, but no schema specified");
 
   // Prompts for the password if needed
-  if (!connection_data->has_key("dbPassword") || _options.prompt_password) {
+  if (!connection_options->has_password()) {
     if (_shell->password("Enter password: ", pass))
-      connect_args.push_back(shcore::Value(pass));
+      connection_options->set_password(pass);
     else
       throw shcore::cancelled("Cancelled");
   }
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> old_session(
-      _shell->get_dev_session());
+  auto old_session(_shell->get_dev_session());
 
   std::shared_ptr<mysqlsh::ShellBaseSession> new_session;
   {
@@ -285,7 +288,8 @@ shcore::Value Mysql_shell::connect_session(const shcore::Argument_list &args, my
       cancelled = true;
       return true;
     });
-    new_session = _global_shell->connect_session(connect_args, session_type);
+    new_session =
+        _global_shell->connect_session(*connection_options, session_type);
     if (cancelled)
       throw shcore::cancelled("Cancelled");
   }

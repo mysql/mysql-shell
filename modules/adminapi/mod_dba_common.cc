@@ -111,95 +111,6 @@ std::string describe(Status state) {
 }
 };  // namespace ReplicaSetStatus
 
-void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate) {
-  // Sets a default user if not specified
-  if (!options->has_key("user") && !options->has_key("dbUser"))
-    (*options)["dbUser"] = shcore::Value("root");
-
-  if (!options->has_key("password") && !options->has_key("dbPassword")) {
-    if (delegate) {
-      std::string answer;
-
-      std::string prompt = "Please provide the password for '" + build_connection_string(options, false) + "': ";
-      if (delegate->password(delegate->user_data, prompt.c_str(), answer))
-        (*options)["password"] = shcore::Value(answer);
-    } else
-      throw shcore::Exception::argument_error("Missing password for '" + build_connection_string(options, false) + "'");
-  }
-}
-
-// Parses the argument list to retrieve an instance definition from it
-// It handles loading the pass
-shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args,
-                                                     PasswordFormat::Format format) {
-  shcore::Value::Map_type_ref options;
-
-  // This validation will be added here but should not be needed if the function is used properly
-  // callers are responsible for validating if the number of arguments is correct
-  args.ensure_at_least(1, "get_instance_options_map");
-
-  // Attempts getting an instance object
-  //auto instance = args.object_at<mysqlsh::dba::Instance>(0);
-  //if (instance) {
-  //  options = shcore::get_connection_data(instance->get_uri(), false);
-  //  (*options)["password"] = shcore::Value(instance->get_password());
-  //}
-
-  // Not an instance, tries as URI string
-  //else
-  if (args[0].type == shcore::String) {
-    try {
-      options = shcore::get_connection_data(args.string_at(0), false);
-    }
-    catch (std::exception &e) {
-      std::string error(e.what());
-      throw shcore::Exception::argument_error("Invalid instance definition, expected a valid URI. "
-                                              "Error: " + error);
-    }
-  }
-
-  // Finally as a dictionary
-  else if (args[0].type == shcore::Map)
-    options = args.map_at(0);
-  else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary");
-
-  if (options->size() == 0)
-    throw shcore::Exception::argument_error("Connection definition is empty");
-
-  // If password override is allowed then we review the second
-  // argument if any
-  if (format != PasswordFormat::NONE && args.size() > 1) {
-    bool override_pwd = false;
-    std::string new_password;
-
-    if (format == PasswordFormat::OPTIONS) {
-      auto other_options = args.map_at(1);
-      shcore::Argument_map other_args(*other_options);
-
-      if (other_args.has_key("password")) {
-        new_password = other_args.string_at("password");
-        override_pwd = true;
-      } else if (other_args.has_key("dbPassword")) {
-        new_password = other_args.string_at("dbPassword");
-        override_pwd = true;
-      }
-    } else if (format == PasswordFormat::STRING) {
-      new_password = args.string_at(1);
-      override_pwd = true;
-    }
-
-    if (override_pwd) {
-      if (options->has_key("dbPassword"))
-        (*options)["dbPassword"] = shcore::Value(new_password);
-      else
-        (*options)["password"] = shcore::Value(new_password);
-    }
-  }
-
-  return options;
-}
-
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors) {
   if (!errors)
@@ -346,7 +257,7 @@ void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options) {
   }
 }
 
-void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options) {
+void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options) {
   // Validate the value of the ipWhitelist option an issue an exception
   // if invalid.
   shcore::Argument_map opt_map(*options);

@@ -18,16 +18,12 @@
  */
 
 #include "shellcore/base_session.h"
-
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "scripting/lang_base.h"
 #include "scripting/common.h"
-#include "mysqlshdk/libs/utils/utils_connection.h"
-
 #include "scripting/proxy_object.h"
 #include "shellcore/interrupt_handler.h"
-
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
 #include "utils/utils_string.h"
@@ -36,23 +32,19 @@
 using namespace mysqlsh;
 using namespace shcore;
 
-
-
-
 ShellBaseSession::ShellBaseSession() :
-_port(0), _tx_deep(0) {
+_tx_deep(0) {
 }
 
 ShellBaseSession::ShellBaseSession(const ShellBaseSession& s) :
-_user(s._user), _password(s._password), _host(s._host), _port(s._port), _sock(s._sock), _schema(s._schema),
-_ssl_info(s._ssl_info), _tx_deep(s._tx_deep) {
+_connection_options(s._connection_options), _tx_deep(s._tx_deep) {
 }
 
 std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {
   if (!is_open())
     s_out.append("<" + class_name() + ":disconnected>");
   else
-    s_out.append("<" + class_name() + ":" + _uri + ">");
+    s_out.append("<" + class_name() + ":" + uri() + ">");
   return s_out;
 }
 
@@ -67,136 +59,9 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const {
   dumper.append_bool("connected", is_open());
 
   if (is_open())
-    dumper.append_string("uri", _uri);
+    dumper.append_string("uri", uri());
 
   dumper.end_object();
-}
-
-void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
-  // The connection data can come from different sources
-  std::string uri;
-  std::string auth_method;
-  std::string connections_file; // The default connection file or the indicated on the map as dataSourceFile
-  shcore::Value::Map_type_ref options; // Map with the connection data
-
-  //-----------------------------------------------------
-  // STEP 1: Identifies the source of the connection data
-  //-----------------------------------------------------
-  if (args[0].type == String) {
-    std::string temp = args.string_at(0);
-    uri = temp;
-  }
-
-  // Connection data comes in a dictionary
-  else if (args[0].type == Map) {
-    options = args.map_at(0);
-
-    // Use a custom stored sessions file, rather than the default one
-    if (options->has_key("dataSourceFile"))
-      connections_file = (*options)["dataSourceFile"].as_string();
-  } else
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
-
-  //-------------------------------------------------------------------------
-  // STEP 2: Gets the individual connection parameters whatever the source is
-  //-------------------------------------------------------------------------
-  // Handles the case where an URI was received
-  if (!uri.empty()) {
-    std::string protocol;
-    int pwd_found;
-    parse_mysql_connstring(uri, protocol, _user, _password, _host, _port, _sock, _schema, pwd_found, _ssl_info);
-  }
-
-  // If the connection data came in a dictionary, the values in the dictionary override whatever
-  // is already loaded: i.e. if the dictionary indicated a stored session, that info is already
-  // loaded but will be overriden with whatever extra values exist on the dictionary
-  if (options) {
-    if (options->has_key(kHost))
-      _host = (*options)[kHost].as_string();
-
-    if (options->has_key(kPort))
-      _port = (*options)[kPort].as_int();
-
-    if (options->has_key(kSocket))
-      _sock = (*options)[kSocket].as_string();
-
-    if (options->has_key(kSchema))
-      _schema = (*options)[kSchema].as_string();
-
-    if (options->has_key(kDbUser))
-      _user = (*options)[kDbUser].as_string();
-    else if (options->has_key(kUser))
-      _user = (*options)[kUser].as_string();
-
-    if (options->has_key(kDbPassword))
-      _password = (*options)[kDbPassword].as_string();
-    else if (options->has_key(kPassword))
-      _password = (*options)[kPassword].as_string();
-
-
-    if (options->has_key(kSslCa))
-      _ssl_info.ca = (*options)[kSslCa].as_string();
-
-    if (options->has_key(kSslCert))
-      _ssl_info.cert = (*options)[kSslCert].as_string();
-
-    if (options->has_key(kSslKey))
-      _ssl_info.key = (*options)[kSslKey].as_string();
-
-    if (options->has_key(kSslCaPath))
-      _ssl_info.capath = (*options)[kSslCaPath].as_string();
-
-    if (options->has_key(kSslCrl))
-      _ssl_info.crl = (*options)[kSslCrl].as_string();
-
-    if (options->has_key(kSslCrlPath))
-      _ssl_info.crlpath = (*options)[kSslCrlPath].as_string();
-
-    if (options->has_key(kSslCiphers))
-      _ssl_info.ciphers = (*options)[kSslCiphers].as_string();
-
-    if (options->has_key(kSslTlsVersion))
-      _ssl_info.tls_version = (*options)[kSslTlsVersion].as_string();
-
-    if (options->has_key(kSslMode)) {
-      if ((*options)[kSslMode].type == String) {
-        const std::string& s = (*options)[kSslMode].as_string();
-        int ssl_mode = MapSslModeNameToValue::get_value(s);
-        if (ssl_mode == 0)
-          throw std::runtime_error(
-          "Invalid value for mode (must be any of [DISABLED, PREFERRED, "
-          "REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
-        _ssl_info.mode = ssl_mode;
-      } else {
-        throw std::runtime_error(
-          "Invalid value for mode (must be any of [DISABLED, PREFERRED, "
-          "REQUIRED, VERIFY_CA, VERIFY_IDENTITY] )");
-      }
-    }
-
-    if (options->has_key(kAuthMethod))
-      _auth_method = (*options)[kAuthMethod].as_string();
-  }
-
-  // If password is received as parameter, then it overwrites
-  // Anything found on any of the indicated sources: URI, options map and stored session
-  if (2 == args.size())
-    _password = args.string_at(1).c_str();
-
-  // Default port will be != 0 only when applicable
-  if (_port == 0) {
-      int default_port = get_default_port();
-
-    if (default_port != 0)
-      _port = default_port;
-  }
-
-  std::string sock_port = (_port == 0) ? _sock : std::to_string(_port);
-
-  if (_schema.empty())
-    _uri = str_format("%s@%s:%s", _user.c_str(), _host.c_str(), sock_port.c_str());
-  else
-    _uri = str_format("%s@%s:%s/%s", _user.c_str(), _host.c_str(), sock_port.c_str(), _schema.c_str());
 }
 
 bool ShellBaseSession::operator == (const Object_bridge &other) const {
@@ -217,23 +82,19 @@ std::string ShellBaseSession::get_quoted_name(const std::string& name) {
   return quoted_name;
 }
 
-std::string ShellBaseSession::address() {
-  std::string res;
-  if (!_sock.empty())
-    // If using a socket, then the host is localhost
-    res = "localhost:" + _sock;
-  else if (_port != 0)
-    // if using a port, then the host is what was provided
-    res = _host + ":" + std::to_string(_port);
-  return res;
+std::string ShellBaseSession::uri(
+    mysqlshdk::db::uri::Tokens_mask format) const {
+  return _connection_options.as_uri(format);
+}
+
+std::string ShellBaseSession::get_default_schema() {
+  return _connection_options.has_schema() ?
+         _connection_options.get_schema() :
+         "";
 }
 
 void ShellBaseSession::reconnect() {
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_uri));
-  args.push_back(shcore::Value(_password));
-
-  connect(args);
+  connect(_connection_options);
 }
 
 shcore::Object_bridge_ref ShellBaseSession::get_schema(const std::string &name) const {

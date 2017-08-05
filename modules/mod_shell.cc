@@ -29,6 +29,7 @@
 #include "modules/devapi/base_database_object.h"
 #include "shellcore/shell_notifications.h"
 #include "modules/mod_utils.h"
+#include "mysqlshdk/libs/db/utils_connection.h"
 
 using namespace std::placeholders;
 
@@ -238,7 +239,10 @@ shcore::Value Shell::parse_uri(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("parseUri").c_str());
 
   try {
-    ret_val = shcore::Value(shcore::get_connection_data(args.string_at(0), false));
+    auto options = mysqlsh::get_connection_options(args, PasswordFormat::NONE);
+    auto map = mysqlsh::get_connection_map(options);
+
+    ret_val = shcore::Value(map);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("parseUri"));
 
@@ -436,23 +440,20 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("connect").c_str());
 
   try {
-    auto options = mysqlsh::get_connection_data(args, PasswordFormat::STRING);
+    auto connection_options =
+        mysqlsh::get_connection_options(args, PasswordFormat::STRING);
 
-    mysqlsh::resolve_connection_credentials(options);
+    mysqlsh::resolve_connection_credentials(&connection_options);
 
     SessionType type = SessionType::Auto;
-    if (options->has_key("scheme")) {
-      if (options->get_string("scheme") == "mysqlx")
+    if (connection_options.has_scheme()) {
+      if (connection_options.get_scheme() == "mysqlx")
         type = SessionType::Node;
-      else if (options->get_string("scheme") == "mysql")
+      else if (connection_options.get_scheme() == "mysql")
         type = SessionType::Classic;
     }
 
-    shcore::Argument_list new_args;
-
-    new_args.push_back(shcore::Value(options));
-
-    set_dev_session(connect_session(new_args, type));
+    set_dev_session(connect_session(connection_options, type));
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
 
@@ -595,17 +596,19 @@ shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
 
 }
 
-std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
+/*std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
     const std::string &uri, const std::string &password, SessionType session_type) {
   shcore::Argument_list args;
 
-  args.push_back(shcore::Value(shcore::get_connection_data(uri, true)));
+  args.push_back(shcore::Value(shcore::get_connection_options(uri, true)));
   (*args.map_at(0))["password"] = shcore::Value(password);
 
   return connect_session(args, session_type);
-}
+}*/
 
-std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(const shcore::Argument_list &args, SessionType session_type) {
+std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session
+  (const mysqlshdk::db::Connection_options &connection_options,
+   SessionType session_type) {
   std::shared_ptr<ShellBaseSession> ret_val;
 
   mysqlsh::SessionType type(session_type);
@@ -615,7 +618,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(const shcore::
   if (type == mysqlsh::SessionType::Auto) {
     ret_val.reset(new mysqlsh::mysqlx::NodeSession());
     try {
-      ret_val->connect(args);
+      ret_val->connect(connection_options);
 
       shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
 
@@ -652,7 +655,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(const shcore::
       break;
   }
 
-  ret_val->connect(args);
+  ret_val->connect(connection_options);
 
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
 

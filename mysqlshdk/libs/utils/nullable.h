@@ -63,6 +63,10 @@ public:
 
   bool is_null() const { return _is_null; }
 
+  void reset() {
+    _is_null = true;
+  }
+
 private:
   C _value;
   bool _is_null;

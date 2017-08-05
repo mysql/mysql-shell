@@ -1,5 +1,5 @@
 #@<OUT> Dba: create_cluster multiMaster with interaction, cancel
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
 Before continuing you have to confirm that you understand the requirements and
@@ -11,7 +11,7 @@ and limitations of advanced Multi-Master Mode.
 Confirm (Yes/No): Cancelled
 
 #@<OUT> Dba: create_cluster multiMaster with interaction, ok
-A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
 Before continuing you have to confirm that you understand the requirements and
@@ -245,7 +245,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Invalid number of arguments in Cluster.rejoin_instance, expected 1 to 2 but got 3
 ||Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.rejoin_instance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
-||Cluster.rejoin_instance: Invalid values in instance definition: authMethod, schema
+||Cluster.rejoin_instance: Invalid values in connection options: authMethod, schema
 ||Cluster.rejoin_instance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 #@<OUT> Cluster: rejoin_instance with interaction, ok

@@ -13,14 +13,13 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <gtest_clean.h>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <string>
 #include <thread>
 
-#include "gtest/gtest.h"
-#include "gtest/gtest_prod.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -129,9 +128,9 @@ TEST(Interrupt, basics) {
   EXPECT_EQ(0, interrupt_tester.unblocked_);
 
   // check default propagation value
-  EXPECT_EQ(false, shcore::Interrupts::propagates_interrupt());
+  EXPECT_FALSE(shcore::Interrupts::propagates_interrupt());
   shcore::Interrupts::set_propagate_interrupt(true);
-  EXPECT_EQ(true, shcore::Interrupts::propagates_interrupt());
+  EXPECT_TRUE(shcore::Interrupts::propagates_interrupt());
 }
 
 //------------------------------------------------------------
@@ -151,7 +150,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   void SetUp() {
     shcore::Interrupts::init(&interrupt_tester);
     Shell_core_test_wrapper::SetUp();
-    execute("\\connect "+_mysql_uri);
+    execute("\\connect " + _mysql_uri);
     execute("\\py");
     execute("import time");
     wipe_all();
@@ -204,10 +203,8 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
       const std::string &uri, const std::string &password) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
         new mysqlsh::mysql::ClassicSession());
-    shcore::Argument_list args;
-    args.push_back(shcore::Value(_mysql_uri));
-    args.push_back(shcore::Value(_pwd));
-    session->connect(args);
+    auto connection_options = shcore::get_connection_options(_mysql_uri);
+    session->connect(connection_options);
     return session;
   }
 
@@ -216,9 +213,8 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
         new mysqlsh::mysqlx::NodeSession());
     shcore::Argument_list args;
-    args.push_back(shcore::Value(_uri));
-    args.push_back(shcore::Value(_pwd));
-    session->connect(args);
+    auto connection_options = shcore::get_connection_options(_uri);
+    session->connect(connection_options);
     return session;
   }
 
@@ -239,8 +235,9 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   static const int k_processlist_command_column = 4;
   void session_wait(uint64_t sid, int timeout, const char *str,
                     int column = 7) {
+    auto connection_options = shcore::get_connection_options(_mysql_uri);
     std::shared_ptr<mysqlsh::mysql::Connection> conn(
-        new mysqlsh::mysql::Connection(_mysql_uri, _pwd.c_str()));
+        new mysqlsh::mysql::Connection(connection_options));
     timeout *= 1000;
     while (timeout > 0) {
       std::unique_ptr<mysqlsh::mysql::Result> result(
@@ -332,8 +329,7 @@ TEST_F(Interrupt_mysql, sql_classic_javascript) {
                  k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
-    execute(
-        "print(session.runSql('select * from itst.data').fetchAll());");
+    execute("print(session.runSql('select * from itst.data').fetchAll());");
     MY_EXPECT_STDOUT_CONTAINS("last");
   }
 }
@@ -365,8 +361,7 @@ TEST_F(Interrupt_mysql, sql_classic_py) {
                  k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
-    execute(
-        "print(session.run_sql('select * from itst.data').fetch_all())\n");
+    execute("print(session.run_sql('select * from itst.data').fetch_all())\n");
     MY_EXPECT_STDOUT_CONTAINS("last");
   }
 }
@@ -953,18 +948,18 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
       "insert into itst.cdata (doc) values ('{\"_id\":\"dummyyy\"}')");
 
   {
-     std::thread thd([this, session]() {
-       session_wait(session->get_connection_id(), 3, "Waiting",
-                    k_processlist_state_column);
-       shcore::Interrupts::interrupt();
-     });
-     execute("session.drop_table('itst', 'data')");
-     MY_EXPECT_STDERR_CONTAINS("interrupted");
-     thd.join();
-     session_wait(session->get_connection_id(), 3, "Sleep",
-                  k_processlist_command_column);
-     // ensure next query runs ok
-     wipe_all();
+    std::thread thd([this, session]() {
+      session_wait(session->get_connection_id(), 3, "Waiting",
+                   k_processlist_state_column);
+      shcore::Interrupts::interrupt();
+    });
+    execute("session.drop_table('itst', 'data')");
+    MY_EXPECT_STDERR_CONTAINS("interrupted");
+    thd.join();
+    session_wait(session->get_connection_id(), 3, "Sleep",
+                 k_processlist_command_column);
+    // ensure next query runs ok
+    wipe_all();
   }
 
   {

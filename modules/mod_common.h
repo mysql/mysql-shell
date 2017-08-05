@@ -17,8 +17,8 @@
 * 02110-1301  USA
 */
 
-#ifndef _MOD_COMMON_H_
-#define _MOD_COMMON_H_
+#ifndef MODULES_MOD_COMMON_H_
+#define MODULES_MOD_COMMON_H_
 
 #ifdef _WIN32
 # ifdef _DLL
@@ -48,4 +48,4 @@
 #define ExecuteOptions int
 #endif
 
-#endif
+#endif  // MODULES_MOD_COMMON_H_

@@ -29,11 +29,12 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include <string>
 #include <vector>
-#include "mysqlshdk/libs/utils/utils_connection.h"
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "modules/mod_utils.h"
 
 using namespace std::placeholders;
 using namespace shcore;
-
+using mysqlshdk::db::uri::formats::user_transport;
 void Interactive_dba_cluster::init() {
   add_method("addInstance", std::bind(&Interactive_dba_cluster::add_instance, this, _1), "data");
   add_method("rejoinInstance", std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1), "data");
@@ -76,11 +77,15 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_
     function = "addSeedInstance";
 
   if (!function.empty()) {
-    auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
-    mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
+    auto instance_def =
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
+
+    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+
+    auto instance_map = mysqlsh::get_connection_map(instance_def);
 
     shcore::Argument_list new_args;
-    new_args.push_back(shcore::Value(instance_def));
+    new_args.push_back(shcore::Value(instance_map));
 
     if (args.size() == 2)
       new_args.push_back(args[1]);
@@ -102,7 +107,9 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
 
   check_preconditions("addInstance");
 
-  shcore::Value::Map_type_ref instance_def, options;
+  shcore::Value::Map_type_ref options;
+  shcore::Value::Map_type_ref instance_map;
+  mysqlshdk::db::Connection_options instance_def;
 
   try {
     std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
@@ -123,10 +130,8 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
 
       print(message);
 
-      instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
-      shcore::Argument_map instance_map(*instance_def);
-      instance_map.ensure_keys({"host"}, shcore::connection_attributes,
-                               "instance definition");
+      instance_def = mysqlsh::get_connection_options(
+          args, mysqlsh::PasswordFormat::OPTIONS);
 
       if (args.size() == 2) {
         options = args.map_at(1);
@@ -140,25 +145,27 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
         mysqlsh::dba::validate_ip_whitelist_option(options);
       }
 
-      mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
+      mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+
+      instance_map = mysqlsh::get_connection_map(instance_def);
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
-  if (instance_def) {
-    shcore::Argument_list new_args;
-    new_args.push_back(shcore::Value(instance_def));
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(instance_map));
 
-    if (options)
-      new_args.push_back(args[1]);
+  if (options)
+    new_args.push_back(args[1]);
 
-    println("Adding instance to the cluster ...");
-    println();
-    ret_val = call_target(function, new_args);
+  println("Adding instance to the cluster ...");
+  println();
+  ret_val = call_target(function, new_args);
 
-    println("The instance '" + build_connection_string(instance_def, false) + "' was successfully added to the cluster.");
-    println();
-  }
+  println("The instance '" +
+    instance_def.as_uri(user_transport()) + ""
+    "' was successfully added to the cluster.");
+  println();
 
   return ret_val;
 }
@@ -172,13 +179,12 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
 
   check_preconditions("rejoinInstance");
 
-  shcore::Value::Map_type_ref instance_def, options;
+  shcore::Value::Map_type_ref instance_map, options;
+  mysqlshdk::db::Connection_options instance_def;
 
   try {
-    instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
-    shcore::Argument_map instance_map(*instance_def);
-    instance_map.ensure_keys({"host"}, shcore::connection_attributes,
-                             "instance definition");
+    instance_def =
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
     if (args.size() == 2) {
       options = args.map_at(1);
@@ -186,10 +192,10 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
       options_map.ensure_keys({}, mysqlsh::dba::ReplicaSet::_add_instance_opts, "instance definition");
 
       // Validate SSL options for the cluster instance
-      mysqlsh::dba::validate_ssl_instance_options(instance_def);
+      mysqlsh::dba::validate_ssl_instance_options(options);
 
       //Validate ip whitelist option
-      mysqlsh::dba::validate_ip_whitelist_option(instance_def);
+      mysqlsh::dba::validate_ip_whitelist_option(options);
     }
 
     std::string message = "Rejoining the instance to the InnoDB cluster. Depending on the original\n"
@@ -202,24 +208,26 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
 
     print(message);
 
-    mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
+    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+
+    instance_map = mysqlsh::get_connection_map(instance_def);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
 
-  if (instance_def) {
-    shcore::Argument_list new_args;
-    new_args.push_back(shcore::Value(instance_def));
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(instance_map));
 
-    if (options)
-      new_args.push_back(args[1]);
+  if (options)
+    new_args.push_back(args[1]);
 
-    println("Rejoining instance to the cluster ...");
-    println();
-    ret_val = call_target("rejoinInstance", new_args);
+  println("Rejoining instance to the cluster ...");
+  println();
+  ret_val = call_target("rejoinInstance", new_args);
 
-    println("The instance '" + build_connection_string(instance_def, false) + "' was successfully rejoined on the cluster.");
-    println();
-  }
+  println("The instance '" +
+    instance_def.as_uri(user_transport()) + ""
+    "' was successfully rejoined on the cluster.");
+  println();
 
   return ret_val;
 }
@@ -227,7 +235,8 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
 shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string uri;
-  shcore::Value::Map_type_ref options; // Map with the connection data
+  shcore::Value::Map_type_ref instance_map;  // Map with the connection data
+  mysqlshdk::db::Connection_options instance_def;
 
   // Throw an error if the cluster has already been dissolved
   assert_not_dissolved("removeInstance");
@@ -244,34 +253,15 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
 
   std::string name;
 
-  // Identify the type of connection data (String or Document)
-  if (args[0].type == String) {
-    uri = args.string_at(0);
-
-    try {
-      options = get_connection_data(uri, false);
-    }
-    catch (std::exception &e) {
-      std::string error(e.what());
-      throw shcore::Exception::argument_error("Invalid instance definition, expected a valid URI. "
-                                              "Error: " + error);
-    }
-  }
-
-  // TODO: what if args[0] is a String containing the name of the instance?
-
-  // Connection data comes in a dictionary
-  else if (args[0].type == Map)
-    options = args.map_at(0);
-
-  else
-    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary");
-
-  name = build_connection_string(options, false);
+  instance_def = mysqlsh::get_connection_options(args,
+                                              mysqlsh::PasswordFormat::STRING);
 
   ret_val = call_target("removeInstance", args);
 
-  println("The instance '" + name + "' was successfully removed from the cluster.");
+  println("The instance '" +
+    instance_def.as_uri(mysqlshdk::db::uri::formats::user_transport()) + ""
+    "' was successfully removed from the cluster.");
+
   println();
 
   return ret_val;
@@ -339,25 +329,24 @@ shcore::Value Interactive_dba_cluster::check_instance_state(const shcore::Argume
 
   check_preconditions("checkInstanceState");
 
-  shcore::Value::Map_type_ref instance_def;
+  mysqlshdk::db::Connection_options instance_def;
   shcore::Argument_list target_args;
 
   try {
-    instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
-
-    shcore::Argument_map opt_map(*instance_def);
-    opt_map.ensure_keys({"host", "port"}, shcore::connection_attributes,
-                        "instance definition");
+    instance_def =
+      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 
     // Gather username and password if missing
-    mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
+    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("checkInstanceState"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("checkInstanceState"));
 
   println("Analyzing the instance replication state...");
 
+  auto instance_map = mysqlsh::get_connection_map(instance_def);
   shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(instance_def));
+  new_args.push_back(shcore::Value(instance_map));
   shcore::Value ret_val = call_target("checkInstanceState", new_args);
 
   auto result = ret_val.as_map();
@@ -365,14 +354,18 @@ shcore::Value Interactive_dba_cluster::check_instance_state(const shcore::Argume
   println();
 
   if (result->get_string("state") == "ok") {
-    println("The instance '" + instance_def->get_string("host") + ":" + std::to_string(instance_def->get_int("port")) + "' is valid for the cluster.");
+    println("The instance '" +
+      instance_def.as_uri(user_transport()) + "' is valid for "
+      "the cluster.");
 
     if (result->get_string("reason") == "new")
       println("The instance is new to Group Replication.");
     else
       println("The instance is fully recoverable.");
   } else {
-    println("The instance '" + instance_def->get_string("host") + ":" + std::to_string(instance_def->get_int("port")) + "' is invalid for the cluster.");
+    println("The instance '" +
+      instance_def.as_uri(user_transport()) + "' is invalid for "
+      "the cluster.");
 
     if (result->get_string("reason") == "diverged")
       println("The instance contains additional transactions in relation to the cluster.");
@@ -421,16 +414,9 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
         if (prompt("Would you like to add it to the cluster metadata?")
             == Prompt_answer::YES) {
           std::string full_host = instance_map->get_string("host");
+          auto instance_def = shcore::get_connection_options(full_host, false);
 
-          Value::Map_type_ref options(new shcore::Value::Map_type);
-
-          std::string delimiter = ":";
-          std::string host = full_host.substr(0, full_host.find(delimiter));
-          std::string port = full_host.substr(full_host.find(delimiter) + 1, full_host.length());
-
-          (*options)["host"] = shcore::Value(host);
-          (*options)["port"] = shcore::Value(atoi(port.c_str()));
-          mysqlsh::dba::resolve_instance_credentials(options, _delegate);
+          mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
 
           println("Adding instance to the cluster metadata...");
           println();
@@ -439,9 +425,11 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
 
           object = cluster->get_default_replicaset();
 
-          object->add_instance_metadata(options);
+          object->add_instance_metadata(instance_def);
 
-          println("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster metadata.");
+          println("The instance '" +
+            instance_def.as_uri(user_transport()) + "' was "
+            "successfully added to the cluster metadata.");
           println();
         }
       }
@@ -462,15 +450,8 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
         if (prompt("Would you like to remove it from the cluster metadata?") == Prompt_answer::YES) {
 
           std::string full_host = instance_map->get_string("host");
-
-          Value::Map_type_ref options(new shcore::Value::Map_type);
-
-          std::string delimiter = ":";
-          std::string host = full_host.substr(0, full_host.find(delimiter));
-          std::string port = full_host.substr(full_host.find(delimiter) + 1, full_host.length());
-
-          (*options)["host"] = shcore::Value(host);
-          (*options)["port"] = shcore::Value(atoi(port.c_str()));
+          auto instance_def = shcore::get_connection_options(full_host,
+                                                             false);
 
           println("Removing instance from the cluster metadata...");
           println();
@@ -479,9 +460,12 @@ shcore::Value Interactive_dba_cluster::rescan(const shcore::Argument_list &args)
 
           object = cluster->get_default_replicaset();
 
-          object->remove_instance_metadata(options);
+          object->remove_instance_metadata(instance_def);
 
-          println("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster metadata.");
+          println("The instance '" +
+            instance_def.as_uri(user_transport()) + "' was "
+            "successfully removed from the cluster metadata.");
+
           println();
         }
       }
@@ -501,15 +485,11 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(const shc
 
   check_preconditions("forceQuorumUsingPartitionOf");
 
-  shcore::Value::Map_type_ref instance_def;
+  mysqlshdk::db::Connection_options instance_def;
 
   try {
-    instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::STRING);
-
-    shcore::Argument_map opt_map(*instance_def);
-    opt_map.ensure_keys({"host"},
-                        shcore::connection_attributes,
-                        "instance definition");
+    instance_def =
+      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 
     std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replica_set;
     auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
@@ -538,25 +518,28 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(const shc
                           " from loss of quorum, by using the partition composed of [" + group_peers + "]\n\n";
     print(message);
 
-    mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
+    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("forceQuorumUsingPartitionOf"));
 
-  if (instance_def) {
-    shcore::Argument_list new_args;
-    new_args.push_back(shcore::Value(instance_def));
+  auto instance_map = mysqlsh::get_connection_map(instance_def);
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(instance_map));
 
-    println("Restoring the InnoDB cluster ...");
-    println();
-    ret_val = call_target("forceQuorumUsingPartitionOf", new_args);
+  println("Restoring the InnoDB cluster ...");
+  println();
+  ret_val = call_target("forceQuorumUsingPartitionOf", new_args);
 
-    println("The InnoDB cluster was successfully restored using the partition from the instance '" +
-             build_connection_string(instance_def, false) + "'.");
-    println();
-    println("WARNING: To avoid a split-brain scenario, ensure that all other members of the replicaset "
-            "are removed or joined back to the group that was restored.");
-    println();
-  }
+  println(
+      "The InnoDB cluster was successfully restored using the partition from "
+      "the instance '" +
+      instance_def.as_uri(user_transport()) + "'.");
+  println();
+  println(
+      "WARNING: To avoid a split-brain scenario, ensure that all other members "
+      "of the replicaset "
+      "are removed or joined back to the group that was restored.");
+  println();
 
   return ret_val;
 }

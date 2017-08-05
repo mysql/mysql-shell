@@ -56,6 +56,6 @@ file(GLOB api_module_SOURCES
       "adminapi/mod_dba_sql.cc")
 
 add_convenience_library(api_modules ${api_module_SOURCES})
-target_link_libraries(api_modules mysqlxtest)
+target_link_libraries(api_modules mysqlxtest utils)
 
 ADD_STAN_TARGET(api_modules ${api_module_SOURCES})

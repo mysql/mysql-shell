@@ -37,97 +37,95 @@ void Session_impl::throw_on_connection_fail() {
 
 Session_impl::Session_impl() : _mysql(NULL), _tx_deep(0) {}
 
-void Session_impl::connect(const std::string &uri_, const char *password) {
-  std::string protocol;
-  std::string user;
-  std::string pass;
+void Session_impl::connect(
+    const mysqlshdk::db::Connection_options &connection_options) {
+  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
+  int port = 0;
   std::string host;
-  int port = 3306;
-  std::string sock;
-  std::string db;
-  std::string ssl_ca;
-  std::string ssl_cert;
-  std::string ssl_key;
-  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
-  int pwd_found;
+  std::string user;
+
+  if (connection_options.has_port())
+    port = connection_options.get_port();
+  else if (!connection_options.has_socket())
+    port = 3306;
+
+  host = connection_options.has_host() ? connection_options.get_host()
+                                       : "localhost";
+
+  user = connection_options.has_user() ? connection_options.get_user()
+                                       : shcore::get_system_user();
 
   _mysql = mysql_init(NULL);
 
-  mysqlshdk::utils::Ssl_info ssl_info;
-  shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock,
-                                 db, pwd_found, ssl_info);
+  setup_ssl(connection_options.get_ssl_options());
+  if (port != 0) {
+    unsigned int tcp = MYSQL_PROTOCOL_TCP;
+    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  }
 
-  if (password)
-    pass.assign(password);
+#ifdef _WIN32
+  // Enable pipe connection if required
+  if (!connection_options.has_port() &&
+      ((connection_options.has_host() &&
+        connection_options.get_host() == ".") ||
+       connection_options.has_pipe())) {
+    unsigned int pipe = MYSQL_PROTOCOL_PIPE;
+    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
+  }
+#endif
 
-  _uri = shcore::strip_password(uri_);
-
-  setup_ssl(ssl_info);
-  unsigned int tcp = MYSQL_PROTOCOL_TCP;
-  mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(),
-                          db.empty() ? NULL : db.c_str(), port,
-                          sock.empty() ? NULL : sock.c_str(), flags)) {
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(),
+                          connection_options.has_password()
+                              ? connection_options.get_password().c_str()
+                              : "",
+                          connection_options.has_schema()
+                              ? connection_options.get_schema().c_str()
+                              : NULL,
+                          port,
+                          connection_options.has_socket()
+                              ? connection_options.get_socket().c_str()
+                              : NULL,
+                          flags)) {
     throw_on_connection_fail();
   }
 }
 
-void Session_impl::connect(const std::string &host, int port,
-                           const std::string &socket, const std::string &user,
-                           const std::string &password,
-                           const std::string &schema,
-                           const mysqlshdk::utils::Ssl_info &ssl_info) {
-  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
+bool Session_impl::setup_ssl(
+    const mysqlshdk::db::Ssl_options &ssl_options) const {
+  int value;
 
-  _mysql = mysql_init(NULL);
+  if (ssl_options.has_ca())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CA, (ssl_options.get_ca().c_str()));
 
-  std::stringstream str;
-  str << user << "@" << host << ":" << port;
-  _uri = str.str();
+  if (ssl_options.has_capath())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH,
+                  (ssl_options.get_capath().c_str()));
 
-  setup_ssl(ssl_info);
+  if (ssl_options.has_crl())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CRL, (ssl_options.get_crl().c_str()));
 
-  unsigned int tcp = MYSQL_PROTOCOL_TCP;
-  mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(),
-                          schema.empty() ? NULL : schema.c_str(), port,
-                          socket.empty() ? NULL : socket.c_str(), flags)) {
-    throw_on_connection_fail();
-  }
-}
+  if (ssl_options.has_crlpath())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH,
+                  (ssl_options.get_crlpath().c_str()));
 
-bool Session_impl::setup_ssl(const mysqlshdk::utils::Ssl_info &ssl_info) {
-  unsigned int value;
+  if (ssl_options.has_ciphers())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER,
+                  (ssl_options.get_ciphers().c_str()));
 
-  if (!ssl_info.ca.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CA, (*ssl_info.ca).c_str());
-
-  if (!ssl_info.capath.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH, (*ssl_info.capath).c_str());
-
-  if (!ssl_info.crl.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CRL, (*ssl_info.crl).c_str());
-
-  if (!ssl_info.crlpath.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH, (*ssl_info.crlpath).c_str());
-
-  if (!ssl_info.ciphers.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER, (*ssl_info.ciphers).c_str());
-
-  if (!ssl_info.tls_version.is_null())
+  if (ssl_options.has_tls_version())
     mysql_options(_mysql, MYSQL_OPT_TLS_VERSION,
-                  (*ssl_info.tls_version).c_str());
+                  (ssl_options.get_tls_version().c_str()));
 
-  if (!ssl_info.cert.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CERT, (*ssl_info.cert).c_str());
+  if (ssl_options.has_cert())
+    mysql_options(_mysql, MYSQL_OPT_SSL_CERT, (ssl_options.get_cert().c_str()));
 
-  if (!ssl_info.key.is_null())
-    mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (*ssl_info.key).c_str());
+  if (ssl_options.has_key())
+    mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (ssl_options.get_key().c_str()));
 
-  if (ssl_info.mode)
-    value = ssl_info.mode;
+  if (ssl_options.has_mode())
+    value = ssl_options.get_mode();
   else
-    value = static_cast<int>(mysqlshdk::utils::Ssl_mode::Preferred);
+    value = static_cast<int>(mysqlshdk::db::Ssl_mode::Preferred);
 
   mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
 
@@ -296,53 +294,56 @@ void Session_recorder::connect(const std::string &host, int port,
                                const std::string &user,
                                const std::string &password,
                                const std::string &schema,
-                               const mysqlshdk::utils::Ssl_info &ssl_info) {
-  Mock_record::get() << "mysqlshdk::utils::Ssl_info ssl_info;" << std::endl;
+                               const mysqlshdk::db::Ssl_options &ssl_options) {
+  Mock_record::get() << "mysqlshdk::db::Ssl_options ssl_options;" << std::endl;
 
-  if (!ssl_info.ca.is_null())
-    Mock_record::get() << "ssl_info.ca = " << *ssl_info.ca << ";" << std::endl;
-
-  if (!ssl_info.capath.is_null())
-    Mock_record::get() << "ssl_info.capath = " << *ssl_info.capath << ";"
+  if (!ssl_options.ca.is_null())
+    Mock_record::get() << "ssl_options.ca = " << *ssl_options.ca << ";"
                        << std::endl;
 
-  if (!ssl_info.cert.is_null())
-    Mock_record::get() << "ssl_info.cert = " << *ssl_info.cert << ";"
+  if (!ssl_options.capath.is_null())
+    Mock_record::get() << "ssl_options.capath = " << *ssl_options.capath << ";"
                        << std::endl;
 
-  if (!ssl_info.ciphers.is_null())
-    Mock_record::get() << "ssl_info.ciphers = " << *ssl_info.ciphers << ";"
+  if (!ssl_options.cert.is_null())
+    Mock_record::get() << "ssl_options.cert = " << *ssl_options.cert << ";"
                        << std::endl;
 
-  if (!ssl_info.crl.is_null())
-    Mock_record::get() << "ssl_info.crl = " << *ssl_info.crl << ";"
-                       << std::endl;
-
-  if (!ssl_info.crlpath.is_null())
-    Mock_record::get() << "ssl_info.crlpath = " << *ssl_info.crlpath << ";"
-                       << std::endl;
-
-  if (!ssl_info.key.is_null())
-    Mock_record::get() << "ssl_info.key = " << *ssl_info.key << ";"
-                       << std::endl;
-
-  if (!ssl_info.tls_version.is_null())
-    Mock_record::get() << "ssl_info.tls_version = " << *ssl_info.tls_version
+  if (!ssl_options.ciphers.is_null())
+    Mock_record::get() << "ssl_options.ciphers = " << *ssl_options.ciphers
                        << ";" << std::endl;
 
-  Mock_record::get() << "ssl_info.mode = " << ssl_info.mode << ";" << std::endl;
-  Mock_record::get() << "ssl_info.skip = " << ssl_info.skip << ";" << std::endl;
+  if (!ssl_options.crl.is_null())
+    Mock_record::get() << "ssl_options.crl = " << *ssl_options.crl << ";"
+                       << std::endl;
+
+  if (!ssl_options.crlpath.is_null())
+    Mock_record::get() << "ssl_options.crlpath = " << *ssl_options.crlpath
+                       << ";" << std::endl;
+
+  if (!ssl_options.key.is_null())
+    Mock_record::get() << "ssl_options.key = " << *ssl_options.key << ";"
+                       << std::endl;
+
+  if (!ssl_options.tls_version.is_null())
+    Mock_record::get() << "ssl_options.tls_version = "
+                       << *ssl_options.tls_version << ";" << std::endl;
+
+  Mock_record::get() << "ssl_options.mode = " << ssl_options.mode << ";"
+                     << std::endl;
+  Mock_record::get() << "ssl_options.skip = " << ssl_options.skip << ";"
+                     << std::endl;
 
   Mock_record::get() << "EXPECT_CALL(session, connect(\"" << host << "\", "
                      << port << ", \"" << socket << "\", \"" << user << "\", \""
-                     << password << "\", " << schema << ", ssl_info));"
+                     << password << "\", " << schema << ", ssl_options));"
                      << std::endl;
 
-  Session::connect(host, port, socket, user, password, schema, ssl_info);
+  Session::connect(host, port, socket, user, password, schema, ssl_options);
 }
 
 std::shared_ptr<IResult> Session_recorder::query(const std::string &sql,
-                                                bool buffered) {
+                                                 bool buffered) {
   // While mock recording, all is buffered
   auto result = Session::query(sql, true);
 

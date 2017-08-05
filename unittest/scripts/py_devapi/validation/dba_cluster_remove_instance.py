@@ -11,7 +11,7 @@
 ||
 
 #@ Failure: remove_instance - invalid uri
-||SystemError: ArgumentError: Cluster.remove_instance: Invalid instance definition, expected a valid URI. Error: Missing user information
+||Invalid URI: Missing user information
 
 #@<OUT> Cluster status
 {
