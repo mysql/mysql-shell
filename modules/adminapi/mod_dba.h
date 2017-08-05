@@ -121,9 +121,10 @@ public:
   None reboot_cluster_from_complete_outage(str clusterName, dict options);
 #endif
 
-  static std::shared_ptr<mysqlsh::mysql::ClassicSession> get_session(const shcore::Argument_list& args);
+  static std::shared_ptr<mysqlsh::mysql::ClassicSession> get_session(
+      const mysqlshdk::db::Connection_options &args);
 
-protected:
+ protected:
   std::shared_ptr<mysqlsh::ShellBaseSession> _custom_session;
   shcore::IShell_core *_shell_core;
 
@@ -136,7 +137,6 @@ private:
 
   shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
   shcore::Value::Map_type_ref _check_instance_configuration(const shcore::Argument_list &args, bool allow_update);
-
   static std::map <std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession> > _session_cache;
 };
 }

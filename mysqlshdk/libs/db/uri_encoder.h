@@ -17,37 +17,41 @@
  * 02110-1301  USA
  */
 
-#ifndef UTILS_URI_ENCODER_H_
-#define UTILS_URI_ENCODER_H_
+#ifndef MYSQLSHDK_LIBS_DB_URI_ENCODER_H_
+#define MYSQLSHDK_LIBS_DB_URI_ENCODER_H_
 
-#include <vector>
 #include <string>
-#include "utils/base_tokenizer.h"
-#include "utils/uri_data.h"
+#include <vector>
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/uri_common.h"
+#include "mysqlshdk/libs/utils/base_tokenizer.h"
 
-namespace shcore {
+namespace mysqlshdk {
+namespace db {
 namespace uri {
 class SHCORE_PUBLIC Uri_encoder {
  public:
-  // TODO(rennox): We should add an encode method that works with a URI_data
+  std::string encode_uri(const Connection_options& info,
+                         Tokens_mask format = formats::full_no_password());
   std::string encode_scheme(const std::string& data);
-  std::string encode_socket(const std::string &socket);
+  std::string encode_socket(const std::string& socket);
   std::string encode_userinfo(const std::string& data);
   std::string encode_host(const std::string& data);
   std::string encode_port(int port);
   std::string encode_port(const std::string& data);
   std::string encode_schema(const std::string& data);
   std::string encode_attribute(const std::string& data);
-  std::string encode_values(const std::vector<std::string> &values,
+  std::string encode_values(const std::vector<std::string>& values,
                             bool force_array = false);
   std::string encode_value(const std::string& data);
 
  private:
-  BaseTokenizer _tokenizer;
+  shcore::BaseTokenizer _tokenizer;
   std::string pct_encode(const std::string& data);
   std::string process(const std::string& data);
 };
 }  // namespace uri
-}  // namespace shcore
+}  // namespace db
+}  // namespace mysqlshdk
 
-#endif  // UTILS_URI_ENCODER_H_
+#endif  // MYSQLSHDK_LIBS_DB_URI_ENCODER_H_

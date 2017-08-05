@@ -113,8 +113,9 @@ Object_bridge_ref Date::unrepr(const std::string &s) {
   int min = 0;
   double sec = 0.0;
 
-  int ret = sscanf(s.c_str(), "%d-%d-%d %d:%d:%lf", &year, &month, &day, &hour,
-                   &min, &sec);
+  sscanf(s.c_str(), "%d-%d-%d %d:%d:%lf", &year, &month, &day, &hour,
+         &min, &sec);
+
   return Object_bridge_ref(new Date(year, month - 1, day, hour, min, sec));
 }
 

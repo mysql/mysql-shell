@@ -19,19 +19,18 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include <cstdio>
 #include "shellcore/ishell_core.h"
 #include "shell_cmdline_options.h"
 #include "utils/utils_general.h"
-#include "utils/utils_connection.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
 #include "utils/utils_string.h"
-#include "utils/uri_parser.h"
+#include "mysqlshdk/libs/db/uri_common.h"
 
-using namespace shcore;
+using mysqlshdk::db::Transport_type;
 
-Shell_command_line_options::Shell_command_line_options(int argc, const char **argv)
-  : Command_line_options(argc, argv) {
-
+Shell_command_line_options::Shell_command_line_options(int argc,
+                                                       const char** argv)
+    : Command_line_options(argc, argv) {
   int arg_format = 0;
   for (int i = 1; i < argc && exit_code == 0; i++) {
     const char *value;
@@ -45,11 +44,11 @@ Shell_command_line_options::Shell_command_line_options(int argc, const char **ar
       }
       break;
     } else if ((arg_format = check_arg_with_value(argv, i, "--uri", NULL, value))) {
-      if (shcore::validate_uri(value)) {
+      try {
         _options.uri = value;
 
-        shcore::uri::Uri_parser parser;
-        _uri_data = parser.parse(value);
+        _uri_data = shcore::get_connection_options(_options.uri,
+                                                   false);
 
         if (_uri_data.has_password()) {
           std::string pwd(_uri_data.get_password().length(), '*');
@@ -64,7 +63,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, const char **ar
 
           strcpy(const_cast<char*>(argv[i]), nopwd_uri.substr(0, nopwd_uri.length()).c_str());
         }
-      } else {
+      } catch (const std::invalid_argument &error) {
         std::cerr << "Invalid value specified in --uri parameter.\n";
         exit_code = 1;
         break;
@@ -167,40 +166,39 @@ Shell_command_line_options::Shell_command_line_options(int argc, const char **ar
     } else if (check_arg_with_value(argv, i, "--auth-method", NULL, value))
       _options.auth_method = value;
     else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value)) {
-      _options.ssl_info.ca = value;
+      _options.ssl_options.set_ca(value);
     } else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value)) {
-      _options.ssl_info.cert = value;
+      _options.ssl_options.set_cert(value);
     } else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value)) {
-      _options.ssl_info.key = value;
+      _options.ssl_options.set_key(value);
     } else if (check_arg_with_value(argv, i, "--ssl-capath", NULL, value)) {
-      _options.ssl_info.capath = value;
+      _options.ssl_options.set_capath(value);
     } else if (check_arg_with_value(argv, i, "--ssl-crl", NULL, value)) {
-      _options.ssl_info.crl = value;
+      _options.ssl_options.set_crl(value);
     } else if (check_arg_with_value(argv, i, "--ssl-crlpath", NULL, value)) {
-      _options.ssl_info.crlpath = value;
+      _options.ssl_options.set_crlpath(value);
     } else if (check_arg_with_value(argv, i, "--ssl-cipher", NULL, value)) {
-      _options.ssl_info.ciphers = value;
+      _options.ssl_options.set_ciphers(value);
     } else if (check_arg_with_value(argv, i, "--tls-version", NULL, value)) {
-      _options.ssl_info.tls_version = value;
+      _options.ssl_options.set_tls_version(value);
     } else if (check_arg_with_value(argv, i, "--ssl-mode", NULL, value)) {
-      int mode = shcore::MapSslModeNameToValue::get_value(value);
-      if (mode == 0)
-      {
-        std::cerr << "must be any any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY]";
+      int mode = mysqlshdk::db::MapSslModeNameToValue::get_value(value);
+      if (mode == 0) {
+        std::cerr << "must be any any of [DISABLED, PREFERRED, REQUIRED, "
+                     "VERIFY_CA, VERIFY_IDENTITY]";
         exit_code = 1;
         break;
       }
-      _options.ssl_info.mode = mode;
+      _options.ssl_options.set_mode(mode);
     } else if (check_arg_with_value(argv, i, "--ssl", NULL, value, true)) {
       std::cerr << "The --ssl option is deprecated, use --ssl-mode instead";
       exit_code = 1;
       break;
-    }
-    else if (check_arg(argv, i, "--node", "--node"))
+    } else if (check_arg(argv, i, "--node", "--node")) {
       override_session_type(mysqlsh::SessionType::Node, "--node");
-    else if (check_arg(argv, i, "--classic", "--classic"))
+    } else if (check_arg(argv, i, "--classic", "--classic")) {
       override_session_type(mysqlsh::SessionType::Classic, "--classic");
-    else if (check_arg(argv, i, "--sql", "--sql")) {
+    } else if (check_arg(argv, i, "--sql", "--sql")) {
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
     } else if (check_arg(argv, i, "--js", "--javascript")) {
 #ifdef HAVE_V8
@@ -225,20 +223,20 @@ Shell_command_line_options::Shell_command_line_options(int argc, const char **ar
       _options.initial_mode = shcore::IShell_core::Mode::SQL;
       override_session_type(mysqlsh::SessionType::Node, "--sqln");
     } else if (check_arg_with_value(argv, i, "--json", NULL, value, true)) {
-      if (!value || strcmp(value, "pretty") == 0)
+      if (!value || strcmp(value, "pretty") == 0) {
         _options.output_format = "json";
-      else if (strcmp(value, "raw") == 0)
+      } else if (strcmp(value, "raw") == 0) {
         _options.output_format = "json/raw";
-      else {
+      } else {
         std::cerr << "Value for --json must be either pretty or raw.\n";
         exit_code = 1;
         break;
       }
-    } else if (check_arg(argv, i, "--table", "--table"))
+    } else if (check_arg(argv, i, "--table", "--table")) {
       _options.output_format = "table";
-    else if (check_arg(argv, i, "--trace-proto", NULL))
+    } else if (check_arg(argv, i, "--trace-proto", NULL)) {
       _options.trace_protocol = true;
-    else if (check_arg(argv, i, "--help", "-?")) {
+    } else if (check_arg(argv, i, "--help", "-?")) {
       _options.print_cmd_line_helper = true;
       exit_code = 0;
     } else if (check_arg(argv, i, nullptr, "-VV")) {
@@ -284,18 +282,21 @@ Shell_command_line_options::Shell_command_line_options(int argc, const char **ar
     } else if (exit_code == 0) {
       if (argv[i][0] != '-') {
           value = argv[i];
-        if (shcore::validate_uri(value)) {
+        try {
           _options.uri = value;
-          shcore::Value::Map_type_ref data = shcore::get_connection_data(value, false);
-          if (data->has_key("dbPassword")) {
-            std::string pwd(data->get_string("dbPassword").length(), '*');
-            (*data)["dbPassword"] = shcore::Value(pwd);
+          auto data = shcore::get_connection_options(value, false);
+          if (data.has_password()) {
+            std::string pwd(data.get_password().length(), '*');
+            data.clear_password();
+            data.set_password(pwd);
 
             // Hide password being used.
-            auto nopwd_uri = shcore::build_connection_string(data, true);
-            strcpy(const_cast<char*>(argv[i]), nopwd_uri.substr(0, _options.uri.length()).c_str());
+            auto nopwd_uri =
+                data.as_uri(mysqlshdk::db::uri::formats::full());
+            snprintf(const_cast<char*>(argv[i]), nopwd_uri.length() + 1, "%s",
+                   nopwd_uri.c_str());
           }
-        } else {
+        } catch (const std::invalid_argument& error) {
           std::cerr << "Invalid uri parameter.\n";
           exit_code = 1;
           break;
@@ -328,7 +329,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, const char **ar
 
 void Shell_command_line_options::check_session_type_conflicts() {
   if (_options.session_type != mysqlsh::SessionType::Auto &&
-     !_uri_data.get_scheme().empty()) {
+     _uri_data.has_scheme()) {
     if ((_options.session_type == mysqlsh::SessionType::Classic &&
       _uri_data.get_scheme() != "mysql") ||
       (_options.session_type == mysqlsh::SessionType::Node &&
@@ -342,7 +343,7 @@ void Shell_command_line_options::check_session_type_conflicts() {
 }
 
 void Shell_command_line_options::check_user_conflicts() {
-  if (!_options.user.empty() && !_uri_data.get_user().empty()) {
+  if (!_options.user.empty() && _uri_data.has_user()) {
     if (_options.user != _uri_data.get_user()) {
       auto error = "Conflicting options: provided user name differs from the "
                    "user in the URI.";
@@ -362,7 +363,7 @@ void Shell_command_line_options::check_password_conflicts() {
 }
 
 void Shell_command_line_options::check_host_conflicts() {
-  if (!_uri_data.get_host().empty() && !_options.host.empty()) {
+  if (_uri_data.has_host() && !_options.host.empty()) {
     if (_options.host != _uri_data.get_host()) {
       auto error = "Conflicting options: provided host differs from the "
                    "host in the URI.";
@@ -374,7 +375,7 @@ void Shell_command_line_options::check_host_conflicts() {
 void Shell_command_line_options::check_host_socket_conflicts() {
   if (!_options.sock.empty()) {
     if ((!_options.host.empty() && _options.host != "localhost") ||
-        (!_uri_data.get_host().empty() &&
+        (_uri_data.has_host() &&
          _uri_data.get_host() != "localhost")) {
       auto error =  "Conflicting options: socket can not be used if host is "
                     "not 'localhost'.";
@@ -385,7 +386,8 @@ void Shell_command_line_options::check_host_socket_conflicts() {
 
 void Shell_command_line_options::check_port_conflicts() {
   if (_options.port != 0 &&
-      _uri_data.get_type() == shcore::uri::TargetType::Tcp &&
+      _uri_data.has_transport_type() &&
+      _uri_data.get_transport_type() == mysqlshdk::db::Transport_type::Tcp &&
       _uri_data.has_port() &&
       _uri_data.get_port() != _options.port) {
     auto error = "Conflicting options: provided port differs from the "
@@ -396,7 +398,8 @@ void Shell_command_line_options::check_port_conflicts() {
 
 void Shell_command_line_options::check_socket_conflicts() {
   if (!_options.sock.empty() &&
-      _uri_data.get_type() == shcore::uri::TargetType::Socket &&
+      _uri_data.has_transport_type() &&
+      _uri_data.get_transport_type() == mysqlshdk::db::Transport_type::Socket &&
       _uri_data.get_socket() != _options.sock ) {
     auto error = "Conflicting options: provided socket differs from the "
                  "socket in the URI.";
@@ -406,38 +409,43 @@ void Shell_command_line_options::check_socket_conflicts() {
 
 void Shell_command_line_options::check_port_socket_conflicts() {
   if (_options.port != 0 && !_options.sock.empty()) {
-    auto error = "Conflicting options: port and socket can not be used "
-                  "together.";
+    auto error =
+        "Conflicting options: port and socket can not be used "
+        "together.";
     throw std::runtime_error(error);
-  } else if (_options.port != 0 &&
-            _uri_data.get_type() == shcore::uri::TargetType::Socket) {
-    auto error = "Conflicting options: port can not be used if the URI "
-                 "contains a socket.";
+  } else if (_options.port != 0 && _uri_data.has_transport_type() &&
+             _uri_data.get_transport_type() ==
+                 mysqlshdk::db::Transport_type::Socket) {
+    auto error =
+        "Conflicting options: port can not be used if the URI "
+        "contains a socket.";
     throw std::runtime_error(error);
   } else if (!_options.sock.empty() && _uri_data.has_port()) {
-    auto error = "Conflicting options: socket can not be used if the URI "
-                 "contains a port.";
+    auto error =
+        "Conflicting options: socket can not be used if the URI "
+        "contains a port.";
     throw std::runtime_error(error);
   }
 }
 
-std::string Shell_command_line_options::get_session_type_name(mysqlsh::SessionType type) {
-    std::string label;
-    switch (type) {
-      case mysqlsh::SessionType::X:
-        label = "X";
-        break;
-      case mysqlsh::SessionType::Node:
-        label = "Node";
-        break;
-      case mysqlsh::SessionType::Classic:
-        label = "Classic";
-        break;
-      case mysqlsh::SessionType::Auto:
-        break;
-    }
+std::string Shell_command_line_options::get_session_type_name(
+    mysqlsh::SessionType type) {
+  std::string label;
+  switch (type) {
+    case mysqlsh::SessionType::X:
+      label = "X";
+      break;
+    case mysqlsh::SessionType::Node:
+      label = "Node";
+      break;
+    case mysqlsh::SessionType::Classic:
+      label = "Classic";
+      break;
+    case mysqlsh::SessionType::Auto:
+      break;
+  }
 
-    return label;
+  return label;
 }
 
 void Shell_command_line_options::override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value) {

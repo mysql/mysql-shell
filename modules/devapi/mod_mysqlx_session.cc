@@ -30,6 +30,8 @@
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session_sql.h"
+#include "modules/mod_utils.h"
+#include "scripting/lang_base.h"
 #include "scripting/object_factory.h"
 #include "scripting/proxy_object.h"
 #include "shellcore/shell_core.h"
@@ -163,27 +165,16 @@ void BaseSession::init() {
   };
 }
 
-void BaseSession::connect(const Argument_list &args) {
-  std::string function = class_name() + '.' + "connect";
-  args.ensure_count(1, 2, function.c_str());
-
+void BaseSession::connect(const mysqlshdk::db::Connection_options& data) {
   try {
-    // Retrieves the connection data, whatever the source is
-    load_connection_data(args);
+    _connection_options = data;
 
-    // If no ssl mode is specified by the user, we use
-    // Preferred by default
-    if (!_ssl_info.mode)
-      _ssl_info.mode = static_cast<int>(mysqlshdk::utils::Ssl_mode::Preferred);
-
-    _session.open(_host, _port, _schema, _user, _password, _ssl_info, 60000,
-                  _auth_method, true);
+    _session.open(_connection_options, 60000, true);
 
     _connection_id = _session.get_connection_id();
 
-    _default_schema = _schema;
-    if (!_default_schema.empty())
-      update_schema_cache(_default_schema, true);
+    if (_connection_options.has_schema())
+      update_schema_cache(_connection_options.get_schema(), true);
   }
   CATCH_AND_TRANSLATE();
 }
@@ -239,7 +230,7 @@ void BaseSession::close() {
     // automatic destruction because if shared across different objects
     // it may remain open
 
-    log_warning("Closing session: %s", _uri.c_str());
+    log_warning("Closing session: %s", uri().c_str());
 
     _session.reset();
   } catch (std::exception &e) {
@@ -923,7 +914,9 @@ shcore::Value::Map_type_ref BaseSession::get_status() {
 
   (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
 
-  (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
+  (*status)["DEFAULT_SCHEMA"] =
+    shcore::Value(_connection_options.has_schema() ?
+                  _connection_options.get_schema() : "");
 
   std::shared_ptr<::mysqlx::Result> result;
   std::shared_ptr<::mysqlx::Row> row;
@@ -948,7 +941,7 @@ shcore::Value::Map_type_ref BaseSession::get_status() {
 
     // (*status)["PROTOCOL_VERSION"] =
     // shcore::Value(_conn->get_protocol_info());
-    // (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
+    // (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_options());
     // (*status)["INSERT_ID"] = shcore::Value(???);
 
     result = execute_sql(
@@ -1020,22 +1013,12 @@ std::string BaseSession::query_one_string(const std::string &query) {
   return "";
 }
 
-int BaseSession::get_default_port() const {
-  int default_port = 0;
-
-  if (_port == 0 && _sock.empty())
-    default_port = 33060;
-
-  return default_port;
-}
-
 void BaseSession::kill_query() const {
   uint64_t cid = get_connection_id();
 
   SessionHandle session;
   try {
-    session.open(_host, _port, _schema, _user, _password, _ssl_info, 60000,
-                 _auth_method, true);
+    session.open(_connection_options, 60000, true);
     session.execute_sql(shcore::sqlstring("kill query ?", 0) << cid);
   } catch (std::exception &e) {
     log_warning("Error cancelling SQL query: %s", e.what());
@@ -1052,7 +1035,8 @@ std::shared_ptr<shcore::Object_bridge> XSession::create(
     const shcore::Argument_list &args) {
   std::shared_ptr<XSession> session(new XSession());
 
-  session->connect(args);
+  session->connect
+    (mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING));
 
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
 
@@ -1095,7 +1079,8 @@ std::shared_ptr<shcore::Object_bridge> NodeSession::create(
     const shcore::Argument_list &args) {
   std::shared_ptr<NodeSession> session(new NodeSession());
 
-  session->connect(args);
+  session->connect
+    (mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING));
 
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
 
@@ -1193,20 +1178,22 @@ Value NodeSession::get_member(const std::string &prop) const {
   Value ret_val;
 
   if (prop == "uri")
-    ret_val = shcore::Value(_uri);
+    ret_val = shcore::Value(uri());
   else if (prop == "defaultSchema") {
-    if (!_default_schema.empty()) {
-      ret_val = shcore::Value(get_schema(_default_schema));
-    } else
+    if (_connection_options.has_schema()) {
+      ret_val = shcore::Value(get_schema(_connection_options.get_schema()));
+    } else {
       ret_val = Value::Null();
+    }
   } else if (prop == "currentSchema") {
     NodeSession *session = const_cast<NodeSession *>(this);
     std::string name = session->_retrieve_current_schema();
 
     if (!name.empty()) {
       ret_val = shcore::Value(get_schema(name));
-    } else
+    } else {
       ret_val = Value::Null();
+    }
   } else {
     ret_val = BaseSession::get_member(prop);
   }

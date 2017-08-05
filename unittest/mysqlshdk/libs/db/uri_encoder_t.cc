@@ -13,19 +13,31 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include "utils/uri_encoder.h"
-#include <gtest/gtest.h>
+#include <gtest_clean.h>
+#include <stdexcept>
+#include "mysqlshdk/libs/db/uri_encoder.h"
 
-namespace shcore {
-namespace uri {
+using mysqlshdk::db::uri::Uri_encoder;
+using mysqlshdk::db::uri::SUBDELIMITERS;
+using mysqlshdk::db::uri::ALPHANUMERIC;
+using mysqlshdk::db::uri::DELIMITERS;
+using mysqlshdk::db::uri::UNRESERVED;
+using mysqlshdk::db::uri::HEXDIG;
+using mysqlshdk::db::uri::DIGIT;
 
-#define MY_EXPECT_THROW(e, m, c) EXPECT_THROW({ \
-  try { \
-    c;   \
-  } catch (const e& e) { \
-    EXPECT_STREQ(m, e.what());\
-    throw;\
-  }}, e)
+namespace testing {
+
+#define MY_EXPECT_THROW(e, m, c)         \
+  EXPECT_THROW(                          \
+      {                                  \
+        try {                            \
+          c;                             \
+        } catch (const e& error) {       \
+          EXPECT_STREQ(m, error.what()); \
+          throw;                         \
+        }                                \
+      },                                 \
+      e)
 
 TEST(Uri_encoder, encode_scheme) {
   Uri_encoder encoder;
@@ -33,16 +45,16 @@ TEST(Uri_encoder, encode_scheme) {
   EXPECT_EQ("mysqlx", encoder.encode_scheme("mysqlx"));
   EXPECT_EQ("mysql", encoder.encode_scheme("mysql"));
 
-  MY_EXPECT_THROW(Uri_error,
+  MY_EXPECT_THROW(std::invalid_argument,
                   "Scheme extension [ssh] is not supported",
                   encoder.encode_scheme("mysql+ssh"));
 
-  MY_EXPECT_THROW(Uri_error,
+  MY_EXPECT_THROW(std::invalid_argument,
                   "Invalid scheme format [mysql+ssh+], only one extension "
                   "is supported",
                   encoder.encode_scheme("mysql+ssh+"));
 
-  MY_EXPECT_THROW(Uri_error,
+  MY_EXPECT_THROW(std::invalid_argument,
                   "Invalid scheme [sample], supported schemes include: "
                   "mysql, mysqlx",
                   encoder.encode_scheme("sample"));
@@ -105,11 +117,11 @@ TEST(Uri_encoder, encode_port) {
   EXPECT_EQ("0", encoder.encode_port(0));
   EXPECT_EQ("65535", encoder.encode_port(65535));
 
-  MY_EXPECT_THROW(Uri_error,
+  MY_EXPECT_THROW(std::invalid_argument,
                   "Port is out of the valid range: 0 - 65535",
                   encoder.encode_port(65536));
 
-  MY_EXPECT_THROW(Uri_error,
+  MY_EXPECT_THROW(std::invalid_argument,
                   "Port is out of the valid range: 0 - 65535",
                   encoder.encode_port(-1));
 
@@ -117,15 +129,15 @@ TEST(Uri_encoder, encode_port) {
   EXPECT_EQ("0", encoder.encode_port("0"));
   EXPECT_EQ("65535", encoder.encode_port("65535"));
 
-  MY_EXPECT_THROW(Uri_error,
+  MY_EXPECT_THROW(std::invalid_argument,
                   "Port is out of the valid range: 0 - 65535",
                   encoder.encode_port("65536"));
 
-  MY_EXPECT_THROW(Uri_error,
+  MY_EXPECT_THROW(std::invalid_argument,
                   "Unexpected data [-] found in port definition",
                   encoder.encode_port("-1"));
 
-  MY_EXPECT_THROW(Uri_error,
+  MY_EXPECT_THROW(std::invalid_argument,
                   "Unexpected data [somethingelse+123] found in port "
                   "definition",
                   encoder.encode_port("60somethingelse+123"));
@@ -241,6 +253,4 @@ TEST(Uri_encoder, encode_values) {
   EXPECT_EQ("[]", encoder.encode_values({}, true));
 }
 
-
-}  // namespace uri
-}  // namespace shcore
+}  // namespace testing

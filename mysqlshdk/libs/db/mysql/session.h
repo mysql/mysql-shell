@@ -29,10 +29,10 @@
 #include <set>
 #include <string>
 
+#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -54,11 +54,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
  private:
   Session_impl();
-  void connect(const std::string &uri, const char *password = NULL);
-  void connect(const std::string &host, int port, const std::string &socket,
-               const std::string &user, const std::string &password,
-               const std::string &schema,
-               const mysqlshdk::utils::Ssl_info &ssl_info);
+  void connect(const mysqlshdk::db::Connection_options &connection_info);
 
   std::shared_ptr<IResult> query(const std::string &sql, bool buffered);
   void execute(const std::string &sql);
@@ -102,7 +98,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   std::shared_ptr<IResult> run_sql(const std::string &sql,
                                    bool lazy_fetch = true);
-  bool setup_ssl(const mysqlshdk::utils::Ssl_info &ssl_info);
+  bool setup_ssl(const mysqlshdk::db::Ssl_options &ssl_options) const;
   void throw_on_connection_fail();
   std::string _uri;
   MYSQL *_mysql;
@@ -116,17 +112,9 @@ class SHCORE_PUBLIC Session : public ISession,
                               public std::enable_shared_from_this<Session> {
  public:
   Session() { _impl.reset(new Session_impl()); }
-  virtual void connect(const std::string &uri, const char *password = NULL) {
-    _impl->connect(uri, password);
-  }
-
-  virtual void connect(const std::string &host, int port,
-                       const std::string &socket, const std::string &user,
-                       const std::string &password,
-                       const std::string &schema = "",
-                       const struct mysqlshdk::utils::Ssl_info &ssl_info =
-                           mysqlshdk::utils::Ssl_info()) {
-    _impl->connect(host, port, socket, user, password, schema, ssl_info);
+  virtual void connect(
+      const mysqlshdk::db::Connection_options &connection_options) {
+    _impl->connect(connection_options);
   }
 
   virtual std::shared_ptr<IResult> query(const std::string &sql,

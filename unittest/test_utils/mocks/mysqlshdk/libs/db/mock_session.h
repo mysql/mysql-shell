@@ -25,9 +25,9 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/libs/db/session.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
-#include "mysqlshdk/libs/db/session.h"
 
 namespace testing {
 /**
@@ -51,12 +51,9 @@ namespace testing {
  */
 class Mock_session : public mysqlshdk::db::ISession {
  public:
-  MOCK_METHOD2(connect, void(const std::string &URI, const char *password));
-  MOCK_METHOD7(connect,
-               void(const std::string &host, int port,
-                    const std::string &socket, const std::string &user,
-                    const std::string &password, const std::string &schema,
-                    const mysqlshdk::utils::Ssl_info &ssl_info));
+  MOCK_METHOD1(
+      connect,
+      void(const mysqlshdk::db::Connection_options &connection_options));
 
   // Execution
   virtual std::shared_ptr<mysqlshdk::db::IResult> query(const std::string &sql,

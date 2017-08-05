@@ -20,7 +20,6 @@
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysql/row.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
 #include "utils/utils_general.h"
 
 #include <stdlib.h>

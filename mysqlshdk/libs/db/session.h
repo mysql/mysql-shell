@@ -22,6 +22,9 @@
 
 #ifndef MYSQLSHDK_LIBS_DB_SESSION_H_
 #define MYSQLSHDK_LIBS_DB_SESSION_H_
+#include "mysqlshdk/libs/db/result.h"
+#include "mysqlshdk/libs/db/connection_options.h"
+
 
 #include <fstream>
 #include <iostream>
@@ -29,7 +32,7 @@
 #include <string>
 
 #include "mysqlshdk/libs/db/result.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
+#include "mysqlshdk/libs/db/ssl_options.h"
 #include "mysqlshdk_export.h"
 #include "scripting/shexcept.h"  // FIXME: for db error exception.. move it here
 
@@ -38,11 +41,7 @@ namespace db {
 class SHCORE_PUBLIC ISession {
  public:
   // Connection
-  virtual void connect(const std::string& uri, const char* password = NULL) = 0;
-  virtual void connect(const std::string& host, int port,
-                       const std::string& socket, const std::string& user,
-                       const std::string& password, const std::string& schema,
-                       const mysqlshdk::utils::Ssl_info& ssl_info) = 0;
+  virtual void connect(const mysqlshdk::db::Connection_options& data) = 0;
 
   // Execution
   std::unique_ptr<IRow> query_one(const std::string& sql) {

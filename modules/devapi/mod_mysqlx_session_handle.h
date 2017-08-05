@@ -23,11 +23,11 @@
 #include <memory>
 #include <string>
 #include "modules/mod_common.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
 #include "mysqlxtest/mysqlx.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -38,11 +38,8 @@ class SHCORE_PUBLIC SessionHandle {
   SessionHandle();
   bool is_connected() const { return _session ? true : false; }
   std::shared_ptr< ::mysqlx::Session> get() const { return _session; }
-  void open(const std::string &host, int port, const std::string &schema,
-            const std::string &user, const std::string &pass,
-            const mysqlshdk::utils::Ssl_info &ssl_info,
+  void open(const mysqlshdk::db::Connection_options& connection_options,
             const std::size_t timeout,
-            const std::string &auth_method = "MYSQL41",
             const bool get_caps = false);
 
   std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;

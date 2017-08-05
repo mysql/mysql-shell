@@ -28,70 +28,10 @@ namespace mysqlshdk {
 namespace db {
 Mock_record* Mock_record::_instance = NULL;
 
-void Session_recorder::connect(const std::string& uri, const char* password) {
-  if (password)
-    Mock_record::get() << "EXPECT_CALL(session, connect(\"" << uri << "\", \""
-                       << password << "\"));" << std::endl;
-  else
-    Mock_record::get() << "EXPECT_CALL(session, connect(\"" << uri << "\"));"
-                       << std::endl;
-
-  _target->connect(uri, password);
-}
-
-Session_recorder::Session_recorder(ISession* target) : _target(target) {}
-
-void Session_recorder::connect(const std::string& host, int port,
-                               const std::string& socket,
-                               const std::string& user,
-                               const std::string& password,
-                               const std::string& schema,
-                               const mysqlshdk::utils::Ssl_info& ssl_info) {
-  if (ssl_info.has_data()) {
-    Mock_record::get() << "mysqlshdk::utils::Ssl_info ssl_info;" << std::endl;
-
-    if (!ssl_info.ca.is_null())
-      Mock_record::get() << "ssl_info.ca = " << *ssl_info.ca << ";"
-                         << std::endl;
-
-    if (!ssl_info.capath.is_null())
-      Mock_record::get() << "ssl_info.capath = " << *ssl_info.capath << ";"
-                         << std::endl;
-
-    if (!ssl_info.cert.is_null())
-      Mock_record::get() << "ssl_info.cert = " << *ssl_info.cert << ";"
-                         << std::endl;
-
-    if (!ssl_info.ciphers.is_null())
-      Mock_record::get() << "ssl_info.ciphers = " << *ssl_info.ciphers << ";"
-                         << std::endl;
-
-    if (!ssl_info.crl.is_null())
-      Mock_record::get() << "ssl_info.crl = " << *ssl_info.crl << ";"
-                         << std::endl;
-
-    if (!ssl_info.crlpath.is_null())
-      Mock_record::get() << "ssl_info.crlpath = " << *ssl_info.crlpath << ";"
-                         << std::endl;
-
-    if (!ssl_info.key.is_null())
-      Mock_record::get() << "ssl_info.key = " << *ssl_info.key << ";"
-                         << std::endl;
-
-    if (!ssl_info.tls_version.is_null())
-      Mock_record::get() << "ssl_info.tls_version = " << *ssl_info.tls_version
-                         << ";" << std::endl;
-
-    Mock_record::get() << "ssl_info.mode = " << ssl_info.mode << ";"
-                       << std::endl;
-  }
-
-  Mock_record::get() << "EXPECT_CALL(session, connect(\"" << host << "\", "
-                     << port << ", \"" << socket << "\", \"" << user << "\", \""
-                     << password << "\", " << schema << ", ssl_info));"
-                     << std::endl;
-
-  _target->connect(host, port, socket, user, password, schema, ssl_info);
+void Session_recorder::connect
+  (const mysqlshdk::db::Connection_options& connection_options) {
+    _target->connect(connection_options);
+    // TODO(rennox): Create the recording of this call...
 }
 
 std::shared_ptr<IResult> Session_recorder::query(const std::string& sql,

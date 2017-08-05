@@ -17,6 +17,7 @@
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/shell_base_test.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 using mysqlshdk::db::Type;
 namespace testing {
@@ -33,11 +34,14 @@ class Instance_test : public tests::Shell_base_test {
   // An Instance requires an ISession shared pointer
   std::shared_ptr<mysqlshdk::db::ISession> _session;
   Mock_session session;
+  mysqlshdk::db::Connection_options _connection_options;
 
   virtual void SetUp() {
     _session.reset(&session, DoNotDelete());
 
     Shell_base_test::SetUp();
+
+    _connection_options = shcore::get_connection_options(_mysql_uri);
   }
 };
 
@@ -48,8 +52,8 @@ TEST_F(Instance_test, get_session) {
 }
 
 TEST_F(Instance_test, get_sysvar_string_existing_variable) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -80,8 +84,8 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
 }
 
 TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   session.expect_query("show variables where `variable_name` in"
                        " ('unexisting_variable')").
@@ -107,8 +111,8 @@ TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
 }
 
 TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   session.expect_query("show variables where `variable_name` in"
                        " ('sql_warnings')").
@@ -138,8 +142,8 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
 }
 
 TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   session.expect_query("show variables where `variable_name` in"
                        " ('unexisting_variable')").
@@ -165,8 +169,8 @@ TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
 }
 
 TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   session.expect_query("show variables where `variable_name` in"
                        " ('server_uuid')").
@@ -190,8 +194,8 @@ TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
 }
 
 TEST_F(Instance_test, get_sysvar_int_existing_variable) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   session.expect_query("show variables where `variable_name` in"
                        " ('server_id')").
@@ -221,8 +225,8 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
 }
 
 TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   session.expect_query("show variables where `variable_name` in"
                        " ('unexisting_variable')").
@@ -248,8 +252,8 @@ TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
 }
 
 TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   session.expect_query("show variables where `variable_name` in"
                        " ('server_uuid')").
@@ -273,8 +277,8 @@ TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
 }
 
 TEST_F(Instance_test, get_system_variables) {
-  EXPECT_CALL(session, connect(_mysql_uri, _pwd.c_str()));
-  _session->connect(_mysql_uri, _pwd.c_str());
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
 
   session.expect_query("show variables where `variable_name` in"
                        " ('server_id', 'server_uuid', 'unexisting_variable')").

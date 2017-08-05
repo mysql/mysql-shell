@@ -95,7 +95,9 @@ void BaseTokenizer::assert_cur_token(const std::string& type) {
   const BaseToken& tok = _tokens.at(_pos);
   std::string tok_type = tok.get_type();
   if (tok_type != type)
-    throw std::runtime_error(str_format("Expected token type %s at position %u but found type %s (%s)", type.c_str(), tok.get_pos(), tok_type.c_str(), tok.get_text().c_str()));
+    throw std::invalid_argument(str_format(
+        "Expected token type %s at position %u but found type %s (%s)",
+        type.c_str(), tok.get_pos(), tok_type.c_str(), tok.get_text().c_str()));
 }
 
 bool BaseTokenizer::cur_token_type_is(const std::string& type) {
@@ -128,7 +130,9 @@ const BaseToken* BaseTokenizer::peek_last_token() {
 
 void BaseTokenizer::unget_token() {
   if (_pos == 0)
-    throw std::runtime_error("Attempt to get back a token when already at first token (position 0).");
+    throw std::invalid_argument(
+        "Attempt to get back a token when already at first token (position "
+        "0).");
   --_pos;
 }
 
@@ -139,10 +143,11 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
     if (i >= _input.length())
       break;
 
-    if (std::isspace(_input[i]) && !_allow_spaces)
-      throw std::runtime_error(str_format("Illegal space found at position %u",
-        static_cast<uint32_t>(_parent_offset + i)));
-    else {
+    if (std::isspace(_input[i]) && !_allow_spaces) {
+      throw std::invalid_argument(
+          str_format("Illegal space found at position %u",
+                     static_cast<uint32_t>(_parent_offset + i)));
+    } else {
       std::string type(&_input[i], 1);
       if (_base_tokens.find(type) != _base_tokens.end())
         add_token(BaseToken(type, _base_tokens[type], i));
@@ -207,7 +212,7 @@ void BaseTokenizer::get_tokens(size_t start, size_t end) {
           if ( _allow_unknown_tokens)
             _unknown_token += _input[i];
           else
-            throw std::runtime_error(
+            throw std::invalid_argument(
                 str_format("Illegal character [%c] found at position %u",
                 _input[i], static_cast<uint32_t>(_parent_offset + i)));
         }
@@ -249,7 +254,7 @@ const BaseToken& BaseTokenizer::consume_any_token() {
 
 void BaseTokenizer::assert_tok_position() {
   if (_pos >= _tokens.size())
-    throw std::runtime_error(
+    throw std::invalid_argument(
         str_format("Expected token at position %u but no tokens left.",
                    static_cast<uint32_t>(_pos)));
 }

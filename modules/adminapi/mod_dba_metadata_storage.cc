@@ -245,30 +245,21 @@ void MetadataStorage::insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
   execute_sql(query);
 }
 
-uint32_t MetadataStorage::insert_host(const shcore::Value::Map_type_ref &options) {
+uint32_t MetadataStorage::insert_host(const std::string &host,
+                                      const std::string &ip_address,
+                                      const std::string &location) {
   std::string uri;
-
-  std::string host_name;
-  std::string ip_address;
-  std::string location;
-
   shcore::sqlstring query;
 
-  if (options->has_key("host"))
-    host_name = (*options)["host"].as_string();
-
-  if (options->has_key("id_address"))
-    ip_address = (*options)["id_address"].as_string();
-
-  if (options->has_key("location"))
-    location = (*options)["location"].as_string();
+  // NOTE(rennox): from the options above, only host is set and because is part
+  // of the connection, something is stinky over here oO
 
   // check if the host is already registered
   {
     query = shcore::sqlstring("SELECT host_id, host_name, ip_address"
         " FROM mysql_innodb_cluster_metadata.hosts"
         " WHERE host_name = ? OR (ip_address <> '' AND ip_address = ?)", 0);
-    query << host_name << ip_address;
+    query << host << ip_address;
     query.done();
     auto result(execute_sql(query, false, ""));
     if (result) {
@@ -277,7 +268,7 @@ uint32_t MetadataStorage::insert_host(const shcore::Value::Map_type_ref &options
         uint32_t host_id = static_cast<uint32_t>(row->get_value(0).as_uint());
 
         log_info("Found host entry %u in metadata for host %s (%s)",
-                  host_id, host_name.c_str(), ip_address.c_str());
+                  host_id, host.c_str(), ip_address.c_str());
         return host_id;
       }
     }
@@ -285,7 +276,7 @@ uint32_t MetadataStorage::insert_host(const shcore::Value::Map_type_ref &options
 
   // Insert the default ReplicaSet on the replicasets table
   query = shcore::sqlstring("INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES (?, ?, ?)", 0);
-  query << host_name;
+  query << host;
   query << ip_address;
   query << location;
   query.done();
@@ -296,42 +287,16 @@ uint32_t MetadataStorage::insert_host(const shcore::Value::Map_type_ref &options
   return static_cast<uint32_t>(result->get_member("autoIncrementValue").as_int());
 }
 
-void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options, uint64_t host_id, uint64_t rs_id) {
-  std::string mysql_server_uuid;
-  std::string instance_label;
-  std::string role;
-  shcore::Value::Map_type_ref attributes;
-  std::string endpoint;
-  std::string xendpoint;
-  std::string grendpoint;
+void MetadataStorage::insert_instance(const Instance_definition& options) {
+  // NOTE(rennox): Nothing is being done with these attributes
+  // are we missing something here???
 
   shcore::sqlstring query;
   std::shared_ptr< ::mysqlx::Result> result;
   std::shared_ptr< ::mysqlx::Row> row;
 
-  if (host_id == 0)
-    host_id = (*options)["host_id"].as_uint();
-
-  if (rs_id == 0)
-    rs_id = (*options)["replicaset_id"].as_uint();
-
-  mysql_server_uuid = (*options)["mysql_server_uuid"].as_string();
-  instance_label = (*options)["label"].as_string();
-
-  if (options->has_key("role"))
-    role = (*options)["role"].as_string();
-
-  if (options->has_key("endpoint"))
-    endpoint = (*options)["endpoint"].as_string();
-
-  if (options->has_key("xendpoint"))
-    xendpoint = (*options)["xendpoint"].as_string();
-
-  if (options->has_key("grendpoint"))
-    grendpoint = (*options)["grendpoint"].as_string();
-
-  if (options->has_key("attributes"))
-    attributes = (*options)["attributes"].as_map();
+  /*if (options->has_key("attributes"))
+    attributes = (*options)["attributes"].as_map();*/
 
   query = shcore::sqlstring(
         "INSERT INTO mysql_innodb_cluster_metadata.instances "
@@ -340,14 +305,14 @@ void MetadataStorage::insert_instance(const shcore::Value::Map_type_ref& options
         "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, "
         "'mysqlX', ?, 'grLocal', ?))", 0);
 
-  query << host_id;
-  query << rs_id;
-  query << mysql_server_uuid;
-  query << instance_label;
-  query << role;
-  query << endpoint;
-  query << xendpoint;
-  query << grendpoint;
+  query << options.host_id;
+  query << options.replicaset_id;
+  query << options.uuid;
+  query << options.label;
+  query << options.role;
+  query << options.endpoint;
+  query << options.xendpoint;
+  query << options.grendpoint;
   query.done();
 
   execute_sql(query);
@@ -818,16 +783,10 @@ std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_onlin
   return instances;
 }
 
-shcore::Value::Map_type_ref MetadataStorage::get_instance(
-      const std::string &instance_address) {
+Instance_definition MetadataStorage::get_instance(
+    const std::string &instance_address) {
   shcore::sqlstring query;
-  Value::Map_type_ref ret_val(new shcore::Value::Map_type);
-  uint64_t host_id, replicaset_id;
-  // int version_token;
-  std::string mysql_server_uuid, instance_name, role,
-              endpoint, xendpoint, grendpoint;
-  // std::string weight, description;
-  shcore::Value::Map_type_ref attributes;
+  Instance_definition ret_val;
 
   query = shcore::sqlstring(
       "SELECT host_id, replicaset_id, mysql_server_uuid, "\
@@ -846,31 +805,18 @@ shcore::Value::Map_type_ref MetadataStorage::get_instance(
   auto row = result->fetch_one();
 
   if (row) {
-    host_id = row->get_value(0);
-    replicaset_id = row->get_value(1);
-    mysql_server_uuid = row->get_value(2).as_string();
-    instance_name = row->get_value(3).as_string();
-    role = row->get_value(4).as_string();
+    ret_val.host_id = row->get_value(0).as_uint();
+    ret_val.replicaset_id = row->get_value(1).as_uint();
+    ret_val.uuid = row->get_value(2).as_string();
+    ret_val.label = row->get_value(3).as_string();
+    ret_val.role = row->get_value(4).as_string();
     // weight = row->get_value(5).as_float();
-    endpoint = row->get_value(6).as_string();
-    xendpoint = row->get_value(7).as_string();
-    grendpoint = row->get_value(8).as_string();
+    ret_val.endpoint = row->get_value(6).as_string();
+    ret_val.xendpoint = row->get_value(7).as_string();
+    ret_val.grendpoint = row->get_value(8).as_string();
     // attributes = row->get_value(10).as_map();
     // version_token = row->get_value(11).as_int();
     // description = row->get_value(12).as_string();
-
-    (*ret_val)["host_id"] = Value(host_id);
-    (*ret_val)["replicaset_id"] = Value(replicaset_id);
-    (*ret_val)["mysql_server_uuid"] = Value(mysql_server_uuid);
-    (*ret_val)["label"] = Value(instance_name);
-    (*ret_val)["role"] = Value(role);
-    // (*ret_val)["weight"] = Value(weight);
-    (*ret_val)["endpoint"] = Value(endpoint);
-    (*ret_val)["xendpoint"] = Value(xendpoint);
-    (*ret_val)["grendpoint"] = Value(grendpoint);
-    // (*ret_val)["attributes"] = Value(attributes);
-    // (*ret_val)["version_token"] = Value(version_token);
-    // (*ret_val)["description"] = Value(description);
 
     return ret_val;
   }

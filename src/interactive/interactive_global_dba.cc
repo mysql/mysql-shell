@@ -29,11 +29,10 @@
 #include "utils/utils_file.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_string.h"
-#include "mysqlshdk/libs/utils/utils_connection.h"
 
 using namespace std::placeholders;
 using namespace shcore;
-
+using mysqlshdk::db::uri::formats::only_transport;
 void Global_dba::init() {
   add_varargs_method("deploySandboxInstance", std::bind(&Global_dba::deploy_sandbox_instance, this, _1, "deploySandboxInstance"));
   add_varargs_method("startSandboxInstance", std::bind(&Global_dba::start_sandbox_instance, this, _1));
@@ -212,33 +211,43 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
 
   println();
   println(progressive + " MySQL instance...");
-try {
-  shcore::Value ret_val = call_target(fname, valid_args);
+  try {
+    shcore::Value ret_val = call_target(fname, valid_args);
 
-  println();
-  println("Instance localhost:" + std::to_string(port) + " successfully " + past + ".");
-  println();
+    println();
+    println("Instance localhost:" + std::to_string(port) + " successfully " +
+            past + ".");
+    println();
 
-  return ret_val;
-} catch (shcore::Exception &e) {
-  println(shcore::Value(e.error()).repr());
-}
-}
-
-shcore::Value Global_dba::delete_sandbox_instance(const shcore::Argument_list &args) {
-  return perform_instance_operation(args, "deleteSandboxInstance", "Deleting", "deleted");
+    return ret_val;
+  } catch (shcore::Exception &e) {
+    println(shcore::Value(e.error()).repr());
+  }
+  return shcore::Value();
 }
 
-shcore::Value Global_dba::kill_sandbox_instance(const shcore::Argument_list &args) {
-  return perform_instance_operation(args, "killSandboxInstance", "Killing", "killed");
+shcore::Value Global_dba::delete_sandbox_instance(
+    const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "deleteSandboxInstance", "Deleting",
+                                    "deleted");
 }
 
-shcore::Value Global_dba::stop_sandbox_instance(const shcore::Argument_list &args) {
-  return perform_instance_operation(args, "stopSandboxInstance", "Stopping", "stopped");
+shcore::Value Global_dba::kill_sandbox_instance(
+    const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "killSandboxInstance", "Killing",
+                                    "killed");
 }
 
-shcore::Value Global_dba::start_sandbox_instance(const shcore::Argument_list &args) {
-  return perform_instance_operation(args, "startSandboxInstance", "Starting", "started");
+shcore::Value Global_dba::stop_sandbox_instance(
+    const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "stopSandboxInstance", "Stopping",
+                                    "stopped");
+}
+
+shcore::Value Global_dba::start_sandbox_instance(
+    const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "startSandboxInstance", "Starting",
+                                    "started");
 }
 
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
@@ -261,11 +270,16 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
       auto session = dba->get_active_session();
 
-      std::string nice_error = get_function_name("createCluster") + ": Unable to create cluster. " \
-                               "The instance '"+ session->address() +"' already belongs to an InnoDB cluster. Use " \
-                               "<Dba>." + get_function_name("getCluster", false) + "() to access it.";
+      std::string nice_error = get_function_name("createCluster") + ": Unable "
+        "to create cluster. The instance '" +
+        session->uri(only_transport()) + ""
+        "' already belongs to an InnoDB cluster. Use " "<Dba>." +
+        get_function_name("getCluster", false) + "() to access it.";
+
       throw Exception::runtime_error(nice_error);
-    } else throw;
+    } else {
+      throw;
+    }
   }
 
   shcore::Value ret_val;
@@ -323,12 +337,11 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     // Use check_instance_configuration() in order to verify if we need to prompt
     // the user to allow the configuration changes
     shcore::Argument_list args;
-    Value::Map_type_ref instance_def(new shcore::Value::Map_type);
-    instance_def = get_connection_data(session->uri(), false);
-    args.push_back(shcore::Value(instance_def));
+    auto instance_def = session->get_connection_options();
+    auto instance_map = mysqlsh::get_connection_map(instance_def);
+    args.push_back(shcore::Value(instance_map));
 
     Value::Map_type_ref options(new shcore::Value::Map_type);
-    (*options)["password"] = shcore::Value(session->get_password());
     args.push_back(shcore::Value(options));
 
     shcore::Value check_report = call_target("checkInstanceConfiguration", args);
@@ -501,16 +514,16 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
         confirm_rescan_rejoins = false;
 
       // Check if the password is specified on the options
-      if (opt_map.has_key("password"))
-        password = opt_map.string_at("password");
-      else if (opt_map.has_key("dbPassword"))
-        password = opt_map.string_at("dbPassword");
+      if (opt_map.has_key(mysqlshdk::db::kPassword))
+        password = opt_map.string_at(mysqlshdk::db::kPassword);
+      else if (opt_map.has_key(mysqlshdk::db::kDbPassword))
+        password = opt_map.string_at(mysqlshdk::db::kDbPassword);
 
       // check if the user is specified on the options and it not prompt it
-      if (opt_map.has_key("user"))
-        user = opt_map.string_at("user");
-      else if (opt_map.has_key("dbUser"))
-        user = opt_map.string_at("dbUser");
+      if (opt_map.has_key(mysqlshdk::db::kUser))
+        user = opt_map.string_at(mysqlshdk::db::kUser);
+      else if (opt_map.has_key(mysqlshdk::db::kDbUser))
+        user = opt_map.string_at(mysqlshdk::db::kDbUser);
     }
 
     if (default_cluster) {
@@ -540,7 +553,8 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
         args.push_back(shcore::Value(instance));
 
         try {
-          auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::NONE);
+          auto instance_def = mysqlsh::get_connection_options(
+              args, mysqlsh::PasswordFormat::NONE);
         }
         catch (std::exception &e) {
           std::string error(e.what());
@@ -570,7 +584,8 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(const shcore::Argu
         args.push_back(shcore::Value(instance));
 
         try {
-          auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::NONE);
+          auto instance_def = mysqlsh::get_connection_options(
+              args, mysqlsh::PasswordFormat::NONE);
         }
         catch (std::exception &e) {
           std::string error(e.what());
@@ -758,22 +773,21 @@ shcore::Value Global_dba::check_instance_configuration(const shcore::Argument_li
 
   std::string uri, user;
 
-  auto instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
-
-  shcore::Argument_map opt_map(*instance_def);
-
-  opt_map.ensure_keys({"host", "port"}, shcore::connection_attributes, "instance definition");
+  auto instance_def =
+      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
   if (args.size() == 2) {
     shcore::Argument_map extra_opts(*args.map_at(1));
-    extra_opts.ensure_keys({}, {"password", "dbPassword", "mycnfPath"}, "validation options");
+    extra_opts.ensure_keys({}, {"password", "dbPassword", "mycnfPath"},
+                           "validation options");
   }
 
   // Gather username and password if missing
-  mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
+  mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+  auto instance_map = mysqlsh::get_connection_map(instance_def);
 
   shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(instance_def));
+  new_args.push_back(shcore::Value(instance_map));
 
   if (args.size() == 2)
     new_args.push_back(args[1]);
@@ -789,10 +803,18 @@ shcore::Value Global_dba::check_instance_configuration(const shcore::Argument_li
   else {
     auto result = ret_val.as_map();
 
-    if (result->get_string("status") == "ok")
-      println("The instance '" + opt_map.string_at("host") + ":" + std::to_string(opt_map.int_at("port")) + "' is valid for Cluster usage");
-    else {
-      println("The instance '" + opt_map.string_at("host") + ":" + std::to_string(opt_map.int_at("port")) + "' is not valid for Cluster usage.");
+    if (result->get_string("status") == "ok") {
+      println(
+          "The instance '" +
+          instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport()) +
+          "' is valid "
+          "for Cluster usage");
+    } else {
+      println(
+          "The instance '" +
+          instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport()) +
+          "' is not "
+          "valid for Cluster usage.");
 
       print_validation_results(result);
 
@@ -811,11 +833,13 @@ shcore::Value Global_dba::check_instance_configuration(const shcore::Argument_li
   return ret_val;
 }
 
-bool Global_dba::resolve_cnf_path(const shcore::Argument_list& connection_args,
-                                  const shcore::Value::Map_type_ref& extra_options) {
+bool Global_dba::resolve_cnf_path
+  (const mysqlshdk::db::Connection_options& connection_args,
+   const shcore::Value::Map_type_ref& extra_options) {
   // Path is not given, let's try to autodetect it
   int port = 0;
   std::string datadir;
+
   auto session = mysqlsh::dba::Dba::get_session(connection_args);
 
   enum class OperatingSystem {
@@ -1154,7 +1178,8 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
   _args.ensure_count(0, 2, get_function_name("configureLocalInstance").c_str());
 
   std::string uri, answer, user;
-  shcore::Value::Map_type_ref instance_def;
+  shcore::Value::Map_type_ref instance_map;
+  mysqlshdk::db::Connection_options instance_def;
   shcore::Argument_list args(_args);
   shcore::Argument_list target_args;
 
@@ -1163,15 +1188,15 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
       // default instance
       args.push_back(Value("root@localhost:3306"));
     }
-    instance_def = mysqlsh::dba::get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
-    shcore::Argument_map opt_map(*instance_def);
-    opt_map.ensure_keys({"host", "port"}, shcore::connection_attributes, "instance definition");
+    instance_def =
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
-    if (!shcore::is_local_host(opt_map.string_at("host"), true))
+    if (!shcore::is_local_host(instance_def.get_host(), true))
       throw shcore::Exception::runtime_error("This function only works with local instances");
 
     // Gather username and password if missing
-    mysqlsh::dba::resolve_instance_credentials(instance_def, _delegate);
+    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+    instance_map = mysqlsh::get_connection_map(instance_def);
 
     shcore::Value::Map_type_ref extra_options;
     if (args.size() == 2) {
@@ -1185,18 +1210,15 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
 
     // Target args contain the args received on the interactive layer
     // including the resolved user and password
-    target_args.push_back(shcore::Value(instance_def));
+    target_args.push_back(shcore::Value(instance_map));
     target_args.push_back(shcore::Value(extra_options));
 
     // Session args holds all the connection data, including the resolved user/password
-    shcore::Argument_list session_args;
-    session_args.push_back(shcore::Value(instance_def));
-
-    user = instance_def->get_string(instance_def->has_key("user") ? "user" : "dbUser");
+    user = instance_def.get_user();
 
     // Attempts to resolve the configuration file path
     if (!extra_options->has_key("mycnfPath")) {
-      bool resolved = resolve_cnf_path(session_args, extra_options);
+      bool resolved = resolve_cnf_path(instance_def, extra_options);
 
       if (!resolved) {
         println();
@@ -1228,9 +1250,7 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
         account = shcore::make_account(admin_user, admin_user_host);
       } else {
         // Validate the account being used
-        shcore::Argument_list new_args;
-        new_args.push_back(shcore::Value(instance_def));
-        auto session = mysqlsh::dba::Dba::get_session(new_args);
+        auto session = mysqlsh::dba::Dba::get_session(instance_def);
 
         if (!ensure_admin_account_usable(session, admin_user, admin_user_host,
               &account)) {
@@ -1261,7 +1281,11 @@ shcore::Value Global_dba::configure_local_instance(const shcore::Argument_list &
 
   // Algorithm Step 4: IF instance is ready for GR, stop and return
   if (result->get_string("status") == "ok") {
-    println("The instance '" + instance_def->get_string("host") + ":" + std::to_string(instance_def->get_int("port")) + "' is valid for Cluster usage");
+    println("The instance '" +
+            instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport()) +
+            "' is valid "
+            "for Cluster usage");
+
     println("You can now use it in an InnoDB Cluster.");
     println();
   } else {

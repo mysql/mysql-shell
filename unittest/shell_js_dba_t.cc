@@ -23,8 +23,8 @@
 #include "modules/mod_mysql_session.h"
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 #include "utils/utils_file.h"
 
 namespace shcore {
@@ -44,14 +44,24 @@ protected:
   virtual void set_defaults() {
     Shell_js_script_tester::set_defaults();
 
-    int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysqlshdk::utils::Ssl_info ssl_info;
-    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port,
-                                   sock, schema, pwd_found, ssl_info);
+    std::string user, host, password;
+    auto connection_options = shcore::get_connection_options(_uri);
 
-    // This tells whether SSL is available in sandboxes
-    _have_ssl = has_openssl_binary();
+    if (connection_options.has_user())
+      user = connection_options.get_user();
+
+    if (connection_options.has_host())
+      host = connection_options.get_host();
+
+    if (connection_options.has_password())
+      password = connection_options.get_password();
+
+    std::string mysql_uri = "mysql://";
+    std::string have_ssl;
+    _have_ssl = false;
+
+    if (_port.empty())
+      _port = "33060";
 
     if (_port.empty()) {
       _port = "33060";

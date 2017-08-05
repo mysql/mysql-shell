@@ -22,6 +22,7 @@
 #include "utils/utils_general.h"
 #include "modules/mod_shell.h"
 #include "utils/utils_string.h"
+#include "modules/mod_utils.h"
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -58,25 +59,23 @@ void Global_session::resolve() const {
 
       if (!error) {
         if (prompt("Please specify the MySQL server URI: ", answer)) {
-          Value::Map_type_ref connection_data = shcore::get_connection_data(answer);
+          auto connection_options = shcore::get_connection_options(answer);
 
-          if (!connection_data->has_key("dbPassword")) {
+          if (!connection_options.has_password()) {
             if (password("Enter password: ", answer))
-              (*connection_data)["dbPassword"] = shcore::Value(answer);
+              connection_options.set_password(answer);
           }
 
-          if (connection_data) {
-            shcore::Argument_list args;
-            args.push_back(shcore::Value(connection_data));
+          auto session =
+              mysqlsh::Shell::connect_session(connection_options, type);
 
-            auto session = mysqlsh::Shell::connect_session(args, type);
-
-            // Since this is an interactive global,
-            // it means the shell global is also interactive
-            auto shell_global = _shell_core.get_global("shell").as_object<Global_shell>();
-            auto shell_object = std::dynamic_pointer_cast<mysqlsh::Shell>(shell_global->get_target());
-            shell_object->set_dev_session(session);
-          }
+          // Since this is an interactive global,
+          // it means the shell global is also interactive
+          auto shell_global =
+              _shell_core.get_global("shell").as_object<Global_shell>();
+          auto shell_object = std::dynamic_pointer_cast<mysqlsh::Shell>(
+              shell_global->get_target());
+          shell_object->set_dev_session(session);
         }
       }
     }

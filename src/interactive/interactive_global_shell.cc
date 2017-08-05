@@ -35,19 +35,19 @@ void Global_shell::init() {
 shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("connect").c_str());
 
-  shcore::Value::Map_type_ref instance_def;
+  mysqlshdk::db::Connection_options instance_def;
   try {
-    instance_def = mysqlsh::get_connection_data(args,
+    instance_def = mysqlsh::get_connection_options(args,
                                                mysqlsh::PasswordFormat::STRING);
 
-    mysqlsh::resolve_connection_credentials(instance_def, _delegate);
+    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
 
   std::string stype;
 
-  if (instance_def->has_key("scheme")) {
-    if (instance_def->get_string("scheme") == "mysqlx")
+  if (instance_def.has_scheme()) {
+    if (instance_def.get_scheme() == "mysqlx")
       stype = "a Node";
     else
       stype = "a Classic";
@@ -58,11 +58,14 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   // Messages prior to the connection
   std::string message;
-  message += "Creating " + stype + " Session to '" + shcore::build_connection_string(instance_def, false) + "'";
+  message += "Creating " + stype + " Session to '" +
+    instance_def.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + "'";
+
   println(message);
 
+  auto instance_map = mysqlsh::get_connection_map(instance_def);
   shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(instance_def));
+  new_args.push_back(shcore::Value(instance_map));
 
   shcore::Value ret_val = call_target("connect", new_args);
 

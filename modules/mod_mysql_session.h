@@ -28,6 +28,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/base_session.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace shcore {
 class Shell_core;
@@ -79,7 +80,7 @@ public:
   virtual shcore::Value get_member(const std::string &prop) const;
 
   // Virtual methods from ISession
-  virtual void connect(const shcore::Argument_list &args);
+  virtual void connect(const mysqlshdk::db::Connection_options& data);
   virtual void close();
   virtual void create_schema(const std::string& name);
   virtual void drop_schema(const std::string &name);
@@ -182,8 +183,6 @@ public:
   bool is_open() {}
 #endif
   virtual bool is_open() const;
-
-  virtual int get_default_port() const;
 
 private:
   void init();

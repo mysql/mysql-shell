@@ -118,7 +118,7 @@ TEST_F(Command_line_connection_test, bug25268670) {
            NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "Shell.connect: Invalid values in connection data: invalid_option");
+      "Shell.connect: Invalid values in connection options: invalid_option");
 };
 
 TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {

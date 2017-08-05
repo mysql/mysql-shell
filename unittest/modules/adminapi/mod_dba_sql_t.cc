@@ -22,6 +22,7 @@
 #include "unittest/test_utils/admin_api_test.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mod_mysql_session.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace tests {
 class Dba_sql_test: public Admin_api_test {
@@ -30,9 +31,10 @@ class Dba_sql_test: public Admin_api_test {
     auto session = std::shared_ptr<mysqlsh::mysql::ClassicSession>
         (new mysqlsh::mysql::ClassicSession());
 
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("user:@localhost:" + std::to_string(port)));
-    session->connect(args);
+    auto connection_options =
+      shcore::get_connection_options("user:@localhost:" + std::to_string(port),
+                                  false);
+    session->connect(connection_options);
 
     return session;
   }

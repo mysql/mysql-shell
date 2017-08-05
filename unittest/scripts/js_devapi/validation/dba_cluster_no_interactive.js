@@ -17,16 +17,16 @@
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 4
 ||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.addInstance: Connection definition is empty
-||Cluster.addInstance: Invalid and missing values in instance definition (invalid: weird), (missing: host)
-||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.addInstance: Invalid values in instance definition: ipWhitelist, memberSslMode
-||Cluster.addInstance: Missing values in instance definition: host
+||Cluster.addInstance: Invalid URI: empty.
+||Cluster.addInstance: Invalid and missing values in connection options (invalid: weird), (missing: host)
+||Cluster.addInstance: Missing values in connection options: host
+||Cluster.addInstance: Invalid values in connection options: ipWhitelist, memberSslMode
+||Cluster.addInstance: Missing values in connection options: host
 ||Cluster.addInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
-||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 ||Invalid value for ipWhitelist, string value cannot be empty.
+||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 ||Cluster.addInstance: The label can not be empty.
 ||Cluster.addInstance: The label can only start with an alphanumeric or the '_' character.
 ||Cluster.addInstance: The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.
@@ -102,7 +102,7 @@
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 3
 ||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.removeInstance: Invalid values in instance definition: fakeOption
+||Cluster.removeInstance: Invalid values in connection options: fakeOption
 ||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 ||Cluster.removeInstance: The instance 'second:3306' does not belong to the ReplicaSet: 'default'
 
@@ -348,7 +348,7 @@
 ||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 3
 ||Cluster.rejoinInstance: Invalid connection options, expected either a URI or a Dictionary
-||Cluster.rejoinInstance: Invalid values in instance definition: ipWhitelist, memberSslMode
+||Cluster.rejoinInstance: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.rejoinInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 ||Cluster.rejoinInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.

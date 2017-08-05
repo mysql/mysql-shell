@@ -28,6 +28,8 @@
 #include "scripting/lang_base.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "modules/mod_utils.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -116,16 +118,6 @@ enum Status {
 std::string describe(Status state);
 };
 
-namespace PasswordFormat {
-enum Format {
-  NONE,
-  STRING,
-  OPTIONS,
-};
-}
-
-shcore::Value::Map_type_ref get_instance_options_map(const shcore::Argument_list &args, PasswordFormat::Format format);
-void resolve_instance_credentials(const shcore::Value::Map_type_ref& options, shcore::Interpreter_delegate* delegate = nullptr);
 std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);
 ReplicationGroupState check_function_preconditions(const std::string& class_name, const std::string& base_function_name, const std::string &function_name, const std::shared_ptr<MetadataStorage>& metadata);
 
@@ -134,7 +126,7 @@ extern const char *kMemberSSLModeRequired;
 extern const char *kMemberSSLModeDisabled;
 extern const std::set<std::string> kMemberSSLModeValues;
 void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
-void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options);
+void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options);
 void validate_replication_filters(mysqlsh::mysql::ClassicSession *session);
 std::pair<int,int> find_cluster_admin_accounts(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
     const std::string &admin_user, std::vector<std::string> *out_hosts);

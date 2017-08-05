@@ -18,65 +18,81 @@
  */
 
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/mod_dba_common.h"
-#include "common/uuid/include/uuid_gen.h"
-#include <sstream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
+#include "common/uuid/include/uuid_gen.h"
+#include "modules/adminapi/mod_dba_common.h"
 
-#include "mod_dba_replicaset.h"
-#include "mod_dba_metadata_storage.h"
 #include "../mysqlxtest_utils.h"
-#include "utils/utils_general.h"
-#include "shellcore/utils_help.h"
+#include "modules/adminapi/mod_dba_metadata_storage.h"
+#include "modules/adminapi/mod_dba_replicaset.h"
 #include "mod_dba_sql.h"
+#include "shellcore/utils_help.h"
+#include "utils/utils_general.h"
 
 using namespace std::placeholders;
-using namespace mysqlsh;
-using namespace mysqlsh::dba;
-using namespace shcore;
+
+namespace mysqlsh {
+namespace dba {
 
 // Documentation of the Cluster Class
 REGISTER_HELP(CLUSTER_BRIEF, "Represents an instance of MySQL InnoDB Cluster.");
-REGISTER_HELP(CLUSTER_DETAIL, "The cluster object is the entrance point to manage the MySQL InnoDB Cluster system.");
-REGISTER_HELP(CLUSTER_DETAIL1, "A cluster is a set of MySQLd Instances which holds the user's data.");
-REGISTER_HELP(CLUSTER_DETAIL2, "It provides high-availability and scalability for the user's data.");
+REGISTER_HELP(CLUSTER_DETAIL,
+              "The cluster object is the entrance point to manage the MySQL "
+              "InnoDB Cluster system.");
+REGISTER_HELP(
+    CLUSTER_DETAIL1,
+    "A cluster is a set of MySQLd Instances which holds the user's data.");
+REGISTER_HELP(
+    CLUSTER_DETAIL2,
+    "It provides high-availability and scalability for the user's data.");
 
-REGISTER_HELP(CLUSTER_CLOSING, "For more help on a specific function use: cluster.help('<functionName>')");
+REGISTER_HELP(
+    CLUSTER_CLOSING,
+    "For more help on a specific function use: cluster.help('<functionName>')");
 REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
 
 REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 
-Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _dissolved(false), _metadata_storage(metadata_storage) {
+Cluster::Cluster(const std::string &name,
+                 std::shared_ptr<MetadataStorage> metadata_storage)
+    : _name(name), _dissolved(false), _metadata_storage(metadata_storage) {
   _session = _metadata_storage->get_session();
- init();
+  init();
 }
 
 Cluster::~Cluster() {}
 
-std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {
+std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent),
+                                   int UNUSED(quote_strings)) const {
   s_out.append("<" + class_name() + ":" + _name + ">");
   return s_out;
 }
 
-bool Cluster::operator == (const Object_bridge &other) const {
+bool Cluster::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
 void Cluster::init() {
   add_property("name", "getName");
-  add_method("addInstance", std::bind(&Cluster::add_instance, this, _1), "data");
-  add_method("rejoinInstance", std::bind(&Cluster::rejoin_instance, this, _1), "data");
-  add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1), "data");
+  add_method("addInstance", std::bind(&Cluster::add_instance, this, _1),
+             "data");
+  add_method("rejoinInstance", std::bind(&Cluster::rejoin_instance, this, _1),
+             "data");
+  add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1),
+             "data");
   add_method("describe", std::bind(&Cluster::describe, this, _1), NULL);
   add_method("status", std::bind(&Cluster::status, this, _1), NULL);
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
-  add_varargs_method("checkInstanceState", std::bind(&Cluster::check_instance_state, this, _1));
+  add_varargs_method("checkInstanceState",
+                     std::bind(&Cluster::check_instance_state, this, _1));
   add_varargs_method("rescan", std::bind(&Cluster::rescan, this, _1));
-  add_varargs_method("forceQuorumUsingPartitionOf", std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
+  add_varargs_method(
+      "forceQuorumUsingPartitionOf",
+      std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
 }
 
 // Documentation of the getName function
@@ -84,11 +100,11 @@ REGISTER_HELP(CLUSTER_GETNAME_BRIEF, "Retrieves the name of the cluster.");
 REGISTER_HELP(CLUSTER_GETNAME_RETURNS, "@returns The name of the cluster.");
 
 /**
-* $(CLUSTER_GETNAME_BRIEF)
-*
-* $(CLUSTER_GETNAME_RETURNS)
-*
-*/
+ * $(CLUSTER_GETNAME_BRIEF)
+ *
+ * $(CLUSTER_GETNAME_RETURNS)
+ *
+ */
 #if DOXYGEN_JS
 String Cluster::getName() {}
 #elif DOXYGEN_PY
@@ -112,13 +128,14 @@ void Cluster::assert_not_dissolved(const std::string &option_name) const {
   if (has_member(option_name) && _dissolved) {
     if (has_method(option_name)) {
       name = get_function_name(option_name, false);
-      throw Exception::runtime_error(
-          class_name() + "." + name + ": " + "Can't call function '" + name + "' on a dissolved cluster");
-    }
-    else{
+      throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
+                                     "Can't call function '" + name +
+                                     "' on a dissolved cluster");
+    } else {
       name = get_member_name(option_name, naming_style);
-      throw Exception::runtime_error(
-          class_name() + "." + name + ": " + "Can't access object member '" + name + "' on a dissolved cluster");
+      throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
+                                     "Can't access object member '" + name +
+                                     "' on a dissolved cluster");
     }
   }
 }
@@ -153,45 +170,54 @@ None add_seed_instance(Document doc) {}
 #endif
 #endif
 #endif
-shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
-                                         bool multi_master, bool is_adopted,
-                                         const std::string &replication_user,
-                                         const std::string &replication_pwd) {
+shcore::Value Cluster::add_seed_instance(
+    const mysqlshdk::db::Connection_options &connection_options,
+    const shcore::Argument_list &args, bool multi_master, bool is_adopted,
+    const std::string &replication_user, const std::string &replication_pwd) {
   shcore::Value ret_val;
 
   MetadataStorage::Transaction tx(_metadata_storage);
-  std::string default_replication_user = "rpl_user"; // Default for V1.0 is rpl_user
+  std::string default_replication_user =
+      "rpl_user";  // Default for V1.0 is rpl_user
   std::shared_ptr<ReplicaSet> default_rs = get_default_replicaset();
 
-  // Check if we have a Default ReplicaSet, if so it means we already added the Seed Instance
+  // Check if we have a Default ReplicaSet, if so it means we already added the
+  // Seed Instance
   if (default_rs != NULL) {
     uint64_t rs_id = default_rs->get_id();
     if (!_metadata_storage->is_replicaset_empty(rs_id))
-      throw shcore::Exception::logic_error("Default ReplicaSet already initialized. Please use: addInstance() to add more Instances to the ReplicaSet.");
+      throw shcore::Exception::logic_error(
+          "Default ReplicaSet already initialized. Please use: addInstance() "
+          "to add more Instances to the ReplicaSet.");
   } else {
     std::string topology_type = ReplicaSet::kTopologyPrimaryMaster;
     if (multi_master) {
       topology_type = ReplicaSet::kTopologyMultiMaster;
     }
-    // Create the Default ReplicaSet and assign it to the Cluster's default_replica_set var
-    _default_replica_set.reset(new ReplicaSet("default", topology_type,
-                                              _metadata_storage));
+    // Create the Default ReplicaSet and assign it to the Cluster's
+    // default_replica_set var
+    _default_replica_set.reset(
+        new ReplicaSet("default", topology_type, _metadata_storage));
     _default_replica_set->set_cluster(shared_from_this());
 
     // If we reached here without errors we can update the Metadata
 
     // Update the Cluster table with the Default ReplicaSet on the Metadata
-    _metadata_storage->insert_replica_set(_default_replica_set, true, is_adopted);
+    _metadata_storage->insert_replica_set(_default_replica_set, true,
+                                          is_adopted);
   }
-  // Add the Instance to the Default ReplicaSet passing already created replication user
-  ret_val = _default_replica_set->add_instance(args, replication_user, replication_pwd);
+  // Add the Instance to the Default ReplicaSet passing already created
+  // replication user
+  ret_val = _default_replica_set->add_instance(
+      connection_options, args, replication_user, replication_pwd);
 
-  auto metadata_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
-                              _metadata_storage->get_session().get());
+  auto metadata_session = dynamic_cast<mysqlsh::mysql::ClassicSession *>(
+      _metadata_storage->get_session().get());
 
   std::string group_replication_group_name =
       get_gr_replicaset_group_name(metadata_session);
-  _metadata_storage->set_replicaset_group_name(_default_replica_set, group_replication_group_name);
+  _metadata_storage->set_replicaset_group_name(_default_replica_set,
+                                               group_replication_group_name);
 
   tx.commit();
 
@@ -199,162 +225,196 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
 }
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_BRIEF, "Adds an Instance to the cluster.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM, "@param instance An instance "\
-                                         "definition.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM1, "@param options Optional dictionary "\
-                                          "with options for the operation.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM,
+              "@param instance An instance "
+              "definition.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM1,
+              "@param options Optional dictionary "
+              "with options for the operation.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS, "@throws MetadataError if the "\
-                                          "Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS1, "@throws MetadataError if the "\
-                                           "Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS2, "@throws ArgumentError if the "\
-                                           "instance parameter is empty.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS3, "@throws ArgumentError if the "\
-                                           "instance definition is invalid.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS4, "@throws ArgumentError if the "\
-                                           "instance definition is a "\
-                                           "connection dictionary but empty.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS5, "@throws RuntimeError if the "\
-                                           "instance accounts are invalid.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS6, "@throws RuntimeError if the "\
-                                           "instance is not in bootstrapped "\
-                                           "state.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS7, "@throws ArgumentError if the "\
-                                           "value for the memberSslMode "\
-                                           "option is not one of the "\
-                                           "allowed: \"AUTO\", \"DISABLED\", "\
-                                           "\"REQUIRED\".");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS8, "@throws RuntimeError if the SSL "\
-                                           "mode specified is not compatible "\
-                                           "with the one used in the cluster.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS,
+              "@throws MetadataError if the "
+              "Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS1,
+              "@throws MetadataError if the "
+              "Metadata update operation failed.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS2,
+              "@throws ArgumentError if the "
+              "instance parameter is empty.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS3,
+              "@throws ArgumentError if the "
+              "instance definition is invalid.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS4,
+              "@throws ArgumentError if the "
+              "instance definition is a "
+              "connection dictionary but empty.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS5,
+              "@throws RuntimeError if the "
+              "instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS6,
+              "@throws RuntimeError if the "
+              "instance is not in bootstrapped "
+              "state.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS7,
+              "@throws ArgumentError if the "
+              "value for the memberSslMode "
+              "option is not one of the "
+              "allowed: \"AUTO\", \"DISABLED\", "
+              "\"REQUIRED\".");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS8,
+              "@throws RuntimeError if the SSL "
+              "mode specified is not compatible "
+              "with the one used in the cluster.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_RETURNS, "@returns nothing");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL, "This function adds an Instance to "\
-                                          "the default replica set of the "\
-                                          "cluster.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL,
+              "This function adds an Instance to "
+              "the default replica set of the "
+              "cluster.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1, "The instance definition can be "\
-                                           "any of:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1,
+              "The instance definition can be "
+              "any of:");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "@li URI string.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3, "@li Connection data dictionary.");
 // REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "@li An Instance object.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4, "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4,
+              "A basic URI string has the following format:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5,
+              "[mysql://"
+              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
+              "]");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6, "The connection data dictionary "\
-                                           "may contain the following attributes:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6,
+              "The connection data dictionary "
+              "may contain the following attributes:");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL8, "@li password/dbPassword: username "\
-                                           "password");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL8,
+              "@li password/dbPassword: username "
+              "password");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL9, "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11, "@li sslCa: the path to the X509 "\
-                                            "certificate authority in PEM "\
-                                            "format.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12, "@li sslCert: The path to the X509 "\
-                                            "certificate in PEM format.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13, "@li sslKey: The path to the X509 "\
-                                            "key in PEM format.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11,
+              "@li sslCa: the path to the X509 "
+              "certificate authority in PEM "
+              "format.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
+              "@li sslCert: The path to the X509 "
+              "certificate in PEM format.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13,
+              "@li sslKey: The path to the X509 "
+              "key in PEM format.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14, "The options dictionary may contain "\
-                                            "the following attributes:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15, "@li label: an identifier for the "\
-                                            "instance being added");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16, "@li password: the instance "\
-                                            "connection password");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17, "@li memberSslMode: SSL mode used "\
-                                            "on the instance");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18, "@li ipWhitelist: The list of "\
-                                            "hosts allowed to connect to the "\
-                                            "instance for group replication");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14,
+              "The options dictionary may contain "
+              "the following attributes:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15,
+              "@li label: an identifier for the "
+              "instance being added");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
+              "@li password: the instance "
+              "connection password");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17,
+              "@li memberSslMode: SSL mode used "
+              "on the instance");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
+              "@li ipWhitelist: The list of "
+              "hosts allowed to connect to the "
+              "instance for group replication");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19, "The password may be contained on "\
-                                            "the instance definition, "\
-                                            "however, it can be overwritten "\
-                                            "if it is specified on the options.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
+              "The password may be contained on "
+              "the instance definition, "
+              "however, it can be overwritten "
+              "if it is specified on the options.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20, "The memberSslMode option supports "\
-                                            "these values:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21, "@li REQUIRED: if used, SSL "\
-                                            "(encryption) will be enabled for "\
-                                            "the instance to communicate with "\
-                                            "other members of the cluster");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22, "@li DISABLED: if used, SSL "\
-                                            "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23, "@li AUTO: if used, SSL (encryption)"\
-                                            " will be automatically "\
-                                            "enabled or disabled based on the "\
-                                            "cluster configuration");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24, "If memberSslMode is not specified "\
-                                            "AUTO will be used by default.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20,
+              "The memberSslMode option supports "
+              "these values:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21,
+              "@li REQUIRED: if used, SSL "
+              "(encryption) will be enabled for "
+              "the instance to communicate with "
+              "other members of the cluster");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22,
+              "@li DISABLED: if used, SSL "
+              "(encryption) will be disabled");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23,
+              "@li AUTO: if used, SSL (encryption)"
+              " will be automatically "
+              "enabled or disabled based on the "
+              "cluster configuration");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24,
+              "If memberSslMode is not specified "
+              "AUTO will be used by default.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25, "The ipWhitelist format is a comma "\
-                                            "separated list of IP "\
-                                            "addresses or subnet CIDR "\
-                                            "notation, for example: "\
-                                            "192.168.1.0/24,10.0.0.1. "\
-                                            "By default the "\
-                                            "value is set to AUTOMATIC, "\
-                                            "allowing addresses from the "\
-                                            "instance private network to be "\
-                                            "automatically set for "\
-                                            "the whitelist.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25,
+              "The ipWhitelist format is a comma "
+              "separated list of IP "
+              "addresses or subnet CIDR "
+              "notation, for example: "
+              "192.168.1.0/24,10.0.0.1. "
+              "By default the "
+              "value is set to AUTOMATIC, "
+              "allowing addresses from the "
+              "instance private network to be "
+              "automatically set for "
+              "the whitelist.");
 
 /**
-* $(CLUSTER_ADDINSTANCE_BRIEF)
-*
-* $(CLUSTER_ADDINSTANCE_PARAM)
-* $(CLUSTER_ADDINSTANCE_PARAM1)
-*
-* $(CLUSTER_ADDINSTANCE_THROWS)
-* $(CLUSTER_ADDINSTANCE_THROWS1)
-* $(CLUSTER_ADDINSTANCE_THROWS2)
-* $(CLUSTER_ADDINSTANCE_THROWS3)
-* $(CLUSTER_ADDINSTANCE_THROWS4)
-* $(CLUSTER_ADDINSTANCE_THROWS5)
-* $(CLUSTER_ADDINSTANCE_THROWS6)
-* $(CLUSTER_ADDINSTANCE_THROWS7)
-* $(CLUSTER_ADDINSTANCE_THROWS8)
-*
-* $(CLUSTER_ADDINSTANCE_RETURNS)
-*
-* $(CLUSTER_ADDINSTANCE_DETAIL)
-*
-* $(CLUSTER_ADDINSTANCE_DETAIL1)
-* $(CLUSTER_ADDINSTANCE_DETAIL2)
-* $(CLUSTER_ADDINSTANCE_DETAIL3)
-*
-* $(CLUSTER_ADDINSTANCE_DETAIL4)
-* $(CLUSTER_ADDINSTANCE_DETAIL5)
-*
-* $(CLUSTER_ADDINSTANCE_DETAIL6)
-* $(CLUSTER_ADDINSTANCE_DETAIL7)
-* $(CLUSTER_ADDINSTANCE_DETAIL8)
-* $(CLUSTER_ADDINSTANCE_DETAIL9)
-* $(CLUSTER_ADDINSTANCE_DETAIL10)
-* $(CLUSTER_ADDINSTANCE_DETAIL11)
-* $(CLUSTER_ADDINSTANCE_DETAIL12)
-* $(CLUSTER_ADDINSTANCE_DETAIL13)
-*
-* $(CLUSTER_ADDINSTANCE_DETAIL14)
-* $(CLUSTER_ADDINSTANCE_DETAIL15)
-* $(CLUSTER_ADDINSTANCE_DETAIL16)
-* $(CLUSTER_ADDINSTANCE_DETAIL17)
-* $(CLUSTER_ADDINSTANCE_DETAIL18)
-*
-* $(CLUSTER_ADDINSTANCE_DETAIL19)
-*
-* $(CLUSTER_ADDINSTANCE_DETAIL20)
-* $(CLUSTER_ADDINSTANCE_DETAIL21)
-* $(CLUSTER_ADDINSTANCE_DETAIL22)
-* $(CLUSTER_ADDINSTANCE_DETAIL23)
-* $(CLUSTER_ADDINSTANCE_DETAIL24)
-*
-* $(CLUSTER_ADDINSTANCE_DETAIL25)
-*/
+ * $(CLUSTER_ADDINSTANCE_BRIEF)
+ *
+ * $(CLUSTER_ADDINSTANCE_PARAM)
+ * $(CLUSTER_ADDINSTANCE_PARAM1)
+ *
+ * $(CLUSTER_ADDINSTANCE_THROWS)
+ * $(CLUSTER_ADDINSTANCE_THROWS1)
+ * $(CLUSTER_ADDINSTANCE_THROWS2)
+ * $(CLUSTER_ADDINSTANCE_THROWS3)
+ * $(CLUSTER_ADDINSTANCE_THROWS4)
+ * $(CLUSTER_ADDINSTANCE_THROWS5)
+ * $(CLUSTER_ADDINSTANCE_THROWS6)
+ * $(CLUSTER_ADDINSTANCE_THROWS7)
+ * $(CLUSTER_ADDINSTANCE_THROWS8)
+ *
+ * $(CLUSTER_ADDINSTANCE_RETURNS)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL1)
+ * $(CLUSTER_ADDINSTANCE_DETAIL2)
+ * $(CLUSTER_ADDINSTANCE_DETAIL3)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL4)
+ * $(CLUSTER_ADDINSTANCE_DETAIL5)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL6)
+ * $(CLUSTER_ADDINSTANCE_DETAIL7)
+ * $(CLUSTER_ADDINSTANCE_DETAIL8)
+ * $(CLUSTER_ADDINSTANCE_DETAIL9)
+ * $(CLUSTER_ADDINSTANCE_DETAIL10)
+ * $(CLUSTER_ADDINSTANCE_DETAIL11)
+ * $(CLUSTER_ADDINSTANCE_DETAIL12)
+ * $(CLUSTER_ADDINSTANCE_DETAIL13)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL14)
+ * $(CLUSTER_ADDINSTANCE_DETAIL15)
+ * $(CLUSTER_ADDINSTANCE_DETAIL16)
+ * $(CLUSTER_ADDINSTANCE_DETAIL17)
+ * $(CLUSTER_ADDINSTANCE_DETAIL18)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL19)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL20)
+ * $(CLUSTER_ADDINSTANCE_DETAIL21)
+ * $(CLUSTER_ADDINSTANCE_DETAIL22)
+ * $(CLUSTER_ADDINSTANCE_DETAIL23)
+ * $(CLUSTER_ADDINSTANCE_DETAIL24)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL25)
+ */
 #if DOXYGEN_JS
 Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
@@ -378,105 +438,147 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
-    ret_val = _default_replica_set->add_instance(args);
+    auto connection_options =
+        mysqlsh::get_connection_options(args, PasswordFormat::OPTIONS);
+
+    shcore::Argument_list rest;
+    if (args.size() == 2)
+      rest.push_back(args.at(1));
+
+    ret_val = _default_replica_set->add_instance(connection_options, rest);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
   return ret_val;
 }
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_BRIEF, "Rejoins an Instance to the cluster.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM, "@param instance An instance "\
-                                            "definition.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1, "@param options Optional dictionary "\
-                                             "with options for the operation.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_BRIEF,
+              "Rejoins an Instance to the cluster.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM,
+              "@param instance An instance "
+              "definition.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1,
+              "@param options Optional dictionary "
+              "with options for the operation.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS, "@throws MetadataError if the "\
-                                             "Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS1, "@throws MetadataError if the "\
-                                              "Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS2, "@throws RuntimeError if the "\
-                                              "instance does not exist.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS3, "@throws RuntimeError if the "\
-                                              "instance accounts are invalid.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS4, "@throws RuntimeError if the "\
-                                              "instance is not in bootstrapped "\
-                                              "state.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS5, "@throws ArgumentError if the "\
-                                              "value for the memberSslMode "\
-                                              "option is not one of the allowed: "\
-                                              "\"AUTO\", \"DISABLED\", \"REQUIRED\".");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS6, "@throws RuntimeError if the SSL "\
-                                              "mode specified is not compatible "\
-                                              "with the one used in the cluster.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS,
+              "@throws MetadataError if the "
+              "Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS1,
+              "@throws MetadataError if the "
+              "Metadata update operation failed.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS2,
+              "@throws RuntimeError if the "
+              "instance does not exist.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS3,
+              "@throws RuntimeError if the "
+              "instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS4,
+              "@throws RuntimeError if the "
+              "instance is not in bootstrapped "
+              "state.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS5,
+              "@throws ArgumentError if the "
+              "value for the memberSslMode "
+              "option is not one of the allowed: "
+              "\"AUTO\", \"DISABLED\", \"REQUIRED\".");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS6,
+              "@throws RuntimeError if the SSL "
+              "mode specified is not compatible "
+              "with the one used in the cluster.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_RETURNS, "@returns nothing.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL, "This function rejoins an Instance "\
-                                             "to the cluster.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL,
+              "This function rejoins an Instance "
+              "to the cluster.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL1,
+              "The instance definition can be any of:");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "@li URI string.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3,
+              "@li Connection data dictionary.");
 // REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li An Instance object.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4,
+              "A basic URI string has the following format:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5,
+              "[mysql://"
+              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
+              "]");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6, "The connection data dictionary "\
-                                              "may contain the following attributes:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6,
+              "The connection data dictionary "
+              "may contain the following attributes:");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8, "@li password/dbPassword: username "\
-                                              "password");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9, "@li host: hostname or IP address");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8,
+              "@li password/dbPassword: username "
+              "password");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9,
+              "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11, "@li sslCa: the path to the X509 "\
-                                               "certificate authority in PEM format.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12, "@li sslCert: The path to the X509 "\
-                                               "certificate in PEM format.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL13, "@li sslKey: The path to the X509 "\
-                                               "key in PEM format.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11,
+              "@li sslCa: the path to the X509 "
+              "certificate authority in PEM format.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12,
+              "@li sslCert: The path to the X509 "
+              "certificate in PEM format.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL13,
+              "@li sslKey: The path to the X509 "
+              "key in PEM format.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14, "The options dictionary may "\
-                                               "contain the following attributes:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL15, "@li label: an identifier for "\
-                                               "the instance being added");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL16, "@li password: the instance "\
-                                               "connection password");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL17, "@li memberSslMode: SSL mode "\
-                                               "used to be used on the instance");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL18, "@li ipWhitelist: The list of "\
-                                               "hosts allowed to connect to the "\
-                                               "instance for group replication");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
+              "The options dictionary may "
+              "contain the following attributes:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL15,
+              "@li label: an identifier for "
+              "the instance being added");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL16,
+              "@li password: the instance "
+              "connection password");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL17,
+              "@li memberSslMode: SSL mode "
+              "used to be used on the instance");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL18,
+              "@li ipWhitelist: The list of "
+              "hosts allowed to connect to the "
+              "instance for group replication");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL19, "The password may be contained "\
-                                               "on the instance definition, "\
-                                               "however, it can be overwritten "\
-                                               "if it is specified on the options.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL19,
+              "The password may be contained "
+              "on the instance definition, "
+              "however, it can be overwritten "
+              "if it is specified on the options.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL20, "The memberSslMode option supports "\
-                                               "these values:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL21, "@li REQUIRED: if used, SSL "\
-                                               "(encryption) will be enabled "\
-                                               "for the instance to communicate "\
-                                               "with other members of the cluster");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL22, "@li DISABLED: if used, SSL "\
-                                               "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL23, "@li AUTO: if used, SSL "\
-                                               "(encryption) will be automatically "\
-                                               "enabled or disabled based on the cluster "\
-                                               "configuration");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL24, "If memberSslMode is not specified "\
-                                               "AUTO will be used by default.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL20,
+              "The memberSslMode option supports "
+              "these values:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL21,
+              "@li REQUIRED: if used, SSL "
+              "(encryption) will be enabled "
+              "for the instance to communicate "
+              "with other members of the cluster");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL22,
+              "@li DISABLED: if used, SSL "
+              "(encryption) will be disabled");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL23,
+              "@li AUTO: if used, SSL "
+              "(encryption) will be automatically "
+              "enabled or disabled based on the cluster "
+              "configuration");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL24,
+              "If memberSslMode is not specified "
+              "AUTO will be used by default.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL25, "The ipWhitelist format is a "\
-                                               "comma separated list of IP "\
-                                               "addresses or subnet CIDR notation, "\
-                                               "for example: 192.168.1.0/24,10.0.0.1. "\
-                                               "By default the value is set to "\
-                                               "AUTOMATIC, allowing addresses "\
-                                               "from the instance private network "\
-                                               "to be automatically set for the whitelist.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL25,
+              "The ipWhitelist format is a "
+              "comma separated list of IP "
+              "addresses or subnet CIDR notation, "
+              "for example: 192.168.1.0/24,10.0.0.1. "
+              "By default the value is set to "
+              "AUTOMATIC, allowing addresses "
+              "from the instance private network "
+              "to be automatically set for the whitelist.");
 
 /**
 * $(CLUSTER_REJOININSTANCE_BRIEF)
@@ -498,9 +600,11 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL25, "The ipWhitelist format is a "\
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL1)
 * $(CLUSTER_REJOININSTANCE_DETAIL2)
-* $(CLUSTER_REJOININSTANCE_DETAIL3)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL4)
+* $(CLUSTER_REJOININSTANCE_DETAIL3)  shcore::Argument_list rest;
+    if (args.size() == 2)
+      rest.push_back(args.at(1));
+
+    ret_val = _default_replica_set->add_instance(connection_options, rest);
 * $(CLUSTER_REJOININSTANCE_DETAIL5)
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL6)
@@ -552,114 +656,150 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
+    auto instance_def =
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
+
+    shcore::Value::Map_type_ref options;
+
+    if (args.size() == 2)
+      options = args.map_at(1);
+
     // if not, call mysqlprovision to join the instance to its own group
-    ret_val = _default_replica_set->rejoin_instance(args);
+    ret_val = _default_replica_set->rejoin_instance(&instance_def, options);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
 
   return ret_val;
 }
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_BRIEF, "Removes an Instance from the cluster.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM1,
-  "@param options Optional dictionary with options for the operation.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_BRIEF,
+              "Removes an Instance from the cluster.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM,
+              "@param instance An instance definition.");
+REGISTER_HELP(
+    CLUSTER_REMOVEINSTANCE_PARAM1,
+    "@param options Optional dictionary with options for the operation.");
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS, "@throws MetadataError if the "\
-                                             "Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS1, "@throws MetadataError if the "\
-                                              "Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS2, "@throws ArgumentError if the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS3, "@throws ArgumentError if the instance definition is invalid.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS4, "@throws ArgumentError if the instance definition is a connection dictionary but empty.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS,
+              "@throws MetadataError if the "
+              "Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS1,
+              "@throws MetadataError if the "
+              "Metadata update operation failed.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS2,
+              "@throws ArgumentError if the instance parameter is empty.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS3,
+              "@throws ArgumentError if the instance definition is invalid.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS4,
+              "@throws ArgumentError if the instance definition is a "
+              "connection dictionary but empty.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS5,
-  "@throws RuntimeError if the instance accounts are invalid.");
+              "@throws RuntimeError if the instance accounts are invalid.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS6,
-  "@throws RuntimeError if an error occurs when trying to remove the instance "\
-  "(e.g., instance is not reachable).");
+              "@throws RuntimeError if an error occurs when trying to remove "
+              "the instance "
+              "(e.g., instance is not reachable).");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_RETURNS, "@returns nothing.");
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL, "This function removes an "\
-                                             "Instance from the default "\
-                                             "replicaSet of the cluster.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL,
+              "This function removes an "
+              "Instance from the default "
+              "replicaSet of the cluster.");
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1,
+              "The instance definition can be any of:");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "@li URI string.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3,
+              "@li Connection data dictionary.");
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5, "[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4,
+              "A basic URI string has the following format:");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5,
+              "[mysql://"
+              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
+              "]");
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL6, "The connection data dictionary may contain the following attributes:");
+REGISTER_HELP(
+    CLUSTER_REMOVEINSTANCE_DETAIL6,
+    "The connection data dictionary may contain the following attributes:");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL8, "@li password/dbPassword: username password");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL9, "@li host: hostname or IP address");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL8,
+              "@li password/dbPassword: username password");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL9,
+              "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL11, "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
+REGISTER_HELP(
+    CLUSTER_REMOVEINSTANCE_DETAIL11,
+    "@li sslCa: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL12,
+              "@li sslCert: The path to the X509 certificate in PEM format.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL13,
+              "@li sslKey: The path to the X509 key in PEM format.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL14,
-  "The options dictionary may contain the following attributes:");
+              "The options dictionary may contain the following attributes:");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL15,
-  "@li password/dbPassword: the instance connection password");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL16,
-  "@li force: boolean, indicating if the instance must be removed (even if "\
-  "only from metadata) in case it cannot be reached. By default, set to "\
-  "false.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL17,
-  "The password may be contained in the instance definition, however, it can "\
-  "be overwritten if it is specified on the options.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL18,
-  "The force option (set to true) must only be used to remove instances that "\
-  "are permanently not available (no longer reachable) or never to be reused "\
-  "again in a cluster. This allows to remove from the metadata an instance "\
-  "than can no longer be recovered. Otherwise, the instance must be brought "\
-  "back ONLINE and removed without the force option to avoid errors trying "\
-  "to add it back to a cluster.");
+              "@li password/dbPassword: the instance connection password");
+REGISTER_HELP(
+    CLUSTER_REMOVEINSTANCE_DETAIL16,
+    "@li force: boolean, indicating if the instance must be removed (even if "
+    "only from metadata) in case it cannot be reached. By default, set to "
+    "false.");
+REGISTER_HELP(
+    CLUSTER_REMOVEINSTANCE_DETAIL17,
+    "The password may be contained in the instance definition, however, it can "
+    "be overwritten if it is specified on the options.");
+REGISTER_HELP(
+    CLUSTER_REMOVEINSTANCE_DETAIL18,
+    "The force option (set to true) must only be used to remove instances that "
+    "are permanently not available (no longer reachable) or never to be reused "
+    "again in a cluster. This allows to remove from the metadata an instance "
+    "than can no longer be recovered. Otherwise, the instance must be brought "
+    "back ONLINE and removed without the force option to avoid errors trying "
+    "to add it back to a cluster.");
 
 /**
-* $(CLUSTER_REMOVEINSTANCE_BRIEF)
-*
-* $(CLUSTER_REMOVEINSTANCE_PARAM)
-* $(CLUSTER_REMOVEINSTANCE_PARAM1)
-*
-* $(CLUSTER_REMOVEINSTANCE_THROWS)
-* $(CLUSTER_REMOVEINSTANCE_THROWS1)
-* $(CLUSTER_REMOVEINSTANCE_THROWS2)
-* $(CLUSTER_REMOVEINSTANCE_THROWS3)
-* $(CLUSTER_REMOVEINSTANCE_THROWS4)
-* $(CLUSTER_REMOVEINSTANCE_THROWS5)
-* $(CLUSTER_REMOVEINSTANCE_THROWS6)
-*
-* $(CLUSTER_REMOVEINSTANCE_RETURNS)
-*
-* $(CLUSTER_REMOVEINSTANCE_DETAIL)
-*
-* $(CLUSTER_REMOVEINSTANCE_DETAIL1)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL2)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL3)
-*
-* $(CLUSTER_REMOVEINSTANCE_DETAIL4)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL5)
-*
-* $(CLUSTER_REMOVEINSTANCE_DETAIL6)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL7)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL8)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL9)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL10)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL11)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL12)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL13)
-*
-* $(CLUSTER_REMOVEINSTANCE_DETAIL14)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL15)
-* $(CLUSTER_REMOVEINSTANCE_DETAIL16)
-*
-* $(CLUSTER_REMOVEINSTANCE_DETAIL17)
-*
-* $(CLUSTER_REMOVEINSTANCE_DETAIL18)
-*/
+ * $(CLUSTER_REMOVEINSTANCE_BRIEF)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_PARAM)
+ * $(CLUSTER_REMOVEINSTANCE_PARAM1)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_THROWS)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS1)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS2)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS3)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS4)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS5)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS6)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_RETURNS)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL2)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL5)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL6)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL7)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL8)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL9)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL10)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL11)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL12)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL13)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL14)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL15)
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL16)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL17)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL18)
+ */
 #if DOXYGEN_JS
 Undefined Cluster::removeInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
@@ -683,10 +823,10 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
 
-  return Value();
+  return shcore::Value();
 }
 
-#if 0 // Hidden for now
+#if 0  // Hidden for now
 /**
 * Returns the ReplicaSet of the given name.
 * \sa ReplicaSet
@@ -707,24 +847,25 @@ shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args) {
 
   shcore::Value ret_val;
 
-  if (args.size() == 0)
-    ret_val = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
-
-  else {
+  if (args.size() == 0) {
+    ret_val = shcore::Value(
+        std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
+  } else {
     args.ensure_count(1, get_function_name("getReplicaSet").c_str());
     std::string name = args.string_at(0);
 
-    if (name == "default")
-      ret_val = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
-
-    else {
+    if (name == "default") {
+      ret_val = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(
+          _default_replica_set));
+    } else {
       /*
        * Retrieve the ReplicaSet from the ReplicaSets array
        */
-      //if (found)
+      // if (found)
 
-      //else
-      //  throw shcore::Exception::runtime_error("The ReplicaSet " + _name + "." + name + " does not exist");
+      // else
+      //  throw shcore::Exception::runtime_error("The ReplicaSet " + _name + "."
+      //  + name + " does not exist");
     }
   }
 
@@ -736,47 +877,62 @@ void Cluster::set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs) {
 
   if (_default_replica_set)
     _default_replica_set->set_cluster(shared_from_this());
-};
+}
 
 REGISTER_HELP(CLUSTER_DESCRIBE_BRIEF, "Describe the structure of the cluster.");
-REGISTER_HELP(CLUSTER_DESCRIBE_THROWS, "@throws MetadataError if the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_DESCRIBE_THROWS1, "@throws MetadataError if the Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_DESCRIBE_RETURNS, "@returns A JSON object describing the structure of the cluster.");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL, "This function describes the structure of the cluster including "\
-                                       "all its information, ReplicaSets and Instances.");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL1, "The returned JSON object contains the following attributes:");
+REGISTER_HELP(CLUSTER_DESCRIBE_THROWS,
+              "@throws MetadataError if the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_DESCRIBE_THROWS1,
+              "@throws MetadataError if the Metadata update operation failed.");
+REGISTER_HELP(
+    CLUSTER_DESCRIBE_RETURNS,
+    "@returns A JSON object describing the structure of the cluster.");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL,
+              "This function describes the structure of the cluster including "
+              "all its information, ReplicaSets and Instances.");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL1,
+              "The returned JSON object contains the following attributes:");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL2, "@li clusterName: the cluster name");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL3, "@li defaultReplicaSet: the default replicaSet object");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL4, "The defaultReplicaSet JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL5, "@li name: the default replicaSet name");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL6, "@li instances: a List of dictionaries "\
-                                        "describing each instance belonging to "\
-                                        "the Default ReplicaSet.");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL7, "Each instance dictionary contains the following attributes:");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL8, "@li label: the instance name identifier");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL9, "@li host: the instance hostname and IP address in the form of host:port");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL3,
+              "@li defaultReplicaSet: the default replicaSet object");
+REGISTER_HELP(
+    CLUSTER_DESCRIBE_DETAIL4,
+    "The defaultReplicaSet JSON object contains the following attributes:");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL5,
+              "@li name: the default replicaSet name");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL6,
+              "@li instances: a List of dictionaries "
+              "describing each instance belonging to "
+              "the Default ReplicaSet.");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL7,
+              "Each instance dictionary contains the following attributes:");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL8,
+              "@li label: the instance name identifier");
+REGISTER_HELP(
+    CLUSTER_DESCRIBE_DETAIL9,
+    "@li host: the instance hostname and IP address in the form of host:port");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL10, "@li role: the instance role");
 
 /**
-* $(CLUSTER_DESCRIBE_BRIEF)
-*
-* $(CLUSTER_DESCRIBE_THROWS)
-* $(CLUSTER_DESCRIBE_THROWS1)
-*
-* $(CLUSTER_DESCRIBE_RETURNS)
-*
-* $(CLUSTER_DESCRIBE_DETAIL)
-* $(CLUSTER_DESCRIBE_DETAIL1)
-* $(CLUSTER_DESCRIBE_DETAIL2)
-* $(CLUSTER_DESCRIBE_DETAIL3)
-* $(CLUSTER_DESCRIBE_DETAIL4)
-* $(CLUSTER_DESCRIBE_DETAIL5)
-* $(CLUSTER_DESCRIBE_DETAIL6)
-* $(CLUSTER_DESCRIBE_DETAIL7)
-* $(CLUSTER_DESCRIBE_DETAIL8)
-* $(CLUSTER_DESCRIBE_DETAIL9)
-* $(CLUSTER_DESCRIBE_DETAIL10)
-*/
+ * $(CLUSTER_DESCRIBE_BRIEF)
+ *
+ * $(CLUSTER_DESCRIBE_THROWS)
+ * $(CLUSTER_DESCRIBE_THROWS1)
+ *
+ * $(CLUSTER_DESCRIBE_RETURNS)
+ *
+ * $(CLUSTER_DESCRIBE_DETAIL)
+ * $(CLUSTER_DESCRIBE_DETAIL1)
+ * $(CLUSTER_DESCRIBE_DETAIL2)
+ * $(CLUSTER_DESCRIBE_DETAIL3)
+ * $(CLUSTER_DESCRIBE_DETAIL4)
+ * $(CLUSTER_DESCRIBE_DETAIL5)
+ * $(CLUSTER_DESCRIBE_DETAIL6)
+ * $(CLUSTER_DESCRIBE_DETAIL7)
+ * $(CLUSTER_DESCRIBE_DETAIL8)
+ * $(CLUSTER_DESCRIBE_DETAIL9)
+ * $(CLUSTER_DESCRIBE_DETAIL10)
+ */
 #if DOXYGEN_JS
 String Cluster::describe() {}
 #elif DOXYGEN_PY
@@ -800,7 +956,8 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   try {
     if (!_metadata_storage->cluster_exists(_name))
-      throw Exception::argument_error("The cluster '" + _name + "' no longer exists.");
+      throw shcore::Exception::argument_error("The cluster '" + _name +
+                                      "' no longer exists.");
 
     ret_val = shcore::Value::new_map();
 
@@ -811,73 +968,98 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
     if (!_default_replica_set)
       (*description)["defaultReplicaSet"] = shcore::Value::Null();
     else
-      (*description)["defaultReplicaSet"] = _default_replica_set->get_description();
+      (*description)["defaultReplicaSet"] =
+          _default_replica_set->get_description();
 
     if (warning) {
-      std::string warning = "The instance description may be outdated since was generated from an instance in ";
-      warning.append(ManagedInstance::describe(static_cast<ManagedInstance::State>(state.source_state)));
+      std::string warning =
+          "The instance description may be outdated since was generated from "
+          "an instance in ";
+      warning.append(ManagedInstance::describe(
+          static_cast<ManagedInstance::State>(state.source_state)));
       warning.append(" state");
       (*description)["warning"] = shcore::Value(warning);
     }
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("describe"));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("describe"));
 
   return ret_val;
 }
 
 REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
 
-REGISTER_HELP(CLUSTER_STATUS_THROWS, "@throws MetadataError if the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_STATUS_THROWS1, "@throws MetadataError if the Metadata update operation failed.");
+REGISTER_HELP(CLUSTER_STATUS_THROWS,
+              "@throws MetadataError if the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_STATUS_THROWS1,
+              "@throws MetadataError if the Metadata update operation failed.");
 
-REGISTER_HELP(CLUSTER_STATUS_RETURNS, "@returns A JSON object describing the status of the cluster.");
+REGISTER_HELP(CLUSTER_STATUS_RETURNS,
+              "@returns A JSON object describing the status of the cluster.");
 
-REGISTER_HELP(CLUSTER_STATUS_DETAIL, "This function describes the status of "\
-                                     "the cluster including its ReplicaSets "\
-                                     "and Instances.");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL1, "The returned JSON object contains the following attributes:");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL,
+              "This function describes the status of "
+              "the cluster including its ReplicaSets "
+              "and Instances.");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL1,
+              "The returned JSON object contains the following attributes:");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL2, "@li clusterName: the cluster name");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL3, "@li defaultReplicaSet: the default replicaSet object");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL4, "The defaultReplicaSet JSON object contains the following attributes:");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL3,
+              "@li defaultReplicaSet: the default replicaSet object");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL4,
+    "The defaultReplicaSet JSON object contains the following attributes:");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL5, "@li name: the default replicaSet name");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL6, "@li primary: the Default ReplicaSet single-master primary instance");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL7, "@li status: the Default ReplicaSet status");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL8, "@li statusText: the Default ReplicaSet status descriptive text");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL9, "@li topology: a List of instances belonging to the Default ReplicaSet.");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL10, "Each instance is dictionary containing the following attributes:");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL11, "@li label: the instance name identifier");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL12, "@li address: the instance hostname and "\
-                                       "IP address in the form of host:port");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL6,
+    "@li primary: the Default ReplicaSet single-master primary instance");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL7,
+              "@li status: the Default ReplicaSet status");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL8,
+              "@li statusText: the Default ReplicaSet status descriptive text");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL9,
+    "@li topology: a List of instances belonging to the Default ReplicaSet.");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL10,
+    "Each instance is dictionary containing the following attributes:");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL11,
+              "@li label: the instance name identifier");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL12,
+              "@li address: the instance hostname and "
+              "IP address in the form of host:port");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL14, "@li status: the instance status");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL15, "@li role: the instance role");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL16, "@li mode: the instance mode");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL17, "@li readReplicas: a List of read replica Instances of the instance.");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL17,
+    "@li readReplicas: a List of read replica Instances of the instance.");
 
 /**
-* $(CLUSTER_STATUS_BRIEF)
-*
-* $(CLUSTER_STATUS_THROWS)
-* $(CLUSTER_STATUS_THROWS1)
-*
-* $(CLUSTER_STATUS_RETURNS)
-*
-* $(CLUSTER_STATUS_DETAIL)
-* $(CLUSTER_STATUS_DETAIL1)
-* $(CLUSTER_STATUS_DETAIL2)
-* $(CLUSTER_STATUS_DETAIL3)
-* $(CLUSTER_STATUS_DETAIL4)
-* $(CLUSTER_STATUS_DETAIL5)
-* $(CLUSTER_STATUS_DETAIL6)
-* $(CLUSTER_STATUS_DETAIL7)
-* $(CLUSTER_STATUS_DETAIL8)
-* $(CLUSTER_STATUS_DETAIL10)
-* $(CLUSTER_STATUS_DETAIL11)
-* $(CLUSTER_STATUS_DETAIL12)
-* $(CLUSTER_STATUS_DETAIL13)
-* $(CLUSTER_STATUS_DETAIL14)
-* $(CLUSTER_STATUS_DETAIL15)
-* $(CLUSTER_STATUS_DETAIL16)
-* $(CLUSTER_STATUS_DETAIL17)
-*/
+ * $(CLUSTER_STATUS_BRIEF)
+ *
+ * $(CLUSTER_STATUS_THROWS)
+ * $(CLUSTER_STATUS_THROWS1)
+ *
+ * $(CLUSTER_STATUS_RETURNS)
+ *
+ * $(CLUSTER_STATUS_DETAIL)
+ * $(CLUSTER_STATUS_DETAIL1)
+ * $(CLUSTER_STATUS_DETAIL2)
+ * $(CLUSTER_STATUS_DETAIL3)
+ * $(CLUSTER_STATUS_DETAIL4)
+ * $(CLUSTER_STATUS_DETAIL5)
+ * $(CLUSTER_STATUS_DETAIL6)
+ * $(CLUSTER_STATUS_DETAIL7)
+ * $(CLUSTER_STATUS_DETAIL8)
+ * $(CLUSTER_STATUS_DETAIL10)
+ * $(CLUSTER_STATUS_DETAIL11)
+ * $(CLUSTER_STATUS_DETAIL12)
+ * $(CLUSTER_STATUS_DETAIL13)
+ * $(CLUSTER_STATUS_DETAIL14)
+ * $(CLUSTER_STATUS_DETAIL15)
+ * $(CLUSTER_STATUS_DETAIL16)
+ * $(CLUSTER_STATUS_DETAIL17)
+ */
 #if DOXYGEN_JS
 String Cluster::status() {}
 #elif DOXYGEN_PY
@@ -912,50 +1094,60 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
       (*status)["defaultReplicaSet"] = _default_replica_set->get_status(state);
 
     if (warning) {
-      std::string warning = "The instance status may be inaccurate as it was generated from an instance in ";
-      warning.append(ManagedInstance::describe(static_cast<ManagedInstance::State>(state.source_state)));
+      std::string warning =
+          "The instance status may be inaccurate as it was generated from an "
+          "instance in ";
+      warning.append(ManagedInstance::describe(
+          static_cast<ManagedInstance::State>(state.source_state)));
       warning.append(" state");
       (*status)["warning"] = shcore::Value(warning);
     }
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
 
   return ret_val;
 }
 
 REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Dissolves the cluster.");
 
-REGISTER_HELP(CLUSTER_DISSOLVE_THROWS, "@throws MetadataError if the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_DISSOLVE_THROWS1, "@throws MetadataError if the Metadata update operation failed.");
+REGISTER_HELP(CLUSTER_DISSOLVE_THROWS,
+              "@throws MetadataError if the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_DISSOLVE_THROWS1,
+              "@throws MetadataError if the Metadata update operation failed.");
 
 REGISTER_HELP(CLUSTER_DISSOLVE_RETURNS, "@returns nothing.");
 
-REGISTER_HELP(CLUSTER_DISSOLVE_PARAM, "@param options Optional parameter to "\
-                                      "specify if it should deactivate "\
-                                      "replication and unregister the "\
-                                      "ReplicaSets from the cluster.");
-REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL, "This function disables replication on "\
-                                       "the ReplicaSets, unregisters them and "\
-                                       "the the cluster from the metadata.");
+REGISTER_HELP(CLUSTER_DISSOLVE_PARAM,
+              "@param options Optional parameter to "
+              "specify if it should deactivate "
+              "replication and unregister the "
+              "ReplicaSets from the cluster.");
+REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL,
+              "This function disables replication on "
+              "the ReplicaSets, unregisters them and "
+              "the the cluster from the metadata.");
 REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL1, "It keeps all the user's data intact.");
-REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL2, "The following is the only option supported:");
-REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3, "@li force: boolean, confirms that the "\
-                                        "dissolve operation must be executed.");
+REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL2,
+              "The following is the only option supported:");
+REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3,
+              "@li force: boolean, confirms that the "
+              "dissolve operation must be executed.");
 
 /**
-* $(CLUSTER_DISSOLVE_BRIEF)
-*
-* $(CLUSTER_DISSOLVE_THROWS)
-* $(CLUSTER_DISSOLVE_THROWS1)
-*
-* $(CLUSTER_DISSOLVE_RETURNS)
-*
-* $(CLUSTER_DISSOLVE_PARAM)
-*
-* $(CLUSTER_DISSOLVE_DETAIL)
-* $(CLUSTER_DISSOLVE_DETAIL1)
-* $(CLUSTER_DISSOLVE_DETAIL2)
-* $(CLUSTER_DISSOLVE_DETAIL3)
-*/
+ * $(CLUSTER_DISSOLVE_BRIEF)
+ *
+ * $(CLUSTER_DISSOLVE_THROWS)
+ * $(CLUSTER_DISSOLVE_THROWS1)
+ *
+ * $(CLUSTER_DISSOLVE_RETURNS)
+ *
+ * $(CLUSTER_DISSOLVE_PARAM)
+ *
+ * $(CLUSTER_DISSOLVE_DETAIL)
+ * $(CLUSTER_DISSOLVE_DETAIL1)
+ * $(CLUSTER_DISSOLVE_DETAIL2)
+ * $(CLUSTER_DISSOLVE_DETAIL3)
+ */
 #if DOXYGEN_JS
 Undefined Cluster::dissolve(Dictionary options) {}
 #elif DOXYGEN_PY
@@ -993,9 +1185,9 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     MetadataStorage::Transaction tx(_metadata_storage);
     std::string cluster_name = get_name();
 
-    // We need to check if the group has quorum and if not we must abort the operation
-    // otherwise we GR blocks the writes to preserve the consistency of the group and we end up
-    // with a hang.
+    // We need to check if the group has quorum and if not we must abort the
+    // operation otherwise we GR blocks the writes to preserve the consistency
+    // of the group and we end up with a hang.
 
     // check if the Cluster is empty
     if (_metadata_storage->is_cluster_empty(get_id())) {
@@ -1006,11 +1198,13 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     } else {
       if (force) {
         // Gets the instances on the only available replica set
-        auto instances = _metadata_storage->get_replicaset_instances(_default_replica_set->get_id());
+        auto instances = _metadata_storage->get_replicaset_instances(
+            _default_replica_set->get_id());
 
         _metadata_storage->drop_replicaset(_default_replica_set->get_id());
 
-        // TODO: we only have the Default ReplicaSet, but will have more in the future
+        // TODO(miguel): we only have the Default ReplicaSet, but will have more
+        // in the future
         _metadata_storage->drop_cluster(cluster_name);
 
         tx.commit();
@@ -1021,42 +1215,48 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
         // Set the flag, marking this cluster instance as invalid.
         _dissolved = true;
       } else {
-        throw Exception::logic_error("Cannot drop cluster: The cluster is not empty.");
+        throw shcore::Exception::logic_error(
+            "Cannot drop cluster: The cluster is not empty.");
       }
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"))
 
-  return Value();
+  return shcore::Value();
 }
 
 REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
 
-REGISTER_HELP(CLUSTER_RESCAN_THROWS, "@throws MetadataError if the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS1, "@throws MetadataError if the Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS2, "@throws LogicError if the cluster does not exist.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS3, "@throws RuntimeError if all the "\
-                                      "ReplicaSet instances of any ReplicaSet "\
-                                      "are offline.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS,
+              "@throws MetadataError if the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS1,
+              "@throws MetadataError if the Metadata update operation failed.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS2,
+              "@throws LogicError if the cluster does not exist.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS3,
+              "@throws RuntimeError if all the "
+              "ReplicaSet instances of any ReplicaSet "
+              "are offline.");
 
 REGISTER_HELP(CLUSTER_RESCAN_RETURNS, "@returns nothing.");
 
-REGISTER_HELP(CLUSTER_RESCAN_DETAIL, "This function rescans the cluster for "\
-                                     "new Group Replication "\
-                                     "members/instances.");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL,
+              "This function rescans the cluster for "
+              "new Group Replication "
+              "members/instances.");
 
 /**
-* $(CLUSTER_RESCAN_BRIEF)
-*
-* $(CLUSTER_RESCAN_THROWS)
-* $(CLUSTER_RESCAN_THROWS1)
-* $(CLUSTER_RESCAN_THROWS2)
-* $(CLUSTER_RESCAN_THROWS3)
-*
-* $(CLUSTER_RESCAN_RETURNS)
-*
-* $(CLUSTER_RESCAN_DETAIL)
-*/
+ * $(CLUSTER_RESCAN_BRIEF)
+ *
+ * $(CLUSTER_RESCAN_THROWS)
+ * $(CLUSTER_RESCAN_THROWS1)
+ * $(CLUSTER_RESCAN_THROWS2)
+ * $(CLUSTER_RESCAN_THROWS3)
+ *
+ * $(CLUSTER_RESCAN_RETURNS)
+ *
+ * $(CLUSTER_RESCAN_DETAIL)
+ */
 #if DOXYGEN_JS
 Undefined Cluster::rescan() {}
 #elif DOXYGEN_PY
@@ -1083,7 +1283,8 @@ shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-shcore::Value::Map_type_ref Cluster::_rescan(const shcore::Argument_list &args) {
+shcore::Value::Map_type_ref Cluster::_rescan(
+    const shcore::Argument_list &args) {
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
 
   // Check if we have a Default ReplicaSet
@@ -1096,113 +1297,157 @@ shcore::Value::Map_type_ref Cluster::_rescan(const shcore::Argument_list &args) 
   return ret_val;
 }
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF, "Restores the cluster from quorum loss.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM, "@param instance An instance definition to derive the forced group from.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1, "@param password Optional string with the password for the connection.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF,
+              "Restores the cluster from quorum loss.");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM,
+    "@param instance An instance definition to derive the forced group from.");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1,
+    "@param password Optional string with the password for the connection.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS, "@throws MetadataError if the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1, "@throws ArgumentError if the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2, "@throws RuntimeError if the instance does not exist on the Metadata.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3, "@throws RuntimeError if the instance is not on the ONLINE state.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4, "@throws RuntimeError if the instance does is not an active "\
-                                                           "member of a replication group.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5, "@throws RuntimeError if there are no ONLINE instances visible "\
-                                                           "from the given one.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6, "@throws LogicError if the cluster does not exist.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS,
+              "@throws MetadataError if the instance parameter is empty.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1,
+              "@throws ArgumentError if the instance parameter is empty.");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2,
+    "@throws RuntimeError if the instance does not exist on the Metadata.");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3,
+    "@throws RuntimeError if the instance is not on the ONLINE state.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4,
+              "@throws RuntimeError if the instance does is not an active "
+              "member of a replication group.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5,
+              "@throws RuntimeError if there are no ONLINE instances visible "
+              "from the given one.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6,
+              "@throws LogicError if the cluster does not exist.");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS, "@returns nothing.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL, "This function restores the cluster's default replicaset back "\
-                                                          "into operational status from a loss of quorum scenario. "\
-                                                          "Such a scenario can occur if a group is partitioned or more "\
-                                                          "crashes than tolerable occur.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL,
+              "This function restores the cluster's default replicaset back "
+              "into operational status from a loss of quorum scenario. "
+              "Such a scenario can occur if a group is partitioned or more "
+              "crashes than tolerable occur.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1, "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2, "[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1,
+              "A basic URI string has the following format:");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2,
+              "[mysql://"
+              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
+              "]");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3, "The connection data dictionary may contain the following attributes:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5, "@li password/dbPassword: username password");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6, "@li host: hostname or IP address");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7, "@li port: port number");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8, "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9, "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10, "@li sslKey: The path to the X509 key in PEM format.");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3,
+    "The connection data dictionary may contain the following attributes:");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4,
+              "@li user/dbUser: username");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5,
+              "@li password/dbPassword: username password");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6,
+              "@li host: hostname or IP address");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7,
+              "@li port: port number");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8,
+    "@li sslCa: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9,
+              "@li sslCert: The path to the X509 certificate in PEM format.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
+              "@li sslKey: The path to the X509 key in PEM format.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL11, "The options dictionary may contain the following options:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL12, "@li mycnfPath: The path of the MySQL configuration file for the instance.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL13, "@li password: The password to get connected to the instance.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL14, "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL15, "@li clusterAdminPassword: The password for the InnoDB cluster administrator account.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL11,
+              "The options dictionary may contain the following options:");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL12,
+              "@li mycnfPath: The path of the MySQL configuration file for the "
+              "instance.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL13,
+              "@li password: The password to get connected to the instance.");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL14,
+    "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL15,
+              "@li clusterAdminPassword: The password for the InnoDB cluster "
+              "administrator account.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL16, "The password may be contained on the instance definition, "\
-                                                            "however, it can be overwritten "\
-                                                            "if it is specified on the options.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL16,
+              "The password may be contained on the instance definition, "
+              "however, it can be overwritten "
+              "if it is specified on the options.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL17, "Note that this operation is DANGEROUS as it can create a "\
-                                                            "split-brain if incorrectly used and should be considered a last "\
-                                                            "resort. Make absolutely sure that there are no partitions of this group "\
-                                                            "that are still operating somewhere in the network, but not "\
-                                                            "accessible from your location.");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL17,
+    "Note that this operation is DANGEROUS as it can create a "
+    "split-brain if incorrectly used and should be considered a last "
+    "resort. Make absolutely sure that there are no partitions of this group "
+    "that are still operating somewhere in the network, but not "
+    "accessible from your location.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL18, "When this function is used, all the members that are ONLINE "\
-                                                            "from the point of view "\
-                                                            "of the given instance definition will be added to the group.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL18,
+              "When this function is used, all the members that are ONLINE "
+              "from the point of view "
+              "of the given instance definition will be added to the group.");
 
 /**
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6)
-*
-** $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL11)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL12)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL13)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL14)
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL15)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL16)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL17)
-*
-* $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL18)
-*/
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_PARAM1)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6)
+ *
+ ** $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL11)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL12)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL13)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL14)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL15)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL16)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL17)
+ *
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL18)
+ */
 #if DOXYGEN_JS
-Undefined Cluster::forceQuorumUsingPartitionOf(InstanceDef instance, String password) {}
+Undefined Cluster::forceQuorumUsingPartitionOf(InstanceDef instance,
+                                               String password) {}
 #elif DOXYGEN_PY
-None Cluster::force_quorum_using_partition_of(InstanceDef instance, str password) {}
+None Cluster::force_quorum_using_partition_of(InstanceDef instance,
+                                              str password) {}
 #endif
 
-shcore::Value Cluster::force_quorum_using_partition_of(const shcore::Argument_list &args) {
+shcore::Value Cluster::force_quorum_using_partition_of(
+    const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
   assert_not_dissolved("forceQuorumUsingPartitionOf");
 
-  args.ensure_count(1, 2, get_function_name("forceQuorumUsingPartitionOf").c_str());
-
+  args.ensure_count(1, 2,
+                    get_function_name("forceQuorumUsingPartitionOf").c_str());
 
   // Point the metadata session to the cluster session
   _metadata_storage->set_session(_session);
@@ -1217,78 +1462,119 @@ shcore::Value Cluster::force_quorum_using_partition_of(const shcore::Argument_li
 
     ret_val = _default_replica_set->force_quorum_using_partition_of(args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("forceQuorumUsingPartitionOf"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("forceQuorumUsingPartitionOf"));
 
   return ret_val;
 }
 
-void Cluster::set_option(const std::string& option, const shcore::Value& value) {
+void Cluster::set_option(const std::string &option,
+                         const shcore::Value &value) {
   if (!_options)
     _options.reset(new shcore::Value::Map_type());
 
   (*_options)[option] = value;
 }
 
-void Cluster::set_attribute(const std::string& attribute, const shcore::Value& value) {
+void Cluster::set_attribute(const std::string &attribute,
+                            const shcore::Value &value) {
   if (!_attributes)
     _attributes.reset(new shcore::Value::Map_type());
 
   (*_attributes)[attribute] = value;
 }
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_BRIEF, "Verifies the instance gtid state in relation with the cluster.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM, "@param instance An instance definition.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM1, "@param password Optional string with the password for the connection.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_BRIEF,
+              "Verifies the instance gtid state in relation with the cluster.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM,
+              "@param instance An instance definition.");
+REGISTER_HELP(
+    CLUSTER_CHECKINSTANCESTATE_PARAM1,
+    "@param password Optional string with the password for the connection.");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS, "@throws ArgumentError if the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS1, "@throws ArgumentError if the instance definition is invalid.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS2, "@throws ArgumentError if the instance definition is a "\
-                                                  "connection dictionary but empty.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS3, "@throws RuntimeError if the instance accounts are invalid.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS4, "@throws RuntimeError if the instance is offline.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS,
+              "@throws ArgumentError if the instance parameter is empty.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS1,
+              "@throws ArgumentError if the instance definition is invalid.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS2,
+              "@throws ArgumentError if the instance definition is a "
+              "connection dictionary but empty.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS3,
+              "@throws RuntimeError if the instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS4,
+              "@throws RuntimeError if the instance is offline.");
 
-REGISTER_HELP(LUSTER_CHECKINSTANCESTATE_RETURNS, "@returns resultset A JSON object with the status.");
+REGISTER_HELP(LUSTER_CHECKINSTANCESTATE_RETURNS,
+              "@returns resultset A JSON object with the status.");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL, "Analyzes the instance executed GTIDs with the executed/purged "\
-                                                 "GTIDs on the cluster "\
-                                                 "to determine if the instance is valid for the cluster.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL1, "The instance definition can be any of:");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL,
+              "Analyzes the instance executed GTIDs with the executed/purged "
+              "GTIDs on the cluster "
+              "to determine if the instance is valid for the cluster.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL1,
+              "The instance definition can be any of:");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2, "@li URI string.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3, "@li Connection data dictionary.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3,
+              "@li Connection data dictionary.");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4, "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5, "[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4,
+              "A basic URI string has the following format:");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5,
+              "[mysql://"
+              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
+              "]");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL6, "The connection data dictionary may contain the following attributes:");
+REGISTER_HELP(
+    CLUSTER_CHECKINSTANCESTATE_DETAIL6,
+    "The connection data dictionary may contain the following attributes:");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL8, "@li password/dbPassword: username password");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL9, "@li host: hostname or IP address");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL8,
+              "@li password/dbPassword: username password");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL9,
+              "@li host: hostname or IP address");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL11, "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
+REGISTER_HELP(
+    CLUSTER_CHECKINSTANCESTATE_DETAIL11,
+    "@li sslCa: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL12,
+              "@li sslCert: The path to the X509 certificate in PEM format.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13,
+              "@li sslKey: The path to the X509 key in PEM format.");
 // REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5, "@li An Instance object.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14, "The password may be contained on the instance definition, "\
-                                                   "however, it can be overwritten "\
-                                                   "if it is specified as a second parameter.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
+              "The password may be contained on the instance definition, "
+              "however, it can be overwritten "
+              "if it is specified as a second parameter.");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL15, "The returned JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL16, "@li state: the state of the instance");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL17, "@li reason: the reason for the state reported");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL15,
+              "The returned JSON object contains the following attributes:");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL16,
+              "@li state: the state of the instance");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL17,
+              "@li reason: the reason for the state reported");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL18, "The state of the instance can be one of the following:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL19, "@li ok: if the instance transaction state is valid for the cluster");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL20, "@li error: if the instance "\
-                                                   "transaction state is not "\
-                                                   "valid for the cluster");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL21, "The reason for the state reported can be one of the following:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL22, "@li new: if the instance doesn’t have any transactions");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL23, "@li recoverable:  if the instance executed GTIDs are not "\
-                                                   "conflicting with the executed GTIDs of the cluster instances");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL24, "@li diverged: if the instance executed GTIDs diverged with the "\
-                                                    "executed GTIDs of the cluster instances");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL25, "@li lost_transactions: if the instance has more executed GTIDs "\
-                                                   "than the executed GTIDs of the cluster instances");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL18,
+              "The state of the instance can be one of the following:");
+REGISTER_HELP(
+    CLUSTER_CHECKINSTANCESTATE_DETAIL19,
+    "@li ok: if the instance transaction state is valid for the cluster");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL20,
+              "@li error: if the instance "
+              "transaction state is not "
+              "valid for the cluster");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL21,
+              "The reason for the state reported can be one of the following:");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL22,
+              "@li new: if the instance doesn’t have any transactions");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL23,
+              "@li recoverable:  if the instance executed GTIDs are not "
+              "conflicting with the executed GTIDs of the cluster instances");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL24,
+              "@li diverged: if the instance executed GTIDs diverged with the "
+              "executed GTIDs of the cluster instances");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL25,
+              "@li lost_transactions: if the instance has more executed GTIDs "
+              "than the executed GTIDs of the cluster instances");
 
 /**
  * $(CLUSTER_CHECKINSTANCESTATE_BRIEF)
@@ -1351,13 +1637,20 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   try {
     ret_val = get_default_replicaset()->retrieve_instance_state(args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("checkInstanceState"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("checkInstanceState"));
 
   return ret_val;
 }
 
-ReplicationGroupState Cluster::check_preconditions(const std::string& function_name) const {
+ReplicationGroupState Cluster::check_preconditions(
+    const std::string &function_name) const {
   // Point the metadata session to the cluster session
   _metadata_storage->set_session(_session);
-  return check_function_preconditions(class_name(), function_name, get_function_name(function_name), _metadata_storage);
+  return check_function_preconditions(class_name(), function_name,
+                                      get_function_name(function_name),
+                                      _metadata_storage);
 }
+
+}  // namespace dba
+}  // namespace mysqlsh

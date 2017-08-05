@@ -64,6 +64,6 @@ bool Shell_options::has_connection_data() {
     port != 0 ||
     password != NULL ||
     prompt_password ||
-    ssl_info.has_data();
+    ssl_options.has_data();
 }
 }

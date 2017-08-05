@@ -62,11 +62,9 @@ class SHCORE_PUBLIC Session_recorder : public ISession {
 public:
   Session_recorder() :_target(nullptr) {};
   Session_recorder(ISession* target);
-  virtual void connect(const std::string &uri, const char *password = NULL);
-  virtual void connect(const std::string &host, int port, const std::string &socket,
-                        const std::string &user, const std::string &password, const std::string &schema,
-                        const mysqlshdk::utils::Ssl_info& ssl_info);
-  virtual std::shared_ptr<IResult> query(const std::string& sql, bool buffered = false);
+  virtual void connect(
+      const mysqlshdk::db::Connection_options& connection_options);
+  virtual std::shared_ptr<IResult> query(const std::string& sql, bool buffered);
   virtual void execute(const std::string& sql);
   virtual void start_transaction();
   virtual void commit();

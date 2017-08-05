@@ -29,7 +29,8 @@
 //#include "../modules/mod_session.h"
 //#include "../modules/mod_schema.h"
 #include "scripting/common.h"
-#include "test_utils.h"
+#include "unittest/test_utils.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 using namespace std::placeholders;
 
@@ -84,13 +85,14 @@ class Shell_sql_test : public ::testing::Test {
     mysql_uri.append(":");
     mysql_uri.append(port);
 
-    Argument_list args;
-    args.push_back(Value(mysql_uri));
+    auto connection_options = shcore::get_connection_options(mysql_uri);
+
     if (pwd)
-      args.push_back(Value(pwd));
+      connection_options.set_password(pwd);
 
     auto session =
-        mysqlsh::Shell::connect_session(args, mysqlsh::SessionType::Classic);
+      mysqlsh::Shell::connect_session(connection_options,
+                                      mysqlsh::SessionType::Classic);
 
     env.shell_core->set_dev_session(session);
   }

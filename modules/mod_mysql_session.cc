@@ -36,6 +36,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
 #include "shellcore/utils_help.h"
+#include "modules/mod_utils.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -108,27 +109,23 @@ Connection *ClassicSession::connection() {
   return _conn.get();
 }
 
-void ClassicSession::connect(const Argument_list &args) {
-  std::string function = class_name() + '.' + "connect";
-  args.ensure_count(1, 2, function.c_str());
-
+void ClassicSession::connect
+  (const mysqlshdk::db::Connection_options& connection_options) {
   try {
-    // Retrieves the connection data, whatever the source is
-    load_connection_data(args);
+    _conn.reset(new Connection(connection_options));
 
-    // Performs the connection
-    _conn.reset(new Connection(_host, _port, _sock, _user, _password, _schema, _ssl_info));
+    _connection_options = connection_options;
 
-    _default_schema = _schema;
-
-    if (!_default_schema.empty())
-      update_schema_cache(_default_schema, true);
+    if (connection_options.has_schema())
+      update_schema_cache(connection_options.get_schema(), true);
   }
   CATCH_AND_TRANSLATE();
 }
 
 // Documentation of close function
-REGISTER_HELP(CLASSICSESSION_CLOSE_BRIEF, "Closes the internal connection to the MySQL Server held on this session object.");
+REGISTER_HELP(CLASSICSESSION_CLOSE_BRIEF,
+              "Closes the internal connection to the MySQL Server held on this "
+              "session object.");
 
 /**
 * $(CLASSICSESSION_CLOSE_BRIEF)
@@ -380,12 +377,13 @@ Value ClassicSession::get_member(const std::string &prop) const {
   Value ret_val;
 
   if (prop == "uri")
-    ret_val = shcore::Value(_uri);
+    ret_val = shcore::Value(uri());
   else if (prop == "defaultSchema") {
-    if (!_default_schema.empty()){
-      ret_val = shcore::Value(get_schema(_default_schema));
-    } else
+    if (_connection_options.has_schema()) {
+      ret_val = shcore::Value(get_schema(_connection_options.get_schema()));
+    } else {
       ret_val = Value::Null();
+    }
   }
   else if (prop == "currentSchema") {
     ClassicSession *session = const_cast<ClassicSession *>(this);
@@ -400,23 +398,6 @@ Value ClassicSession::get_member(const std::string &prop) const {
 
   return ret_val;
 }
-
-int ClassicSession::get_default_port() const {
-  int default_port = 0;
-#ifdef _WIN32
-  // Default port is used only on windows if:
-  // - Not provided by the user
-  // - No named pipe provided (--socket)
-  // - Host is different than "." in which case would be using
-  //   the default named pipe
-  // On linux the port is let empty so a socket connection is attempted
-  // It is left empty so a socket connection is attempted
-  if (_port == 0 && _sock.empty() && !_host.empty() && _host != ".")
-    default_port = 3306;
-#endif
-  return default_port;
-}
-
 
 std::string ClassicSession::_retrieve_current_schema() {
   std::string name;
@@ -573,7 +554,10 @@ shcore::Value ClassicSession::_set_current_schema(const shcore::Argument_list &a
 std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args) {
   std::shared_ptr<ClassicSession> session(new ClassicSession());
 
-  session->connect(args);
+  auto connection_options =
+      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
+
+  session->connect(connection_options);
 
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
 
@@ -841,7 +825,9 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 
       if (row) {
         (*status)["SESSION_TYPE"] = shcore::Value("Classic");
-        (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
+        (*status)["DEFAULT_SCHEMA"] =
+          shcore::Value(_connection_options.has_schema() ?
+                        _connection_options.get_schema() : "");
 
         std::string current_schema = row->get_member(0).descr(true);
         if (current_schema == "null")
@@ -946,8 +932,7 @@ std::string ClassicSession::query_one_string(const std::string &query) {
 void ClassicSession::kill_query() const {
   uint64_t cid = get_connection_id();
   try {
-    std::shared_ptr<Connection> kill_conn(new Connection(
-        _host, _port, _sock, _user, _password, _schema, _ssl_info));
+    std::shared_ptr<Connection> kill_conn(new Connection(_connection_options));
     kill_conn->run_sql("kill query " + std::to_string(cid));
   } catch (std::exception &e) {
     log_warning("Error cancelling SQL query: %s", e.what());

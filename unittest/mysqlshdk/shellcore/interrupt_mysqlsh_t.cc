@@ -196,13 +196,9 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
     kill_thread = std::thread();
 
     session.reset(new mysqlsh::mysql::ClassicSession());
-    shcore::Argument_list args;
-    args.push_back(
-        shcore::Value(std::string() + getenv("MYSQL_URI") + ":" +
-                      (getenv("MYSQL_PORT") ? getenv("MYSQL_PORT") : "3306")));
-    if (getenv("MYSQL_PWD"))
-      args.push_back(shcore::Value(getenv("MYSQL_PWD")));
-    session->connect(args);
+
+    auto connection_options = shcore::get_connection_options(_mysql_uri);
+    session->connect(connection_options);
   }
 
   void TearDown() override {

@@ -17,25 +17,25 @@
  * 02110-1301  USA
  */
 
-#include <string>
 #include <cstring>
+#include <string>
 #include <system_error>
 #include <vector>
 
-#include "shellcore/interrupt_handler.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/base_session.h"
+#include "shellcore/interrupt_handler.h"
 
 static const char *kRequiredMySQLProvisionInterfaceVersion = "2.1";
 
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
 using namespace shcore;
-
+using mysqlshdk::db::uri::formats::user_transport;
 ProvisioningInterface::ProvisioningInterface(
     shcore::Interpreter_delegate *deleg)
     : _verbose(0), _delegate(deleg) {}
@@ -45,7 +45,7 @@ ProvisioningInterface::~ProvisioningInterface() {}
 int ProvisioningInterface::execute_mysqlprovision(
     const std::string &cmd, const std::vector<const char *> &args,
     const std::vector<std::string> &passwords,
-    shcore::Value::Array_type_ref &errors, int verbose) {
+    shcore::Value::Array_type_ref *errors, int verbose) {
   std::vector<const char *> args_script;
   std::string buf;
   char c;
@@ -53,7 +53,7 @@ int ProvisioningInterface::execute_mysqlprovision(
   std::string full_output;
 
   // suppress ^C propagation, mp should handle ^C itself and signal us about it
-  shcore::Interrupt_handler intr([](){
+  shcore::Interrupt_handler intr([]() {
     // don't propagate up the ^C
     return false;
   });
@@ -184,10 +184,10 @@ int ProvisioningInterface::execute_mysqlprovision(
             std::string info;
 
             if (type == "WARNING" || type == "ERROR") {
-              if (!errors)
-                errors.reset(new shcore::Value::Array_type());
+              if (!(*errors))
+                (*errors).reset(new shcore::Value::Array_type());
 
-              errors->push_back(raw_data);
+              (*errors)->push_back(raw_data);
               info = type + ": ";
             } else if (type == "DEBUG") {
               info = type + ": ";
@@ -281,42 +281,46 @@ int ProvisioningInterface::execute_mysqlprovision(
 }
 
 void ProvisioningInterface::set_ssl_args(
-    const std::string &prefix, const shcore::Value::Map_type_ref &instance_ssl,
-    std::vector<const char *> &args) {
+    const std::string &prefix,
+    const mysqlshdk::db::Connection_options &instance,
+    std::vector<const char *> *args) {
   std::string ssl_ca, ssl_cert, ssl_key;
 
-  if (instance_ssl->has_key("sslCa"))
-    ssl_ca = "--" + prefix + "-ssl-ca=" + instance_ssl->get_string("sslCa");
-  if (instance_ssl->has_key("sslCert"))
-    ssl_cert =
-        "--" + prefix + "-ssl-cert=" + instance_ssl->get_string("sslCert");
-  if (instance_ssl->has_key("sslKey"))
-    ssl_key = "--" + prefix + "-ssl-key=" + instance_ssl->get_string("sslKey");
+  auto instance_ssl = instance.get_ssl_options();
+
+  if (instance_ssl.has_ca())
+    ssl_ca = "--" + prefix + "-ssl-ca=" + instance_ssl.get_ca();
+
+  if (instance_ssl.has_cert())
+    ssl_cert = "--" + prefix + "-ssl-cert=" + instance_ssl.get_cert();
+
+  if (instance_ssl.has_key())
+    ssl_key = "--" + prefix + "-ssl-key=" + instance_ssl.get_key();
 
   if (!ssl_ca.empty())
-    args.push_back(strdup(ssl_ca.c_str()));
+    args->push_back(strdup(ssl_ca.c_str()));
   if (!ssl_cert.empty())
-    args.push_back(strdup(ssl_cert.c_str()));
+    args->push_back(strdup(ssl_cert.c_str()));
   if (!ssl_key.empty())
-    args.push_back(strdup(ssl_key.c_str()));
+    args->push_back(strdup(ssl_key.c_str()));
 }
 
 int ProvisioningInterface::check(
-    const std::string &user, const std::string &host, int port,
-    const std::string &password,
-    const shcore::Value::Map_type_ref &instance_ssl, const std::string &cnfpath,
-    bool update, shcore::Value::Array_type_ref &errors) {
+    const mysqlshdk::db::Connection_options &connection_options,
+    const std::string &cnfpath, bool update,
+    shcore::Value::Array_type_ref *errors) {
   std::string instance_param =
-      "--instance=" + user + "@" + host + ":" + std::to_string(port);
+      "--instance=" + connection_options.as_uri(user_transport());
+
   std::vector<std::string> passwords;
-  std::string pwd = password;
+  std::string pwd = connection_options.get_password();
 
   pwd += "\n";
   passwords.push_back(pwd);
 
   std::vector<const char *> args;
   args.push_back(instance_param.c_str());
-  set_ssl_args("instance", instance_ssl, args);
+  set_ssl_args("instance", connection_options, &args);
 
   std::string path(cnfpath);
 
@@ -338,7 +342,7 @@ int ProvisioningInterface::check(
 int ProvisioningInterface::exec_sandbox_op(
     const std::string &op, int port, int portx, const std::string &sandbox_dir,
     const std::string &password, const std::vector<std::string> &extra_args,
-    shcore::Value::Array_type_ref &errors) {
+    shcore::Value::Array_type_ref *errors) {
   std::vector<std::string> sandbox_args, passwords;
   std::string arg, pwd = password;
 
@@ -391,9 +395,8 @@ int ProvisioningInterface::exec_sandbox_op(
 
 int ProvisioningInterface::create_sandbox(
     int port, int portx, const std::string &sandbox_dir,
-    const std::string &password, const shcore::Value &mycnf_options,
-    bool start, bool ignore_ssl_error, shcore::Value::Array_type_ref &errors) {
-
+    const std::string &password, const shcore::Value &mycnf_options, bool start,
+    bool ignore_ssl_error, shcore::Value::Array_type_ref *errors) {
   std::vector<std::string> extra_args;
   if (mycnf_options) {
     for (auto s : *mycnf_options.as_array()) {
@@ -404,7 +407,7 @@ int ProvisioningInterface::create_sandbox(
   if (ignore_ssl_error)
     extra_args.push_back("--ignore-ssl-error");
 
-  if(start)
+  if (start)
     extra_args.push_back("--start");
 
   return exec_sandbox_op("create", port, portx, sandbox_dir, password,
@@ -413,14 +416,14 @@ int ProvisioningInterface::create_sandbox(
 
 int ProvisioningInterface::delete_sandbox(
     int port, const std::string &sandbox_dir,
-    shcore::Value::Array_type_ref &errors) {
+    shcore::Value::Array_type_ref *errors) {
   return exec_sandbox_op("delete", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 
 int ProvisioningInterface::kill_sandbox(int port,
                                         const std::string &sandbox_dir,
-                                        shcore::Value::Array_type_ref &errors) {
+                                        shcore::Value::Array_type_ref *errors) {
   return exec_sandbox_op("kill", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
@@ -428,26 +431,24 @@ int ProvisioningInterface::kill_sandbox(int port,
 int ProvisioningInterface::stop_sandbox(int port,
                                         const std::string &sandbox_dir,
                                         const std::string &password,
-                                        shcore::Value::Array_type_ref &errors) {
+                                        shcore::Value::Array_type_ref *errors) {
   return exec_sandbox_op("stop", port, 0, sandbox_dir, password,
                          std::vector<std::string>(), errors);
 }
 
 int ProvisioningInterface::start_sandbox(
     int port, const std::string &sandbox_dir,
-    shcore::Value::Array_type_ref &errors) {
+    shcore::Value::Array_type_ref *errors) {
   return exec_sandbox_op("start", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 
-int ProvisioningInterface::start_replicaset(const std::string &instance_url,
-                                      const shcore::Value::Map_type_ref &instance_ssl,
-                                      const std::string &repl_user,
-                                      const std::string &super_user_password, const std::string &repl_user_password,
-                                      bool multi_master, const std::string &ssl_mode,
-                                      const std::string &ip_whitelist,
-                                      const std::string &group_name,
-                                      shcore::Value::Array_type_ref &errors) {
+int ProvisioningInterface::start_replicaset(
+    const mysqlshdk::db::Connection_options &instance,
+    const std::string &repl_user, const std::string &super_user_password,
+    const std::string &repl_user_password, bool multi_master,
+    const std::string &ssl_mode, const std::string &ip_whitelist,
+    const std::string &group_name, shcore::Value::Array_type_ref *errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -456,7 +457,8 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url,
   std::string ip_whitelist_opt;
   std::string group_name_opt;
 
-  instance_args = "--instance=" + instance_url;
+  instance_args =
+      "--instance=" + instance.as_uri(user_transport());
   repl_user_args = "--replication-user=" + repl_user;
 
   super_user_pwd += "\n";
@@ -467,7 +469,7 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url,
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
-  set_ssl_args("instance", instance_ssl, args);
+  set_ssl_args("instance", instance, &args);
   if (!repl_user.empty())
     args.push_back(repl_user_args.c_str());
   if (multi_master)
@@ -490,16 +492,13 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url,
   return execute_mysqlprovision("start-replicaset", args, passwords, errors,
                                 _verbose);
 }
-
 int ProvisioningInterface::join_replicaset(
-    const std::string &instance_url,
-    const shcore::Value::Map_type_ref &instance_ssl,
-    const std::string &repl_user, const std::string &peer_instance_url,
-    const shcore::Value::Map_type_ref &peer_instance_ssl,
+    const mysqlshdk::db::Connection_options &instance,
+    const mysqlshdk::db::Connection_options &peer, const std::string &repl_user,
     const std::string &super_user_password,
     const std::string &repl_user_password, const std::string &ssl_mode,
     const std::string &ip_whitelist, const std::string &gr_group_seeds,
-    bool skip_rpl_user, shcore::Value::Array_type_ref &errors) {
+    bool skip_rpl_user, shcore::Value::Array_type_ref *errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -508,7 +507,8 @@ int ProvisioningInterface::join_replicaset(
   std::string ip_whitelist_opt;
   std::string gr_group_seeds_opt;
 
-  instance_args = "--instance=" + instance_url;
+  instance_args =
+      "--instance=" + instance.as_uri(user_transport());
   repl_user_args = "--replication-user=" + repl_user;
 
   super_user_pwd += "\n";
@@ -522,15 +522,16 @@ int ProvisioningInterface::join_replicaset(
   // we need to enter the super-user password again for the peer instance
   passwords.push_back(super_user_pwd);
 
-  peer_instance_args = "--peer-instance=" + peer_instance_url;
+  peer_instance_args =
+      "--peer-instance=" + peer.as_uri(user_transport());
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
-  set_ssl_args("instance", instance_ssl, args);
+  set_ssl_args("instance", instance, &args);
   if (!repl_user.empty())
     args.push_back(repl_user_args.c_str());
   args.push_back(peer_instance_args.c_str());
-  set_ssl_args("peer-instance", peer_instance_ssl, args);
+  set_ssl_args("peer-instance", peer, &args);
   if (!ssl_mode.empty()) {
     ssl_mode_opt = "--ssl-mode=" + ssl_mode;
     args.push_back(ssl_mode_opt.c_str());
@@ -555,22 +556,21 @@ int ProvisioningInterface::join_replicaset(
 }
 
 int ProvisioningInterface::leave_replicaset(
-    const std::string &instance_url,
-    const shcore::Value::Map_type_ref &instance_ssl,
-    const std::string &super_user_password,
-    shcore::Value::Array_type_ref &errors) {
+    const mysqlshdk::db::Connection_options &connection_options,
+    shcore::Value::Array_type_ref *errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
-  std::string super_user_pwd = super_user_password;
+  std::string super_user_pwd = connection_options.get_password();
 
-  instance_args = "--instance=" + instance_url;
+  instance_args =
+      "--instance=" + connection_options.as_uri(user_transport());
 
   super_user_pwd += "\n";
   passwords.push_back(super_user_pwd);
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
-  set_ssl_args("instance", instance_ssl, args);
+  set_ssl_args("instance", connection_options, &args);
 
   args.push_back("--stdin");
 

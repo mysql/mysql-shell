@@ -112,7 +112,7 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   BaseSession(const BaseSession &s);
   virtual ~BaseSession();
 
-  virtual void connect(const shcore::Argument_list &args);
+  virtual void connect(const mysqlshdk::db::Connection_options& data);
   virtual void close();
   virtual void create_schema(const std::string &name);
   virtual void drop_schema(const std::string &name);
@@ -183,8 +183,6 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
     return std::shared_ptr<BaseSession>();
   }
   std::string _retrieve_current_schema();
-
-  virtual int get_default_port() const;
 
   SessionHandle _session;
 

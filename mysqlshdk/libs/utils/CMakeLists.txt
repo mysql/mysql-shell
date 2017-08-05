@@ -21,12 +21,9 @@ set(utils_SOURCE
     utils_json.cc
     utils_general.cc
     utils_sqlstring.cc
-    utils_connection.cc
     utils_string.cc
+    nullable_options.cc
     base_tokenizer.cc
-	uri_data.cc
-    uri_parser.cc
-    uri_encoder.cc
     logger.cc
     process_launcher.cc
 )

@@ -23,7 +23,6 @@
 #include <iterator>
 #include "openssl/ssl.h"
 #include "mysql_context_ssl.h"
-#include "utils/utils_connection.h"
 
 #if defined(HAVE_YASSL)
 using namespace yaSSL;
@@ -142,7 +141,7 @@ void set_context_cert(SSL_CTX *ctx, std::string cert_file, std::string key_file)
 void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &ssl_key,
     const std::string &ssl_cert,    const std::string &ssl_ca,
     const std::string &ssl_ca_path, const std::string &ssl_cipher,
-    const std::string &ssl_crl,     const std::string &ssl_crl_path, 
+    const std::string &ssl_crl,     const std::string &ssl_crl_path,
     const std::string &ssl_tls_version, int ssl_mode)
 {
   //log_info("key_file: '%s'  cert_file: '%s'  ca_file: '%s'  ca_path: '%s'  "
@@ -154,7 +153,7 @@ void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &
   //         not_empty_string(ssl_cipher).c_str(),
   //         not_empty_string(ssl_crl).c_str(),
   //         not_empty_string(ssl_crl_path).c_str());
-  
+
   // Configure & Validate SSL mode accordingly
   //if (ssl_mode == static_cast<int>(shcore::SslMode::VerifyCa) || ssl_mode == static_cast<int>(shcore::SslMode::VerifyIdentity)) {
   //  if (ssl_ca.empty() && ssl_ca_path.empty()) {
@@ -169,7 +168,7 @@ void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &
 #else
 #endif
   }
-  
+
   int tls_version_flags = 0;
   if (ssl_tls_version.empty()) {
 #ifdef HAVE_YASSL
@@ -273,7 +272,7 @@ void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &
     throw std::runtime_error("Cannot initialize SSL Cipher.");
   }
 
-  
+
 
   /* DH stuff */
   DH *dh = get_dh2048();

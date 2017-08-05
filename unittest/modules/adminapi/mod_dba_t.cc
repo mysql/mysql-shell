@@ -63,14 +63,12 @@ class Dba_test: public Admin_api_test {
         int port) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
-    shcore::Argument_list session_args;
-    shcore::Value::Map_type_ref instance_options(new shcore::Value::Map_type);
-    (*instance_options)["host"] = shcore::Value("localhost");
-    (*instance_options)["port"] = shcore::Value(port);
-    (*instance_options)["password"] = shcore::Value("");
-    (*instance_options)["user"] = shcore::Value("user");
+    mysqlshdk::db::Connection_options session_args;
+    session_args.set_host("localhost");
+    session_args.set_port(port);
+    session_args.set_user("user");
+    session_args.set_password("");
 
-    session_args.push_back(shcore::Value(instance_options));
     session = mysqlsh::Shell::connect_session(session_args,
                                        mysqlsh::SessionType::Classic);
 

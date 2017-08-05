@@ -23,10 +23,12 @@
 #ifndef _MOD_MYSQL_CONNECTION_H_
 #define _MOD_MYSQL_CONNECTION_H_
 
+#include <string>
+
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "utils/utils_time.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 #if WIN32
 #  include <winsock2.h>
@@ -141,28 +143,45 @@ private:
   bool _has_resultset;
 };
 
-class SHCORE_PUBLIC Connection : public std::enable_shared_from_this<Connection> {
-public:
-  Connection(const std::string &uri, const char *password = NULL);
-  Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
-    const struct mysqlshdk::utils::Ssl_info& ssl_info);
-  Connection(const Connection& conn) : Connection(conn._uri, NULL) {}
+class SHCORE_PUBLIC Connection
+    : public std::enable_shared_from_this<Connection> {
+ public:
+  explicit Connection(
+      const mysqlshdk::db::Connection_options& connection_options);
   ~Connection();
 
   void close();
-  std::unique_ptr<Result> run_sql(const std::string &sql);
-  bool next_data_set(Result *target, bool first_result = false);
+  std::unique_ptr<Result> run_sql(const std::string& sql);
+  bool next_data_set(Result* target, bool first_result = false);
   std::string uri() { return _uri; }
 
   // Utility functions to retriev session status
-  unsigned long get_thread_id() { _prev_result.reset(); return mysql_thread_id(_mysql); }
-  unsigned long get_protocol_info() { _prev_result.reset(); return mysql_get_proto_info(_mysql); }
-  const char* get_connection_info() { _prev_result.reset(); return mysql_get_host_info(_mysql); }
-  const char* get_server_info() { _prev_result.reset(); return mysql_get_server_info(_mysql); }
-  const char* get_stats() { _prev_result.reset(); return mysql_stat(_mysql); }
-  const char* get_ssl_cipher() { _prev_result.reset(); return mysql_get_ssl_cipher(_mysql); }
+  uint64_t get_thread_id() {
+    _prev_result.reset();
+    return mysql_thread_id(_mysql);
+  }
+  uint64_t get_protocol_info() {
+    _prev_result.reset();
+    return mysql_get_proto_info(_mysql);
+  }
+  const char* get_connection_info() {
+    _prev_result.reset();
+    return mysql_get_host_info(_mysql);
+  }
+  const char* get_server_info() {
+    _prev_result.reset();
+    return mysql_get_server_info(_mysql);
+  }
+  const char* get_stats() {
+    _prev_result.reset();
+    return mysql_stat(_mysql);
+  }
+  const char* get_ssl_cipher() {
+    _prev_result.reset();
+    return mysql_get_ssl_cipher(_mysql);
+  }
 
-  const char *get_last_error(int *out_code, const char **out_sqlstate) {
+  const char* get_last_error(int* out_code, const char** out_sqlstate) {
     if (out_code)
       *out_code = mysql_errno(_mysql);
     if (out_sqlstate)
@@ -170,11 +189,11 @@ public:
     return mysql_error(_mysql);
   }
 
-private:
-  bool setup_ssl(const mysqlshdk::utils::Ssl_info& ssl_info);
+ private:
+  bool setup_ssl(const mysqlshdk::db::Ssl_options& ssl_options);
   void throw_on_connection_fail();
   std::string _uri;
-  MYSQL *_mysql;
+  MYSQL* _mysql;
   MySQL_timer _timer;
 
   std::shared_ptr<MYSQL_RES> _prev_result;

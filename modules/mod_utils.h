@@ -17,14 +17,14 @@
  * 02110-1301  USA
  */
 
-#ifndef MODULES_MOD_UTILS_
-#define MODULES_MOD_UTILS_
+#ifndef MODULES_MOD_UTILS_H_
+#define MODULES_MOD_UTILS_H_
 
 #include <set>
 
-#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/lang_base.h"
-
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 
@@ -34,13 +34,16 @@ enum class PasswordFormat {
   OPTIONS,
 };
 
+mysqlshdk::db::Connection_options SHCORE_PUBLIC get_connection_options(
+    const shcore::Argument_list& args, PasswordFormat format);
 
-shcore::Value::Map_type_ref SHCORE_PUBLIC get_connection_data(
-  const shcore::Argument_list &args, PasswordFormat format);
+shcore::Value::Map_type_ref SHCORE_PUBLIC
+get_connection_map(const mysqlshdk::db::Connection_options& connection_options);
 
-void SHCORE_PUBLIC resolve_connection_credentials(const shcore::Value::Map_type_ref& options,
-  shcore::Interpreter_delegate* delegate = nullptr);
+void SHCORE_PUBLIC resolve_connection_credentials(
+    mysqlshdk::db::Connection_options* options,
+    shcore::Interpreter_delegate* delegate = nullptr);
 
-}
+}  // namespace mysqlsh
 
-#endif // MODULES_MOD_UTILS_
+#endif  // MODULES_MOD_UTILS_H_

@@ -16,6 +16,7 @@
 #include <mysql.h>
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils/shell_base_test.h"
 
 namespace testing {
@@ -32,13 +33,17 @@ class Mysql_session_test : public tests::Shell_base_test {
 };
 
 TEST_F(Mysql_session_test, connect_uri) {
+  auto connection_options = shcore::get_connection_options(_mysql_uri_nopasswd);
+  connection_options.set_password("fake_pwd");
+
   // Connection failure
-  EXPECT_THROW(session->connect(_mysql_uri_nopasswd, "fake_pwd"),
-               std::exception);
+  EXPECT_THROW(session->connect(connection_options), std::exception);
 
   // Success connection, no schema selected
   {
-    ASSERT_NO_THROW(session->connect(_mysql_uri));
+    auto connection_options = shcore::get_connection_options(_mysql_uri);
+
+    ASSERT_NO_THROW(session->connect(connection_options));
     auto result = std::shared_ptr<mysqlshdk::db::IResult>(
         session->query("select database()"));
     auto row = std::unique_ptr<mysqlshdk::db::IRow>(result->fetch_one());
@@ -48,38 +53,9 @@ TEST_F(Mysql_session_test, connect_uri) {
 
   // Success connection, default schema
   {
-    ASSERT_NO_THROW(session->connect(_mysql_uri + "/mysql"));
-    auto result = std::shared_ptr<mysqlshdk::db::IResult>(
-        session->query("select database()"));
-    auto row = std::unique_ptr<mysqlshdk::db::IRow>(result->fetch_one());
-    EXPECT_FALSE(row->is_null(0));
-    EXPECT_EQ("mysql", row->get_string(0));
-    session->close();
-  }
-}
-
-TEST_F(Mysql_session_test, connect_params) {
-  // Connect failure
-  mysqlshdk::utils::Ssl_info ssl_info;
-  EXPECT_THROW(session->connect(_host, _mysql_port_number, "", _user,
-                                "fake_pwd", "", ssl_info),
-               std::exception);
-
-  // Success connection, no schema selected
-  {
-    ASSERT_NO_THROW(session->connect(_host, _mysql_port_number, "", _user, _pwd,
-                                     "", ssl_info));
-    auto result = std::shared_ptr<mysqlshdk::db::IResult>(
-        session->query("select database()"));
-    auto row = std::unique_ptr<mysqlshdk::db::IRow>(result->fetch_one());
-    EXPECT_TRUE(row->is_null(0));
-    session->close();
-  }
-
-  // Success connection, default schema
-  {
-    ASSERT_NO_THROW(session->connect(_host, _mysql_port_number, "", _user, _pwd,
-                                     "mysql", ssl_info));
+    auto connection_options =
+        shcore::get_connection_options(_mysql_uri + "/mysql");
+    ASSERT_NO_THROW(session->connect(connection_options));
     auto result = std::shared_ptr<mysqlshdk::db::IResult>(
         session->query("select database()"));
     auto row = std::unique_ptr<mysqlshdk::db::IRow>(result->fetch_one());
@@ -90,7 +66,8 @@ TEST_F(Mysql_session_test, connect_params) {
 }
 
 TEST_F(Mysql_session_test, execute) {
-  EXPECT_NO_THROW(session->connect(_mysql_uri));
+  auto connection_options = shcore::get_connection_options(_mysql_uri);
+  EXPECT_NO_THROW(session->connect(connection_options));
 
   // Execute error, trying to use an unexisting schema
   EXPECT_THROW(session->execute("use some_weird_schema"), std::exception);
@@ -102,7 +79,9 @@ TEST_F(Mysql_session_test, execute) {
 }
 
 TEST_F(Mysql_session_test, query) {
-  EXPECT_NO_THROW(session->connect(_mysql_uri));
+  auto connection_options = shcore::get_connection_options(_mysql_uri);
+
+  EXPECT_NO_THROW(session->connect(connection_options));
 
   // Query error, trying to retrieve an unexisting system variable
   EXPECT_THROW(session->query("select @@some_weird_variable"), std::exception);
@@ -160,7 +139,9 @@ TEST_F(Mysql_session_test, query) {
 }
 
 TEST_F(Mysql_session_test, commit) {
-  EXPECT_NO_THROW(session->connect(_mysql_uri));
+  auto connection_options = shcore::get_connection_options(_mysql_uri);
+
+  EXPECT_NO_THROW(session->connect(connection_options));
 
   // Required test database for the rest of this test
   EXPECT_NO_THROW(
@@ -195,7 +176,9 @@ TEST_F(Mysql_session_test, commit) {
 }
 
 TEST_F(Mysql_session_test, rollback) {
-  EXPECT_NO_THROW(session->connect(_mysql_uri));
+  auto connection_options = shcore::get_connection_options(_mysql_uri);
+
+  EXPECT_NO_THROW(session->connect(connection_options));
 
   // Required test database for the rest of this test
   EXPECT_NO_THROW(
@@ -223,8 +206,9 @@ TEST_F(Mysql_session_test, rollback) {
 
 TEST_F(Mysql_session_test, auto_close) {
   {
+    auto connection_options = shcore::get_connection_options(_mysql_uri);
     mysqlshdk::db::mysql::Session mysql_session;
-    EXPECT_NO_THROW(session->connect(_mysql_uri));
+    EXPECT_NO_THROW(session->connect(connection_options));
   }
 }
 

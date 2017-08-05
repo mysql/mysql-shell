@@ -26,6 +26,7 @@
 #include "modules/mod_shell.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace tests {
 class Dba_common_test: public Admin_api_test {
@@ -34,9 +35,10 @@ class Dba_common_test: public Admin_api_test {
     auto session = std::shared_ptr<mysqlsh::mysql::ClassicSession>
                   (new mysqlsh::mysql::ClassicSession());
 
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("user:@localhost:" + std::to_string(port)));
-    session->connect(args);
+    auto connection_options =
+      shcore::get_connection_options("user:@localhost:" + std::to_string(port),
+                                  false);
+    session->connect(connection_options);
 
     return session;
   }
@@ -44,15 +46,13 @@ class Dba_common_test: public Admin_api_test {
         int port) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
-    shcore::Argument_list session_args;
-    shcore::Value::Map_type_ref instance_options(new shcore::Value::Map_type);
-    (*instance_options)["host"] = shcore::Value("localhost");
-    (*instance_options)["port"] = shcore::Value(port);
-    (*instance_options)["password"] = shcore::Value("");
-    (*instance_options)["user"] = shcore::Value("user");
+    mysqlshdk::db::Connection_options connection_options;
+    connection_options.set_host("localhost");
+    connection_options.set_port(port);
+    connection_options.set_user("user");
+    connection_options.set_password("");
 
-    session_args.push_back(shcore::Value(instance_options));
-    session = mysqlsh::Shell::connect_session(session_args,
+    session = mysqlsh::Shell::connect_session(connection_options,
                                               mysqlsh::SessionType::Classic);
 
     return session;

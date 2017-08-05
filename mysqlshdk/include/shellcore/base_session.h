@@ -28,7 +28,7 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "mysqlshdk/libs/db/ssl_info.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 #if DOXYGEN_CPP
@@ -47,7 +47,7 @@ public:
   virtual bool operator == (const Object_bridge &other) const;
 
   // Virtual methods from ISession
-  virtual void connect(const shcore::Argument_list &args) = 0;
+  virtual void connect(const mysqlshdk::db::Connection_options& data) = 0;
   virtual void close() = 0;
 
   virtual bool is_open() const = 0;
@@ -63,27 +63,30 @@ public:
   // Using this name temporarily, at the end only one execute_sql
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const = 0;
 
-  std::string address();
-  const std::string &uri() const { return _uri; }
+  std::string uri(mysqlshdk::db::uri::Tokens_mask format =
+                      mysqlshdk::db::uri::formats::full_no_password()) const;
 
-  virtual SessionType session_type() const = 0;
-
-  virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const = 0;
+  virtual std::string db_object_exists(std::string &type,
+                                       const std::string &name,
+                                       const std::string &owner) const = 0;
 
   virtual void set_option(const char *option, int value) {}
   virtual uint64_t get_connection_id() const { return 0; }
   virtual std::string query_one_string(const std::string &query) = 0;
 
-  std::string get_user() { return _user; }
-  std::string get_password() { return _password; }
-  std::string get_host() {return _host; }
+  // NOTE(rennox): These two are used in DBA, that's why we let them here
+  // Where they are used, assume a connection is established, so the values must
+  // exist, we do not validate for nulls to let it crash on purpose since it
+  // would reveal a failing logic elsewhere
+  std::string get_user() { return _connection_options.get_user(); }
+  std::string get_host() {return _connection_options.get_host(); }
+  const mysqlshdk::db::Connection_options & get_connection_options() {
+    return _connection_options;
+  }
 
   virtual void reconnect();
-  virtual int get_default_port() const = 0;
 
-  const mysqlshdk::utils::Ssl_info& get_ssl() { return _ssl_info; }
-
-  std::string get_default_schema() { return _default_schema; }
+  std::string get_default_schema();
 
   virtual void start_transaction() = 0;
   virtual void commit() = 0;
@@ -93,20 +96,7 @@ public:
 
 protected:
   std::string get_quoted_name(const std::string& name);
-
-  // These will be stored in the instance, it's possible later
-  // we expose functions to retrieve this data (not now tho)
-  std::string _user;
-  std::string _password;
-  std::string _host;
-  int _port;
-  std::string _sock;
-  std::string _schema;
-  std::string _auth_method;
-  std::string _uri;
-  mysqlshdk::utils::Ssl_info _ssl_info;
-
-  void load_connection_data(const shcore::Argument_list &args);
+  mysqlshdk::db::Connection_options _connection_options;
 
  protected:
   // Wrap around query executions, to make them cancellable
@@ -125,7 +115,6 @@ protected:
     const ShellBaseSession *_owner;
   };
 
-  std::string _default_schema;
   mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
   std::function<void(const std::string&, bool exists)> update_schema_cache;
 

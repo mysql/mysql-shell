@@ -114,6 +114,8 @@ TEST_F(Shell_error_printing, sql_error) {
       "that corresponds to your MySQL server version for the right syntax to "
       "use near 'garbage' at line 1\n",
       output_handler.std_err);
+  execute("\\js");
+  execute("session.close();");
 }
 
 }  // namespace mysqlsh
