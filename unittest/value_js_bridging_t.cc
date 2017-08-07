@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -437,7 +437,7 @@ TEST_F(JavaScript, js_date_object) {
 
   ASSERT_EQ(Object, object.type);
   ASSERT_TRUE(object.as_object()->class_name() == "Date");
-  ASSERT_EQ("\"2014-01-01 0:00:00\"", object.repr());
+  ASSERT_EQ("\"2014-01-01 00:00:00\"", object.repr());
 }
 }
 }

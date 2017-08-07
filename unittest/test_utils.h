@@ -20,6 +20,7 @@
 #include <vector>
 #include <list>
 #include <thread>
+#include <utility>
 
 #include "gtest_clean.h"
 #include "scripting/lang_base.h"
@@ -91,6 +92,16 @@ public:\
       }\
       if (!ok) FAIL() << "Timeout waiting for " # pred;\
     } while (0)
+
+extern std::vector<std::pair<std::string, std::string>> g_skipped_tests;
+
+#define SKIP_TEST(note)                                                        \
+  {                                                                            \
+    g_skipped_tests.push_back(                                                 \
+        {std::string(test_info_->test_case_name()) + "." + test_info_->name(), \
+         note});                                                               \
+    return;                                                                    \
+  }
 
 std::string random_string(std::string::size_type length);
 
@@ -219,6 +230,10 @@ protected:
     SCOPED_TRACE("...in log check\n");             \
     output_handler.validate_log_content(x, false); \
   } while (0)
+
+// proto = [a]uto, [c]lassic, [x]
+std::string shell_test_server_uri(int proto = 'a');
+std::string random_string(std::string::size_type length);
 
 class Shell_core_test_wrapper : public tests::Shell_base_test,
                                 public shcore::NotificationObserver {

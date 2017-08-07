@@ -16,9 +16,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #ifndef UNITTEST_TEST_UTILS_SERVER_MOCK_H_
 #define UNITTEST_TEST_UTILS_SERVER_MOCK_H_
 
-#define MY_EXPECT_OUTPUT_CONTAINS(e,o) Shell_base_test::check_string_expectation(e,o,true)
-#define MY_EXPECT_OUTPUT_NOT_CONTAINS(e,o) Shell_base_test::check_string_expectation(e,o,false)
-
 #include <string>
 #include <map>
 #include <memory>

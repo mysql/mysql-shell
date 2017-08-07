@@ -26,6 +26,7 @@
 #include "shellcore/shell_core_options.h"
 #include "shellcore/interrupt_handler.h"
 #include "unittest/gtest_clean.h"
+#include "unittest/test_utils.h"
 
 #ifdef WIN32
 #define putenv _putenv
@@ -35,6 +36,8 @@ extern "C" {
 const char *g_argv0 = nullptr;
 }
 char *g_mppath = nullptr;
+
+std::vector<std::pair<std::string, std::string> > g_skipped_tests;
 
 static void check_zombie_sandboxes() {
   int port = 3306;
@@ -367,6 +370,14 @@ int main(int argc, char **argv) {
   g_mppath = strdup(mppath.c_str());
 
   int ret_val = RUN_ALL_TESTS();
+
+  if (!g_skipped_tests.empty()) {
+    std::cout << makeyellow("The following tests were SKIPPED:") << "\n";
+    for (auto &t : g_skipped_tests) {
+      std::cout << makeyellow("[  SKIPPED  ]") << " " << t.first << "\n";
+      std::cout << "\tNote: " << t.second << "\n";
+    }
+  }
 
   return ret_val;
 }

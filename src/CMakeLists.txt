@@ -13,27 +13,30 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-if(NOT WIN32)
-  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/mysqlsh/libedit")
-endif()
 include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
                     "${CMAKE_SOURCE_DIR}/mysqlshdk/include"
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_SOURCE_DIR}/src"
-                    "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
-                    "${CMAKE_SOURCE_DIR}/src/mysqlsh/libedit")
+                    "${CMAKE_SOURCE_DIR}/ext/linenoise-ng/include"
+                    "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 
 set(mysh_SRC
     mysqlsh/main.cc
     mysqlsh/get_password.cc
     mysqlsh/shell_cmdline_options.cc
     mysqlsh/cmdline_shell.cc
+    mysqlsh/history.cc
     mysqlsh/mysql_shell.cc
+    mysqlsh/prompt_renderer.cc
+    mysqlsh/prompt_manager.cc
     interactive/interactive_dba_cluster.cc
     interactive/interactive_global_dba.cc
     interactive/interactive_global_schema.cc
     interactive/interactive_global_session.cc
     interactive/interactive_global_shell.cc
+    ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/linenoise.cpp
+    ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp
+    ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp
 )
 
 if(WIN32)
@@ -52,10 +55,6 @@ add_executable(mysqlsh ${mysh_SRC})
 set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 ADD_STAN_TARGET(mysqlsh ${mysh_SRC})
-
-IF(NOT WIN32)
-  TARGET_LINK_LIBRARIES(mysqlsh edit)
-ENDIF()
 
 # Last, to make -lrt -lpthread last, v8 needs it
 target_link_libraries(mysqlsh

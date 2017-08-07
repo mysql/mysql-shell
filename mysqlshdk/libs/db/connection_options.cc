@@ -36,7 +36,7 @@ const std::set<std::string> Connection_options::fixed_str_list = {
     kHost, kSocket, kScheme, kSchema, kUser, kPassword};
 
 Connection_options::Connection_options(Comparison_mode mode)
-    : Nullable_options(mode, "Connection"),
+    : Nullable_options(mode, "connection"),
       _ssl_options(_mode),
       _extra_options(_mode) {
   for (auto o : fixed_str_list)
@@ -45,7 +45,7 @@ Connection_options::Connection_options(Comparison_mode mode)
 
 Connection_options::Connection_options(const std::string& uri,
                                        Comparison_mode mode)
-    : Nullable_options(mode, "Connection"),
+    : Nullable_options(mode, "connection"),
       _ssl_options(_mode),
       _extra_options(_mode) {
   for (auto o : fixed_str_list)
@@ -170,7 +170,7 @@ void Connection_options::set(const std::string& name,
       compare(name, kAuthMethod) == 0) {
     // All the connection parameters accept only 1 value
     if (values.size() != 1) {
-      throw std::invalid_argument("The Connection option '" + name +
+      throw std::invalid_argument("The connection option '" + name +
                                   "'"
                                   " requires exactly one value.");
     }
@@ -239,7 +239,8 @@ const std::string& Connection_options::get(const std::string& name) const {
 }
 
 void Connection_options::clear_host() {
-  if (*_transport_type == Transport_type::Tcp && _port.is_null())
+  if (!_transport_type.is_null() && *_transport_type == Transport_type::Tcp &&
+      _port.is_null())
     _transport_type.reset();
 
   clear_value(kHost);

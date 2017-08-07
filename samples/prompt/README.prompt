@@ -1,0 +1,190 @@
+You can customize your prompt by copying over and editing one of the JSON
+files in this directory to ~/.mysqlsh/prompt.json
+
+From the sample prompts, files ending with _nocolor don't use any colors or
+text attributes.
+
+Those ending with _16 use 16/8 color ANSI colors and attributes.
+
+_256 use 256 indexed colors which will work in most modern terminals, like
+most Linux terminals, macOS an Windows 10.
+
+_256pl will, in addition to the above, use special Unicode characters in the
+prompt. You need to use a font patched for the Powerline statusline plugin
+for it to be displayed correctly (you can find it easily by searching for
+powerline fonts).
+
+_256pl+aw uses some special icon characters from fonts patched with
+"powerline" and "awesome symbol" characters, for example:
+SourceCodePro+Powerline+Awesome+Regular.ttf
+
+
+File Format
+===========
+
+Prompt theme files can be configured in ~/.mysqlsh/prompt.json
+The theme file is a JSON file with the following layout:
+
+    {
+      "segments" : [
+        { "classes": ["class1", "class2", ...],
+          "text": text,
+          "fg": color,
+          "bg": color,
+          "bold": bool,
+          "underline": bool,
+          "separator": "char",
+          "min_width": integer,
+          "weight": integer,
+          "shrink": "none"|"truncate_on_dot"|"ellipsize"
+      ],
+      "classes" : {
+        "class1": {
+          "text": text,
+          "fg": color,
+          "bg": color,
+          "bold": bool,
+          "underline": bool,
+          "separator": "char",
+          "min_width": integer
+        }
+      },
+      "variables" : {
+        "variable": variable_def
+      },
+      "prompt" : {
+        "text": "> ",
+        "cont_text": "-> ",
+        "fg": "32"
+      },
+      "symbols" : {
+        "ellipsis": "...",
+        "separator": "-",
+        "separator2": "-"
+      }
+    }
+
+
+segment_array
+-------------
+
+A JSON array containing the definition of a prompt segment.
+A segment looks like:
+
+    {
+      "classes" : ["someclass", "%variable%"],
+      "text" : "Text:%variable%",
+      "fg": "#ff2211;1;red",
+      "bg": "#1122ff;2;blue",
+      "weight": 12
+    }
+
+- the class list can be used for dynamically selecting
+the content of a segment. The first class in the list that
+exists will be applied. Variable substitution applies.
+
+- weight tells which segments to hide when there's not enough
+space in the screen to fit everything. Higher weight values are
+hidden first.
+
+- allowed attributes are:
+   - bold  makes text bold
+   - underline  makes text underlined
+   - bg background color
+   - fg foreground color
+     fg and bg can contain one or more of the following, separated by a ;
+     - a color name (black|red|green|yellow|blue|magenta|cyan|white),
+       supported by most terminals
+     - 0..255 color index, for terminals that support 256 colors,
+       like most Linux terminals or Windows 10 and Terminal.app
+     - a #rrggbb value, for terminals that support TrueColor colors,
+     The right color type will be picked depending on what the terminal
+     in use supports.
+   - text text to display. May contain variables.
+   - min_width Minimum to allow shrinking the segment to
+   - separator Separator character, if overriding the default
+   - padding Number of spaces to use for padding around the segment text
+   - shrink one of none, truncate_on_dot and ellipsize. The method to truncate
+     the text if they don't fit.
+
+Supported variables are:
+    %mode% - mode of the shell (sql, js, py)
+    %Mode% - mode of the shell, capitalized (SQL, JS, Py)
+    %uri% - URI of the connected session
+    %user% - username of the connected session
+    %host% - hostname of the connected session
+    %port% - port or socket path of the connected session
+    %schema% - default schema of the SQL session
+    %ssl% - SSL if SSL is enabled for the connected session
+    %time% - current time
+    %date% - current date
+    %env:varname% - environment variable
+    %sysvar:varname% - global system variable queried from MySQL
+    %sessvar:varname% - session variable queried from MySQL
+    %status:varname% - status variable queried from MySQL
+    %sessstatus:varname% - session status variable queried from MySQL
+        Variables queried from MySQL are cached when the shell is connected.
+
+prompt
+------
+
+Details about the special prompt segment. The prompt segment
+will normally display the string in "text", but if it's in a
+line continuation (eg when you press enter after select without a ;),
+it will show "cont_text". By default, the prompt string is "> "
+and the continuation string is "-> ".
+
+    "prompt": {
+      "text" : "> ",        # string to show in prompt
+      "cont_text": "-> ",   # string to show in prompt when editing a continued line
+      "fg": "32"
+    }
+
+classes
+-------
+
+A JSON class_name : class_definition map, where class_definition can contain
+any attribute that can appear in a segment definition.
+
+    "classes" : {
+        "redtext": {
+            "fg": "red;1;#ff0000"
+        }
+    }
+
+variables
+---------
+
+You can declare custom variables that can be used as any other variable.
+
+Example:
+
+    "variables" : {
+        # set the is_production variable to "production"
+        # if the %host% variable is contained in the PRODUCTION_SERVERS
+        # environment variable, which is a list of hosts separated by ;
+        "is_production": {
+            "match" : {
+                "pattern": "*;%host%;*",
+                "value": ";%env:PRODUCTION_SERVERS%"
+            },
+            "if_true" : "production",
+            "if_false" : ""
+        }
+    }
+
+Variable values are evaluated once on connection and are cached.
+
+
+symbols
+-------
+
+    {
+      "separator": string,
+      "separator2": string,
+      "ellipsis": string
+    }
+
+- separator is the default segment separator character
+- ellipsis is the character to append to a ellipsized text
+

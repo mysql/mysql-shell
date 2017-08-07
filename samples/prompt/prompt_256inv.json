@@ -1,0 +1,95 @@
+{
+  "classes" : {
+    "SQL" : {
+      "fg" : "166"
+    },
+    "JS" : {
+      "fg" : "221"
+    },
+    "Py" : {
+      "fg" : "25"
+    },
+    "schema" : {
+      "text": "%schema% "
+    },
+    "noschema" : {
+      "text": ""
+    },
+    "disconnected": {
+    },
+    "sslSSL": {
+      "text": "(ssl) ",
+      "fg": 170
+    },
+    "ssl" : {
+      "text": ""
+    },
+    "hostx" : {
+      "text": "%host%:%port%+ "
+    },
+    "hostc" : {
+      "text": "%host%:%port% "
+    },
+    "production" : {
+      "text": " PRODUCTION ",
+      "bg": "red",
+      "fg": "white"
+    }
+  },
+  "variables" : {
+    "is_production": {
+        "match" : {
+            "pattern": "*;%host%;*",
+            "value": ";%env:PRODUCTION_SERVERS%;"
+        },
+        "if_true" : "production",
+        "if_false" : ""
+    }
+  },
+  "symbols" : {
+    "separator" : "",
+    "separator2" : "",
+    "ellipsis" : "..."
+  },
+  "prompt" : {
+    "text" : "> ",
+    "cont_text" : "... "
+  },
+  "segments": [
+	{
+	  "classes": ["disconnected%host%", "%is_production%"]
+	},
+    {
+      "text": "My",
+      "fg": 23
+    },
+    {
+      "separator": "",
+      "text": "SQL ",
+      "fg": 166
+    },
+    {
+      "classes": ["disconnected%host%", "host%session%"],
+      "shrink": "truncate_on_dot",
+      "fg": 123,
+      "weight": 10,
+      "padding" : 0
+    },
+    {
+      "classes": ["ssl%ssl%"],
+      "padding": 0
+    },
+    {
+      "classes": ["noschema%schema%", "schema"],
+      "fg": 197,
+      "shrink": "ellipsize",
+      "weight": -1,
+      "padding" : 0
+    },
+    {
+      "classes": ["%Mode%"],
+      "text": "%Mode%",
+      "padding" : 0
+    }
+  ]
+}

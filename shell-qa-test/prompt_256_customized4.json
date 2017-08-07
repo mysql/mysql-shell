@@ -1,0 +1,90 @@
+{
+  "desc" : "256/24bit color terminal theme with MySQL prefix, default schema, host:port, ssl, + indicator for X protocol, active mode.",
+  "classes" : {
+    "SQL" : {
+    },
+    "JS" : {
+    },
+    "Py" : {
+    },
+    "schema" : {
+      "text": ""
+    },
+    "noschema" : {
+      "text": ""
+    },
+    "disconnected": {
+    },
+    "host" : {
+      "text": ""
+    },
+    "hostx" : {
+    },
+    "hostc" : {
+      "text": ""
+    },
+    "SSLhost" : {
+      "text": ""
+    },
+    "SSLhostx" : {
+      "text": ""
+    },
+    "SSLhostc" : {
+      "text": ""
+    },
+
+    "production" : {
+      "text": " PRODUCTION ",
+      "bg": "red",
+      "fg": "white"
+    }
+  },
+  "variables" : {
+    "is_production": {
+        "match" : {
+            "pattern": "*;%host%;*",
+            "value": ";%env:PRODUCTION_SERVERS%;"
+        },
+        "if_true" : "production",
+        "if_false" : ""
+    }
+  },
+  "symbols" : {
+    "separator" : "",
+    "separator2" : "",
+    "ellipsis" : "..."
+  },
+  "prompt" : {
+    "text" : "> ",
+    "cont_text" : "... ",
+  },
+  "segments": [
+	{
+	  "classes": ["disconnected%host%", "%is_production%"]
+	},
+    {
+      "text": "my",
+    },
+    {
+      "separator": "",
+      "text": "sql-",
+    },
+    {
+      "classes": ["disconnected%host%", "%ssl%host%session%"],
+      "shrink": "truncate_on_dot",
+      "weight": 10,
+      "padding" : 0
+    },
+    {
+      "classes": ["noschema%schema%", "schema"],
+      "shrink": "ellipsize",
+      "weight": -1,
+      "padding" : 0
+    },
+    {
+      "classes": ["%Mode%"],
+      "text": "%mode%",
+      "padding" : 0
+    }
+  ]
+}

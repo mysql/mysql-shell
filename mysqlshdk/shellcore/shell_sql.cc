@@ -53,35 +53,38 @@ Value Shell_sql::process_sql(const std::string &query_str,
     std::shared_ptr<mysqlsh::ShellBaseSession> session,
     std::function<void(shcore::Value)> result_processor) {
   Value ret_val;
-  try {
-    shcore::Argument_list query;
-    query.push_back(Value(query_str));
+  if (!session) {
+    print_exception(shcore::Exception::logic_error("Not connected."));
+  } else {
+    try {
+      shcore::Argument_list query;
+      query.push_back(Value(query_str));
 
-    // ClassicSession has runSql and returns a ClassicResult object
-    if (session->has_member("runSql"))
-      ret_val = session->call("runSql", query);
+      // ClassicSession has runSql and returns a ClassicResult object
+      if (session->has_member("runSql"))
+        ret_val = session->call("runSql", query);
 
-    // NodeSession uses SqlExecute object in which we need to call
-    // .execute() to get the Resultset object
-    else if (session->has_member("sql"))
-      ret_val = session->call("sql", query).as_object()->call("execute",
-                              shcore::Argument_list());
-    else
-      throw shcore::Exception::logic_error("The current session type (" +
-          session->class_name() + ") can't be used for SQL execution.");
+      // NodeSession uses SqlExecute object in which we need to call
+      // .execute() to get the Resultset object
+      else if (session->has_member("sql"))
+        ret_val = session->call("sql", query).as_object()->call("execute",
+                                shcore::Argument_list());
+      else
+        throw shcore::Exception::logic_error("The current session type (" +
+            session->class_name() + ") can't be used for SQL execution.");
 
-    // If reached this point, processes the returned result object
-    auto shcore_options = Shell_core_options::get();
-    auto old_format = (*shcore_options)[SHCORE_OUTPUT_FORMAT];
-    if (delimiter == "\\G")
-      (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value("vertical");
-    result_processor(ret_val);
-    (*shcore_options)[SHCORE_OUTPUT_FORMAT] = old_format;
-  } catch (shcore::Exception &exc) {
-    print_exception(exc);
-    ret_val = Value();
+      // If reached this point, processes the returned result object
+      auto shcore_options = Shell_core_options::get();
+      auto old_format = (*shcore_options)[SHCORE_OUTPUT_FORMAT];
+      if (delimiter == "\\G")
+        (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value("vertical");
+      result_processor(ret_val);
+      (*shcore_options)[SHCORE_OUTPUT_FORMAT] = old_format;
+    } catch (shcore::Exception &exc) {
+      print_exception(exc);
+      ret_val = Value();
+    }
   }
-
   _last_handled += query_str + delimiter;
 
   return ret_val;
@@ -96,7 +99,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state,
 
   _last_handled.clear();
 
-  if (session) {
+  {
 
     // NOTE: We need to find a nice way to decide whether parsing or not multiline blocks
     // is enabled or not, for now will let this commented out and do parsing all the time
@@ -166,10 +169,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state,
     if (no_query_executed)
       ret_val = Value::Null();
 
-  } else
-    // handle_input implementations are not throwing exceptions
-    // They handle the printing internally
-    print_exception(shcore::Exception::logic_error("Not connected."));
+  }
 
   // TODO: previous to file processing the caller was caching unprocessed code and sending it again on next
   //       call. On file processing an internal handling of this cache was required.
@@ -182,23 +182,15 @@ void Shell_sql::handle_input(std::string &code, Input_state &state,
     result_processor(ret_val);
 }
 
-std::string Shell_sql::prompt() {
-  if (!_parsing_context_stack.empty())
-    return str_format("%9s> ", _parsing_context_stack.top().c_str());
-  else {
-    std::string node_type = "mysql";
-    std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
-
-    if (session)
-      node_type = session->get_node_type();
-
-    return node_type + "-sql> ";
-  }
-}
-
 void Shell_sql::clear_input() {
   std::stack<std::string> empty;
   _parsing_context_stack.swap(empty);
+}
+
+std::string Shell_sql::get_continued_input_context() {
+  if (_parsing_context_stack.empty())
+    return "";
+  return _parsing_context_stack.top();
 }
 
 bool Shell_sql::print_help(const std::string& topic) {

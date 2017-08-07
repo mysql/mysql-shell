@@ -92,7 +92,7 @@ TEST_F(Command_line_test, bug24905066) {
   // Tests URI formatting using X protocol
   {
     execute({_mysqlsh, "--node", "-i", "--uri",
-            "root:@(/path/to/whatever/socket.sock)", NULL});
+            "root:@(/path/to/whatever/socket.sock)", "-e", "1", NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Node Session to "
                                   "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
@@ -112,7 +112,7 @@ TEST_F(Command_line_test, bug24905066) {
   {
     std::string uri = _uri + "/some_unexisting_schema";
 
-    execute({_mysqlsh, "--node", "-i", "--uri", uri.c_str(), NULL});
+    execute({_mysqlsh, "--node", "-i", "--uri", uri.c_str(), "-e", "1", NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: Unknown database "
                                   "'some_unexisting_schema'");

@@ -122,6 +122,10 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   virtual void commit();
   virtual void rollback();
 
+  virtual std::string get_current_schema() {
+    return _retrieve_current_schema();
+  }
+
   shcore::Value _close(const shcore::Argument_list &args);
   virtual shcore::Value sql(const shcore::Argument_list &args);
   virtual shcore::Value _create_schema(const shcore::Argument_list &args);
@@ -146,6 +150,9 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   virtual bool is_open() const;
   virtual shcore::Value::Map_type_ref get_status();
   virtual std::string get_node_type();
+  virtual std::string get_ssl_cipher() const {
+    return _session.get_ssl_cipher();
+  }
 
   shcore::Value _get_schema(const shcore::Argument_list &args) const;
 
@@ -167,7 +174,7 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   virtual void set_option(const char *option, int value);
 
   virtual uint64_t get_connection_id() const;
-  virtual std::string query_one_string(const std::string &query);
+  virtual std::string query_one_string(const std::string &query, int field = 0);
 
   virtual void kill_query() const;
 

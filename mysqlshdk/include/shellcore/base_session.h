@@ -66,13 +66,18 @@ public:
   std::string uri(mysqlshdk::db::uri::Tokens_mask format =
                       mysqlshdk::db::uri::formats::full_no_password()) const;
 
+  virtual SessionType session_type() const = 0;
+
+  virtual std::string get_ssl_cipher() const = 0;
+
   virtual std::string db_object_exists(std::string &type,
                                        const std::string &name,
                                        const std::string &owner) const = 0;
 
   virtual void set_option(const char *option, int value) {}
   virtual uint64_t get_connection_id() const { return 0; }
-  virtual std::string query_one_string(const std::string &query) = 0;
+  virtual std::string query_one_string(const std::string &query,
+                                       int field = 0) = 0;
 
   // NOTE(rennox): These two are used in DBA, that's why we let them here
   // Where they are used, assume a connection is established, so the values must
@@ -87,6 +92,8 @@ public:
   virtual void reconnect();
 
   std::string get_default_schema();
+
+  virtual std::string get_current_schema() = 0;
 
   virtual void start_transaction() = 0;
   virtual void commit() = 0;

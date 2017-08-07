@@ -240,6 +240,19 @@ TEST(ValueTests, SimpleString) {
   EXPECT_STREQ("Hello / world", mydescr.c_str());
   EXPECT_STREQ("\"Hello / world\"", myrepr.c_str());
   EXPECT_STREQ("\"Hello / world\"", myjson.c_str());
+
+  // Test unicode literal
+  EXPECT_STREQ(u8"\u0061",
+               shcore::Value::parse("\"\\u0061\"").as_string().c_str());
+
+  EXPECT_STREQ(u8"\u0161",
+               shcore::Value::parse("\"\\u0161\"").as_string().c_str());
+
+  EXPECT_STREQ(u8"\u0ab0",
+               shcore::Value::parse("\"\\u0ab0\"").as_string().c_str());
+
+  EXPECT_STREQ(u8"\u100b0",
+               shcore::Value::parse("\"\\u100b0\"").as_string().c_str());
 }
 
 TEST(ValueTests, ArrayCompare) {
@@ -453,9 +466,20 @@ TEST(Parsing, Map) {
   EXPECT_EQ("value", (*nested)["inner"].as_string());
 
   shcore::Value v2 = shcore::Value::parse("{}");
-  EXPECT_EQ(shcore::Map, v.type);
+  EXPECT_EQ(shcore::Map, v2.type);
   Value::Map_type_ref map2 = v2.as_map();
   EXPECT_EQ(map2->size(), 0);
+
+  // regression test
+  shcore::Value v3 = shcore::Value::parse(
+      "{'hello': {'item':1}, 'world': {}, 'foo': 'bar', 'bar':32}");
+  EXPECT_EQ(shcore::Map, v3.type);
+  EXPECT_EQ(4, v3.as_map()->size());
+
+  v3 = shcore::Value::parse(
+      "{'hello': {'item':1}, 'world': [], 'foo': 'bar', 'bar':32}");
+  EXPECT_EQ(shcore::Map, v3.type);
+  EXPECT_EQ(4, v3.as_map()->size());
 }
 
 TEST(Parsing, Array) {

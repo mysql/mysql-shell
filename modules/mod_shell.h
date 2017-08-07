@@ -55,13 +55,11 @@ namespace mysqlsh {
 
     #if DOXYGEN_JS
     Dictionary options;
-    Callback customPrompt;
     Dictionary parseUri(String uri);
     String prompt(String message, Dictionary options);
     Undefined connect(ConnectionData connectionData, String password);
     #elif DOXYGEN_PY
     dict options;
-    Callback custom_prompt;
     dict parse_uri(str uri);
     str prompt(str message, dict options);
     None connect(ConnectionData connectionData, str password);
@@ -76,8 +74,6 @@ namespace mysqlsh {
 
    protected:
     void init();
-
-    shcore::Value _custom_prompt[2];
 
     shcore::IShell_core *_shell_core;
   };

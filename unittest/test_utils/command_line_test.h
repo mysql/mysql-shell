@@ -44,6 +44,8 @@ class Command_line_test : public Shell_base_test {
 
   bool grep_stdout(const std::string &s);
 
+  void wipe_out() { _output.clear(); }
+
  protected:
   std::string _mysqlsh_path;
   const char *_mysqlsh;

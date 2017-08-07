@@ -3,8 +3,7 @@ Gives access to general purpose functions and properties.
 
 The following properties are currently supported.
 
- - options       Dictionary of active shell options.
- - custom_prompt Callback to modify the default shell prompt.
+ - options Dictionary of active shell options.
 
 
 The following functions are currently supported.
@@ -24,7 +23,7 @@ Dictionary of active shell options.
 
 DESCRIPTION
 
-The options dictionary may contain the next attributes:
+The options dictionary may contain the following attributes:
 
  - batchContinueOnError: read-only, boolean value to indicate if the execution
    of an SQL script in batch mode shall continue if errors occur
@@ -37,6 +36,10 @@ The options dictionary may contain the next attributes:
    when printing an SQL result
  - useWizards: read-only, boolean value to indicate if the Shell is using the
    interactive wrappers (wizard mode)
+ - history.maxSize: number of entries to keep in command history
+ - history.autoSave: true to save command history when exiting the shell
+ - history.sql.ignorePattern: colon separated list of glob patterns to filter
+   out of the command history in SQL mode
 
 The outputFormat option supports the following values:
 

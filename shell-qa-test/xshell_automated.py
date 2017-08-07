@@ -105,11 +105,17 @@ def exec_xshell_commands(init_cmdLine,x_cmds):
     else:
         sessionType = "mysql-js>"
     allXshellSession = ""
+    allFound = []
     p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
     globalvar.last_search = sessionType
     found = str(read_til_getShell(p))
+    allFound.append(found)
     if found.find(sessionType, 0, len(found)) == -1 and found.find("FAILED", 0, len(found)) >= 0:
         # RESULTS = "FAILED"
+        if os.getenv("TEST_DEBUG"):
+            print "\n".join(allFound)
+            import traceback
+            traceback.print_stack()
         return found #, RESULTS
     for x in range(0, x_cmds.__len__()-1):
         command=x_cmds[x]
@@ -119,8 +125,15 @@ def exec_xshell_commands(init_cmdLine,x_cmds):
         globalvar.last_search = str(command[1])
         allXshellSession = allXshellSession + globalvar.last_search
         found = str(read_til_getShell(p))
+        allFound.append(found)
         ###  I JUST CHANGE THE AND INSTEAD OR
         if found.find(command[1], 0, len(found)) == -1 or found.find("FAILED", 0, len(found)) >= 0:  ### changed and/or
+            if os.getenv("TEST_DEBUG"):
+                print "\n".join(allFound)
+                import traceback
+                traceback.print_stack()
+                print "NOT FOUND: [ "+str(command[1])+" ]"
+
             # RESULTS = "FAILED"
             return found + "\n\r NOT FOUND: [ "+str(command[1])+" ]"
     ####   execute last iteration
@@ -130,13 +143,21 @@ def exec_xshell_commands(init_cmdLine,x_cmds):
     globalvar.last_search = str(command[1])
     allXshellSession = allXshellSession+ globalvar.last_search
     stdout,stderr = p.communicate()
+    allFound.append(stdout)
+    allFound.append(stderr)
     #found = str(read_til_getShell(p, p.stdout, command[1]))
     #if found.find(command[1], 0, len(found)) == -1 or found.find("FAILED", 0, len(found)) >= 0:
     #    return found + "\n\r NOT FOUND: [ "+str(command[1])+" ]"
     #return RESULTS
     found = stdout.find(bytearray(command[1],"ascii"), 0, len(stdout))
+    allFound.append(found)
     if found == -1 and x_cmds.__len__() != 0 :
         #return "FAILED SEARCHING: "+globalvar.last_search+" , STDOUT: "+ str(stdout)+", STDERR: "+ str(stderr)
+        if os.getenv("TEST_DEBUG"):
+            print "\n".join([str(x) for x in allFound if x])
+            import traceback
+            traceback.print_stack()
+            print "FAILED SEARCHING: "+globalvar.last_search+" ,\n STDOUT: "+ str(stdout)+",\n STDERR: "+ str(stderr)+"\n ALL XSHELL SESSION:"+ allXshellSession
         return "FAILED SEARCHING: "+globalvar.last_search+" , STDOUT: "+ str(stdout)+", STDERR: "+ str(stderr)+" ALL XSHELL SESSION:"+ allXshellSession
     else:
         return "PASS"
@@ -165,12 +186,14 @@ if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfil
     Exec_files_location = os.environ['AUX_FILES_PATH']
     XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
     XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml"
+
 else:
     # **** LOCAL EXECUTION ****
     config = json.load(open('config_local.json'))
     MYSQL_SHELL = str(config["general"]["xshell_path"])
     Exec_files_location = str(config["general"]["aux_files_path"])
     XMLReportFilePath = "xshell_qa_test.xml"
+
 
 #########################################################################
 
@@ -186,6 +209,9 @@ REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
 
+# Force default theme
+os.environ['MYSQLSH_PROMPT_THEME'] = Exec_files_location+"/../prompt_classic.json"
+
 
 class globalvar:
     last_found=""
@@ -194,12 +220,12 @@ class globalvar:
 class prompt:
     def __init__(self):
         self.prompts = []
+        self.re_prompts = []
 
     def add(self, x):
         self.prompts.append(x)
     def remove_last(self):
         self.prompts.pop(-1)
-
 
 xPrompts= prompt()
 xPrompts.add("mysql-js>")
@@ -238,13 +264,14 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -n {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use world_x;\n", "mysql-sql>"),
             ("show tables ;\n", "4 rows in set"),
             ]
         results = exec_xshell_commands(init_command, x_cmds)
         if results != "PASS":
+            print results
             raise ValueError("FAILED initializing schema world_x")
 
         # create sakila and sakila-data
@@ -263,7 +290,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -n {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select count(*) from actor;\n", "200"),
@@ -283,7 +310,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -n {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila_x;\n", "mysql-sql>"),
             ("select count(*) from movies;\n", "1 row in set"),
@@ -686,7 +713,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
         x_cmds = [("\\connect {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                          REMOTEHOST.xprotocol_port),
-                   "Creating an X Session"),
+                   "Creating a Session"),
                   ("\\js\n", "mysql-js"),
                   ("print(session);\n", "XSession:"),
                   ]
@@ -1724,19 +1751,19 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.port),
-                   "No default schema selected; type \\use <schema> to set one."),
+                   "Your MySQL connection id is"),
                   (
                   "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.port),
-                  "Default schema set to `sakila`."),
+                  "Your MySQL connection id is"),
                   ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.xprotocol_port),
-                   "No default schema selected; type \\use <schema> to set one."),
+                   "Your MySQL connection id is"),
                   (
                       "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                          LOCALHOST.host,
                                                                          LOCALHOST.xprotocol_port),
-                      "Default schema `sakila` accessible through db."),
+                      "Your MySQL connection id is"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1747,19 +1774,19 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--js']
         x_cmds = [("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.port),
-                   "No default schema selected; type \\use <schema> to set one."),
+                   "Your MySQL connection id is"),
                   (
                   "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.port),
-                  "Default schema set to `sakila`."),
+                  "Your MySQL connection id is"),
                   ("shell.connect('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                LOCALHOST.xprotocol_port),
-                   "No default schema selected; type \\use <schema> to set one."),
+                   "Your MySQL connection id is"),
                   (
                       "shell.connect('{0}:{1}@{2}:{3}/sakila')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                          LOCALHOST.host,
                                                                          LOCALHOST.xprotocol_port),
-                      "Default schema `sakila` accessible through db."),
+                      "Your MySQL connection id is"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -3720,7 +3747,7 @@ class XShell_TestCases(unittest.TestCase):
                    "mysql-js>"),
                   ("session.runSql(\"drop database if exists automation_test;\");\n", "Query OK"),
                   ("session.runSql(\'create database automation_test;\');\n", "Query OK"),
-                  ("session.dropSchema(\'automation_test\');\n", "mysql-js>"),
+                  ("session.dropSchema(\'automation_test\');\n", "Query OK"),
                   ("session.runSql(\"show schemas like \'automation_test\';\");\n", "Empty set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -3735,7 +3762,7 @@ class XShell_TestCases(unittest.TestCase):
                                                                                   LOCALHOST.host), "mysql-js>"),
                   ("session.sql(\"drop database if exists automation_test;\").execute();\n", "Query OK"),
                   ("session.sql(\'create database automation_test;\').execute();\n", "Query OK"),
-                  ("session.dropSchema(\'automation_test\');\n", "mysql-js>"),
+                  ("session.dropSchema(\'automation_test\');\n", "Query OK"),
                   ("session.sql(\"show schemas like \'automation_test\';\").execute();\n", "Empty set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -4290,7 +4317,7 @@ class XShell_TestCases(unittest.TestCase):
                    "mysql-py>"),
                   ("session.run_sql(\"drop database if exists automation_test;\")\n", "Query OK"),
                   ("session.run_sql(\'create database automation_test;\')\n", "Query OK"),
-                  ("session.drop_schema(\'automation_test\')\n", "mysql-py>"),
+                  ("session.drop_schema(\'automation_test\')\n", "Query OK"),
                   ("session.run_sql(\"show schemas like \'automation_test\';\")\n", "Empty set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -4305,7 +4332,7 @@ class XShell_TestCases(unittest.TestCase):
                                                                                LOCALHOST.host), "mysql-py>"),
                   ("session.sql(\"drop database if exists automation_test;\").execute()\n", "Query OK"),
                   ("session.sql(\'create database automation_test;\').execute()\n", "Query OK"),
-                  ("session.drop_schema(\'automation_test\')\n", "mysql-py>"),
+                  ("session.drop_schema(\'automation_test\')\n", "Query OK"),
                   ("session.sql(\"show schemas like \'automation_test\';\").execute()\n", "Empty set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -4946,22 +4973,22 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema('world_x').getCollection('CountryInfo').existsInDatabase();\n", "true"),
-                  ("var myColl = session.getSchema('world_x').getCollection('CountryInfo');\n", "mysql-js>"),
+        x_cmds = [("session.getSchema('world_x').getCollection('countryinfo').existsInDatabase();\n", "true"),
+                  ("var myColl = session.getSchema('world_x').getCollection('countryinfo');\n", "mysql-js>"),
                   (
-                      "myColl.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent']);\n",
-                      "1 document"),
+                  "myColl.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent']);\n",
+                  "1 document"),
                   (
-                      "myColl.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4);\n",
-                      "4 documents"),
+                  "myColl.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4);\n",
+                  "4 documents"),
                   ("\\py\n", "mysql-py>"),
-                  ("myColl2 = session.get_schema('world_x').get_collection('CountryInfo')\n", "mysql-py>"),
+                  ("myColl2 = session.get_schema('world_x').get_collection('countryinfo')\n", "mysql-py>"),
                   (
-                      "myColl2.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent'])\n",
-                      "1 document"),
+                  "myColl2.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent'])\n",
+                  "1 document"),
                   (
-                      "myColl2.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4)\n",
-                      "4 documents"),
+                  "myColl2.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4)\n",
+                  "4 documents"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -4969,20 +4996,19 @@ class XShell_TestCases(unittest.TestCase):
     def test_4_6_05_1(self):
         '''[4.6.005] JS Modify document with Set and Unset with node session: NODE SESSION'''
         results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
-                        '--password=' + LOCALHOST.password,
+        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"CountryInfo\").existsInDatabase();\n", "true"),
-                  ("var myColl = session.getSchema(\'world_x\').getCollection(\"CountryInfo\");\n", "mysql-js>"),
+        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n", "true"),
+                  ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n", "mysql-js>"),
                   (
-                      "myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n",
-                      "Query OK, 1 item affected"),
+                  "myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n",
+                  "Query OK, 1 item affected"),
                   (
-                      "myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n",
-                      "Query OK, 1 item affected"),
+                  "myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n",
+                  "Query OK, 1 item affected"),
                   # ("\\py\n","mysql-py>"),
-                  # ("myColl2 = session.getSchema(\'world_x\').getCollection(\"CountryInfo\")\n","mysql-py>"),
+                  # ("myColl2 = session.getSchema(\'world_x\').getCollection(\"countryinfo\")\n","mysql-py>"),
                   # ("myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n","Query OK, 1 item affected"),
                   # ("myColl2.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\')\n","Query OK, 1 item affected"),
                   ]
@@ -5001,7 +5027,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("var myColl = session.getSchema(\'sakila\').getCollection(\"test_merge_js\");\n", "mysql-js>"),
                   ("myColl.add({ nombre: \'Test1\', apellido:\'lastname1\'});\n", "Query OK"),
                   ("myColl.add({ nombre: \'Test2\', apellido:\'lastname2\'});\n", "Query OK"),
-                  ("myColl.modify('1').merge({idioma: \'spanish\'}).execute();\n", "Query OK, 2 items affected"),
+                  ("myColl.modify('true').merge({idioma: \'spanish\'}).execute();\n", "Query OK, 2 items affected"),
                   ("myColl.modify(\'nombre =: Name\').arrayAppend(\'apellido\', 'aburto').bind(\'Name\',\'Test1\');\n",
                    "Query OK, 1 item affected"),
                   # ----------------------------------------------------------------
@@ -5011,7 +5037,7 @@ class XShell_TestCases(unittest.TestCase):
                   # ("session.getSchema(\'sakila\').getCollection(\"test_merge_py\").existsInDatabase()\n","true"),
                   # ("myColl2 = session.getSchema(\'sakila\').getCollection(\"test_merge_py\")\n","mysql-py>"),
                   # ("myColl2.add([{ \"nombre\": \"TestPy2\", \"apellido\":\"lastnamePy2\"},{ \"nombre\": \"TestPy3\", \"apellido\":\"lastnamePy3\"}])\n","Query OK"),
-                  # ("myColl2.modify('1').merge({\'idioma\': \'spanish\'}).execute()\n","Query OK, 2 items affected"),
+                  # ("myColl2.modify(\'true\').merge({\'idioma\': \'spanish\'}).execute()\n","Query OK, 2 items affected"),
                   # ("myColl2.modify(\'nombre =: Name\').arrayAppend(\'apellido\', 'aburto').bind(\'Name\',\'TestPy2\')\n","Query OK, 1 item affected"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -5020,22 +5046,21 @@ class XShell_TestCases(unittest.TestCase):
     def test_4_6_07_1(self):
         '''[4.6.007] PY Modify document with Set and Unset with node session: NODE SESSION'''
         results = ''
-        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
-                        '--password=' + LOCALHOST.password,
+        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"CountryInfo\").existsInDatabase();\n", "true"),
-                  # ("var myColl = session.getSchema(\'world_x\').getCollection(\"CountryInfo\");\n","mysql-js>"),
+        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n", "true"),
+                  # ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
                   # ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                   # ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                   ("\\py\n", "mysql-py>"),
-                  ("myColl2 = session.get_schema(\'world_x\').get_collection(\"CountryInfo\")\n", "mysql-py>"),
+                  ("myColl2 = session.get_schema(\'world_x\').get_collection(\"countryinfo\")\n", "mysql-py>"),
                   (
-                      "myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n",
-                      "Query OK, 1 item affected"),
+                  "myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n",
+                  "Query OK, 1 item affected"),
                   (
-                      "myColl2.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\')\n",
-                      "Query OK, 1 item affected"),
+                  "myColl2.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\')\n",
+                  "Query OK, 1 item affected"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -5052,7 +5077,7 @@ class XShell_TestCases(unittest.TestCase):
             #           ("var myColl = session.get_schema(\'sakila\').get_collection(\"test_merge_js\");\n","mysql-js>"),
             #           ("myColl.add({ nombre: \'Test1\', apellido:\'lastname1\'});\n","Query OK"),
             #           ("myColl.add({ nombre: \'Test2\', apellido:\'lastname2\'});\n","Query OK"),
-            #           ("myColl.modify('1').merge({idioma: \'spanish\'}).execute();\n","Query OK, 2 items affected"),
+            #           ("myColl.modify(\'true\').merge({idioma: \'spanish\'}).execute();\n","Query OK, 2 items affected"),
             #           ("myColl.modify(\'nombre =: Name\').array_append(\'apellido\', 'aburto').bind(\'Name\',\'Test1\');\n","Query OK, 1 item affected"),
             # ----------------------------------------------------------------
             ("\\py\n", "mysql-py>"),
@@ -5063,7 +5088,7 @@ class XShell_TestCases(unittest.TestCase):
             (
                 "myColl2.add([{ \"nombre\": \"TestPy2\", \"apellido\":\"lastnamePy2\"},{ \"nombre\": \"TestPy3\", \"apellido\":\"lastnamePy3\"}])\n",
                 "Query OK"),
-            ("myColl2.modify('1').merge({\'idioma\': \'spanish\'}).execute()\n", "Query OK, 2 items affected"),
+            ("myColl2.modify(\'true\').merge({\'idioma\': \'spanish\'}).execute()\n", "Query OK, 2 items affected"),
             ("myColl2.modify(\'nombre =: Name\').array_append(\'apellido\', 'aburto').bind(\'Name\',\'TestPy2\')\n",
              "Query OK, 1 item affected"),
         ]
@@ -5824,7 +5849,7 @@ class XShell_TestCases(unittest.TestCase):
 
         x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
                   ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
-                  ("myColl.modify('1').merge({Language: \'Spanish\', Extra_Info:[\'Extra info TBD\']}).limit(" + str(
+                  ("myColl.modify(\'true\').merge({Language: \'Spanish\', Extra_Info:[\'Extra info TBD\']}).limit(" + str(
                       jsRowsNum_Test) + ").execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -5840,7 +5865,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
                   ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
                   (
-                  "myColl.modify('1').arrayAppend(\'Language\', \'Spanish_mexico\').arrayAppend(\'Extra_Info\', \'Extra info TBD 2\').limit(" + str(
+                  "myColl.modify(\'true\').arrayAppend(\'Language\', \'Spanish_mexico\').arrayAppend(\'Extra_Info\', \'Extra info TBD 2\').limit(" + str(
                       jsRowsNum_Test) + ").execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6060,7 +6085,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [("session.sql(\"use world_x;\")\n", "Query OK"),
                   ("myColl = session.get_schema(\'world_x\').get_collection(\"big_coll_node_py\")\n", ""),
                   (
-                  "myColl.modify('1').merge({\'Language\': \"Spanish\", \'Extra_Info\':[\"Extra info TBD\"]}).limit(" + str(
+                  "myColl.modify(\'true\').merge({\'Language\': \"Spanish\", \'Extra_Info\':[\"Extra info TBD\"]}).limit(" + str(
                       pyRowsNum_Test) + ").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6076,7 +6101,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [("session.sql(\"use world_x;\")\n", "Query OK"),
                   ("myColl = session.get_schema(\'world_x\').get_collection(\"big_coll_node_py\")\n", ""),
                   (
-                      "myColl.modify('1').array_append(\"Language\", \"Spanish_mexico\").array_append(\"Extra_Info\", \"Extra info TBD 2\").limit(" + str(
+                      "myColl.modify(\'true\').array_append(\"Language\", \"Spanish_mexico\").array_append(\"Extra_Info\", \"Extra info TBD 2\").limit(" + str(
                           pyRowsNum_Test) + ").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6394,8 +6419,7 @@ class XShell_TestCases(unittest.TestCase):
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         p.stdin.flush()
         stdin, stdout = p.communicate()
-        version = MYSQL_SHELL + "   Ver"
-        if stdin.find(bytearray(version, "ascii"), 0, len(stdin)) >= 0:
+        if stdin.find(bytearray("MySQL Shell Version", "ascii"), 0, len(stdin)) >= 0:
             results = "PASS"
         else:
             results = "FAIL"
@@ -6686,7 +6710,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("session.sql(\'create table world_x.mys286 (date datetime);\')\n", "Query OK"),
                   ("Table = session.getSchema(\'world_x\').getTable(\'mys286\')\n", "<Table:mys286>"),
                   ("Table.insert().values('2016-03-14 12:36:37')\n", "Query OK, 1 item affected"),
-                  ("Table.select()\n", "2016-04-14 12:36:37"),
+                  ("Table.select()\n", "2016-03-14 12:36:37"),
                   ("Table.insert().values('2016-03-14 12:36:37')\n", "Query OK")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6814,7 +6838,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
         x_cmds = [(";\n", 'mysql-py>'),
                   ("session.create_schema(\'my-Classic\')\n", "<ClassicSchema:my-Classic>"),
-                  ("session.drop_schema(\'my-Classic\')\n", "mysql-py>")
+                  ("session.drop_schema(\'my-Classic\')\n", "Query OK")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6826,7 +6850,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
         x_cmds = [#(";\n", 'mysql-py>'),
                   ("session.create_schema('my-Node')\n", "<Schema:my-Node>"),
-                  ("session.drop_schema('my-Node')\n", "mysql-py>")
+                  ("session.drop_schema('my-Node')\n", "Query OK")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7041,7 +7065,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
-                  ("db.name\n", "The db variable is not set, establish a session first."),
+                  ("db.name\n", "The db variable is not set, establish a global session first."),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7080,6 +7104,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("DEPRECATED")
     def test_MYS_341_01(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-341 with classic session and py custom prompt"""
         results = ''
@@ -7096,6 +7121,7 @@ class XShell_TestCases(unittest.TestCase):
         xPrompts.remove_last()
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("DEPRECATED")
     def test_MYS_341_02(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-341 with node session and js custom prompt"""
         results = ''
@@ -7260,7 +7286,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
         x_cmds = [("session.create_schema('uri')\n", ""),
                   ("session.get_schema('uri')\n", ""),
-                  ("session.drop_schema('uri')\n", "mysql-py>")
+                  ("session.drop_schema('uri')\n", "Query OK")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7272,7 +7298,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
         x_cmds = [("session.createSchema('uri')\n", ""),
                   ("session.getSchema('uri')\n", ""),
-                  ("session.dropSchema('uri')\n", "mysql-js>")
+                  ("session.dropSchema('uri')\n", "Query OK")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7285,7 +7311,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--x', '--js']
         x_cmds = [("session.createSchema('uri')\n", ""),
                   ("session.getSchema('uri')\n", ""),
-                  ("session.dropSchema('uri')\n", "mysql-js>")
+                  ("session.dropSchema('uri')\n", "Query OK")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8098,10 +8124,10 @@ class XShell_TestCases(unittest.TestCase):
               "\\warnings   (\\W)       Show warnings after every statement." + os.linesep + \
               "\\nowarnings (\\w)       Don't show warnings after every statement." + os.linesep + \
               "\\status     (\\s)       Print information about the current global connection." + os.linesep + \
-              "\\use        (\\u)       Set the current schema for the active session." + os.linesep
-        # "\\saveconn   (\\savec)   Store a session configuration." + os.linesep + \
-        # "\\rmconn     (\\rmc)     Remove the stored session configuration." + os.linesep + \
-        # "\\lsconn     (\\lsc)     List stored session configurations."
+              "\\use        (\\u)       Set the current schema for the global session." + os.linesep
+              # "\\saveconn   (\\savec)   Store a session configuration." + os.linesep + \
+              # "\\rmconn     (\\rmc)     Remove the stored session configuration." + os.linesep + \
+              # "\\lsconn     (\\lsc)     List stored session configurations."
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\help\n", var)
                   ]
@@ -8449,7 +8475,7 @@ class XShell_TestCases(unittest.TestCase):
               "geography: { Continent: \"Europe\", Region: \"British Islands\", SurfaceArea: 193}," + \
               "government: { GovernmentForm: \"Monarchy\", HeadOfState: \"Michael Bates\"}}"
 
-        x_cmds = [("var myColl = session.getSchema('world_x').getCollection('CountryInfo');\n", "mysql-js>"),
+        x_cmds = [("var myColl = session.getSchema('world_x').getCollection('countryinfo');\n", "mysql-js>"),
                   ("var result = myColl.add(" + var + " ).execute();\n", "mysql-js>"),
                   ("result.getLastDocumentId();\n", "SEA"),
                   ]
@@ -8485,7 +8511,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[MYS-542]:Session.uri display wrong menu data to the user'''
         results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-        x_cmds = [("session.uri\n", "There is no active session, do you want to establish one?"),
+        x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
                   ("2\n", "specify the MySQL server URI"),
                   ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port), "Enter password"),
                   ("{0}\n".format(LOCALHOST.password), "{0}@{1}:{2}".format(LOCALHOST.user, LOCALHOST.host,
@@ -8522,7 +8548,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[MYS-542]:Session.uri display wrong menu data to the user'''
         results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-        x_cmds = [("session.uri\n", "There is no active session, do you want to establish one?"),
+        x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
                   ("1\n", "specify the MySQL server URI"),
                   ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port),
                    "Enter password"),
@@ -8702,18 +8728,48 @@ class XShell_TestCases(unittest.TestCase):
                    "\\warnings   (\\W)       Show warnings after every statement." + os.linesep +
                    "\\nowarnings (\\w)       Don't show warnings after every statement." + os.linesep +
                    "\\status     (\\s)       Print information about the current global connection." + os.linesep +
-                   "\\use        (\\u)       Set the current schema for the active session." + os.linesep +
+                   "\\use        (\\u)       Set the current schema for the global session."+ os.linesep +
+                   ""+ os.linesep +
+                   "For help on a specific command use the command as \? <command>"+ os.linesep +
                    "" + os.linesep +
-                   "For help on a specific command use the command as \? <command>" + os.linesep +
-                   "" + os.linesep +
-                   "===== Global Objects =====" + os.linesep +
+                   "===== Global Objects ====="  + os.linesep +
                    "db         Used to work with database schema objects."+ os.linesep +
                    "dba        Enables you to administer InnoDB clusters using the AdminAPI."+ os.linesep +
                    "mysql      Used to work with classic MySQL sessions using SQL."+ os.linesep +
                    "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI."+ os.linesep +
                    "session    Represents the currently open MySQL session."+ os.linesep +
-                   "shell      Gives access to general purpose functions and properties." + os.linesep +
-                   "sys        Gives access to system specific parameters." + os.linesep )]
+                   "shell      Gives access to general purpose functions and properties."+ os.linesep +
+                   "sys        Gives access to system specific parameters."+ os.linesep +
+                   "" + os.linesep )
+                   #"mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI.")
+                   # (#"\\py\n",
+                   #"mysql-py>"),
+                   #("\\h\n", "===== Global Objects =====" + os.linesep +
+                   #"db         Used to work with database schema objects." + os.linesep +
+                   #"dba        Allows performing DBA operations using the MySQL X AdminAPI." + os.linesep +
+                   #"mysql      Used to work with classic MySQL sessions using SQL." + os.linesep +
+                   #"mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep +
+                   #"session    Represents the currently open MySQL session." + os.linesep +
+                   #"shell      Gives access to general purpose functions and properties." + os.linesep +
+                   #"" + os.linesep +
+                   #"Please note that MySQL Document Store APIs are subject to change in future" + os.linesep +
+                   #"releases." + os.linesep +
+                   #"" + os.linesep +
+                   #"For more help on a global variable use <var>.help(), e.g. dba.help()" + os.linesep +
+                   #"" + os.linesep +
+                   #"mysql-py> "),
+                   #("\\sql\n",
+                   #"mysql-sql>"),
+                   #("\\h\n", "===== Global Objects =====" + os.linesep +
+                   #"session    Represents the currently open MySQL session." + os.linesep +
+                   #"" + os.linesep +
+                   #"Please note that MySQL Document Store APIs are subject to change in future" + os.linesep +
+                   #"releases." + os.linesep +
+                   #"" + os.linesep +
+                   #"For more help on a global variable use <var>.help(), e.g. dba.help()" + os.linesep +
+                   #"" + os.linesep +
+                   #"mysql-sql> ")
+                  ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
@@ -8723,9 +8779,20 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port]
-        x_cmds = [("session;\n", "<NodeSession:")]
-
-        results = exec_xshell_commands(init_command, x_cmds)
+        count = 1
+        p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        p.stdin.flush()
+        stdoutdata, stderrdata = p.communicate()
+        stdoutsplitted = stdoutdata.splitlines()
+        for line in stdoutsplitted:
+            count += 1
+            found = line.find("Node Session successfully established", 0, len(line))
+            if found == -1 and count > len(stdoutsplitted):
+                results = "FAIL"
+                break
+            elif found != -1:
+                results = "PASS"
+                break
         self.assertEqual(results, 'PASS')
 
     def test_Bug_26402917(self):

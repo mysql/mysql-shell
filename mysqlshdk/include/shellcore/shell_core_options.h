@@ -30,8 +30,13 @@
 // AdminAPI: Gadgets path
 // TODO: which will be the path? How do we get it?
 #define SHCORE_GADGETS_PATH "gadgetsPath"
-
 #define SHCORE_SANDBOX_DIR "sandboxDir"
+
+#define SHCORE_HISTORY_MAX_SIZE "history.maxSize"
+#define SHCORE_HISTIGNORE "history.sql.ignorePattern"
+#define SHCORE_HISTORY_AUTOSAVE "history.autoSave"
+
+#define SN_SHELL_OPTION_CHANGED "SN_SHELL_OPTION_CHANGED"
 
 namespace shcore {
 class SHCORE_PUBLIC  Shell_core_options :public shcore::Cpp_object_bridge {

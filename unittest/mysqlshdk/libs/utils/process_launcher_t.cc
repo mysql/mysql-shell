@@ -50,7 +50,7 @@ static void check_argv(const char **argv, const std::string &cmd) {
 }
 #else
 // no-op outside windows
-static void check_argv(const char **argv, const std::string &cmd) {}
+static void check_argv(const char **, const std::string &) {}
 #endif
 
 TEST(Process_launcher, windows_cmdline_join) {

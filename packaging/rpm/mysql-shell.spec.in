@@ -40,7 +40,6 @@ BuildRequires:  boost-devel
 BuildRequires:  protobuf-devel
 BuildRequires:  protobuf-compiler
 %endif
-#BuildRequires:  libedit-devel  FIXME only if -DWITH_EDITLINE=system
 BuildRequires:  python-devel
 %if 0%{!?static}
 BuildRequires:  mysql-devel
@@ -110,8 +109,12 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %doc README
 %{_bindir}/mysqlsh
 %{_bindir}/mysqlprovision
+%{_datadir}/mysqlsh/prompt/*
 
 %changelog
+* Thu May 04 2017 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.8-1
+- Remove libedit dependency, add sample prompt files
+
 * Mon Mar 13 2017 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.8-1
 - Updated for mysqlprovision build change
 

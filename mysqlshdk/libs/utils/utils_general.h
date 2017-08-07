@@ -64,6 +64,10 @@ std::vector<std::string> SHCORE_PUBLIC
 split_string_chars(const std::string &input, const std::string &separator_chars,
                    bool compress = false);
 
+bool SHCORE_PUBLIC match_glob(const std::string &pattern, const std::string &s,
+                              bool case_sensitive = false);
+std::string SHCORE_PUBLIC fmttime(const char *fmt);
+
 void SHCORE_PUBLIC split_account(const std::string &account,
                                  std::string *out_user, std::string *out_host);
 std::string SHCORE_PUBLIC make_account(const std::string &user,

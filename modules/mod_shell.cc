@@ -44,11 +44,7 @@ _shell_core(owner) {
 }
 
 void Shell::init() {
-  _custom_prompt[0] = shcore::Value::Null();
-  _custom_prompt[1] = shcore::Value::Null();
-
   add_property("options");
-  add_property("customPrompt"); // Note that this specific property uses this name in both PY/JS (for now)
 
   add_method("parseUri", std::bind(&Shell::parse_uri, this, _1), "uri", shcore::String, NULL);
   add_varargs_method("prompt", std::bind(&Shell::prompt, this, _1));
@@ -66,20 +62,13 @@ bool Shell::operator == (const Object_bridge &other) const {
 }
 
 void Shell::set_member(const std::string &prop, shcore::Value value) {
-  if (prop == "customPrompt") {
-    if (value.type == shcore::Function)
-      _custom_prompt[naming_style] = value;
-    else
-      throw shcore::Exception::runtime_error("The custom prompt must be a function");
-  } else {
-    Cpp_object_bridge::set_member(prop, value);
-  }
+  Cpp_object_bridge::set_member(prop, value);
 }
 
-// Documentation of getTables function
+// Documentation of shell.options
 REGISTER_HELP(SHELL_OPTIONS_BRIEF, "Dictionary of active shell options.");
 REGISTER_HELP(SHELL_OPTIONS_DETAIL, "The options dictionary may contain "\
-                                    "the next attributes:");
+                                    "the following attributes:");
 REGISTER_HELP(SHELL_OPTIONS_DETAIL1, "@li batchContinueOnError: read-only, "\
                                      "boolean value to indicate if the "\
                                      "execution of an SQL script in batch "\
@@ -98,29 +87,26 @@ REGISTER_HELP(SHELL_OPTIONS_DETAIL5, "@li showWarnings: boolean value to "\
 REGISTER_HELP(SHELL_OPTIONS_DETAIL6, "@li useWizards: read-only, boolean value "\
                                      "to indicate if the Shell is using the "\
                                      "interactive wrappers (wizard mode)");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL7, "@li " SHCORE_HISTORY_MAX_SIZE ": number "\
+                                     "of entries to keep in command history");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL8, "@li " SHCORE_HISTORY_AUTOSAVE ": true "\
+                              "to save command history when exiting the shell");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL9, \
+    "@li " SHCORE_HISTIGNORE ": colon separated list of glob patterns to filter"
+    " out of the command history in SQL mode");
 
-REGISTER_HELP(SHELL_OPTIONS_DETAIL7, "The outputFormat option supports the following values:");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL8, "@li table: displays the output in table format (default)");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL9, "@li json: displays the output in JSON format");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL10, "@li json/raw: displays the output in a JSON format but in a single line");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL11, "@li vertical: displays the outputs vertically, one line per column value");
-
-REGISTER_HELP(SHELL_CUSTOMPROMPT_BRIEF, "Callback to modify the default shell prompt.");
-REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL, "This property can be used to "\
-                                         "customize the shell prompt, i.e. to "\
-                                         "make it include more information "\
-                                         "than the default implementation.");
-REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL1, "This property acts as a place "\
-                                          "holder for a function that would "\
-                                          "create the desired prompt.");
-REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL2, "To modify the default shell prompt, follow the next steps:");
-REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL3, "@li Define a function that receives "\
-                                          "no parameters and returns a string "\
-                                          "which is the desired prompt.");
-REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL4, "@li Assign the function to this property.");
-REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL5, "The new prompt function will be "\
-                                          "automatically used to create the "\
-                                          "shell prompt.");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL10, \
+              "The outputFormat option supports the following values:");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL11, \
+              "@li table: displays the output in table format (default)");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL12, \
+              "@li json: displays the output in JSON format");
+REGISTER_HELP(\
+    SHELL_OPTIONS_DETAIL13, \
+    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(\
+    SHELL_OPTIONS_DETAIL14, \
+    "@li vertical: displays the outputs vertically, one line per column value");
 
 /**
  * $(SHELL_OPTIONS_BRIEF)
@@ -137,6 +123,7 @@ REGISTER_HELP(SHELL_CUSTOMPROMPT_DETAIL5, "The new prompt function will be "\
  * $(SHELL_OPTIONS_DETAIL9)
  * $(SHELL_OPTIONS_DETAIL10)
  * $(SHELL_OPTIONS_DETAIL11)
+ * $(SHELL_OPTIONS_DETAIL12)
  */
 #if DOXYGEN_JS
 Dictionary Shell::options;
@@ -144,31 +131,11 @@ Dictionary Shell::options;
 dict Shell::options;
 #endif
 
-/**
- * $(SHELL_CUSTOMPROMPT_BRIEF)
- *
- * $(SHELL_CUSTOMPROMPT_DETAIL)
- *
- * $(SHELL_CUSTOMPROMPT_DETAIL1)
- *
- * $(SHELL_CUSTOMPROMPT_DETAIL2)
- * $(SHELL_CUSTOMPROMPT_DETAIL3)
- * $(SHELL_CUSTOMPROMPT_DETAIL4)
- *
- * $(SHELL_CUSTOMPROMPT_DETAIL5)
- */
-#if DOXYGEN_JS
-Callback Shell::customPrompt;
-#elif DOXYGEN_PY
-Callback Shell::custom_prompt;
-#endif
 shcore::Value Shell::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
   if (prop == "options") {
     ret_val = shcore::Value(std::static_pointer_cast<Object_bridge>(shcore::Shell_core_options::get_instance()));
-  } else if (prop == "customPrompt") {
-    ret_val = _custom_prompt[naming_style];
   } else {
     ret_val = Cpp_object_bridge::get_member(prop);
   }

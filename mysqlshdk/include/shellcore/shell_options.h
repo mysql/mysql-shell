@@ -69,6 +69,7 @@ public:
   ngcommon::Logger::LOG_LEVEL log_level;
   bool wizards;
   bool admin_mode;
+  std::string histignore;
 
   // cmdline params to be passed to script
   std::vector<std::string> script_argv;

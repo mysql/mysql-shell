@@ -37,32 +37,26 @@ void Admin_api_test::SetUp() {
   _sandbox_cnf_3 = shcore::str_join(path_components, _path_splitter);
 }
 
-void Admin_api_test::add_instance_type_queries
-  (std::vector<testing::Fake_result_data> *data,
-   mysqlsh::dba::GRInstanceType type) {
-  data->push_back({
-    "select count(*) "
-    "from performance_schema.replication_group_members "
-    "where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL "
-    "AND MEMBER_STATE <> 'OFFLINE';",
-    {"count(*)"},
-    {mysqlshdk::db::Type::Integer},
-    {
-      {type == mysqlsh::dba::Standalone ? "0" : "1"}
-    }
-  });
+void Admin_api_test::add_instance_type_queries(
+    std::vector<testing::Fake_result_data> *data,
+    mysqlsh::dba::GRInstanceType type) {
+  data->push_back(
+      {"select count(*) "
+       "from performance_schema.replication_group_members "
+       "where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL "
+       "AND MEMBER_STATE <> 'OFFLINE';",
+       {"count(*)"},
+       {mysqlshdk::db::Type::Integer},
+       {{type == mysqlsh::dba::Standalone ? "0" : "1"}}});
 
   if (type != mysqlsh::dba::Standalone) {
-  data->push_back({
-    "select count(*) "
-    "from mysql_innodb_cluster_metadata.instances "
-    "where mysql_server_uuid = @@server_uuid",
-    {"count(*)"},
-    { mysqlshdk::db::Type::Integer},
-    {
-      {type == mysqlsh::dba::InnoDBCluster ? "1" : "0"}
-    }
-  });
+    data->push_back(
+        {"select count(*) "
+         "from mysql_innodb_cluster_metadata.instances "
+         "where mysql_server_uuid = @@server_uuid",
+         {"count(*)"},
+         {mysqlshdk::db::Type::Integer},
+         {{type == mysqlsh::dba::InnoDBCluster ? "1" : "0"}}});
   }
 }
 

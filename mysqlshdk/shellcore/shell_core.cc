@@ -340,10 +340,6 @@ std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
   return globals;
 }
 
-std::string Shell_core::prompt() {
-  return _langs[interactive_mode()]->prompt();
-}
-
 void Shell_core::clear_input() {
   _langs[interactive_mode()]->clear_input();
 }
@@ -413,11 +409,7 @@ bool Shell_core::reconnect_if_needed() {
           attempts--;
           if (attempts > 0) {
             // Try again
-#ifdef _WIN32
-            Sleep(1500);
-#else
-            usleep(1500000);
-#endif
+            sleep(1);
           }
         }
       }

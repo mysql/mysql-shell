@@ -1,0 +1,64 @@
+{
+  "classes" : {
+    "schema": {
+      "text": "[%host%%xprotocol%%ssltext%/%schema%]"
+    },
+    "noschema": {
+      "text": "[%host%%xprotocol%%ssltext%]"
+    },
+    "nohost": {
+    },
+    "production" : {
+      "text": " PRODUCTION "
+    }
+  },
+  "variables" : {
+    "is_production": {
+        "match" : {
+            "pattern": "*;%host%;*",
+            "value": ";%env:PRODUCTION_SERVERS%;"
+        },
+        "if_true" : "production",
+        "if_false" : ""
+    },
+    "xprotocol": {
+      "match": {
+            "pattern": "%session%",
+            "value": "x"
+      },
+      "if_true": "+",
+      "if_false": ""
+    },
+    "ssltext": {
+      "match": {
+            "pattern": "%ssl%",
+            "value": "SSL"
+      },
+      "if_true": " ssl",
+      "if_false": ""
+    }
+  },
+  "prompt": {
+    "text": "> ",
+    "cont_text": "-> "
+  },
+  "segments": [
+	{
+	  "classes": ["nohost%host%", "%is_production%"]
+	},
+    {
+	  "separator": "",
+      "text": "MySQL"
+    },
+    {
+      "classes": ["nohost%host%", "noschema%schema%", "schema"],
+      "shrink": "truncate_on_dot",
+      "weight": 10
+    },
+    {
+      "text": "%Mode%",
+      "tag": "%Mode%",
+      "separator" : " "
+    }
+  ]
+}

@@ -26,6 +26,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-private-field"
 #pragma clang diagnostic ignored "-Wnull-dereference"
+#pragma clang diagnostic ignored "-Wsign-compare"
 #elif defined __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"

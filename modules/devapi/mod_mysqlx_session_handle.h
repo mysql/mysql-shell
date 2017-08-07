@@ -57,8 +57,9 @@ class SHCORE_PUBLIC SessionHandle {
   bool expired_account() { return _expired_account; }
   void load_session_info() const;
 
-  uint64_t get_client_id() const;
+  uint64_t get_client_id();
   uint64_t get_connection_id() const { return _connection_id; }
+  std::string get_ssl_cipher() const { return _ssl_cipher; }
 
  private:
   mutable std::shared_ptr< ::mysqlx::Result> _last_result;
@@ -66,6 +67,7 @@ class SHCORE_PUBLIC SessionHandle {
   mutable bool _case_sensitive_table_names;
   mutable uint64_t _connection_id;
   mutable bool _expired_account;
+  mutable std::string _ssl_cipher;
 
   ::mysqlx::ArgumentValue get_argument_value(shcore::Value source) const;
 };

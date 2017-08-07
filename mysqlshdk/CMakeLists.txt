@@ -27,6 +27,7 @@ SET(OLD_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 SET(CMAKE_CXX_FLAGS ${CXX_FLAGS_FULL_WARNINGS})
 ADD_SUBDIRECTORY(libs/utils)
 ADD_SUBDIRECTORY(libs/db)
+ADD_SUBDIRECTORY(libs/textui)
 SET(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
 
 add_subdirectory(scripting)
@@ -44,6 +45,7 @@ merge_libraries(mysqlshdk-static STATIC
     utils
     db
     mysql
+    textui
     scripting
     shellcore NOINSTALL)
 
