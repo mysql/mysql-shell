@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2015, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2009, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -373,7 +373,6 @@ CHECK_INCLUDE_FILES (netinet/in.h HAVE_NETINET_IN_H)
 CHECK_INCLUDE_FILES (poll.h HAVE_POLL_H)
 CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
 CHECK_INCLUDE_FILES (strings.h HAVE_STRINGS_H) # Used by NDB
-CHECK_INCLUDE_FILES (sys/cdefs.h HAVE_SYS_CDEFS_H) # Used by libedit
 CHECK_INCLUDE_FILES (sys/ioctl.h HAVE_SYS_IOCTL_H)
 CHECK_INCLUDE_FILES (sys/mman.h HAVE_SYS_MMAN_H)
 CHECK_INCLUDE_FILES (sys/resource.h HAVE_SYS_RESOURCE_H)
@@ -387,8 +386,6 @@ CHECK_INCLUDE_FILES (sys/wait.h HAVE_SYS_WAIT_H)
 CHECK_INCLUDE_FILES (sys/param.h HAVE_SYS_PARAM_H) # Used by NDB/libevent
 CHECK_INCLUDE_FILES (fnmatch.h HAVE_FNMATCH_H)
 CHECK_INCLUDE_FILES (sys/un.h HAVE_SYS_UN_H)
-CHECK_INCLUDE_FILES (vis.h HAVE_VIS_H) # Used by libedit
-CHECK_INCLUDE_FILES (sasl/sasl.h HAVE_SASL_SASL_H) # Used by memcached
 
 # For libevent
 CHECK_INCLUDE_FILES(sys/devpoll.h HAVE_DEVPOLL)
@@ -764,7 +761,7 @@ IF(HAVE_NUMAIF_H AND WITH_NUMA)
        set_mempolicy(MPOL_DEFAULT, 0, 0);
     }"
     HAVE_LIBNUMA)
-    
+
     IF(NOT HAVE_LIBNUMA)
       SET(CMAKE_REQUIRED_LIBRARIES ${SAVED_CMAKE_REQUIRED_LIBRARIES})
     ENDIF()

@@ -90,6 +90,9 @@ public:
   virtual void commit();
   virtual void rollback();
 
+  virtual std::string get_current_schema() {
+    return _retrieve_current_schema();
+  }
 
   shcore::Value _close(const shcore::Argument_list &args);
   virtual shcore::Value run_sql(const shcore::Argument_list &args) const;
@@ -100,7 +103,6 @@ public:
   shcore::Value _drop_schema(const shcore::Argument_list &args);
   shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
   shcore::Value _is_open(const shcore::Argument_list &args);
-
 
   virtual shcore::Value::Map_type_ref get_status();
 
@@ -117,7 +119,8 @@ public:
   Connection *connection();
 
   virtual uint64_t get_connection_id() const;
-  virtual std::string query_one_string(const std::string &query);
+  virtual std::string query_one_string(const std::string &query, int field = 0);
+  virtual std::string get_ssl_cipher() const;
 
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const;
   shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;

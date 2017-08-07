@@ -22,6 +22,9 @@
 #include <set>
 #include <thread>
 
+#include <set>
+#include <string>
+
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "scripting/lang_base.h"
@@ -120,6 +123,11 @@ void ClassicSession::connect
       update_schema_cache(connection_options.get_schema(), true);
   }
   CATCH_AND_TRANSLATE();
+}
+
+std::string ClassicSession::get_ssl_cipher() const {
+  const char *cipher = _conn->get_ssl_cipher();
+  return cipher ? cipher : "";
 }
 
 // Documentation of close function
@@ -916,14 +924,15 @@ bool ClassicSession::is_open() const {
   return _conn ? true : false;
 }
 
-std::string ClassicSession::query_one_string(const std::string &query) {
+std::string ClassicSession::query_one_string(const std::string &query,
+                                             int field) {
   shcore::Value val_result = execute_sql(query, shcore::Argument_list());
   auto result = val_result.as_object<mysql::ClassicResult>();
   shcore::Value val_row = result->fetch_one(shcore::Argument_list());
   if (val_row) {
     auto row = val_row.as_object<mysqlsh::Row>();
     if (row) {
-      return row->get_member(0).as_string();
+      return row->get_member(field).as_string();
     }
   }
   return "";

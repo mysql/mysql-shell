@@ -203,4 +203,57 @@ TEST(utils_general, split_string_chars) {
   EXPECT_EQ("", strs9[2]);
   EXPECT_EQ("", strs9[3]);
 }
+
+TEST(utils_general, match_glob) {
+  EXPECT_TRUE(match_glob("*", ""));
+  EXPECT_TRUE(match_glob("**", ""));
+  EXPECT_TRUE(match_glob("*", "aaaa"));
+  EXPECT_TRUE(match_glob("**", "aaaa"));
+  EXPECT_FALSE(match_glob("*?", ""));
+  EXPECT_TRUE(match_glob("*?", "a"));
+  EXPECT_TRUE(match_glob("*?", "aaaa"));
+  EXPECT_TRUE(match_glob("?*?", "aaaa"));
+  EXPECT_TRUE(match_glob("?*?", "aa"));
+  EXPECT_FALSE(match_glob("?*?", "a"));
+  EXPECT_TRUE(match_glob("a", "a"));
+  EXPECT_TRUE(match_glob("a", "A"));
+  EXPECT_FALSE(match_glob("a", ""));
+  EXPECT_FALSE(match_glob("a", "b"));
+  EXPECT_FALSE(match_glob("a", "A", true));
+  EXPECT_TRUE(match_glob("A", "A", true));
+  EXPECT_TRUE(match_glob("a?b", "axb"));
+  EXPECT_FALSE(match_glob("a?b", "ab"));
+  EXPECT_TRUE(match_glob("*.*", "a.b"));
+  EXPECT_TRUE(match_glob("*.*", "a.b.c"));
+  EXPECT_TRUE(match_glob("*.*", "."));
+  EXPECT_TRUE(match_glob("\\*", "*"));
+  EXPECT_FALSE(match_glob("\\*", "\\"));
+  EXPECT_FALSE(match_glob("\\*", "x"));
+  EXPECT_TRUE(match_glob("\\?", "?"));
+  EXPECT_TRUE(match_glob("?\\?", "??"));
+  EXPECT_TRUE(match_glob("?\\?", "x?"));
+  EXPECT_FALSE(match_glob("?\\?", "xx"));
+  EXPECT_FALSE(match_glob("\\?", "\\"));
+  EXPECT_FALSE(match_glob("\\?", "x"));
+  EXPECT_TRUE(match_glob("\\\\", "\\"));
+  EXPECT_FALSE(match_glob("\\\\", "x"));
+
+  EXPECT_TRUE(match_glob("a*b", "ab"));
+  EXPECT_TRUE(match_glob("a*b", "abb"));
+  EXPECT_TRUE(match_glob("a*b", "abcb"));
+  EXPECT_TRUE(match_glob("*a*b", "abcb"));
+  EXPECT_TRUE(match_glob("*a*b", "babcb"));
+  EXPECT_TRUE(match_glob("*a*b", "babacb"));
+  EXPECT_TRUE(match_glob("*a*b", "ababacb"));
+  EXPECT_TRUE(match_glob("*a*b*c", "xcaqbcqbxaxc"));
+  EXPECT_TRUE(match_glob("*a*b*c", "xccqbcqbxabc"));
+  EXPECT_TRUE(match_glob("a*b*c*", "abcbabac"));
+  EXPECT_TRUE(match_glob("a*b*c*", "abcbabacdx"));
+  EXPECT_TRUE(match_glob("a*b*c", "abcbabac"));
+  EXPECT_TRUE(match_glob("a*b*c", "abxc"));
+  EXPECT_TRUE(match_glob("a*b*c*", "abc"));
+  EXPECT_TRUE(match_glob("a*b*c*", "abcd"));
+  EXPECT_TRUE(match_glob("a*b*c*", "abdcd"));
+  EXPECT_THROW(match_glob("\\", "x"), std::logic_error);
+}
 }

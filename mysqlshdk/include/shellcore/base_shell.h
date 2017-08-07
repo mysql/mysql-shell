@@ -23,9 +23,12 @@
 #include "scripting/types.h"
 #include "shellcore/shell_core.h"
 
+#include <map>
+#include <string>
+
 namespace mysqlsh {
 class SHCORE_PUBLIC Base_shell {
-public:
+ public:
   Base_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate);
   int process_stream(std::istream & stream, const std::string& source,
                      const std::vector<std::string> &argv, bool force_batch = false);
@@ -49,7 +52,8 @@ public:
 
   virtual void process_line(const std::string &line);
   void notify_executed_statement(const std::string& line);
-  std::string prompt();
+  virtual std::string prompt();
+  std::map<std::string, std::string> *prompt_variables();
 
   std::shared_ptr<shcore::Shell_core> shell_context() const { return _shell; }
 
@@ -59,18 +63,30 @@ public:
                              shcore::IShell_core::Mode_mask::any());
   bool switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &args);
 
-protected:
+ protected:
   mysqlsh::Shell_options _options;
   std::shared_ptr<shcore::Shell_core> _shell;
+  std::map<std::string, std::string> _prompt_variables;
   shcore::Input_state _input_mode;
   std::string _input_buffer;
+  int _update_variables_pending = 0;
 
-private:
+  shcore::Input_state input_state() const { return _input_mode; }
+  void update_prompt_variables(bool reconnected);
+
+ private:
   void process_result(shcore::Value result);
 
   std::function<void(shcore::Value)> _result_processor;
 
   shcore::Interpreter_delegate _delegate;
+
+ protected:
+  shcore::Shell_command_handler _shell_command_handler;
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Interactive_shell_test, ssl_status);
+#endif
 };
 }
 #endif

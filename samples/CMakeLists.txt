@@ -1,0 +1,33 @@
+# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.DD_S
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+SET(PROMPT_SAMPLES
+    prompt/README.prompt
+    prompt/prompt_16.json
+    prompt/prompt_256.json
+    prompt/prompt_256inv.json
+    prompt/prompt_256pl.json
+    prompt/prompt_256pl+aw.json
+    prompt/prompt_classic.json
+    prompt/prompt_nocolor.json
+)
+
+IF(WIN32)
+  INSTALL(FILES ${PROMPT_SAMPLES}
+        DESTINATION prompt/ COMPONENT main)
+ELSE()
+  INSTALL(FILES ${PROMPT_SAMPLES}
+    DESTINATION ${INSTALL_SHAREDIR}/prompt/ COMPONENT main)
+ENDIF()

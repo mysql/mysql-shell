@@ -17,16 +17,19 @@
  * 02110-1301  USA
  */
 
+#include "mysh_config.h"
+#include "mysqlsh/cmdline_shell.h"
+#include "mysqlsh/shell_cmdline_options.h"
+#include "shellcore/interrupt_handler.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/textui/textui.h"
+
 #include <mysql_version.h>
 #include <sys/stat.h>
 #include <cstdio>
 #include <sstream>
 #include <iostream>
-
-#include "mysh_config.h"
-#include "mysqlsh/cmdline_shell.h"
-#include "mysqlsh/shell_cmdline_options.h"
-#include "shellcore/interrupt_handler.h"
 
 #ifndef WIN32
 #include <unistd.h>
@@ -257,7 +260,118 @@ std::string detect_interactive(mysqlsh::Shell_options *options,
   return error;
 }
 
+
+static mysqlshdk::textui::Color_capability detect_color_capability() {
+  mysqlshdk::textui::Color_capability color_mode = mysqlshdk::textui::Color_256;
+#ifdef _WIN32
+  // Try to enable VT100 escapes... if it doesn't work,
+  // then it disables the ansi escape sequences
+  // Supported in Windows 10 command window and some other terminals
+  HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+  DWORD mode;
+  GetConsoleMode(handle, &mode);
+
+  // ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+  if (!SetConsoleMode(handle, mode | 0x004)) {
+    if (getenv("ANSICON")) {
+      // ConEmu
+      color_mode = mysqlshdk::textui::Color_rgb;
+    } else {
+      color_mode = mysqlshdk::textui::No_color;
+    }
+  } else {
+    color_mode = mysqlshdk::textui::Color_rgb;
+  }
+#else
+  const char *term = getenv("TERM");
+  if (term) {
+    if (shcore::str_endswith(term, "-256color") == 0) {
+      color_mode = mysqlshdk::textui::Color_256;
+    }
+  } else {
+    color_mode = mysqlshdk::textui::Color_16;
+  }
+#endif
+  return color_mode;
+}
+
+std::string pick_prompt_theme(const char *argv0) {
+  mysqlshdk::textui::Color_capability mode = detect_color_capability();
+  if (const char *force_mode = getenv("MYSQLSH_TERM_COLOR_MODE")) {
+    if (strcmp(force_mode, "rgb") == 0) {
+      mode = mysqlshdk::textui::Color_rgb;
+    } else if (strcmp(force_mode, "256") == 0) {
+      mode = mysqlshdk::textui::Color_256;
+    } else if (strcmp(force_mode, "16") == 0) {
+      mode = mysqlshdk::textui::Color_16;
+    } else if (strcmp(force_mode, "nocolor") == 0) {
+      mode = mysqlshdk::textui::No_color;
+    } else if (strcmp(force_mode, "") != 0) {
+      std::cout << "NOTE: MYSQLSH_TERM_COLOR_MODE environment variable set to "
+                   "invalid value. Must be one of rgb, 256, 16, nocolor\n";
+      return "";
+    }
+  }
+  log_debug("Using color mode %i", static_cast<int>(mode));
+  mysqlshdk::textui::set_color_capability(mode);
+
+  // check environment variable to override prompt theme
+  if (char *theme = getenv("MYSQLSH_PROMPT_THEME")) {
+    if (*theme) {
+      if (!shcore::file_exists(theme)) {
+        std::cout << "NOTE: MYSQLSH_PROMPT_THEME prompt theme file '"<< theme <<
+          "' does not exist.\n";
+        return "";
+      }
+      log_debug("Using prompt theme file %s", theme);
+    }
+    return theme;
+  }
+
+  // check user overriden prompt theme
+  std::string path = shcore::get_user_config_path();
+  path.append("prompt.json");
+
+  if (shcore::file_exists(path)) {
+    log_debug("Using prompt theme file %s", path.c_str());
+    return path;
+  }
+
+#ifdef _WIN32
+  path = shcore::get_binary_folder();
+  path += "/../prompt/";
+#else
+  path = shcore::get_binary_folder();
+  path += "/../";
+  path += INSTALL_SHAREDIR;
+  path += "/prompt/";
+#endif
+  switch (mode) {
+    case mysqlshdk::textui::Color_rgb:
+    case mysqlshdk::textui::Color_256:
+      path += "prompt_256.json";
+    break;
+    case mysqlshdk::textui::Color_16:
+      path += "prompt_16.json";
+      break;
+    case mysqlshdk::textui::No_color:
+      path += "prompt_nocolor.json";
+      break;
+    default:
+      path += "prompt_classic.json";
+      break;
+  }
+  log_debug("Using prompt theme file %s", path.c_str());
+  return path;
+}
+
+
 int main(int argc, char **argv) {
+#ifdef WIN32
+  // Enable UTF-8 input and output
+  SetConsoleCP(CP_UTF8);
+  SetConsoleOutputCP(CP_UTF8);
+#endif
   int ret_val = 0;
   Interrupt_helper sighelper;
 
@@ -335,10 +449,8 @@ int main(int argc, char **argv) {
         }
       }
 
-      // This must be set after all initialization is done, otherwise
-      // a signal could be caught at a time that the shell is in an
-      // inconsistent state
       g_shell_ptr = &shell;
+      shell.load_prompt_theme(pick_prompt_theme(argv[0]));
 
       if (!options.execute_statement.empty()) {
         std::stringstream stream(options.execute_statement);
@@ -354,9 +466,14 @@ int main(int argc, char **argv) {
       } else if (!options.run_file.empty()) {
         ret_val = shell.process_file(options.run_file, options.script_argv);
       } else if (options.interactive) {
+        shell.load_state(shcore::get_user_config_path());
         if (!from_stdin)
           shell.print_banner();
+
         shell.command_loop();
+
+        shell.save_state(shcore::get_user_config_path());
+
         ret_val = 0;
       } else {
         ret_val = shell.process_stream(std::cin, "STDIN", {});

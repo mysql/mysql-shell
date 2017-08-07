@@ -35,7 +35,6 @@ public:
   virtual std::string preprocess_input_line(const std::string &s);
   virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);
 
-  virtual std::string prompt();
   virtual bool is_module(const std::string& file_name);
   virtual void execute_module(const std::string& file_name, std::function<void(shcore::Value)> result_processor);
 private:

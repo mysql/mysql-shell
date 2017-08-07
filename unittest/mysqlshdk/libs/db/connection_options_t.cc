@@ -75,7 +75,7 @@ TEST(Connection_options, scheme_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_scheme("mysql"));
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kScheme);
   msg.append("' is already defined as 'mysql'.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
@@ -84,7 +84,7 @@ TEST(Connection_options, scheme_functions) {
   EXPECT_STREQ("mysql", options.get_scheme().c_str());
   EXPECT_NO_THROW(options.clear_scheme());
   EXPECT_FALSE(options.has_scheme());
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kScheme).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_scheme());
 }
@@ -94,7 +94,7 @@ TEST(Connection_options, user_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_user("value"));
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kUser);
   msg.append("' is already defined as 'value'.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
@@ -103,7 +103,7 @@ TEST(Connection_options, user_functions) {
   EXPECT_STREQ("value", options.get_user().c_str());
   EXPECT_NO_THROW(options.clear_user());
   EXPECT_FALSE(options.has_user());
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kUser).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_user());
 }
@@ -113,7 +113,7 @@ TEST(Connection_options, password_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_password("value"));
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kPassword);
   msg.append("' is already defined as 'value'.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
@@ -122,7 +122,7 @@ TEST(Connection_options, password_functions) {
   EXPECT_STREQ("value", options.get_password().c_str());
   EXPECT_NO_THROW(options.clear_password());
   EXPECT_FALSE(options.has_password());
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kPassword).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_password());
 }
@@ -132,7 +132,7 @@ TEST(Connection_options, host_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_host("value"));
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kHost);
   msg.append("' is already defined as 'value'.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
@@ -141,7 +141,7 @@ TEST(Connection_options, host_functions) {
   EXPECT_STREQ("value", options.get_host().c_str());
   EXPECT_NO_THROW(options.clear_host());
   EXPECT_FALSE(options.has_host());
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kHost).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_host());
 }
@@ -160,7 +160,7 @@ TEST(Connection_options, port_functions) {
   EXPECT_EQ(3306, options.get_port());
   EXPECT_NO_THROW(options.clear_port());
   EXPECT_FALSE(options.has_port());
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kPort).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_port());
 }
@@ -170,7 +170,7 @@ TEST(Connection_options, schema_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_schema("value"));
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kSchema);
   msg.append("' is already defined as 'value'.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
@@ -179,7 +179,7 @@ TEST(Connection_options, schema_functions) {
   EXPECT_STREQ("value", options.get_schema().c_str());
   EXPECT_NO_THROW(options.clear_schema());
   EXPECT_FALSE(options.has_schema());
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kSchema).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_schema());
 }
@@ -189,7 +189,7 @@ TEST(Connection_options, socket_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_socket("value"));
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kSocket);
   msg.append("' is already defined as 'value'.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
@@ -198,7 +198,7 @@ TEST(Connection_options, socket_functions) {
   EXPECT_STREQ("value", options.get_socket().c_str());
   EXPECT_NO_THROW(options.clear_socket());
   EXPECT_FALSE(options.has_socket());
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kSocket).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_socket());
 }
@@ -208,7 +208,7 @@ TEST(Connection_options, pipe_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_pipe("value"));
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kSocket);
   msg.append("' is already defined as 'value'.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
@@ -217,7 +217,7 @@ TEST(Connection_options, pipe_functions) {
   EXPECT_STREQ("value", options.get_pipe().c_str());
   EXPECT_NO_THROW(options.clear_pipe());
   EXPECT_FALSE(options.has_pipe());
-  msg = "The Connection option '";
+  msg = "The connection option '";
   msg.append(mysqlshdk::db::kSocket).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_pipe());
 }

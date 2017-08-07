@@ -1,0 +1,19 @@
+{
+  "symbols" : {
+    "separator" : "-",
+    "separator2" : "-",
+    "ellipsis" : "-"
+  },
+  "prompt": {
+    "text": "> ",
+    "cont_text": "... "
+  },
+  "segments": [
+    {
+      "text": "mysql"
+    },
+    {
+      "text": "%mode%"
+    }
+  ]
+}

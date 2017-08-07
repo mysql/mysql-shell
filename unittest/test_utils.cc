@@ -22,6 +22,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "utils/utils_file.h"
+#include "db/uri_encoder.h"
 #include "shellcore/base_session.h"
 
 using namespace shcore;
@@ -154,6 +155,8 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
       error += " Error: " + shcore::str_replace(content, "\n", "\n\t");
       SCOPED_TRACE("STDERR Actual: " +
                    shcore::str_replace(std_err, "\n", "\n\t"));
+      SCOPED_TRACE("STDOUT Actual: " +
+                   shcore::str_replace(std_out, "\n", "\n\t"));
       SCOPED_TRACE(error);
       ADD_FAILURE();
     }
@@ -165,6 +168,8 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
       error += " Error: " + shcore::str_replace(content, "\n", "\n\t");
       SCOPED_TRACE("STDERR Actual: " +
                    shcore::str_replace(std_err, "\n", "\n\t"));
+      SCOPED_TRACE("STDOUT Actual: " +
+                   shcore::str_replace(std_out, "\n", "\n\t"));
       SCOPED_TRACE(error);
       ADD_FAILURE();
     }
@@ -490,4 +495,36 @@ void run_script_classic(const std::vector<std::string> &sql) {
     }
   }
   session->close();
+}
+
+std::string shell_test_server_uri(int proto) {
+  const char *uri = getenv("MYSQL_URI");
+  if (!uri)
+    uri = "root@localhost";
+
+  // Creates connection data and recreates URI, fixes URI if no pwd defined
+  // So the UT don't prompt for password ever
+  auto data = shcore::get_connection_options(uri);
+
+  const char *pwd = getenv("MYSQL_PWD");
+  if (pwd) {
+    data.set_password(pwd);
+  }
+
+  std::string _uri;
+  _uri = mysqlshdk::db::uri::Uri_encoder().encode_uri(
+      data, mysqlshdk::db::uri::formats::full());
+
+  if (proto == 'x') {
+    const char *xport = getenv("MYSQLX_PORT");
+    if (xport) {
+      _uri.append(":").append(xport);
+    }
+  } else if (proto == 'c') {
+    const char *port = getenv("MYSQL_PORT");
+    if (port) {
+      _uri.append(":").append(port);
+    }
+  }
+  return _uri;
 }

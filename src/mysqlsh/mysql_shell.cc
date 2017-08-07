@@ -18,21 +18,22 @@
  */
 
 #include "mysql_shell.h"
-
+#include <algorithm>
 #include <memory>
 #include <string>
-
-#include "modules/mod_mysql.h"
+#include <utility>
+#include <vector>
 #include "modules/devapi/mod_mysqlx.h"
-#include "src/interactive/interactive_global_dba.h"
+#include "modules/mod_mysql.h"
+#include "scripting/shexcept.h"
+#include "shellcore/interrupt_handler.h"
+#include "shellcore/utils_help.h"
 #include "src/interactive/interactive_dba_cluster.h"
+#include "src/interactive/interactive_global_dba.h"
 #include "src/interactive/interactive_global_schema.h"
 #include "src/interactive/interactive_global_session.h"
 #include "src/interactive/interactive_global_shell.h"
 #include "utils/utils_general.h"
-#include "scripting/shexcept.h"
-#include "shellcore/utils_help.h"
-#include "shellcore/interrupt_handler.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
 #include "modules/mod_utils.h"
@@ -89,6 +90,9 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
   INIT_MODULE(mysqlsh::mysql::Mysql);
   INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
 
+  shcore::Value::Map_type_ref shcore_options =
+      shcore::Shell_core_options::get();
+  set_sql_safe_for_logging((*shcore_options)[SHCORE_HISTIGNORE].descr());
 
   std::string cmd_help_connect =
     "SYNTAX:\n"
@@ -253,9 +257,9 @@ bool Mysql_shell::connect(bool primary_session) {
 // TODO(rennox): Maybe call resolve connection credentials before calling
 // this function... and pass const &
 // doesn't sound like the credential resolution should be done here
-shcore::Value Mysql_shell::connect_session
-  (mysqlshdk::db::Connection_options *connection_options,
-   mysqlsh::SessionType session_type, bool recreate_schema) {
+shcore::Value Mysql_shell::connect_session(
+    mysqlshdk::db::Connection_options *connection_options,
+    mysqlsh::SessionType session_type, bool recreate_schema) {
   std::string pass;
   std::string schema_name;
 
@@ -364,6 +368,8 @@ shcore::Value Mysql_shell::connect_session
 
     println(message);
   }
+
+  _update_variables_pending = 2;
 
   return shcore::Value::Null();
 }
@@ -562,10 +568,15 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
         if (status->has_key("CURRENT_USER"))
           println(shcore::str_format(format.c_str(), "Current user: ", (*status)["CURRENT_USER"].descr(true).c_str()));
 
-        if (status->has_key("SSL_CIPHER"))
-          println(shcore::str_format(format.c_str(), "SSL: Cipher in use: ", (*status)["SSL_CIPHER"].descr(true).c_str()));
+        if (status->has_key("SSL_CIPHER") &&
+            status->get_type("SSL_CIPHER") == shcore::String &&
+            !status->get_string("SSL_CIPHER").empty())
+          println(shcore::str_format(
+              format.c_str(), "SSL: ",
+              ("Cipher in use: " + (*status)["SSL_CIPHER"].descr(true))
+                  .c_str()));
         else
-          println(shcore::str_format(format.c_str(), "SSL:", "Not in use."));
+          println(shcore::str_format(format.c_str(), "SSL: ", "Not in use."));
 
         if (status->has_key("SERVER_VERSION"))
           println(shcore::str_format(format.c_str(), "Server version: ", (*status)["SERVER_VERSION"].descr(true).c_str()));
@@ -657,8 +668,10 @@ bool Mysql_shell::cmd_use(const std::vector<std::string>& args) {
         error = e.format();
       }
     }
-  } else
+  } else {
     error = "Not Connected.\n";
+  }
+  _update_variables_pending = 1;
 
   if (!error.empty())
     print_error(error);
@@ -680,6 +693,11 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string>& params) {
   if ((file[0] == '\'' && file[file.size() - 1] == '\'') ||
       (file[0] == '"' && file[file.size() - 1] == '"'))
     file = file.substr(1, file.size() - 2);
+
+  if (file.empty()) {
+    print_error("Usage: \\. <filename> | \\source <filename>\n");
+    return true;
+  }
 
   std::vector<std::string> args(params);
 
@@ -726,4 +744,18 @@ void Mysql_shell::process_line(const std::string &line) {
   _shell->reconnect_if_needed();
 }
 
+static std::vector<std::string> g_patterns;
+
+bool Mysql_shell::sql_safe_for_logging(const std::string &sql) {
+  for (auto &pat : g_patterns) {
+    if (shcore::match_glob(pat, sql)) {
+      return false;
+    }
+  }
+  return true;
 }
+
+void Mysql_shell::set_sql_safe_for_logging(const std::string &patterns) {
+  g_patterns = shcore::split_string(patterns, ":");
+}
+}  // namespace mysqlsh

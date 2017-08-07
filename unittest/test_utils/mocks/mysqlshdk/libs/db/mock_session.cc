@@ -52,7 +52,7 @@ void Mock_session::then_throw() {
 }
 
 std::shared_ptr<mysqlshdk::db::IResult> Mock_session::query(
-    const std::string& sql, bool buffered) {
+    const std::string& sql, bool /*buffered*/) {
   // Ensures the expected query got received
   EXPECT_EQ(sql, _queries[0]);
 

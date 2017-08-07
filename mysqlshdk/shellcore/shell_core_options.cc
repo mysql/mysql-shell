@@ -18,6 +18,7 @@
  */
 
 #include "shellcore/shell_core_options.h"
+#include "shellcore/shell_notifications.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -30,12 +31,13 @@ std::string Shell_core_options::class_name() const {
   return "Shell Object";
 }
 
-std::string &Shell_core_options::append_descr(std::string &s_out, int indent, int quote_strings) const {
+std::string &Shell_core_options::append_descr(std::string &s_out, int indent,
+                                              int quote_strings) const {
   Value(_options).append_descr(s_out, indent, quote_strings);
   return s_out;
 }
 
-bool Shell_core_options::operator == (const Object_bridge &other) const {
+bool Shell_core_options::operator==(const Object_bridge &other) const {
   throw Exception::logic_error("There's only one shell object!");
   return false;
 };
@@ -66,23 +68,54 @@ void Shell_core_options::set_member(const std::string &prop, Value value) {
   if (_options->has_key(prop)) {
     if (prop == SHCORE_OUTPUT_FORMAT) {
       std::string format = value.as_string();
-      if (format != "table" && format != "json" && format != "json/raw" && format != "vertical")
+      if (format != "table" && format != "json" && format != "json/raw" &&
+          format != "vertical")
         throw shcore::Exception::value_error(str_format(
-            "The option %s must be one of: table, vertical, json or json/raw.", prop.c_str()));
-    } else if (prop == SHCORE_INTERACTIVE || prop == SHCORE_BATCH_CONTINUE_ON_ERROR)
-      throw shcore::Exception::value_error(str_format("The option %s is read only.", prop.c_str()));
+            "The option %s must be one of: table, vertical, json or json/raw.",
+            prop.c_str()));
+    } else if (prop == SHCORE_INTERACTIVE ||
+               prop == SHCORE_BATCH_CONTINUE_ON_ERROR) {
+      throw shcore::Exception::value_error(
+          str_format("The option %s is read only.", prop.c_str()));
 
-    else if (prop == SHCORE_SHOW_WARNINGS && value.type != shcore::Bool)
-        throw shcore::Exception::value_error(str_format("The option %s requires a boolean value.", prop.c_str()));
-
+    } else if (prop == SHCORE_SHOW_WARNINGS && value.type != shcore::Bool) {
+      throw shcore::Exception::value_error(
+          str_format("The option %s requires a boolean value.", prop.c_str()));
+    } else if (prop == SHCORE_HISTORY_MAX_SIZE) {
+      if ((value.type != shcore::Integer && value.type != shcore::UInteger) ||
+          value.as_int() < 0) {
+        if (value.as_int() >= (1<<31))
+          throw shcore::Exception::value_error(str_format(
+              "Value for option %s is out of range.", prop.c_str()));
+        throw shcore::Exception::value_error(str_format(
+            "The option %s requires an integer >= 0.", prop.c_str()));
+      }
+    } else if (prop == SHCORE_HISTORY_AUTOSAVE) {
+      try {
+        value = Value(value.as_bool());
+      } catch (...) {
+        throw shcore::Exception::value_error(str_format(
+            "The option %s requires a boolean value.", prop.c_str()));
+      }
+    } else if (prop == SHCORE_HISTIGNORE &&
+               value.type != shcore::String) {
+      throw shcore::Exception::value_error(
+          str_format("The option %s requires a string.", prop.c_str()));
+    }
     (*_options)[prop] = value;
-  } else
-    throw shcore::Exception::attrib_error("Unable to set the property " + prop + " on the shell object.");
+    shcore::Value::Map_type_ref info = shcore::Value::new_map().as_map();
+    (*info)["option"] = shcore::Value(prop);
+    (*info)["value"] = value;
+    shcore::ShellNotifications::get()->notify(SN_SHELL_OPTION_CHANGED,
+                                              get_instance(), info);
+  } else {
+    throw shcore::Exception::attrib_error("Unable to set the property " + prop +
+                                          " on the shell object.");
+  }
 }
 
-Shell_core_options::Shell_core_options() :
-_options(new shcore::Value::Map_type) {
-
+Shell_core_options::Shell_core_options()
+    : _options(new shcore::Value::Map_type) {
   init();
 
   (*_options)[SHCORE_OUTPUT_FORMAT] = Value("table");
@@ -90,7 +123,9 @@ _options(new shcore::Value::Map_type) {
   (*_options)[SHCORE_SHOW_WARNINGS] = Value::True();
   (*_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
   (*_options)[SHCORE_USE_WIZARDS] = Value::True();
-
+  (*_options)[SHCORE_HISTORY_MAX_SIZE] = Value(1000);
+  (*_options)[SHCORE_HISTIGNORE] = Value("*IDENTIFIED*:*PASSWORD*");
+  (*_options)[SHCORE_HISTORY_AUTOSAVE] = Value::False();
   std::string home = shcore::get_home_dir();
 
 #ifdef WIN32
@@ -116,6 +151,10 @@ void Shell_core_options::init() {
   option.assign(SHCORE_GADGETS_PATH);
   add_property(option + "|" + option);
   option.assign(SHCORE_SANDBOX_DIR);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_HISTORY_MAX_SIZE);
+  add_property(option + "|" + option);
+  option.assign(SHCORE_HISTIGNORE);
   add_property(option + "|" + option);
 }
 

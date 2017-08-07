@@ -214,14 +214,6 @@ TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
   shcore::remove_directory(dir_long);
 }
 
-TEST_F(Shell_js_dba_tests, dba_help) {
-  validate_interactive("dba_help.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_cluster_help) {
-  validate_interactive("dba_cluster_help.js");
-}
-
 // Regression test for a bug on checkInstanceConfiguration() which
 // was requiring an active session to the metadata which is not
 // required by design
@@ -704,4 +696,13 @@ TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
 
   execute("cleanup_sandboxes(true);");
 }
+
+TEST_F(Shell_js_dba_tests, dba_help) {
+  validate_interactive("dba_help.js");
+}
+
+TEST_F(Shell_js_dba_tests, dba_cluster_help) {
+  validate_interactive("dba_cluster_help.js");
+}
+
 }

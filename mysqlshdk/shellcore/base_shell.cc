@@ -57,12 +57,16 @@ Base_shell::Base_shell(const Shell_options &options,
   (*shcore_options)[SHCORE_INTERACTIVE] = shcore::Value(_options.interactive);
   (*shcore_options)[SHCORE_USE_WIZARDS] = shcore::Value(_options.wizards);
   if (!_options.output_format.empty())
-    (*shcore_options)[SHCORE_OUTPUT_FORMAT] = shcore::Value(_options.output_format);
+    (*shcore_options)[SHCORE_OUTPUT_FORMAT] =
+        shcore::Value(_options.output_format);
+  if (!_options.histignore.empty())
+    (*shcore_options)[SHCORE_HISTIGNORE] = shcore::Value(_options.histignore);
 
   _shell.reset(new shcore::Shell_core(custom_delegate));
 
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
+  _update_variables_pending = 1;
 
   _result_processor = std::bind(&Base_shell::process_result, this, _1);
 }
@@ -157,19 +161,42 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
 void Base_shell::load_default_modules(shcore::Shell_core::Mode mode) {
   // Module preloading only occurs on interactive mode
   if (_options.interactive) {
+    std::string tmp;
     if (mode == shcore::Shell_core::Mode::JavaScript) {
-      process_line("var mysqlx = require('mysqlx');");
-      process_line("var mysql = require('mysql');");
+      tmp = "var mysqlx = require('mysqlx');";
+      _shell->handle_input(tmp, _input_mode, _result_processor);
+      tmp = "var mysql = require('mysql');";
+      _shell->handle_input(tmp, _input_mode, _result_processor);
     } else if (mode == shcore::Shell_core::Mode::Python) {
-      process_line("from mysqlsh import mysqlx");
-      process_line("from mysqlsh import mysql");
+      tmp = "from mysqlsh import mysqlx";
+      _shell->handle_input(tmp, _input_mode, _result_processor);
+      tmp = "from mysqlsh import mysql";
+      _shell->handle_input(tmp, _input_mode, _result_processor);
     }
   }
 }
 
+/**
+ * Simple, default prompt handler.
+ *
+ * @return prompt string
+ */
 std::string Base_shell::prompt() {
-  std::string ret_val = _shell->prompt();
+  std::string ret_val;
 
+  switch (_shell->interactive_mode()) {
+    case shcore::IShell_core::Mode::None:
+      break;
+    case shcore::IShell_core::Mode::SQL:
+      ret_val = "mysql-sql> ";
+      break;
+    case shcore::IShell_core::Mode::JavaScript:
+      ret_val = "mysql-js> ";
+      break;
+    case shcore::IShell_core::Mode::Python:
+      ret_val = "mysql-py> ";
+      break;
+  }
   // The continuation prompt should be used if state != Ok
   if (_input_mode != shcore::Input_state::Ok) {
     if (ret_val.length() > 4)
@@ -181,6 +208,71 @@ std::string Base_shell::prompt() {
   }
 
   return ret_val;
+}
+
+std::map<std::string, std::string> *Base_shell::prompt_variables() {
+  if (_update_variables_pending > 0)
+    update_prompt_variables(_update_variables_pending > 1);
+  return &_prompt_variables;
+}
+
+void Base_shell::update_prompt_variables(bool reconnected) {
+  _update_variables_pending = 0;
+
+  if (reconnected)
+    _prompt_variables.clear();
+
+  auto session = _shell->get_dev_session();
+  if (reconnected || _prompt_variables.empty()) {
+    if (session) {
+      mysqlshdk::db::Connection_options options(session->uri());
+
+      _prompt_variables["ssl"] = session->get_ssl_cipher().empty() ? "" : "SSL";
+      _prompt_variables["uri"] = session->uri();
+      _prompt_variables["user"] = options.has_user() ? options.get_user() : "";
+      _prompt_variables["host"] =
+          options.has_host() ? options.get_host() : "localhost";
+      _prompt_variables["port"] =
+          options.has_socket()
+              ? options.get_socket()
+              : std::to_string(options.has_port() ? options.get_port() : 33060);
+      _prompt_variables["session"] = "";
+      if (session->class_name() == "ClassicSession")
+        _prompt_variables["session"] = "c";
+      else if (session->class_name() == "NodeSession")
+        _prompt_variables["session"] = "x";
+      _prompt_variables["node_type"] = session->get_node_type();
+    } else {
+      _prompt_variables["ssl"] = "";
+      _prompt_variables["uri"] = "";
+      _prompt_variables["user"] = "";
+      _prompt_variables["host"] = "";
+      _prompt_variables["port"] = "";
+      _prompt_variables["session"] = "";
+      _prompt_variables["node_type"] = "";
+    }
+  }
+  if (session) {
+    _prompt_variables["schema"] = session->get_current_schema();
+  } else {
+    _prompt_variables["schema"] = "";
+  }
+  switch (_shell->interactive_mode()) {
+    case shcore::IShell_core::Mode::None:
+      break;
+    case shcore::IShell_core::Mode::SQL:
+      _prompt_variables["mode"] = "sql";
+      _prompt_variables["Mode"] = "SQL";
+      break;
+    case shcore::IShell_core::Mode::JavaScript:
+      _prompt_variables["mode"] = "js";
+      _prompt_variables["Mode"] = "JS";
+      break;
+    case shcore::IShell_core::Mode::Python:
+      _prompt_variables["mode"] = "py";
+      _prompt_variables["Mode"] = "Py";
+      break;
+  }
 }
 
 bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args)) {
@@ -223,6 +315,8 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vec
     }
   }
 
+  _update_variables_pending = 1;
+
   return true;
 }
 
@@ -240,7 +334,7 @@ void Base_shell::process_line(const std::string &line) {
   if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty())
     _input_mode = shcore::Input_state::Ok;
 
-  // Appends the line, no matter it is an empty line
+  // Appends the line, no matter if it is an empty line
   _input_buffer.append(_shell->preprocess_input_line(line));
 
   // Appends the new line if anything has been added to the buffer
@@ -334,7 +428,7 @@ int Base_shell::process_file(const std::string& file, const std::vector<std::str
   int ret_val = 1;
 
   if (file.empty())
-    print_error("Usage: \\. <filename> | \\source <filename>\n");
+    print_error("Invalid filename");
   else if (_shell->is_module(file))
     _shell->execute_module(file, _result_processor, argv);
   else

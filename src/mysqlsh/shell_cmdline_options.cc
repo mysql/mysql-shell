@@ -279,6 +279,8 @@ Shell_command_line_options::Shell_command_line_options(int argc,
         _options.log_level = nlog_level;
     } else if (check_arg(argv, i, "--vertical", "-E")) {
       _options.output_format = "vertical";
+    } else if (check_arg_with_value(argv, i, "--histignore", nullptr, value)) {
+      _options.histignore = value;
     } else if (exit_code == 0) {
       if (argv[i][0] != '-') {
           value = argv[i];
@@ -535,7 +537,9 @@ std::vector<std::string> Shell_command_line_options::get_details() {
   "                           if available.",
   "  --dba enableXProtocol    Enable the X Protocol in the server connected to.",
   "                           Must be used with --classic.",
-  "  --nw, --no-wizard        Disables wizard mode."
+  "  --nw, --no-wizard        Disables wizard mode.",
+  "  --histignore=patterns    A colon-separated list of patterns to keep SQL",
+  "                           input from getting logged into mysqlsh history."
   };
   return details;
 }

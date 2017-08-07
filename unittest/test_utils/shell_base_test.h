@@ -16,15 +16,23 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #ifndef UNITTEST_TEST_UTILS_SHELL_BASE_TEST_H_
 #define UNITTEST_TEST_UTILS_SHELL_BASE_TEST_H_
 
-#define MY_EXPECT_OUTPUT_CONTAINS(e,o) Shell_base_test::check_string_expectation(e,o,true)
-#define MY_EXPECT_OUTPUT_NOT_CONTAINS(e,o) Shell_base_test::check_string_expectation(e,o,false)
+#define MY_EXPECT_OUTPUT_CONTAINS(e, o)                    \
+  do {                                                     \
+    Shell_base_test::check_string_expectation(e, o, true); \
+    SCOPED_TRACE("");                                      \
+  } while (0)
 
-#define MY_EXPECT_MULTILINE_OUTPUT(c, e, o)                       \
+#define MY_EXPECT_OUTPUT_NOT_CONTAINS(e, o)                 \
+  do {                                                      \
+    Shell_base_test::check_string_expectation(e, o, false); \
+    SCOPED_TRACE("");                                       \
+  } while (0)
+
+#define MY_EXPECT_MULTILINE_OUTPUT(c, e, o)                     \
   do {                                                          \
     SCOPED_TRACE("...in stdout check\n");                       \
     Shell_base_test::check_multiline_expect(c, "STDOUT", e, o); \
   } while (0)
-
 
 #include <string>
 #include <map>

@@ -107,7 +107,7 @@ Value Constant::get_constant(const std::string &module,
 Value Constant::get_constant_value(const std::string &module,
                                    const std::string &group,
                                    const std::string &id,
-                                   const shcore::Argument_list &args) {
+                                   const shcore::Argument_list &/*args*/) {
   Value ret_val;
 
   // By default all is OK if there are NO params

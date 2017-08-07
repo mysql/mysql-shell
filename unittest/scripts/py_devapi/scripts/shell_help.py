@@ -4,9 +4,6 @@ shell.help()
 #@<OUT> Options
 shell.help("options")
 
-#@<OUT> Custom Prompt
-shell.help("custom_prompt")
-
 #@<OUT> Connect
 shell.help("connect")
 

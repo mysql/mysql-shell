@@ -1,0 +1,15 @@
+{
+  "symbols" : {
+    "separator" : "-",
+    "separator2" : "-",
+    "ellipsis" : "-"
+  },
+  "segments": [
+    {
+      "text": "mysql"
+    },
+    {
+      "text": "%mode%"
+    }
+  ]
+}

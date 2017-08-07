@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -18,7 +18,9 @@
  */
 #ifndef _MYSQL_SHELL_
 #define _MYSQL_SHELL_
+
 #include <string>
+#include <vector>
 #include "scripting/types.h"
 #include "shellcore/base_shell.h"
 #include "shellcore/shell_core.h"
@@ -48,18 +50,28 @@ class Mysql_shell : public mysqlsh::Base_shell {
   bool cmd_nowarnings(const std::vector<std::string>& args);
   bool cmd_status(const std::vector<std::string>& args);
   bool cmd_use(const std::vector<std::string>& args);
-  bool cmd_process_file(const std::vector<std::string>& params);
+  virtual bool cmd_process_file(const std::vector<std::string>& params);
 
   virtual void process_line(const std::string& line);
 
- private:
+  static bool sql_safe_for_logging(const std::string &sql);
+
+ protected:
   shcore::Shell_command_handler _shell_command_handler;
+  static void set_sql_safe_for_logging(const std::string &patterns);
 
   bool do_shell_command(const std::string& command);
 
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);
+  FRIEND_TEST(Cmdline_shell, check_history_overflow_del);
+  FRIEND_TEST(Cmdline_shell, check_history_source);
+  FRIEND_TEST(Cmdline_shell, history_autosave_int);
+  FRIEND_TEST(Cmdline_shell, check_help_shows_history);
+#endif
 };
 }  // namespace mysqlsh
 #endif

@@ -296,7 +296,7 @@ shcore::Value SessionHandle::get_capability(const std::string &name) {
   return ret_val;
 }
 
-uint64_t SessionHandle::get_client_id() const {
+uint64_t SessionHandle::get_client_id() {
   if (_session) {
     return _session->connection()->client_id();
   } else
@@ -318,7 +318,15 @@ void SessionHandle::load_session_info() const {
 
       if (!row->isNullField(1))
         _connection_id = row->uInt64Field(1);
+      result->flush();
 
+      result = _session->executeSql("show status like 'mysqlx_ssl_cipher'");
+      result->wait();
+      row = result->next();
+      if (row) {
+        if (!row->isNullField(1))
+          _ssl_cipher = row->stringField(1);
+      }
       result->flush();
     }
   }

@@ -99,7 +99,7 @@ class Shell_sql_test : public ::testing::Test {
 };
 
 TEST_F(Shell_sql_test, test_initial_state) {
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, full_statement) {
@@ -113,7 +113,7 @@ TEST_F(Shell_sql_test, full_statement) {
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show databases;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, sql_multi_line_statement) {
@@ -126,7 +126,7 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   // EXPECT_EQ("show", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   // Caching the partial statements is now internal
   // we just send whatever is remaining for the query to execute
@@ -138,7 +138,7 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   // EXPECT_EQ("databases", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = ";";
   handle_input(query, state);
@@ -148,7 +148,7 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show\ndatabases\n;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
@@ -168,7 +168,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   // EXPECT_EQ("show", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   // Caching the partial statements is now internal
   // we just send whatever is remaining for the query to execute
@@ -180,7 +180,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   // EXPECT_EQ("databases", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = "%%%";
   handle_input(query, state);
@@ -190,7 +190,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show\ndatabases\n%%%", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 
   query = "delimiter ;";
   handle_input(query, state);
@@ -212,14 +212,14 @@ TEST_F(Shell_sql_test, multiple_statements_continued) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   // EXPECT_EQ("show", query);
   EXPECT_EQ("show databases;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = "databases;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
@@ -231,7 +231,7 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
   // Prompt changes to multiline mode
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = "databases;\nshow";
   handle_input(query, state);
@@ -239,7 +239,7 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
   // Being global multiline make sthe statement to be executed right away
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = "databases;";
   handle_input(query, state);
@@ -247,7 +247,7 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
   // Being global multiline make sthe statement to be executed right away
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, multiple_statements_and_continued) {
@@ -262,14 +262,14 @@ TEST_F(Shell_sql_test, multiple_statements_and_continued) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   // EXPECT_EQ("show", query);
   EXPECT_EQ("show databases;select 1;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = "databases;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, multiline_comment) {
@@ -280,21 +280,21 @@ TEST_F(Shell_sql_test, multiline_comment) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("       /*> ", env.shell_sql->prompt());
+  EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
 
   query = "this was a multiline comment";
   handle_input(query, state);
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("       /*> ", env.shell_sql->prompt());
+  EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
 
   query = "*/";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, multiline_single_quote_continued_string) {
@@ -305,14 +305,14 @@ TEST_F(Shell_sql_test, multiline_single_quote_continued_string) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   // EXPECT_EQ("select 'hello ", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        '> ", env.shell_sql->prompt());
+  EXPECT_EQ("'", env.shell_sql->get_continued_input_context());
 
   query = "world';";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("select 'hello \nworld';", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, multiline_double_quote_continued_string) {
@@ -323,14 +323,14 @@ TEST_F(Shell_sql_test, multiline_double_quote_continued_string) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   // EXPECT_EQ("select \"hello ", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        \"> ", env.shell_sql->prompt());
+  EXPECT_EQ("\"", env.shell_sql->get_continued_input_context());
 
   query = "world\";";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("select \"hello \nworld\";", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, DISABLED_multiline_backtick_string) {
@@ -341,14 +341,14 @@ TEST_F(Shell_sql_test, DISABLED_multiline_backtick_string) {
   EXPECT_EQ(Input_state::ContinuedSingle, state);
   EXPECT_EQ("select * from `sakila`.`", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("        `> ", env.shell_sql->prompt());
+  EXPECT_EQ("`", env.shell_sql->get_continued_input_context());
 
   query = "film`;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, multiple_single_double_quotes) {
@@ -358,28 +358,28 @@ TEST_F(Shell_sql_test, multiple_single_double_quotes) {
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("SELECT '''' as a;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 
   query = "SELECT \"\"\"\" as a;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("SELECT \"\"\"\" as a;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 
   query = "SELECT \"\'\" as a;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("SELECT \"\'\" as a;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 
   query = "SELECT '\\'' as a;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
   EXPECT_EQ("SELECT '\\'' as a;", env.shell_sql->get_handled_input());
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
@@ -396,7 +396,7 @@ TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
 
   // Prompt for continued statement
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = "comment text */;";
   handle_input(query, state);
@@ -405,7 +405,7 @@ TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
   EXPECT_EQ("SELECT 1 AS _one /*\ncomment text */;",
             env.shell_sql->get_handled_input());
 
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
@@ -421,7 +421,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
 
   // Prompt for continued statement
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = ";select 2 as two;";
   handle_input(query, state);
@@ -430,7 +430,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
   EXPECT_EQ("select 1 as one \n;select 2 as two;",
             env.shell_sql->get_handled_input());
 
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment_batch) {
@@ -443,7 +443,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment_batch) {
   EXPECT_EQ("select 1 as one \n;select 2 as two;",
             env.shell_sql->get_handled_input());
 
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
@@ -459,7 +459,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
 
   // Prompt for continued statement
-  EXPECT_EQ("        -> ", env.shell_sql->prompt());
+  EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
   query = ";select 2 as two;";
   handle_input(query, state);
@@ -468,7 +468,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
   EXPECT_EQ("select 1 as one \n;select 2 as two;",
             env.shell_sql->get_handled_input());
 
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, continued_stmt_hash_comment_batch) {
@@ -481,7 +481,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment_batch) {
   EXPECT_EQ("select 1 as one \n;select 2 as two;",
             env.shell_sql->get_handled_input());
 
-  EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+  EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
 TEST_F(Shell_sql_test, batch_script) {

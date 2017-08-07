@@ -90,31 +90,6 @@ void Shell_python::handle_input(std::string &code, Input_state &state,
 }
 
 /*
- * Shell prompt string
- */
-std::string Shell_python::prompt() {
-  std::string ret_val = "mysql-py> ";
-
-  try {
-    Input_state state = Input_state::Ok;
-    WillEnterPython lock;
-    shcore::Value value = _py->execute_interactive("shell.custom_prompt() if shell.custom_prompt else None", state);
-    if (value && value.type == String)
-      ret_val = value.as_string();
-    else {
-      std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
-
-      if (session)
-        ret_val = session->get_node_type() + "-py> ";
-    }
-  } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
-  }
-
-  return ret_val;
-}
-
-/*
  * Set global variable
  */
 void Shell_python::set_global(const std::string &name, const Value &value) {

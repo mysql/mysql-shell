@@ -298,7 +298,7 @@ TEST(modules_mod_utils, get_connection_data_conflicting_password_db_password) {
   } catch (const std::exception& e) {
     std::string error(e.what());
     EXPECT_EQ(
-        "The Connection option 'password' is already defined as "
+        "The connection option 'password' is already defined as "
         "'password'.",
         error);
   }
@@ -318,7 +318,7 @@ TEST(modules_mod_utils, get_connection_data_conflicting_user_db_user) {
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
   } catch (const std::exception& e) {
     std::string error(e.what());
-    EXPECT_EQ("The Connection option 'user' is already defined as 'root'.",
+    EXPECT_EQ("The connection option 'user' is already defined as 'root'.",
               error);
   }
 }

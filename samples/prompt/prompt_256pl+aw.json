@@ -1,0 +1,100 @@
+{
+  "desc" : "256/24bit color terminal theme with MySQL prefix, default schema, host:port, ssl, + indicator for X protocol, active mode. Requires Powerline patched font with awesome symbols (e.g. awesome-terminal-fonts)",
+  "classes" : {
+    "SQL" : {
+      "fg" : "15",
+      "bg" : "166"
+    },
+    "JS" : {
+      "fg" : "0",
+      "bg" : "221"
+    },
+    "Py" : {
+      "fg" : "15",
+      "bg" : "25"
+    },
+    "schema" : {
+      "text": "\ue894 %schema%"
+    },
+    "noschema" : {
+      "text": ""
+    },
+    "disconnected": {
+    },
+    "hostx" : {
+      "text": "\ue895 %host%:%port%+"
+    },
+    "hostc" : {
+      "text": "\ue895 %host%:%port%"
+    },
+    "SSLhostx" : {
+      "text": "\ue895 %host%:%port%+ \ue0a2"
+    },
+    "SSLhostc" : {
+      "text": "\ue895 %host%:%port% \ue0a2"
+    },
+
+    "production" : {
+      "text": " PRODUCTION ",
+      "bg": "red",
+      "fg": "white"
+    }
+  },
+  "variables" : {
+    "is_production": {
+        "match" : {
+            "pattern": "*;%host%;*",
+            "value": ";%env:PRODUCTION_SERVERS%;"
+        },
+        "if_true" : "production",
+        "if_false" : ""
+    }
+  },
+  "symbols" : {
+    "separator" : "\ue0b0",
+    "separator2" : "\ue0b1",
+    "ellipsis" : "\u2026"
+  },
+  "prompt" : {
+    "text" : "\ue0b0 ",
+    "cont_text" : "\ue0b0 ",
+    "bg": "0"
+  },
+  "segments": [
+	{
+	  "classes": ["disconnected%host%", "%is_production%"]
+	},
+    {
+      "text": " My",
+      "bg": 254,
+      "fg": 23
+    },
+    {
+      "separator": "",
+      "text": "SQL ",
+      "bg": 254,
+      "fg": 166
+    },
+    {
+      "classes": ["disconnected%host%", "%ssl%host%session%"],
+      "shrink": "truncate_on_dot",
+      "bg": 237,
+      "fg": 15,
+      "weight": 10,
+      "padding" : 1
+    },
+    {
+      "classes": ["noschema%schema%", "schema"],
+      "bg": 242,
+      "fg": 15,
+      "shrink": "ellipsize",
+      "weight": -1,
+      "padding" : 1
+    },
+    {
+      "classes": ["%Mode%"],
+      "text": "%Mode%",
+      "padding" : 1
+    }
+  ]
+}

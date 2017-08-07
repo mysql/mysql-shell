@@ -20,15 +20,16 @@
 #include "scripting/types.h"
 #include <rapidjson/prettywriter.h>
 #include <stdexcept>
+#include <cfloat>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
-#include <sstream>
 #include <limits>
-#include <cfloat>
+#include <locale>
+#include <sstream>
+#include "mysqlshdk/libs/utils/logger.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
-#include "mysqlshdk/libs/utils/logger.h"
 
 #ifdef WIN32
 #ifdef max
@@ -556,10 +557,12 @@ Value Value::parse_map(char **pc) {
   bool done = false;
   while (!done) {
     // Skips the spaces
-    while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+    while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
 
-    if (**pc == '}')
+    if (**pc == '}') {
+      ++*pc;
       break;
+    }
 
     Value key, value;
     if (**pc != '"' && **pc != '\'')
@@ -641,6 +644,29 @@ Value Value::parse_array(char **pc) {
   return Value(array);
 }
 
+inline std::string unicode_codepoint_to_utf8(uint32_t uni) {
+  std::string s;
+  if (uni <= 0x7f) {
+    s.push_back(static_cast<char>(uni & 0xff));  // 0xxxxxxx
+  } else if (uni <= 0x7ff) {
+    s.push_back(static_cast<char>(((uni >> 6) & 0xff) | 0xc0));  // 110xxxxxx
+    s.push_back(static_cast<char>((uni & 0x3f) | 0x80));         // 10xxxxxx
+  } else if (uni <= 0xffff) {
+    s.push_back(static_cast<char>(((uni >> 12) & 0xff) | 0xe0));  // 1110xxxx
+    s.push_back(static_cast<char>(((uni >> 6) & 0x3f) | 0x80));   // 110xxxxxx
+    s.push_back(static_cast<char>((uni & 0x3f) | 0x80));          // 10xxxxxx
+  } else {
+    if (uni >= 0x10ffff) {
+      throw Exception::parser_error("Invalid unicode codepoint");
+    }
+    s.push_back(static_cast<char>(((uni >> 18) & 0xff) | 0xf0));  // 11110xxx
+    s.push_back(static_cast<char>(((uni >> 12) & 0x3f) | 0x80));  // 1110xxxx
+    s.push_back(static_cast<char>(((uni >> 6) & 0x3f) | 0x80));   // 110xxxxxx
+    s.push_back(static_cast<char>((uni & 0x3f) | 0x80));          // 10xxxxxx
+  }
+  return s;
+}
+
 Value Value::parse_string(char **pc, char quote) {
   int32_t len;
   char *p = *pc;
@@ -694,6 +720,37 @@ Value Value::parse_string(char **pc, char quote) {
           break;
         case '\\':
           s.append("\\");
+          break;
+        case 'u':
+          if (*pc - (pc_i + 1 + 4) < len && isxdigit(pc_i[2]) &&
+              isxdigit(pc_i[3]) && isxdigit(pc_i[4]) && isxdigit(pc_i[5])) {
+            static const uint32_t ascii_to_hex[256] = {
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  1,  2,
+                3,  4,  5,  6, 7, 8, 9, 0, 0, 0, 0, 0, 0,  0,  10, 11, 12,
+                13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14,
+                15, 0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0
+            };
+            uint32_t unich =
+                (ascii_to_hex[static_cast<unsigned>(pc_i[2])] << 12) |
+                (ascii_to_hex[static_cast<unsigned>(pc_i[3])] << 8) |
+                (ascii_to_hex[static_cast<unsigned>(pc_i[4])] << 4) |
+                ascii_to_hex[static_cast<unsigned>(pc_i[5])];
+            s.append(unicode_codepoint_to_utf8(unich));
+            pc_i += 4;
+          } else {
+            throw Exception::parser_error("Invalid \\uXXXX escape");
+          }
           break;
         case '\0':
           s.append("\0");

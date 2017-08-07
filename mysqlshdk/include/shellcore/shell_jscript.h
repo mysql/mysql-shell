@@ -33,7 +33,6 @@ public:
 
   virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);
 
-  virtual std::string prompt();
 private:
   void abort() noexcept;
   std::shared_ptr<JScript_context> _js;

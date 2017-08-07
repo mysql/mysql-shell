@@ -933,7 +933,7 @@ shcore::Value::Map_type_ref BaseSession::get_status() {
     (*status)["CURRENT_USER"] =
         shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
     (*status)["CONNECTION_ID"] = shcore::Value(_session.get_connection_id());
-    //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+    (*status)["SSL_CIPHER"] = shcore::Value(_session.get_ssl_cipher());
     //(*status)["SKIP_UPDATES"] = shcore::Value(???);
     //(*status)["DELIMITER"] = shcore::Value(???);
 
@@ -1004,11 +1004,11 @@ void BaseSession::rollback() {
     execute_sql("rollback", shcore::Argument_list());
 }
 
-std::string BaseSession::query_one_string(const std::string &query) {
+std::string BaseSession::query_one_string(const std::string &query, int field) {
   std::shared_ptr<::mysqlx::Result> result = execute_sql(query);
   std::shared_ptr<::mysqlx::Row> row(result->next());
   if (row) {
-    return row->isNullField(0) ? "" : row->stringField(0);
+    return row->isNullField(field) ? "" : row->stringField(field);
   }
   return "";
 }
@@ -1197,7 +1197,6 @@ Value NodeSession::get_member(const std::string &prop) const {
   } else {
     ret_val = BaseSession::get_member(prop);
   }
-
   return ret_val;
 }
 

@@ -55,27 +55,6 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state,
   result_processor(result);
 }
 
-std::string Shell_javascript::prompt() {
-  try {
-    shcore::Value value =
-        _js->execute("shell.customPrompt ? shell.customPrompt() : null",
-                     "shell.customPrompt");
-    if (value && value.type == String)
-      return value.as_string();
-  } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception in JS ps function: ") +
-                        exc.what());
-  }
-
-  std::string node_type = "mysql";
-  std::shared_ptr<mysqlsh::ShellBaseSession> session = _owner->get_dev_session();
-
-  if (session)
-    node_type = session->get_node_type();
-
-  return node_type + "-js> ";
-}
-
 void Shell_javascript::set_global(const std::string &name, const Value &value) {
   _js->set_global(name, value);
 }

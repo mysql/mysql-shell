@@ -13,13 +13,13 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <gtest/gtest_prod.h>
 #include <cstdio>
-#include <regex>
-#include "test_utils.h"
+#include "src/mysqlsh/cmdline_shell.h"
+#include "unittest/test_utils.h"
 #include "utils/utils_file.h"
 
-namespace shcore {
-namespace shell_core_tests {
+namespace mysqlsh {
 class Interactive_shell_test : public Shell_core_test_wrapper {
  public:
   virtual void set_options() {
@@ -704,9 +704,6 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
   std::ofstream out;
   out.open(user_path, std::ios_base::trunc);
   if (!out.fail()) {
-    out << "def my_prompt():" << std::endl;
-    out << "   return '---> '" << std::endl << std::endl;
-    out << "shell.custom_prompt = my_prompt" << std::endl;
     out << "the_variable = 'Local Value'" << std::endl;
     out.close();
   }
@@ -732,9 +729,6 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
 
   execute("mysqlx");
   MY_EXPECT_STDOUT_CONTAINS("<module '__mysqlx__' (built-in)>");
-  output_handler.wipe_all();
-
-  EXPECT_EQ("---> ", _interactive_shell->prompt());
   output_handler.wipe_all();
 
   execute("the_variable");
@@ -773,9 +767,6 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
   std::ofstream out;
   out.open(user_path, std::ios_base::trunc);
   if (!out.fail()) {
-    out << "shell.customPrompt = function() {" << std::endl;
-    out << "   return '---> ';" << std::endl;
-    out << "}" << std::endl << std::endl;
     out << "var the_variable = 'Local Value';" << std::endl;
     out.close();
   }
@@ -800,9 +791,6 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
 
   execute("dir(mysqlx)");
   MY_EXPECT_STDOUT_CONTAINS("getNodeSession");
-  output_handler.wipe_all();
-
-  EXPECT_EQ("---> ", _interactive_shell->prompt());
   output_handler.wipe_all();
 
   execute("the_variable");
@@ -1278,7 +1266,7 @@ TEST_F(Interactive_shell_test, BUG25974014) {
   // disconnected
   _options->uri = _uri + "/mysql";
   _options->interactive = true;
-  _options->initial_mode = IShell_core::Mode::SQL;
+  _options->initial_mode = shcore::IShell_core::Mode::SQL;
   reset_shell();
   _interactive_shell->connect(true);
   output_handler.wipe_all();
@@ -1291,6 +1279,7 @@ TEST_F(Interactive_shell_test, BUG25974014) {
   EXPECT_EQ(system(cmd.str().c_str()), 0);
   output_handler.wipe_all();
 
+  // \use causes a reconnect on the 1st try
   // After the kill first command receives interrupted error
   execute("\\use mysql");
   MY_EXPECT_STDERR_CONTAINS("interrupted");
@@ -1302,5 +1291,30 @@ TEST_F(Interactive_shell_test, BUG25974014) {
   output_handler.wipe_all();
 }
 
-}  // namespace shell_core_tests
-}  // namespace shcore
+TEST_F(Interactive_shell_test, ssl_status) {
+  wipe_all();
+  execute("\\connect " + _uri + "?sslMode=DISABLED");
+  execute("\\status");
+  MY_EXPECT_STDOUT_CONTAINS("Not in use.");
+  EXPECT_EQ("", _interactive_shell->prompt_variables()->at("ssl"));
+
+  wipe_all();
+  execute("\\connect " + _uri + "?sslMode=REQUIRED");
+  execute("\\status");
+  MY_EXPECT_STDOUT_CONTAINS("Cipher in use: ");
+  EXPECT_EQ("SSL", _interactive_shell->prompt_variables()->at("ssl"));
+
+  wipe_all();
+  execute("\\connect " + _mysql_uri + "?sslMode=DISABLED");
+  execute("\\status");
+  MY_EXPECT_STDOUT_CONTAINS("Not in use.");
+  EXPECT_EQ("", _interactive_shell->prompt_variables()->at("ssl"));
+
+  wipe_all();
+  execute("\\connect " + _mysql_uri + "?sslMode=REQUIRED");
+  execute("\\status");
+  MY_EXPECT_STDOUT_CONTAINS("Cipher in use: ");
+  EXPECT_EQ("SSL", _interactive_shell->prompt_variables()->at("ssl"));
+}
+
+}  // namespace mysqlsh

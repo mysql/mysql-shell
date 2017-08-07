@@ -80,8 +80,6 @@ class SHCORE_PUBLIC IShell_core {
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellBaseSession>& session) = 0;
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session() = 0;
 
-  virtual std::string prompt() = 0;
-
   virtual Interpreter_delegate *get_delegate() = 0;
 
   virtual void print(const std::string &s) = 0;

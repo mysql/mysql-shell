@@ -17,14 +17,12 @@
 * 02110-1301  USA
 */
 
-#include <stdio.h>
-#include <cctype>
-#include "utils/utils_general.h"
-#include "utils/utils_file.h"
-#include "utils/utils_sqlstring.h"
-#include "utils/utils_string.h"
-#include <locale>
 #include "include/mysh_config.h"
+
+#include <stdio.h>
+#include <time.h>
+#include <cctype>
+#include <locale>
 #ifdef WIN32
 #include <WinSock2.h>
 #include <windows.h>
@@ -41,6 +39,10 @@
 #endif
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/utils_help.h"
 
 namespace shcore {
@@ -951,5 +953,85 @@ void sleep_ms(uint32_t ms) {
 #else
   usleep(ms * 1000);
 #endif
+}
+
+
+static bool _match_glob(const std::string &pat, size_t ppos,
+                        const std::string &str, size_t spos) {
+  size_t pend = pat.length();
+  size_t send = str.length();
+  // we allow the string to be matched up to the \0
+  while (ppos < pend && spos <= send) {
+    int sc = str[spos];
+    int pc = pat[ppos];
+    switch (pc) {
+      case '*':
+        // skip multiple consecutive *
+        while (ppos < pend && pat[ppos + 1] == '*')
+          ++ppos;
+
+        // match * by trying every substring of str with the rest of the pattern
+        for (size_t sp = spos; sp <= send; ++sp) {
+          // if something matched, we're fine
+          if (_match_glob(pat, ppos + 1, str, sp))
+            return true;
+        }
+        // if there were no matches, then give up
+        return false;
+      case '\\':
+        ++ppos;
+        if (ppos >= pend)  // can't have an escape at the end of the pattern
+          throw std::logic_error("Invalid pattern "+pat);
+        pc = pat[ppos];
+        if (sc != pc)
+          return false;
+        ++ppos;
+        ++spos;
+        break;
+      case '?':
+        ++ppos;
+        ++spos;
+        break;
+      default:
+        if (sc != pc)
+          return false;
+        ++ppos;
+        ++spos;
+        break;
+    }
+  }
+  return ppos == pend && spos == send;
+}
+
+/** Match a string against a glob-like pattern using backtracking.
+    Not very efficient, but easier than implementing a regex-like matcher
+    and good enough for our use cases atm.
+
+    Also <regex> doesn't work in gcc 4.8
+
+    Note: works with ASCII only, no utf8 support
+  */
+bool match_glob(const std::string &pattern, const std::string &s,
+                bool case_sensitive) {
+  std::string str = case_sensitive ? s : str_lower(s);
+  std::string pat = case_sensitive ? pattern : str_lower(pattern);
+  return _match_glob(pat, 0, str, 0);
+}
+
+std::string fmttime(const char *fmt) {
+  time_t t = time(nullptr);
+  char buf[64];
+
+#ifdef WIN32
+  struct tm lt;
+  localtime_s(&lt, &t);
+  strftime(buf, sizeof(buf), fmt, &lt);
+#else
+  struct tm lt;
+  localtime_r(&t, &lt);
+  strftime(buf, sizeof(buf), fmt, &lt);
+#endif
+
+  return buf;
 }
 } // namespace
