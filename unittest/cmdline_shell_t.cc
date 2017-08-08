@@ -43,6 +43,8 @@ TEST(Cmdline_shell, query_variable_classic) {
   auto coptions = shcore::get_connection_options("root@localhost");
   if (pwd)
     coptions.set_password(pwd);
+  else
+    coptions.set_password("");
   coptions.set_port(getenv("MYSQL_PORT") ? atoi(getenv("MYSQL_PORT")) : 3306);
   shell.connect_session(&coptions, mysqlsh::SessionType::Classic, false);
   EXPECT_NE("", shell.query_variable(
@@ -69,6 +71,8 @@ TEST(Cmdline_shell, query_variable_x) {
   auto coptions = shcore::get_connection_options("root@localhost");
   if (pwd)
     coptions.set_password(pwd);
+  else
+    coptions.set_password("");
   coptions.set_port(getenv("MYSQLX_PORT") ? atoi(getenv("MYSQLX_PORT"))
                                           : 33060);
   shell.connect_session(&coptions, mysqlsh::SessionType::Node, false);
