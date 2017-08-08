@@ -1178,22 +1178,29 @@ TEST_F(Dba_common_test, validate_replicaset_group_name_001) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries_server2);
 
-  auto session = create_session(_mysql_sandbox_nport1);
-  auto md_session = create_base_session(_mysql_sandbox_nport2);
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> session;
+  EXPECT_NO_THROW(session = create_session(_mysql_sandbox_nport1));
 
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+  std::shared_ptr<mysqlsh::ShellBaseSession> md_session;
+  EXPECT_NO_THROW(md_session = create_base_session(_mysql_sandbox_nport2));
 
-  try {
-    EXPECT_TRUE(validate_replicaset_group_name(metadata, session.get(), 1));
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at validate_replicaset_group_name_001");
-    ADD_FAILURE();
+  if (md_session && session) {
+    std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+    metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+    try {
+      EXPECT_TRUE(validate_replicaset_group_name(metadata, session.get(), 1));
+    } catch (const shcore::Exception &e) {
+      SCOPED_TRACE(e.what());
+      SCOPED_TRACE("Unexpected failure at validate_replicaset_group_name_001");
+      ADD_FAILURE();
+    }
   }
 
-  session->close();
-  md_session->close();
+  if (session)
+    session->close();
+  if (md_session)
+    md_session->close();
 
   stop_server_mock(_mysql_sandbox_nport1);
   stop_server_mock(_mysql_sandbox_nport2);
@@ -1227,22 +1234,29 @@ TEST_F(Dba_common_test, validate_replicaset_group_name_002) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries_server2);
 
-  auto session = create_session(_mysql_sandbox_nport1);
-  auto md_session = create_base_session(_mysql_sandbox_nport2);
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> session;
+  EXPECT_NO_THROW(session = create_session(_mysql_sandbox_nport1));
 
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+  std::shared_ptr<mysqlsh::ShellBaseSession> md_session;
+  EXPECT_NO_THROW(md_session = create_base_session(_mysql_sandbox_nport2));
 
-  try {
-    EXPECT_FALSE(validate_replicaset_group_name(metadata, session.get(), 1));
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at validate_replicaset_group_name_001");
-    ADD_FAILURE();
+  if (md_session && session) {
+    std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+    metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+    try {
+      EXPECT_FALSE(validate_replicaset_group_name(metadata, session.get(), 1));
+    } catch (const shcore::Exception &e) {
+      SCOPED_TRACE(e.what());
+      SCOPED_TRACE("Unexpected failure at validate_replicaset_group_name_001");
+      ADD_FAILURE();
+    }
   }
 
-  session->close();
-  md_session->close();
+  if (session)
+    session->close();
+  if (md_session)
+    md_session->close();
 
   stop_server_mock(_mysql_sandbox_nport1);
   stop_server_mock(_mysql_sandbox_nport2);
