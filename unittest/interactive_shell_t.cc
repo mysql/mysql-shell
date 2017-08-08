@@ -1149,5 +1149,31 @@ TEST_F(Interactive_shell_test, x_sql_result) {
   execute("drop schema itst;");
 }
 
+TEST_F(Interactive_shell_test, Bug26423177) {
+  execute("\\connect " + _uri);
+  execute("\\sql");
+  execute("drop schema if exists Bug26423177;");
+  execute("create schema Bug26423177;");
+  execute("use Bug26423177;");
+  execute("create table dt (dt datetime);");
+  execute("insert into dt values (\"2017-12-12 12:12:12\");");
+  wipe_all();
+  execute("select * from dt;");
+  MY_EXPECT_STDOUT_CONTAINS("2017-12-12 12:12:12");
+  execute("drop schema Bug26423177;");
+
+  execute("\\connect " + _mysql_uri);
+  execute("\\sql");
+  execute("drop schema if exists Bug26423177;");
+  execute("create schema Bug26423177;");
+  execute("use Bug26423177;");
+  execute("create table dt (dt datetime);");
+  execute("insert into dt values (\"2017-12-12 12:12:12\");");
+  wipe_all();
+  execute("select * from dt;");
+  MY_EXPECT_STDOUT_CONTAINS("2017-12-12 12:12:12");
+  execute("drop schema Bug26423177;");
+}
+
 }  // namespace shell_core_tests
 }  // namespace shcore

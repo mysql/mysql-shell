@@ -731,7 +731,7 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
               {
                 ::mysqlx::DateTime date = row->dateTimeField(index);
                 std::shared_ptr<shcore::Date> shell_date(new shcore::Date(
-                  date.year(), date.month(), date.day(), date.hour(),
+                  date.year(), date.month() - 1, date.day(), date.hour(),
                   date.minutes(), date.seconds() + ((double)date.useconds() / 1000000)));
 
                 field_value = Value(std::static_pointer_cast<Object_bridge>(shell_date));
