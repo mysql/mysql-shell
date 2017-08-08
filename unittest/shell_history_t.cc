@@ -73,6 +73,8 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   auto coptions = shcore::get_connection_options(getenv("MYSQL_URI"));
   if (pwd)
     coptions.set_password(pwd);
+  else
+    coptions.set_password("");
   coptions.set_port(atoi(getenv("MYSQL_PORT")));
   shell.connect_session(&coptions, mysqlsh::SessionType::Classic, false);
 

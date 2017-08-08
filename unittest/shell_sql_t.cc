@@ -89,6 +89,8 @@ class Shell_sql_test : public ::testing::Test {
 
     if (pwd)
       connection_options.set_password(pwd);
+    else
+      connection_options.set_password("");
 
     auto session =
       mysqlsh::Shell::connect_session(connection_options,

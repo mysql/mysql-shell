@@ -395,11 +395,7 @@ bool Shell_core::reconnect_if_needed() {
     {
       print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'..");
 
-#ifdef _WIN32
-      Sleep(500);
-#else
-      usleep(500000);
-#endif
+      shcore::sleep_ms(500);
       int attempts = 6;
       while (!ret_val && attempts > 0) {
         ret_val = reconnect();
@@ -409,7 +405,7 @@ bool Shell_core::reconnect_if_needed() {
           attempts--;
           if (attempts > 0) {
             // Try again
-            sleep(1);
+            shcore::sleep_ms(1000);
           }
         }
       }

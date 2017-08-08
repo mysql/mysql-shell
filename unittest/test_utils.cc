@@ -482,6 +482,8 @@ void run_script_classic(const std::vector<std::string> &sql) {
 
   if (getenv("MYSQL_PWD"))
     connection_options.set_password(getenv("MYSQL_PWD"));
+  else
+    connection_options.set_password("");
 
   session->connect(connection_options);
 
@@ -507,9 +509,10 @@ std::string shell_test_server_uri(int proto) {
   auto data = shcore::get_connection_options(uri);
 
   const char *pwd = getenv("MYSQL_PWD");
-  if (pwd) {
+  if (pwd)
     data.set_password(pwd);
-  }
+  else
+    data.set_password("");
 
   std::string _uri;
   _uri = mysqlshdk::db::uri::Uri_encoder().encode_uri(
