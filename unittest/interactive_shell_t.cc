@@ -1536,26 +1536,26 @@ TEST_F(Interactive_shell_test, BUG25974014) {
 
 TEST_F(Interactive_shell_test, ssl_status) {
   wipe_all();
-  execute("\\connect " + _uri + "?sslMode=DISABLED");
+  execute("\\connect " + _uri + "?ssl-Mode=DISABLED");
   execute("\\status");
   MY_EXPECT_STDOUT_CONTAINS("Not in use.");
   EXPECT_EQ("", _interactive_shell->prompt_variables()->at("ssl"));
 
   wipe_all();
-  execute("\\connect " + _uri + "?sslMode=REQUIRED");
+  execute("\\connect " + _uri + "?ssl-Mode=REQUIRED");
   execute("\\status");
   MY_EXPECT_STDOUT_CONTAINS("Cipher in use: ");
   MY_EXPECT_STDOUT_CONTAINS("TLSv");
   EXPECT_EQ("SSL", _interactive_shell->prompt_variables()->at("ssl"));
 
   wipe_all();
-  execute("\\connect " + _mysql_uri + "?sslMode=DISABLED");
+  execute("\\connect " + _mysql_uri + "?ssl-Mode=DISABLED");
   execute("\\status");
   MY_EXPECT_STDOUT_CONTAINS("Not in use.");
   EXPECT_EQ("", _interactive_shell->prompt_variables()->at("ssl"));
 
   wipe_all();
-  execute("\\connect " + _mysql_uri + "?sslMode=REQUIRED");
+  execute("\\connect " + _mysql_uri + "?ssl-Mode=REQUIRED");
   execute("\\status");
   MY_EXPECT_STDOUT_CONTAINS("Cipher in use: ");
   MY_EXPECT_STDOUT_CONTAINS("TLSv");
@@ -1563,7 +1563,7 @@ TEST_F(Interactive_shell_test, ssl_status) {
 }
 
 TEST_F(Interactive_shell_test, status_x) {
-  execute("\\connect " + _uri + "?sslMode=DISABLED");
+  execute("\\connect " + _uri + "?ssl-Mode=DISABLED");
   wipe_all();
   execute("\\status");
 
@@ -1633,7 +1633,7 @@ TEST_F(Interactive_shell_test, status_x) {
 }
 
 TEST_F(Interactive_shell_test, status_classic) {
-  execute("\\connect " + _mysql_uri + "?sslMode=DISABLED");
+  execute("\\connect " + _mysql_uri + "?ssl-Mode=DISABLED");
   wipe_all();
   execute("\\status");
 

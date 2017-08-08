@@ -52,7 +52,7 @@ cluster.status()
 
 #@ Persist the GR configuration
 cnfPath3 = __sandbox_dir + str(__mysql_sandbox_port3) + "/my.cnf"
-result = dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port3), {'mycnfPath': cnfPath3, 'dbPassword':'root'})
+result = dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port3), {'mycnfPath': cnfPath3, 'DbPassWord':'root'})
 print (result.status)
 
 #@ Kill instance, will auto join after start

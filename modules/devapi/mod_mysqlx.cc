@@ -100,11 +100,8 @@ REGISTER_HELP(
     MYSQLX_GETSESSION_DETAIL,
     "A Session object uses the X Protocol to allow executing operations on the "
     "connected MySQL Server.");
-REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1,
-              "The connection data can be any of:");
-REGISTER_HELP(MYSQLX_GETSESSION_DETAIL2, "@li A URI string");
-REGISTER_HELP(MYSQLX_GETSESSION_DETAIL3,
-              "@li A Dictionary with the connection options");
+REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
+
 
 /**
  * $(MYSQLX_GETSESSION)
@@ -116,9 +113,10 @@ REGISTER_HELP(MYSQLX_GETSESSION_DETAIL3,
  *
  * $(MYSQLX_GETSESSION_DETAIL)
  *
- * $(MYSQLX_GETSESSION_DETAIL1)
- * $(MYSQLX_GETSESSION_DETAIL2)
- * $(MYSQLX_GETSESSION_DETAIL3)
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref connection_data
+ *
  */
 
 #if DOXYGEN_JS

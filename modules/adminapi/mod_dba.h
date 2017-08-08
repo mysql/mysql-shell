@@ -160,9 +160,10 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args);
   shcore::Value::Map_type_ref _check_instance_configuration(
-      const shcore::Argument_list &args, bool allow_update);
+      const mysqlshdk::db::Connection_options &instance_def,
+      const shcore::Value::Map_type_ref &options, bool allow_update);
   static std::map <std::string, std::shared_ptr<
-                   mysqlsh::mysql::ClassicSession>> _session_cache;
+                  mysqlsh::mysql::ClassicSession> > _session_cache;
 };
 }  // namespace dba
 }  // namespace mysqlsh

@@ -82,6 +82,25 @@ if (mySession.uri == __displayuridb)
 else
 	print('Session using wrong URI\n');
 
+//@ mysqlx module: getSession using SSL in URI
+var res = mySession.sql('select @@have_ssl').execute();
+var row = res.fetchOne();
+var have_ssl = (row[0] == 'YES');
+
+var uri_value = 'DISABLED';
+if (have_ssl)
+  ssl_mode = 'REQUIRED';
+
+var mySslSession = mysqlx.getSession(mySession.uri + "?ssl-mode=" + ssl_mode);
+
+if (mySslSession.uri == (__displayuridb + "?ssl-mode=" + ssl_mode))
+  print('Session using right SSL URI\n');
+else
+  print('Session using wrong SSL URI\n');
+
+
+mySslSession.close();
+
 mySession.close();
 
 //@# mysqlx module: expression errors
@@ -92,3 +111,6 @@ expr = mysqlx.expr(5);
 //@ mysqlx module: expression
 expr = mysqlx.expr('5+6');
 print(expr);
+
+//@<OUT> Help on getSession
+mysqlx.help('getSession');

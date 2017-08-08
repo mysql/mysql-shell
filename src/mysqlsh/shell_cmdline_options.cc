@@ -64,7 +64,7 @@ Shell_command_line_options::Shell_command_line_options(int argc,
           strcpy(const_cast<char*>(argv[i]), nopwd_uri.substr(0, nopwd_uri.length()).c_str());
         }
       } catch (const std::invalid_argument &error) {
-        std::cerr << "Invalid value specified in --uri parameter.\n";
+        std::cerr << error.what() << std::endl;
         exit_code = 1;
         break;
       }

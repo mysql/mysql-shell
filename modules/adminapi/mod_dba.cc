@@ -40,6 +40,7 @@
 #include "shellcore/shell_core_options.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
+#include "modules/mod_utils.h"
 
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -860,95 +861,69 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL,
               "it is valid "
               "for usage in group replication.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL1,
-              "The instance definition can be any of:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2, "@li URI string.");
+              "The instance definition is the connection data for the instance.");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2, "TOPIC_CONNECTION_DATA");
+
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL3,
-              "@li Connection data dictionary.");
-
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4,
-              "A basic URI string has the following format:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5,
-              "[mysql://"
-              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
-              "]");
-
-REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL6,
-    "The connection data dictionary may contain the following attributes:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7,
-              "@li user/dbUser: username");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8,
-              "@li password/dbPassword: username password");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9,
-              "@li host: hostname or IP address");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL10, "@li port: port number");
-REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL11,
-    "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL12,
-              "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13,
-              "@li sslKey: The path to the X509 key in PEM format.");
-
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14,
               "The options dictionary may contain the following options:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL15,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4,
               "@li mycnfPath: The path of the MySQL configuration file for the "
               "instance.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL16,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5,
               "@li password: The password to get connected to the instance.");
 REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL17,
+    DBA_CHECKINSTANCECONFIGURATION_DETAIL6,
     "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL18,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7,
               "@li clusterAdminPassword: The password for the InnoDB cluster "
               "administrator account.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8,
               "The connection password may be contained on the instance "
               "definition, however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL20,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9,
               "The returned JSON object contains the following attributes:");
 REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL21,
-    "@li status: the final status of the command, either \"ok\" or \"error\"");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
+    DBA_CHECKINSTANCECONFIGURATION_DETAIL10,
+    "@li status: the final status of the command, either \"ok\" or \"error\".");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL11,
               "@li config_errors: a list of dictionaries containing the failed "
               "requirements");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL23,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL12,
               "@li errors: a list of errors of the operation");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL24,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13,
               "@li restart_required: a boolean value indicating whether a "
               "restart is required");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL25,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14,
               "Each dictionary of the list of config_errors includes the "
               "following attributes:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL26,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL15,
               "@li option: The configuration option for which the requirement "
               "wasn't met");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL27,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL16,
               "@li current: The current value of the configuration option");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL28,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL17,
               "@li required: The configuration option required value");
 REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL29,
+    DBA_CHECKINSTANCECONFIGURATION_DETAIL18,
     "@li action: The action to be taken in order to meet the requirement");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL30,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19,
               "The action can be one of the following:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL31,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL20,
               "@li server_update+config_update: Both the server and the "
               "configuration need to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL32,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL21,
               "@li config_update+restart: The configuration needs to be "
               "updated and the server restarted");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL33,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
               "@li config_update: The configuration needs to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL34,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL23,
               "@li server_update: The server needs to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL35,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL24,
               "@li restart: The server needs to be restarted");
 
 /**
@@ -970,47 +945,37 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL35,
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL)
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL1)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL2)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL3)
 *
+* \copydoc connection_options
+*
+* Detailed description of the connection data format is available at \ref connection_data
+*
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL3)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL4)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL5)
-
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL6)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL7)
+*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL8)
+*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL9)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL10)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL11)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL12)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL13)
-
+*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL14)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL15)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL16)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL17)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL18)
-
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL19)
 *
+* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL19)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL20)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL21)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL22)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL23)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL24)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL25)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL26)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL27)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL28)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL29)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL30)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL31)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL32)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL33)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL34)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL35)
 */
 #if DOXYGEN_JS
 Undefined Dba::checkInstanceConfiguration(InstanceDef instance,
@@ -1026,7 +991,18 @@ shcore::Value Dba::check_instance_configuration(
   shcore::Value ret_val;
 
   try {
-    ret_val = shcore::Value(_check_instance_configuration(args, false));
+    auto instance_def =
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
+
+    // Resolves user and validates password
+    mysqlsh::resolve_connection_credentials(&instance_def);
+
+    shcore::Value::Map_type_ref options;
+    if (args.size() == 2)
+      options = args.map_at(1);
+
+    ret_val = shcore::Value(
+        _check_instance_configuration(instance_def, options, false));
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("checkInstanceConfiguration"));
@@ -1255,7 +1231,8 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
     ret_val = exec_instance_op("deploy", args);
 
     if (args.size() == 2) {
-      shcore::Argument_map opt_map(*args.map_at(1));
+      auto map = args.map_at(1);
+      shcore::Argument_map opt_map(*map);
       // create root@<addr> if needed
       // Valid values:
       // allowRootFrom: address
@@ -1266,17 +1243,9 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
         std::string remote_root = opt_map.string_at("allowRootFrom");
         if (!remote_root.empty()) {
           int port = args.int_at(0);
-          std::string password;
           std::string uri = "root@localhost:" + std::to_string(port);
           mysqlshdk::db::Connection_options instance_def(uri);
-          // NOTE(rennox): This needs to be updated for WL10912
-          // Update: DO case insensitive comparison
-          if (opt_map.has_key("password"))
-            password = opt_map.string_at("password");
-          else if (opt_map.has_key("dbPassword"))
-            password = opt_map.string_at("dbPassword");
-
-          instance_def.set_password(password);
+          mysqlsh::set_password_from_map(&instance_def, map);
 
           auto session =
               std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
@@ -1288,8 +1257,12 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
                    remote_root.c_str(), port);
           session->execute_sql("SET sql_log_bin = 0");
           {
+            std::string pwd;
+            if (instance_def.has_password())
+              pwd = instance_def.get_password();
+
             sqlstring create_user("CREATE USER root@? IDENTIFIED BY ?", 0);
-            create_user << remote_root << password;
+            create_user << remote_root << pwd;
             create_user.done();
             session->execute_sql(create_user);
           }
@@ -1632,102 +1605,75 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL,
               "returned containing the result of the operation.");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL1,
-              "The instance definition can be any of:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2, "@li URI string.");
+              "The instance definition is the connection data for the instance.");
+
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2, "TOPIC_CONNECTION_DATA");
+
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL3,
-              "@li Connection data dictionary.");
-
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL4,
-              "A basic URI string has the following format:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL5,
-              "[mysql://"
-              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
-              "]");
-
-REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL6,
-    "The connection data dictionary may contain the following attributes:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8,
-              "@li password/dbPassword: username password");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9,
-              "@li host: hostname or IP address");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL11,
-    "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL12,
-              "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL13,
-              "@li sslKey: The path to the X509 key in PEM format.");
-
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL14,
               "The options dictionary may contain the following options:");
 REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL15,
+    DBA_CONFIGURELOCALINSTANCE_DETAIL4,
     "@li mycnfPath: The path to the MySQL configuration file of the instance.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL16,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL5,
               "@li password: The password to be used on the connection.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL17,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL6,
               "@li clusterAdmin: The name of the InnoDB cluster administrator "
               "user to be created. The supported format is the standard MySQL "
               "account name format.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL18,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7,
               "@li clusterAdminPassword: The password for the InnoDB cluster "
               "administrator account.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL19,
-              "@li clearReadOnly: boolean value "
-              "used to confirm that super_read_only "
-              "must be disabled.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8,
+              "@li clearReadOnly: boolean value used to confirm that "
+              "super_read_only must be disabled.");
+              
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL20,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9,
               "The connection password may be contained on the instance "
               "definition, however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL21,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL10,
               "The returned JSON object contains the following attributes:");
-REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL22,
-    "@li status: the final status of the command, either \"ok\" or \"error\"");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL23,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL11,
+    "@li status: the final status of the command, either \"ok\" or \"error\".");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL12,
               "@li config_errors: a list "
               "of dictionaries containing "
               "the failed requirements");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL24,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL13,
               "@li errors: a list of errors of the operation");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL25,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL14,
               "@li restart_required: a boolean value indicating whether a "
               "restart is required");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL26,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL15,
               "Each dictionary of the list of config_errors includes the "
               "following attributes:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL27,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL16,
               "@li option: The configuration option for which the requirement "
               "wasn't met");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL28,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL17,
               "@li current: The current value of the configuration option");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL29,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL18,
               "@li required: The configuration option required value");
-REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL30,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL19,
     "@li action: The action to be taken in order to meet the requirement");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL31,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL20,
               "The action can be one of the following:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL32,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL21,
               "@li server_update+config_update: Both the server and the "
               "configuration need to be updated");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL33,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL22,
               "@li config_update+restart: The configuration needs to be "
               "updated and the server restarted");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL34,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL23,
               "@li config_update: The configuration needs to be updated");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL35,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL24,
               "@li server_update: The server needs to be updated");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL36,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL25,
               "@li restart: The server needs to be restarted");
 /**
 * $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
@@ -1748,47 +1694,38 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL36,
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL)
 *
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL1)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL2)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL3)
 *
+* \copydoc connection_options
+*
+* Detailed description of the connection data format is available at \ref connection_data
+*
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL3)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL5)
-*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL6)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL7)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL8)
+*
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL9)
+*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL10)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL11)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL12)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL13)
-
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL14)
+*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL15)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL16)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL17)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL18)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL19)
-*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL20)
-*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL21)
+*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL22)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL23)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL24)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL25)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL26)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL27)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL28)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL29)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL30)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL31)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL32)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL33)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL34)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL35)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL36)
 */
 #if DOXYGEN_JS
 Instance Dba::configureLocalInstance(InstanceDef instance, Dictionary options) {
@@ -1804,9 +1741,17 @@ shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
     auto instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
+    // Resolves user and validates password
+    mysqlsh::resolve_connection_credentials(&instance_def);
+
+    shcore::Value::Map_type_ref options;
+    if (args.size() == 2)
+      options = args.map_at(1);
+
     if (instance_def.has_host()) {
       if (shcore::is_local_host(instance_def.get_host(), true)) {
-        ret_val = shcore::Value(_check_instance_configuration(args, true));
+        ret_val = shcore::Value(
+            _check_instance_configuration(instance_def, options, true));
       } else {
         throw shcore::Exception::runtime_error(
             "This function only works with local instances");
@@ -1836,17 +1781,11 @@ std::shared_ptr<mysqlsh::mysql::ClassicSession> Dba::get_session(
 }
 
 shcore::Value::Map_type_ref Dba::_check_instance_configuration(
-    const shcore::Argument_list &args, bool allow_update) {
+    const mysqlshdk::db::Connection_options &instance_def,
+    const shcore::Value::Map_type_ref &options, bool allow_update) {
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
   shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
   std::set<std::string> check_options;
-
-  // Validates the connection options
-  auto instance_def =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-  // Resolves user and validates password
-  mysqlsh::resolve_connection_credentials(&instance_def);
 
   shcore::Argument_map validate_opt_map;
 
@@ -1855,9 +1794,8 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   std::string cnfpath, cluster_admin, cluster_admin_password;
   bool clear_read_only = false;
 
-  if (args.size() == 2) {
-    validate_options = args.map_at(1);
-    shcore::Argument_map tmp_map(*validate_options);
+  if (options) {
+    shcore::Argument_map tmp_map(*options);
 
     // The clearReadOnly option is only available in configureLocalInstance
     // i.e. with allow_update set as true
@@ -2249,8 +2187,9 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   _metadata_storage->set_session(get_active_session());
 
   shcore::Value ret_val;
-
-  std::string cluster_name, password, user, instance_session_address;
+  bool default_cluster = false;
+  std::string cluster_name, group_replication_group_name, port,
+      host, instance_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
@@ -2277,6 +2216,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
     // get the current session information
     auto instance_session(_metadata_storage->get_session());
 
+    // These session options are taken as base options for further operations
     auto current_session_options = instance_session->get_connection_options();
 
     // Get the current session instance address
@@ -2284,7 +2224,15 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
         current_session_options.as_uri(only_transport());
 
     if (options) {
+      mysqlsh::set_user_from_map(&current_session_options, options);
+      mysqlsh::set_password_from_map(&current_session_options, options);
+
       shcore::Argument_map opt_map(*options);
+
+      // Case sensitive validation of the rest of the options, at this point the
+      // user and password should have been already removed
+      opt_map.ensure_keys({}, mysqlsh::dba::Dba::_reboot_cluster_opts,
+                          "the options");
 
       if (opt_map.has_key("removeInstances"))
         remove_instances_ref = opt_map.array_at("removeInstances");
@@ -2292,31 +2240,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       if (opt_map.has_key("rejoinInstances"))
         rejoin_instances_ref = opt_map.array_at("rejoinInstances");
 
-      // Check if the password is specified on the options and if not prompt it
-      // TODO(rennox): This will require update for WL10912
-      // DO case insensitive comparison
-      if (opt_map.has_key(mysqlshdk::db::kPassword))
-        password = opt_map.string_at(mysqlshdk::db::kPassword);
-      else if (opt_map.has_key(mysqlshdk::db::kDbPassword))
-        password = opt_map.string_at(mysqlshdk::db::kDbPassword);
-      else
-        password = current_session_options.get_password();
-
-      // check if the user is specified on the options and it not prompt it
-      // TODO(rennox): This will require update for WL10912
-      // Do case insensitive comparison and use so both options are read
-      if (opt_map.has_key(mysqlshdk::db::kUser))
-        user = opt_map.string_at(mysqlshdk::db::kUser);
-      else if (opt_map.has_key(mysqlshdk::db::kDbUser))
-        user = opt_map.string_at(mysqlshdk::db::kDbUser);
-      else
-        user = instance_session->get_user();
-
       if (opt_map.has_key("clearReadOnly"))
         clear_read_only = opt_map.bool_at("clearReadOnly");
-    } else {
-      user = instance_session->get_user();
-      password = current_session_options.get_password();
     }
 
     // Check if removeInstances and/or rejoinInstances are specified
@@ -2518,17 +2443,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
       shcore::Argument_list new_args;
       std::string replication_user, replication_user_password;
-      // To avoid messing up the real instance options
-      // i.e. in case we are using a different user/password provided from the
-      // user on the options
-      mysqlshdk::db::Connection_options new_options(current_session_options);
-
-      new_options.clear_user();
-      new_options.clear_password();
-
-      new_options.set_user(user);
-      new_options.set_password(password);
-
       // A new replication user and password must be created
       // so we pass an empty string to the MP call
       replication_user = "";
@@ -2543,11 +2457,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           _metadata_storage->get_replicaset_group_name(
               default_replicaset->get_id());
 
-      // NOTE(rennox): Since the connection data is now passed directly,
-      // new_args goes empty, which means there are no options...
-      // is it correct to not have options like sslMode etc???
-      // NOTE(miguel): This is being reviewed as part of fix for BUG25503817
-      default_replicaset->add_instance(new_options, new_args, replication_user,
+      default_replicaset->add_instance(current_session_options, new_args, replication_user,
                                        replication_user_password, true,
                                        current_group_replication_group_name);
     }
@@ -2587,8 +2497,8 @@ Dba::get_replicaset_instances_status(
     std::string *out_cluster_name, const shcore::Value::Map_type_ref &options) {
   std::vector<std::pair<std::string, std::string>> instances_status;
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
-  std::string user, password, active_session_address, instance_address,
-    conn_status;
+  std::string host, port, active_session_address,
+      instance_address, conn_status;
 
   // Point the metadata session to the dba session
   _metadata_storage->set_session(get_active_session());
@@ -2612,27 +2522,9 @@ Dba::get_replicaset_instances_status(
       current_session_options.as_uri(only_transport());
 
   if (options) {
-    shcore::Argument_map opt_map(*options);
-
     // Check if the password is specified on the options and if not prompt it
-    if (opt_map.has_key(mysqlshdk::db::kPassword))
-      password = opt_map.string_at(mysqlshdk::db::kPassword);
-    else if (opt_map.has_key(mysqlshdk::db::kDbPassword))
-      password = opt_map.string_at("mysqlshdk::db::kDbPassword");
-    else
-      password = current_session_options.get_password();
-
-    // check if the user is specified on the options and it not prompt it
-    if (opt_map.has_key(mysqlshdk::db::kUser))
-      user = opt_map.string_at(mysqlshdk::db::kUser);
-    else if (opt_map.has_key(mysqlshdk::db::kDbUser))
-      user = opt_map.string_at(mysqlshdk::db::kDbUser);
-    else
-      user = current_session_options.get_user();
-
-  } else {
-    user = current_session_options.get_user();
-    password = current_session_options.get_password();
+    mysqlsh::set_user_from_map(&current_session_options, options);
+    mysqlsh::set_password_from_map(&current_session_options, options);
   }
 
   // Iterate on all instances from the metadata
@@ -2649,8 +2541,9 @@ Dba::get_replicaset_instances_status(
 
     auto connection_options =
         shcore::get_connection_options(instance_address, false);
-    connection_options.set_user(user);
-    connection_options.set_password(password);
+
+    connection_options.set_user(current_session_options.get_user());
+    connection_options.set_password(current_session_options.get_password());
 
     try {
       log_info(
@@ -2684,7 +2577,7 @@ Dba::get_replicaset_instances_status(
  */
 void Dba::validate_instances_status_reboot_cluster(
     const shcore::Argument_list &args) {
-  std::string cluster_name, user, password, active_session_address;
+  std::string cluster_name, port, host, active_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
   mysqlsh::mysql::ClassicSession *classic_current;
@@ -2711,30 +2604,14 @@ void Dba::validate_instances_status_reboot_cluster(
       current_session_options.as_uri(only_transport());
 
   if (options) {
+    mysqlsh::set_user_from_map(&current_session_options, options);
+    mysqlsh::set_password_from_map(&current_session_options, options);
+
     shcore::Argument_map opt_map(*options);
 
+    // Case sensitive validation of the rest of the options, at this point the user and password should have been already removed
     opt_map.ensure_keys({}, mysqlsh::dba::Dba::_reboot_cluster_opts,
                         "the options");
-
-    // Check if the password is specified on the options and if not prompt it
-    if (opt_map.has_key(mysqlshdk::db::kPassword))
-      password = opt_map.string_at(mysqlshdk::db::kPassword);
-    else if (opt_map.has_key(mysqlshdk::db::kDbPassword))
-      password = opt_map.string_at(mysqlshdk::db::kDbPassword);
-    else
-      password = current_session_options.get_password();
-
-    // check if the user is specified on the options and it not prompt it
-    if (opt_map.has_key(mysqlshdk::db::kUser))
-      user = opt_map.string_at(mysqlshdk::db::kUser);
-    else if (opt_map.has_key(mysqlshdk::db::kDbUser))
-      user = opt_map.string_at(mysqlshdk::db::kDbUser);
-    else
-      user = current_session_options.get_user();
-
-  } else {
-    user = current_session_options.get_user();
-    password = current_session_options.get_password();
   }
 
   GRInstanceType type = get_gr_instance_type(classic_current->connection());
@@ -2784,8 +2661,8 @@ void Dba::validate_instances_status_reboot_cluster(
 
     auto connection_options =
         shcore::get_connection_options(instance_address, false);
-    connection_options.set_user(user);
-    connection_options.set_password(password);
+    connection_options.set_user(current_session_options.get_user());
+    connection_options.set_password(current_session_options.get_password());
 
     try {
       log_info("Opening a new session to the instance: %s",
@@ -2866,7 +2743,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
   std::pair<std::string, std::string> most_updated_instance;
   mysqlsh::mysql::ClassicSession *classic_current;
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
-  std::string host, port, active_session_address, user, password;
+  std::string active_session_address;
 
   // get the current session information
   classic_current =
@@ -2875,30 +2752,11 @@ void Dba::validate_instances_gtid_reboot_cluster(
   auto current_session_options = classic_current->get_connection_options();
 
   // Get the current session instance address
-  port = std::to_string(current_session_options.get_port());
-  host = current_session_options.get_host();
-  active_session_address = host + ":" + port;
+  active_session_address = current_session_options.as_uri(only_transport());
 
   if (options) {
-    shcore::Argument_map opt_map(*options);
-
-    if (opt_map.has_key(mysqlshdk::db::kPassword))
-      password = opt_map.string_at(mysqlshdk::db::kPassword);
-    else if (opt_map.has_key(mysqlshdk::db::kDbPassword))
-      password = opt_map.string_at(mysqlshdk::db::kDbPassword);
-    else
-      password = current_session_options.get_password();
-
-    if (opt_map.has_key(mysqlshdk::db::kUser))
-      user = opt_map.string_at(mysqlshdk::db::kUser);
-    else if (opt_map.has_key(mysqlshdk::db::kDbUser))
-      user = opt_map.string_at(mysqlshdk::db::kDbUser);
-    else
-      user = current_session_options.get_user();
-
-  } else {
-    user = current_session_options.get_user();
-    password = current_session_options.get_password();
+    mysqlsh::set_user_from_map(&current_session_options, options);
+    mysqlsh::set_password_from_map(&current_session_options, options);
   }
 
   // Get the cluster instances and their status
@@ -2936,8 +2794,8 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
     auto connection_options =
         shcore::get_connection_options(instance_address, false);
-    connection_options.set_user(user);
-    connection_options.set_password(password);
+    connection_options.set_user(current_session_options.get_user());
+    connection_options.set_password(current_session_options.get_password());
 
     // Connect to the instance to obtain the GLOBAL.GTID_EXECUTED
     try {

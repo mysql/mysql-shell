@@ -274,83 +274,54 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL,
               "cluster.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1,
-              "The instance definition can be "
-              "any of:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "@li URI string.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3, "@li Connection data dictionary.");
-// REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "@li An Instance object.");
+              "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4,
-              "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5,
-              "[mysql://"
-              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
-              "]");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "TOPIC_CONNECTION_DATA");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6,
-              "The connection data dictionary "
-              "may contain the following attributes:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL8,
-              "@li password/dbPassword: username "
-              "password");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL9, "@li host: hostname or IP address");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11,
-              "@li sslCa: the path to the X509 "
-              "certificate authority in PEM "
-              "format.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
-              "@li sslCert: The path to the X509 "
-              "certificate in PEM format.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13,
-              "@li sslKey: The path to the X509 "
-              "key in PEM format.");
-
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3,
               "The options dictionary may contain "
               "the following attributes:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4,
               "@li label: an identifier for the "
               "instance being added");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5,
               "@li password: the instance "
               "connection password");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL6,
               "@li memberSslMode: SSL mode used "
               "on the instance");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7,
               "@li ipWhitelist: The list of "
               "hosts allowed to connect to the "
               "instance for group replication");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL8,
               "The password may be contained on "
               "the instance definition, "
               "however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL9,
               "The memberSslMode option supports "
               "these values:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10,
               "@li REQUIRED: if used, SSL "
               "(encryption) will be enabled for "
               "the instance to communicate with "
               "other members of the cluster");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11,
               "@li DISABLED: if used, SSL "
               "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
               "@li AUTO: if used, SSL (encryption)"
               " will be automatically "
               "enabled or disabled based on the "
               "cluster configuration");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13,
               "If memberSslMode is not specified "
               "AUTO will be used by default.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14,
               "The ipWhitelist format is a comma "
               "separated list of IP "
               "addresses or subnet CIDR "
@@ -384,15 +355,19 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25,
  * $(CLUSTER_ADDINSTANCE_DETAIL)
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL1)
- * $(CLUSTER_ADDINSTANCE_DETAIL2)
- * $(CLUSTER_ADDINSTANCE_DETAIL3)
  *
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref connection_data
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL3)
  * $(CLUSTER_ADDINSTANCE_DETAIL4)
  * $(CLUSTER_ADDINSTANCE_DETAIL5)
- *
  * $(CLUSTER_ADDINSTANCE_DETAIL6)
  * $(CLUSTER_ADDINSTANCE_DETAIL7)
+ *
  * $(CLUSTER_ADDINSTANCE_DETAIL8)
+ *
  * $(CLUSTER_ADDINSTANCE_DETAIL9)
  * $(CLUSTER_ADDINSTANCE_DETAIL10)
  * $(CLUSTER_ADDINSTANCE_DETAIL11)
@@ -400,20 +375,6 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25,
  * $(CLUSTER_ADDINSTANCE_DETAIL13)
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL14)
- * $(CLUSTER_ADDINSTANCE_DETAIL15)
- * $(CLUSTER_ADDINSTANCE_DETAIL16)
- * $(CLUSTER_ADDINSTANCE_DETAIL17)
- * $(CLUSTER_ADDINSTANCE_DETAIL18)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL19)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL20)
- * $(CLUSTER_ADDINSTANCE_DETAIL21)
- * $(CLUSTER_ADDINSTANCE_DETAIL22)
- * $(CLUSTER_ADDINSTANCE_DETAIL23)
- * $(CLUSTER_ADDINSTANCE_DETAIL24)
- *
- * $(CLUSTER_ADDINSTANCE_DETAIL25)
  */
 #if DOXYGEN_JS
 Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
@@ -494,83 +455,54 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL,
               "to the cluster.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL1,
-              "The instance definition can be any of:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "@li URI string.");
+              "The instance definition is the connection data for the instance.");
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "TOPIC_CONNECTION_DATA");
+
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3,
-              "@li Connection data dictionary.");
-// REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li An Instance object.");
-
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4,
-              "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5,
-              "[mysql://"
-              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
-              "]");
-
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6,
-              "The connection data dictionary "
-              "may contain the following attributes:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8,
-              "@li password/dbPassword: username "
-              "password");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9,
-              "@li host: hostname or IP address");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11,
-              "@li sslCa: the path to the X509 "
-              "certificate authority in PEM format.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12,
-              "@li sslCert: The path to the X509 "
-              "certificate in PEM format.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL13,
-              "@li sslKey: The path to the X509 "
-              "key in PEM format.");
-
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
               "The options dictionary may "
               "contain the following attributes:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL15,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4,
               "@li label: an identifier for "
               "the instance being added");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL16,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5,
               "@li password: the instance "
               "connection password");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL17,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6,
               "@li memberSslMode: SSL mode "
               "used to be used on the instance");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL18,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL7,
               "@li ipWhitelist: The list of "
               "hosts allowed to connect to the "
               "instance for group replication");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL19,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8,
               "The password may be contained "
               "on the instance definition, "
               "however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL20,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9,
               "The memberSslMode option supports "
               "these values:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL21,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10,
               "@li REQUIRED: if used, SSL "
               "(encryption) will be enabled "
               "for the instance to communicate "
               "with other members of the cluster");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL22,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11,
               "@li DISABLED: if used, SSL "
               "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL23,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12,
               "@li AUTO: if used, SSL "
               "(encryption) will be automatically "
               "enabled or disabled based on the cluster "
               "configuration");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL24,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL13,
               "If memberSslMode is not specified "
               "AUTO will be used by default.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL25,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
               "The ipWhitelist format is a "
               "comma separated list of IP "
               "addresses or subnet CIDR notation, "
@@ -599,17 +531,19 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL25,
 * $(CLUSTER_REJOININSTANCE_DETAIL)
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL1)
-* $(CLUSTER_REJOININSTANCE_DETAIL2)
-* $(CLUSTER_REJOININSTANCE_DETAIL3)  shcore::Argument_list rest;
-    if (args.size() == 2)
-      rest.push_back(args.at(1));
-
-    ret_val = _default_replica_set->add_instance(connection_options, rest);
-* $(CLUSTER_REJOININSTANCE_DETAIL5)
 *
+* \copydoc connection_options
+*
+* Detailed description of the connection data format is available at \ref connection_data
+*
+* $(CLUSTER_REJOININSTANCE_DETAIL3)
+* $(CLUSTER_REJOININSTANCE_DETAIL4)
+* $(CLUSTER_REJOININSTANCE_DETAIL5)
 * $(CLUSTER_REJOININSTANCE_DETAIL6)
 * $(CLUSTER_REJOININSTANCE_DETAIL7)
+*
 * $(CLUSTER_REJOININSTANCE_DETAIL8)
+*
 * $(CLUSTER_REJOININSTANCE_DETAIL9)
 * $(CLUSTER_REJOININSTANCE_DETAIL10)
 * $(CLUSTER_REJOININSTANCE_DETAIL11)
@@ -617,20 +551,6 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL25,
 * $(CLUSTER_REJOININSTANCE_DETAIL13)
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL14)
-* $(CLUSTER_REJOININSTANCE_DETAIL15)
-* $(CLUSTER_REJOININSTANCE_DETAIL16)
-* $(CLUSTER_REJOININSTANCE_DETAIL17)
-* $(CLUSTER_REJOININSTANCE_DETAIL18)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL19)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL20)
-* $(CLUSTER_REJOININSTANCE_DETAIL21)
-* $(CLUSTER_REJOININSTANCE_DETAIL22)
-* $(CLUSTER_REJOININSTANCE_DETAIL23)
-* $(CLUSTER_REJOININSTANCE_DETAIL24)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL25)
 */
 #if DOXYGEN_JS
 Undefined Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
@@ -708,49 +628,25 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL,
               "replicaSet of the cluster.");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1,
-              "The instance definition can be any of:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "@li URI string.");
+              "The instance definition is the connection data for the instance.");
+
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "TOPIC_CONNECTION_DATA");
+
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3,
-              "@li Connection data dictionary.");
-
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4,
-              "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL5,
-              "[mysql://"
-              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
-              "]");
-
-REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL6,
-    "The connection data dictionary may contain the following attributes:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL8,
-              "@li password/dbPassword: username password");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL9,
-              "@li host: hostname or IP address");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL10, "@li port: port number");
-REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL11,
-    "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL12,
-              "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL13,
-              "@li sslKey: The path to the X509 key in PEM format.");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL14,
               "The options dictionary may contain the following attributes:");
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL15,
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4,
               "@li password/dbPassword: the instance connection password");
 REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL16,
+    CLUSTER_REMOVEINSTANCE_DETAIL5,
     "@li force: boolean, indicating if the instance must be removed (even if "
     "only from metadata) in case it cannot be reached. By default, set to "
     "false.");
 REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL17,
+    CLUSTER_REMOVEINSTANCE_DETAIL6,
     "The password may be contained in the instance definition, however, it can "
     "be overwritten if it is specified on the options.");
 REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL18,
+    CLUSTER_REMOVEINSTANCE_DETAIL7,
     "The force option (set to true) must only be used to remove instances that "
     "are permanently not available (no longer reachable) or never to be reused "
     "again in a cluster. This allows to remove from the metadata an instance "
@@ -777,28 +673,18 @@ REGISTER_HELP(
  * $(CLUSTER_REMOVEINSTANCE_DETAIL)
  *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL2)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
  *
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref connection_data
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
  * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
  * $(CLUSTER_REMOVEINSTANCE_DETAIL5)
  *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL6)
+ *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL7)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL8)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL9)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL10)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL11)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL12)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL13)
- *
- * $(CLUSTER_REMOVEINSTANCE_DETAIL14)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL15)
- * $(CLUSTER_REMOVEINSTANCE_DETAIL16)
- *
- * $(CLUSTER_REMOVEINSTANCE_DETAIL17)
- *
- * $(CLUSTER_REMOVEINSTANCE_DETAIL18)
  */
 #if DOXYGEN_JS
 Undefined Cluster::removeInstance(InstanceDef instance, Dictionary options) {}
@@ -1338,59 +1224,38 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL,
               "crashes than tolerable occur.");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1,
-              "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2,
-              "[mysql://"
-              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
-              "]");
+              "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3,
-    "The connection data dictionary may contain the following attributes:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4,
-              "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5,
-              "@li password/dbPassword: username password");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6,
-              "@li host: hostname or IP address");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7,
-              "@li port: port number");
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8,
-    "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9,
-              "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
-              "@li sslKey: The path to the X509 key in PEM format.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2, "TOPIC_CONNECTION_DATA");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL11,
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3,
               "The options dictionary may contain the following options:");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL12,
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4,
               "@li mycnfPath: The path of the MySQL configuration file for the "
               "instance.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL13,
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5,
               "@li password: The password to get connected to the instance.");
 REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL14,
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6,
     "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL15,
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7,
               "@li clusterAdminPassword: The password for the InnoDB cluster "
               "administrator account.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL16,
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8,
               "The password may be contained on the instance definition, "
               "however, it can be overwritten "
               "if it is specified on the options.");
 
 REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL17,
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9,
     "Note that this operation is DANGEROUS as it can create a "
     "split-brain if incorrectly used and should be considered a last "
     "resort. Make absolutely sure that there are no partitions of this group "
     "that are still operating somewhere in the network, but not "
     "accessible from your location.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL18,
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
               "When this function is used, all the members that are ONLINE "
               "from the point of view "
               "of the given instance definition will be added to the group.");
@@ -1414,28 +1279,22 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL18,
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL)
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2)
+ *
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref connection_data
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL5)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL6)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL7)
+ *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL8)
+ *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL9)
+ *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL11)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL12)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL13)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL14)
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL15)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL16)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL17)
- *
- * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL18)
  */
 #if DOXYGEN_JS
 Undefined Cluster::forceQuorumUsingPartitionOf(InstanceDef instance,
@@ -1515,68 +1374,44 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL,
               "Analyzes the instance executed GTIDs with the executed/purged "
               "GTIDs on the cluster "
               "to determine if the instance is valid for the cluster.");
+
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL1,
-              "The instance definition can be any of:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2, "@li URI string.");
+              "The instance definition is the connection data for the instance.");
+
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2, "TOPIC_CONNECTION_DATA");
+
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3,
-              "@li Connection data dictionary.");
-
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4,
-              "A basic URI string has the following format:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5,
-              "[mysql://"
-              "][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=..."
-              "]");
-
-REGISTER_HELP(
-    CLUSTER_CHECKINSTANCESTATE_DETAIL6,
-    "The connection data dictionary may contain the following attributes:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL7, "@li user/dbUser: username");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL8,
-              "@li password/dbPassword: username password");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL9,
-              "@li host: hostname or IP address");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL10, "@li port: port number");
-REGISTER_HELP(
-    CLUSTER_CHECKINSTANCESTATE_DETAIL11,
-    "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL12,
-              "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13,
-              "@li sslKey: The path to the X509 key in PEM format.");
-// REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5, "@li An Instance object.");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
               "The password may be contained on the instance definition, "
               "however, it can be overwritten "
               "if it is specified as a second parameter.");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL15,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL4,
               "The returned JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL16,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL5,
               "@li state: the state of the instance");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL17,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL6,
               "@li reason: the reason for the state reported");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL18,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL7,
               "The state of the instance can be one of the following:");
 REGISTER_HELP(
-    CLUSTER_CHECKINSTANCESTATE_DETAIL19,
+    CLUSTER_CHECKINSTANCESTATE_DETAIL8,
     "@li ok: if the instance transaction state is valid for the cluster");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL20,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL9,
               "@li error: if the instance "
               "transaction state is not "
               "valid for the cluster");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL21,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL10,
               "The reason for the state reported can be one of the following:");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL22,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL11,
               "@li new: if the instance doesn’t have any transactions");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL23,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL12,
               "@li recoverable:  if the instance executed GTIDs are not "
               "conflicting with the executed GTIDs of the cluster instances");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL24,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL13,
               "@li diverged: if the instance executed GTIDs diverged with the "
               "executed GTIDs of the cluster instances");
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL25,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
               "@li lost_transactions: if the instance has more executed GTIDs "
               "than the executed GTIDs of the cluster instances");
 
@@ -1589,36 +1424,26 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL25,
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL1)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL2)
+ *
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref connection_data
+ *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL3)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL4)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL5)
- *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL6)
+ *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL7)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL8)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL9)
+ *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL10)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL11)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL12)
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL13)
- *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL14)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL15)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL16)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL17)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL18)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL19)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL20)
- *
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL21)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL22)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL23)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL24)
- * $(CLUSTER_CHECKINSTANCESTATE_DETAIL25)
  */
 #if DOXYGEN_JS
 Undefined Cluster::checkInstanceState(InstanceDef instance, String password) {}

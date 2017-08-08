@@ -112,9 +112,10 @@ protected:
 
     code = "localhost = 'localhost'";
     exec_and_out_equals(code);
-    code = "add_instance_options = {'host':localhost, 'port': 0000, 'password':'root'};";
+    code =
+        "add_instance_options = {'HOST':localhost, 'port': 0000, "
+        "'PASSWORD':'root'};";
     exec_and_out_equals(code);
-
 
     if (_have_ssl) {
       code = "add_instance_extra_opts = {'memberSslMode': 'REQUIRED'}";

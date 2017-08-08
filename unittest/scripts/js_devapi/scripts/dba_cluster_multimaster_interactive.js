@@ -94,6 +94,7 @@ Cluster.rejoinInstance();
 Cluster.rejoinInstance(1,2,3);
 Cluster.rejoinInstance(1);
 Cluster.rejoinInstance({host: "localhost"});
+Cluster.rejoinInstance({host: "localhost", schema: "abs", "authMethod":56});
 Cluster.rejoinInstance("somehost:3306");
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok

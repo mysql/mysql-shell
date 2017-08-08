@@ -38,7 +38,7 @@ namespace testing {
 // This tests ensures variables are handled in a
 // case sensitive way
 TEST(Nullable_options, case_sensitive) {
-  Nullable_options options;
+  Nullable_options options(Comparison_mode::CASE_SENSITIVE);
 
   // Test adding option
   EXPECT_NO_THROW(options.set("sample1", "value1"));
@@ -109,7 +109,7 @@ TEST(Nullable_options, case_sensitive) {
 }
 
 TEST(Nullable_options, case_insensitive) {
-  Nullable_options options(Comparison_mode::CASE_INSENSITIVE);
+  Nullable_options options;
 
   // Test adding option
   EXPECT_NO_THROW(options.set("sample1", "value1"));
@@ -210,9 +210,9 @@ TEST(Nullable_options, context) {
 TEST(Nullable_options, operator_compare) {
   // Case sensitiveness
   {
-    Nullable_options opt1;
-    Nullable_options opt2;
-    Nullable_options opt3(Comparison_mode::CASE_INSENSITIVE);
+    Nullable_options opt1(Comparison_mode::CASE_SENSITIVE);
+    Nullable_options opt2(Comparison_mode::CASE_SENSITIVE);
+    Nullable_options opt3;
 
     ASSERT_TRUE(opt1 == opt2);
     ASSERT_FALSE(opt1 != opt2);
@@ -222,7 +222,7 @@ TEST(Nullable_options, operator_compare) {
 
   // Differences in context
   {
-    Nullable_options opt1;
+    Nullable_options opt1(Comparison_mode::CASE_SENSITIVE);
     Nullable_options opt2(Comparison_mode::CASE_SENSITIVE);
     Nullable_options opt3(Comparison_mode::CASE_SENSITIVE, "Sample");
 
@@ -234,9 +234,9 @@ TEST(Nullable_options, operator_compare) {
 
   // Number of options
   {
-    Nullable_options opt1;
-    Nullable_options opt2;
-    Nullable_options opt3;
+    Nullable_options opt1(Comparison_mode::CASE_SENSITIVE);
+    Nullable_options opt2(Comparison_mode::CASE_SENSITIVE);
+    Nullable_options opt3(Comparison_mode::CASE_SENSITIVE);
 
     opt1.set("sample", "value");
     opt2.set("sample", "value");
@@ -249,9 +249,9 @@ TEST(Nullable_options, operator_compare) {
 
   // Which options case sensitive
   {
-    Nullable_options opt1;
-    Nullable_options opt2;
-    Nullable_options opt3;
+    Nullable_options opt1(Comparison_mode::CASE_SENSITIVE);
+    Nullable_options opt2(Comparison_mode::CASE_SENSITIVE);
+    Nullable_options opt3(Comparison_mode::CASE_SENSITIVE);
 
     opt1.set("sample", "value");
     opt2.set("sample", "value");
@@ -265,9 +265,9 @@ TEST(Nullable_options, operator_compare) {
 
   // Option values case sensitive
   {
-    Nullable_options opt1;
-    Nullable_options opt2;
-    Nullable_options opt3;
+    Nullable_options opt1(Comparison_mode::CASE_SENSITIVE);
+    Nullable_options opt2(Comparison_mode::CASE_SENSITIVE);
+    Nullable_options opt3(Comparison_mode::CASE_SENSITIVE);
 
     opt1.set("sample", "value");
     opt2.set("sample", "value");
@@ -340,7 +340,7 @@ TEST(Nullable_options, compare_function) {
 }
 
 TEST(Nullable_options, case_sensitive_set_modes) {
-  Nullable_options options;
+  Nullable_options options(Comparison_mode::CASE_SENSITIVE);
 
   EXPECT_NO_THROW(options.set("sample1", "val1", Set_mode::CREATE));
   EXPECT_STREQ("val1", options.get_value("sample1").c_str());

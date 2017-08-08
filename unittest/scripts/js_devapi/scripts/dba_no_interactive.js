@@ -95,18 +95,18 @@ var result = dba.checkInstanceConfiguration(uri2);
 print (result.status)
 
 //@ Dba: checkInstanceConfiguration ok2
-var result = dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {password:'root'});
+var result = dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {PASSWORD:'root'});
 print (result.status)
 
 //@ Dba: checkInstanceConfiguration ok3
-var result = dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {dbPassword:'root'});
+var result = dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {DBPassword:'root'});
 print (result.status)
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors
 dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 
 //@# Dba: configureLocalInstance errors
-dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
+dba.configureLocalInstance('sample:@someotherhost:' + __mysql_sandbox_port1);
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
 dba.configureLocalInstance('sample@localhost:' + __mysql_sandbox_port1);
 dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root'});

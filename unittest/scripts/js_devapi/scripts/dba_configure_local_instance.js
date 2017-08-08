@@ -51,7 +51,7 @@ cluster.status();
 
 //@ Persist the GR configuration
 var cnfPath3 = __sandbox_dir + __mysql_sandbox_port3 + "/my.cnf";
-var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port3, {mycnfPath: cnfPath3, dbPassword:'root'});
+var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port3, {mycnfPath: cnfPath3, DBPASSWORD:'root'});
 print (result.status)
 
 //@ Kill instance, will auto join after start

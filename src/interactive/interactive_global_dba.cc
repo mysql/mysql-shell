@@ -650,8 +650,21 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     }
 
     if (options) {
+      Connection_options connection_options;
+      mysqlsh::set_user_from_map(&connection_options, options);
+      mysqlsh::set_password_from_map(&connection_options, options);
+
+      // Check if the password is specified on the options
+      if (connection_options.has_user())
+        user = connection_options.get_user();
+
+      if (connection_options.has_password())
+        password = connection_options.get_password();
+
       opt_map = *options;
 
+      // Case sensitive validation of the rest of the options, at this point
+      // the user and password should have been already removed
       opt_map.ensure_keys({}, mysqlsh::dba::Dba::_reboot_cluster_opts,
                           "the options");
 
@@ -660,18 +673,6 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
 
       if (opt_map.has_key("rejoinInstances"))
         confirm_rescan_rejoins = false;
-
-      // Check if the password is specified on the options
-      if (opt_map.has_key(mysqlshdk::db::kPassword))
-        password = opt_map.string_at(mysqlshdk::db::kPassword);
-      else if (opt_map.has_key(mysqlshdk::db::kDbPassword))
-        password = opt_map.string_at(mysqlshdk::db::kDbPassword);
-
-      // check if the user is specified on the options and it not prompt it
-      if (opt_map.has_key(mysqlshdk::db::kUser))
-        user = opt_map.string_at(mysqlshdk::db::kUser);
-      else if (opt_map.has_key(mysqlshdk::db::kDbUser))
-        user = opt_map.string_at(mysqlshdk::db::kDbUser);
 
       if (opt_map.has_key("clearReadOnly")) {
         // This call is done only to validate the passed data

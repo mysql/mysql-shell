@@ -1953,7 +1953,6 @@ void ReplicaSet::remove_instances(
 void ReplicaSet::rejoin_instances(
     const std::vector<std::string> &rejoin_instances,
     const shcore::Value::Map_type_ref &options) {
-  std::string user, password;
   auto instance_session(_metadata_storage->get_session());
   auto instance_data = instance_session->get_connection_options();
 
@@ -1961,27 +1960,9 @@ void ReplicaSet::rejoin_instances(
     // Get the user and password from the options
     // or from the instance session
     if (options) {
-      shcore::Argument_map opt_map(*options);
-
       // Check if the password is specified on the options and if not prompt it
-      if (opt_map.has_key(mysqlshdk::db::kPassword))
-        password = opt_map.string_at(mysqlshdk::db::kPassword);
-      else if (opt_map.has_key(mysqlshdk::db::kDbPassword))
-        password = opt_map.string_at(mysqlshdk::db::kDbPassword);
-      else
-        password = instance_data.get_password();
-
-      // check if the user is specified on the options and it not prompt it
-      if (opt_map.has_key(mysqlshdk::db::kUser))
-        user = opt_map.string_at(mysqlshdk::db::kUser);
-      else if (opt_map.has_key(mysqlshdk::db::kDbUser))
-        user = opt_map.string_at(mysqlshdk::db::kDbUser);
-      else
-        user = instance_data.get_user();
-
-    } else {
-      user = instance_data.get_user();
-      password = instance_data.get_password();
+      mysqlsh::set_user_from_map(&instance_data, options);
+      mysqlsh::set_password_from_map(&instance_data, options);
     }
 
     for (auto instance : rejoin_instances) {
@@ -1990,8 +1971,8 @@ void ReplicaSet::rejoin_instances(
         auto connection_options =
             shcore::get_connection_options(instance, false);
 
-        connection_options.set_user(user);
-        connection_options.set_password(password);
+        connection_options.set_user(instance_data.get_user());
+        connection_options.set_password(instance_data.get_password());
 
         // If rejoinInstance fails we don't want to stop the execution of the
         // function, but to log the error.

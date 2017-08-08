@@ -41,7 +41,7 @@ single.forceQuorumUsingPartitionOf({host: localhost, port: __mysql_sandbox_port2
 
 //@ Success adding instance to the single cluster
 add_instance_to_cluster(single, __mysql_sandbox_port3);
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+shell.connect({SCHEME: 'mysql', Host: localhost, PoRt: __mysql_sandbox_port3, UsEr: 'root', PassWord: 'root'});
 
 //@ Remove the instance from the cluster
 single.removeInstance({host: localhost, port: __mysql_sandbox_port3});

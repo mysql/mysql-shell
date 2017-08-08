@@ -65,14 +65,14 @@ mysqlshdk::db::Connection_options get_connection_options(
             "no options provided.");
 
       shcore::Argument_map connection_map(*options);
-      connection_map.ensure_keys({mysqlshdk::db::kHost},
-                                 mysqlshdk::db::connection_attributes,
-                                 "connection options");
+      connection_map.ensure_keys(
+          {mysqlshdk::db::kHost}, mysqlshdk::db::connection_attributes,
+          "connection options",
+          ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
 
-      // TODO(rennox) This logic needs to be updated for WL10912
       for (auto& option : *options) {
         if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0)
-          ret_val.set_port(connection_map.int_at(mysqlshdk::db::kPort));
+          ret_val.set_port(connection_map.int_at(option.first));
         else
           ret_val.set(option.first, {connection_map.string_at(option.first)});
       }
@@ -86,25 +86,8 @@ mysqlshdk::db::Connection_options get_connection_options(
     // which could be either a string or an options map, such behavior is
     // handled here
     if (format != PasswordFormat::NONE && args.size() > 1) {
-      bool override_pwd = false;
-      std::string new_password;
-
       if (format == PasswordFormat::OPTIONS) {
-        auto other_options = args.map_at(1);
-
-        for (auto option : *other_options) {
-          if (!ret_val.compare(option.first, mysqlshdk::db::kPassword) ||
-              !ret_val.compare(option.first, mysqlshdk::db::kDbPassword)) {
-            // Will allow one override, a second means the password
-            // option was duplicate on the second map, let the error
-            // raise
-            if (!override_pwd)
-              ret_val.clear_password();
-
-            ret_val.set_password(option.second.as_string());
-            override_pwd = true;
-          }
-        }
+        set_password_from_map(&ret_val, args.map_at(1));
       } else if (format == PasswordFormat::STRING) {
         ret_val.clear_password();
         ret_val.set_password(args.string_at(1));
@@ -115,6 +98,54 @@ mysqlshdk::db::Connection_options get_connection_options(
   }
 
   return ret_val;
+}
+
+void SHCORE_PUBLIC set_password_from_map(
+    Connection_options* options, const shcore::Value::Map_type_ref& map) {
+  bool override_pwd = false;
+  std::string key;
+  for (auto option : *map) {
+    if (!options->compare(option.first, mysqlshdk::db::kPassword) ||
+        !options->compare(option.first, mysqlshdk::db::kDbPassword)) {
+      // Will allow one override, a second means the password option was
+      // duplicate on the second map, let the error raise
+      if (!override_pwd)
+        options->clear_password();
+
+      options->set_password(option.second.as_string());
+      key = option.first;
+      override_pwd = true;
+    }
+  }
+
+  // Removes the password from the map if found, this is because password is
+  // case insensitive and the rest of the options are not
+  if (override_pwd)
+    map->erase(key);
+}
+
+void SHCORE_PUBLIC set_user_from_map(Connection_options* options,
+                                     const shcore::Value::Map_type_ref& map) {
+  bool override_user = false;
+  std::string key;
+  for (auto option : *map) {
+    if (!options->compare(option.first, mysqlshdk::db::kUser) ||
+        !options->compare(option.first, mysqlshdk::db::kDbUser)) {
+      // Will allow one override, a second means the password option was
+      // duplicate on the second map, let the error raise
+      if (!override_user)
+        options->clear_user();
+
+      options->set_user(option.second.as_string());
+      key = option.first;
+      override_user = true;
+    }
+  }
+
+  // Removes the password from the map if found, this is because password is
+  // case insensitive and the rest of the options are not
+  if (override_user)
+    map->erase(key);
 }
 
 shcore::Value::Map_type_ref get_connection_map(

@@ -1595,14 +1595,22 @@ std::shared_ptr<Value::Array_type> Argument_map::array_at(const std::string &key
   return *value.value.array;
 }
 
+bool Argument_map::comp(const std::string& lhs, const std::string& rhs) {
+  return lhs.compare(rhs) < 0;
+}
+
+bool Argument_map::icomp(const std::string& lhs, const std::string& rhs) {
+  return shcore::str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
+}
+
 void Argument_map::ensure_keys(const std::set<std::string> &mandatory_keys,
                                const std::set<std::string> &optional_keys,
-                               const char *context) const {
-
+                               const char *context, bool case_sensitive) const {
   std::vector<std::string> missing_keys;
   std::vector<std::string> invalid_keys;
 
-  if (!validate_keys(mandatory_keys, optional_keys, missing_keys, invalid_keys)) {
+  if (!validate_keys(mandatory_keys, optional_keys, missing_keys, invalid_keys,
+                     case_sensitive)) {
     std::string msg;
     if (!invalid_keys.empty() && !missing_keys.empty()) {
       msg.append("Invalid and missing values in ").append(context).append(" ");
@@ -1624,14 +1632,22 @@ void Argument_map::ensure_keys(const std::set<std::string> &mandatory_keys,
 bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
                                  const std::set<std::string> &optional_keys,
                                  std::vector<std::string> &missing_keys,
-                                 std::vector<std::string> &invalid_keys) const {
-
-  std::map<std::string, std::string> mandatory_aliases;
+                                 std::vector<std::string> &invalid_keys,
+                                 bool case_sensitive) const {
+  std::map<std::string, std::string,
+           bool (*)(const std::string &, const std::string &)>
+      mandatory_aliases(case_sensitive ? Argument_map::comp
+                                       : Argument_map::icomp);
 
   missing_keys.clear();
   invalid_keys.clear();
 
-  for(auto key: mandatory_keys) {
+  std::set<std::string, bool (*)(const std::string&, const std::string&)>
+    optional(case_sensitive ? Argument_map::comp : Argument_map::icomp);
+
+  optional.insert(optional_keys.begin(), optional_keys.end());
+
+  for (auto key : mandatory_keys) {
     auto aliases = split_string(key, "|");
     missing_keys.push_back(aliases[0]);
 
@@ -1641,14 +1657,15 @@ bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
 
   for (auto k : _map) {
     if (mandatory_aliases.find(k.first) != mandatory_aliases.end()) {
-      auto position = std::find(missing_keys.begin(), missing_keys.end(), mandatory_aliases[k.first]);
+      auto position = std::find(missing_keys.begin(), missing_keys.end(),
+                                mandatory_aliases[k.first]);
       if (position != missing_keys.end())
         missing_keys.erase(position);
       else
         // The same option was specified with two different aliases
         // Only the first is considered valid
         invalid_keys.push_back(k.first);
-    } else if (optional_keys.find(k.first) != optional_keys.end()) {
+    } else if (optional.find(k.first) != optional.end()) {
       // nop
     } else
       invalid_keys.push_back(k.first);

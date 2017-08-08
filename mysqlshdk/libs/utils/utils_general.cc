@@ -353,7 +353,9 @@ split_string(const std::string &input, std::vector<size_t> max_lengths) {
   while (input.size() > index) {
     auto pos = input.rfind(" ", index);
 
-    if (pos != std::string::npos && pos > start) {
+    if (pos == std::string::npos) {
+      break;
+    } else if (pos > start) {
       chunks.push_back(input.substr(start, pos - start));
       start = pos + 1;
 

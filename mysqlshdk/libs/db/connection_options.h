@@ -43,9 +43,9 @@ class SHCORE_PUBLIC Connection_options
     : public mysqlshdk::utils::Nullable_options {
  public:
   explicit Connection_options(Comparison_mode mode =
-    Comparison_mode::CASE_SENSITIVE);
-  explicit Connection_options(const std::string& uri,
-                     Comparison_mode mode = Comparison_mode::CASE_SENSITIVE);
+    Comparison_mode::CASE_INSENSITIVE);
+  Connection_options(const std::string& uri,
+                     Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
 
   const std::string& get_scheme() const { return get_value(kScheme); }
   const std::string& get_user() const { return get_value(kUser); }

@@ -155,22 +155,11 @@ REGISTER_HELP(SHELL_PARSEURI_DETAIL, "Parses a URI string and returns a "\
                                      "dictionary containing an item for each "\
                                      "found element.");
 
-REGISTER_HELP(SHELL_PARSEURI_DETAIL1, "A basic URI string has the following format:");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL2, "[scheme://][user[:password]@]host[:port][?key=value&key=value...]");
+REGISTER_HELP(SHELL_PARSEURI_DETAIL1, "TOPIC_URI");
 
-REGISTER_HELP(SHELL_PARSEURI_DETAIL3, "The scheme can be any of the following:");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL4, "@li mysql: For TCP connections using the Classic protocol.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL5, "@li mysqlx: For TCP connections using the X protocol.");
+REGISTER_HELP(SHELL_PARSEURI_DETAIL2, "For more details about how a URI is "
+  "created as well as the returned dictionary, use \\? connection");
 
-REGISTER_HELP(SHELL_PARSEURI_DETAIL6, "When using a URI the supported keys include:");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL7, "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL8, "@li sslCaPath: the path to the directory that contains the X509 certificates authorities in PEM format.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL9, "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL10, "@li sslKey: The path to the X509 key in PEM format.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL11, "@li sslCrl: The path to file that contains certificate revocation lists.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL12, "@li sslCrlPath: The path of directory that contains certificate revocation list files.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL13, "@li sslCiphers: List of permitted ciphers to use for connection encryption.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL14, "@li sslTlsVersion: List of protocols permitted for secure connections");
 
 /**
  * $(SHELL_PARSEURI_BRIEF)
@@ -182,21 +171,10 @@ REGISTER_HELP(SHELL_PARSEURI_DETAIL14, "@li sslTlsVersion: List of protocols per
  * $(SHELL_PARSEURI_DETAIL)
  *
  * $(SHELL_PARSEURI_DETAIL1)
- * $(SHELL_PARSEURI_DETAIL2)
  *
- * $(SHELL_PARSEURI_DETAIL3)
- * $(SHELL_PARSEURI_DETAIL4)
- * $(SHELL_PARSEURI_DETAIL5)
+ * For more information about the URI format as well as the returned dictionary
+ * please look at \ref connection_data
  *
- * $(SHELL_PARSEURI_DETAIL6)
- * $(SHELL_PARSEURI_DETAIL7)
- * $(SHELL_PARSEURI_DETAIL8)
- * $(SHELL_PARSEURI_DETAIL9)
- * $(SHELL_PARSEURI_DETAIL10)
- * $(SHELL_PARSEURI_DETAIL11)
- * $(SHELL_PARSEURI_DETAIL12)
- * $(SHELL_PARSEURI_DETAIL13)
- * $(SHELL_PARSEURI_DETAIL14)
  */
 #if DOXYGEN_JS
 Dictionary Shell::parseUri(String uri){}
@@ -315,90 +293,136 @@ shcore::Value Shell::prompt(const shcore::Argument_list &args) {
 
 }
 
+// These two lines link the help to be shown on \? connection
+REGISTER_HELP(TOPIC_CONNECTION, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(TOPIC_CONNECTION1, "TOPIC_CONNECTION_DATA_ADDITIONAL");
+
+// These lines link the help that will be shown on the help() for every
+// function using connection data
+REGISTER_HELP(TOPIC_CONNECTION_DATA, "The connection data may be specified in the following formats:");
+REGISTER_HELP(TOPIC_CONNECTION_DATA1, "@li A URI string");
+REGISTER_HELP(TOPIC_CONNECTION_DATA2, "@li A dictionary with the connection options");
+REGISTER_HELP(TOPIC_CONNECTION_DATA3, "TOPIC_URI");
+REGISTER_HELP(TOPIC_CONNECTION_DATA4, "TOPIC_CONNECTION_OPTIONS");
+REGISTER_HELP(TOPIC_CONNECTION_DATA5, "TOPIC_CONNECTION_DATA_DETAILS");
+REGISTER_HELP(TOPIC_CONNECTION_DATA6, "TOPIC_CONNECTION_MORE_INFO");
+
+REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO, "For additional information on connection data use \\? connection.");
+
+REGISTER_HELP(TOPIC_URI, "A basic URI string has the following format:");
+REGISTER_HELP(TOPIC_URI1, "[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]");
+
+// These lines group the description of ALL the available connection options
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS, "The following options are valid for use either in a URI or in a dictionary:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS1, "TOPIC_URI_CONNECTION_OPTIONS");
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS2, "The following options are also valid when a dictionary is used:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS3, "TOPIC_DICT_CONNECTION_OPTIONS");
+
+// These lines group the connection options available for URI
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS, "@li ssl-mode: the SSL mode to be used in the connection.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS1, "@li ssl-ca: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS2, "@li ssl-capath: the path to the directory that contains the X509 certificates authorities in PEM format.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS3, "@li ssl-cert: The path to the X509 certificate in PEM format.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS4, "@li ssl-key: The path to the X509 key in PEM format.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS5, "@li ssl-crl: The path to file that contains certificate revocation lists.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS6, "@li ssl-crlpath: The path of directory that contains certificate revocation list files.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7, "@li ssl-ciphers: List of permitted ciphers to use for connection encryption.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS8, "@li tls-version: List of protocols permitted for secure connections");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9, "@li auth-method: Authentication method");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS10, "When these options are defined in a URI, their values must be URL encoded.");
+
+// These lines group the connection options available for dictionary
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS, "@li scheme: the protocol to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS1, "@li user: the MySQL user name to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS2, "@li dbUser: alias for user.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS3, "@li password: the password to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS4, "@li dbPassword: same as password.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS5, "@li host: the hostname or IP address to be used on a TCP connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS6, "@li port: the port to be used in a TCP connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS7, "@li socket: the socket file name to be used on a connection through unix sockets.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS8, "@li schema: the schema to be selected once the connection is done.");
+
+// The rest of the lines provide additional details related to the connection option definition
+REGISTER_HELP(TOPIC_CONNECTION_DATA_DETAILS, "The connection options are case insensitive and can only be defined once.");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_DETAILS1, "If an option is defined more than once, an error will be generated.");
+
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL, "TOPIC_CONNECTION_OPTION_SCHEME");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL1, "TOPIC_CONNECTION_OPTION_SOCKET");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2, "TOPIC_CONNECTION_OPTION_SSL_MODE");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3, "TOPIC_CONNECTION_OPTION_TLS_VERSION");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4, "TOPIC_URI_ENCODED_VALUE");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5, "TOPIC_URI_ENCODED_ATTRIBUTE");
+
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME, "<b>Protocol Selection</b>");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME1, "The scheme option defines the protocol to be used on the connection, the following are the accepted values:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME2, "@li mysql: for connections using the Classic protocol.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME3, "@li mysqlx: for connections using the X protocol.");
+
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET, "<b>Socket Connections</b>");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET1, "To define a socket connection, replace the host and port by the socket path.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET2, "When using a connection dictionary, the path is set as the value for the socket option.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET3, "When using a URI, the socket path must be URL encoded.");
+
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE, "<b>SSL Mode</b>");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE1, "The ssl-mode option accepts the following values:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE2, "@li DISABLED");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE3, "@li PREFERRED");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE4, "@li REQUIRED");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE5, "@li VERIFY_CA");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE6, "@li VERIFY_IDENTITY");
+
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION, "<b>TLS Version</b>");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION1, "The tls-version option accepts the following values:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION2, "@li TLSv1");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION3, "@li TLSv1.1");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION4, "@li TLSv1.2 (Supported only on commercial packages)");
+
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE, "<b>URL Encoding</b>");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE1, "URL encoded values only accept alphanumeric characters and the next symbols: -._~!$'()*+;");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE2, "Any other character must be URL encoded.");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE3, "URL encoding is done by replacing the character being encoded by the sequence: %XX");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE4, "Where XX is the hexadecimal ASCII value of the character being encoded.");
+
+
+
 REGISTER_HELP(SHELL_CONNECT_BRIEF, "Establishes the shell global session.");
 REGISTER_HELP(SHELL_CONNECT_PARAM, "@param connectionData the connection data to be used to establish the session.");
 REGISTER_HELP(SHELL_CONNECT_PARAM1, "@param password Optional the password to be used when establishing the session.");
 REGISTER_HELP(SHELL_CONNECT_DETAIL, "This function will establish the global session with the received connection data.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL1, "The connectionData parameter may be any of:");
-REGISTER_HELP(SHELL_CONNECT_DETAIL2, "@li A URI string");
-REGISTER_HELP(SHELL_CONNECT_DETAIL3, "@li A dictionary with the connection data");
+REGISTER_HELP(SHELL_CONNECT_DETAIL1, "TOPIC_CONNECTION_DATA");
 
-REGISTER_HELP(SHELL_CONNECT_DETAIL4, "A basic URI string has the following format:");
-REGISTER_HELP(SHELL_CONNECT_DETAIL5, "[scheme://][user[:password]@]host[:port][?key=value&key=value...]");
+REGISTER_HELP(SHELL_CONNECT_DETAIL2,
+              "If no scheme is provided, a first attempt will be made to "
+              "establish a NodeSession, and if it detects the used port is for "
+              "the mysql protocol, it will attempt a ClassicSession");
 
-REGISTER_HELP(SHELL_CONNECT_DETAIL6, "The scheme can be any of the following:");
-REGISTER_HELP(SHELL_CONNECT_DETAIL7, "@li mysql: For TCP connections using the Classic protocol.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL8, "@li mysqlx: For TCP connections using the X protocol.");
-
-REGISTER_HELP(SHELL_CONNECT_DETAIL9, "When using a URI the supported keys include:");
-REGISTER_HELP(SHELL_CONNECT_DETAIL10, "@li sslCa: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL11, "@li sslCaPath: the path to the directory that contains the X509 certificates authorities in PEM format.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL12, "@li sslCert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL13, "@li sslKey: The path to the X509 key in PEM format.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL14, "@li sslCrl: The path to file that contains certificate revocation lists.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL15, "@li sslCrlPath: The path of directory that contains certificate revocation list files.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL16, "@li sslCiphers: List of permitted ciphers to use for connection encryption.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL17, "@li sslTlsVersion: List of protocols permitted for secure connections");
-
-REGISTER_HELP(SHELL_CONNECT_DETAIL18, "The connection data dictionary may contain the following attributes:");
-REGISTER_HELP(SHELL_CONNECT_DETAIL19, "@li user/dbUser: Username");
-REGISTER_HELP(SHELL_CONNECT_DETAIL20, "@li password/dbPassword: Username password");
-REGISTER_HELP(SHELL_CONNECT_DETAIL21, "@li host: Hostname or IP address");
-REGISTER_HELP(SHELL_CONNECT_DETAIL22, "@li port: Port number");
-REGISTER_HELP(SHELL_CONNECT_DETAIL23, "@li The ssl options described above");
-
-REGISTER_HELP(SHELL_CONNECT_DETAIL24, "The password may be included on the connectionData, the optional parameter should be used only "\
-"if the connectionData does not contain it already. If both are specified the password parameter will override the password defined on "\
-"the connectionData.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL25, "The type of session will be determined by the given scheme:");
-REGISTER_HELP(SHELL_CONNECT_DETAIL26, "@li If mysqlx scheme, a Session will be created");
-REGISTER_HELP(SHELL_CONNECT_DETAIL27, "@li If mysql scheme, a ClassicSession will be created");
-REGISTER_HELP(SHELL_CONNECT_DETAIL28, "@li If 'scheme' is not provided, the shell will first attempt establish a Session and if it detects "\
-                                      "the used port is for the mysql protocol, it will attempt a ClassicSession");
+REGISTER_HELP(SHELL_CONNECT_DETAIL3,
+              "The password may be included on the connectionData, the "
+              "optional parameter should be used only "
+              "if the connectionData does not contain it already. If both are "
+              "specified the password parameter will override the password "
+              "defined on "
+              "the connectionData.");
 /**
  * $(SHELL_CONNECT_BRIEF)
  *
  * $(SHELL_CONNECT_PARAM)
  * $(SHELL_CONNECT_PARAM1)
  *
- * $(SHELL_CONNECT_RETURNS)
- *
  * $(SHELL_CONNECT_DETAIL)
  *
- * $(SHELL_CONNECT_DETAIL1)
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref connection_data
+ *
  * $(SHELL_CONNECT_DETAIL2)
+ *
  * $(SHELL_CONNECT_DETAIL3)
  *
  * $(SHELL_CONNECT_DETAIL4)
  * $(SHELL_CONNECT_DETAIL5)
- *
  * $(SHELL_CONNECT_DETAIL6)
  * $(SHELL_CONNECT_DETAIL7)
- * $(SHELL_CONNECT_DETAIL8)
- *
- * $(SHELL_CONNECT_DETAIL9)
- * $(SHELL_CONNECT_DETAIL10)
- * $(SHELL_CONNECT_DETAIL11)
- * $(SHELL_CONNECT_DETAIL12)
- * $(SHELL_CONNECT_DETAIL13)
- * $(SHELL_CONNECT_DETAIL14)
- * $(SHELL_CONNECT_DETAIL15)
- * $(SHELL_CONNECT_DETAIL16)
- * $(SHELL_CONNECT_DETAIL17)
- *
- * $(SHELL_CONNECT_DETAIL18)
- * $(SHELL_CONNECT_DETAIL19)
- * $(SHELL_CONNECT_DETAIL20)
- * $(SHELL_CONNECT_DETAIL21)
- * $(SHELL_CONNECT_DETAIL22)
- * $(SHELL_CONNECT_DETAIL23)
- *
- * $(SHELL_CONNECT_DETAIL24)
- *
- * $(SHELL_CONNECT_DETAIL25)
- * $(SHELL_CONNECT_DETAIL26)
- * $(SHELL_CONNECT_DETAIL27)
- * $(SHELL_CONNECT_DETAIL28)
  */
 #if DOXYGEN_JS
 Session Shell::connect(ConnectionData connectionData, String password){}

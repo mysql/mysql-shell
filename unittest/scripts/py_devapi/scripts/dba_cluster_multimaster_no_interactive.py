@@ -83,11 +83,12 @@ else:
   dba.start_sandbox_instance(__mysql_sandbox_port3)
 
 #@ Cluster: rejoin_instance errors
-cluster.rejoin_instance()
-cluster.rejoin_instance(1,2,3)
-cluster.rejoin_instance(1)
-cluster.rejoin_instance({'host': 'localhost'})
-cluster.rejoin_instance("somehost:3306")
+cluster.rejoin_instance();
+cluster.rejoin_instance(1,2,3);
+cluster.rejoin_instance(1);
+cluster.rejoin_instance({'host': 'localhost'});
+cluster.rejoin_instance({'host': 'localhost', 'schema': 'abs', 'authMethod': 56});
+cluster.rejoin_instance("somehost:3306");
 
 #@#: Dba: rejoin instance 3 ok
 if __have_ssl:

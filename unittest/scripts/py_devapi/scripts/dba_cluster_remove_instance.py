@@ -24,7 +24,7 @@ cluster.remove_instance('@localhost:%d' % __mysql_sandbox_port2)
 cluster.status()
 
 #@ Remove instance failure due to wrong credentials
-cluster.remove_instance({'host': 'localhost', 'port': __mysql_sandbox_port2, 'user': 'foo', 'password': 'bar'});
+cluster.remove_instance({'Host': 'localhost', 'PORT': __mysql_sandbox_port2, 'User': 'foo', 'PassWord': 'bar'});
 
 #@<OUT> Cluster status after remove failed
 cluster.status()
@@ -63,7 +63,7 @@ cluster.remove_instance('root:root@localhost:' + str(__mysql_sandbox_port2))
 
 #@ Remove stopped instance on port2 with force option
 # Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-cluster.remove_instance('root@localhost:' + str(__mysql_sandbox_port2), {"force": True, "password": "root"})
+cluster.remove_instance('root@localhost:' + str(__mysql_sandbox_port2), {"force": True, "PassWORD": "root"})
 
 #@<OUT> Cluster status after removal of instance on port2
 cluster.status()

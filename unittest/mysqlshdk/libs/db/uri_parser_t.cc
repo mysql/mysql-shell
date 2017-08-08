@@ -638,13 +638,13 @@ TEST(Uri_parser, parse_query) {
   // atts[kSslCaPath] = {"[one,two,three]"};
   atts[mysqlshdk::db::kSslCaPath] = {"ca_path"};
   atts[mysqlshdk::db::kSslCiphers] = {"/what/e/ver"};
-  // validate_uri("mysqlx://user@10.150.123.45:2845/world?sslCa=value&authMethod=my%20space&sslCert&sslCapath=[one,two,three]&sslCiphers=(/what/e/ver)",
+  // validate_uri("mysqlx://user@10.150.123.45:2845/world?ssl-ca=value&auth-method=my%20space&ssl-cert&sslCapath=[one,two,three]&ssl-ciphers=(/what/e/ver)",
   // "mysqlx", "user", NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world",
   // HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, &atts);
   validate_uri(
       "mysqlx://user@10.150.123.45:2845/"
-      "world?sslCa=value&authMethod=my%20space&sslCert=cert&sslCaPath=ca_path&"
-      "sslCiphers=(/what/e/ver)",
+      "world?ssl-ca=value&auth-method=my%20space&ssl-cert=cert&ssl-capath=ca_path&"
+      "ssl-ciphers=(/what/e/ver)",
       "mysqlx", "user", NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world",
       HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, &atts);
 }

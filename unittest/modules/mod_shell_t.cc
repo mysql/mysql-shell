@@ -39,7 +39,7 @@ TEST_F(mod_shell_test, parse_uri) {
     shcore::Argument_list args;
     args.push_back(
         shcore::Value("mysql://user:password@localhost:1234/schema"
-                      "?sslMode=REQUIRED&authMethod=PLAIN"));
+                      "?Ssl-MoDe=REQUIRED&auth-method=PLAIN"));
 
     auto value = _shell->parse_uri(args);
     auto dict = value.as_map();
@@ -110,15 +110,15 @@ TEST_F(mod_shell_test, parse_uri) {
   {
     shcore::Argument_list args;
     args.push_back(
-        shcore::Value("user@host?sslMode=required&"
-                      "sslCa=%2fpath%2fto%2fca%2epem&"
-                      "sslCaPath=%2fpath%2fto%2fcapath&"
-                      "sslCert=%2fpath%2fto%2fcert%2epem&"
-                      "sslKey=%2fpath%2fto%2fkey%2epem&"
-                      "sslCrl=%2fpath%2fto%2fcrl%2etxt&"
-                      "sslCrlPath=%2fpath%2fto%2fcrlpath&"
-                      "sslCiphers=%2fpath%2fto%2fciphers&"
-                      "sslTlsVersion=TLSv1%2e0"));
+        shcore::Value("user@host?ssl-mode=required&"
+                      "SSL-CA=%2fpath%2fto%2fca%2epem&"
+                      "ssl-caPath=%2fpath%2fto%2fcapath&"
+                      "ssl-cert=%2fpath%2fto%2fcert%2epem&"
+                      "ssl-key=%2fpath%2fto%2fkey%2epem&"
+                      "ssl-crl=%2fpath%2fto%2fcrl%2etxt&"
+                      "ssl-crlPATH=%2fpath%2fto%2fcrlpath&"
+                      "Ssl-Ciphers=%2fpath%2fto%2fciphers&"
+                      "Tls-VERSION=TLSv1%2e0"));
 
     auto value = _shell->parse_uri(args);
     auto dict = value.as_map();

@@ -34,7 +34,7 @@ rset.add_instance(5,6,7,1)
 rset.add_instance(5,5)
 rset.add_instance('',5)
 rset.add_instance( 5)
-rset.add_instance({'host': '127.0.0.1', 'schema': 'abs', 'user': "sample", 'authMethod': 56});
+rset.add_instance({'host': '127.0.0.1', 'schema': 'abs', 'user': "sample", 'auth-method': 56});
 rset.add_instance({'port': __mysql_sandbox_port1});
 rset.add_instance({'host': '127.0.0.1', 'port': __mysql_sandbox_port1}, 'root');
 
