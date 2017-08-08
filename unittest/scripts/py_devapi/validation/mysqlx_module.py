@@ -23,6 +23,9 @@
 |<Session:|
 |Session using right URI|
 
+#@ mysqlx module: get_session using SSL in URI
+|Session using right SSL URI|
+
 #@# mysqlx module: expression errors
 ||Invalid number of arguments in mysqlx.expr, expected 1 but got 0
 ||mysqlx.expr: Argument #1 is expected to be a string

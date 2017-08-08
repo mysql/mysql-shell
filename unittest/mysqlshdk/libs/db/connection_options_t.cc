@@ -14,9 +14,9 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <functional>
-#include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "unittest/gtest_clean.h"
 
 #define MY_EXPECT_THROW(e, m, c)         \
   EXPECT_THROW(                          \
@@ -225,7 +225,7 @@ TEST(Connection_options, pipe_functions) {
 TEST(Connection_options, uri_constructor) {
   mysqlshdk::db::Connection_options data(
       "mysqlx://user:password@localhost:3300/"
-      "myschema?sslMode=REQUIRED");
+      "myschema?ssl-mode=REQUIRED");
 
   ASSERT_TRUE(data.has_scheme());
   ASSERT_STREQ("mysqlx", data.get_scheme().c_str());
@@ -284,11 +284,10 @@ void combine(
 
 TEST(Connection_options, case_insensitive_ssl_mode) {
   // This callback will get called with every combination of
-  // uppercase/lowercase letters on sslMode
+  // uppercase/lowercase letters on ssl-mode
   auto callback = [](const std::string& property, const std::string& twisted) {
     std::string uri = "mysql://root@host?" + twisted + "=REQUIRED";
-    mysqlshdk::db::Connection_options data(uri,
-                                           Comparison_mode::CASE_INSENSITIVE);
+    mysqlshdk::db::Connection_options data(uri);
     if (!data.has(property)) {
       std::string failed = "Failed Property: " + twisted;
       SCOPED_TRACE(failed);
@@ -309,8 +308,7 @@ TEST(Connection_options, case_insensitive_options) {
   // uppercase/lowercase letters for each property
   auto callback = [](const std::string& property, const std::string& twisted) {
     std::string uri = "mysql://root@host?" + twisted + "=whatever";
-    mysqlshdk::db::Connection_options data(uri,
-                                           Comparison_mode::CASE_INSENSITIVE);
+    mysqlshdk::db::Connection_options data(uri);
     if (!data.has(property)) {
       std::string failed = "Failed Property: " + twisted;
       SCOPED_TRACE(failed);
@@ -490,9 +488,9 @@ TEST(Connection_options, set_socket) {
 
 TEST(Connection_options, case_insensitive_duplicated_attribute) {
   // This callback will get called with every combination of
-  // uppercase/lowercase letters on sslMode
+  // uppercase/lowercase letters on ssl-mode
   auto callback = [](const std::string& property, const std::string& twisted) {
-    mysqlshdk::db::Connection_options data(Comparison_mode::CASE_INSENSITIVE);
+    mysqlshdk::db::Connection_options data;
     data.set(mysqlshdk::db::kAuthMethod, {"Value"});
 
     std::string message = "The option '" + twisted +
@@ -504,6 +502,26 @@ TEST(Connection_options, case_insensitive_duplicated_attribute) {
   };
 
   combine(mysqlshdk::db::kAuthMethod, "", 0, callback);
+}
+
+TEST(Connection_options, invalid_options_after_WL10912) {
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters for each property
+  auto callback = [](const std::string& property, const std::string& twisted) {
+    std::string uri = "mysql://root@host?" + twisted + "=whatever";
+    std::string message =
+        "Invalid URI: Invalid connection option '" + twisted + "'.";
+
+    MY_EXPECT_THROW(std::invalid_argument, message.c_str(),
+                    mysqlshdk::db::Connection_options data(uri));
+  };
+
+  std::set<std::string> invalid_options = {
+      "sslMode",    "sslCa",   "sslCaPath", "sslCrl",     "sslCrlPath",
+      "sslCiphers", "sslCert", "sslKey",    "authMethod", "sslTlsVersion"};
+
+  for (auto property : invalid_options)
+    combine(property, "", 0, callback);
 }
 
 }  // namespace testing

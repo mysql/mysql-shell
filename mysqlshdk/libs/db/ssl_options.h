@@ -25,10 +25,10 @@
 #include <set>
 #include <string>
 #include <vector>
+#include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
-#include "mysqlshdk/include/mysqlshdk_export.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -36,7 +36,8 @@ using mysqlshdk::utils::nullable_options::Set_mode;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 
 struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
-  explicit Ssl_options(Comparison_mode mode = Comparison_mode::CASE_SENSITIVE);
+  explicit Ssl_options(
+      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
 
   bool has_data() const;
   bool has_mode() const { return has_value(kSslMode); }

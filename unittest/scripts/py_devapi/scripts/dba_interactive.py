@@ -93,7 +93,7 @@ dba.check_instance_configuration('localhost:' + str(__mysql_sandbox_port1));
 dba.check_instance_configuration('localhost:' + str(__mysql_sandbox_port2));
 
 #@<OUT> Dba: check_instance_configuration ok 2
-dba.check_instance_configuration('localhost:' + str(__mysql_sandbox_port2), {'password':'root'});
+dba.check_instance_configuration('localhost:' + str(__mysql_sandbox_port2), {'PASSWORD':'root'});
 
 #@<OUT> Dba: check_instance_configuration report with errors
 uri2 = 'localhost:' + str(__mysql_sandbox_port2);

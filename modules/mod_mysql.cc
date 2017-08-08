@@ -48,9 +48,7 @@ REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM1, "@param password Optional password
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_RETURNS, "@returns A ClassicSession");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL, "A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the "\
                                               "connected MySQL Server.");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL1,"The connection data can be any of:");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL2,"@li A URI string");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL3,"@li A Dictionary with the connection options");
+REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
 
 /**
  * $(MYSQL_GETCLASSICSESSION)
@@ -62,9 +60,10 @@ REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL3,"@li A Dictionary with the connect
  *
  * $(MYSQL_GETCLASSICSESSION_DETAIL)
  *
- * $(MYSQL_GETCLASSICSESSION_DETAIL1)
- * $(MYSQL_GETCLASSICSESSION_DETAIL2)
- * $(MYSQL_GETCLASSICSESSION_DETAIL3)
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref connection_data
+ *
  */
 
 #if DOXYGEN_JS

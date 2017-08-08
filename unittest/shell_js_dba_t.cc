@@ -112,7 +112,9 @@ protected:
     exec_and_out_equals(code);
     code = "var localhost = 'localhost'";
     exec_and_out_equals(code);
-    code = "var add_instance_options = {host:localhost, port: 0000, password:'root'};";
+    code =
+        "var add_instance_options = {HoSt:localhost, port: 0000, "
+        "PassWord:'root'};";
     exec_and_out_equals(code);
 
     if (_have_ssl) {

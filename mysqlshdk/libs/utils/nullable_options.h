@@ -53,7 +53,7 @@ typedef container::iterator iterator;
 
 class SHCORE_PUBLIC Nullable_options {
  public:
-  Nullable_options(Comparison_mode mode = Comparison_mode::CASE_SENSITIVE,
+  Nullable_options(Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE,
                    const std::string& context = "");
 
   bool has(const std::string& name) const;
@@ -76,6 +76,7 @@ class SHCORE_PUBLIC Nullable_options {
   iterator begin() { return _options.begin(); }
   const_iterator end() const { return _options.end(); }
   iterator end() { return _options.end(); }
+  Comparison_mode get_mode() { return _mode; }
 
  protected:
   void throw_invalid_option(const std::string& name) const;

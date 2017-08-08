@@ -103,18 +103,18 @@ result = dba.check_instance_configuration(uri2);
 print (result.status)
 
 #@ Dba: check_instance_configuration ok2
-result = dba.check_instance_configuration('root@localhost:' + str(__mysql_sandbox_port2), {'password':'root'});
+result = dba.check_instance_configuration('root@localhost:' + str(__mysql_sandbox_port2), {'PassWord':'root'});
 print (result.status)
 
 #@ Dba: check_instance_configuration ok3
-result = dba.check_instance_configuration('root@localhost:' + str(__mysql_sandbox_port2), {'dbPassword':'root'});
+result = dba.check_instance_configuration('root@localhost:' + str(__mysql_sandbox_port2), {'DBPassWord':'root'});
 print (result.status)
 
 #@<OUT> Dba: check_instance_configuration report with errors
 dba.check_instance_configuration(uri2, {'mycnfPath':'mybad.cnf'});
 
 #@# Dba: configure_local_instance errors
-dba.configure_local_instance('someotherhost:' + str(__mysql_sandbox_port1));
+dba.configure_local_instance('sample:@someotherhost:' + str(__mysql_sandbox_port1));
 dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port1));
 dba.configure_local_instance('sample@localhost:' + str(__mysql_sandbox_port1));
 dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port1), {'password':'root'});

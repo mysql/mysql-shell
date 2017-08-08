@@ -88,6 +88,23 @@ if mySession.uri == __displayuridb:
 else:
 	print 'Session using wrong URI\n'
 
+#@ mysqlx module: get_session using SSL in URI
+res = mySession.sql('select @@have_ssl').execute()
+row = res.fetch_one()
+have_ssl = (row[0] == 'YES');
+
+uri_value = 'DISABLED';
+if have_ssl:
+  ssl_mode = 'REQUIRED';
+
+mySslSession = mysqlx.get_session(mySession.uri + "?ssl-mode=" + ssl_mode);
+
+if mySslSession.uri == (__displayuridb + "?ssl-mode=" + ssl_mode):
+  print 'Session using right SSL URI\n'
+else:
+  print 'Session using wrong SSL URI\n'
+
+mySslSession.close();
 mySession.close()
 
 # @# mysqlx module: expression errors

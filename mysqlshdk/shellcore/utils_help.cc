@@ -73,8 +73,14 @@ std::vector<std::string> get_help_text(const std::string& token) {
   std::string text = Shell_help::get()->get_token(real_token);
 
   std::vector<std::string> lines;
+
   while (!text.empty()) {
-    lines.push_back(text);
+    if (shcore::str_beginswith(text.c_str(), "TOPIC_")) {
+      auto tmp = get_help_text(text);
+      lines.insert(lines.end(), tmp.begin(), tmp.end());
+    } else {
+      lines.push_back(text);
+    }
 
     text = Shell_help::get()->get_token(real_token + std::to_string(++index));
   }

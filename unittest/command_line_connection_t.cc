@@ -266,7 +266,7 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
 TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
   bool have_ssl = false;
 
-  // Default sslMode as required must work regardless if the server has or not
+  // Default ssl-mode as required must work regardless if the server has or not
   // SSL enabled (i.e. commercial vs gpl)
   execute_in_session(_mysql_uri, "--mysql",
                      "show variables like 'have_ssl';");
@@ -291,9 +291,9 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
       _output.clear();
     }
 
-    // Tests the sslMode=DISABLED to make sure it is not
+    // Tests the ssl-mode=DISABLED to make sure it is not
     // ignored when coming in a URI
-    std::string ssl_uri = _mysql_uri + "?sslMode=DISABLED";
+    std::string ssl_uri = _mysql_uri + "?ssl-mode=DISABLED";
 
     execute_in_session(ssl_uri, "--mysql");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to");
@@ -307,10 +307,10 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
       execute_in_session(_mysql_uri, "--mysql",
                          "set global require_secure_transport=OFF;");
   } else {
-    // Having SSL disabled test the sslMode=REQUIRED to make sure
+    // Having SSL disabled test the ssl-mode=REQUIRED to make sure
     // it is not ignored when coming in a URI
 
-    std::string ssl_uri = _mysql_uri + "?sslMode=REQUIRED";
+    std::string ssl_uri = _mysql_uri + "?ssl-mode=REQUIRED";
 
     execute_in_session(ssl_uri, "--mysql");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to");
@@ -324,7 +324,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
 TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
   bool have_ssl = false;
 
-  // Default sslMode as required must work regardless if the server has or not
+  // Default ssl-mode as required must work regardless if the server has or not
   // SSL enabled (i.e. commercial vs gpl)
   execute_in_session(_mysql_uri, "--mysql",
                      "show variables like 'have_ssl';");
@@ -349,9 +349,9 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
       _output.clear();
     }
 
-    // Tests the sslMode=DISABLED to make sure it is not
+    // Tests the ssl-mode=DISABLED to make sure it is not
     // ignored when coming in a URI
-    std::string ssl_uri = _uri + "?sslMode=DISABLED";
+    std::string ssl_uri = _uri + "?ssl-mode=DISABLED";
 
     execute_in_session(ssl_uri, "--mysqlx");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
@@ -364,10 +364,10 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
       execute_in_session(_mysql_uri, "--mysql",
                          "set global require_secure_transport=OFF;");
   } else {
-    // Having SSL disabled test the sslMode=REQUIRED to make sure
+    // Having SSL disabled test the ssl-mode=REQUIRED to make sure
     // it is not ignored when coming in a URI
 
-    std::string ssl_uri = _uri + "?sslMode=REQUIRED";
+    std::string ssl_uri = _uri + "?ssl-mode=REQUIRED";
 
     execute_in_session(ssl_uri, "--mysqlx");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
@@ -465,12 +465,102 @@ TEST_F(Command_line_connection_test, expired_account) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("DONE");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("ERROR");
 
-  uri = "expired:@" + shcore::str_partition(_uri, "@").second;
-  _output.clear();
-  execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "print('DONE')",
-           nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("DONE");
-  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("ERROR");
+}
+
+TEST_F(Command_line_connection_test, invalid_options_WL10912) {
+  {
+    execute({_mysqlsh, "-e",
+             "shell.connect({user:'root',password:'',host:'localhost',sslMode:"
+             "'whatever'})",
+             NULL});
+
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslMode");
+  }  // namespace tests
+
+  {
+    execute({_mysqlsh, "-e",
+             "shell.connect({user:'root',password:'',host:'localhost',sslCa:'"
+             "whatever'})",
+             NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslCa");
+  }
+
+  {
+    execute(
+        {_mysqlsh, "-e",
+         "shell.connect({user:'root',password:'',host:'localhost',sslCaPath:'"
+         "whatever'})",
+         NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslCaPath");
+  }
+
+  {
+    execute({_mysqlsh, "-e",
+             "shell.connect({user:'root',password:'',host:'localhost',sslCrl:'"
+             "whatever'})",
+             NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslCrl");
+  }
+
+  {
+    execute(
+        {_mysqlsh, "-e",
+         "shell.connect({user:'root',password:'',host:'localhost',sslCrlPath:"
+         "'whatever'})",
+         NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslCrlPath");
+  }
+
+  {
+    execute({_mysqlsh, "-e",
+             "shell.connect({user:'root',password:'',host:'localhost',sslCert:'"
+             "whatever'})",
+             NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslCert");
+  }
+
+  {
+    execute({_mysqlsh, "-e",
+             "shell.connect({user:'root',password:'',host:'localhost',sslKey:'"
+             "whatever'})",
+             NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslKey");
+  }
+
+  {
+    execute(
+        {_mysqlsh, "-e",
+         "shell.connect({user:'root',password:'',host:'localhost',sslCiphers:"
+         "'whatever'})",
+         NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslCiphers");
+  }
+
+  {
+    execute({_mysqlsh, "-e",
+             "shell.connect({user:'root',password:'',host:'localhost',"
+             "sslTlsVersion:'whatever'})",
+             NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Shell.connect: Invalid values in connection options: sslTlsVersion");
+  }
 }
 
 }  // namespace tests

@@ -400,6 +400,16 @@ bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
         printed = true;
       }
     }
+
+    if (!printed) {
+      std::string topic = "TOPIC_" + args[1];
+      auto data = shcore::get_help_text(topic);
+
+      if (!data.empty()) {
+        _shell->println(shcore::format_markup_text(data, 80, 0));
+        printed = true;
+      }
+    }
   }
 
   // If not specific help found, prints the generic help

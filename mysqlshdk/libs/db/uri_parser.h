@@ -57,7 +57,7 @@ class SHCORE_PUBLIC Uri_parser {
   Uri_parser();
   mysqlshdk::db::Connection_options parse(
       const std::string& input,
-      Comparison_mode mode = Comparison_mode::CASE_SENSITIVE);
+      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
 
  private:
   mysqlshdk::db::Connection_options* _data;

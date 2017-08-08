@@ -25,7 +25,7 @@
 #include "mysqlshdk/include/scripting/lang_base.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-
+using mysqlshdk::db::Connection_options;
 namespace mysqlsh {
 
 enum class PasswordFormat {
@@ -34,14 +34,19 @@ enum class PasswordFormat {
   OPTIONS,
 };
 
-mysqlshdk::db::Connection_options SHCORE_PUBLIC get_connection_options(
+Connection_options SHCORE_PUBLIC get_connection_options(
     const shcore::Argument_list& args, PasswordFormat format);
 
+void SHCORE_PUBLIC set_password_from_map(
+    Connection_options* options, const shcore::Value::Map_type_ref& map);
+void SHCORE_PUBLIC set_user_from_map(Connection_options* options,
+                                     const shcore::Value::Map_type_ref& map);
+
 shcore::Value::Map_type_ref SHCORE_PUBLIC
-get_connection_map(const mysqlshdk::db::Connection_options& connection_options);
+get_connection_map(const Connection_options& connection_options);
 
 void SHCORE_PUBLIC resolve_connection_credentials(
-    mysqlshdk::db::Connection_options* options,
+    Connection_options* options,
     shcore::Interpreter_delegate* delegate = nullptr);
 
 }  // namespace mysqlsh

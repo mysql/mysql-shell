@@ -85,53 +85,59 @@ DESCRIPTION
 This function will establish the global session with the received connection
 data.
 
-The connectionData parameter may be any of:
+The connection data may be specified in the following formats:
 
  - A URI string
- - A dictionary with the connection data
+ - A dictionary with the connection options
 
 A basic URI string has the following format:
 
-[scheme://][user[:password]@]host[:port][?key=value&key=value...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The scheme can be any of the following:
+The following options are valid for use either in a URI or in a dictionary:
 
- - mysql: For TCP connections using the Classic protocol.
- - mysqlx: For TCP connections using the X protocol.
-
-When using a URI the supported keys include:
-
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCaPath: the path to the directory that contains the X509 certificates
+ - ssl-mode: the SSL mode to be used in the connection.
+ - ssl-ca: the path to the X509 certificate authority in PEM format.
+ - ssl-capath: the path to the directory that contains the X509 certificates
    authorities in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
- - sslCrl: The path to file that contains certificate revocation lists.
- - sslCrlPath: The path of directory that contains certificate revocation list
+ - ssl-cert: The path to the X509 certificate in PEM format.
+ - ssl-key: The path to the X509 key in PEM format.
+ - ssl-crl: The path to file that contains certificate revocation lists.
+ - ssl-crlpath: The path of directory that contains certificate revocation list
    files.
- - sslCiphers: List of permitted ciphers to use for connection encryption.
- - sslTlsVersion: List of protocols permitted for secure connections
+ - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - tls-version: List of protocols permitted for secure connections
+ - auth-method: Authentication method
 
-The connection data dictionary may contain the following attributes:
+When these options are defined in a URI, their values must be URL encoded.
 
- - user/dbUser: Username
- - password/dbPassword: Username password
- - host: Hostname or IP address
- - port: Port number
- - The ssl options described above
+The following options are also valid when a dictionary is used:
+
+ - scheme: the protocol to be used on the connection.
+ - user: the MySQL user name to be used on the connection.
+ - dbUser: alias for user.
+ - password: the password to be used on the connection.
+ - dbPassword: same as password.
+ - host: the hostname or IP address to be used on a TCP connection.
+ - port: the port to be used in a TCP connection.
+ - socket: the socket file name to be used on a connection through unix
+   sockets.
+ - schema: the schema to be selected once the connection is done.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+For additional information on connection data use \? connection.
+
+If no scheme is provided, a first attempt will be made to establish a
+NodeSession, and if it detects the used port is for the mysql protocol, it will
+attempt a ClassicSession
 
 The password may be included on the connectionData, the optional parameter
 should be used only if the connectionData does not contain it already. If both
 are specified the password parameter will override the password defined on the
 connectionData.
-
-The type of session will be determined by the given scheme:
-
- - If mysqlx scheme, a Session will be created
- - If mysql scheme, a ClassicSession will be created
- - If 'scheme' is not provided, the shell will first attempt establish a
-   Session and if it detects the used port is for the mysql protocol, it will
-   attempt a ClassicSession
 
 
 //@<OUT> Help
@@ -164,27 +170,10 @@ element.
 
 A basic URI string has the following format:
 
-[scheme://][user[:password]@]host[:port][?key=value&key=value...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The scheme can be any of the following:
-
- - mysql: For TCP connections using the Classic protocol.
- - mysqlx: For TCP connections using the X protocol.
-
-When using a URI the supported keys include:
-
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCaPath: the path to the directory that contains the X509 certificates
-   authorities in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
- - sslCrl: The path to file that contains certificate revocation lists.
- - sslCrlPath: The path of directory that contains certificate revocation list
-   files.
- - sslCiphers: List of permitted ciphers to use for connection encryption.
- - sslTlsVersion: List of protocols permitted for secure connections
-
-
+For more details about how a URI is created as well as the returned dictionary,
+use \? connection
 
 //@<OUT> Prompt
 Utility function to prompt data from the user.

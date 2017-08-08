@@ -13,6 +13,6 @@
 ||ReplicaSet.add_instance: Invalid connection options, expected either a URI or a Dictionary
 ||ReplicaSet.add_instance: Missing instance options: host
 ||ReplicaSet.add_instance: Invalid connection options, expected either a URI or a Dictionary
-||ReplicaSet.add_instance: Unexpected instance options: authMethod, schema
+||ReplicaSet.add_instance: Unexpected instance options: auth-method, schema
 ||ReplicaSet.add_instance: Missing instance options: host, password
 ||is already part of this InnoDB cluster

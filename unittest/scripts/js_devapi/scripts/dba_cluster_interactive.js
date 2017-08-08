@@ -37,7 +37,7 @@ Cluster.addInstance(5,6,7,1);
 Cluster.addInstance(5, 5);
 Cluster.addInstance('', 5);
 Cluster.addInstance( 5);
-Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56, memberSslMode: "foo", ipWhitelist: " "});
+Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", "auth-method":56, memberSslMode: "foo", ipWhitelist: " "});
 Cluster.addInstance({port: __mysql_sandbox_port1});
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {memberSslMode: "foo", password: "root"});
@@ -73,7 +73,7 @@ Cluster.removeInstance();
 Cluster.removeInstance(1,2,3);
 Cluster.removeInstance(1);
 Cluster.removeInstance({host: "localhost", port:33060});
-Cluster.removeInstance({host: "localhost", port:33060, schema: 'abs', user:"sample", authMethod:56});
+Cluster.removeInstance({host: "localhost", port:33060, schema: 'abs', user:"sample", "auth-method":56});
 Cluster.removeInstance("somehost:3306");
 
 //@ Cluster: removeInstance
@@ -134,7 +134,7 @@ Cluster.rejoinInstance();
 Cluster.rejoinInstance(1,2,3);
 Cluster.rejoinInstance(1);
 Cluster.rejoinInstance({host: "localhost"});
-Cluster.rejoinInstance({host: "localhost", schema: "abs", authMethod:56, memberSslMode: "foo", ipWhitelist: " "});
+Cluster.rejoinInstance({host: "localhost", schema: "abs", "auth-method":56, memberSslMode: "foo", ipWhitelist: " "});
 Cluster.rejoinInstance("somehost:3306");
 Cluster.rejoinInstance("somehost:3306", "root");
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "foo", password: "root"});

@@ -42,7 +42,7 @@ add_instance_to_cluster(single, __mysql_sandbox_port3)
 single.remove_instance({'host': localhost, 'port': __mysql_sandbox_port3})
 
 #@ create second cluster
-shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
+shell.connect({'Scheme': 'mysql', 'HOST': localhost, 'Port': __mysql_sandbox_port3, 'User': 'root', 'PassWord': 'root'})
 multi_session = session
 
 # We must use clearReadOnly because the instance 3 was removed from the cluster before

@@ -365,12 +365,14 @@ public:
 
   void ensure_keys(const std::set<std::string> &mandatory_keys,
                    const std::set<std::string> &optional_keys,
-                   const char *context) const;
+                   const char *context,
+                   bool case_sensitive = true) const;
 
   bool validate_keys(const std::set<std::string> &mandatory_keys,
                      const std::set<std::string> &optional_keys,
                      std::vector<std::string> &missing_keys,
-                     std::vector<std::string> &invalid_keys) const;
+                     std::vector<std::string> &invalid_keys,
+                     bool case_sensitive = true) const;
 
 
   size_t size() const { return _map.size(); }
@@ -378,8 +380,10 @@ public:
   Value &operator [](const std::string &key) { return _map[key]; }
   void clear() { _map.clear(); }
   bool has_key(const std::string& key) { return _map.has_key(key); }
-private:
+ private:
   Value::Map_type _map;
+  static bool comp(const std::string& lhs, const std::string& rhs);
+  static bool icomp(const std::string& lhs, const std::string& rhs);
 };
 
 template<class T> struct value_type_for_native {};

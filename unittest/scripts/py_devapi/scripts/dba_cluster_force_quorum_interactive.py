@@ -74,7 +74,7 @@ cluster.force_quorum_using_partition_of(1, "")
 cluster.force_quorum_using_partition_of({'host': localhost, 'port': __mysql_sandbox_port2})
 
 #@<OUT> Cluster.force_quorum_using_partition_of success
-cluster.force_quorum_using_partition_of({'host': localhost, 'port': __mysql_sandbox_port1})
+cluster.force_quorum_using_partition_of({'Host': localhost, 'PORT': __mysql_sandbox_port1})
 
 #@<OUT> Cluster status after force quorum
 cluster.status()

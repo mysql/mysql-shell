@@ -193,7 +193,7 @@ void Connection_options::set(const std::string& name,
       _ssl_options.set(iname, values[0]);
     else
       // TODO(rennox) at the moment, the only extra option supported is
-      // authMethod, in one hand we have issues claiming errors should be
+      // auth-method, in one hand we have issues claiming errors should be
       // raised if not valid options are given, and on the other side the URI
       // specification does not explicitly forbid other values.
       // This conflict needs to be resolved at the DevAPI Court

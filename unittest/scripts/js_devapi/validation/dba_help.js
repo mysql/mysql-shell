@@ -385,24 +385,52 @@ DESCRIPTION
 This function reviews the instance configuration to identify if it is valid for
 usage in group replication.
 
-The instance definition can be any of:
+The instance definition is the connection data for the instance.
 
- - URI string.
- - Connection data dictionary.
+The connection data may be specified in the following formats:
+
+ - A URI string
+ - A dictionary with the connection options
 
 A basic URI string has the following format:
 
-[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The connection data dictionary may contain the following attributes:
+The following options are valid for use either in a URI or in a dictionary:
 
- - user/dbUser: username
- - password/dbPassword: username password
- - host: hostname or IP address
- - port: port number
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
+ - ssl-mode: the SSL mode to be used in the connection.
+ - ssl-ca: the path to the X509 certificate authority in PEM format.
+ - ssl-capath: the path to the directory that contains the X509 certificates
+   authorities in PEM format.
+ - ssl-cert: The path to the X509 certificate in PEM format.
+ - ssl-key: The path to the X509 key in PEM format.
+ - ssl-crl: The path to file that contains certificate revocation lists.
+ - ssl-crlpath: The path of directory that contains certificate revocation list
+   files.
+ - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - tls-version: List of protocols permitted for secure connections
+ - auth-method: Authentication method
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+ - scheme: the protocol to be used on the connection.
+ - user: the MySQL user name to be used on the connection.
+ - dbUser: alias for user.
+ - password: the password to be used on the connection.
+ - dbPassword: same as password.
+ - host: the hostname or IP address to be used on a TCP connection.
+ - port: the port to be used in a TCP connection.
+ - socket: the socket file name to be used on a connection through unix
+   sockets.
+ - schema: the schema to be selected once the connection is done.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+For additional information on connection data use \? connection.
 
 The options dictionary may contain the following options:
 
@@ -417,7 +445,7 @@ it can be overwritten if it is specified on the options.
 
 The returned JSON object contains the following attributes:
 
- - status: the final status of the command, either "ok" or "error"
+ - status: the final status of the command, either "ok" or "error".
  - config_errors: a list of dictionaries containing the failed requirements
  - errors: a list of errors of the operation
  - restart_required: a boolean value indicating whether a restart is required
@@ -512,24 +540,52 @@ This function reviews the instance configuration to identify if it is valid for
 usage in group replication and cluster. A JSON object is returned containing
 the result of the operation.
 
-The instance definition can be any of:
+The instance definition is the connection data for the instance.
 
- - URI string.
- - Connection data dictionary.
+The connection data may be specified in the following formats:
+
+ - A URI string
+ - A dictionary with the connection options
 
 A basic URI string has the following format:
 
-[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The connection data dictionary may contain the following attributes:
+The following options are valid for use either in a URI or in a dictionary:
 
- - user/dbUser: username
- - password/dbPassword: username password
- - host: hostname or IP address
- - port: port number
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
+ - ssl-mode: the SSL mode to be used in the connection.
+ - ssl-ca: the path to the X509 certificate authority in PEM format.
+ - ssl-capath: the path to the directory that contains the X509 certificates
+   authorities in PEM format.
+ - ssl-cert: The path to the X509 certificate in PEM format.
+ - ssl-key: The path to the X509 key in PEM format.
+ - ssl-crl: The path to file that contains certificate revocation lists.
+ - ssl-crlpath: The path of directory that contains certificate revocation list
+   files.
+ - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - tls-version: List of protocols permitted for secure connections
+ - auth-method: Authentication method
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+ - scheme: the protocol to be used on the connection.
+ - user: the MySQL user name to be used on the connection.
+ - dbUser: alias for user.
+ - password: the password to be used on the connection.
+ - dbPassword: same as password.
+ - host: the hostname or IP address to be used on a TCP connection.
+ - port: the port to be used in a TCP connection.
+ - socket: the socket file name to be used on a connection through unix
+   sockets.
+ - schema: the schema to be selected once the connection is done.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+For additional information on connection data use \? connection.
 
 The options dictionary may contain the following options:
 
@@ -547,7 +603,7 @@ it can be overwritten if it is specified on the options.
 
 The returned JSON object contains the following attributes:
 
- - status: the final status of the command, either "ok" or "error"
+ - status: the final status of the command, either "ok" or "error".
  - config_errors: a list of dictionaries containing the failed requirements
  - errors: a list of errors of the operation
  - restart_required: a boolean value indicating whether a restart is required
@@ -568,6 +624,7 @@ The action can be one of the following:
  - config_update: The configuration needs to be updated
  - server_update: The server needs to be updated
  - restart: The server needs to be restarted
+
 
 //@<OUT> Verbose
 Enables verbose mode on the Dba operations.

@@ -55,7 +55,6 @@ For more help on a specific function use: cluster.help('<functionName>')
 e.g. cluster.help('addInstance')
 
 //@<OUT> Add Instance
-
 Adds an Instance to the cluster.
 
 SYNTAX
@@ -90,24 +89,52 @@ DESCRIPTION
 
 This function adds an Instance to the default replica set of the cluster.
 
-The instance definition can be any of:
+The instance definition is the connection data for the instance.
 
- - URI string.
- - Connection data dictionary.
+The connection data may be specified in the following formats:
+
+ - A URI string
+ - A dictionary with the connection options
 
 A basic URI string has the following format:
 
-[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The connection data dictionary may contain the following attributes:
+The following options are valid for use either in a URI or in a dictionary:
 
- - user/dbUser: username
- - password/dbPassword: username password
- - host: hostname or IP address
- - port: port number
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
+ - ssl-mode: the SSL mode to be used in the connection.
+ - ssl-ca: the path to the X509 certificate authority in PEM format.
+ - ssl-capath: the path to the directory that contains the X509 certificates
+   authorities in PEM format.
+ - ssl-cert: The path to the X509 certificate in PEM format.
+ - ssl-key: The path to the X509 key in PEM format.
+ - ssl-crl: The path to file that contains certificate revocation lists.
+ - ssl-crlpath: The path of directory that contains certificate revocation list
+   files.
+ - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - tls-version: List of protocols permitted for secure connections
+ - auth-method: Authentication method
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+ - scheme: the protocol to be used on the connection.
+ - user: the MySQL user name to be used on the connection.
+ - dbUser: alias for user.
+ - password: the password to be used on the connection.
+ - dbPassword: same as password.
+ - host: the hostname or IP address to be used on a TCP connection.
+ - port: the port to be used in a TCP connection.
+ - socket: the socket file name to be used on a connection through unix
+   sockets.
+ - schema: the schema to be selected once the connection is done.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+For additional information on connection data use \? connection.
 
 The options dictionary may contain the following attributes:
 
@@ -135,8 +162,8 @@ notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
 AUTOMATIC, allowing addresses from the instance private network to be
 automatically set for the whitelist.
 
-//@<OUT> Check Instance State
 
+//@<OUT> Check Instance State
 Verifies the instance gtid state in relation with the cluster.
 
 SYNTAX
@@ -162,24 +189,52 @@ DESCRIPTION
 Analyzes the instance executed GTIDs with the executed/purged GTIDs on the
 cluster to determine if the instance is valid for the cluster.
 
-The instance definition can be any of:
+The instance definition is the connection data for the instance.
 
- - URI string.
- - Connection data dictionary.
+The connection data may be specified in the following formats:
+
+ - A URI string
+ - A dictionary with the connection options
 
 A basic URI string has the following format:
 
-[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The connection data dictionary may contain the following attributes:
+The following options are valid for use either in a URI or in a dictionary:
 
- - user/dbUser: username
- - password/dbPassword: username password
- - host: hostname or IP address
- - port: port number
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
+ - ssl-mode: the SSL mode to be used in the connection.
+ - ssl-ca: the path to the X509 certificate authority in PEM format.
+ - ssl-capath: the path to the directory that contains the X509 certificates
+   authorities in PEM format.
+ - ssl-cert: The path to the X509 certificate in PEM format.
+ - ssl-key: The path to the X509 key in PEM format.
+ - ssl-crl: The path to file that contains certificate revocation lists.
+ - ssl-crlpath: The path of directory that contains certificate revocation list
+   files.
+ - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - tls-version: List of protocols permitted for secure connections
+ - auth-method: Authentication method
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+ - scheme: the protocol to be used on the connection.
+ - user: the MySQL user name to be used on the connection.
+ - dbUser: alias for user.
+ - password: the password to be used on the connection.
+ - dbPassword: same as password.
+ - host: the hostname or IP address to be used on a TCP connection.
+ - port: the port to be used in a TCP connection.
+ - socket: the socket file name to be used on a connection through unix
+   sockets.
+ - schema: the schema to be selected once the connection is done.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+For additional information on connection data use \? connection.
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified as a second parameter.
@@ -279,7 +334,6 @@ The following is the only option supported:
 
 
 //@<OUT> Force Quorum Using Partition Of
-
 Restores the cluster from quorum loss.
 
 SYNTAX
@@ -312,19 +366,52 @@ This function restores the cluster's default replicaset back into operational
 status from a loss of quorum scenario. Such a scenario can occur if a group is
 partitioned or more crashes than tolerable occur.
 
+The instance definition is the connection data for the instance.
+
+The connection data may be specified in the following formats:
+
+ - A URI string
+ - A dictionary with the connection options
+
 A basic URI string has the following format:
 
-[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The connection data dictionary may contain the following attributes:
+The following options are valid for use either in a URI or in a dictionary:
 
- - user/dbUser: username
- - password/dbPassword: username password
- - host: hostname or IP address
- - port: port number
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
+ - ssl-mode: the SSL mode to be used in the connection.
+ - ssl-ca: the path to the X509 certificate authority in PEM format.
+ - ssl-capath: the path to the directory that contains the X509 certificates
+   authorities in PEM format.
+ - ssl-cert: The path to the X509 certificate in PEM format.
+ - ssl-key: The path to the X509 key in PEM format.
+ - ssl-crl: The path to file that contains certificate revocation lists.
+ - ssl-crlpath: The path of directory that contains certificate revocation list
+   files.
+ - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - tls-version: List of protocols permitted for secure connections
+ - auth-method: Authentication method
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+ - scheme: the protocol to be used on the connection.
+ - user: the MySQL user name to be used on the connection.
+ - dbUser: alias for user.
+ - password: the password to be used on the connection.
+ - dbPassword: same as password.
+ - host: the hostname or IP address to be used on a TCP connection.
+ - port: the port to be used in a TCP connection.
+ - socket: the socket file name to be used on a connection through unix
+   sockets.
+ - schema: the schema to be selected once the connection is done.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+For additional information on connection data use \? connection.
 
 The options dictionary may contain the following options:
 
@@ -345,6 +432,7 @@ in the network, but not accessible from your location.
 When this function is used, all the members that are ONLINE from the point of
 view of the given instance definition will be added to the group.
 
+
 //@<OUT> Get Name
 
 Retrieves the name of the cluster.
@@ -364,7 +452,6 @@ SYNTAX
   <Cluster>.help()
 
 //@<OUT> Rejoin Instance
-
 Rejoins an Instance to the cluster.
 
 SYNTAX
@@ -396,24 +483,52 @@ DESCRIPTION
 
 This function rejoins an Instance to the cluster.
 
-The instance definition can be any of:
+The instance definition is the connection data for the instance.
 
- - URI string.
- - Connection data dictionary.
+The connection data may be specified in the following formats:
+
+ - A URI string
+ - A dictionary with the connection options
 
 A basic URI string has the following format:
 
-[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The connection data dictionary may contain the following attributes:
+The following options are valid for use either in a URI or in a dictionary:
 
- - user/dbUser: username
- - password/dbPassword: username password
- - host: hostname or IP address
- - port: port number
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
+ - ssl-mode: the SSL mode to be used in the connection.
+ - ssl-ca: the path to the X509 certificate authority in PEM format.
+ - ssl-capath: the path to the directory that contains the X509 certificates
+   authorities in PEM format.
+ - ssl-cert: The path to the X509 certificate in PEM format.
+ - ssl-key: The path to the X509 key in PEM format.
+ - ssl-crl: The path to file that contains certificate revocation lists.
+ - ssl-crlpath: The path of directory that contains certificate revocation list
+   files.
+ - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - tls-version: List of protocols permitted for secure connections
+ - auth-method: Authentication method
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+ - scheme: the protocol to be used on the connection.
+ - user: the MySQL user name to be used on the connection.
+ - dbUser: alias for user.
+ - password: the password to be used on the connection.
+ - dbPassword: same as password.
+ - host: the hostname or IP address to be used on a TCP connection.
+ - port: the port to be used in a TCP connection.
+ - socket: the socket file name to be used on a connection through unix
+   sockets.
+ - schema: the schema to be selected once the connection is done.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+For additional information on connection data use \? connection.
 
 The options dictionary may contain the following attributes:
 
@@ -442,7 +557,6 @@ AUTOMATIC, allowing addresses from the instance private network to be
 automatically set for the whitelist.
 
 //@<OUT> Remove Instance
-
 Removes an Instance from the cluster.
 
 SYNTAX
@@ -474,24 +588,52 @@ DESCRIPTION
 
 This function removes an Instance from the default replicaSet of the cluster.
 
-The instance definition can be any of:
+The instance definition is the connection data for the instance.
 
- - URI string.
- - Connection data dictionary.
+The connection data may be specified in the following formats:
+
+ - A URI string
+ - A dictionary with the connection options
 
 A basic URI string has the following format:
 
-[mysql://][user[:password]@]host[:port][?sslCa=...&sslCert=...&sslKey=...]
+[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
 
-The connection data dictionary may contain the following attributes:
+The following options are valid for use either in a URI or in a dictionary:
 
- - user/dbUser: username
- - password/dbPassword: username password
- - host: hostname or IP address
- - port: port number
- - sslCa: the path to the X509 certificate authority in PEM format.
- - sslCert: The path to the X509 certificate in PEM format.
- - sslKey: The path to the X509 key in PEM format.
+ - ssl-mode: the SSL mode to be used in the connection.
+ - ssl-ca: the path to the X509 certificate authority in PEM format.
+ - ssl-capath: the path to the directory that contains the X509 certificates
+   authorities in PEM format.
+ - ssl-cert: The path to the X509 certificate in PEM format.
+ - ssl-key: The path to the X509 key in PEM format.
+ - ssl-crl: The path to file that contains certificate revocation lists.
+ - ssl-crlpath: The path of directory that contains certificate revocation list
+   files.
+ - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - tls-version: List of protocols permitted for secure connections
+ - auth-method: Authentication method
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+ - scheme: the protocol to be used on the connection.
+ - user: the MySQL user name to be used on the connection.
+ - dbUser: alias for user.
+ - password: the password to be used on the connection.
+ - dbPassword: same as password.
+ - host: the hostname or IP address to be used on a TCP connection.
+ - port: the port to be used in a TCP connection.
+ - socket: the socket file name to be used on a connection through unix
+   sockets.
+ - schema: the schema to be selected once the connection is done.
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+For additional information on connection data use \? connection.
 
 The options dictionary may contain the following attributes:
 

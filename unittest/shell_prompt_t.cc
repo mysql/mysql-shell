@@ -1012,7 +1012,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
   EXPECT_EQ(0, rc);
   EXPECT_PROMPT(
       "host=" + _host + "  port=" + _mysql_port + "  mode=sql" +
-      "  Mode=SQL  uri=" + uri + ":" + _mysql_port + "?sslMode=required" +
+      "  Mode=SQL  uri=" + uri + ":" + _mysql_port + "?ssl-mode=required" +
       "  user=root  schema=  ssl=SSL  date=" + fmttime("%F") +
       "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
       "sessvar:autocommit=OFF  "
@@ -1025,7 +1025,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
   EXPECT_EQ(0, rc);
   EXPECT_PROMPT(
       "host=" + _host + "  port=" + _mysql_port + "  mode=sql" +
-      "  Mode=SQL  uri=" + uri + ":" + _mysql_port + "?sslMode=disabled" +
+      "  Mode=SQL  uri=" + uri + ":" + _mysql_port + "?ssl-mode=disabled" +
       "  user=root  schema=  ssl=  date=" + fmttime("%F") +
       "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
       "sessvar:autocommit=OFF  "
@@ -1038,7 +1038,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
   EXPECT_EQ(0, rc);
   EXPECT_PROMPT("host=" + _host + "  port=" + _port +
                 "  mode=sql  Mode=SQL  uri=" + uri + ":" + _port +
-                "/mysql?sslMode=required  user=root  schema=mysql  ssl=SSL" +
+                "/mysql?ssl-mode=required  user=root  schema=mysql  ssl=SSL" +
                 "  date=" + fmttime("%F") +
                 "  env:MYSQLSH_PROMPT_THEME=allvars.json  "
                 "sysvar:autocommit=ON  sessvar:autocommit=OFF  "

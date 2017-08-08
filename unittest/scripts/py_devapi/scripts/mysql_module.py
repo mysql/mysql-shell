@@ -86,4 +86,28 @@ if mySession.uri == __displayuridb:
 else:
 	print 'Session using wrong URI\n'
 
+#@ mysql module: get_classic_session using URI with duplicated parameters
+mySslSession = mysql.get_classic_session(mySession.uri + "?ssl-mode=REQUIRED&ssl-mode=DISABLED")
+
+#@ mysql module: get_classic_session using dictionary with duplicated parameters
+data = {'host': 'localhost', 'port': 4520, 'user': 'root', 'password': 'pwd', 'Ssl-Mode':"DISABLED", 'ssl-mode':'REQUIRED'}
+mySslSession = mysql.get_classic_session(data)
+
+#@ mysql module: get_classic_session using SSL in URI
+res = mySession.run_sql('select @@have_ssl')
+row = res.fetch_one()
+have_ssl = (row[0] == 'YES');
+
+uri_value = 'DISABLED';
+if have_ssl:
+  ssl_mode = 'REQUIRED';
+
+mySslSession = mysql.get_classic_session(mySession.uri + "?ssl-mode=" + ssl_mode);
+
+if mySslSession.uri == (__displayuridb + "?ssl-mode=" + ssl_mode):
+  print 'Session using right SSL URI\n'
+else:
+  print 'Session using wrong SSL URI\n'
+
+mySslSession.close();
 mySession.close()
