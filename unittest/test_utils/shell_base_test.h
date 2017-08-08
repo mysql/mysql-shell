@@ -49,8 +49,10 @@ namespace tests {
 #define START_SERVER_MOCK(P,D) ASSERT_EQ("",start_server_mock(P,D))
 
 class Shell_base_test : public ::testing::Test {
+ public:
+  Shell_base_test();
+
  protected:
-  virtual void SetUp();
   virtual void TearDown();
 
   std::string _host;
