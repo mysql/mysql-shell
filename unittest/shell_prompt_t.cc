@@ -959,9 +959,7 @@ TEST_F(Shell_prompt_exe, histignore) {
 // the last line output is the prompt we will check
 #define EXPECT_PROMPT(prompt)                                             \
   ASSERT_TRUE(_output.rfind('\n') != std::string::npos);                  \
-  EXPECT_EQ(prompt,                                                       \
-            shcore::replace_text(_output.substr(_output.rfind('\n') + 1), \
-                                 "127.0.0.1", "localhost"));
+  EXPECT_EQ(prompt, _output.substr(_output.rfind('\n') + 1));
 
 TEST_F(Shell_prompt_exe, prompt_variables) {
   std::string segs;
@@ -980,6 +978,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
 
   using shcore::fmttime;
   int rc;
+  std::string uri = _user + "@" + _host;
 
   wipe_out();
   rc = execute({_mysqlsh, "--interactive=full", "--sql", "-e", "1;", nullptr});
@@ -1007,8 +1006,8 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
                 nullptr});
   EXPECT_EQ(0, rc);
   EXPECT_PROMPT(
-      "host=localhost  port=" + _mysql_port + "  mode=sql" +
-      "  Mode=SQL  uri=root@localhost:" + _mysql_port + "?sslMode=required" +
+      "host=" + _host + "  port=" + _mysql_port + "  mode=sql" +
+      "  Mode=SQL  uri=" + uri + ":" + _mysql_port + "?sslMode=required" +
       "  user=root  schema=  ssl=SSL  date=" + fmttime("%F") +
       "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
       "sessvar:autocommit=OFF  "
@@ -1020,8 +1019,8 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
                 nullptr});
   EXPECT_EQ(0, rc);
   EXPECT_PROMPT(
-      "host=localhost  port=" + _mysql_port + "  mode=sql" +
-      "  Mode=SQL  uri=root@localhost:" + _mysql_port + "?sslMode=disabled" +
+      "host=" + _host + "  port=" + _mysql_port + "  mode=sql" +
+      "  Mode=SQL  uri=" + uri + ":" + _mysql_port + "?sslMode=disabled" +
       "  user=root  schema=  ssl=  date=" + fmttime("%F") +
       "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
       "sessvar:autocommit=OFF  "
@@ -1032,8 +1031,8 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
                 "--schema=mysql", "--ssl-mode=REQUIRED", "-e",
                 "set autocommit=0;", nullptr});
   EXPECT_EQ(0, rc);
-  EXPECT_PROMPT("host=localhost  port=" + _port +
-                "  mode=sql  Mode=SQL  uri=root@localhost:" + _port +
+  EXPECT_PROMPT("host=" + _host + "  port=" + _port +
+                "  mode=sql  Mode=SQL  uri=" + uri + ":" + _port +
                 "/mysql?sslMode=required  user=root  schema=mysql  ssl=SSL" +
                 "  date=" + fmttime("%F") +
                 "  env:MYSQLSH_PROMPT_THEME=allvars.json  "
@@ -1057,7 +1056,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_nocolor) {
                "--ssl-mode=REQUIRED", "-e", "1", nullptr});
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
-  EXPECT_PROMPT("MySQL [localhost+ ssl/mysql] JS> ");
+  EXPECT_PROMPT("MySQL [" + _host + "+ ssl/mysql] JS> ");
 
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
@@ -1074,7 +1073,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_16) {
                "--ssl-mode=REQUIRED", "-e", "1", nullptr});
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
-  EXPECT_PROMPT("MySQL \x1B[1m[localhost+ ssl/mysql] \x1B[0mJS> ");
+  EXPECT_PROMPT("MySQL \x1B[1m[" + _host + "+ ssl/mysql] \x1B[0mJS> ");
 
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
@@ -1093,7 +1092,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
   std::cout << _output << "\n";
   EXPECT_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
-      "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m localhost:" + _port + "+ ssl "
+      "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m " + _host + ":" + _port + "+ ssl "
       "\x1B[0m\x1B[48;5;242m\x1B[38;5;15m mysql "
       "\x1B[0m\x1B[48;5;221m\x1B[38;5;0m JS \x1B[0m\x1B[48;5;0m> \x1B[0m");
 
@@ -1115,7 +1114,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
   EXPECT_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
       "\x1B[48;5;237m\x1B[38;5;254m\xEE\x82\xB0\x1B[0m\x1B[48;5;237m\x1B[38;5;"
-      "15m localhost:" + _port + "+ \xEE\x82\xA2 "
+      "15m " + _host + ":" + _port + "+ \xEE\x82\xA2 "
       "\x1B[48;5;242m\x1B[38;5;237m\xEE\x82\xB0\x1B[0m\x1B[48;5;242m\x1B[38;5;"
       "15m mysql "
       "\x1B[48;5;221m\x1B[38;5;242m\xEE\x82\xB0\x1B[0m\x1B[48;5;221m\x1B[38;5;"

@@ -148,7 +148,7 @@ TEST(Cmdline_shell, help) {
   shell.print_banner();
   std::string year = shcore::fmttime("%Y");
   std::string expected =
-      "MySQL Shell 8.0.1-dmr\n\nCopyright (c) 2016, " + year +
+      "MySQL Shell 8.0.3-dmr\n\nCopyright (c) 2016, " + year +
       ", Oracle and/or its "
       "affiliates. All rights reserved.\n\nOracle is a registered trademark of "
       "Oracle Corporation and/or its\naffiliates. Other names may be "

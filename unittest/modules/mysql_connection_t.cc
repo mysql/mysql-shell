@@ -143,6 +143,7 @@ TEST_F(Mysql_connection_test, connect_socket) {
     FAIL();
   } else {
     try {
+      connection_options.clear_host();
       connection_options.clear_port();
       connection_options.set_socket(socket);
       mysqlsh::mysql::Connection socket_conn(connection_options);
