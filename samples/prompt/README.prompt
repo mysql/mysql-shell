@@ -1,5 +1,8 @@
 You can customize your prompt by copying over and editing one of the JSON
-files in this directory to ~/.mysqlsh/prompt.json
+files in the shell user folder:
+
+Linux and OSX: ~/.mysqlsh/prompt.json
+Windows: %AppData%\MySQL\mysqlsh\prompt.json
 
 From the sample prompts, files ending with _nocolor don't use any colors or
 text attributes.
