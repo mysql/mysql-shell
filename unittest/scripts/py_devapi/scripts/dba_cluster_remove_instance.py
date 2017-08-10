@@ -76,9 +76,12 @@ cluster.remove_instance('root:root@localhost:' + str(__mysql_sandbox_port1))
 # Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
 cluster.dissolve({"force": True})
 
+# We must use clearReadOnly because the cluster was dissolved
+# (BUG#26422638)
+
 #@ Cluster re-created with success
 # Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
-cluster = dba.create_cluster('dev')
+cluster = dba.create_cluster('dev', {'clearReadOnly': True})
 
 session.close()
 

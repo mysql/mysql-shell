@@ -63,11 +63,18 @@ var restored_sql_mode = row[0];
 var was_restored = restored_sql_mode == original_sql_mode;
 print("Original SQL_MODE has been restored: "+ was_restored + "\n");
 
+//@ Dba: create cluster with memberSslMode AUTO succeed
+var c1 = dba.createCluster("devCluster", {memberSslMode: 'AUTO', clearReadOnly: true});
+c1
+
+//@ Dba: dissolve cluster created with memberSslMode AUTO
+c1.dissolve({force:true});
+
 //@ Dba: createCluster success
 if (__have_ssl)
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'})
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-  var c1 = dba.createCluster('devCluster')
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', clearReadOnly: true});
 print(c1)
 
 //@# Dba: createCluster already exist

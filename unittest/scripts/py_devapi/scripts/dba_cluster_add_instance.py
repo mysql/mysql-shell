@@ -45,10 +45,13 @@ single.remove_instance({'host': localhost, 'port': __mysql_sandbox_port3})
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
 multi_session = session
 
+# We must use clearReadOnly because the instance 3 was removed from the cluster before
+# (BUG#26422638)
+
 if __have_ssl:
-  multi = dba.create_cluster('multi', {'memberSslMode':'REQUIRED', 'multiMaster':True, 'force':True})
+  multi = dba.create_cluster('multi', {'memberSslMode':'REQUIRED', 'multiMaster':True, 'force':True, 'clearReadOnly': True})
 else:
-  multi = dba.create_cluster('multi', {'multiMaster':True, 'force':True})
+  multi = dba.create_cluster('multi', {'memberSslMode':'DISABLED', 'multiMaster':True, 'force':True, 'clearReadOnly': True})
 
 #@ Failure adding instance from multi cluster into single
 add_instance_options['port'] = __mysql_sandbox_port3

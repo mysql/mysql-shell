@@ -24,6 +24,8 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "shellcore/common.h"
 #include <string>
+#include <utility>
+#include <vector>
 
 #define PASSWORD_LENGTH 32
 
@@ -49,6 +51,9 @@ bool is_gtid_subset(mysqlsh::mysql::Connection *connection, const std::string &s
 shcore::Value get_master_status(mysqlsh::mysql::Connection *connection);
 std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection, const std::string &instance_host);
 std::string generate_password();
+std::vector<std::pair<std::string, int>>
+  get_open_sessions(mysqlsh::mysql::Connection *connection);
+
 }
 }
 

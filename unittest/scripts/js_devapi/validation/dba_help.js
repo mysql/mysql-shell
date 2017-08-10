@@ -79,6 +79,8 @@ The options dictionary can contain the next values:
  - memberSslMode: SSL mode used to configure the members of the cluster.
  - ipWhitelist: The list of hosts allowed to connect to the instance for group
    replication.
+ - clearReadOnly: boolean value used to confirm that super_read_only must be
+   disabled.
 
 A InnoDB cluster may be setup in two ways:
 
@@ -221,6 +223,9 @@ DESCRIPTION
 The options dictionary may contain the following options:
 
  - force: boolean, confirms that the drop operation must be executed.
+ - clearReadOnly: boolean value used to confirm that super_read_only must be
+   disabled
+
 
 //@<OUT> Get Cluster
 Retrieves a cluster from the Metadata Store.
@@ -533,6 +538,8 @@ The options dictionary may contain the following options:
    created. The supported format is the standard MySQL account name format.
  - clusterAdminPassword: The password for the InnoDB cluster administrator
    account.
+ - clearReadOnly: boolean value used to confirm that super_read_only must be
+   disabled.
 
 The connection password may be contained on the instance definition, however,
 it can be overwritten if it is specified on the options.
@@ -607,6 +614,8 @@ The options dictionary can contain the next values:
  - password: The password used for the instances sessions required operations.
  - removeInstances: The list of instances to be removed from the cluster.
  - rejoinInstances: The list of instances to be rejoined on the cluster.
+ - clearReadOnly: boolean value used to confirm that super_read_only must be
+   disabled
 
 This function reboots a cluster from complete outage. It picks the instance the
 MySQL Shell is connected to as new seed instance and recovers the cluster.

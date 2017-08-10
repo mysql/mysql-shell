@@ -1,3 +1,6 @@
+//@ Initialization
+||
+
 //@ Session: validating members
 |Session Members: 14|
 |createCluster: OK|
@@ -229,3 +232,6 @@ The issues above can be fixed dynamically to get the server ready for InnoDB Clu
 
 //@<OUT> Dba: getCluster with interaction (default)
 <Cluster:devCluster>
+
+//@ Finalization
+||

@@ -23,7 +23,8 @@ session.get_schema('mysql_innodb_cluster_metadata')
 dba.drop_metadata_schema({'force':False});
 
 #@# drop metadata: force true
-dba.drop_metadata_schema({'force':True});
+dba.drop_metadata_schema({'force':True, 'clearReadOnly': True})
+
 ensure_schema_does_not_exist(session, 'mysql_innodb_cluster_metadata')
 
 session.close()

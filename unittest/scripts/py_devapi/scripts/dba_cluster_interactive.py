@@ -172,3 +172,6 @@ cluster.rejoin_instance()
 cluster.remove_instance()
 cluster.rescan()
 cluster.status()
+
+# Disable super-read-only (BUG#26422638)
+session.run_sql("SET GLOBAL SUPER_READ_ONLY = 0;")

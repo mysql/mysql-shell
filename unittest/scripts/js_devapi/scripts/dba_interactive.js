@@ -2,6 +2,10 @@
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
 
+//@ Initialization
+var deployed_here = reset_or_deploy_sandboxes();
+shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
+
 //@ Session: validating members
 var members = dir(dba);
 
@@ -35,7 +39,6 @@ var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DIS
 var c1 = dba.createCluster('devCluster', {ipWhitelist: "  "});
 var c1 = dba.createCluster('#');
 
-
 //@ Dba: createCluster with ANSI_QUOTES success
 // save current sql mode
 var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
@@ -48,9 +51,9 @@ var row = result.fetchOne();
 print("Current sql_mode is: "+ row[0] + "\n");
 
 if (__have_ssl)
-    var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-    var c1 = dba.createCluster('devCluster');
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', clearReadOnly: true});
 print(c1);
 
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
@@ -66,9 +69,9 @@ print("Original SQL_MODE has been restored: "+ was_restored + "\n");
 
 //@<OUT> Dba: createCluster with interaction
 if (__have_ssl)
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'})
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-  var c1 = dba.createCluster('devCluster')
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', clearReadOnly: true});
 
 // TODO: add multi-master unit-tests
 
@@ -103,6 +106,7 @@ dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
 // PERMISSIONS, CREATES A WRONG NEW USER
 
 connect_to_sandbox([__mysql_sandbox_port2]);
+session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("CREATE USER missingprivileges@localhost");
 session.runSql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost");
@@ -210,3 +214,9 @@ c2;
 //@<OUT> Dba: getCluster with interaction (default)
 var c3 = dba.getCluster();
 c3;
+
+session.close();
+//@ Finalization
+// Will delete the sandboxes ONLY if this test was executed standalone
+if (deployed_here)
+  cleanup_sandboxes(true);

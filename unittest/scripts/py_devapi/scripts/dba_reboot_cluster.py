@@ -91,7 +91,7 @@ cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [in
 
 # Test both rejoinInstances and removeInstances on a single call
 #@ Dba.rebootClusterFromCompleteOutage success
-cluster = dba.reboot_cluster_from_complete_outage('dev', {'rejoinInstances': [instance2], 'removeInstances': [instance3]})
+cluster = dba.reboot_cluster_from_complete_outage('dev', {'rejoinInstances': [instance2], 'removeInstances': [instance3], 'clearReadOnly': True})
 
 # Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE")

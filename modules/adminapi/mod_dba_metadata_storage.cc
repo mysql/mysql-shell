@@ -924,12 +924,20 @@ void MetadataStorage::create_repl_account(std::string &username,
   // However, we don't have a reliable way of getting the external IP and/or
   // fully qualified domain name
   std::string hostname = "%";
+  std::string localhost = "localhost";
 
   Transaction tx(shared_from_this());
 
   query = shcore::sqlstring("DROP USER IF EXISTS ?@?", 0);
   query << username;
   query << hostname;
+  query.done();
+
+  execute_sql(query);
+
+  query = shcore::sqlstring("DROP USER IF EXISTS ?@?", 0);
+  query << username;
+  query << localhost;
   query.done();
 
   execute_sql(query);
@@ -941,6 +949,7 @@ void MetadataStorage::create_repl_account(std::string &username,
     try {
       // Create the account without using an hashed password
       create_account(username, password, hostname, false);
+      create_account(username, password, localhost, false);
 
       // If it reached here it means there were no errors
       retry_count = 0;
@@ -985,9 +994,17 @@ void MetadataStorage::create_repl_account(std::string &username,
     }
   }
 
+  // Grant REPLICATION SLAVE grants to the created accounts
   query = shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to ?@?", 0);
   query << username;
   query << hostname;
+  query.done();
+
+  execute_sql(query);
+
+  query = shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to ?@?", 0);
+  query << username;
+  query << localhost;
   query.done();
 
   execute_sql(query);

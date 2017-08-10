@@ -300,8 +300,6 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
   _options->interactive = true;
   reset_shell();
 
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
-
   //@# Dba: checkInstanceConfiguration error
   output_handler.passwords.push_back("root");
 
@@ -363,8 +361,6 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_interactive.py");
-
-  execute("session.close();");
 }
 
 TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {

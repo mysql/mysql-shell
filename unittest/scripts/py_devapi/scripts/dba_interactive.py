@@ -2,6 +2,10 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
 
+#@ Initialization
+deployed_here = reset_or_deploy_sandboxes()
+shell.connect({'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port1})
+
 #@ Session: validating members
 all_members = dir(dba)
 
@@ -41,6 +45,7 @@ c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "AU
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "REQUIRED"})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "DISABLED"})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "ipWhitelist": " "})
+c1 = dba.create_cluster('#')
 
 #@ Dba: createCluster with ANSI_QUOTES success
 # save current sql mode
@@ -54,9 +59,9 @@ row = result.fetch_one()
 print("Current sql_mode is: " + row[0] + "\n")
 
 if __have_ssl:
-    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED', 'clearReadOnly': True})
 else:
-    c1 = dba.create_cluster('devCluster')
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED', 'clearReadOnly': True})
 
 print c1
 
@@ -73,9 +78,9 @@ print("Original SQL_MODE has been restored: " + str(was_restored) + "\n")
 
 #@<OUT> Dba: create_cluster with interaction
 if __have_ssl:
-  c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED', 'clearReadOnly': True})
 else:
-  c1 = dba.create_cluster('devCluster')
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED', 'clearReadOnly': True})
 
 # TODO: add multi-master unit-tests
 
@@ -109,7 +114,9 @@ dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port1));
 # Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 # PERMISSIONS, CREATES A WRONG NEW USER
 
+# Disable super_read_only
 connect_to_sandbox([__mysql_sandbox_port2])
+session.run_sql('SET GLOBAL super_read_only = 0')
 session.run_sql("SET SQL_LOG_BIN=0")
 session.run_sql("CREATE USER missingprivileges@localhost")
 session.run_sql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost")
@@ -215,3 +222,9 @@ c2
 #@<OUT> Dba: get_cluster with interaction (default)
 c3 = dba.get_cluster()
 c3
+
+session.close()
+#@ Finalization
+# Will delete the sandboxes ONLY if this test was executed standalone
+if deployed_here:
+    cleanup_sandboxes(True)

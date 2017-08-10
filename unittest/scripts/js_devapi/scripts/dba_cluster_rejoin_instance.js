@@ -87,19 +87,34 @@ session.close();
 // Delete the account on instance 1
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', password: 'root'});
 session.runSql('SET sql_log_bin=0');
+session.runSql('SET @sro = @@super_read_only');
+session.runSql('SET @ro = @@read_only');
+session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
+session.runSql('SET GLOBAL super_read_only = @sro');
+session.runSql('SET GLOBAL read_only = @ro');
 session.runSql('SET sql_log_bin=1');
 
 // Delete the account on instance 2
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', password: 'root'});
 session.runSql('SET sql_log_bin=0');
+session.runSql('SET @sro = @@super_read_only');
+session.runSql('SET @ro = @@read_only');
+session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
+session.runSql('SET GLOBAL super_read_only = @sro');
+session.runSql('SET GLOBAL read_only = @ro');
 session.runSql('SET sql_log_bin=1');
 
 // Delete the account on instance 3
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', password: 'root'});
 session.runSql('SET sql_log_bin=0');
+session.runSql('SET @sro = @@super_read_only');
+session.runSql('SET @ro = @@read_only');
+session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
+session.runSql('SET GLOBAL super_read_only = @sro');
+session.runSql('SET GLOBAL read_only = @ro');
 session.runSql('SET sql_log_bin=1');
 
 session.close();

@@ -303,8 +303,6 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   _options->interactive = true;
   reset_shell();
 
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
-
   //@# Dba: checkInstanceConfiguration error
   output_handler.passwords.push_back("root");
 
@@ -366,8 +364,6 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_interactive.js");
-
-  execute("session.close();");
 }
 
 TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
@@ -707,6 +703,26 @@ TEST_F(Shell_js_dba_tests, dba_cluster_mts) {
   create_file("mybad.cnf", bad_config);
 
   validate_interactive("dba_cluster_mts.js");
+}
+
+TEST_F(Shell_js_dba_tests, super_read_only_handling) {
+  //@<OUT> Configures the instance, answers 'yes' on the read only prompt
+  output_handler.prompts.push_back("y");
+
+  //@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt
+  output_handler.prompts.push_back("y");
+
+  //@ Reboot the cluster
+  // Confirms addition of second instance
+  output_handler.prompts.push_back("y");
+
+  // Confirms addition of third instance
+  output_handler.prompts.push_back("y");
+
+  // Confirms clean up of read only
+  output_handler.prompts.push_back("y");
+
+  validate_interactive("dba_super_read_only_handling.js");
 }
 
 TEST_F(Shell_js_dba_tests, adopt_from_gr) {

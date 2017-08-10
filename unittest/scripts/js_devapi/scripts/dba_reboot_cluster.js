@@ -92,8 +92,7 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance
 
 // Test both rejoinInstances and removeInstances on a single call
 //@ Dba.rebootClusterFromCompleteOutage success
-
-cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance3]});
+cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance3], clearReadOnly: true});
 
 // Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE");

@@ -6,9 +6,9 @@ deployed_here = reset_or_deploy_sandbox(__mysql_sandbox_port1)
 shell.connect({'scheme': 'mysql', 'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port1});
 
 if __have_ssl:
-  dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED"})
+    dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED", 'clearReadOnly': True})
 else:
-  dba.create_cluster("tempCluster")
+    dba.create_cluster("tempCluster", {"memberSslMode": "DISABLED", 'clearReadOnly': True})
 
 #@# Invalid drop_metadata_schema call
 dba.drop_metadata_schema(1,2,3,4,5);
@@ -27,15 +27,12 @@ dba.drop_metadata_schema({'force':True});
 
 session.close()
 
-#@# drop metadata: user response yes
 reset_or_deploy_sandbox(__mysql_sandbox_port1)
-
 shell.connect({'scheme': 'mysql', 'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port1});
-
 if __have_ssl:
-  dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED"})
+    dba.create_cluster("tempCluster", {"memberSslMode": "REQUIRED", 'clearReadOnly': True})
 else:
-  dba.create_cluster("tempCluster")
+  dba.create_cluster("tempCluster", {"memberSslMode": "DISABLED", 'clearReadOnly': True})
 
 dba.drop_metadata_schema()
 

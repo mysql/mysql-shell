@@ -80,13 +80,13 @@ session.close()
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
 #@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
-cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [localhost + ':' + str(__mysql_sandbox_port3)]})
+cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [localhost + ':' + str(__mysql_sandbox_port3)], 'clearReadOnly' : True})
 
 #@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
-cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [localhost + ':' + str(__mysql_sandbox_port2)], 'removeInstances': [localhost + ':' + str(__mysql_sandbox_port2)]})
+cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [localhost + ':' + str(__mysql_sandbox_port2)], 'removeInstances': [localhost + ':' + str(__mysql_sandbox_port2)], 'clearReadOnly' : True})
 
 #@ Dba.rebootClusterFromCompleteOutage success
-cluster = dba.reboot_cluster_from_complete_outage("dev")
+cluster = dba.reboot_cluster_from_complete_outage("dev", {'clearReadOnly': True})
 
 # Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE")

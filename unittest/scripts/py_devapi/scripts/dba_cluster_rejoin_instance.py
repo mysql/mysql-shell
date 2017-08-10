@@ -86,19 +86,34 @@ cluster.dissolve({'force': True})
 session.close()
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 session.run_sql('SET sql_log_bin=0')
-session.run_sql('DROP USER \'foo\'@\'%\'');
+session.run_sql('SET @sro = @@super_read_only')
+session.run_sql('SET @ro = @@read_only')
+session.run_sql('SET GLOBAL super_read_only = 0')
+session.run_sql('DROP USER \'foo\'@\'%\'')
+session.run_sql('SET GLOBAL super_read_only = @sro')
+session.run_sql('SET GLOBAL read_only = @ro')
 session.run_sql('SET sql_log_bin=1')
 
 # Delete the account on instance 2
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
 session.run_sql('SET sql_log_bin=0')
-session.run_sql('DROP USER \'foo\'@\'%\'');
+session.run_sql('SET @sro = @@super_read_only')
+session.run_sql('SET @ro = @@read_only')
+session.run_sql('SET GLOBAL super_read_only = 0')
+session.run_sql('DROP USER \'foo\'@\'%\'')
+session.run_sql('SET GLOBAL super_read_only = @sro')
+session.run_sql('SET GLOBAL read_only = @ro')
 session.run_sql('SET sql_log_bin=1')
 
 # Delete the account on instance 3
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
 session.run_sql('SET sql_log_bin=0')
-session.run_sql('DROP USER \'foo\'@\'%\'');
+session.run_sql('SET @sro = @@super_read_only')
+session.run_sql('SET @ro = @@read_only')
+session.run_sql('SET GLOBAL super_read_only = 0')
+session.run_sql('DROP USER \'foo\'@\'%\'')
+session.run_sql('SET GLOBAL super_read_only = @sro')
+session.run_sql('SET GLOBAL read_only = @ro')
 session.run_sql('SET sql_log_bin=1')
 
 #@ Finalization

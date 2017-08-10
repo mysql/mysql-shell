@@ -27,7 +27,7 @@ session.run_sql('SET GLOBAL validate_password_policy=\'STRONG\'');
 #@ Add instance 2 to cluster
 add_instance_to_cluster(cluster, __mysql_sandbox_port2)
 
-session.run_sql('SET GLOBAL validate_password_length=33');
+session.run_sql('SET GLOBAL validate_password_length=32')
 
 #@ Add instance 3 to cluster
 add_instance_to_cluster(cluster, __mysql_sandbox_port3)

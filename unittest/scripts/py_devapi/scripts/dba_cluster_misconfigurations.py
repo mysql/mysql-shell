@@ -18,6 +18,9 @@ else:
 # Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 cluster.dissolve({"force": True})
 
+# Disable super-read-only (BUG#26422638)
+session.run_sql("SET GLOBAL SUPER_READ_ONLY = 0;")
+
 # Create test schema and tables PK, PKE, and UK
 # Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 session.run_sql('SET sql_log_bin=0')

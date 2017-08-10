@@ -54,5 +54,6 @@ add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 wait_slave_state(cluster, uri3, "ONLINE")
 
 #@ Finalization
+session.close()
 if deployed_here:
     cleanup_sandboxes(deployed_here)

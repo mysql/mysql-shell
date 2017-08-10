@@ -13,18 +13,18 @@ dba.dropMetadataSchema()
 
 //@# create cluster
 if (__have_ssl)
-  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED"})
+  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
 else
-  dba.createCluster("tempCluster")
+  dba.createCluster("tempCluster", {memberSslMode: "DISABLED", clearReadOnly: true});
 
 session.getSchema('mysql_innodb_cluster_metadata');
 
 //@# drop metadata: force false
 dba.dropMetadataSchema({force:false});
 
-
 //@# drop metadata: force true
 dba.dropMetadataSchema({force:true});
+
 ensure_schema_does_not_exist(session, 'mysql_innodb_cluster_metadata')
 
 // Smart deployment cleanup

@@ -2,9 +2,9 @@
 
 #@ Dba: create_cluster multiMaster, ok
 if __have_ssl:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'REQUIRED'})
+    dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'REQUIRED', 'clearReadOnly': True})
 else:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True})
+    dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'DISABLED', 'clearReadOnly': True})
 
 cluster = dba.get_cluster('devCluster')
 
@@ -44,9 +44,9 @@ cluster.dissolve({'force': True})
 
 #@ Dba: create_cluster multiMaster 2, ok
 if __have_ssl:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'REQUIRED'})
+    dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'REQUIRED', 'clearReadOnly': True})
 else:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'DISABLED'})
+    dba.create_cluster('devCluster', {'multiMaster': True, 'force': True, 'memberSslMode': 'DISABLED', 'clearReadOnly': True})
 
 cluster = dba.get_cluster('devCluster')
 
@@ -74,7 +74,7 @@ else:
 # XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
 # But won't be available for the GA release. So we need to wait until the instance is reported
 # as offline
-wait_slave_state(cluster, uri3, "ONLINE")
+wait_slave_state(cluster, uri3, ["OFFLINE", "UNREACHABLE"])
 
 #@# Dba: start instance 3
 if __sandbox_dir:

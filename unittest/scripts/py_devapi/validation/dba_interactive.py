@@ -1,3 +1,6 @@
+#@ Initialization
+||
+
 #@ Session: validating members
 |Session Members: 14|
 |create_cluster: OK|
@@ -27,6 +30,7 @@
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Invalid value for ipWhitelist, string value cannot be empty.
+||Dba.create_cluster: The Cluster name can only start with an alphabetic or the '_' character.
 
 #@ Dba: createCluster with ANSI_QUOTES success
 |Current sql_mode is: ANSI_QUOTES|
@@ -225,3 +229,6 @@ The issues above can be fixed dynamically to get the server ready for InnoDB Clu
 
 #@<OUT> Dba: get_cluster with interaction (default)
 <Cluster:devCluster>
+
+#@ Finalization
+||

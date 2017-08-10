@@ -607,8 +607,14 @@ def install_plugin(server, dry_run=False):
         else:
             _LOGGER.info("Group Replication plugin: Not loaded")
     else:
+        super_read_only = server.select_variable("super_read_only", 'global')
+        if (int(super_read_only)):
+            server.set_variable("super_read_only", 'OFF','global')
+
         server.install_plugin(GR_PLUGIN_NAME)
 
+        if (int(super_read_only)):
+            server.set_variable("super_read_only", 'ON','global')
 
 def uninstall_plugin(server, dry_run=False):
     """Uninstalls the GROUP_REPLICATION plugin

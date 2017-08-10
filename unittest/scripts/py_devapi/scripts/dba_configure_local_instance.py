@@ -7,9 +7,9 @@ shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_por
 
 #@ create cluster
 if __have_ssl:
-  cluster = dba.create_cluster('devCluster', {'memberSslMode':'REQUIRED'})
+  cluster = dba.create_cluster('devCluster', {'memberSslMode':'REQUIRED', 'clearReadOnly': True})
 else:
-  cluster = dba.create_cluster('devCluster')
+  cluster = dba.create_cluster('devCluster', {'memberSslMode':'DISABLED', 'clearReadOnly': True})
 
 #@ Validates the create_cluster successfully configured the grLocal member of the instance addresses
 gr_local_port = __mysql_sandbox_port1 + 10000
