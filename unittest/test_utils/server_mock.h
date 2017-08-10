@@ -42,6 +42,9 @@ private:
   std::shared_ptr<server_mock::MySQLServerMock> _server_mock;
   std::shared_ptr<std::thread> _thread;
   std::shared_ptr<shcore::Process_launcher> _process;
+  std::mutex _mutex;
+  std::condition_variable _cond;
+
   std::string _server_output;
 };
 }
