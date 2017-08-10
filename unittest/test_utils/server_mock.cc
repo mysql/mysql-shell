@@ -158,14 +158,12 @@ void Server_mock::start(int port,
   std::string strport = std::to_string(port);
   int server_status = -1;
   bool started = false;
-  std::mutex mutex;
-  std::condition_variable cond;
 
   std::vector<const char *> args = {binary_path.c_str(), data_path.c_str(),
                                     strport.c_str(), NULL};
 
   _thread = std::shared_ptr<std::thread>(
-      new std::thread([this, args, &server_status, &cond, &mutex, &started]() {
+      new std::thread([this, args, &server_status, &started]() {
         try {
           _process.reset(new shcore::Process_launcher(&args[0]));
           _process->start();
@@ -178,10 +176,10 @@ void Server_mock::start(int port,
               if (server_status < 0) {
                 started = true;
                 {
-                  std::unique_lock<std::mutex> lock(mutex);
+                  std::unique_lock<std::mutex> lock(_mutex);
                   server_status = 0;
                 }
-                cond.notify_one();
+                _cond.notify_one();
               }
             }
           }
@@ -189,10 +187,10 @@ void Server_mock::start(int port,
           int exit_code = _process->wait();
           if (server_status < 0) {
             {
-              std::unique_lock<std::mutex> lock(mutex);
+              std::unique_lock<std::mutex> lock(_mutex);
               server_status = exit_code;
             }
-            cond.notify_one();
+            _cond.notify_one();
           }
         } catch (const std::exception &e) {
           std::cerr << e.what() << std::endl;
@@ -200,8 +198,8 @@ void Server_mock::start(int port,
       }));
 
   {
-    std::unique_lock<std::mutex> lock(mutex);
-    cond.wait(lock, [&server_status](){ return server_status != -1; });
+    std::unique_lock<std::mutex> lock(_mutex);
+    _cond.wait(lock, [&server_status](){ return server_status != -1; });
   }
 
   // Deletes the temporary data file
