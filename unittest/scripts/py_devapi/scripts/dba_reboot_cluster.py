@@ -94,8 +94,14 @@ cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [in
 cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [instance2], 'removeInstances': [instance2]})
 
 # Test both rejoinInstances and removeInstances on a single call
-#@ Dba.rebootClusterFromCompleteOutage success
+
+#@ Dba.rebootClusterFromCompleteOutage: super-read-only error (BUG#26422638)
+# Since we killed the instance, we have to enable super_read_only to test this scenario
+session.run_sql('SET GLOBAL super_read_only = 1')
 cluster = dba.reboot_cluster_from_complete_outage('dev', {'rejoinInstances': [instance2], 'removeInstances': [instance3]})
+
+#@ Dba.rebootClusterFromCompleteOutage success
+cluster = dba.reboot_cluster_from_complete_outage('dev', {'rejoinInstances': [instance2], 'removeInstances': [instance3], 'clearReadOnly': True})
 
 # Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE")

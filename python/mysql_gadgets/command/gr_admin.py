@@ -775,15 +775,15 @@ def join(server_info, peer_server_info, **kwargs):
 
         if not skip_rpl_user:
             rpl_user_dict = get_rpl_usr(kwargs)
-
-            req_dict = get_req_dict(server, rpl_user_dict["replication_user"],
-                                    peer_server, option_file=option_file)
         else:
-            # if replication user is to be skipped, no need to add the
-            # replication user to the requirements list
-            req_dict = get_req_dict(server, None, peer_server,
-                                    option_file=option_file)
             rpl_user_dict = None
+
+        # Do not check/create the replication user in the instance to add,
+        # in order to avoid errors if it is in read-only-mode.
+        # (GR automatically enables super-read-only when stopping the
+        # plugin, starting with version 8.0.2)
+        req_dict = get_req_dict(server, None, peer_server,
+                                option_file=option_file)
 
         check_server_requirements(server, req_dict, rpl_user_dict, verbose,
                                   dry_run, skip_backup=skip_backup,
@@ -829,26 +829,31 @@ def join(server_info, peer_server_info, **kwargs):
                             option_parser, peer_local_address,
                             server_id=server.select_variable("server_id"))
 
+        # The following code has been commented because the logic to create
+        # the replication-user has been moved to the Shell c++ code.
+        # The code wasn't removed to serve as knowledge base for the MP
+        # refactoring to C++
+
         # Do several replication user related tasks if the
         # skip-replication-user option was not provided
-        if not skip_rpl_user:
+        #if not skip_rpl_user:
             # The replication user for be check/create on the peer server.
             # NOTE: rpl_user_dict["host"] has the FQDN resolved from the host
             # provided by the user
-            replication_user = "{0}@'{1}'".format(
-                rpl_user_dict["recovery_user"], rpl_user_dict["host"])
-            rpl_user_dict["replication_user"] = replication_user
+        #    replication_user = "{0}@'{1}'".format(
+        #        rpl_user_dict["recovery_user"], rpl_user_dict["host"])
+        #    rpl_user_dict["replication_user"] = replication_user
 
             # Check the given replication user exists on peer
-            req_dict_user = get_req_dict_user_check(peer_server,
-                                                    replication_user)
+        #    req_dict_user = get_req_dict_user_check(peer_server,
+        #                                            replication_user)
 
             # Check and create the given replication user on peer server.
             # NOTE: No other checks will be performed, only the replication
             # user.
-            check_server_requirements(peer_server, req_dict_user,
-                                      rpl_user_dict, verbose, dry_run,
-                                      skip_schema_checks=True)
+        #    check_server_requirements(peer_server, req_dict_user,
+        #                              rpl_user_dict, verbose, dry_run,
+        #                              skip_schema_checks=True)
 
         # IF the group name is not set, try to acquire it from a peer server.
         if gr_config_vars[GR_GROUP_NAME] is None:

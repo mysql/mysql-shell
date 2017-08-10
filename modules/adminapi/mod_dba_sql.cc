@@ -22,6 +22,7 @@
 #include <random>
 #include <string>
 #include <utility>
+#include <vector>
 #include "utils/utils_sqlstring.h"
 
 namespace mysqlsh {
@@ -531,6 +532,31 @@ std::string generate_password(size_t password_length) {
   }
 
   return pwd;
+}
+
+std::vector<std::pair<std::string, int>> get_open_sessions(
+    mysqlsh::mysql::Connection *connection) {
+  std::vector<std::pair<std::string, int>> ret;
+
+  std::string query(
+    "SELECT CONCAT(PROCESSLIST_USER, '@', PROCESSLIST_HOST) AS acct, "
+    "COUNT(*) FROM performance_schema.threads WHERE type = 'foreground' "
+    "GROUP BY acct;");
+
+  // Any error will bubble up right away
+  auto result = connection->run_sql(query);
+  auto row = result->fetch_one();
+
+  while (row) {
+    if (row->get_value(0)) {
+      ret.emplace_back(row->get_value(0).as_string(),
+                       row->get_value(1).as_int());
+    }
+
+    row = result->fetch_one();
+  }
+
+  return ret;
 }
 } // namespace dba
 } // namespace mysh

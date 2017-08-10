@@ -65,8 +65,12 @@ var restored_sql_mode = row[0];
 var was_restored = restored_sql_mode == original_sql_mode;
 print("Original SQL_MODE has been restored: "+ was_restored + "\n");
 
+//@ Dba: super-read-only error (BUG#26422638)
+c1 = dba.createCluster("devCluster");
+
+// Disable super-read-only with clearReadOnly
 //@ Dba: create cluster with memberSslMode AUTO succeed
-var c1 = dba.createCluster("devCluster", {memberSslMode: 'AUTO'});
+var c1 = dba.createCluster("devCluster", {memberSslMode: 'AUTO', clearReadOnly: true});
 c1
 
 //@ Dba: dissolve cluster created with memberSslMode AUTO
@@ -74,9 +78,9 @@ c1.dissolve({force:true});
 
 //@ Dba: createCluster success
 if (__have_ssl)
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED'});
+  var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', clearReadOnly: true});
 print(c1)
 
 //@# Dba: createCluster already exist
@@ -125,6 +129,22 @@ print (result.status)
 //@ Dba: configureLocalInstance report fixed 3
 var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', dbPassword:'root'});
 print (result.status)
+
+// Enable super_read_only to test this scenario
+connect_to_sandbox([__mysql_sandbox_port2]);
+session.runSql('SET GLOBAL super_read_only = 1');
+//@ Dba.configureLocalInstance: super-read-only error (BUG#26422638)
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath: 'mybad.cnf', clusterAdmin: "adminUser", clusterAdminPassword:"", password:'root'});
+
+//@<OUT> Dba.configureLocalInstance: clearReadOnly
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath: 'mybad.cnf', clusterAdmin: "adminUser", clusterAdminPassword:"", clearReadOnly: true, password:'root'});
+
+//Delete created user and disable super_read_only
+session.runSql('SET GLOBAL super_read_only = 0');
+session.runSql("SET SQL_LOG_BIN=0");
+session.runSql("DROP USER 'adminUser'");
+session.runSql("SET SQL_LOG_BIN=1");
+session.close();
 
 //@ Dba: Create user without all necessary privileges
 // create user that has all permissions to admin a cluster but doesn't have

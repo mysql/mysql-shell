@@ -50,10 +50,12 @@ single.removeInstance({host: localhost, port: __mysql_sandbox_port3});
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 var multiSession = session;
 
+// We must use clearReadOnly because the instance 3 was removed from the cluster before
+// (BUG#26422638)
 if (__have_ssl)
-  var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiMaster:true, force:true});
+  var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiMaster:true, force:true, clearReadOnly: true});
 else
-  var multi = dba.createCluster('multi', {memberSslMode:'DISABLED', multiMaster:true, force:true});
+  var multi = dba.createCluster('multi', {memberSslMode:'DISABLED', multiMaster:true, force:true, clearReadOnly: true});
 
 //@ Failure adding instance from multi cluster into single
 add_instance_options['port'] = __mysql_sandbox_port3;

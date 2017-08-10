@@ -43,6 +43,14 @@ c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "DI
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "multiMaster": True, "force": True})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "multiMaster": False})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "ipWhitelist": " "})
+c1 = dba.create_cluster('#');
+
+# If this test is executed standalone super_read_only
+# won't be enabled
+session.run_sql('SET GLOBAL super_read_only = 1');
+
+#@<OUT> Dba: super-read-only error (BUG#26422638)
+dba.create_cluster('devCluster');
 
 #@ Dba: createCluster with ANSI_QUOTES success
 # save current sql mode
@@ -105,13 +113,51 @@ dba.configure_local_instance('someotherhost:' + str(__mysql_sandbox_port1));
 #@<OUT> Dba: configure_local_instance error 3
 dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port1));
 
+connect_to_sandbox([__mysql_sandbox_port3]);
+session.run_sql('SET GLOBAL super_read_only = 0');
+
+# If this test is executed standalone the GR plugin won't be installed
+# So configure will fail with:
+#{
+#    "errors": [
+#        "An error was found trying to install the group_replication plugin: Query failed. 1290 (HY000): The MySQL server is running with the --super-read-only option so it cannot execute this statement",
+#        "Error checking instance: The group_replication plugin could not be loaded in the server 'localhost:3336'"
+#    ],
+#    "restart_required": false,
+#    "status": "error"
+#}
+#
+# If that's the case, the group_replication plugin must be installed
+#session.run_sql('INSTALL PLUGIN group_replication SONAME \'group_replication.so\'');
+session.run_sql("SET SQL_LOG_BIN=0");
+session.run_sql("CREATE USER 'myAdmin'@'localhost' IDENTIFIED BY ''");
+session.run_sql("GRANT ALL ON *.* TO 'myAdmin'@'localhost' WITH GRANT OPTION");
+session.run_sql("SET SQL_LOG_BIN=1");
+# Enable super_read_only to test this scenario
+session.run_sql('SET GLOBAL super_read_only = 1');
+
+#@<OUT> Dba.configure_local_instance: super-read-only error (BUG#26422638)
+dba.configure_local_instance('myAdmin@localhost:' + str(__mysql_sandbox_port3));
+
+#@<OUT> Dba.configure_local_instance: clearReadOnly
+dba.configure_local_instance('myAdmin@localhost:' + str(__mysql_sandbox_port3));
+
+#Delete created user and disable super_read_only
+session.run_sql('SET GLOBAL super_read_only = 0');
+session.run_sql("SET SQL_LOG_BIN=0");
+session.run_sql("DROP USER 'myAdmin'@'localhost'");
+session.run_sql("SET SQL_LOG_BIN=1");
+session.close();
+
 #@ Dba: Create user without all necessary privileges
 # create user that has all permissions to admin a cluster but doesn't have
 # the grant privileges for them, so it cannot be used to create viable accounts
 # Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 # PERMISSIONS, CREATES A WRONG NEW USER
 
+# Disable super_read_only
 connect_to_sandbox([__mysql_sandbox_port2])
+session.run_sql('SET GLOBAL super_read_only = 0');
 session.run_sql("SET SQL_LOG_BIN=0")
 session.run_sql("CREATE USER missingprivileges@localhost")
 session.run_sql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost")

@@ -38,8 +38,48 @@
 //@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
 ||Dba.rebootClusterFromCompleteOutage: The following instances: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belong to both 'rejoinInstances' and 'removeInstances' lists.
 
-//@ Dba.rebootClusterFromCompleteOutage success
-|The cluster was successfully rebooted.|
+//@<OUT> Dba.rebootClusterFromCompleteOutage: super-read-only error (BUG#26422638)
+Reconfiguring the cluster 'dev' from complete outage...
+
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was part of the cluster configuration.
+Would you like to rejoin it to the cluster? [y|N]:
+Could not open a connection to '<<<localhost>>>:<<<__mysql_sandbox_port3>>>': 'Can't connect to MySQL server on 'localhost' (111)'
+Would you like to remove it from the cluster's metadata? [y|N]:
+The MySQL instance at '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
+system variable set to protect it from inadvertent updates from applications.
+You must first unset it to be able to perform any changes to this instance.
+For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+
+Note: there are open sessions to '<<<localhost>>>:<<<__mysql_sandbox_port1>>>'.
+You may want to kill these sessions to prevent them from performing unexpected updates:
+
+1 open session(s) of 'root@localhost'.
+
+Do you want to disable super_read_only and continue? [y|N]:
+Cancelled
+
+//@<OUT> Dba.rebootClusterFromCompleteOutage success
+Reconfiguring the cluster 'dev' from complete outage...
+
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was part of the cluster configuration.
+Would you like to rejoin it to the cluster? [y|N]:
+Could not open a connection to '<<<localhost>>>:<<<__mysql_sandbox_port3>>>': 'Can't connect to MySQL server on 'localhost' (111)'
+Would you like to remove it from the cluster's metadata? [y|N]:
+The MySQL instance at '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
+system variable set to protect it from inadvertent updates from applications.
+You must first unset it to be able to perform any changes to this instance.
+For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+
+Note: there are open sessions to '<<<localhost>>>:<<<__mysql_sandbox_port1>>>'.
+You may want to kill these sessions to prevent them from performing unexpected updates:
+
+1 open session(s) of 'root@localhost'.
+
+Do you want to disable super_read_only and continue? [y|N]:
+
+The cluster was successfully rebooted.
+
+<Cluster:dev>
 
 //@<OUT> cluster status after reboot
 {

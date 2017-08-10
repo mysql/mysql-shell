@@ -279,6 +279,7 @@ def reset_or_deploy_sandbox(port):
   # If the instance is up and running, we just drop the metadata
   if connected:
     print 'Dropping metadata...'
+    session.run_sql('SET GLOBAL super_read_only = 0'); # (BUG#26422638)
     session.run_sql('set sql_log_bin = 0')
     session.run_sql('drop schema if exists mysql_innodb_cluster_metadata')
 

@@ -57,11 +57,14 @@ std::set<std::string> Dba::_deploy_instance_opts = {
 std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password",
                                                   "dbPassword"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
+
 std::set<std::string> Dba::_create_cluster_opts = {
-    "multiMaster", "adoptFromGR", "force", "memberSslMode", "ipWhitelist"};
+    "multiMaster", "adoptFromGR", "force", "memberSslMode", "ipWhitelist",
+    "clearReadOnly"};
 std::set<std::string> Dba::_reboot_cluster_opts = {
     "user",       "dbUser",          "password",
-    "dbPassword", "removeInstances", "rejoinInstances"};
+    "dbPassword", "removeInstances", "rejoinInstances",
+    "clearReadOnly"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF,
@@ -394,34 +397,39 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6,
               "for group replication.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7,
-              "A InnoDB cluster may be setup in two ways:");
+              "@li clearReadOnly: boolean value "
+              "used to confirm that super_read_only "
+              "must be disabled.");
+
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8,
+              "A InnoDB cluster may be setup in two ways:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9,
               "@li Single Master: One member of the cluster allows write "
               "operations while the rest are in read only mode.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10,
               "@li Multi Master: All the members "
               "in the cluster support both read "
               "and write operations.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11,
               "By default this function create a Single Master cluster, use "
               "the multiMaster option set to true "
               "if a Multi Master cluster is required.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11,
-              "The memberSslMode option supports these values:");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12,
+              "The memberSslMode option supports these values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13,
               "@li REQUIRED: if used, SSL (encryption) will be enabled for the "
               "instances to communicate with other members of the cluster");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13,
-              "@li DISABLED: if used, SSL (encryption) will be disabled");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14,
+              "@li DISABLED: if used, SSL (encryption) will be disabled");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15,
               "@li AUTO: if used, SSL (encryption) "
               "will be enabled if supported by the "
               "instance, otherwise disabled");
 REGISTER_HELP(
-    DBA_CREATECLUSTER_DETAIL15,
+    DBA_CREATECLUSTER_DETAIL16,
     "If memberSslMode is not specified AUTO will be used by default.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17,
               "The ipWhitelist format is a comma separated list of IP "
               "addresses or subnet CIDR "
               "notation, for example: 192.168.1.0/24,10.0.0.1. By default the "
@@ -454,20 +462,21 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
  * $(DBA_CREATECLUSTER_DETAIL4)
  * $(DBA_CREATECLUSTER_DETAIL5)
  * $(DBA_CREATECLUSTER_DETAIL6)
- *
  * $(DBA_CREATECLUSTER_DETAIL7)
  *
  * $(DBA_CREATECLUSTER_DETAIL8)
+ *
  * $(DBA_CREATECLUSTER_DETAIL9)
  * $(DBA_CREATECLUSTER_DETAIL10)
- *
  * $(DBA_CREATECLUSTER_DETAIL11)
+ *
  * $(DBA_CREATECLUSTER_DETAIL12)
  * $(DBA_CREATECLUSTER_DETAIL13)
  * $(DBA_CREATECLUSTER_DETAIL14)
  * $(DBA_CREATECLUSTER_DETAIL15)
- *
  * $(DBA_CREATECLUSTER_DETAIL16)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL17)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -515,6 +524,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   bool multi_master = false;  // Default single/primary master
   bool adopt_from_gr = false;
   bool force = false;
+  bool clear_read_only = false;
   // SSL values are only set if available from args.
   std::string ssl_mode;
 
@@ -566,6 +576,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
             " Using adoptFromGR mode will adopt the primary mode in use by the "
             "Cluster.");
       }
+      if (opt_map.has_key("clearReadOnly"))
+        clear_read_only = opt_map.bool_at("clearReadOnly");
+
     }
 
     if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
@@ -574,10 +587,16 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           "adoptFromGR option to be true");
 
     auto session = get_active_session();
+    auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+
+    // Check if super_read_only is turned off and disable it if required
+    // NOTE: this is left for last to avoid setting super_read_only to true
+    // and right before some execution failure of the command leaving the
+    // instance in an incorrect state
+    validate_super_read_only(classic, clear_read_only);
 
     // Check replication filters before creating the Metadata.
-    auto classic = std::static_pointer_cast<mysql::ClassicSession>(session);
-    validate_replication_filters(classic.get());
+    validate_replication_filters(classic);
 
     // First we need to create the Metadata Schema, or update it if already
     // exists
@@ -677,21 +696,27 @@ REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL,
 REGISTER_HELP(
     DBA_DROPMETADATASCHEMA_DETAIL1,
     "@li force: boolean, confirms that the drop operation must be executed.");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL2,
+              "@li clearReadOnly: boolean "
+              "value used to confirm that "
+              "super_read_only must be "
+              "disabled");
 
 /**
- * $(DBA_DROPMETADATASCHEMA_BRIEF)
- *
- * $(DBA_DROPMETADATASCHEMA_PARAM)
- *
- * $(DBA_DROPMETADATASCHEMA_THROWS)
- *
- * $(DBA_DROPMETADATASCHEMA_RETURNS)
- *
- * $(DBA_DROPMETADATASCHEMA_PARAM)
- *
- * $(DBA_DROPMETADATASCHEMA_DETAIL)
- * $(DBA_DROPMETADATASCHEMA_DETAIL1)
- */
+* $(DBA_DROPMETADATASCHEMA_BRIEF)
+*
+* $(DBA_DROPMETADATASCHEMA_PARAM)
+*
+* $(DBA_DROPMETADATASCHEMA_THROWS)
+*
+* $(DBA_DROPMETADATASCHEMA_RETURNS)
+*
+* $(DBA_DROPMETADATASCHEMA_PARAM)
+*
+* $(DBA_DROPMETADATASCHEMA_DETAIL)
+* $(DBA_DROPMETADATASCHEMA_DETAIL1)
+* $(DBA_DROPMETADATASCHEMA_DETAIL2)
+*/
 #if DOXYGEN_JS
 Undefined Dba::dropMetadataSchema(Dictionary options) {}
 #elif DOXYGEN_PY
@@ -708,16 +733,29 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
 
   try {
     bool force = false;
+    bool clear_read_only = false;
 
     // Map with the options
     shcore::Value::Map_type_ref options = args.map_at(0);
 
     shcore::Argument_map opt_map(*options);
 
-    opt_map.ensure_keys({}, {"force"}, "the options");
+    opt_map.ensure_keys({}, {"force", "clearReadOnly"}, "the options");
 
     if (opt_map.has_key("force"))
       force = opt_map.bool_at("force");
+
+    if (opt_map.has_key("clearReadOnly"))
+        clear_read_only = opt_map.bool_at("clearReadOnly");
+
+    auto session = get_active_session();
+    auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+
+    // Check if super_read_only is turned off and disable it if required
+    // NOTE: this is left for last to avoid setting super_read_only to true
+    // and right before some execution failure of the command leaving the
+    // instance in an incorrect state
+    validate_super_read_only(classic, clear_read_only);
 
     if (force)
       _metadata_storage->drop_metadata_schema();
@@ -1629,54 +1667,58 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL18,
               "administrator account.");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL19,
+              "@li clearReadOnly: boolean value "
+              "used to confirm that super_read_only "
+              "must be disabled.");
+
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL20,
               "The connection password may be contained on the instance "
               "definition, however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL20,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL21,
               "The returned JSON object contains the following attributes:");
 REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL21,
+    DBA_CONFIGURELOCALINSTANCE_DETAIL22,
     "@li status: the final status of the command, either \"ok\" or \"error\"");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL22,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL23,
               "@li config_errors: a list "
               "of dictionaries containing "
               "the failed requirements");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL23,
-              "@li errors: a list of errors of the operation");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL24,
+              "@li errors: a list of errors of the operation");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL25,
               "@li restart_required: a boolean value indicating whether a "
               "restart is required");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL25,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL26,
               "Each dictionary of the list of config_errors includes the "
               "following attributes:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL26,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL27,
               "@li option: The configuration option for which the requirement "
               "wasn't met");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL27,
-              "@li current: The current value of the configuration option");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL28,
+              "@li current: The current value of the configuration option");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL29,
               "@li required: The configuration option required value");
 REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL29,
+    DBA_CONFIGURELOCALINSTANCE_DETAIL30,
     "@li action: The action to be taken in order to meet the requirement");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL30,
-              "The action can be one of the following:");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL31,
+              "The action can be one of the following:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL32,
               "@li server_update+config_update: Both the server and the "
               "configuration need to be updated");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL32,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL33,
               "@li config_update+restart: The configuration needs to be "
               "updated and the server restarted");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL33,
-              "@li config_update: The configuration needs to be updated");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL34,
-              "@li server_update: The server needs to be updated");
+              "@li config_update: The configuration needs to be updated");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL35,
+              "@li server_update: The server needs to be updated");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL36,
               "@li restart: The server needs to be restarted");
-
 /**
 * $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
 *
@@ -1715,27 +1757,28 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL35,
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL16)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL17)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL18)
-*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL19)
 *
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL20)
+*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL21)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL22)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL23)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL24)
-*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL25)
+*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL26)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL27)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL28)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL29)
-*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL30)
+*
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL31)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL32)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL33)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL34)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL35)
+* $(DBA_CONFIGURELOCALINSTANCE_DETAIL36)
 */
 #if DOXYGEN_JS
 Instance Dba::configureLocalInstance(InstanceDef instance, Dictionary options) {
@@ -1786,6 +1829,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
     const shcore::Argument_list &args, bool allow_update) {
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
   shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
+  std::set<std::string> check_options;
 
   // Validates the connection options
   auto instance_def =
@@ -1799,14 +1843,21 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   shcore::Value::Map_type_ref validate_options;
 
   std::string cnfpath, cluster_admin, cluster_admin_password;
+  bool clear_read_only = false;
 
   if (args.size() == 2) {
     validate_options = args.map_at(1);
     shcore::Argument_map tmp_map(*validate_options);
 
-    std::set<std::string> check_options = {"password", "dbPassword",
-                                           "mycnfPath", "clusterAdmin",
-                                           "clusterAdminPassword"};
+    // The clearReadOnly option is only available in configureLocalInstance
+    // i.e. with allow_update set as true
+    if (allow_update) {
+      check_options = {"password", "dbPassword", "mycnfPath", "clusterAdmin",
+                       "clusterAdminPassword", "clearReadOnly"};
+    } else {
+      check_options = {"password", "dbPassword", "mycnfPath", "clusterAdmin",
+                       "clusterAdminPassword"};
+    }
 
     tmp_map.ensure_keys({}, check_options, "validation options");
     validate_opt_map = tmp_map;
@@ -1826,6 +1877,11 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
     if (validate_opt_map.has_key("clusterAdminPassword"))
       cluster_admin_password =
           validate_opt_map.string_at("clusterAdminPassword");
+
+    if (allow_update) {
+      if (validate_opt_map.has_key("clearReadOnly"))
+          clear_read_only = validate_opt_map.bool_at("clearReadOnly");
+    }
   }
 
   if (cnfpath.empty() && allow_update)
@@ -1853,6 +1909,15 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
         "The instance '" + uri + "' is already part of an InnoDB Cluster");
   } else {
     if (!cluster_admin.empty() && allow_update) {
+      auto classic =
+          dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+
+      // Check if super_read_only is turned off and disable it if required
+      // NOTE: this is left for last to avoid setting super_read_only to true
+      // and right before some execution failure of the command leaving the
+      // instance in an incorrect state
+      bool super_read_only = validate_super_read_only(classic, clear_read_only);
+
       try {
         create_cluster_admin_user(session, cluster_admin,
                                   cluster_admin_password);
@@ -1884,6 +1949,16 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
           errors->push_back(shcore::Value(error_msg));
           log_error("%s", error_msg.c_str());
         }
+      }
+
+      // If we disabled super_read_only we must enable it back
+      // also confirm that the initial status was 1/ON
+      if (clear_read_only && super_read_only) {
+        auto session_address =
+          session->uri(mysqlshdk::db::uri::formats::only_transport());
+        log_info("Enabling super_read_only on the instance '%s'",
+                 session_address.c_str());
+        set_global_variable(classic->connection(), "super_read_only", "ON");
       }
     }
 
@@ -2103,46 +2178,50 @@ REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3,
               "@li rejoinInstances: The list of instances to be rejoined on "
               "the cluster.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4,
+              "@li clearReadOnly: boolean value used to confirm that "\
+              "super_read_only must be disabled");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5,
               "This function reboots a cluster from complete outage. "
               "It picks the instance the MySQL Shell is connected to as new "
               "seed instance and recovers the cluster. "
               "Optionally it also updates the cluster configuration based on "
               "user provided options.");
 REGISTER_HELP(
-    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5,
+    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6,
     "On success, the restored cluster object is returned by the function.");
-REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6,
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7,
               "The current session must be connected to a former instance of "
               "the cluster.");
 REGISTER_HELP(
-    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7,
+    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8,
     "If name is not specified, the default cluster will be returned.");
 
 /**
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
- *
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
- * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7)
- */
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5)
+*
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8)
+*/
 #if DOXYGEN_JS
 Undefined Dba::rebootClusterFromCompleteOutage(String clusterName,
                                                Dictionary options) {}
@@ -2159,9 +2238,10 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   _metadata_storage->set_session(get_active_session());
 
   shcore::Value ret_val;
-  bool default_cluster = false;
-  std::string cluster_name, password, user, group_replication_group_name, port,
-      host, instance_session_address;
+
+  bool default_cluster = false, clear_read_only = false;
+  std::string cluster_name, password, user, group_replication_group_name,
+              port, host, instance_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
@@ -2221,6 +2301,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       else
         user = instance_session->get_user();
 
+      if (opt_map.has_key("clearReadOnly"))
+        clear_read_only = opt_map.bool_at("clearReadOnly");
     } else {
       user = instance_session->get_user();
       password = current_session_options.get_password();
@@ -2414,6 +2496,15 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
     // 6. Set the current session instance as the seed instance of the Cluster
     {
+      auto classic =
+        dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
+
+      // Check if super_read_only is turned off and disable it if required
+      // NOTE: this is left for last to avoid setting super_read_only to true
+      // and right before some execution failure of the command leaving the
+      // instance in an incorrect state
+      validate_super_read_only(classic, clear_read_only);
+
       shcore::Argument_list new_args;
       std::string replication_user, replication_user_password;
       // To avoid messing up the real instance options

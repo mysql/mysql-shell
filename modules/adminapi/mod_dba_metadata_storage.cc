@@ -915,9 +915,17 @@ void MetadataStorage::create_repl_account(std::string &username,
     }
   }
 
+  // Grant REPLICATION SLAVE grants to the created accounts
   query = shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to ?@?", 0);
   query << username;
   query << hostname;
+  query.done();
+
+  execute_sql(query);
+
+  query = shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to ?@?", 0);
+  query << username;
+  query << "localhost";
   query.done();
 
   execute_sql(query);
