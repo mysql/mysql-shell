@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #include <memory>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 #include "unittest/gtest_clean.h"
 #include "unittest/mysqld_mock/mysql_server_mock.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
