@@ -18,6 +18,12 @@
  */
 
 #include "modules/adminapi/mod_dba_common.h"
+
+#include <string>
+#include <iterator>
+#include <algorithm>
+#include <utility>
+
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "utils/utils_sqlstring.h"
@@ -25,11 +31,8 @@
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 //#include "mod_dba_instance.h"
-
-#include <string>
-#include <iterator>
-#include <algorithm>
 
 namespace mysqlsh {
 namespace dba {
@@ -1012,5 +1015,70 @@ bool validate_replicaset_group_name(
 
   return (gr_group_name == md_group_name);
 }
+
+/*
+ * Check for the value of super-read-only and any open sessions
+ * to the instance and raise an exception if super_read_only is turned on.
+ *
+ * @param session object which represents the session to the instance
+ * @param clear_read_only boolean value used to confirm that
+ * super_read_only must be disabled
+ *
+ * @return a boolean value indicating the status of super_read_only
+ */
+bool validate_super_read_only(
+    mysqlsh::mysql::ClassicSession *session, bool clear_read_only) {
+  int super_read_only = 0;
+
+  get_server_variable(session->connection(), "super_read_only",
+                      super_read_only, false);
+
+  if (super_read_only) {
+    if (clear_read_only) {
+      auto session_address =
+          session->uri(mysqlshdk::db::uri::formats::only_transport());
+      log_info("Disabling super_read_only on the instance '%s'",
+               session_address.c_str());
+      set_global_variable(session->connection(), "super_read_only", "OFF");
+    } else {
+      auto session_options = session->get_connection_options();
+
+      auto session_address =
+        session_options.as_uri(mysqlshdk::db::uri::formats::only_transport());
+
+      std::string error_msg;
+
+      error_msg =
+        "The MySQL instance at '" + session_address + "' currently has "
+        "the super_read_only system variable set to protect it from "
+        "inadvertent updates from applications. You must first unset it to be "
+        "able to perform any changes to this instance. "
+        "For more information see: https://dev.mysql.com/doc/refman/en/"
+        "server-system-variables.html#sysvar_super_read_only. ";
+
+      // Get the list of open session to the instance
+      std::vector<std::pair<std::string, int>> open_sessions;
+      open_sessions = get_open_sessions(session->connection());
+
+      if (!open_sessions.empty()) {
+        error_msg +=
+          "If you unset super_read_only you should consider closing the "
+          "following: ";
+
+        for (auto &value : open_sessions) {
+          std::string account = value.first;
+          int open_sessions = value.second;
+
+          error_msg +=
+            std::to_string(open_sessions) + " open session(s) of '" +
+            account + "'. ";
+        }
+      }
+      throw shcore::Exception::runtime_error(error_msg);
+    }
+  }
+  return super_read_only;
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

@@ -67,6 +67,9 @@ private:
 
   std::string prompt_confirmed_password();
   int prompt_menu(const std::vector<std::string> &options, int defopt);
+  bool prompt_super_read_only(
+      std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+      const shcore::Value::Map_type_ref &options);
 };
 }
 

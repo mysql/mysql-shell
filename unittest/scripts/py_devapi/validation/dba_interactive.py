@@ -29,6 +29,23 @@
 ||Cannot use multiMaster option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
 ||Cannot use multiMaster option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
 ||Invalid value for ipWhitelist, string value cannot be empty.
+||Dba.create_cluster: The Cluster name can only start with an alphabetic or the '_' character.
+
+#@<OUT> Dba: super-read-only error (BUG#26422638)
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
+system variable set to protect it from inadvertent updates from applications.
+You must first unset it to be able to perform any changes to this instance.
+For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+
+Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
+You may want to kill these sessions to prevent them from performing unexpected updates:
+
+2 open session(s) of 'root@localhost'.
+
+Do you want to disable super_read_only and continue? [y|N]:
+Cancelled
 
 #@ Dba: createCluster with ANSI_QUOTES success
 |Current sql_mode is: ANSI_QUOTES|
@@ -42,6 +59,17 @@
 #@<OUT> Dba: create_cluster with interaction
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
+The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
+system variable set to protect it from inadvertent updates from applications.
+You must first unset it to be able to perform any changes to this instance.
+For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+
+Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
+You may want to kill these sessions to prevent them from performing unexpected updates:
+
+5 open session(s) of 'root@localhost'.
+
+Do you want to disable super_read_only and continue? [y|N]:
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
@@ -115,6 +143,65 @@ Detected as sandbox instance.
 
 Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Validating instance...
+
+#@<OUT> Dba.configure_local_instance: super-read-only error (BUG#26422638)
+Please provide the password for 'myAdmin@localhost:<<<__mysql_sandbox_port3>>>':
+Detected as sandbox instance.
+
+Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port3>>><<<__path_splitter>>>my.cnf
+MySQL user 'myAdmin' cannot be verified to have access to other hosts in the network.
+
+1) Create myAdmin@% with necessary grants
+2) Create account with different name
+3) Continue without creating account
+4) Cancel
+Please select an option [1]: The MySQL instance at 'localhost:<<<__mysql_sandbox_port3>>>' currently has the super_read_only
+system variable set to protect it from inadvertent updates from applications.
+You must first unset it to be able to perform any changes to this instance.
+For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+
+Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port3>>>'.
+You may want to kill these sessions to prevent them from performing unexpected updates:
+
+1 open session(s) of 'root@localhost'.
+
+3 open session(s) of 'myAdmin@localhost'.
+
+Do you want to disable super_read_only and continue? [y|N]:
+Cancelled
+
+#@<OUT> Dba.configure_local_instance: clearReadOnly
+Please provide the password for 'myAdmin@localhost:<<<__mysql_sandbox_port3>>>':
+Detected as sandbox instance.
+
+Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port3>>><<<__path_splitter>>>my.cnf
+MySQL user 'myAdmin' cannot be verified to have access to other hosts in the network.
+
+1) Create myAdmin@% with necessary grants
+2) Create account with different name
+3) Continue without creating account
+4) Cancel
+Please select an option [1]: The MySQL instance at 'localhost:<<<__mysql_sandbox_port3>>>' currently has the super_read_only
+system variable set to protect it from inadvertent updates from applications.
+You must first unset it to be able to perform any changes to this instance.
+For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+
+Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port3>>>'.
+You may want to kill these sessions to prevent them from performing unexpected updates:
+
+1 open session(s) of 'root@localhost'.
+
+6 open session(s) of 'myAdmin@localhost'.
+
+Do you want to disable super_read_only and continue? [y|N]:
+Password for new account: Confirm password: Validating instance...
+
+The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for Cluster usage
+You can now use it in an InnoDB Cluster.
+
+{
+    "status": "ok"
+}
 
 #@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|

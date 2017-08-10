@@ -154,6 +154,8 @@ std::string SHCORE_PUBLIC get_gr_replicaset_group_name(
 bool SHCORE_PUBLIC validate_replicaset_group_name(
     const std::shared_ptr<MetadataStorage> &metadata,
     mysqlsh::mysql::ClassicSession *session, uint64_t rs_id);
+bool validate_super_read_only(
+    mysqlsh::mysql::ClassicSession *session, bool clear_read_only);
 }
 }
 #endif

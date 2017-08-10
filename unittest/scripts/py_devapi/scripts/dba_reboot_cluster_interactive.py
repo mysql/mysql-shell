@@ -83,13 +83,21 @@ session.close()
 # Re-establish the connection to instance 1
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
+instance2 = "%s:%s" % (localhost, __mysql_sandbox_port2)
+instance3 = "%s:%s" % (localhost, __mysql_sandbox_port3)
+
 #@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
-cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [localhost + ':' + str(__mysql_sandbox_port3)]})
+cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [instance3]})
 
 #@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
-cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [localhost + ':' + str(__mysql_sandbox_port2)], 'removeInstances': [localhost + ':' + str(__mysql_sandbox_port2)]})
+cluster = dba.reboot_cluster_from_complete_outage("dev", {'rejoinInstances': [instance2], 'removeInstances': [instance2]})
 
-#@ Dba.rebootClusterFromCompleteOutage success
+# Since we killed the instance, we have to enable super_read_only to test this scenario
+session.run_sql('SET GLOBAL super_read_only = 1')
+#@<OUT> Dba.rebootClusterFromCompleteOutage: super-read-only error (BUG#26422638)
+cluster = dba.reboot_cluster_from_complete_outage("dev")
+
+#@<OUT> Dba.rebootClusterFromCompleteOutage success
 cluster = dba.reboot_cluster_from_complete_outage("dev")
 
 # Waiting for the second added instance to become online

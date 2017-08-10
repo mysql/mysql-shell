@@ -109,4 +109,7 @@ wait_slave_state(Cluster, uri3, "ONLINE");
 //@<OUT> Cluster: status for rejoin: success
 Cluster.status();
 
-Cluster.dissolve({force: true});
+Cluster.dissolve({force: true})
+
+// Disable super-read-only (BUG#26422638)
+session.runSql("SET GLOBAL SUPER_READ_ONLY = 0;")

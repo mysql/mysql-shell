@@ -40,6 +40,9 @@
 #@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
 ||Dba.reboot_cluster_from_complete_outage: The following instances: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belong to both 'rejoinInstances' and 'removeInstances' lists.
 
+#@ Dba.rebootClusterFromCompleteOutage: super-read-only error (BUG#26422638)
+||SystemError: RuntimeError: Dba.reboot_cluster_from_complete_outage: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only. If you unset super_read_only you should consider closing the following: 1 open session(s) of 'root@localhost'.
+
 #@ Dba.rebootClusterFromCompleteOutage success
 ||
 

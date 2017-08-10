@@ -284,6 +284,15 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
 
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
+  //@ Dba: super-read-only error (BUG#26422638)
+  output_handler.prompts.push_back("n");
+
+  //@ Dba: createCluster with ANSI_QUOTES success
+  output_handler.prompts.push_back("y");
+
+  //@<OUT> Dba: createCluster with interaction
+  output_handler.prompts.push_back("y");
+
   //@# Dba: checkInstanceConfiguration error
   output_handler.passwords.push_back("root");
 
@@ -301,6 +310,18 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
 
   //@<OUT> Dba: configureLocalInstance error 3
   output_handler.passwords.push_back("root");
+
+  //@<OUT> Dba.configureLocalInstance: super-read-only error (BUG#26422638)
+  output_handler.passwords.push_back(""); // Please provide the password for 'myAdmin@localhost...
+  output_handler.prompts.push_back("1"); // Please select an option [1]: 1
+  output_handler.prompts.push_back("n"); // Do you want to disable super_read_only and continue? [y|N]: n
+
+  //@<OUT> Dba.configureLocalInstance: clearReadOnly
+  output_handler.passwords.push_back(""); // Please provide the password for 'myAdmin@localhost...
+  output_handler.prompts.push_back("1"); // Please select an option [1]: 1
+  output_handler.prompts.push_back("y"); // Do you want to disable super_read_only and continue? [y|N]: y
+  output_handler.passwords.push_back(""); // Password for new account:
+  output_handler.passwords.push_back(""); // Confirm password:
 
   //@ Dba: configureLocalInstance not enough privileges 1
   output_handler.passwords.push_back(""); // Please provide the password for missingprivileges@...
@@ -450,7 +471,12 @@ TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
   _options->interactive = true;
   reset_shell();
 
-  //@ Dba.rebootClusterFromCompleteOutage success
+  //@<OUT> Dba.rebootClusterFromCompleteOutage: super-read-only error (BUG#26422638)
+  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back("n");
+  //@<OUT> Dba.rebootClusterFromCompleteOutage success
+  output_handler.prompts.push_back("y");
   output_handler.prompts.push_back("y");
   output_handler.prompts.push_back("y");
 
@@ -577,7 +603,12 @@ TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {
   //@# drop metadata: user response no
   output_handler.prompts.push_back("n");
 
-  //@# drop metadata: user response yes
+  //@<OUT> Dba.dropMetadataSchema: super-read-only error (BUG#26422638)
+  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back("n");
+
+  //@<OUT> drop metadata: user response yes to force and clearReadOnly
+  output_handler.prompts.push_back("y");
   output_handler.prompts.push_back("y");
 
   validate_interactive("dba_drop_metadata_interactive.js");
