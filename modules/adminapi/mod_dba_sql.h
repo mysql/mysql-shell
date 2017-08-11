@@ -17,44 +17,57 @@
  * 02110-1301  USA
  */
 
-#ifndef _MODULES_ADMINAPI_MOD_DBA_SQL_
-#define _MODULES_ADMINAPI_MOD_DBA_SQL_
+#ifndef MODULES_ADMINAPI_MOD_DBA_SQL_H_
+#define MODULES_ADMINAPI_MOD_DBA_SQL_H_
+
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "modules/mysql_connection.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "scripting/common.h"
-#include <string>
-#include <utility>
-#include <vector>
 
 #define PASSWORD_LENGTH 32
 
 namespace mysqlsh {
 namespace dba {
-GRInstanceType get_gr_instance_type(mysqlsh::mysql::Connection* connection);
-void get_port_and_datadir(mysqlsh::mysql::Connection* connection, int &port, std::string& datadir);
-void get_gtid_state_variables(mysqlsh::mysql::Connection* connection, std::string &executed, std::string &purged);
-SlaveReplicationState get_slave_replication_state(mysqlsh::mysql::Connection* connection, std::string &slave_executed);
-ReplicationGroupState get_replication_group_state(mysqlsh::mysql::Connection* connection, GRInstanceType source_type);
+GRInstanceType get_gr_instance_type(mysqlsh::mysql::Connection *connection);
+void get_port_and_datadir(mysqlsh::mysql::Connection *connection, int &port,
+                          std::string &datadir);
+void get_gtid_state_variables(mysqlsh::mysql::Connection *connection,
+                              std::string &executed, std::string &purged);
+SlaveReplicationState get_slave_replication_state(
+    mysqlsh::mysql::Connection *connection, std::string &slave_executed);
+ReplicationGroupState get_replication_group_state(
+    mysqlsh::mysql::Connection *connection, GRInstanceType source_type);
 ManagedInstance::State SHCORE_PUBLIC get_instance_state(
     mysqlsh::mysql::Connection *connection, const std::string &address);
-bool is_server_on_replication_group(mysqlsh::mysql::Connection* connection, const std::string &uuid);
-std::string get_plugin_status(mysqlsh::mysql::Connection *connection, std::string plugin_name);
-bool SHCORE_PUBLIC get_server_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
-                         std::string &value, bool throw_on_error = true);
-bool SHCORE_PUBLIC get_server_variable(mysqlsh::mysql::Connection *connection, const std::string& name,
-                         int &value, bool throw_on_error = true);
-void set_global_variable(mysqlsh::mysql::Connection *connection, const std::string &name, const std::string &value);
-bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::string &name,
-                         std::string &value, bool throw_on_error = true);
-bool is_gtid_subset(mysqlsh::mysql::Connection *connection, const std::string &subset, const std::string &set);
+bool is_server_on_replication_group(mysqlsh::mysql::Connection *connection,
+                                    const std::string &uuid);
+std::string get_plugin_status(mysqlsh::mysql::Connection *connection,
+                              std::string plugin_name);
+bool SHCORE_PUBLIC get_server_variable(mysqlsh::mysql::Connection *connection,
+                                       const std::string &name,
+                                       std::string &value,
+                                       bool throw_on_error = true);
+bool SHCORE_PUBLIC get_server_variable(mysqlsh::mysql::Connection *connection,
+                                       const std::string& name,
+                                       int &value, bool throw_on_error = true);
+void set_global_variable(mysqlsh::mysql::Connection *connection,
+                         const std::string &name, const std::string &value);
+bool get_status_variable(mysqlsh::mysql::Connection *connection,
+                         const std::string &name, std::string &value,
+                         bool throw_on_error = true);
+bool is_gtid_subset(mysqlsh::mysql::Connection *connection,
+                    const std::string &subset, const std::string &set);
 shcore::Value get_master_status(mysqlsh::mysql::Connection *connection);
-std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection, const std::string &instance_host);
+std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection,
+                                        const std::string &instance_host);
 std::string generate_password(size_t password_length);
 std::vector<std::pair<std::string, int>>
-  get_open_sessions(mysqlsh::mysql::Connection *connection);
+    get_open_sessions(mysqlsh::mysql::Connection *connection);
+}  // namespace dba
+}  // namespace mysqlsh
 
-}
-}
-
-#endif
+#endif  // MODULES_ADMINAPI_MOD_DBA_SQL_H_

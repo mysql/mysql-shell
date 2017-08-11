@@ -17,12 +17,12 @@
  * 02110-1301  USA
  */
 
-#ifndef _MOD_DBA_METADATA_STORAGE_H_
-#define _MOD_DBA_METADATA_STORAGE_H_
+#ifndef MODULES_ADMINAPI_MOD_DBA_METADATA_STORAGE_H_
+#define MODULES_ADMINAPI_MOD_DBA_METADATA_STORAGE_H_
 
-#include "mod_dba.h"
-#include "mod_dba_cluster.h"
-#include "mod_dba_replicaset.h"
+#include "modules/adminapi/mod_dba.h"
+#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_replicaset.h"
 #include <string>
 
 #define ER_NOT_VALID_PASSWORD 1819
@@ -50,8 +50,8 @@ struct Instance_definition {
 */
 #endif
 class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
-public:
-  MetadataStorage(std::shared_ptr<mysqlsh::ShellBaseSession> session);
+ public:
+  explicit MetadataStorage(std::shared_ptr<mysqlsh::ShellBaseSession> session);
   ~MetadataStorage();
 
   bool metadata_schema_exists();
@@ -61,7 +61,8 @@ public:
   uint64_t get_cluster_id(uint64_t rs_id);
   bool cluster_exists(const std::string &cluster_name);
   void insert_cluster(const std::shared_ptr<Cluster> &cluster);
-  void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset, bool is_default, bool is_adopted);
+  void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
+                          bool is_default, bool is_adopted);
   uint32_t insert_host(const std::string &host, const std::string &ip_address,
                        const std::string &location);
   void insert_instance(const Instance_definition &options);
@@ -73,7 +74,8 @@ public:
   void disable_replicaset(uint64_t rs_id);
   bool is_replicaset_active(uint64_t rs_id);
   std::string get_replicaset_group_name(uint64_t rs_id);
-  void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset, const std::string &group_name);
+  void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset,
+                                 const std::string &group_name);
 
   std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name);
   std::shared_ptr<Cluster> get_default_cluster();
@@ -85,25 +87,32 @@ public:
   uint64_t get_replicaset_count(uint64_t rs_id) const;
 
   std::string get_seed_instance(uint64_t rs_id);
-  std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(uint64_t rs_id);
-  std::shared_ptr<shcore::Value::Array_type> get_replicaset_online_instances(uint64_t rs_id);
+  std::shared_ptr<shcore::Value::Array_type>
+      get_replicaset_instances(uint64_t rs_id);
+  std::shared_ptr<shcore::Value::Array_type>
+      get_replicaset_online_instances(uint64_t rs_id);
 
-  Instance_definition get_instance(
-          const std::string &instance_address);
+  Instance_definition get_instance(const std::string &instance_address);
 
   void create_repl_account(std::string &username, std::string &password);
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> get_session() const {return _session; };
+  std::shared_ptr<mysqlsh::ShellBaseSession> get_session() const {
+    return _session;
+  }
+
   void set_session(std::shared_ptr<mysqlsh::ShellBaseSession> session);
 
-  std::shared_ptr<mysql::ClassicResult> execute_sql(const std::string &sql, bool retry = false, const std::string &log_sql = "") const;
+  std::shared_ptr<mysql::ClassicResult>
+      execute_sql(const std::string &sql,
+                  bool retry = false,
+                  const std::string &log_sql = "") const;
 
   void create_account(const std::string &username, const std::string &password,
                       const std::string &hostname,
                       bool password_hashed = false);
 
   class Transaction {
-  public:
+   public:
     explicit Transaction(std::shared_ptr<MetadataStorage> md) : _md(md) {
       md->start_transaction();
     }
@@ -122,10 +131,11 @@ public:
         _md.reset();
       }
     }
-  private:
+   private:
     std::shared_ptr<MetadataStorage> _md;
   };
-private:
+
+ private:
   std::shared_ptr<mysqlsh::ShellBaseSession> _session;
 
   void start_transaction();
@@ -134,11 +144,13 @@ private:
 
   std::shared_ptr<Cluster> get_cluster_from_query(const std::string &query);
 
-  std::shared_ptr<Cluster> get_cluster_matching(const std::string &condition, const std::string &value);
+  std::shared_ptr<Cluster> get_cluster_matching(const std::string &condition,
+                                                const std::string &value);
   // Overload the function for different types of value
-  std::shared_ptr<Cluster> get_cluster_matching(const std::string &condition, bool value);
+  std::shared_ptr<Cluster> get_cluster_matching(const std::string &condition,
+                                                bool value);
 };
-}
-}
+}  // namespace dba
+}  // namespace mysqlsh
 
-#endif  // _MOD_DBA_METADATA_STORAGE_H_
+#endif  // MODULES_ADMINAPI_MOD_DBA_METADATA_STORAGE_H_

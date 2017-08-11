@@ -20,16 +20,19 @@
 // Interactive DB access module
 // (the one exposed as the db variable in the shell)
 
-#ifndef _INTERACTIVE_DBA_CLUSTER_H_
-#define _INTERACTIVE_DBA_CLUSTER_H_
+#ifndef SRC_INTERACTIVE_INTERACTIVE_DBA_CLUSTER_H_
+#define SRC_INTERACTIVE_INTERACTIVE_DBA_CLUSTER_H_
+
+#include <string>
 
 #include "modules/interactive_object_wrapper.h"
 #include "modules/adminapi/mod_dba_common.h"
 
 namespace shcore {
 class Interactive_dba_cluster : public Interactive_object_wrapper {
-public:
-  Interactive_dba_cluster(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core) { init(); }
+ public:
+  explicit Interactive_dba_cluster(Shell_core &shell_core) :
+    Interactive_object_wrapper("dba", shell_core) { init(); }
 
   void init();
 
@@ -40,13 +43,17 @@ public:
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
-  shcore::Value force_quorum_using_partition_of(const shcore::Argument_list &args);
+  shcore::Value force_quorum_using_partition_of(
+        const shcore::Argument_list &args);
 
-private:
-  bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const; \
-  mysqlsh::dba::ReplicationGroupState check_preconditions(const std::string& function_name) const;
+ private:
+  bool resolve_instance_options(const std::string &function,
+                                const shcore::Argument_list &args,
+                                shcore::Value::Map_type_ref &options) const;
+  mysqlsh::dba::ReplicationGroupState check_preconditions(
+      const std::string &function_name) const;
   void assert_not_dissolved(const std::string& function_name) const;
 };
-}
+}  // namespace shcore
 
-#endif // _INTERACTIVE_DBA_CLUSTER_H_
+#endif  // SRC_INTERACTIVE_INTERACTIVE_DBA_CLUSTER_H_

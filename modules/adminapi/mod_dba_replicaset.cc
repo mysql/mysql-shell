@@ -539,7 +539,6 @@ bool ReplicaSet::do_join_replicaset(
 
   bool is_seed_instance = peer ? false : true;
 
-  std::string command;
   shcore::Value::Array_type_ref errors, warnings;
 
   if (is_seed_instance) {
@@ -692,7 +691,7 @@ shcore::Value ReplicaSet::rejoin_instance(
   // Sets a default user if not specified
   mysqlsh::resolve_connection_credentials(instance_def);
   std::string instance_password = instance_def->get_password();
-  std::string instance_user = instance_def->get_user();
+  // std::string instance_user = instance_def->get_user();
 
   // Validate 'group_replication_group_name'
   {
@@ -1409,7 +1408,7 @@ void ReplicaSet::add_instance_metadata(
       auto result = classic->execute_sql("SELECT @@mysqlx_port");
       auto xport_row = result->fetch_one();
       if (xport_row)
-        xport = (int)xport_row->get_value(0).as_int();
+        xport = static_cast<int>(xport_row->get_value(0).as_int());
     } catch (std::exception &e) {
       log_info("Could not query xplugin port, using default value: %s",
                e.what());
@@ -1537,7 +1536,6 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of_(
 shcore::Value ReplicaSet::force_quorum_using_partition_of(
     const shcore::Argument_list &args) {
   shcore::Value ret_val;
-  std::string host;
   uint64_t rset_id = get_id();
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
   mysqlsh::mysql::ClassicSession *classic;

@@ -17,18 +17,22 @@
  * 02110-1301  USA
  */
 
-#ifndef _MOD_DBA_H_
-#define _MOD_DBA_H_
+#ifndef MODULES_ADMINAPI_MOD_DBA_H_
+#define MODULES_ADMINAPI_MOD_DBA_H_
+
+#include <set>
+#include <map>
+#include <utility>
+#include <vector>
+#include <string>
 
 #include "modules/mod_common.h"
 #include "modules/mod_mysql_session.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/base_session.h"
-#include "mod_dba_cluster.h"
-#include <set>
-#include <map>
-#include "mod_dba_provisioning_interface.h"
+#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
 
 #define ER_CANNOT_USER 1396
@@ -39,9 +43,10 @@ namespace dba {
 * \ingroup AdminAPI
 * $(DBA_BRIEF)
 */
-class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Dba> {
-public:
-  Dba(shcore::IShell_core* owner);
+class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
+                          public std::enable_shared_from_this<Dba> {
+ public:
+  explicit Dba(shcore::IShell_core *owner);
   virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;
@@ -50,7 +55,7 @@ public:
   static std::set<std::string> _create_cluster_opts;
   static std::set<std::string> _reboot_cluster_opts;
 
-  virtual std::string class_name() const { return "Dba"; };
+  virtual std::string class_name() const { return "Dba"; }
 
   virtual bool operator == (const Object_bridge &other) const;
 
@@ -58,12 +63,15 @@ public:
   virtual shcore::Value get_member(const std::string &prop) const;
 
   std::shared_ptr<ShellBaseSession> get_active_session() const;
-  ReplicationGroupState check_preconditions(const std::string& function_name) const;
+  ReplicationGroupState check_preconditions(
+      const std::string& function_name) const;
   virtual int get_default_port() const { return 33060; }
   int get_default_instance_port() { return 3306; }
 
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);
-  shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args, const std::string &fname); // create and start
+  // create and start
+  shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args,
+                                        const std::string &fname);
   shcore::Value stop_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
@@ -78,17 +86,22 @@ public:
   shcore::Value get_cluster(const shcore::Argument_list &args) const;
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
-  shcore::Value reboot_cluster_from_complete_outage(const shcore::Argument_list &args);
+  shcore::Value reboot_cluster_from_complete_outage(
+      const shcore::Argument_list &args);
 
   shcore::IShell_core* get_owner() { return _shell_core; }
 
-  std::vector<std::pair<std::string, std::string>> get_replicaset_instances_status(std::string *out_cluster_name,
+  std::vector<std::pair<std::string, std::string>>
+      get_replicaset_instances_status(
+          std::string *out_cluster_name,
           const shcore::Value::Map_type_ref &options);
 
-  void validate_instances_status_reboot_cluster(const shcore::Argument_list &args);
-  void validate_instances_gtid_reboot_cluster(std::string *out_cluster_name,
-                                              const shcore::Value::Map_type_ref &options,
-                                              const std::shared_ptr<ShellBaseSession> &instance_session);
+  void validate_instances_status_reboot_cluster(
+      const shcore::Argument_list &args);
+  void validate_instances_gtid_reboot_cluster(
+      std::string *out_cluster_name,
+      const shcore::Value::Map_type_ref &options,
+      const std::shared_ptr<ShellBaseSession> &instance_session);
 
 #if DOXYGEN_JS
   Integer verbose;
@@ -101,9 +114,11 @@ public:
   Undefined resetSession(Session session);
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
-  Undefined checkInstanceConfiguration(InstanceDef instance, Dictionary options);
+  Undefined checkInstanceConfiguration(
+      InstanceDef instance, Dictionary options);
   Instance configureLocalInstance(InstanceDef instance, Dictionary options);
-  Undefined rebootClusterFromCompleteOutage(String clusterName, Dictionary options);
+  Undefined rebootClusterFromCompleteOutage(
+      String clusterName, Dictionary options);
 #elif DOXYGEN_PY
   int verbose;
   Cluster create_cluster(str name, dict options);
@@ -130,16 +145,19 @@ public:
 
   void init();
 
-private:
+ private:
   std::shared_ptr<MetadataStorage> _metadata_storage;
   uint64_t _connection_id;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
-  shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
-  shcore::Value::Map_type_ref _check_instance_configuration(const shcore::Argument_list &args, bool allow_update);
-  static std::map <std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession> > _session_cache;
+  shcore::Value exec_instance_op(const std::string &function,
+                                 const shcore::Argument_list &args);
+  shcore::Value::Map_type_ref _check_instance_configuration(
+      const shcore::Argument_list &args, bool allow_update);
+  static std::map <std::string, std::shared_ptr<
+                   mysqlsh::mysql::ClassicSession>> _session_cache;
 };
-}
-}
+}  // namespace dba
+}  // namespace mysqlsh
 
-#endif
+#endif  // MODULES_ADMINAPI_MOD_DBA_H_

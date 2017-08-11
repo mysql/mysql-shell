@@ -24,6 +24,11 @@
 #include <sys/un.h>
 #endif
 #include "modules/adminapi/mod_dba.h"
+
+#include <iterator>
+#include <utility>
+#include <vector>
+
 #include "utils/utils_sqlstring.h"
 //#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/mysqlxtest_utils.h"
@@ -41,8 +46,6 @@
 
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
-
-#include <iterator>
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -148,9 +151,8 @@ void Dba::init() {
 
 void Dba::set_member(const std::string &prop, Value value) {
   if (prop == "verbose") {
-    int verbosity;
     try {
-      verbosity = value.as_int();
+      int verbosity = value.as_int();
       _provisioning_interface->set_verbose(verbosity);
     } catch (shcore::Exception &e) {
       throw shcore::Exception::value_error(
@@ -260,11 +262,11 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   check_preconditions("getCluster");
 
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
-  bool get_default_cluster = false;
   std::string cluster_name;
   Value ret_val;
 
   try {
+    bool get_default_cluster = false;
     // gets the cluster_name and/or options
     if (args.size()) {
       try {
@@ -521,10 +523,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
   // Available options
   Value ret_val;
-  bool multi_master = false;  // Default single/primary master
-  bool adopt_from_gr = false;
-  bool force = false;
-  bool clear_read_only = false;
   // SSL values are only set if available from args.
   std::string ssl_mode;
 
@@ -533,6 +531,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   std::string ip_whitelist;
 
   try {
+    bool multi_master = false;  // Default single/primary master
+    bool adopt_from_gr = false;
+    bool force = false;
+    bool clear_read_only = false;
+
     std::string cluster_name = args.string_at(0);
 
     // Validate the cluster_name
@@ -2034,8 +2037,9 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
                       option.reset(new shcore::Value::Map_type());
                       (*server_options)[option_tokens[0]] =
                           shcore::Value(option);
-                    } else
+                    } else {
                       option = (*server_options)[option_tokens[0]].as_map();
+                    }
 
                     (*option)["required"] =
                         shcore::Value(option_tokens[1]);  // The required value
@@ -2239,9 +2243,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
   shcore::Value ret_val;
 
-  bool default_cluster = false, clear_read_only = false;
-  std::string cluster_name, password, user, group_replication_group_name,
-              port, host, instance_session_address;
+  std::string cluster_name, password, user, instance_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
@@ -2254,6 +2256,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   check_preconditions("rebootClusterFromCompleteOutage");
 
   try {
+    bool default_cluster = false, clear_read_only = false;
+
     if (args.size() == 0) {
       default_cluster = true;
     } else if (args.size() == 1) {
@@ -2576,8 +2580,8 @@ Dba::get_replicaset_instances_status(
     std::string *out_cluster_name, const shcore::Value::Map_type_ref &options) {
   std::vector<std::pair<std::string, std::string>> instances_status;
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
-  std::string user, password, host, port, active_session_address,
-      instance_address, conn_status;
+  std::string user, password, active_session_address, instance_address,
+    conn_status;
 
   // Point the metadata session to the dba session
   _metadata_storage->set_session(get_active_session());
@@ -2673,7 +2677,7 @@ Dba::get_replicaset_instances_status(
  */
 void Dba::validate_instances_status_reboot_cluster(
     const shcore::Argument_list &args) {
-  std::string cluster_name, user, password, port, host, active_session_address;
+  std::string cluster_name, user, password, active_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
   mysqlsh::mysql::ClassicSession *classic_current;
@@ -2958,7 +2962,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
   }
 
   // Calculate the most up-to-date instance
-  // TODO: calculate the Total GTID executed. See comment above
+  // TODO(miguel): calculate the Total GTID executed. See comment above
   for (auto &value : gtids) {
     // Compare the gtid's: SELECT GTID_SUBSET("Total_instance1",
     // "Total_instance2")
