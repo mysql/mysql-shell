@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#ifndef _MOD_DBA_ADMIN_REPLICASET_H_
-#define _MOD_DBA_ADMIN_REPLICASET_H_
+#ifndef MODULES_ADMINAPI_MOD_DBA_REPLICASET_H_
+#define MODULES_ADMINAPI_MOD_DBA_REPLICASET_H_
 
 #define JSON_STANDARD_OUTPUT 0
 #define JSON_STATUS_OUTPUT 1
@@ -27,9 +27,11 @@
 
 #include <string>
 #include <set>
+#include <vector>
+
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
-#include "mod_dba_provisioning_interface.h"
+#include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/mod_mysql_resultset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -48,8 +50,9 @@ class Cluster;
 * Represents a ReplicaSet
 */
 #endif
-class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge {
-public:
+class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
+                   public shcore::Cpp_object_bridge {
+ public:
   ReplicaSet(const std::string &name, const std::string &topology_type,
             std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~ReplicaSet();
@@ -58,7 +61,8 @@ public:
   static std::set<std::string> _remove_instance_opts;
 
   virtual std::string class_name() const { return "ReplicaSet"; }
-  virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
+  virtual std::string &append_descr(std::string &s_out, int indent = -1,
+                                    int quote_strings = 0) const;
   virtual bool operator == (const Object_bridge &other) const;
 
   virtual shcore::Value get_member(const std::string &prop) const;
@@ -131,32 +135,36 @@ public:
   shcore::Value disable(const shcore::Argument_list &args);
   shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
-  shcore::Value force_quorum_using_partition_of(const shcore::Argument_list &args);
-  shcore::Value force_quorum_using_partition_of_(const shcore::Argument_list &args);
-  shcore::Value get_status(const mysqlsh::dba::ReplicationGroupState &state) const;
+  shcore::Value force_quorum_using_partition_of(
+      const shcore::Argument_list &args);
+  shcore::Value force_quorum_using_partition_of_(
+      const shcore::Argument_list &args);
+  shcore::Value get_status(
+      const mysqlsh::dba::ReplicationGroupState &state) const;
 
   void remove_instances_from_gr(const shcore::Value::Array_type_ref &instances);
   void remove_instance_from_gr(const std::string& instance_str,
                                const mysqlshdk::db::Connection_options& data);
-  ReplicationGroupState check_preconditions(const std::string& function_name) const;
+  ReplicationGroupState check_preconditions(
+      const std::string& function_name) const;
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
                         const shcore::Value::Map_type_ref &options);
 
-private:
-  //TODO these should go to a GroupReplication file
+ private:
+  // TODO(miguel) these should go to a GroupReplication file
   friend Cluster;
 
   shcore::Value get_description() const;
   void verify_topology_type_change() const;
 
-protected:
+ protected:
   uint64_t _id;
   std::string _name;
   std::string _topology_type;
-  // TODO: add missing fields, rs_type, etc
+  // TODO(miguel): add missing fields, rs_type, etc
 
-private:
+ private:
   void init();
 
   bool do_join_replicaset(const mysqlshdk::db::Connection_options &instance,
@@ -183,7 +191,7 @@ private:
  protected:
   virtual int get_default_port() const { return 3306; }
 };
-}
-}
+}  // namespace dba
+}  // namespace mysqlsh
 
-#endif  // _MOD_DBA_ADMIN_REPLICASET_H_
+#endif  // MODULES_ADMINAPI_MOD_DBA_REPLICASET_H_

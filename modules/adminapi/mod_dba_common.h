@@ -17,12 +17,14 @@
  * 02110-1301  USA
  */
 
-#ifndef _MODULES_ADMINAPI_MOD_DBA_COMMON_
-#define _MODULES_ADMINAPI_MOD_DBA_COMMON_
+#ifndef MODULES_ADMINAPI_MOD_DBA_COMMON_H_
+#define MODULES_ADMINAPI_MOD_DBA_COMMON_H_
 
 #include <locale>
 #include <string>
 #include <vector>
+#include <set>
+#include <utility>
 
 #include "scripting/types.h"
 #include "scripting/lang_base.h"
@@ -87,7 +89,7 @@ enum State {
 };
 
 std::string describe(State state);
-};
+};  // namespace ManagedInstance
 
 namespace ReplicationQuorum {
 enum State {
@@ -99,11 +101,20 @@ enum State {
 }
 
 struct ReplicationGroupState {
-  ReplicationQuorum::State quorum;    // The state of the cluster from the quorm point of view
-  std::string master;                 // The UIUD of the master instance
-  std::string source;                 // The UUID of the instance from which the data was consulted
-  GRInstanceType source_type;         // The configuration type of the instance from which the data was consulted
-  ManagedInstance::State source_state;// The state of the instance from which the data was consulted
+  // The state of the cluster from the quorum point of view
+  ReplicationQuorum::State quorum;
+
+  // The UIUD of the master instance
+  std::string master;
+
+  // The UUID of the instance from which the data was consulted
+  std::string source;
+
+  // The configuration type of the instance from which the data was consulted
+  GRInstanceType source_type;
+
+  // The state of the instance from which the data was consulted
+  ManagedInstance::State source_state;
 };
 
 namespace ReplicaSetStatus {
@@ -116,10 +127,14 @@ enum Status {
 };
 
 std::string describe(Status state);
-};
+};  // namespace ReplicaSetStatus
 
-std::string get_mysqlprovision_error_string(const shcore::Value::Array_type_ref& errors);
-ReplicationGroupState check_function_preconditions(const std::string& class_name, const std::string& base_function_name, const std::string &function_name, const std::shared_ptr<MetadataStorage>& metadata);
+std::string get_mysqlprovision_error_string(
+    const shcore::Value::Array_type_ref &errors);
+ReplicationGroupState check_function_preconditions(
+    const std::string &class_name, const std::string &base_function_name,
+    const std::string &function_name,
+    const std::shared_ptr<MetadataStorage> &metadata);
 
 extern const char *kMemberSSLModeAuto;
 extern const char *kMemberSSLModeRequired;
@@ -128,19 +143,22 @@ extern const std::set<std::string> kMemberSSLModeValues;
 void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
 void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options);
 void validate_replication_filters(mysqlsh::mysql::ClassicSession *session);
-std::pair<int,int> find_cluster_admin_accounts(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+std::pair<int, int> find_cluster_admin_accounts(
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
     const std::string &admin_user, std::vector<std::string> *out_hosts);
-bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+bool validate_cluster_admin_user_privileges(
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
     const std::string &admin_user, const std::string &admin_host);
-void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+void create_cluster_admin_user(
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
     const std::string &username, const std::string &password);
 std::string SHCORE_PUBLIC resolve_cluster_ssl_mode(
-                            mysqlsh::mysql::ClassicSession *session,
-                            const std::string& member_ssl_mode);
+    mysqlsh::mysql::ClassicSession *session,
+    const std::string& member_ssl_mode);
 std::string SHCORE_PUBLIC resolve_instance_ssl_mode(
-                            mysqlsh::mysql::ClassicSession *session,
-                            mysqlsh::mysql::ClassicSession *psession,
-                            const std::string& member_ssl_mode);
+    mysqlsh::mysql::ClassicSession *session,
+    mysqlsh::mysql::ClassicSession *psession,
+    const std::string& member_ssl_mode);
 std::vector<std::string> get_instances_gr(
     const std::shared_ptr<MetadataStorage> &metadata);
 std::vector<std::string> get_instances_md(
@@ -156,6 +174,7 @@ bool SHCORE_PUBLIC validate_replicaset_group_name(
     mysqlsh::mysql::ClassicSession *session, uint64_t rs_id);
 bool validate_super_read_only(
     mysqlsh::mysql::ClassicSession *session, bool clear_read_only);
-}
-}
-#endif
+}  // namespace dba
+}  // namespace mysqlsh
+
+#endif  // MODULES_ADMINAPI_MOD_DBA_COMMON_H_

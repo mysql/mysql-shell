@@ -37,11 +37,11 @@ namespace dba {
 */
 #endif
 class ProvisioningInterface {
-public:
-  ProvisioningInterface(shcore::Interpreter_delegate* deleg);
+ public:
+  explicit ProvisioningInterface(shcore::Interpreter_delegate *deleg);
   ~ProvisioningInterface();
 
-  int check(const mysqlshdk::db::Connection_options& connection_options,
+  int check(const mysqlshdk::db::Connection_options &connection_options,
             const std::string &cnfpath, bool update,
             shcore::Value::Array_type_ref *errors);
 
@@ -84,17 +84,20 @@ public:
   void set_verbose(int verbose) { _verbose = verbose; }
   int get_verbose() { return _verbose; }
 
-private:
+ private:
   int _verbose;
   shcore::Interpreter_delegate *_delegate;
   std::string _local_mysqlprovision_path;
 
-  int execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
-                const std::vector<std::string> &passwords,
-                shcore::Value::Array_type_ref *errors, int verbose);
-  int exec_sandbox_op(const std::string &op, int port, int portx, const std::string &sandbox_dir,
-                     const std::string &password,
-                     const std::vector<std::string> &extra_args,
+  int execute_mysqlprovision(const std::string &cmd,
+                             const std::vector<const char *> &args,
+                             const std::vector<std::string> &passwords,
+                             shcore::Value::Array_type_ref *errors,
+                             int verbose);
+  int exec_sandbox_op(const std::string &op, int port, int portx,
+                      const std::string &sandbox_dir,
+                      const std::string &password,
+                      const std::vector<std::string> &extra_args,
                       shcore::Value::Array_type_ref *errors);
   void set_ssl_args(const std::string &prefix,
                     const mysqlshdk::db::Connection_options &instance,

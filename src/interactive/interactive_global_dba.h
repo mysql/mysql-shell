@@ -20,26 +20,34 @@
 // Interactive DB access module
 // (the one exposed as the db variable in the shell)
 
-#ifndef _INTERACTIVE_GLOBAL_DBA_H_
-#define _INTERACTIVE_GLOBAL_DBA_H_
+#ifndef SRC_INTERACTIVE_INTERACTIVE_GLOBAL_DBA_H_
+#define SRC_INTERACTIVE_INTERACTIVE_GLOBAL_DBA_H_
+
+#include <utility>
+#include <string>
+#include <vector>
 
 #include "modules/interactive_object_wrapper.h"
 #include "modules/adminapi/mod_dba_common.h"
 
 namespace shcore {
 class Global_dba : public Interactive_object_wrapper {
-public:
-  Global_dba(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core) { init(); }
+ public:
+  explicit Global_dba(Shell_core& shell_core) :
+      Interactive_object_wrapper("dba", shell_core) { init(); }
 
   void init();
-  //virtual void resolve() const;
+  // virtual void resolve() const;
 
-  shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args, const std::string& fname); // create and start
+  // create and start
+  shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args,
+                                        const std::string& fname);
   shcore::Value stop_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
-  shcore::Value reboot_cluster_from_complete_outage(const shcore::Argument_list &args);
+  shcore::Value reboot_cluster_from_complete_outage(
+        const shcore::Argument_list &args);
 
   shcore::Value create_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster(const shcore::Argument_list &args);
@@ -47,14 +55,23 @@ public:
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);
   shcore::Value configure_local_instance(const shcore::Argument_list &args);
 
-private:
-  mysqlsh::dba::ReplicationGroupState check_preconditions(const std::string& function_name) const;
-  std::vector<std::pair<std::string, std::string>> get_replicaset_instances_status(std::string *out_cluster_name,
-          const shcore::Value::Map_type_ref &options) const;
-  void validate_instances_status_reboot_cluster(const shcore::Argument_list &args) const;
-  shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args, const std::string& function_name);
-  shcore::Value perform_instance_operation(const shcore::Argument_list &args, const std::string &fname, const std::string& progressive, const std::string& past);
-  void dump_table(const std::vector<std::string>& column_names, const std::vector<std::string>& column_labels, shcore::Value::Array_type_ref documents);
+ private:
+  mysqlsh::dba::ReplicationGroupState check_preconditions(
+        const std::string& function_name) const;
+  std::vector<std::pair<std::string, std::string>>
+      get_replicaset_instances_status(
+            std::string *out_cluster_name,
+            const shcore::Value::Map_type_ref &options) const;
+  void validate_instances_status_reboot_cluster(
+        const shcore::Argument_list &args) const;
+  shcore::Argument_list check_instance_op_params(
+        const shcore::Argument_list &args, const std::string& function_name);
+  shcore::Value perform_instance_operation(
+        const shcore::Argument_list &args, const std::string &fname,
+        const std::string& progressive, const std::string& past);
+  void dump_table(const std::vector<std::string> &column_names,
+                  const std::vector<std::string> &column_labels,
+                  shcore::Value::Array_type_ref documents);
   void print_validation_results(const shcore::Value::Map_type_ref& result);
   bool resolve_cnf_path(
       const mysqlshdk::db::Connection_options &connection_args,
@@ -71,6 +88,6 @@ private:
       std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
       const shcore::Value::Map_type_ref &options);
 };
-}
+}  // namespace shcore
 
-#endif // _INTERACTIVE_GLOBAL_DBA_H_
+#endif  // SRC_INTERACTIVE_INTERACTIVE_GLOBAL_DBA_H_

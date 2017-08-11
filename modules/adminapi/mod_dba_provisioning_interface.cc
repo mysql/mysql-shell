@@ -156,8 +156,8 @@ int ProvisioningInterface::execute_mysqlprovision(
       }
 
       if (c == '\n') {
-        // TODO: We may need to also filter other messages about
-        //       password retrieval
+        // TODO(paulo): We may need to also filter other messages about
+        //              password retrieval
 
         if (last_closed) {
           shcore::Value raw_data;
@@ -209,8 +209,9 @@ int ProvisioningInterface::execute_mysqlprovision(
 
           full_output.append(buf);
           buf = "";
-        } else
+        } else {
           buf += c;
+        }
       } else if (c == '\r') {
         buf += c;
       } else {
@@ -245,16 +246,15 @@ int ProvisioningInterface::execute_mysqlprovision(
   /*
    * process launcher returns 128 if an ENOENT happened.
    */
-  if (exit_code == 128)
+  if (exit_code == 128) {
     throw shcore::Exception::runtime_error(
         "mysqlprovision not found. Please verify that mysqlsh is installed "
         "correctly.");
-
   /*
    * mysqlprovision returns 1 as exit-code for internal behaviour errors.
    * The logged message starts with "ERROR: "
    */
-  else if (exit_code == 1) {
+  } else if (exit_code == 1) {
     // Print full output if it wasn't already printed before because of verbose
     log_error("DBA: mysqlprovision exited with error code (%s) : %s ",
               std::to_string(exit_code).c_str(), full_output.c_str());
@@ -559,7 +559,7 @@ int ProvisioningInterface::leave_replicaset(
     const mysqlshdk::db::Connection_options &connection_options,
     shcore::Value::Array_type_ref *errors) {
   std::vector<std::string> passwords;
-  std::string instance_args, repl_user_args;
+  std::string instance_args;
   std::string super_user_pwd = connection_options.get_password();
 
   instance_args =

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,18 +17,21 @@
  * 02110-1301  USA
  */
 
-//#include "mod_dba_instance.h"
+// #include "mod_dba_instance.h"
 #include "shellcore/utils_help.h"
-
 
 namespace mysqlsh {
 namespace dba {
 
 REGISTER_HELP(INSTANCE_BRIEF, "Represents an Instance.");
-REGISTER_HELP(INSTANCE_DETAIL, "This object represents an Instance and can be used to perform instance operations.");
+REGISTER_HELP(INSTANCE_DETAIL,
+    "This object represents an Instance and can be used to perform instance "
+    "operations.");
 
 
-Instance::Instance(const std::string &name, const std::string& uri, const shcore::Value::Map_type_ref options):
+Instance::Instance(
+    const std::string &name, const std::string& uri,
+    const shcore::Value::Map_type_ref options):
   _name(name), _uri(uri), _options(options) {
   init();
 }
@@ -57,10 +60,12 @@ void Instance::init() {
 
 REGISTER_HELP(INSTANCE_NAME_BRIEF, "The instance name.");
 REGISTER_HELP(INSTANCE_URI_BRIEF, "The instance connection string.");
-REGISTER_HELP(INSTANCE_OPTIONS_BRIEF, "Dictionary with additional instance options.");
+REGISTER_HELP(INSTANCE_OPTIONS_BRIEF,
+    "Dictionary with additional instance options.");
 REGISTER_HELP(INSTANCE_GETNAME_BRIEF, "Returns the instance name.");
 REGISTER_HELP(INSTANCE_GETURI_BRIEF, "Returns the instance URI.");
-REGISTER_HELP(INSTANCE_GETOPTIONS_BRIEF, "Returns a dictionary with additional instance options.");
+REGISTER_HELP(INSTANCE_GETOPTIONS_BRIEF,
+    "Returns a dictionary with additional instance options.");
 
 shcore::Value Instance::get_member(const std::string &prop) const {
   shcore::Value ret_val;
@@ -77,6 +82,5 @@ shcore::Value Instance::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-
-}
-}
+}  // namespace dba
+}  // namespace mysqlsh

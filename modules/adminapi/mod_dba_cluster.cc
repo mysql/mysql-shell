@@ -28,7 +28,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_replicaset.h"
-#include "mod_dba_sql.h"
+#include "modules/adminapi/mod_dba_sql.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 
@@ -154,7 +154,8 @@ void Cluster::assert_not_dissolved(const std::string &option_name) const {
 * \param conn The Connection String or URI of the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined addSeedInstance(String conn, String root_password, String topology_type) {}
+Undefined addSeedInstance(
+    String conn, String root_password, String topology_type) {}
 #elif DOXYGEN_PY
 None add_seed_instance(str conn, str root_password, str topology_type) {}
 #endif

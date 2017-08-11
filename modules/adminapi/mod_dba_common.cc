@@ -23,6 +23,8 @@
 #include <iterator>
 #include <algorithm>
 #include <utility>
+#include <set>
+#include <map>
 
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -32,28 +34,62 @@
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-//#include "mod_dba_instance.h"
+// #include "mod_dba_instance.h"
 
 namespace mysqlsh {
 namespace dba {
 std::map<std::string, FunctionAvailability> AdminAPI_function_availability = {
   // The Dba functions
-  {"Dba.createCluster", {GRInstanceType::Standalone | GRInstanceType::GroupReplication, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
-  {"Dba.getCluster", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
-  {"Dba.dropMetadataSchema", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
-  {"Dba.rebootClusterFromCompleteOutage", {GRInstanceType::Any, ReplicationQuorum::State::Any, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
+  {"Dba.createCluster", {GRInstanceType::Standalone |
+                         GRInstanceType::GroupReplication,
+                         ReplicationQuorum::State::Any,
+                         ManagedInstance::State::Any}},
+  {"Dba.getCluster", {GRInstanceType::InnoDBCluster,
+                      ReplicationQuorum::State::Any,
+                      ManagedInstance::State::Any}},
+  {"Dba.dropMetadataSchema", {GRInstanceType::InnoDBCluster,
+                              ReplicationQuorum::State::Normal,
+                              ManagedInstance::State::OnlineRW}},
+  {"Dba.rebootClusterFromCompleteOutage", {GRInstanceType::Any,
+                                           ReplicationQuorum::State::Any,
+                                           ManagedInstance::State::OnlineRW |
+                                           ManagedInstance::State::OnlineRO}},
 
   // The Replicaset/Cluster functions
-  {"Cluster.addInstance", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
-  {"Cluster.removeInstance", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
-  {"Cluster.rejoinInstance", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
-  {"Cluster.describe", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
-  {"Cluster.status", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
-  {"Cluster.dissolve", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
-  {"Cluster.checkInstanceState", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
-  {"Cluster.rescan", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal, ManagedInstance::State::OnlineRW}},
-  {"ReplicaSet.status", {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::Any}},
-  {"Cluster.forceQuorumUsingPartitionOf", {GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Any, ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}}
+  {"Cluster.addInstance", {GRInstanceType::InnoDBCluster,
+                           ReplicationQuorum::State::Normal,
+                           ManagedInstance::State::OnlineRW}},
+  {"Cluster.removeInstance", {GRInstanceType::InnoDBCluster,
+                              ReplicationQuorum::State::Normal,
+                              ManagedInstance::State::OnlineRW}},
+  {"Cluster.rejoinInstance", {GRInstanceType::InnoDBCluster,
+                              ReplicationQuorum::State::Normal,
+                              ManagedInstance::State::OnlineRW |
+                              ManagedInstance::State::OnlineRO}},
+  {"Cluster.describe", {GRInstanceType::InnoDBCluster,
+                        ReplicationQuorum::State::Any,
+                        ManagedInstance::State::Any}},
+  {"Cluster.status", {GRInstanceType::InnoDBCluster,
+                      ReplicationQuorum::State::Any,
+                      ManagedInstance::State::Any}},
+  {"Cluster.dissolve", {GRInstanceType::InnoDBCluster,
+                        ReplicationQuorum::State::Normal,
+                        ManagedInstance::State::OnlineRW}},
+  {"Cluster.checkInstanceState", {GRInstanceType::InnoDBCluster,
+                                  ReplicationQuorum::State::Normal,
+                                  ManagedInstance::State::OnlineRW |
+                                  ManagedInstance::State::OnlineRO}},
+  {"Cluster.rescan", {GRInstanceType::InnoDBCluster,
+                      ReplicationQuorum::State::Normal,
+                      ManagedInstance::State::OnlineRW}},
+  {"ReplicaSet.status", {GRInstanceType::InnoDBCluster,
+                         ReplicationQuorum::State::Any,
+                         ManagedInstance::State::Any}},
+  {"Cluster.forceQuorumUsingPartitionOf", {GRInstanceType::GroupReplication |
+                                           GRInstanceType::InnoDBCluster,
+                                           ReplicationQuorum::State::Any,
+                                           ManagedInstance::State::OnlineRW |
+                                           ManagedInstance::State::OnlineRO}}
 };
 
 namespace ManagedInstance {
@@ -136,22 +172,30 @@ std::string get_mysqlprovision_error_string(
   return shcore::str_join(str_errors, "\n");
 }
 
-ReplicationGroupState check_function_preconditions(const std::string &class_name, const std::string& base_function_name, const std::string &function_name, const std::shared_ptr<MetadataStorage>& metadata) {
+ReplicationGroupState check_function_preconditions(
+    const std::string &class_name, const std::string& base_function_name,
+    const std::string &function_name,
+    const std::shared_ptr<MetadataStorage>& metadata) {
   // Retrieves the availability configuration for the given function
   std::string precondition_key = class_name + "." + base_function_name;
-  assert(AdminAPI_function_availability.find(precondition_key) != AdminAPI_function_availability.end());
-  FunctionAvailability availability = AdminAPI_function_availability.at(precondition_key);
+  assert(AdminAPI_function_availability.find(precondition_key) !=
+         AdminAPI_function_availability.end());
+  FunctionAvailability availability =
+      AdminAPI_function_availability.at(precondition_key);
   std::string error;
   ReplicationGroupState state;
-  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(metadata->get_session());
+  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
+                    metadata->get_session());
 
   // A classic session is required to perform any of the AdminAPI operations
-  if (!session)
+  if (!session) {
     error = "a Classic Session is required to perform this operation";
-  else if (!session->is_open())
-      error = "The session was closed. An open session is required to perform this operation";
-  else{
-    // Retrieves the instance configuration type from the perspective of the active session
+  } else if (!session->is_open()) {
+      error = "The session was closed. An open session is required to perform "
+              "this operation";
+  } else {
+    // Retrieves the instance configuration type from the perspective of the
+    // active session
     auto instance_type = get_gr_instance_type(session->connection());
     state.source_type = instance_type;
 
@@ -159,9 +203,10 @@ ReplicationGroupState check_function_preconditions(const std::string &class_name
     if (instance_type & availability.instance_config_state) {
       // If it is not a standalone instance, validates the instance state
       if (instance_type != GRInstanceType::Standalone) {
-        // Retrieves the instance cluster statues from the perspective of the active session
-        // (The Metadata Session)
-        state = get_replication_group_state(session->connection(), instance_type);
+        // Retrieves the instance cluster statues from the perspective of the
+        // active session (The Metadata Session)
+        state = get_replication_group_state(session->connection(),
+                                            instance_type);
 
         // Validates availability based on the instance status
         if (state.source_state & availability.instance_status) {
@@ -172,7 +217,8 @@ ReplicationGroupState check_function_preconditions(const std::string &class_name
                 error = "There is no quorum to perform the operation";
                 break;
               case ReplicationQuorum::Dead:
-                error = "Unable to perform the operation on a dead InnoDB cluster";
+                error = "Unable to perform the operation on a dead InnoDB "
+                        "cluster";
                 break;
               default:
                 // no-op
@@ -210,7 +256,8 @@ ReplicationGroupState check_function_preconditions(const std::string &class_name
           error += " to a standalone instance";
           break;
         case GRInstanceType::GroupReplication:
-          error += " to an instance belonging to an unmanaged replication group";
+          error += " to an instance belonging to an unmanaged replication "
+                   "group";
           break;
         case GRInstanceType::InnoDBCluster:
           error += " to an instance already in an InnoDB cluster";
@@ -241,7 +288,7 @@ void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options) {
   // Validate use of SSL options for the cluster instance and issue an
   // exception if invalid.
   shcore::Argument_map opt_map(*options);
-  if (opt_map.has_key("adoptFromGR")){
+  if (opt_map.has_key("adoptFromGR")) {
     bool adopt_from_gr = opt_map.bool_at("adoptFromGR");
     if (adopt_from_gr && (opt_map.has_key("memberSslMode")))
       throw shcore::Exception::argument_error(
@@ -281,7 +328,7 @@ void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options) {
  * metadata from being replicated.
  * Raise an exception if invalid replication filters are found.
  */
-void validate_replication_filters(mysqlsh::mysql::ClassicSession *session){
+void validate_replication_filters(mysqlsh::mysql::ClassicSession *session) {
   shcore::Value status = get_master_status(session->connection());
   auto status_map = status.as_map();
 
@@ -296,7 +343,8 @@ void validate_replication_filters(mysqlsh::mysql::ClassicSession *session){
 
   std::string binlog_ignore_db = status_map->get_string("BINLOG_IGNORE_DB");
 
-  if (binlog_ignore_db.find("mysql_innodb_cluster_metadata") != std::string::npos)
+  if (binlog_ignore_db.find("mysql_innodb_cluster_metadata") !=
+      std::string::npos)
     throw shcore::Exception::runtime_error(
         "Invalid 'binlog-ignore-db' settings, metadata cannot be excluded. "
             "Remove binlog filters or the 'mysql_innodb_cluster_metadata' "
@@ -304,16 +352,19 @@ void validate_replication_filters(mysqlsh::mysql::ClassicSession *session){
 }
 
 
-/** Count how many accounts there are with the given username, excluding localhost
+/** Count how many accounts there are with the given username, excluding
+  localhost
 
   This allows us to know whether there's a wildcarded account that the user may
   have created previously which we can use for management or whether the user
-  has created multiple accounts, which would mean that they must know what they're
-  doing and also that we can't tell which of these accounts should be validated.
+  has created multiple accounts, which would mean that they must know what
+  they're doing and also that we can't tell which of these accounts should be
+  validated.
 
   @return # of wildcarded accounts, # of other accounts
   */
-std::pair<int,int> find_cluster_admin_accounts(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+std::pair<int, int> find_cluster_admin_accounts(
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
     const std::string &admin_user, std::vector<std::string> *out_hosts) {
 
   shcore::sqlstring query;
@@ -321,7 +372,8 @@ std::pair<int,int> find_cluster_admin_accounts(std::shared_ptr<mysqlsh::mysql::C
   query = shcore::sqlstring(
       "SELECT DISTINCT grantee"
       " FROM information_schema.user_privileges"
-      " WHERE grantee like ?", 0) << ((shcore::sqlstring("?", 0) << admin_user).str()+"@%");
+      " WHERE grantee like ?", 0) <<
+      ((shcore::sqlstring("?", 0) << admin_user).str()+"@%");
 
   int local = 0;
   int w = 0;
@@ -360,7 +412,8 @@ std::pair<int,int> find_cluster_admin_accounts(std::shared_ptr<mysqlsh::mysql::C
 /*
  * Validate if the user specified for being the cluster admin has all of the
  * requirements:
- * 1) has a host wildcard other than 'localhost' or '127.0.0.1' or the one specified
+ * 1) has a host wildcard other than 'localhost' or '127.0.0.1' or the one
+ *    specified
  * 2) has the necessary privileges assigned
  */
 
@@ -380,20 +433,24 @@ static const std::set<std::string> k_metadata_schema_privileges{
   "REFERENCES", "SELECT", "SHOW VIEW", "TRIGGER", "UPDATE"
 };
 
-// list of (schema, [privilege]) pairs, with the required privileges on each schema
-static const std::map<std::string, std::set<std::string>> k_schema_grants{
+// list of (schema, [privilege]) pairs, with the required privileges on each
+// schema
+static const std::map<std::string, std::set<std::string>> k_schema_grants {
   {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
   {"performance_schema", {"SELECT"}},
-  {"mysql", {"SELECT", "INSERT", "UPDATE", "DELETE"}} // need for mysql.plugin, mysql.user others
+  {"mysql", {"SELECT", "INSERT", "UPDATE", "DELETE"}}  // need for mysql.plugin,
+                                                       // mysql.user others
 };
 
 /** Check that the provided account has privileges to manage a cluster.
   */
-bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+bool validate_cluster_admin_user_privileges(
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
     const std::string &admin_user, const std::string &admin_host) {
 
   shcore::sqlstring query;
-  log_info("Validating account %s@%s...", admin_user.c_str(), admin_host.c_str());
+  log_info("Validating account %s@%s...", admin_user.c_str(),
+           admin_host.c_str());
 
   // check what global privileges we have
   query = shcore::sqlstring("SELECT privilege_type, is_grantable"
@@ -429,7 +486,8 @@ bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::Clas
     return false;
   }
   if (std::includes(global_privs.begin(), global_privs.end(),
-      k_metadata_schema_privileges.begin(), k_metadata_schema_privileges.end())) {
+      k_metadata_schema_privileges.begin(),
+      k_metadata_schema_privileges.end())) {
     // if the account has global grants for all schema privs
     return true;
   }
@@ -453,7 +511,8 @@ bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::Clas
       }
       if (row->get_value(2).as_string() == "NO") {
         log_info(" %s on %s for %s@%s is not grantable",
-                 priv.c_str(), schema.c_str(), admin_user.c_str(), admin_host.c_str());
+                 priv.c_str(), schema.c_str(), admin_user.c_str(),
+                 admin_host.c_str());
         return false;
       }
       row = result->fetch_one();
@@ -475,13 +534,15 @@ bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::Clas
 }
 
 static const char *k_admin_user_grants[] = {
-  "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.*",
+  "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, "
+  "REPLICATION CLIENT, CREATE USER ON *.*",
   "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.*",
   "GRANT SELECT ON performance_schema.*",
   "GRANT SELECT, INSERT, UPDATE, DELETE ON mysql.*"
 };
 
-void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+void create_cluster_admin_user(
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
     const std::string &username, const std::string &password) {
 #ifndef NDEBUG
   shcore::split_account(username, nullptr, nullptr);
@@ -508,7 +569,8 @@ void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> s
     log_info("Creating account %s", username.c_str());
     // Create the user
     {
-      query = shcore::sqlstring(("CREATE USER " + username + " IDENTIFIED BY ?").c_str(), 0);
+      query = shcore::sqlstring(("CREATE USER " + username +
+                                 " IDENTIFIED BY ?").c_str(), 0);
       query << password;
       query.done();
       session->execute_sql(query);
@@ -555,8 +617,7 @@ std::string resolve_cluster_ssl_mode(mysqlsh::mysql::ClassicSession *session,
                       have_ssl);
 
   // The instance supports SSL
-  if (!shcore::str_casecmp(have_ssl.c_str(),"YES")) {
-
+  if (!shcore::str_casecmp(have_ssl.c_str(), "YES")) {
     // memberSslMode is DISABLED
     if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED")) {
       int require_secure_transport = 0;
@@ -615,8 +676,8 @@ std::string resolve_cluster_ssl_mode(mysqlsh::mysql::ClassicSession *session,
  *   - Cluster has SSL disabled and the instance has require_secure_transport ON
  */
 std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
-                               mysqlsh::mysql::ClassicSession *psession,
-                               const std::string& member_ssl_mode) {
+                                      mysqlsh::mysql::ClassicSession *psession,
+                                      const std::string& member_ssl_mode) {
   std::string ret_val;
   std::string gr_ssl_mode;
 
@@ -627,7 +688,6 @@ std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
 
   // The cluster REQUIRES SSL
   if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "REQUIRED")) {
-
     // memberSslMode is DISABLED
     if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED"))
       throw shcore::Exception::runtime_error(
@@ -908,8 +968,7 @@ void SHCORE_PUBLIC validate_cluster_name(const std::string &name) {
       }
       index++;
     }
-  }
-  else {
+  } else {
     throw shcore::Exception::argument_error(
       "The Cluster name cannot be empty.");
   }
@@ -957,8 +1016,7 @@ void SHCORE_PUBLIC validate_label(const std::string &label) {
       }
       index++;
     }
-  }
-  else {
+  } else {
     throw shcore::Exception::argument_error("The label can not be empty.");
   }
 
@@ -1026,8 +1084,8 @@ bool validate_replicaset_group_name(
  *
  * @return a boolean value indicating the status of super_read_only
  */
-bool validate_super_read_only(
-    mysqlsh::mysql::ClassicSession *session, bool clear_read_only) {
+bool validate_super_read_only(mysqlsh::mysql::ClassicSession *session,
+                              bool clear_read_only) {
   int super_read_only = 0;
 
   get_server_variable(session->connection(), "super_read_only",
