@@ -357,6 +357,11 @@ REGISTER_HELP(DBA_CREATECLUSTER_THROWS6,
               "for the memberSslMode option is not "
               "one of the allowed.");
 
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS7,
+              "@throws ArgumentError if adoptFromGR "
+               "is true and the multiMaster option "
+               "is used.");
+
 REGISTER_HELP(DBA_CREATECLUSTER_RETURNS,
               "@returns The created cluster object.");
 
@@ -437,6 +442,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
  * $(DBA_CREATECLUSTER_THROWS4)
  * $(DBA_CREATECLUSTER_THROWS5)
  * $(DBA_CREATECLUSTER_THROWS6)
+ * $(DBA_CREATECLUSTER_THROWS7)
  *
  * $(DBA_CREATECLUSTER_RETURNS)
  *
@@ -554,6 +560,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
         // since we've already done the validation above.
         ip_whitelist = opt_map.string_at("ipWhitelist");
       }
+      if (adopt_from_gr && opt_map.has_key("multiMaster")) {
+        throw shcore::Exception::argument_error(
+            "Cannot use multiMaster option if adoptFromGR is set to true."
+            " Using adoptFromGR mode will adopt the primary mode in use by the "
+            "Cluster.");
+      }
     }
 
     if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
@@ -618,13 +630,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     new_args.push_back(shcore::Value(options));
 
-    if (multi_master && !(force || adopt_from_gr)) {
+    if (multi_master && !force) {
       throw shcore::Exception::argument_error(
           "Use of multiMaster mode is not recommended unless you understand "
           "the limitations. Please use the 'force' option if you understand "
           "and accept them.");
     }
-
     cluster->add_seed_instance(instance_def, new_args, multi_master,
                                adopt_from_gr, replication_user,
                                replication_pwd);

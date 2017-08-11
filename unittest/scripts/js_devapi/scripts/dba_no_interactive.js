@@ -32,6 +32,8 @@ var c1 = dba.createCluster('devCluster', {memberSslMode: ''});
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'AUTO'});
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'REQUIRED'});
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DISABLED'});
+var c1 = dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: true, force: true});
+var c1 = dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: false});
 var c1 = dba.createCluster('devCluster', {ipWhitelist: " "});
 
 

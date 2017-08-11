@@ -26,6 +26,8 @@
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
+||Cannot use multiMaster option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
+||Cannot use multiMaster option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
 ||Invalid value for ipWhitelist, string value cannot be empty.
 ||Dba.createCluster: The Cluster name can only start with an alphabetic or the '_' character.
 

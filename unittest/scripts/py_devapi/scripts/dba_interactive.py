@@ -40,6 +40,8 @@ c1 = dba.create_cluster('devCluster', {"memberSslMode": ""})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "AUTO"})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "REQUIRED"})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "memberSslMode": "DISABLED"})
+c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "multiMaster": True, "force": True})
+c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "multiMaster": False})
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "ipWhitelist": " "})
 
 #@ Dba: createCluster with ANSI_QUOTES success

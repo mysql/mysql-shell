@@ -61,6 +61,7 @@ EXCEPTIONS
   ArgumentError: if adoptFromGR is true and the memberSslMode option is used.
   ArgumentError: if the value for the memberSslMode option is not one of the
                  allowed.
+  ArgumentError: if adoptFromGR is true and the multiMaster option is used.
 
 RETURNS
 
