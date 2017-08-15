@@ -144,4 +144,8 @@ TEST_F(Shell_py_mysqlx_tests, mysqlx_constants) {
 TEST_F(Shell_py_mysqlx_tests, mysqlx_column_metadata) {
   validate_interactive("mysqlx_column_metadata.py");
 }
+
+TEST_F(Shell_py_mysqlx_tests, mysqlx_bool_expression) {
+  validate_interactive("mysqlx_bool_expression.py");
+}
 }  // namespace shcore

@@ -149,4 +149,8 @@ TEST_F(Shell_js_mysqlx_tests, mysqlx_resultset) {
 TEST_F(Shell_js_mysqlx_tests, mysqlx_column_metadata) {
   validate_interactive("mysqlx_column_metadata.js");
 }
+
+TEST_F(Shell_js_mysqlx_tests, mysqlx_bool_expression) {
+  validate_interactive("mysqlx_bool_expression.js");
+}
 }  // namespace shcore

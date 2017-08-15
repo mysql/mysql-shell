@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include "tokenizer.h"
+#include "mysqlshdk/libs/db/mysqlx/tokenizer.h"
 
 #include <cctype>
 #include <cstdlib>
@@ -26,13 +26,14 @@
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
 
 #ifndef WIN32
 #include <strings.h>
 #define _stricmp strcasecmp
 #endif
 
-using namespace mysqlx;
+namespace mysqlx {
 
 struct Tokenizer::Maps Tokenizer::map;
 
@@ -60,28 +61,28 @@ static const std::map<int, std::string> TokenName(
         {Token::IDENT, "IDENT"},
         {Token::LSTRING, "LSTRING"},
         {Token::LNUM, "LNUM"},
-        {Token::DOT, "DOT"},
+        {Token::DOT, "."},
         //{Token::AT, "AT"},
-        {Token::COMMA, "COMMA"},
-        {Token::EQ, "EQ"},
+        {Token::COMMA, ","},
+        {Token::EQ, "="},
         {Token::NE, "NE"},
-        {Token::GT, "GT"},
-        {Token::GE, "GE"},
-        {Token::LT, "LT"},
-        {Token::LE, "LE"},
-        {Token::BITAND, "BITAND"},
-        {Token::BITOR, "BITOR"},
-        {Token::BITXOR, "BITXOR"},
-        {Token::LSHIFT, "LSHIFT"},
-        {Token::RSHIFT, "RSHIFT"},
-        {Token::PLUS, "PLUS"},
-        {Token::MINUS, "MINUS"},
-        {Token::MUL, "MUL"},
-        {Token::DIV, "DIV"},
+        {Token::GT, ">"},
+        {Token::GE, ">="},
+        {Token::LT, "<"},
+        {Token::LE, "<="},
+        {Token::BITAND, "&"},
+        {Token::BITOR, "|"},
+        {Token::BITXOR, "^"},
+        {Token::LSHIFT, "<<"},
+        {Token::RSHIFT, ">>"},
+        {Token::PLUS, "+"},
+        {Token::MINUS, "-"},
+        {Token::MUL, "*"},
+        {Token::DIV, "/"},
         {Token::HEX, "HEX"},
         {Token::BIN, "BIN"},
         {Token::NEG, "NEG"},
-        {Token::BANG, "BANG"},
+        {Token::BANG, "!"},
         {Token::MICROSECOND, "MICROSECOND"},
         {Token::SECOND, "SECOND"},
         {Token::MINUTE, "MINUTE"},
@@ -216,7 +217,8 @@ Tokenizer::Maps::Maps() {
 }
 
 Token::Token(Token::TokenType type, const std::string& text, int cur_pos)
-    : _type(type), _text(text), _pos(cur_pos) {}
+    : _type(type), _text(text), _pos(cur_pos) {
+}
 
 const std::string& Token::get_type_name() const {
   return TokenName.at((int)_type);
@@ -238,9 +240,14 @@ void Tokenizer::assert_cur_token(Token::TokenType type) {
   Token::TokenType tok_type = tok.get_type();
   if (tok_type != type) {
     std::stringstream s;
-    s << "Expected token type " << TokenName.at((int)type) << " at position "
-      << tok.get_pos() << " but found type " << tok.get_type_name() << " ("
-      << tok.get_text() << ").";
+    if (tok.get_text() == tok.get_type_name()) {
+      s << "Expected token type " << TokenName.at((int)type) << " at position "
+        << tok.get_pos() << " but found " << tok.get_text() << ".";
+    } else {
+      s << "Expected token type " << TokenName.at((int)type) << " at position "
+        << tok.get_pos() << " but found type " << tok.get_type_name() << " ("
+        << tok.get_text() << ").";
+    }
     throw Parser_error(s.str());
   }
 }
@@ -530,3 +537,5 @@ bool Tokenizer::Cmp_icase::operator()(const std::string& lhs,
 
   return _stricmp(c_lhs, c_rhs) < 0;
 }
+
+}  // namespace mysqlx

@@ -7455,6 +7455,10 @@ class XShell_TestCases(unittest.TestCase):
         if stderrordata.find("Requested session assumes MySQL X Protocol but '") >= 0 and\
                 stderrordata.find("' seems to speak the classic MySQL protocol") >= 0:
             results = 'PASS'
+        else:
+            print stdoutdata
+            print stderrordata
+            results += stdoutdata + "////" + stderrordata
         self.assertEqual(results, 'PASS')
 
     def test_MYS_399(self):
