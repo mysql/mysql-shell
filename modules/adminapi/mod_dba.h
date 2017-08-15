@@ -91,14 +91,14 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   shcore::IShell_core* get_owner() { return _shell_core; }
 
-  std::vector<std::pair<std::string, std::string>>
+  virtual std::vector<std::pair<std::string, std::string>>
       get_replicaset_instances_status(
           std::string *out_cluster_name,
           const shcore::Value::Map_type_ref &options);
 
-  void validate_instances_status_reboot_cluster(
+  virtual void validate_instances_status_reboot_cluster(
       const shcore::Argument_list &args);
-  void validate_instances_gtid_reboot_cluster(
+  virtual void validate_instances_gtid_reboot_cluster(
       std::string *out_cluster_name,
       const shcore::Value::Map_type_ref &options,
       const std::shared_ptr<ShellBaseSession> &instance_session);
@@ -145,8 +145,15 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   void init();
 
- private:
+  // Added for limited mock support
+  Dba() {}
+  void set_owner(shcore::IShell_core *shell_core) {
+    _shell_core = shell_core;
+    init();
+  }
   std::shared_ptr<MetadataStorage> _metadata_storage;
+
+ private:
   uint64_t _connection_id;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 

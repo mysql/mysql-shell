@@ -1,13 +1,13 @@
 # Assumptions: wait_slave_state is defined
 
 #@<OUT> Dba: create_cluster multiMaster with interaction, cancel
-dba.create_cluster('devCluster', {'multiMaster': True})
+dba.create_cluster('devCluster', {'multiMaster': True, 'clearReadOnly': True})
 
 #@<OUT> Dba: create_cluster multiMaster with interaction, ok
 if __have_ssl:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'memberSslMode': 'REQUIRED'})
+  dba.create_cluster('devCluster', {'multiMaster': True, 'memberSslMode': 'REQUIRED', 'clearReadOnly': True})
 else:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'memberSslMode': 'DISABLED'})
+  dba.create_cluster('devCluster', {'multiMaster': True, 'memberSslMode': 'DISABLED', 'clearReadOnly': True})
 
 cluster = dba.get_cluster('devCluster')
 
@@ -52,9 +52,9 @@ cluster.dissolve({'force': True})
 
 #@<OUT> Dba: create_cluster multiMaster with interaction 2, ok
 if __have_ssl:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'memberSslMode': 'REQUIRED'})
+  dba.create_cluster('devCluster', {'multiMaster': True, 'memberSslMode': 'REQUIRED', 'clearReadOnly': True})
 else:
-  dba.create_cluster('devCluster', {'multiMaster': True, 'memberSslMode': 'DISABLED'})
+  dba.create_cluster('devCluster', {'multiMaster': True, 'memberSslMode': 'DISABLED', 'clearReadOnly': True})
 
 cluster = dba.get_cluster('devCluster')
 

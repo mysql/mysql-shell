@@ -72,19 +72,12 @@ restored_sql_mode = row[0]
 was_restored = restored_sql_mode == original_sql_mode
 print("Original SQL_MODE has been restored: " + str(was_restored) + "\n")
 
-#@ Dba: super-read-only error (BUG#26422638)
-c1 = dba.create_cluster('devCluster')
-
-# Disable super-read-only with clearReadOnly
 #@ Dba: create cluster with memberSslMode AUTO succeed
 c1 = dba.create_cluster('devCluster', {'memberSslMode': 'AUTO', 'clearReadOnly': True})
 c1
 
 #@ Dba: dissolve cluster created with memberSslMode AUTO
 c1.dissolve({'force': True})
-
-# Disable super-read-only (BUG#26422638)
-session.run_sql("SET GLOBAL SUPER_READ_ONLY = 0;")
 
 #@ Dba: create_cluster success
 if __have_ssl:
@@ -140,22 +133,6 @@ print (result.status)
 #@ Dba: configure_local_instance report fixed 3
 result = dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port2), {'mycnfPath':'mybad.cnf', 'dbPassword':'root'});
 print (result.status)
-
-# Enable super_read_only to test this scenario
-connect_to_sandbox([__mysql_sandbox_port2]);
-session.run_sql('SET GLOBAL super_read_only = 1');
-#@ Dba.configure_local_instance: super-read-only error (BUG#26422638)
-dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port2), {'mycnfPath': 'mybad.cnf', 'clusterAdmin': "adminUser", 'clusterAdminPassword':'', 'password':'root'});
-
-#@<OUT> Dba.configure_local_instance: clearReadOnly
-dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port2), {'mycnfPath': 'mybad.cnf', 'clusterAdmin': "adminUser", 'clusterAdminPassword':'', 'clearReadOnly': True, 'password':'root'});
-
-#Delete created user and disable super_read_only
-session.run_sql('SET GLOBAL super_read_only = 0');
-session.run_sql("SET SQL_LOG_BIN=0");
-session.run_sql("DROP USER 'adminUser'");
-session.run_sql("SET SQL_LOG_BIN=1");
-session.close();
 
 #@ Dba: Create user without all necessary privileges
 # create user that has all permissions to admin a cluster but doesn't have

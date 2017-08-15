@@ -13,23 +13,18 @@ dba.dropMetadataSchema()
 
 //@# create cluster
 if (__have_ssl)
-  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED"});
+  dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
 else
-  dba.createCluster("tempCluster", {memberSslMode: "DISABLED"});
+  dba.createCluster("tempCluster", {memberSslMode: "DISABLED", clearReadOnly: true});
 
 session.getSchema('mysql_innodb_cluster_metadata');
 
 //@# drop metadata: force false
 dba.dropMetadataSchema({force:false});
 
-// Enable super_read_only to test this scenario
-session.runSql('SET GLOBAL super_read_only = 1');
-
-//@ Dba.dropMetadataSchema: super-read-only error (BUG#26422638)
+//@# drop metadata: force true
 dba.dropMetadataSchema({force:true});
 
-//@# drop metadata: force true and clearReadOnly
-dba.dropMetadataSchema({force:true, clearReadOnly: true});
 ensure_schema_does_not_exist(session, 'mysql_innodb_cluster_metadata')
 
 // Smart deployment cleanup

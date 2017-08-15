@@ -94,11 +94,7 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance
 //@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance2]});
 
-//@ Dba.rebootClusterFromCompleteOutage: super-read-only error (BUG#26422638)
-// Since we killed the instance, we have to enable super_read_only to test this scenario
-session.runSql('SET GLOBAL super_read_only = 1');
-cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance3]});
-
+// Test both rejoinInstances and removeInstances on a single call
 //@ Dba.rebootClusterFromCompleteOutage success
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance3], clearReadOnly: true});
 

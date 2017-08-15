@@ -16,40 +16,45 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #ifndef UNITTEST_TEST_UTILS_ADMIN_API_TEST_H_
 #define UNITTEST_TEST_UTILS_ADMIN_API_TEST_H_
 
-#include <vector>
 #include <string>
-#include "unittest/test_utils.h"
+#include <vector>
 #include "modules/adminapi/mod_dba_common.h"
-
+#include "mysqlshdk/libs/utils/nullable.h"
+#include "unittest/test_utils.h"
+using mysqlshdk::utils::nullable;
 namespace tests {
-class Admin_api_test: public Shell_core_test_wrapper {
+class Admin_api_test : public Shell_core_test_wrapper {
  public:
   virtual void SetUp();
 
   void add_instance_type_queries(std::vector<testing::Fake_result_data> *data,
                                  mysqlsh::dba::GRInstanceType type);
-  void add_get_server_variable_query(std::vector<testing::Fake_result_data> *data,
-                                     const std::string& variable,
-                                     mysqlshdk::db::Type type,
-                                     const std::string& value);
+  void add_get_server_variable_query(
+      std::vector<testing::Fake_result_data> *data, const std::string &variable,
+      mysqlshdk::db::Type type, const std::string &value);
+  void add_set_global_variable_query(
+      std::vector<testing::Fake_result_data> *data, const std::string &variable,
+      const std::string &value);
   void add_show_databases_query(std::vector<testing::Fake_result_data> *data,
-                                const std::string& variable,
-                                const std::string& value);
-  void add_replication_filters_query(std::vector<testing::Fake_result_data> *data,
-                                     const std::string& binlog_do_db,
-                                    const std::string& binlog_ignore_db);
-  void add_ps_gr_group_members_query(std::vector<testing::Fake_result_data> *data,
-        const std::vector<std::vector<std::string>> &values);
+                                const std::string &variable,
+                                const std::string &value);
+  void add_replication_filters_query(
+      std::vector<testing::Fake_result_data> *data,
+      const std::string &binlog_do_db, const std::string &binlog_ignore_db);
+  void add_ps_gr_group_members_query(
+      std::vector<testing::Fake_result_data> *data,
+      const std::vector<std::vector<std::string>> &values);
   void add_ps_gr_group_members_full_query(
-        std::vector<testing::Fake_result_data> *data,
-        const std::string &member_id,
-        const std::vector<std::vector<std::string>> &values);
-  void add_md_group_members_query(std::vector<testing::Fake_result_data> *data,
-        const std::vector<std::vector<std::string>> &values);
+      std::vector<testing::Fake_result_data> *data,
+      const std::string &member_id,
+      const std::vector<std::vector<std::string>> &values);
+  void add_md_group_members_query(
+      std::vector<testing::Fake_result_data> *data,
+      const std::vector<std::vector<std::string>> &values);
   void add_md_group_members_full_query(
-        std::vector<testing::Fake_result_data> *data,
-        const std::string &mysql_server_uuid,
-        const std::vector<std::vector<std::string>> &values);
+      std::vector<testing::Fake_result_data> *data,
+      const std::string &mysql_server_uuid,
+      const std::vector<std::vector<std::string>> &values);
   void add_gr_primary_member_query(std::vector<testing::Fake_result_data> *data,
                                    const std::string &primary_uuid);
   void add_member_state_query(std::vector<testing::Fake_result_data> *data,
@@ -57,22 +62,32 @@ class Admin_api_test: public Shell_core_test_wrapper {
                               const std::string &mysql_server_uuid,
                               const std::string &instance_name,
                               const std::string &member_state);
-  void add_md_group_name_query(
-        std::vector<testing::Fake_result_data> *data,
-        const std::string &value);
+  void add_md_group_name_query(std::vector<testing::Fake_result_data> *data,
+                               const std::string &value);
   void add_get_replication_group_state_online_rw_query(
-        std::vector<testing::Fake_result_data> *data,
-        const std::string &member_id);
+      std::vector<testing::Fake_result_data> *data,
+      const std::string &member_id);
   void add_get_cluster_matching_query(
       std::vector<testing::Fake_result_data> *data,
       const std::string &cluster_name);
-  void add_get_replicaset_query(
-      std::vector<testing::Fake_result_data> *data,
-      const std::string &replicaset_name);
-  void add_is_instance_on_rs_query(
-      std::vector<testing::Fake_result_data> *data,
-      const std::string &replicast_id,
-      const std::string &instance_address);
+  void add_get_replicaset_query(std::vector<testing::Fake_result_data> *data,
+                                const std::string &replicaset_name);
+  void add_is_instance_on_rs_query(std::vector<testing::Fake_result_data> *data,
+                                   const std::string &replicast_id,
+                                   const std::string &instance_address);
+
+  void add_precondition_queries(std::vector<testing::Fake_result_data> *data,
+                                mysqlsh::dba::GRInstanceType instance_type,
+                                nullable<std::string> primary_uuid);
+
+  void add_super_read_only_queries(
+      std::vector<testing::Fake_result_data> *data, bool super_read_only,
+      bool query_open_sessions,
+      std::vector<std::vector<std::string>> open_sessions);
+
+  void add_is_gtid_subset_query(std::vector<testing::Fake_result_data> *data,
+                                const std::string &start,
+                                const std::string &end, bool success);
 };
 }  // namespace tests
 

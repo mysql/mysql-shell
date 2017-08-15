@@ -37,9 +37,6 @@
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
 |Original SQL_MODE has been restored: true|
 
-//@ Dba: super-read-only error (BUG#26422638)
-||Dba.createCluster: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only. If you unset super_read_only you should consider closing the following: 2 open session(s) of 'root@localhost'.  (RuntimeError)
-
 //@ Dba: create cluster with memberSslMode AUTO succeed
 |<Cluster:devCluster>|
 
@@ -162,14 +159,6 @@
 //@ Dba: configureLocalInstance report fixed 3
 |ok|
 
-//@ Dba.configureLocalInstance: super-read-only error (BUG#26422638)
-||Dba.configureLocalInstance: The MySQL instance at 'localhost:<<<__mysql_sandbox_port2>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only. If you unset super_read_only you should consider closing the following: 10 open session(s) of 'root@localhost'.  (RuntimeError)
-
-//@<OUT> Dba.configureLocalInstance: clearReadOnly
-{
-    "status": "ok"
-}
-
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
 
@@ -220,4 +209,3 @@
 
 //@ Dba: getCluster
 |<Cluster:devCluster>|
-

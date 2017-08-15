@@ -17,8 +17,7 @@
  * 02110-1301  USA
  */
 
-#include <gtest/gtest.h>
-#include <gtest/gtest_prod.h>
+#include "unittest/gtest_clean.h"
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif

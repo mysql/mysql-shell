@@ -2,9 +2,9 @@
 
 //@ Dba: createCluster multiMaster, ok
 if (__have_ssl)
-  dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED'});
+  dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-  dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED'});
+  dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
 
 var Cluster = dba.getCluster('devCluster');
 
@@ -44,9 +44,9 @@ Cluster.dissolve({force: true});
 
 //@ Dba: createCluster multiMaster 2, ok
 if (__have_ssl)
-    dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED'});
+    dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-    dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED'});
+    dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
 
 var Cluster = dba.getCluster('devCluster');
 

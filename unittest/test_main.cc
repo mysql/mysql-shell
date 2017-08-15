@@ -281,18 +281,12 @@ int main(int argc, char **argv) {
 #else
   setenv("MYSQLSH_USER_CONFIG_HOME", ".", 1);
 #endif
-  int original_argc = argc;
   ::testing::InitGoogleTest(&argc, argv);
 
   // Helper code for DBA specific groups of tests;
   std::string flags = ::testing::GTEST_FLAG(filter);
   //::testing::FLAGS_gtest_break_on_failure = true;
   if (!flags.empty()) {
-
-    // If no parameters are passed to run_unit_tests
-    // it will exclude the Admin API tests by default
-    if (original_argc == 1 && flags == "*")
-      flags = "ALLBUTDBA";
 
     std::string new_flags;
 

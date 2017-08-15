@@ -1492,6 +1492,10 @@ void Argument_list::ensure_at_least(unsigned int minc, const char *context) cons
         context, minc, static_cast<uint32_t>(size())));
 }
 
+bool Argument_list::operator == (const Argument_list &other) const {
+  return _args == other._args;
+}
+
 //--
 
 Argument_map::Argument_map() {

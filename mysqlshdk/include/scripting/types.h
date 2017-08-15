@@ -331,6 +331,8 @@ class SHCORE_PUBLIC Argument_list {
   std::vector<Value>::const_iterator begin() const { return _args.begin(); }
   std::vector<Value>::const_iterator end() const { return _args.end(); }
 
+  bool operator == (const Argument_list &other) const;
+
  private:
   std::vector<Value> _args;
 };

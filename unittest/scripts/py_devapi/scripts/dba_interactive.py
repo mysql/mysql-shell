@@ -2,6 +2,10 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
 
+#@ Initialization
+deployed_here = reset_or_deploy_sandboxes()
+shell.connect({'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port1});
+
 #@ Session: validating members
 all_members = dir(dba)
 
@@ -45,13 +49,6 @@ c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "multiMaster": False
 c1 = dba.create_cluster('devCluster', {"adoptFromGR": True, "ipWhitelist": " "})
 c1 = dba.create_cluster('#');
 
-# If this test is executed standalone super_read_only
-# won't be enabled
-session.run_sql('SET GLOBAL super_read_only = 1');
-
-#@<OUT> Dba: super-read-only error (BUG#26422638)
-dba.create_cluster('devCluster');
-
 #@ Dba: createCluster with ANSI_QUOTES success
 # save current sql mode
 result = session.run_sql("SELECT @@GLOBAL.SQL_MODE")
@@ -64,9 +61,9 @@ row = result.fetch_one()
 print("Current sql_mode is: " + row[0] + "\n")
 
 if __have_ssl:
-    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED', 'clearReadOnly': True})
 else:
-    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED'})
+    c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED', 'clearReadOnly': True})
 
 print c1
 
@@ -83,9 +80,9 @@ print("Original SQL_MODE has been restored: " + str(was_restored) + "\n")
 
 #@<OUT> Dba: create_cluster with interaction
 if __have_ssl:
-  c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED'})
+  c1 = dba.create_cluster('devCluster', {'memberSslMode': 'REQUIRED', 'clearReadOnly': True})
 else:
-  c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED'})
+  c1 = dba.create_cluster('devCluster', {'memberSslMode': 'DISABLED', 'clearReadOnly': True})
 
 # TODO: add multi-master unit-tests
 
@@ -112,42 +109,6 @@ dba.configure_local_instance('someotherhost:' + str(__mysql_sandbox_port1));
 
 #@<OUT> Dba: configure_local_instance error 3
 dba.configure_local_instance('localhost:' + str(__mysql_sandbox_port1));
-
-connect_to_sandbox([__mysql_sandbox_port3]);
-session.run_sql('SET GLOBAL super_read_only = 0');
-
-# If this test is executed standalone the GR plugin won't be installed
-# So configure will fail with:
-#{
-#    "errors": [
-#        "An error was found trying to install the group_replication plugin: Query failed. 1290 (HY000): The MySQL server is running with the --super-read-only option so it cannot execute this statement",
-#        "Error checking instance: The group_replication plugin could not be loaded in the server 'localhost:3336'"
-#    ],
-#    "restart_required": false,
-#    "status": "error"
-#}
-#
-# If that's the case, the group_replication plugin must be installed
-#session.run_sql('INSTALL PLUGIN group_replication SONAME \'group_replication.so\'');
-session.run_sql("SET SQL_LOG_BIN=0");
-session.run_sql("CREATE USER 'myAdmin'@'localhost' IDENTIFIED BY ''");
-session.run_sql("GRANT ALL ON *.* TO 'myAdmin'@'localhost' WITH GRANT OPTION");
-session.run_sql("SET SQL_LOG_BIN=1");
-# Enable super_read_only to test this scenario
-session.run_sql('SET GLOBAL super_read_only = 1');
-
-#@<OUT> Dba.configure_local_instance: super-read-only error (BUG#26422638)
-dba.configure_local_instance('myAdmin@localhost:' + str(__mysql_sandbox_port3));
-
-#@<OUT> Dba.configure_local_instance: clearReadOnly
-dba.configure_local_instance('myAdmin@localhost:' + str(__mysql_sandbox_port3));
-
-#Delete created user and disable super_read_only
-session.run_sql('SET GLOBAL super_read_only = 0');
-session.run_sql("SET SQL_LOG_BIN=0");
-session.run_sql("DROP USER 'myAdmin'@'localhost'");
-session.run_sql("SET SQL_LOG_BIN=1");
-session.close();
 
 #@ Dba: Create user without all necessary privileges
 # create user that has all permissions to admin a cluster but doesn't have
@@ -263,3 +224,9 @@ c2
 #@<OUT> Dba: get_cluster with interaction (default)
 c3 = dba.get_cluster()
 c3
+
+session.close();
+#@ Finalization
+# Will delete the sandboxes ONLY if this test was executed standalone
+if deployed_here:
+  cleanup_sandboxes(True)

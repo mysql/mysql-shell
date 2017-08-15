@@ -1,13 +1,13 @@
 // Assumptions: wait_slave_state is defined
 
 //@<OUT> Dba: createCluster multiMaster with interaction, cancel
-dba.createCluster('devCluster', {multiMaster: true});
+dba.createCluster('devCluster', {multiMaster: true, clearReadOnly: true});
 
 //@<OUT> Dba: createCluster multiMaster with interaction, ok
 if (__have_ssl)
-  dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'REQUIRED'});
+  dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-  dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED'});
+  dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true});
 
 var Cluster = dba.getCluster('devCluster');
 
@@ -51,9 +51,9 @@ Cluster.dissolve({force: true});
 
 //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
 if (__have_ssl)
-    dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'REQUIRED'});
+    dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-    dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED'});
+    dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true});
 
 var Cluster = dba.getCluster('devCluster');
 

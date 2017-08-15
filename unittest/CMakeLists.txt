@@ -39,6 +39,8 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/*/*.cc"
+        "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/modules/adminapi/*.h"
+        "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/modules/adminapi/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*/*_t.cc")
 
     set(mysqlsh_tests_SRC
@@ -118,25 +120,24 @@ if(WITH_TESTS)
     # Copies the mysql_server_mock to the binary folder
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
-                        $<TARGET_FILE:mysql_server_mock> $<TARGET_FILE_DIR:run_unit_tests>)
-
+                        $<TARGET_FILE:mysql_server_mock> $<TARGET_FILE_DIR:run_unit_tests>/)
     # Copy sample prompt files to the test folder
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
                         ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_nocolor.json
-                        $<TARGET_FILE_DIR:run_unit_tests>)
+                        $<TARGET_FILE_DIR:run_unit_tests>/)
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
                         ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_16.json
-                        $<TARGET_FILE_DIR:run_unit_tests>)
+                        $<TARGET_FILE_DIR:run_unit_tests>/)
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
                         ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_256.json
-                        $<TARGET_FILE_DIR:run_unit_tests>)
+                        $<TARGET_FILE_DIR:run_unit_tests>/)
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
                         ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_256pl.json
-                        $<TARGET_FILE_DIR:run_unit_tests>)
+                        $<TARGET_FILE_DIR:run_unit_tests>/)
 
     # Sets the test environment so it is ready for execution out of the box
     # On windows mysqlprovision zip, cmd and mysqlsh.exe need to be together
@@ -154,7 +155,7 @@ if(WITH_TESTS)
       # Copies the mysqlsh.exe to the binary folder
       add_custom_command(TARGET run_unit_tests PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy
-                          $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:run_unit_tests>)
+                          $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:run_unit_tests>/)
     ENDIF()
 
 

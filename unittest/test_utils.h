@@ -30,6 +30,9 @@
 #include "src/mysqlsh/mysql_shell.h"
 #include "unittest/test_utils/shell_base_test.h"
 
+#ifndef UNITTEST_TEST_UTILS_H_
+#define UNITTEST_TEST_UTILS_H_
+
 #ifdef GTEST_TEST_
 #undef GTEST_TEST_
 // Our custom helper macro for defining tests.
@@ -89,6 +92,15 @@
                   << " but got something\n";                      \
   }
 
+namespace testing {
+// Fake deleter for shared pointers to avoid they attempt deleting the passed
+// object
+struct SharedDoNotDelete {
+  template <typename T>
+  void operator()(T *) {}
+};
+
+}
 inline std::string makered(const std::string &s) {
   if (!getenv("COLOR_DEBUG"))
     return s;
@@ -241,6 +253,9 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   }
   virtual std::string context_identifier();
 
+  void observe_session_notifications();
+  void ignore_session_notifications();
+
   std::string _custom_context;
 
   // void process_result(shcore::Value result);
@@ -321,3 +336,5 @@ class Crud_test_wrapper : public ::Shell_core_test_wrapper {
   // non listed functions are validated for unavailability
   void ensure_available_functions(const std::string &functions);
 };
+
+#endif  // UNITTEST_TEST_UTILS_H_
