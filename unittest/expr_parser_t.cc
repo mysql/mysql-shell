@@ -21,8 +21,8 @@
 #include <string>
 #include <vector>
 
-#include "gtest_clean.h"
 #include "db/mysqlx/expr_parser.h"
+#include "gtest_clean.h"
 #include "scripting/types_cpp.h"
 
 using namespace mysqlx;
@@ -48,11 +48,13 @@ void parse_and_assert_expr(const std::string& input,
                            bool document_mode = false,
                            Mysqlx::Expr::Expr** expr = NULL) {
   std::stringstream out, out_tokens;
-  Expr_parser p(input, document_mode);
-  print_tokens(p, out_tokens);
+  std::unique_ptr<Expr_parser> p;
   SCOPED_TRACE(input);
+  p.reset(new Expr_parser(input, document_mode));
+  print_tokens(*p, out_tokens);
   ASSERT_EQ(token_list, out_tokens.str());
-  std::unique_ptr<Mysqlx::Expr::Expr> e(p.expr());
+  std::unique_ptr<Mysqlx::Expr::Expr> e;
+  e = p->expr();
   std::string s = Expr_unparser::expr_to_string(*(e.get()));
   if (expr != NULL)
     *expr = e.release();
@@ -243,6 +245,11 @@ TEST(Expr_parser_tests, x_test_4) {
                         "54, 22, 19, 22, 20, 83]",
                         "a$.b[0][0].c**.d.a weird\"key name");
   parse_and_assert_expr("a->'$.*'", "[19, 82, 83, 77, 22, 38, 83]", "a$.*");
+  parse_and_assert_expr("a->'$.foo[*]'",
+                        "[19, 82, 83, 77, 22, 19, 8, 38, 9, 83]", "a$.foo[*]");
+  parse_and_assert_expr("a->'$.foo[*].bar'",
+                        "[19, 82, 83, 77, 22, 19, 8, 38, 9, 22, 19, 83]",
+                        "a$.foo[*].bar");
   parse_and_assert_expr("a->'$[0].*'", "[19, 82, 83, 77, 8, 76, 9, 22, 38, 83]",
                         "a$[0].*");
   parse_and_assert_expr("a->'$**[0].*'",
@@ -325,9 +332,62 @@ TEST(Expr_parser_tests, x_test_6) {
 
 TEST(Expr_parser_tests, regression) {
   // Bug#25754078
-
-  Expr_parser p("1 in 1", true);
-  EXPECT_THROW(p.expr(), std::exception);  // no crash = ok
+  {
+    Expr_parser p("1 in 1", true);
+    EXPECT_NO_THROW(p.expr());  // no crash = ok
+  }
+  {
+    Expr_parser p("foo[*]", true);
+    EXPECT_NO_THROW(p.expr());
+  }
 }
-};
-};
+
+TEST(Expr_parser_tests, json_in) {
+  parse_and_assert_expr("1 in (foo)", "[76, 14, 6, 19, 7]", "1 IN ($.foo)",
+                        true);
+
+  parse_and_assert_expr("1 in foo", "[76, 14, 19]", "(1 CONT_IN $.foo)", true);
+
+  parse_and_assert_expr("bar in foo", "[19, 14, 19]", "($.bar CONT_IN $.foo)",
+                        true);
+
+  parse_and_assert_expr("1 in [foo]", "[76, 14, 8, 19, 9]",
+                        "(1 CONT_IN [ $.foo ])", true);
+
+  parse_and_assert_expr("1 in [1]", "[76, 14, 8, 76, 9]", "(1 CONT_IN [ 1 ])",
+                        true);
+
+  parse_and_assert_expr("1 in null", "[76, 14, 12]", "(1 CONT_IN NULL)", true);
+
+  parse_and_assert_expr("1 in {'foo':1}", "[76, 14, 80, 20, 79, 76, 81]",
+                        "(1 CONT_IN { 'foo' : 1 })", true);
+
+  parse_and_assert_expr("1 in {\"foo\":[1]}",
+                        "[76, 14, 80, 20, 79, 8, 76, 9, 81]",
+                        "(1 CONT_IN { 'foo' : [ 1 ] })", true);
+
+  parse_and_assert_expr("1 not in foo", "[76, 1, 14, 19]",
+                        "(1 NOT_CONT_IN $.foo)", true);
+
+  parse_and_assert_expr("1 not in [foo]", "[76, 1, 14, 8, 19, 9]",
+                        "(1 NOT_CONT_IN [ $.foo ])", true);
+
+  parse_and_assert_expr("1 not in [1]", "[76, 1, 14, 8, 76, 9]",
+                        "(1 NOT_CONT_IN [ 1 ])", true);
+
+  parse_and_assert_expr("1 not in null", "[76, 1, 14, 12]",
+                        "(1 NOT_CONT_IN NULL)", true);
+
+  parse_and_assert_expr("1 not in {'foo':1}", "[76, 1, 14, 80, 20, 79, 76, 81]",
+                        "(1 NOT_CONT_IN { 'foo' : 1 })", true);
+
+  parse_and_assert_expr("1 not in {\"foo\":[1]}",
+                        "[76, 1, 14, 80, 20, 79, 8, 76, 9, 81]",
+                        "(1 NOT_CONT_IN { 'foo' : [ 1 ] })", true);
+
+  parse_and_assert_expr("1 in bla[*]", "[76, 14, 19, 8, 38, 9]",
+                        "(1 CONT_IN $.bla[*])", true);
+}
+
+};  // namespace expr_parser_tests
+};  // namespace shcore

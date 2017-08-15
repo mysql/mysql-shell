@@ -194,6 +194,7 @@ void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item) {
   _tokenizer.consume_token(Token::LSQBRACKET);
   const Token& tok = _tokenizer.peek_token();
   if (_tokenizer.cur_token_type_is(Token::MUL)) {
+    _tokenizer.consume_token(Token::MUL);
     _tokenizer.consume_token(Token::RSQBRACKET);
     item.set_type(Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK);
   } else if (_tokenizer.cur_token_type_is(Token::LINTEGER)) {
@@ -865,14 +866,13 @@ std::unique_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr() {
     } else if (_tokenizer.cur_token_type_is(Token::IN_)) {
       _tokenizer.consume_token(Token::IN_);
       params->AddAllocated(lhs.release());
-      if (_tokenizer.cur_token_type_is(Token::LSQBRACKET)) {
-        _tokenizer.consume_token(Token::LSQBRACKET);
-        params->AddAllocated(my_expr().release());
-        while (_tokenizer.cur_token_type_is(Token::COMMA)) {
-          _tokenizer.inc_pos_token();
-          params->AddAllocated(my_expr().release());
-        }
-        _tokenizer.consume_token(Token::RSQBRACKET);
+      if (!_tokenizer.cur_token_type_is(Token::LPAREN)) {
+        if (is_not)
+          op_name = "not_cont_in";
+        else
+          op_name = "cont_in";
+        is_not = false;
+        params->AddAllocated(comp_expr().release());
       } else {
         paren_expr_list(params);
       }
