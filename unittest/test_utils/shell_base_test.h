@@ -18,20 +18,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #define MY_EXPECT_OUTPUT_CONTAINS(e, o)                    \
   do {                                                     \
-    Shell_base_test::check_string_expectation(e, o, true); \
+    check_string_expectation(e, o, true); \
     SCOPED_TRACE("");                                      \
   } while (0)
 
 #define MY_EXPECT_OUTPUT_NOT_CONTAINS(e, o)                 \
   do {                                                      \
-    Shell_base_test::check_string_expectation(e, o, false); \
+    check_string_expectation(e, o, false); \
     SCOPED_TRACE("");                                       \
   } while (0)
 
 #define MY_EXPECT_MULTILINE_OUTPUT(c, e, o)                     \
   do {                                                          \
     SCOPED_TRACE("...in stdout check\n");                       \
-    Shell_base_test::check_multiline_expect(c, "STDOUT", e, o); \
+    check_multiline_expect(c, "STDOUT", e, o); \
   } while (0)
 
 #include <map>
@@ -54,9 +54,9 @@ class Shell_base_test : public Shell_test_env {
   virtual void TearDown();
 
  public:
-  static void check_string_expectation(const std::string& expected_str,
-                                       const std::string& actual,
-                                       bool expected);
+  void check_string_expectation(const std::string& expected_str,
+                                const std::string& actual,
+                                bool expected);
   bool multi_value_compare(const std::string& expected,
                            const std::string& actual);
   bool check_multiline_expect(const std::string& context,

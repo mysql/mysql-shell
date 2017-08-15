@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include <gtest/gtest.h>
+#include "unittest/gtest_clean.h"
 #include "mysqlsh/prompt_manager.h"
 #include "mysqlsh/prompt_renderer.h"
 #include "mysqlshdk/libs/textui/term_vt100.h"

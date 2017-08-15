@@ -27,13 +27,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #define MY_EXPECT_CMD_OUTPUT_CONTAINS(e)                         \
   do {                                                           \
     SCOPED_TRACE("...in stdout check\n");                        \
-    Shell_base_test::check_string_expectation(e, _output, true); \
+    check_string_expectation(e, _output, true); \
   } while (0)
 
 #define MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(e)                      \
   do {                                                            \
     SCOPED_TRACE("...in stdout check\n");                         \
-    Shell_base_test::check_string_expectation(e, _output, false); \
+    check_string_expectation(e, _output, false); \
   } while (0)
 
 namespace tests {

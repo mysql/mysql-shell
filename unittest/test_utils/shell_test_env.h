@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <vector>
 #include <string>
+#include <map>
 #include "unittest/gtest_clean.h"
 
 extern "C" const char* g_argv0;
@@ -76,6 +77,9 @@ class Shell_test_env : public ::testing::Test {
   std::string _mysql_socket;
 
   std::string _new_line_char;
+
+  std::map<std::string, std::string> _output_tokens;
+  std::string resolve_string(const std::string& source);
 
  public:
   static std::string get_path_to_mysqlsh();

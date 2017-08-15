@@ -84,6 +84,10 @@ class ProvisioningInterface {
   void set_verbose(int verbose) { _verbose = verbose; }
   int get_verbose() { return _verbose; }
 
+  // Added for basic mock support
+ protected:
+  ProvisioningInterface() {}
+
  private:
   int _verbose;
   shcore::Interpreter_delegate *_delegate;

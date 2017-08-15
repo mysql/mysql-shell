@@ -22,14 +22,9 @@ session.get_schema('mysql_innodb_cluster_metadata')
 #@# drop metadata: force false
 dba.drop_metadata_schema({'force':False});
 
-# Enable super_read_only to test this scenario
-session.run_sql('SET GLOBAL super_read_only = 1');
-
-#@ Dba.drop_metadata_schema: super-read-only error (BUG#26422638)
-dba.drop_metadata_schema({'force': True});
-
-#@# drop metadata: force true and clearReadOnly
+#@# drop metadata: force true
 dba.drop_metadata_schema({'force':True, 'clearReadOnly': True});
+
 ensure_schema_does_not_exist(session, 'mysql_innodb_cluster_metadata')
 
 session.close()
@@ -38,4 +33,3 @@ if deployed_here:
   cleanup_sandbox(__mysql_sandbox_port1)
 else:
   reset_or_deploy_sandbox(__mysql_sandbox_port1)
-

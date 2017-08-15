@@ -143,6 +143,32 @@ std::string Shell_test_env::get_path_to_mysqlsh() {
   return command;
 }
 
+std::string Shell_test_env::resolve_string(const std::string& source) {
+  std::string updated(source);
+
+  size_t start;
+  size_t end;
+
+  start = updated.find("<<<");
+  while (start != std::string::npos) {
+    end = updated.find(">>>", start);
+
+    std::string token = updated.substr(start + 3, end - start - 3);
+
+    std::string value;
+    // If the token was registered in C++ uses it
+    if (_output_tokens.count(token)) {
+      value = _output_tokens[token];
+    }
+
+    updated.replace(start, end - start + 3, value);
+
+    start = updated.find("<<<");
+  }
+
+  return updated;
+}
+
 }  // namespace tests
 
 

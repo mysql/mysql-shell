@@ -41,11 +41,14 @@ void Shell_base_test::create_file(const std::string& name,
 void Shell_base_test::check_string_expectation(const std::string& expected_str,
                                                const std::string &actual,
                                                bool expected) {
-  bool found = actual.find(expected_str) != std::string::npos;
+
+  std::string resolved_str = resolve_string(expected_str);
+
+  bool found = actual.find(resolved_str) != std::string::npos;
 
   if (found != expected) {
     std::string error = expected ? "Missing" : "Unexpected";
-    error += " Output: " + expected_str;
+    error += " Output: " + resolved_str;
     SCOPED_TRACE("Actual: " + actual);
     SCOPED_TRACE(error);
     ADD_FAILURE();
@@ -99,8 +102,12 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
                                              const std::string& expected,
                                              const std::string &actual) {
   bool ret_val = true;
-  auto expected_lines = shcore::split_string(expected, "\n");
+  auto expected_lines = shcore::split_string(expected, _new_line_char);
   auto actual_lines = shcore::split_string(actual, "\n");
+
+  // Does expected line resolution using the pre-defined tokens
+  for (auto index = 0; index < expected_lines.size(); index++)
+    expected_lines[index] = resolve_string(expected_lines[index]);
 
   // Identifies the index of the actual line containing the first expected line
   size_t actual_index = 0;

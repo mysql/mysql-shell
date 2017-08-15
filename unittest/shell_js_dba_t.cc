@@ -173,16 +173,6 @@ protected:
 
 };
 
-// This will deploy the sandbox instances to be recycled by all tests
-TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
-  _options->wizards = false;
-  reset_shell();
-
-  execute("dba.verbose = true;");
-
-  validate_interactive("dba_reset_or_deploy.js");
-}
-
 TEST_F(Shell_js_dba_tests, no_active_session_error) {
   _options->wizards = false;
   reset_shell();
@@ -229,6 +219,18 @@ TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
 // required by design
 TEST_F(Shell_js_dba_tests, dba_check_instance_configuration_session) {
   validate_interactive("dba_check_instance_configuration_session.js");
+}
+
+// This will deploy the sandbox instances to be recycled by all tests
+// NOTE the previous tests require the sandboxes to NOT be deployed, that's why
+// this test is not the first one
+TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("dba.verbose = true;");
+
+  validate_interactive("dba_reset_or_deploy.js");
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_classic_global_dba) {
@@ -282,17 +284,6 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   _options->interactive = true;
   reset_shell();
 
-  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
-
-  //@ Dba: super-read-only error (BUG#26422638)
-  output_handler.prompts.push_back("n");
-
-  //@ Dba: createCluster with ANSI_QUOTES success
-  output_handler.prompts.push_back("y");
-
-  //@<OUT> Dba: createCluster with interaction
-  output_handler.prompts.push_back("y");
-
   //@# Dba: checkInstanceConfiguration error
   output_handler.passwords.push_back("root");
 
@@ -310,18 +301,6 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
 
   //@<OUT> Dba: configureLocalInstance error 3
   output_handler.passwords.push_back("root");
-
-  //@<OUT> Dba.configureLocalInstance: super-read-only error (BUG#26422638)
-  output_handler.passwords.push_back(""); // Please provide the password for 'myAdmin@localhost...
-  output_handler.prompts.push_back("1"); // Please select an option [1]: 1
-  output_handler.prompts.push_back("n"); // Do you want to disable super_read_only and continue? [y|N]: n
-
-  //@<OUT> Dba.configureLocalInstance: clearReadOnly
-  output_handler.passwords.push_back(""); // Please provide the password for 'myAdmin@localhost...
-  output_handler.prompts.push_back("1"); // Please select an option [1]: 1
-  output_handler.prompts.push_back("y"); // Do you want to disable super_read_only and continue? [y|N]: y
-  output_handler.passwords.push_back(""); // Password for new account:
-  output_handler.passwords.push_back(""); // Confirm password:
 
   //@ Dba: configureLocalInstance not enough privileges 1
   output_handler.passwords.push_back(""); // Please provide the password for missingprivileges@...
@@ -366,8 +345,6 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_interactive.js");
-
-  execute("session.close();");
 }
 
 TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
@@ -471,12 +448,7 @@ TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
   _options->interactive = true;
   reset_shell();
 
-  //@<OUT> Dba.rebootClusterFromCompleteOutage: super-read-only error (BUG#26422638)
-  output_handler.prompts.push_back("y");
-  output_handler.prompts.push_back("y");
-  output_handler.prompts.push_back("n");
-  //@<OUT> Dba.rebootClusterFromCompleteOutage success
-  output_handler.prompts.push_back("y");
+  //@ Dba.rebootClusterFromCompleteOutage success
   output_handler.prompts.push_back("y");
   output_handler.prompts.push_back("y");
 
@@ -603,12 +575,7 @@ TEST_F(Shell_js_dba_tests, interactive_drop_metadata_schema) {
   //@# drop metadata: user response no
   output_handler.prompts.push_back("n");
 
-  //@<OUT> Dba.dropMetadataSchema: super-read-only error (BUG#26422638)
-  output_handler.prompts.push_back("y");
-  output_handler.prompts.push_back("n");
-
-  //@<OUT> drop metadata: user response yes to force and clearReadOnly
-  output_handler.prompts.push_back("y");
+  //@# drop metadata: user response yes
   output_handler.prompts.push_back("y");
 
   validate_interactive("dba_drop_metadata_interactive.js");
@@ -738,5 +705,26 @@ TEST_F(Shell_js_dba_tests, dba_help) {
 TEST_F(Shell_js_dba_tests, dba_cluster_help) {
   validate_interactive("dba_cluster_help.js");
 }
+
+TEST_F(Shell_js_dba_tests, super_read_only_handling) {
+  //@<OUT> Configures the instance, answers 'yes' on the read only prompt
+  output_handler.prompts.push_back("y");
+
+  //@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt
+  output_handler.prompts.push_back("y");
+
+  //@ Reboot the cluster
+  // Confirms addition of second instance
+  output_handler.prompts.push_back("y");
+
+  // Confirms addition of third instance
+  output_handler.prompts.push_back("y");
+
+  // Confirms clean up of read only
+  output_handler.prompts.push_back("y");
+
+  validate_interactive("dba_super_read_only_handling.js");
+}
+
 
 }

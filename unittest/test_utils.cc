@@ -104,6 +104,8 @@ bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt
     answer = target->prompts.front();
     target->prompts.pop_front();
 
+    target->full_output << answer << std::endl;
+
     ret_val = true;
   }
 
@@ -125,6 +127,8 @@ bool Shell_test_output_handler::deleg_password(void *user_data, const char *prom
   if (!target->passwords.empty()) {
     answer = target->passwords.front();
     target->passwords.pop_front();
+
+    target->full_output << answer << std::endl;
 
     ret_val = true;
   }
@@ -290,17 +294,11 @@ void Shell_core_test_wrapper::SetUp() {
   // Initializes the interactive shell
   reset_shell();
 
-  observe_notification("SN_SESSION_CONNECTED");
-  observe_notification("SN_SESSION_CONNECTION_LOST");
-  observe_notification("SN_SESSION_CLOSED");
-  observe_notification("SN_DEBUGGER");
+  observe_session_notifications();
 }
 
 void Shell_core_test_wrapper::TearDown() {
-  ignore_notification("SN_SESSION_CONNECTED");
-  ignore_notification("SN_SESSION_CONNECTION_LOST");
-  ignore_notification("SN_SESSION_CLOSED");
-  ignore_notification("SN_DEBUGGER");
+  ignore_session_notifications();
 
   if (!_open_sessions.empty()) {
     for (auto entry : _open_sessions) {
@@ -315,6 +313,21 @@ void Shell_core_test_wrapper::TearDown() {
 
   _interactive_shell.reset();
 }
+
+void Shell_core_test_wrapper::observe_session_notifications() {
+  observe_notification("SN_SESSION_CONNECTED");
+  observe_notification("SN_SESSION_CONNECTION_LOST");
+  observe_notification("SN_SESSION_CLOSED");
+  observe_notification("SN_DEBUGGER");
+}
+
+void Shell_core_test_wrapper::ignore_session_notifications() {
+  ignore_notification("SN_SESSION_CONNECTED");
+  ignore_notification("SN_SESSION_CONNECTION_LOST");
+  ignore_notification("SN_SESSION_CLOSED");
+  ignore_notification("SN_DEBUGGER");
+}
+
 
 void Shell_core_test_wrapper::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
   std::string identifier = context_identifier();

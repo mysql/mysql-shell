@@ -58,36 +58,41 @@ std::string Server_mock::create_data_file(
     dumper.start_object();
     dumper.append_string("stmt");
     dumper.append_string(result.sql);
-    dumper.append_string("result");
-    dumper.start_object();
-    dumper.append_string("columns");
-    dumper.start_array();
-    for (size_t index = 0; index < result.names.size(); index++) {
+    if (result.names.empty()) {
+      dumper.append_string("ok");
+      dumper.append_null();
+    } else {
+      dumper.append_string("result");
       dumper.start_object();
-      dumper.append_string("type");
-      dumper.append_string(map_column_type(result.types[index]));
-      dumper.append_string("name");
-      dumper.append_string(result.names[index]);
-      dumper.end_object();
-    }
-    dumper.end_array();
-
-    dumper.append_string("rows");
-    dumper.start_array();
-    for (auto row : result.rows) {
+      dumper.append_string("columns");
       dumper.start_array();
-      for (size_t field_index = 0; field_index < row.size(); field_index++) {
-        auto type = map_column_type(result.types[field_index]);
-        if (type == "STRING")
-          dumper.append_string(row[field_index]);
-        else
-          dumper.append_int64(std::stoi(row[field_index]));
+      for (size_t index = 0; index < result.names.size(); index++) {
+        dumper.start_object();
+        dumper.append_string("type");
+        dumper.append_string(map_column_type(result.types[index]));
+        dumper.append_string("name");
+        dumper.append_string(result.names[index]);
+        dumper.end_object();
       }
       dumper.end_array();
-    }
-    dumper.end_array();
 
-    dumper.end_object();
+      dumper.append_string("rows");
+      dumper.start_array();
+      for (auto row : result.rows) {
+        dumper.start_array();
+        for (size_t field_index = 0; field_index < row.size(); field_index++) {
+          auto type = map_column_type(result.types[field_index]);
+          if (type == "STRING")
+            dumper.append_string(row[field_index]);
+          else
+            dumper.append_int64(std::stoi(row[field_index]));
+        }
+        dumper.end_array();
+      }
+      dumper.end_array();
+
+      dumper.end_object();
+    }
 
     dumper.end_object();
   }
