@@ -43,7 +43,7 @@ NOT_IN = "NOT IN"
 ONE_OF = "ONE OF"
 ALL_OF = "ALL OF"
 
-GR_COMPLIANCE_SKIP_SCHEMAS = ("('mysql', 'performance_schema', "
+GR_COMPLIANCE_SKIP_SCHEMAS = ("('mysql', 'sys', 'performance_schema', "
                               "'information_schema')")
 GR_COMPLIANCE_SKIP_ENGINES = "('InnoDB', 'MEMORY')"
 

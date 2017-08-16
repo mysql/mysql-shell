@@ -538,6 +538,7 @@ static const char *k_admin_user_grants[] = {
   "REPLICATION CLIENT, CREATE USER ON *.*",
   "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.*",
   "GRANT SELECT ON performance_schema.*",
+  "GRANT SELECT ON sys.*",
   "GRANT SELECT, INSERT, UPDATE, DELETE ON mysql.*"
 };
 

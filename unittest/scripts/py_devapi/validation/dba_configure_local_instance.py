@@ -1,7 +1,12 @@
 #@ Initialization
 ||
 
-#@ create cluster
+#@<OUT> create GR admin account using configureLocalInstance
+{
+    "status": "ok"
+}
+
+#@ create cluster using cluster admin account (BUG#26523629)
 ||
 
 #@ Validates the create_cluster successfully configured the grLocal member of the instance addresses

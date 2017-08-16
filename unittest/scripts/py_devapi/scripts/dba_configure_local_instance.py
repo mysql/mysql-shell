@@ -3,9 +3,13 @@
 import time
 deployed_here = reset_or_deploy_sandboxes()
 
-shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+#@<OUT> create GR admin account using configureLocalInstance
+cnfPath1 = __sandbox_dir + str(__mysql_sandbox_port1) + "/my.cnf"
+dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port1), {'mycnfPath': cnfPath1, 'dbPassword': 'root', 'clusterAdmin': "gr_user", 'clusterAdminPassword': "root"})
 
-#@ create cluster
+#@ create cluster using cluster admin account (BUG#26523629)
+shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'gr_user', 'password': 'root'})
+
 if __have_ssl:
   cluster = dba.create_cluster('devCluster', {'memberSslMode':'REQUIRED', 'clearReadOnly': True})
 else:
@@ -47,8 +51,8 @@ wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 cluster.status()
 
 #@ Persist the GR configuration
-cnfPath = __sandbox_dir + str(__mysql_sandbox_port3) + "/my.cnf"
-result = dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port3), {'mycnfPath': cnfPath, 'dbPassword':'root'})
+cnfPath3 = __sandbox_dir + str(__mysql_sandbox_port3) + "/my.cnf"
+result = dba.configure_local_instance('root@localhost:' + str(__mysql_sandbox_port3), {'mycnfPath': cnfPath3, 'dbPassword':'root'})
 print (result.status)
 
 #@ Kill instance, will auto join after start
@@ -60,5 +64,6 @@ dba.start_sandbox_instance(__mysql_sandbox_port3, {'sandboxDir': __sandbox_dir})
 wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 
 #@ Finalization
-if deployed_here:
-  cleanup_sandbox(__mysql_sandbox_port1)
+shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+session.run_sql("DROP USER 'gr_user'@'%'")
+cleanup_sandboxes(deployed_here)
