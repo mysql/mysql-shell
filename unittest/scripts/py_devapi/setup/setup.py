@@ -209,7 +209,7 @@ def cleanup_sandbox(port):
       pass
 
 def reset_or_deploy_sandbox(port):
-  deployed_here = False;
+  deployed_here = False
 
   # Checks if the sandbox is up and running
   connected = connect_to_sandbox([port])
@@ -233,6 +233,7 @@ def reset_or_deploy_sandbox(port):
         reboot = True
   else:
     start = True
+    deployed_here = True
 
 
   # If reboot is needed, kills the sandbox first
@@ -309,7 +310,6 @@ def reset_or_deploy_sandbox(port):
     options['allowRootFrom'] = '%'
 
     dba.deploy_sandbox_instance(port, options)
-    deployed_here = True
 
   return deployed_here
 

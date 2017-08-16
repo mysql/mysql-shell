@@ -243,6 +243,7 @@ function reset_or_deploy_sandbox(port) {
     }
   } else {
     start = true;
+    deployed_here = true;
   }
 
   // If reboot is needed, kills the sandbox first
@@ -319,7 +320,6 @@ function reset_or_deploy_sandbox(port) {
     options['allowRootFrom'] = '%';
 
     dba.deploySandboxInstance(port, options);
-    deployed_here = true;
   }
 
   return deployed_here;

@@ -561,6 +561,7 @@ static const char *k_admin_user_grants[] = {
   "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.*",
   "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.*",
   "GRANT SELECT ON performance_schema.*",
+  "GRANT SELECT ON sys.*",
   "GRANT SELECT, INSERT, UPDATE, DELETE ON mysql.*"
 };
 
