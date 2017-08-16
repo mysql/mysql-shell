@@ -2,9 +2,13 @@
 //@ Initialization
 var deployed_here = reset_or_deploy_sandboxes();
 
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+//@<OUT> create GR admin account using configureLocalInstance
+var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root', clusterAdmin: "gr_user", clusterAdminPassword: "root"});
 
-//@ create cluster
+//@ create cluster using cluster admin account (BUG#26523629)
+shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'gr_user', password: 'root'});
+
 if (__have_ssl)
   var cluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED', clearReadOnly: true});
 else
@@ -24,7 +28,7 @@ wait_slave_state(cluster, 'second_sandbox', "ONLINE");
 wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 
 //@<OUT> Healthy cluster status
-cluster.status()
+cluster.status();
 
 //@ Kill instance, will not auto join after start
 dba.killSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir});
@@ -35,19 +39,19 @@ dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir});
 wait_slave_state(cluster, 'third_sandbox', ["OFFLINE", "(MISSING)"]);
 
 //@<OUT> Still missing 3rd instance
-os.sleep(5)
-cluster.status()
+os.sleep(5);
+cluster.status();
 
 //@#: Rejoins the instance
 cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"});
 wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 
 //@<OUT> Instance is back
-cluster.status()
+cluster.status();
 
 //@ Persist the GR configuration
-var cnfPath = __sandbox_dir + __mysql_sandbox_port3 + "/my.cnf";
-var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port3, {mycnfPath: cnfPath, dbPassword:'root'});
+var cnfPath3 = __sandbox_dir + __mysql_sandbox_port3 + "/my.cnf";
+var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port3, {mycnfPath: cnfPath3, dbPassword:'root'});
 print (result.status)
 
 //@ Kill instance, will auto join after start
@@ -63,5 +67,6 @@ shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port3, us
 session.runSql("show global variables like 'auto_increment_%'").fetchAll();
 
 //@ Finalization
-if (deployed_here)
-  cleanup_sandbox(__mysql_sandbox_port1);
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+session.runSql("DROP USER 'gr_user'@'%'");
+cleanup_sandboxes(deployed_here);
