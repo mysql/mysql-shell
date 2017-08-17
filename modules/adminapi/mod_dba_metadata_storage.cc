@@ -17,8 +17,9 @@
  * 02110-1301  USA
  */
 
+#include "modules/adminapi/mod_dba_metadata_storage.h"
+
 #include "utils/utils_sqlstring.h"
-#include "mod_dba_metadata_storage.h"
 #include "modules/adminapi/metadata-model_definitions.h"
 //#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/mod_mysql_session.h"
@@ -26,7 +27,6 @@
 #include "modules/mysql_connection.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlx_connection.h" // for error codes
-#include "mysqlxtest/password_hasher.h"
 
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -858,9 +858,9 @@ void MetadataStorage::create_account(const std::string &username,
 void MetadataStorage::create_repl_account(std::string &username,
                                           std::string &password) {
   shcore::sqlstring query;
-  bool account_created = false;
+  int password_length = PASSWORD_LENGTH;
   // Generate a password
-  password = generate_password();
+  password = generate_password(password_length);
 
   MySQL_timer timer;
   std::string tstamp = std::to_string(timer.get_time());
@@ -892,41 +892,28 @@ void MetadataStorage::create_repl_account(std::string &username,
 
       // If it reached here it means there were no errors
       retry_count = 0;
-      account_created = true;
     } catch (shcore::Exception &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
       // the current policy requirements
       // We regenerate the password to retry
       if (e.code() == ER_NOT_VALID_PASSWORD) {
-        password = generate_password();
-        retry_count--;
-      } else {
-        throw;
-      }
-    }
-  }
-
-  // Try to create an account using mysql_native_password with the
-  // hashed password to avoid validate_password verification.
-  if (!account_created) {
-    log_warning("Failed to create replication user account. "
-                "Trying to create the account using a SHA1 hashed "
-                "password to avoid the validate_password verification");
-    try {
-      // Compute the password SHA1 hash
-      std::string hashed_password =
-          Password_hasher::compute_password_hash(password);
-
-      // Create the account using an hashed password
-      create_account(username, hashed_password, hostname, true);
-    } catch (shcore::Exception &e) {
-      // If the error is: ERROR 1524 (HY000): Plugin 'mysql_native_password'
-      // is not loaded, we have failed all the attempts so we suggest the user
-      // to change to validate_password rules
-      if (e.code() == ER_PLUGIN_IS_NOT_LOADED) {
-        throw shcore::Exception::runtime_error(
-              "Failed to create replication user account. Try to decrease the "
-              "validate_password rules and try the operation again.");
+        if (retry_count == 100) {
+          try {
+            auto result = execute_sql("select @@validate_password_length");
+            auto row = result->fetch_one();
+            if (row && password_length < row->get_value(0).as_int()) {
+              password_length = row->get_value(0).as_int();
+            }
+          } catch (...) {
+            password_length = 32;
+          }
+        }
+        if (--retry_count <= 0) {
+          throw shcore::Exception::runtime_error(
+              "Unable to create a replication account compliant with "
+              "the active MySQL server password policy.");
+        }
+        password = generate_password(password_length);
       } else {
         throw;
       }

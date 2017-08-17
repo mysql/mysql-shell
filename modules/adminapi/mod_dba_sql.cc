@@ -459,7 +459,7 @@ std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection, 
  * Generates a random password
  * with length equal to PASSWORD_LENGTH
  */
-std::string generate_password() {
+std::string generate_password(size_t password_length) {
   std::random_device rd;
   static const char *alpha_lower = "abcdefghijklmnopqrstuvwxyz";
   static const char *alpha_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -467,6 +467,9 @@ std::string generate_password() {
   static const char *numeric = "1234567890";
 
   assert(PASSWORD_LENGTH >= 20);
+
+  if (password_length < PASSWORD_LENGTH)
+    password_length = PASSWORD_LENGTH;
 
   auto get_random = [&rd](size_t size, const char *source) {
     std::string data;
@@ -493,7 +496,7 @@ std::string generate_password() {
   // Generate a password
 
   // Fill the password string with special chars
-  std::string pwd = get_random(PASSWORD_LENGTH, special_chars);
+  std::string pwd = get_random(password_length, special_chars);
 
   // Replace 8 random non-consecutive chars by
   // 4 upperCase alphas and 4 lowerCase alphas
@@ -503,7 +506,7 @@ std::string generate_password() {
 
   std::uniform_int_distribution<int> rand_pos(0, pwd.length() - 1);
   size_t lower = 0;
-  size_t step = PASSWORD_LENGTH / 8;
+  size_t step = password_length / 8;
 
   for (size_t index = 0; index < 8; index++) {
     std::uniform_int_distribution<int> rand_pos(lower,
@@ -518,7 +521,7 @@ std::string generate_password() {
   std::string numbers = get_random(3, numeric);
   lower = 0;
 
-  step = PASSWORD_LENGTH / 3;
+  step = password_length / 3;
   for (size_t index = 0; index < 3; index++) {
     std::uniform_int_distribution<int> rand_pos(lower,
         ((index + 1) * step) - 1);

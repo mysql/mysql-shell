@@ -48,7 +48,7 @@ bool get_status_variable(mysqlsh::mysql::Connection *connection, const std::stri
 bool is_gtid_subset(mysqlsh::mysql::Connection *connection, const std::string &subset, const std::string &set);
 shcore::Value get_master_status(mysqlsh::mysql::Connection *connection);
 std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection, const std::string &instance_host);
-std::string generate_password();
+std::string generate_password(size_t password_length);
 }
 }
 
