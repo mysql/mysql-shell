@@ -444,8 +444,10 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
           "Multi-Master Mode.\n"
           "Before continuing you have to confirm that you understand the "
           "requirements and\n"
-          "limitations of Multi-Master Mode. Please read the manual before "
-          "proceeding.\n"
+          "limitations of Multi-Master Mode. For more information see\n"
+          "https://dev.mysql.com/doc/refman/en/"
+          "group-replication-limitations.html\n"
+          "before proceeding.\n"
           "\n");
 
       println(

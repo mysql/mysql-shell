@@ -3,7 +3,9 @@ A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sand
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
 Before continuing you have to confirm that you understand the requirements and
-limitations of Multi-Master Mode. Please read the manual before proceeding.
+limitations of Multi-Master Mode. For more information see
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+before proceeding.
 
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
@@ -16,7 +18,9 @@ A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sand
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
 Before continuing you have to confirm that you understand the requirements and
-limitations of Multi-Master Mode. Please read the manual before proceeding.
+limitations of Multi-Master Mode. For more information see
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+before proceeding.
 
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
@@ -173,7 +177,9 @@ A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sand
 
 The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
 Before continuing you have to confirm that you understand the requirements and
-limitations of Multi-Master Mode. Please read the manual before proceeding.
+limitations of Multi-Master Mode. For more information see
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+before proceeding.
 
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
