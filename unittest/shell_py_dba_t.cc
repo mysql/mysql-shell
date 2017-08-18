@@ -370,6 +370,9 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
 }
 
 TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster_multimaster) {
+  _options->interactive = true;
+  reset_shell();
+
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@<OUT> Dba: createCluster multiMaster with interaction, cancel
@@ -390,10 +393,19 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster_multimaster) {
   //@<OUT> Cluster: rejoin_instance with interaction, ok
   output_handler.passwords.push_back("root");
 
+  output_handler.set_log_level(ngcommon::Logger::LOG_INFO);
+
   // Tests cluster functionality, adding, removing instances
   // error conditions
   // Lets the cluster empty
   validate_interactive("dba_cluster_multimaster_interactive.py");
+
+  std::vector<std::string> log = {
+      "The MySQL InnoDB cluster is going to be setup in advanced Multi-Master "
+      "Mode. Consult its requirements and limitations in "
+      "https://dev.mysql.com/doc/refman/en/group-replication-limitations.html"};
+
+  MY_EXPECT_LOG_CONTAINS(log);
 
   execute("session.close();");
 }

@@ -658,6 +658,12 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           "the limitations. Please use the 'force' option if you understand "
           "and accept them.");
     }
+    if (multi_master) {
+      log_info(
+          "The MySQL InnoDB cluster is going to be setup in advanced "
+          "Multi-Master Mode. Consult its requirements and limitations in "
+          "https://dev.mysql.com/doc/refman/en/group-replication-limitations.html");
+    }
     cluster->add_seed_instance(instance_def, new_args, multi_master,
                                adopt_from_gr, replication_user,
                                replication_pwd);
