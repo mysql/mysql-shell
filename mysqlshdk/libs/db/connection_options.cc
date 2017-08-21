@@ -23,6 +23,8 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include <sstream>
+
 using mysqlshdk::utils::nullable;
 using mysqlshdk::utils::nullable_options::Set_mode;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
@@ -31,6 +33,18 @@ using mysqlshdk::db::uri::Uri_encoder;
 
 namespace mysqlshdk {
 namespace db {
+
+std::string to_string(Transport_type type) {
+  switch (type) {
+    case Transport_type::Tcp:
+      return "TCP/IP";
+    case Transport_type::Socket:
+      return "Unix socket";
+    case Transport_type::Pipe:
+      return "Pipe";
+  }
+  return "Unknown";
+}
 
 const std::set<std::string> Connection_options::fixed_str_list = {
     kHost, kSocket, kScheme, kSchema, kUser, kPassword};

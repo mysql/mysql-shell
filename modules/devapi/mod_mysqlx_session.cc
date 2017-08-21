@@ -904,6 +904,10 @@ std::string BaseSession::get_node_type() {
   return ret_val;
 }
 
+extern "C" {
+unsigned long mysql_get_client_version(void);
+}
+
 shcore::Value::Map_type_ref BaseSession::get_status() {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
@@ -933,20 +937,28 @@ shcore::Value::Map_type_ref BaseSession::get_status() {
     (*status)["CURRENT_USER"] =
         shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
     (*status)["CONNECTION_ID"] = shcore::Value(_session.get_connection_id());
-    (*status)["SSL_CIPHER"] = shcore::Value(_session.get_ssl_cipher());
+    std::string cipher = _session.get_ssl_cipher();
+    if(cipher.length() > 0) {
+      result = execute_sql("show session status like 'mysqlx_ssl_version';");
+      row = result->next();
+      (*status)["SSL_CIPHER"] = shcore::Value(_session.get_ssl_cipher() + " " + row->stringField(1));
+    }
     //(*status)["SKIP_UPDATES"] = shcore::Value(???);
-    //(*status)["DELIMITER"] = shcore::Value(???);
 
     // (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
 
-    // (*status)["PROTOCOL_VERSION"] =
-    // shcore::Value(_conn->get_protocol_info());
-    // (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_options());
+    (*status)["PROTOCOL_VERSION"] = shcore::Value("X protocol");
+    unsigned long ver = mysql_get_client_version();
+    std::stringstream sv;
+    sv << ver/10000 << "." << (ver%10000)/100 << "." << ver % 100;
+    (*status)["CLIENT_LIBRARY"] = shcore::Value(sv.str());
     // (*status)["INSERT_ID"] = shcore::Value(???);
 
     result = execute_sql(
         "select @@character_set_client, @@character_set_connection, "
-        "@@character_set_server, @@character_set_database, @@version_comment "
+        "@@character_set_server, @@character_set_database, "
+        "concat(@@version, \" \", @@version_comment) as version, "
+        "@@mysqlx_socket, @@mysqlx_port "
         "limit 1");
     row = result->next();
     (*status)["CLIENT_CHARSET"] =
@@ -960,16 +972,35 @@ shcore::Value::Map_type_ref BaseSession::get_status() {
     (*status)["SERVER_VERSION"] =
         shcore::Value(row->isNullField(4) ? "" : row->stringField(4));
 
-    // (*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
+    mysqlshdk::db::Transport_type transport_type =
+        mysqlshdk::db::Transport_type::Tcp;
+    if (_connection_options.has_transport_type()) {
+      transport_type = _connection_options.get_transport_type();
+      std::stringstream ss;
+      if (_connection_options.has_host())
+        ss << _connection_options.get_host() << " via ";
+      else
+        ss << "localhost via ";
+      ss << to_string(transport_type);
+      (*status)["CONNECTION"] = shcore::Value(ss.str());
+    }
+    else
+      (*status)["CONNECTION"] = shcore::Value("localhost via TCP/IP");
 
-    // TODO: Review retrieval from charset_info, mysql connection
+    if (transport_type == mysqlshdk::db::Transport_type::Tcp)
+      (*status)["TCP_PORT"] = shcore::Value(
+          row->isNullField(6) ? "" : std::to_string(row->uIntField(6)));
+    else if (transport_type == mysqlshdk::db::Transport_type::Socket)
+      (*status)["UNIX_SOCKET"] =
+          shcore::Value(row->isNullField(5) ? "" : row->stringField(5));
 
-    // TODO: Embedded library stuff
-    // (*status)["TCP_PORT"] = row->get_value(1);
-    // (*status)["UNIX_SOCKET"] = row->get_value(2);
+    result = execute_sql("SHOW GLOBAL STATUS LIKE 'Uptime';");
+    row = result->next();
+    std::stringstream su;
+    su << "Uptime: " << row->stringField(1) << " \n";
+    (*status)["SERVER_STATS"] =
+        shcore::Value(su.str());
     // (*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
-
-    // STATUS
 
     // SAFE UPDATES
   } catch (shcore::Exception &e) {

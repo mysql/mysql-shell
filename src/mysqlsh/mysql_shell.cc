@@ -537,10 +537,13 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
   version_msg += MYSH_VERSION;
   version_msg += "\n";
   println(version_msg);
+  auto session = _shell->get_dev_session();
 
-  if (_shell->get_dev_session() && _shell->get_dev_session()->is_open()) {
-    auto status = _shell->get_dev_session()->get_status();
-    std::string output_format = (*shcore::Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  if (session && session->is_open()) {
+    auto status = session->get_status();
+    (*status)["DELIMITER"] = shcore::Value(_shell->get_main_delimiter());
+    std::string output_format =
+        (*shcore::Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
     if (output_format.find("json") == 0)
       println(shcore::Value(status).json(output_format == "json"));
@@ -560,7 +563,9 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
           println(shcore::str_format(format.c_str(), "Connection Id: ", (*status)["CONNECTION_ID"].descr(true).c_str()));
 
         if (status->has_key("DEFAULT_SCHEMA"))
-          println(shcore::str_format(format.c_str(), "Default schema: ", (*status)["DEFAULT_SCHEMA"].descr(true).c_str()));
+          println(shcore::str_format(
+              format.c_str(), "Default schema: ",
+              (*status)["DEFAULT_SCHEMA"].descr(true).c_str()));
 
         if (status->has_key("CURRENT_SCHEMA"))
           println(shcore::str_format(format.c_str(), "Current schema: ", (*status)["CURRENT_SCHEMA"].descr(true).c_str()));
@@ -578,14 +583,16 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
         else
           println(shcore::str_format(format.c_str(), "SSL: ", "Not in use."));
 
+        if (status->has_key("DELIMITER"))
+          println(shcore::str_format(format.c_str(), "Using delimiter: ", (*status)["DELIMITER"].descr(true).c_str()));
         if (status->has_key("SERVER_VERSION"))
           println(shcore::str_format(format.c_str(), "Server version: ", (*status)["SERVER_VERSION"].descr(true).c_str()));
 
-        if (status->has_key("SERVER_INFO"))
-          println(shcore::str_format(format.c_str(), "Server info: ", (*status)["SERVER_INFO"].descr(true).c_str()));
-
         if (status->has_key("PROTOCOL_VERSION"))
           println(shcore::str_format(format.c_str(), "Protocol version: ", (*status)["PROTOCOL_VERSION"].descr(true).c_str()));
+
+        if (status->has_key("CLIENT_LIBRARY"))
+          println(shcore::str_format(format.c_str(), "Client library: ", (*status)["CLIENT_LIBRARY"].descr(true).c_str()));
 
         if (status->has_key("CONNECTION"))
           println(shcore::str_format(format.c_str(), "Connection: ", (*status)["CONNECTION"].descr(true).c_str()));
@@ -602,6 +609,15 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
         if (status->has_key("CONNECTION_CHARSET"))
           println(shcore::str_format(format.c_str(), "Conn. characterset: ", (*status)["CONNECTION_CHARSET"].descr(true).c_str()));
 
+        if (status->has_key("TCP_PORT"))
+          println(shcore::str_format(format.c_str(), "TCP port: ", (*status)["TCP_PORT"].descr(true).c_str()));
+
+        if (status->has_key("UNIX_SOCKET"))
+          println(shcore::str_format(format.c_str(), "Unix socket: ", (*status)["UNIX_SOCKET"].descr(true).c_str()));
+
+        if (status->has_key("UPTIME"))
+          println(shcore::str_format(format.c_str(), "Uptime: ", (*status)["UPTIME"].descr(true).c_str()));
+
         if (status->has_key("SERVER_STATS")) {
           std::string stats = (*status)["SERVER_STATS"].descr(true);
           size_t start = stats.find(" ");
@@ -612,7 +628,7 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
           unsigned long ltime = std::stoul(time);
           std::string str_time = MySQL_timer::format_legacy(ltime, false, true);
 
-          println(shcore::str_format(format.c_str(), "Up time: ", str_time.c_str()));
+          println(shcore::str_format(format.c_str(), "Uptime: ", str_time.c_str()));
           println("");
           println(stats.substr(end + 2));
         }

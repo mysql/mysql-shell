@@ -37,6 +37,7 @@ using utils::nullable_options::Comparison_mode;
 using utils::nullable;
 using utils::Nullable_options;
 enum Transport_type { Tcp, Socket, Pipe };
+std::string to_string(Transport_type type);
 
 class SHCORE_PUBLIC Connection_options
     : public mysqlshdk::utils::Nullable_options {

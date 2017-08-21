@@ -833,9 +833,10 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 
       if (row) {
         (*status)["SESSION_TYPE"] = shcore::Value("Classic");
-        (*status)["DEFAULT_SCHEMA"] =
-          shcore::Value(_connection_options.has_schema() ?
-                        _connection_options.get_schema() : "");
+        (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
+//        (*status)["DEFAULT_SCHEMA"] =
+//          shcore::Value(_connection_options.has_schema() ?
+//                        _connection_options.get_schema() : "");
 
         std::string current_schema = row->get_member(0).descr(true);
         if (current_schema == "null")
@@ -844,19 +845,40 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
         (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
         (*status)["CURRENT_USER"] = row->get_member(1);
         (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_conn->get_thread_id()));
-        (*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+
         //(*status)["SKIP_UPDATES"] = shcore::Value(???);
-        //(*status)["DELIMITER"] = shcore::Value(???);
 
         (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
 
-        (*status)["PROTOCOL_VERSION"] = shcore::Value(uint64_t(_conn->get_protocol_info()));
+        (*status)["PROTOCOL_VERSION"] =
+            shcore::Value(std::string("classic ") +
+                          std::to_string(_conn->get_protocol_info()));
         (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
         //(*status)["INSERT_ID"] = shcore::Value(???);
       }
     }
 
-    val_result = execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1", shcore::Argument_list());
+    const char *cipher = _conn->get_ssl_cipher();
+    if (cipher != NULL) {
+      val_result = execute_sql("show session status like 'ssl_version';",
+                               shcore::Argument_list());
+      result = val_result.as_object<ClassicResult>();
+      val_row = result->fetch_one(shcore::Argument_list());
+      std::string version;
+      if (val_row) {
+        auto row = val_row.as_object<mysqlsh::Row>();
+        version =  " " + row->get_member(1).descr(true);
+      }
+      (*status)["SSL_CIPHER"] = shcore::Value(cipher + version);
+    }
+
+    val_result = execute_sql(
+        "select @@character_set_client, @@character_set_connection, "
+        "@@character_set_server, @@character_set_database, "
+        "concat(@@version, \" \", @@version_comment) as version, "
+        "@@socket, @@port "
+        "limit 1",
+        shcore::Argument_list());
     result = val_result.as_object<ClassicResult>();
     val_row = result->fetch_one(shcore::Argument_list());
 
@@ -870,13 +892,28 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
         (*status)["SCHEMA_CHARSET"] = row->get_member(3);
         (*status)["SERVER_VERSION"] = row->get_member(4);
 
+        if (!_connection_options.has_transport_type() ||
+            _connection_options.get_transport_type() ==
+                mysqlshdk::db::Transport_type::Tcp)
+          (*status)["TCP_PORT"] = row->get_member(6);
+        else if (_connection_options.get_transport_type() ==
+                 mysqlshdk::db::Transport_type::Socket)
+          (*status)["UNIX_SOCKET"] = row->get_member(5);
+
+        unsigned long ver = mysql_get_client_version();
+        std::stringstream sv;
+        sv << ver/10000 << "." << (ver%10000)/100 << "." << ver % 100;
+        (*status)["CLIENT_LIBRARY"] = shcore::Value(sv.str());
+
         (*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
 
-        // TODO: Review retrieval from charset_info, mysql connection
-
-        // TODO: Embedded library stuff
-        //(*status)["TCP_PORT"] = row->get_value(1);
-        //(*status)["UNIX_SOCKET"] = row->get_value(2);
+        try {
+          if (_connection_options.get_transport_type() ==
+              mysqlshdk::db::Transport_type::Tcp)
+            (*status)["TCP_PORT"] =
+                shcore::Value(_connection_options.get_port());
+        } catch (...) {
+        }
         //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
 
         // STATUS
