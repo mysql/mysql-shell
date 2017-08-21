@@ -44,8 +44,11 @@ public:
   virtual bool print_help(const std::string& topic);
   void print_exception(const shcore::Exception &e);
   std::shared_ptr<mysqlsh::ShellBaseSession> get_session();
+  const std::string &get_main_delimiter() const {
+    return _delimiters.get_main_delimiter();
+  }
 
-private:
+ private:
   std::string _sql_cache;
   mysql::splitter::Delimiters _delimiters;
   std::stack<std::string> _parsing_context_stack;

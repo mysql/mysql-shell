@@ -162,8 +162,9 @@ public:
   virtual const std::vector<std::string>& get_input_args() { return _input_args; }
   virtual bool print_help(const std::string& topic);
   bool reconnect_if_needed();
+  std::string get_main_delimiter() const;
 
-private:
+ private:
   static void deleg_print(void *self, const char *text);
   static void deleg_print_error(void *self, const char *text);
   static void deleg_print_value(void *self, const shcore::Value &value, const char *tag);

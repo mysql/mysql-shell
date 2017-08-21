@@ -422,6 +422,13 @@ bool Shell_core::reconnect_if_needed() {
   return ret_val;
 }
 
+std::string Shell_core::get_main_delimiter() const {
+  auto it = _langs.find(Mode::SQL);
+  if (it == _langs.end())
+    return ";";
+  return dynamic_cast<Shell_sql *>(it->second)->get_main_delimiter();
+}
+
 void Shell_core::execute_module(const std::string &file_name, std::function<void(shcore::Value)> result_processor, const std::vector<std::string> &argv) {
   _input_args = argv;
 

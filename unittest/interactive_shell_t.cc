@@ -1302,6 +1302,7 @@ TEST_F(Interactive_shell_test, ssl_status) {
   execute("\\connect " + _uri + "?sslMode=REQUIRED");
   execute("\\status");
   MY_EXPECT_STDOUT_CONTAINS("Cipher in use: ");
+  MY_EXPECT_STDOUT_CONTAINS("TLSv");
   EXPECT_EQ("SSL", _interactive_shell->prompt_variables()->at("ssl"));
 
   wipe_all();
@@ -1314,7 +1315,149 @@ TEST_F(Interactive_shell_test, ssl_status) {
   execute("\\connect " + _mysql_uri + "?sslMode=REQUIRED");
   execute("\\status");
   MY_EXPECT_STDOUT_CONTAINS("Cipher in use: ");
+  MY_EXPECT_STDOUT_CONTAINS("TLSv");
   EXPECT_EQ("SSL", _interactive_shell->prompt_variables()->at("ssl"));
+}
+
+TEST_F(Interactive_shell_test, status_x) {
+  execute("\\connect " + _uri + "?sslMode=DISABLED");
+  wipe_all();
+  execute("\\status");
+
+  char c = 0;
+  int dec = 0;
+  std::stringstream ss(output_handler.std_out);
+  std::string line;
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Node"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Server type"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(sscanf(line.c_str(), "Connection Id:                %d", &dec), 1);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Default schema"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Current schema"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Current user"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("SSL"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(sscanf(line.c_str(), "Using delimiter:              %c", &c), 1);
+  EXPECT_EQ(c, ';');
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Server version"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(line, "Protocol version:             X protocol");
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(sscanf(line.c_str(), "Client library:               %d.%d.%d", &dec,
+                   &dec, &dec),
+            3);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Connection"), std::string::npos);
+  EXPECT_NE(line.find("via TCP"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Server characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Schema characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Client characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Conn. characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(sscanf(line.c_str(), "TCP port:                     %d", &dec), 1);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Uptime"), std::string::npos);
+  EXPECT_NE(line.find("sec"), std::string::npos);
+}
+
+TEST_F(Interactive_shell_test, status_classic) {
+  execute("\\connect " + _mysql_uri + "?sslMode=DISABLED");
+  wipe_all();
+  execute("\\status");
+
+  char c = 0;
+  int dec = 0;
+  std::stringstream ss(output_handler.std_out);
+  std::string line;
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Classic"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Server type"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(sscanf(line.c_str(), "Connection Id:                %d", &dec), 1);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Current schema"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Current user"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("SSL"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(sscanf(line.c_str(), "Using delimiter:              %c", &c), 1);
+  EXPECT_EQ(c, ';');
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Server version"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(
+      sscanf(line.c_str(), "Protocol version:             classic %d", &dec),
+      1);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(sscanf(line.c_str(), "Client library:               %d.%d.%d", &dec,
+                   &dec, &dec),
+            3);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Connection"), std::string::npos);
+  EXPECT_NE(line.find("via TCP"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Server characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Schema characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Client characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  ASSERT_NE(line.find("Conn. characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(sscanf(line.c_str(), "TCP port:                     %d", &dec), 1);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(line.find("Uptime"), std::string::npos);
+  EXPECT_NE(line.find("sec"), std::string::npos);
 }
 
 }  // namespace mysqlsh
