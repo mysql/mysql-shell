@@ -57,6 +57,9 @@
 //@ Retrieving collection as table
 |getCollectionAsTable(): <Table:collection1>|
 
+//@ Query collection as table
+|getCollectionAsTable().select(): <RowResult>|
+
 //@ Collection creation
 |createCollection(): <Collection:my_sample_collection>|
 

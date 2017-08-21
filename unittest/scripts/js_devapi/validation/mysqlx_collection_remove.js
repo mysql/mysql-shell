@@ -45,8 +45,8 @@
 ||CollectionRemove.bind: Unable to bind value for unexisting placeholder: another
 
 //@# CollectionRemove: Error conditions on execute
-||CollectionRemove.execute: Missing value bindings for the next placeholders: data, years
-||CollectionRemove.execute: Missing value bindings for the next placeholders: data
+||CollectionRemove.execute: Missing value bindings for the following placeholders: data, years
+||CollectionRemove.execute: Missing value bindings for the following placeholders: data
 
 //@ CollectionRemove: remove under condition
 |Affected Rows: 1|

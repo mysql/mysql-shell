@@ -18,229 +18,238 @@
  */
 
 #include "mysqlshdk/libs/db/mysql/row.h"
-#include <climits> // C limit constants
-#include <limits> // std::numeric_limits
-#include <cmath> // HUGE_VAL
 #include <cerrno>
+#include <climits>  // C limit constants
+#include <cmath>    // HUGE_VAL
+#include <limits>   // std::numeric_limits
+#include <string>
+#include <utility>
 #include "mysqlshdk/libs/db/mysql/result.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
+
+#define bit_uint1korr(A) (*(((uint8_t *)(A))))
+
+#define bit_uint2korr(A)                                \
+  ((uint16_t)(((uint16_t)(((unsigned char *)(A))[1])) + \
+              ((uint16_t)(((unsigned char *)(A))[0]) << 8)))
+#define bit_uint3korr(A)                                       \
+  ((uint32_t)(((uint32_t)(((unsigned char *)(A))[2])) +        \
+              (((uint32_t)(((unsigned char *)(A))[1])) << 8) + \
+              (((uint32_t)(((unsigned char *)(A))[0])) << 16)))
+#define bit_uint4korr(A)                                        \
+  ((uint32_t)(((uint32_t)(((unsigned char *)(A))[3])) +         \
+              (((uint32_t)(((unsigned char *)(A))[2])) << 8) +  \
+              (((uint32_t)(((unsigned char *)(A))[1])) << 16) + \
+              (((uint32_t)(((unsigned char *)(A))[0])) << 24)))
+#define bit_uint5korr(A)                                         \
+  ((uint64_t)(((uint32_t)(((unsigned char *)(A))[4])) +          \
+              (((uint32_t)(((unsigned char *)(A))[3])) << 8) +   \
+              (((uint32_t)(((unsigned char *)(A))[2])) << 16) +  \
+              (((uint32_t)(((unsigned char *)(A))[1])) << 24)) + \
+   (((uint64_t)(((unsigned char *)(A))[0])) << 32))
+#define bit_uint6korr(A)                                         \
+  ((uint64_t)(((uint32_t)(((unsigned char *)(A))[5])) +          \
+              (((uint32_t)(((unsigned char *)(A))[4])) << 8) +   \
+              (((uint32_t)(((unsigned char *)(A))[3])) << 16) +  \
+              (((uint32_t)(((unsigned char *)(A))[2])) << 24)) + \
+   (((uint64_t)(((uint32_t)(((unsigned char *)(A))[1])) +        \
+                (((uint32_t)(((unsigned char *)(A))[0]) << 8)))) \
+    << 32))
+#define bit_uint7korr(A)                                          \
+  ((uint64_t)(((uint32_t)(((unsigned char *)(A))[6])) +           \
+              (((uint32_t)(((unsigned char *)(A))[5])) << 8) +    \
+              (((uint32_t)(((unsigned char *)(A))[4])) << 16) +   \
+              (((uint32_t)(((unsigned char *)(A))[3])) << 24)) +  \
+   (((uint64_t)(((uint32_t)(((unsigned char *)(A))[2])) +         \
+                (((uint32_t)(((unsigned char *)(A))[1])) << 8) +  \
+                (((uint32_t)(((unsigned char *)(A))[0])) << 16))) \
+    << 32))
+#define bit_uint8korr(A)                                          \
+  ((uint64_t)(((uint32_t)(((unsigned char *)(A))[7])) +           \
+              (((uint32_t)(((unsigned char *)(A))[6])) << 8) +    \
+              (((uint32_t)(((unsigned char *)(A))[5])) << 16) +   \
+              (((uint32_t)(((unsigned char *)(A))[4])) << 24)) +  \
+   (((uint64_t)(((uint32_t)(((unsigned char *)(A))[3])) +         \
+                (((uint32_t)(((unsigned char *)(A))[2])) << 8) +  \
+                (((uint32_t)(((unsigned char *)(A))[1])) << 16) + \
+                (((uint32_t)(((unsigned char *)(A))[0])) << 24))) \
+    << 32))
 
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
-std::map<std::string, std::set<Type> > Row::_type_mappings = {
-  {"string", {Type::Decimal,
-              Type::Date,
-              Type::Time,
-              Type::String,
-              Type::Json} },
-  {"int",    {Type::Integer} },
-  {"double", {Type::Double} },
-  {"date",   {Type::DateTime} }
-};
 
-Row::Row(std::shared_ptr<Result> result, MYSQL_ROW row, unsigned long* lengths)
+Row::Row(std::shared_ptr<Result> result, MYSQL_ROW row,
+         const unsigned long *lengths)
     : _result(result), _row(row) {
+  // TODO(alfredo) there's actually no need to keep a copy of the lengths list
+  // because it is valid for as long as MYSQL_ROW is and both should become
+  // invalidated when the next row is fetched
   for (size_t index = 0; index < result->get_metadata().size(); index++)
     _lengths.push_back(lengths[index]);
 }
 
-std::string Row::resolve_mysql_data_type(Type type)
-{
-  switch (type) {
-    case Type::Null:
-        return "null";
-    case Type::Decimal:
-        return "decimal";
-    case Type::Date:
-        return "date";
-    case Type::Time:
-        return "time";
-    case Type::String:
-        return "string";
-    case Type::Blob:
-        return "blob";
-    case Type::Geometry:
-        return "geometry";
-    case Type::Json:
-        return "json";
-    case Type::Integer:
-        return "integer";
-    case Type::Double:
-        return "double";
-    case Type::DateTime:
-        return "dsatetime";
-    case Type::Bit:
-        return "bit";
-    case Type::Enum:
-        return "enum";
-    case Type::Set:
-        return "set";
-  }
+#define FIELD_ERROR(index, msg) \
+  std::invalid_argument(        \
+      shcore::str_format("%s(%u): " msg, __FUNCTION__, index).c_str())
 
-  return "Unknown";
-}
+#define FIELD_ERROR1(index, msg, arg) \
+  std::invalid_argument(              \
+      shcore::str_format("%s(%u): " msg, __FUNCTION__, index, arg).c_str())
 
-bool Row::is_null(int index) const {
-  validate_index(index);
+#define VALIDATE_INDEX(index)                          \
+  do {                                                 \
+    if (index >= num_fields())                         \
+      throw FIELD_ERROR(index, "index out of bounds"); \
+  } while (0)
+
+#define VALIDATE_TYPE(index, TYPE_CHECK)                                       \
+  do {                                                                         \
+    if (index >= static_cast<uint32_t>(_result->get_metadata().size()))        \
+      throw FIELD_ERROR(index, "index out of bounds");                         \
+    if (_row[index] == nullptr)                                                \
+      throw FIELD_ERROR(index, "field is NULL");                               \
+    Type ftype = get_type(index);                                              \
+    if (!(TYPE_CHECK))                                                         \
+      throw FIELD_ERROR1(index, "field type is %s", to_string(ftype).c_str()); \
+  } while (0)
+
+bool Row::is_null(uint32_t index) const {
+  VALIDATE_INDEX(index);
 
   return _row[index] == NULL;
 }
 
-bool Row::is_int(int index) const {
-  return validate_type(index, "int") &&
-    !_result->get_metadata()[index].is_unsigned();
+uint32_t Row::num_fields() const {
+  return static_cast<uint32_t>(_result->get_metadata().size());
 }
 
-bool Row::is_uint(int index) const {
-  return validate_type(index, "int") &&
-    _result->get_metadata()[index].is_unsigned();
+Type Row::get_type(uint32_t index) const {
+  VALIDATE_INDEX(index);
+  return _result->get_metadata().at(index).get_type();
 }
 
-bool Row::is_string(int index) const {
-  return validate_type(index, "string");
+std::string Row::get_as_string(uint32_t index) const {
+  VALIDATE_INDEX(index);
+  if (!_row[index])
+    throw FIELD_ERROR(index, "field is NULL");
+  if (get_type(index) == Type::Bit)
+    return shcore::bits_to_string(get_bit(index),
+                                  _result->get_metadata()[index].get_length());
+  return std::string(_row[index], _lengths[index]);
 }
 
-bool Row::is_binary(int index) const {
-  return _result->get_metadata()[index].is_binary();
-}
-
-bool Row::is_double(int index) const {
-  return validate_type(index, "double");
-}
-
-bool Row::is_date(int index) const {
-  return validate_type(index, "date");
-}
-
-void Row::validate_index(int index) const {
-  if (index < 0 || index >= static_cast<int>(_result->get_metadata().size()))
-    throw std::runtime_error("Error trying to fetch row data: index out of bounds");
-}
-
-bool Row::validate_type(int index, const std::string& type, bool throw_on_error) const {
-  bool ret_val = false;
-
-  validate_index(index);
-
-  const auto &metadata = _result->get_metadata();
-
-  Type column_type;
-  if (index < static_cast<int>(metadata.size()))
-    column_type = metadata[index].get_type();
-
-  ret_val = _type_mappings[type].find(column_type) != _type_mappings[type].end();
-
-  // TODO: Add both requested type translator and found type translator
-  //       to be included on the error message
-  if (!ret_val && throw_on_error) {
-    std::string error("Error trying to fetch row data: invalid data type: "\
-      "expected " + type + " "\
-      "found " + resolve_mysql_data_type(metadata[index].get_type()) + " "\
-      "at position " + std::to_string(index));
-
-      throw std::runtime_error(error);
-  }
-
-  return ret_val;
-}
-
-size_t Row::size() const {
-  return _result->get_metadata().size();
-}
-
-int64_t Row::get_int(int index) const {
+int64_t Row::get_int(uint32_t index) const {
   int64_t ret_val = 0;
 
-  if (validate_type(index, "int", true)) {
+  VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger));
 
-    if (_result->get_metadata()[index].is_unsigned()) {
-      uint64_t unsigned_val = strtoull(_row[index], nullptr, 10);
+  if (_result->get_metadata()[index].is_unsigned()) {
+    uint64_t unsigned_val = strtoull(_row[index], nullptr, 10);
 
-      if ((errno == ERANGE && unsigned_val == ULLONG_MAX)  ||
-          unsigned_val > (std::numeric_limits<int64_t>::max)())
-        throw std::runtime_error("Error trying to fetch row data: unsigned "\
-                                 "integer value exceeds allowed range");
+    if ((errno == ERANGE && unsigned_val == ULLONG_MAX) ||
+        unsigned_val > (std::numeric_limits<int64_t>::max)())
+      throw FIELD_ERROR(index, "field value exceeds allowed range");
 
-      ret_val = static_cast<int64_t>(unsigned_val);
-    } else {
-      ret_val = strtoll(_row[index], nullptr, 10);
+    ret_val = static_cast<int64_t>(unsigned_val);
+  } else {
+    ret_val = strtoll(_row[index], nullptr, 10);
 
-      if (errno == ERANGE && (ret_val == LLONG_MAX || ret_val == LLONG_MIN))
-        throw std::runtime_error("Error trying to fetch row data: integer "\
-                                 "value exceeds allowed range");
-    }
+    if (errno == ERANGE && (ret_val == LLONG_MAX || ret_val == LLONG_MIN))
+      throw FIELD_ERROR(index, "field value out of the allowed range");
   }
-
   return ret_val;
 }
 
-uint64_t Row::get_uint(int index) const {
+uint64_t Row::get_uint(uint32_t index) const {
   uint64_t ret_val = 0;
 
-  if (validate_type(index, "int", true)) {
+  VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger));
 
-    if (_result->get_metadata()[index].is_unsigned()) {
-      ret_val = strtoull(_row[index], nullptr, 10);
-
-      if (ret_val == ULLONG_MAX && errno == ERANGE)
-        throw std::runtime_error("Error trying to fetch row data: unsigned "\
-                                 "integer value exceeds allowed range");
-    }
-    else {
-      int64_t signed_val = strtoll(_row[index], nullptr, 10);
-
-      if (signed_val < 0 || (errno == ERANGE &&
-         (signed_val == LLONG_MAX || signed_val == LLONG_MIN)))
-        throw std::runtime_error("Error trying to fetch row data: integer value out of the allowed range");
-
-      ret_val = static_cast<uint64_t>(signed_val);
-    }
+  if (_result->get_metadata()[index].is_unsigned()) {
+    ret_val = strtoull(_row[index], nullptr, 10);
+    if (ret_val == ULLONG_MAX && errno == ERANGE)
+      throw FIELD_ERROR(index, "field value exceeds allowed range");
+  } else {
+    int64_t signed_val = strtoll(_row[index], nullptr, 10);
+    if (signed_val < 0 || (errno == ERANGE && (signed_val == LLONG_MAX ||
+                                               signed_val == LLONG_MIN)))
+      throw FIELD_ERROR(index, "field value out of the allowed range");
+    ret_val = static_cast<uint64_t>(signed_val);
   }
-
   return ret_val;
 }
 
-std::string Row::get_string(int index) const {
-  std::string ret_val;
-  if (validate_type(index, "string", true)) {
-    ret_val = std::string(_row[index], _lengths[index]);
-  }
+std::string Row::get_string(uint32_t index) const {
+  VALIDATE_TYPE(index, (is_string_type(ftype)));
 
+  return std::string(_row[index], _lengths[index]);
+}
+
+std::pair<const char *, size_t> Row::get_string_data(uint32_t index) const {
+  VALIDATE_TYPE(index, (is_string_type(ftype)));
+  return std::pair<const char *, size_t>(_row[index], _lengths[index]);
+}
+
+float Row::get_float(uint32_t index) const {
+  float ret_val = 0;
+
+  VALIDATE_TYPE(index, (ftype == Type::Float || ftype == Type::Double ||
+                        ftype == Type::Decimal));
+
+  ret_val = strtof(_row[index], nullptr);
+  if (errno == ERANGE && (ret_val == HUGE_VAL || ret_val == -HUGE_VAL))
+    throw FIELD_ERROR(index, "float value out of the allowed range");
   return ret_val;
 }
 
-std::pair<const char*, size_t> Row::get_data(int index) const {
-  return std::pair<const char*, size_t>(_row[index], _lengths[index]);
-}
-
-double Row::get_double(int index) const {
+double Row::get_double(uint32_t index) const {
   double ret_val = 0;
 
-  if (validate_type(index, "double", true))
+  VALIDATE_TYPE(index, (ftype == Type::Float || ftype == Type::Double ||
+                        ftype == Type::Decimal));
+
   ret_val = strtod(_row[index], nullptr);
-
   if (errno == ERANGE && (ret_val == HUGE_VAL || ret_val == -HUGE_VAL))
-    throw std::runtime_error("Error trying to fetch row data: double value "\
-                             "out of the allowed range");
-
+    throw FIELD_ERROR(index, "double value out of the allowed range");
   return ret_val;
 }
 
-
-std::string Row::get_date(int index) const {
-  std::string ret_val;
-
-  if (validate_type(index, "date", true))
-    ret_val = _row[index];
-
-  return ret_val;
+uint64_t Row::get_bit(uint32_t index) const {
+  VALIDATE_TYPE(index, (ftype == Type::Bit));
+  uint64_t uval = 0;
+  switch (_lengths[index]) {
+    case 8:
+      uval = static_cast<uint64_t>(bit_uint8korr(_row[index]));
+      break;
+    case 7:
+      uval = static_cast<uint64_t>(bit_uint7korr(_row[index]));
+      break;
+    case 6:
+      uval = static_cast<uint64_t>(bit_uint6korr(_row[index]));
+      break;
+    case 5:
+      uval = static_cast<uint64_t>(bit_uint5korr(_row[index]));
+      break;
+    case 4:
+      uval = static_cast<uint64_t>(bit_uint4korr(_row[index]));
+      break;
+    case 3:
+      uval = static_cast<uint64_t>(bit_uint3korr(_row[index]));
+      break;
+    case 2:
+      uval = static_cast<uint64_t>(bit_uint2korr(_row[index]));
+      break;
+    case 1:
+      uval = static_cast<uint64_t>(bit_uint1korr(_row[index]));
+      break;
+    case 0:
+      uval = 0;
+      break;
+  }
+  return uval;
 }
 
-// TODO: Need to add support for these data types
-//case MYSQL_TYPE_BIT:
-//case MYSQL_TYPE_ENUM:
-//case MYSQL_TYPE_SET:
-
-}
-}
-}
+}  // namespace mysql
+}  // namespace db
+}  // namespace mysqlshdk

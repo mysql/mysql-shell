@@ -50,6 +50,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   bool has_tls_version() const { return has_value(kSslTlsVersion); }
 
   int get_mode() const;
+  std::string get_mode_name() const;
   const std::string& get_ca() const { return _get(kSslCa); }
   const std::string& get_capath() const { return _get(kSslCaPath); }
   const std::string& get_cert() const { return _get(kSslCert); }

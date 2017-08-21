@@ -268,7 +268,7 @@ void Admin_api_test::add_get_cluster_matching_query(
     {"cluster_id", "cluster_name", "default_replicaset", "description",
      "options", "attributes"},
     {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::String,
-     mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Blob,
+     mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Bytes,
      mysqlshdk::db::Type::Json, mysqlshdk::db::Type::Json},
     {
       {"1", cluster_name.c_str(), "1", "Test Cluster", "null",

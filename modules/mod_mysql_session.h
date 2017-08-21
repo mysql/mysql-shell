@@ -71,7 +71,7 @@ public:
 
 // We need to hide this from doxygen to avoid warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
-  std::shared_ptr<ClassicResult> execute_sql(const std::string& query) const;
+  std::shared_ptr<ClassicResult> execute_sql(const std::string& query);
 #endif
 
   // Virtual methods from object bridge
@@ -85,7 +85,7 @@ public:
   virtual void create_schema(const std::string& name);
   virtual void drop_schema(const std::string &name);
   virtual void set_current_schema(const std::string &name);
-  virtual shcore::Object_bridge_ref get_schema(const std::string &name) const;
+  virtual shcore::Object_bridge_ref get_schema(const std::string &name);
   virtual void start_transaction();
   virtual void commit();
   virtual void rollback();
@@ -95,7 +95,7 @@ public:
   }
 
   shcore::Value _close(const shcore::Argument_list &args);
-  virtual shcore::Value run_sql(const shcore::Argument_list &args) const;
+  virtual shcore::Value run_sql(const shcore::Argument_list &args);
   shcore::Value _create_schema(const shcore::Argument_list &args);
   virtual shcore::Value _start_transaction(const shcore::Argument_list &args);
   virtual shcore::Value _commit(const shcore::Argument_list &args);
@@ -106,15 +106,18 @@ public:
 
   virtual shcore::Value::Map_type_ref get_status();
 
-  shcore::Value _get_schema(const shcore::Argument_list &args) const;
+  shcore::Value _get_schema(const shcore::Argument_list &args);
 
-  shcore::Value get_schemas(const shcore::Argument_list &args) const;
+  shcore::Value get_schemas(const shcore::Argument_list &args);
 
   shcore::Value _set_current_schema(const shcore::Argument_list &args);
 
-  virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
+  virtual std::string db_object_exists(std::string &type,
+                                       const std::string &name,
+                                       const std::string &owner);
 
-  static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+  static std::shared_ptr<shcore::Object_bridge> create(
+      const shcore::Argument_list &args);
 
   Connection *connection();
 
@@ -122,14 +125,15 @@ public:
   virtual std::string query_one_string(const std::string &query, int field = 0);
   virtual std::string get_ssl_cipher() const;
 
-  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const;
-  shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
+  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query);
+  shcore::Value execute_sql(const std::string &query,
+                            const shcore::Argument_list &args);
 
   virtual SessionType session_type() const {
     return SessionType::Classic;
   }
 
-  virtual void kill_query() const;
+  virtual void kill_query();
 
 #if DOXYGEN_JS
   String uri; //!< Same as getUri()

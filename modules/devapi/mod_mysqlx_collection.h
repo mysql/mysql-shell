@@ -26,7 +26,6 @@
 #include <memory>
 #include <string>
 #include "modules/devapi/base_database_object.h"
-#include "mysqlx_crud.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
@@ -47,7 +46,6 @@ class Collection : public DatabaseObject,
                    public std::enable_shared_from_this<Collection> {
  public:
   Collection(std::shared_ptr<Schema> owner, const std::string &name);
-  Collection(std::shared_ptr<const Schema> owner, const std::string &name);
   ~Collection();
 
   virtual std::string class_name() const { return "Collection"; }
@@ -78,7 +76,6 @@ class Collection : public DatabaseObject,
 
  private:
   void init();
-  std::shared_ptr< ::mysqlx::Collection> _collection_impl;
 
   // Allows initial functions on the CRUD operations
   friend shcore::Value CollectionAdd::add(const shcore::Argument_list &args);

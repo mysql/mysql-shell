@@ -10,7 +10,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on TinyInt Column
@@ -25,7 +24,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Unsigned TinyInt Column
@@ -40,7 +38,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on SmallInt Column
@@ -55,7 +52,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Unsigned SmallInt Column
@@ -70,7 +66,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on MediumInt Column
@@ -85,7 +80,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Unsigned MediumInt Column
@@ -100,7 +94,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Int Column
@@ -115,7 +108,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Unsigned Int Column
@@ -130,7 +122,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Float Column
@@ -145,7 +136,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Unsigned Float Column
@@ -160,7 +150,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Float Column with length and fractional digits
@@ -175,7 +164,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Decimal Column
@@ -190,7 +178,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Unsigned Decimal Column
@@ -205,7 +192,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Decimal Column with length and fractional digits
@@ -220,7 +206,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Double Column
@@ -235,7 +220,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Unsigned Double Column
@@ -250,7 +234,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Double Column with length and fractional digits
@@ -265,7 +248,6 @@
 |Is Number Signed: true|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Json Column
@@ -279,7 +261,6 @@
 |Is Number Signed: false|
 |Collation Name: binary|
 |Charset Name: binary|
-|Is Padded: false|
 |Is ZeroFill: false|
 
 //@ Metadata on Char Column
@@ -291,10 +272,9 @@
 |Type: <Type.STRING>|
 |Length: 20|
 |Fractional Digits: 0|
-|Is Number Signed: true|
+|Is Number Signed: false|
 |Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
 |Charset Name: utf8mb4|
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Varchar Column
@@ -309,7 +289,6 @@
 |Is Number Signed: false|
 |Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
 |Charset Name: utf8mb4|
-|Is Padded: false|
 |Is ZeroFill: false|
 
 //@ Metadata on Text Column
@@ -324,7 +303,6 @@
 |Is Number Signed: false|
 |Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
 |Charset Name: utf8mb4|
-|Is Padded: false|
 |Is ZeroFill: false|
 
 //@ Metadata on Time Column
@@ -339,7 +317,6 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Date Column
@@ -354,22 +331,20 @@
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
-//@ Metadata on Timestamp Column
+//@ Metadata on DateTime Column
 |Schema Name: py_shell_test|
 |Table Name: table2|
 |Table Label: table2|
 |Column Name: seven|
 |Column Label: seven|
-|Type: <Type.TIMESTAMP>|
+|Type: <Type.DATETIME>|
 |Length: 19|
 |Fractional Digits: 0|
 |Is Number Signed: false|
 |Collation Name: |
 |Charset Name: |
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Set Column
@@ -384,7 +359,6 @@
 |Is Number Signed: false|
 |Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
 |Charset Name: utf8mb4|
-|Is Padded: true|
 |Is ZeroFill: false|
 
 //@ Metadata on Enum Column
@@ -399,5 +373,32 @@
 |Is Number Signed: false|
 |Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
 |Charset Name: utf8mb4|
-|Is Padded: true|
+|Is ZeroFill: false|
+
+//@ Metadata on VarBinary Column
+|Schema Name: py_shell_test|
+|Table Name: table2|
+|Table Label: table2|
+|Column Name: ten|
+|Column Label: ten|
+|Type: <Type.BYTES>|
+|Length: 15|
+|Fractional Digits: 0|
+|Is Number Signed: false|
+|Collation Name: binary|
+|Charset Name: binary|
+|Is ZeroFill: false|
+
+//@ Metadata on Blob Column
+|Schema Name: py_shell_test|
+|Table Name: table2|
+|Table Label: table2|
+|Column Name: eleven|
+|Column Label: eleven|
+|Type: <Type.BYTES>|
+|Length: 65535|
+|Fractional Digits: 0|
+|Is Number Signed: false|
+|Collation Name: binary|
+|Charset Name: binary|
 |Is ZeroFill: false|

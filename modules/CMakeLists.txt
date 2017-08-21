@@ -13,28 +13,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-include_directories(BEFORE
+INCLUDE_DIRECTORIES(BEFORE
      ${CMAKE_CURRENT_SOURCE_DIR}
 	 ${CMAKE_BINARY_DIR}
-     "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
-     "${CMAKE_SOURCE_DIR}/mysqlshdk/include"
-	 "${CMAKE_SOURCE_DIR}/"
-	 "${CMAKE_SOURCE_DIR}/mysqlxtest"
-     "${CMAKE_BINARY_DIR}/mysqlxtest" # for protobuf files
-	 "${CMAKE_SOURCE_DIR}/mysqlxtest/common"
-	 "${CMAKE_SOURCE_DIR}/common/uuid/include"
-	 "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
+	 ${CMAKE_SOURCE_DIR}
+     ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
+     ${CMAKE_SOURCE_DIR}/mysqlshdk/include
+	 ${CMAKE_SOURCE_DIR}/common/uuid/include
+	 ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
 	 ${MYSQL_INCLUDE_DIRS})
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/generate_metadata_source.cmake)
+INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/generate_metadata_source.cmake)
 
-
-include_directories(${SSL_INCLUDE_DIRS})
-if(WITH_SSL STREQUAL "bundled")
-  set(MY_AES_SOURCE my_aes_yassl.cc)
-else()
-  set(MY_AES_SOURCE my_aes_openssl.cc)
-endif()
 
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
@@ -43,10 +33,11 @@ file(GLOB api_module_SOURCES
       "mod_mysql_*.cc"
       "mod_shell.cc"
       "mod_sys.cc"
-	  "mod_utils.cc"
+      "mod_utils.cc"
       "mysql_connection.cc"
       "interactive_object_wrapper.cc"
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
+      "adminapi/password_hasher.cc"
       "adminapi/mod_dba.cc"
       "adminapi/mod_dba_cluster.cc"
       "adminapi/mod_dba_metadata_storage.cc"
@@ -56,6 +47,6 @@ file(GLOB api_module_SOURCES
       "adminapi/mod_dba_sql.cc")
 
 add_convenience_library(api_modules ${api_module_SOURCES})
-target_link_libraries(api_modules mysqlxtest utils)
+target_link_libraries(api_modules utils)
 
 ADD_STAN_TARGET(api_modules ${api_module_SOURCES})

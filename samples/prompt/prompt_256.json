@@ -22,22 +22,22 @@
     "disconnected": {
     },
     "host" : {
-      "text": "%host%:%port%"
+      "text": "%transport%"
     },
     "hostx" : {
-      "text": "%host%:%port%+"
+      "text": "%transport%+"
     },
     "hostc" : {
-      "text": "%host%:%port%"
+      "text": "%transport%"
     },
     "SSLhost" : {
-      "text": "%host%:%port% ssl"
+      "text": "%transport% ssl"
     },
     "SSLhostx" : {
-      "text": "%host%:%port%+ ssl"
+      "text": "%transport%+ ssl"
     },
     "SSLhostc" : {
-      "text": "%host%:%port% ssl"
+      "text": "%transport% ssl"
     },
 
     "production" : {
@@ -54,6 +54,14 @@
         },
         "if_true" : "production",
         "if_false" : ""
+    },
+    "transport" : {
+        "match" : {
+          "pattern": "%socket%",
+          "value": ""
+        },
+        "if_true": "%host%:%port%",
+        "if_false": "localhost"
     }
   },
   "symbols" : {

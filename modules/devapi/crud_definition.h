@@ -23,34 +23,29 @@
 #ifndef MODULES_DEVAPI_CRUD_DEFINITION_H_
 #define MODULES_DEVAPI_CRUD_DEFINITION_H_
 
-#include "modules/devapi/dynamic_object.h"
-#include "scripting/common.h"
-#include "scripting/types_cpp.h"
-#include "mysqlxtest/mysqlx_crud.h"
-
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
-#ifdef __GNUC__
-#define ATTR_UNUSED __attribute__((unused))
-#else
-#define ATTR_UNUSED
-#endif
+#include "modules/devapi/dynamic_object.h"
+#include "modules/devapi/mod_mysqlx_session.h"
+#include "scripting/common.h"
+#include "db/mysqlx/mysqlxclient_clean.h"
 
 namespace mysqlsh {
 class DatabaseObject;
 namespace mysqlx {
+
 #if DOXYGEN_CPP
 /**
-* Base class for CRUD operations.
-*
-* The CRUD operations will use "dynamic" functions to control the method
-* chaining.
-* A dynamic function is one that will be enabled/disabled based on the method
-* chain sequence.
-*/
+ * Base class for CRUD operations.
+ *
+ * The CRUD operations will use "dynamic" functions to control the method
+ * chaining.
+ * A dynamic function is one that will be enabled/disabled based on the method
+ * chain sequence.
+ */
 #endif
 class Crud_definition : public Dynamic_object {
  public:
@@ -59,12 +54,36 @@ class Crud_definition : public Dynamic_object {
   // The last step on CRUD operations
   virtual shcore::Value execute(const shcore::Argument_list &args) = 0;
  protected:
-  std::shared_ptr<::mysqlx::Result> safe_exec(::mysqlx::Statement &stmt);
+  std::shared_ptr<mysqlshdk::db::mysqlx::Result> safe_exec(
+      std::function<std::shared_ptr<mysqlshdk::db::IResult>()> func);
 
-  std::weak_ptr<DatabaseObject> _owner;
+  std::shared_ptr<NodeSession> session();
+  std::shared_ptr<DatabaseObject> _owner;
 
   void parse_string_list(const shcore::Argument_list &args,
                          std::vector<std::string> &data);
+
+ protected:
+  std::vector<std::string> _placeholders;
+  std::vector<std::unique_ptr<Mysqlx::Datatypes::Scalar>> _bound_values;
+
+  virtual void parse_string_expression(::Mysqlx::Expr::Expr *expr,
+                                       const std::string &expr_str) = 0;
+
+  std::unique_ptr<Mysqlx::Datatypes::Scalar> convert_value(
+      const shcore::Value &value);
+  void encode_expression_value(Mysqlx::Expr::Expr *expr,
+                               const shcore::Value &value);
+  void encode_expression_object(Mysqlx::Expr::Expr *expr,
+                                const shcore::Value &value);
+
+  void bind_value(const std::string &name, shcore::Value value);
+
+  void insert_bound_values(
+      ::google::protobuf::RepeatedPtrField<::Mysqlx::Datatypes::Scalar>
+          *target);
+  void init_bound_values();
+  void validate_bind_placeholder(const std::string &name);
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

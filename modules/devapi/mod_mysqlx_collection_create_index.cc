@@ -16,12 +16,14 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
+
 #include "modules/devapi/mod_mysqlx_collection_create_index.h"
 #include "modules/devapi/base_constants.h"
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "mysqlx_parser.h"
+#include "uuid_gen.h"
+#include "db/mysqlx/mysqlx_parser.h"
 #include "shellcore/utils_help.h"
 #include "uuid_gen.h"
 
@@ -254,8 +256,8 @@ shcore::Value CollectionCreateIndex::execute(
   try {
     if (raw_owner) {
       Value session = raw_owner->get_member("session");
-      std::shared_ptr<BaseSession> session_obj =
-          std::static_pointer_cast<BaseSession>(session.as_object());
+      auto session_obj =
+          std::static_pointer_cast<NodeSession>(session.as_object());
       result = session_obj->executeAdminCommand("create_collection_index",
                                                 false, _create_index_args);
     }

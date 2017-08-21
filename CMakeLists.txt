@@ -43,25 +43,25 @@ INCLUDE(version.cmake)
 
 INCLUDE(install_macros)
 INCLUDE(libutils)
-INCLUDE(ssl)
 INCLUDE(compiler)
 INCLUDE(static_analysis)
 include(cmake/compile_flags.cmake)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
+
 if(HAVE_PYTHON)
   FIND_PACKAGE(PythonLibs 2.6)
   # On windows stores the path to the python libraries since they will be bundled
   IF(WIN32)
     # PYTHON_PATH and PYTHON_FOLDER are used to properly copy the python libraries where needed
     # By default they take the value of PB2WORKDIR and PYTHON_SOURCENAME env vars
-    IF (NOT PYTHON_PATH AND NOT PYTHON_FOLDER)
+    IF(NOT PYTHON_PATH AND NOT PYTHON_FOLDER)
       SET(PYTHON_PATH "$ENV{PB2WORKDIR}")
       SET(PYTHON_FOLDER "$ENV{PYTHON_SOURCENAME}")
     ENDIF()
 
-    IF (PYTHON_PATH AND PYTHON_FOLDER)
+    IF(PYTHON_PATH AND PYTHON_FOLDER)
       SET(PYTHON_LIBRARY_PATH "${PYTHON_PATH}\\${PYTHON_FOLDER}\\Lib")
       STRING(REPLACE "\\" "\\\\" PYTHON_LIBRARY_PATH ${PYTHON_LIBRARY_PATH})
       STRING(REPLACE "Lib" "DLLs" PYTHON_DLLS_PATH ${PYTHON_LIBRARY_PATH})
@@ -69,20 +69,13 @@ if(HAVE_PYTHON)
   ENDIF()
 endif()
 
-INCLUDE(protobuf)
-SETUP_PROTOBUF()
-
-SET(HAVE_PROTOBUF "YES")              # Variable for CMake processing
-add_definitions(-DX_PROTOCOL_ENABLED) # Preprocessor variable for generated projects
-
-add_definitions(-DMYSQLXTEST_STANDALONE)
-
 IF(WIN32)
 	# Speed up build process excluding unused header files
 	# Also definitely resolves the trouble of using both
 	# windows.h and winsock2.h
 	ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
   ADD_DEFINITIONS(-DNOMINMAX)
+  ADD_DEFINITIONS(-DDISABLE_ALL_PSI)
 
 	# Sets the windows versions that should be supported
 	ADD_DEFINITIONS(-DNTDDI_VERSION=0x06000100 -D_WIN32_WINNT=0x0600)
@@ -91,7 +84,7 @@ ELSE()
   SET(WITH_DEV "1")
 ENDIF()
 
-IF ( V8_INCLUDE_DIR AND V8_LIB_DIR )
+IF(V8_INCLUDE_DIR AND V8_LIB_DIR)
   set(HAVE_V8 "YES")         # Variable for CMake processing
   add_definitions(-DHAVE_V8) # Preprocessor variable for generated projects
 ELSE()
@@ -122,35 +115,10 @@ if(NOT DEFINED MYSQLCLIENT_STATIC_LINKING)
   set(MYSQLCLIENT_STATIC_LINKING TRUE)
 endif()
 
-find_package(MySQL REQUIRED)
-add_definitions(-DHAVE_LIBMYSQLCLIENT)
-
-find_package(Boost 1.42 REQUIRED)
-find_package(Curses)
-
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-
-# Check whether boost::system can be compiled into the binary
-include(CheckCXXSourceCompiles)
-SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
-add_definitions(-DBOOST_ALL_NO_LIB)
-
-SET(CMAKE_REQUIRED_INCLUDES ${Boost_INCLUDE_DIRS})
-
-SET(BOOST_SOURCE
-"
-#define BOOST_ERROR_CODE_HEADER_ONLY
-#include <boost/system/error_code.hpp>
-int main()
-{
- boost::system::error_code error;
- return error.value();
-}
-")
-
-SET(BOOST_SYSTEM_COMPILES "BOOST_SYSTEM_COMPILES")
-
-CHECK_CXX_SOURCE_COMPILES("${BOOST_SOURCE}" BOOST_SYSTEM_COMPILES)
+# Needed for protobuf header paths, which are needed to use libmysqlxclient
+INCLUDE(protobuf)
+add_definitions(-DUSE_MYSQLX_FULL_PROTO)
+INCLUDE(FindMySQLx)
 
 ##
 ## Installation location
@@ -161,7 +129,7 @@ SET(INSTALL_INCLUDEDIR "include/mysqlsh")
 SET(INSTALL_SHAREDIR "share/mysqlsh")
 
 ##
-## Configure style system detection (generation of config.h)
+## Configure style system detection(generation of config.h)
 ##
 INCLUDE(configure.cmake)
 # This is used for the version_compile_machine variable.
@@ -169,9 +137,9 @@ SET(MYSQL_MACHINE_TYPE ${CMAKE_SYSTEM_PROCESSOR})
 IF(CMAKE_SYSTEM_PROCESSOR MATCHES "i386" AND CMAKE_SIZEOF_VOID_P MATCHES 8)
   SET(MYSQL_MACHINE_TYPE "x86_64")
 ENDIF()
-CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
+CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/mysqlshdk/include/mysh_config.h)
 
-MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
+MACRO(MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
   SET(SAVE_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
   SET(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${FLAG}")
   CHECK_CXX_SOURCE_COMPILES("int main(void) { return 0; }" ${RESULT}
@@ -181,7 +149,7 @@ MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
     FAIL_REGEX "unrecognized .*option"
     FAIL_REGEX "ignoring unknown option"
     FAIL_REGEX "[Ww]arning: [Oo]ption"
-    )
+   )
   SET(CMAKE_REQUIRED_FLAGS "${SAVE_CMAKE_REQUIRED_FLAGS}")
 ENDMACRO()
 
@@ -199,17 +167,12 @@ IF(WIN32)
   ENDIF()
 ENDIF()
 
-# Must be before MYSQL_CHECK_SSL()
-include_directories(${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/include/)
-
-# Add bundled yassl/taocrypt or system openssl.
-IF (WITH_SSL)
-  MYSQL_CHECK_SSL()
-ENDIF()
-
-MESSAGE(STATUS "SSL_LIBRARIES:    ${SSL_LIBRARIES}")
-MESSAGE(STATUS "SSL_DEFINES:      ${SSL_DEFINES}")
-MESSAGE(STATUS "SSL_INCLUDE_DIRS: ${SSL_INCLUDE_DIRS}")
+# Includes common to the whole project
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/include/
+            ${PROJECT_SOURCE_DIR}/include
+            ${MYSQL_INCLUDE_DIRS}
+            ${MYSQLX_INCLUDE_DIRS}
+            ${PROTOBUF_INCLUDE_DIRS})
 
 ###
 ### Handle User Options
@@ -219,7 +182,7 @@ if(HAVE_V8)
   find_library(V8_LIB v8
                PATHS ${V8_LIB_DIR}
                NO_DEFAULT_PATH
-  )
+ )
   set(V8_LIBS)
   if(V8_LIB)
     set(V8_LIBS ${V8_LIB})      # Single lib, just use it
@@ -230,7 +193,7 @@ if(HAVE_V8)
       find_library(_v8_lib ${_libname}
                    PATHS ${V8_LIB_DIR}
                    NO_DEFAULT_PATH
-      )
+     )
       if(NOT _v8_lib)
         message(FATAL_ERROR "Could not find the library \"v8\" or \"${_libname}\"")
       else()
@@ -257,11 +220,8 @@ IF(WITH_TESTS)
   ###
   ### Unit-test support
   ###
-  include(testing)
+  INCLUDE(testing)
   SETUP_TESTING()
-ENDIF()
-
-IF(WITH_TESTS)
   add_subdirectory(unittest)
   add_subdirectory(shell-tests)
   CONFIGURE_FILE(CTestCustom.cmake   ${CMAKE_BINARY_DIR}/CTestCustom.cmake)
@@ -271,11 +231,10 @@ ENDIF()
 ### Build Projects
 ###
 
-add_subdirectory(python)
-add_subdirectory(mysqlxtest)
-add_subdirectory(mysqlshdk)
-add_subdirectory(modules)
-add_subdirectory(src)
+ADD_SUBDIRECTORY(python)
+ADD_SUBDIRECTORY(mysqlshdk)
+ADD_SUBDIRECTORY(modules)
+ADD_SUBDIRECTORY(src)
 add_subdirectory(samples)
 
 CHECK_STAN_OPTIONS()
@@ -284,7 +243,7 @@ CHECK_STAN_OPTIONS()
 ### Packaging and other dependecy copying
 ###
 
-include(packaging)
+INCLUDE(packaging)
 
 if(WIN32)
   remove_definitions(-DUNICODE)
@@ -316,8 +275,8 @@ if(WITH_DEV)
 endif()
 
 # This should be there for both MD and non MD windows builds
-if (HAVE_PYTHON)
-  if (WIN32)
+if(HAVE_PYTHON)
+  if(WIN32)
     set(PY_DLL ${PYTHON_LIBRARIES})
     string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
     get_filename_component(PY_FILE ${PY_DLL} NAME)
@@ -325,7 +284,7 @@ if (HAVE_PYTHON)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
 
-    IF (WITH_DEV)
+    IF(WITH_DEV)
       install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
     ENDIF()
 

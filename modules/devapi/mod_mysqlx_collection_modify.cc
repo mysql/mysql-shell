@@ -19,9 +19,11 @@
 #include "modules/devapi/mod_mysqlx_collection_modify.h"
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
-#include "shellcore/utils_help.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
+#include "modules/devapi/mod_mysqlx_expression.h"
 #include "utils/utils_time.h"
+#include "utils/utils_string.h"
+#include "shellcore/utils_help.h"
+#include "db/mysqlx/mysqlx_parser.h"
 
 #include <algorithm>
 #include <memory>
@@ -47,6 +49,9 @@ REGISTER_HELP(
 CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
     : Collection_crud_definition(
           std::static_pointer_cast<DatabaseObject>(owner)) {
+  message_.mutable_collection()->set_schema(owner->schema()->name());
+  message_.mutable_collection()->set_name(owner->name());
+  message_.set_data_model(Mysqlx::Crud::DOCUMENT);
   // Exposes the methods available for chaining
   add_method("modify", std::bind(&CollectionModify::modify, this, _1), "data");
   add_method("set", std::bind(&CollectionModify::set, this, _1), "data");
@@ -78,6 +83,55 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
 
   // Initial function update
   update_functions("");
+}
+
+
+void CollectionModify::set_operation(int type, const std::string &path,
+                                     const shcore::Value &value,
+                                     bool validate_array) {
+  // Sets the operation
+  Mysqlx::Crud::UpdateOperation *operation =
+      message_.mutable_operation()->Add();
+  operation->set_operation(Mysqlx::Crud::UpdateOperation_UpdateType(type));
+
+  std::unique_ptr<Mysqlx::Expr::Expr> docpath(
+      ::mysqlx::parser::parse_column_identifier(path.empty() ? "$" : path));
+  Mysqlx::Expr::ColumnIdentifier identifier(docpath->identifier());
+
+  // Validates the source is an array item
+  int size = identifier.document_path().size();
+  if (size) {
+    if (validate_array) {
+      if (identifier.document_path().Get(size - 1).type() !=
+          Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX)
+        throw std::logic_error("An array document path must be specified");
+    }
+  } else if (type != Mysqlx::Crud::UpdateOperation::ITEM_MERGE) {
+    throw std::logic_error("Invalid document path");
+  }
+  // Sets the source
+  operation->mutable_source()->CopyFrom(identifier);
+
+  // Sets the value if applicable
+  if (value.type == shcore::Object &&
+      value.as_object()->class_name() == "Expression") {
+    auto expr = std::dynamic_pointer_cast<mysqlsh::mysqlx::Expression>(
+        value.as_object());
+    if (expr) {
+      ::mysqlx::Expr_parser parser(expr->get_data(), true, false,
+                                   &_placeholders);
+      operation->set_allocated_value(parser.expr().release());
+    }
+  } else if (value) {
+    if (type == Mysqlx::Crud::UpdateOperation::ITEM_MERGE) {
+      if (value.type != shcore::Map) {
+        throw std::invalid_argument("Argument expected to be a JSON object");
+      }
+    }
+    operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
+    operation->mutable_value()->set_allocated_literal(
+        convert_value(value).release());
+  }
 }
 
 // Documentation of modify function
@@ -143,7 +197,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("modify").c_str());
 
   std::shared_ptr<Collection> collection(
-      std::static_pointer_cast<Collection>(_owner.lock()));
+      std::static_pointer_cast<Collection>(_owner));
 
   if (collection) {
     try {
@@ -152,8 +206,9 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
       if (search_condition.empty())
         throw shcore::Exception::argument_error("Requires a search condition.");
 
-      _modify_statement.reset(new ::mysqlx::ModifyStatement(
-          collection->_collection_impl->modify(search_condition)));
+      message_.set_allocated_criteria(
+          ::mysqlx::parser::parse_collection_filter(search_condition,
+                                                    &_placeholders));
 
       // Updates the exposed functions
       update_functions("modify");
@@ -263,8 +318,8 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("set").c_str());
 
   try {
-    std::string field = args.string_at(0);
-    _modify_statement->set(field, map_document_value(args[1]));
+    set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, args.string_at(0),
+                  args[1]);
 
     update_functions("operation");
   }
@@ -404,19 +459,22 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
       int int_index = 0;
       for (index = items->begin(); index != end; index++) {
         int_index++;
-        if (index->type == shcore::String)
-          _modify_statement->remove(index->as_string());
-        else
+        if (index->type == shcore::String) {
+          set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE,
+                        index->as_string(), shcore::Value());
+        } else {
           throw shcore::Exception::type_error(
               str_format("Element #%d is expected to be a string", int_index));
+        }
       }
 
       unset_count = items->size();
     } else {
       for (size_t index = 0; index < args.size(); index++) {
-        if (args[index].type == shcore::String)
-          _modify_statement->remove(args.string_at(index));
-        else {
+        if (args[index].type == shcore::String) {
+          set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE,
+                        args.string_at(index), shcore::Value());
+        } else {
           std::string error;
 
           if (args.size() == 1)
@@ -510,11 +568,8 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("merge").c_str());
 
   try {
-    shcore::Value::Map_type_ref items = args.map_at(0);
 
-    Value object_as_json(args[0].json());
-
-    _modify_statement->merge(map_document_value(object_as_json));
+    set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", args[0]);
 
     update_functions("operation");
   }
@@ -593,8 +648,8 @@ shcore::Value CollectionModify::array_insert(
   args.ensure_count(2, get_function_name("arrayInsert").c_str());
 
   try {
-    _modify_statement->arrayInsert(args.string_at(0),
-                                   map_document_value(args[1]));
+    set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_INSERT,
+                  args.string_at(0), args[1], true);
 
     // Updates the exposed functions
     update_functions("operation");
@@ -672,9 +727,8 @@ shcore::Value CollectionModify::array_append(
   args.ensure_count(2, get_function_name("arrayAppend").c_str());
 
   try {
-    std::string field = args.string_at(0);
-
-    _modify_statement->arrayAppend(field, map_document_value(args[1]));
+    set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_APPEND,
+                  args.string_at(0), args[1]);
 
     update_functions("operation");
   }
@@ -750,7 +804,8 @@ shcore::Value CollectionModify::array_delete(
   args.ensure_count(1, get_function_name("arrayDelete").c_str());
 
   try {
-    _modify_statement->arrayDelete(args.string_at(0));
+    set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, args.string_at(0),
+                  shcore::Value(), true);
 
     // Updates the exposed functions
     update_functions("operation");
@@ -827,7 +882,9 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
     if (fields.size() == 0)
       throw shcore::Exception::argument_error("Sort criteria can not be empty");
 
-    _modify_statement->sort(fields);
+    for (auto &f : fields)
+      ::mysqlx::parser::parse_collection_sort_column(*message_.mutable_order(),
+                                                     f);
 
     update_functions("sort");
   }
@@ -887,7 +944,7 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
   try {
-    _modify_statement->limit(args.uint_at(0));
+    message_.mutable_limit()->set_row_count(args.uint_at(0));
 
     update_functions("limit");
   }
@@ -943,7 +1000,7 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
   try {
-    _modify_statement->bind(args.string_at(0), map_document_value(args[1]));
+    bind_value(args.string_at(0), args[1]);
 
     update_functions("bind");
   }
@@ -994,13 +1051,15 @@ Result CollectionModify::execute() {}
 Result CollectionModify::execute() {}
 #endif
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlx::Result> result;
-
+  std::unique_ptr<mysqlsh::mysqlx::Result> result;
+  args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
+    insert_bound_values(message_.mutable_args());
     timer.start();
-    result.reset(new mysqlx::Result(safe_exec(*_modify_statement)));
+    result.reset(new mysqlx::Result(safe_exec([this]() {
+      return session()->session()->execute_crud(message_);
+    })));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

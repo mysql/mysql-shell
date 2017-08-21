@@ -17,7 +17,7 @@
 * 02110-1301  USA
 */
 
-#include "include/mysh_config.h"
+#include "mysh_config.h"
 
 #include <stdio.h>
 #include <time.h>

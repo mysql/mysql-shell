@@ -37,16 +37,7 @@ using namespace shcore;
 
 Collection::Collection(std::shared_ptr<Schema> owner, const std::string &name)
     : DatabaseObject(owner->_session.lock(),
-                     std::static_pointer_cast<DatabaseObject>(owner), name),
-      _collection_impl(owner->_schema_impl->getCollection(name)) {
-  init();
-}
-
-Collection::Collection(std::shared_ptr<const Schema> owner,
-                       const std::string &name)
-    : DatabaseObject(owner->_session.lock(),
-                     std::const_pointer_cast<Schema>(owner), name) {
-  _collection_impl = owner->_schema_impl->getCollection(name);
+                     std::static_pointer_cast<DatabaseObject>(owner), name) {
   init();
 }
 

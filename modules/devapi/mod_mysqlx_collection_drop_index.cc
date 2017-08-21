@@ -97,10 +97,13 @@ shcore::Value CollectionDropIndex::drop_index(
     std::shared_ptr<Collection> raw_owner(_owner.lock());
 
     if (raw_owner) {
+      _drop_index_args = shcore::make_dict();
       Value schema = raw_owner->get_member("schema");
-      _drop_index_args.push_back(schema.as_object()->get_member("name"));
-      _drop_index_args.push_back(raw_owner->get_member("name"));
-      _drop_index_args.push_back(args[0]);
+      (*_drop_index_args)["schema"] = schema.as_object()->get_member("name");
+      (*_drop_index_args)["collection"] = raw_owner->get_member("name");
+      (*_drop_index_args)["name"] = args[0];
+    } else {
+      throw std::logic_error("Invalid collection object");
     }
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("dropIndex"));
@@ -138,9 +141,9 @@ shcore::Value CollectionDropIndex::execute(const shcore::Argument_list &args) {
   try {
     if (raw_owner) {
       Value session = raw_owner->get_member("session");
-      std::shared_ptr<BaseSession> session_obj =
-          std::static_pointer_cast<BaseSession>(session.as_object());
-      result = session_obj->executeAdminCommand("drop_collection_index", false,
+      auto session_obj =
+          std::static_pointer_cast<NodeSession>(session.as_object());
+      result = session_obj->_execute_mysqlx_stmt("drop_collection_index",
                                                 _drop_index_args);
     }
   }

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -19,14 +19,14 @@
 
 #include "utils_time.h"
 #include "utils/utils_string.h"
-#include <boost/format.hpp>
 #include <cmath>
+#include <ctime>
 
 #if defined(WIN32)
 #include <time.h>
 #else
 #include <sys/times.h>
-#ifdef _SC_CLK_TCK				// For mit-pthreads
+#ifdef _SC_CLK_TCK // For mit-pthreads
 #undef CLOCKS_PER_SEC
 #define CLOCKS_PER_SEC (sysconf(_SC_CLK_TCK))
 #endif
@@ -90,6 +90,10 @@ std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds,
   return str_duration;
 }
 
+unsigned long MySQL_timer::seconds_to_duration(float s) {
+  return static_cast<unsigned long>(s * CLOCKS_PER_SEC);
+}
+
 void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds) {
   double duration;
 
@@ -97,7 +101,7 @@ void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, 
     duration = raw_time;
   else {
     unsigned long closk_per_second = CLOCKS_PER_SEC;
-    duration = (double)(raw_time) / closk_per_second;
+    duration = (double)raw_time / closk_per_second;
   }
 
   std::string str_duration;

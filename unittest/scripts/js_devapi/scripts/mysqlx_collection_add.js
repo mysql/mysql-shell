@@ -18,7 +18,7 @@ var crud = collection.add([]);
 validate_crud_functions(crud, ['add', 'execute']);
 
 //@ CollectionAdd: valid operations after add
-var crud = collection.add({ name: "john", age: 17 });
+var crud = collection.add({ name: "john", age: 17, account: null });
 validate_crud_functions(crud, ['add', 'execute']);
 
 //@ CollectionAdd: valid operations after execute

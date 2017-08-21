@@ -20,23 +20,51 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _CORELIBS_DB_IRESULT_H_
-#define _CORELIBS_DB_IRESULT_H_
+#ifndef MYSQLSHDK_LIBS_DB_RESULT_H_
+#define MYSQLSHDK_LIBS_DB_RESULT_H_
 
-#include "mysqlshdk_export.h"
-#include "mysqlshdk/libs/db/row.h"
-#include "mysqlshdk/libs/db/column.h"
 #include <memory>
+#include <string>
 #include <vector>
+#include "mysqlshdk/libs/db/column.h"
+#include "mysqlshdk/libs/db/row.h"
+#include "mysqlshdk_export.h"
 
 namespace mysqlshdk {
 namespace db {
+
+struct Warning {
+  enum class Level { Note, Warning, Error };
+  Level level;
+  std::string msg;
+  uint32_t code;
+};
+
 class SHCORE_PUBLIC IResult {
-public:
+ public:
   // Data fetching
-  virtual std::unique_ptr<IRow> fetch_one() = 0;
-  virtual bool next_data_set() = 0;
-  virtual std::unique_ptr<IRow> fetch_one_warning() = 0;
+
+  /**
+   * Fetches one row from the resultset.
+   * @return Reference to the row object
+   *
+   * The returned row object is only valid for as long as its result object
+   * is valid and up until the next call to fetch_one().
+   *
+   * To keep a long-living reference to a Row object, copy it into a
+   * Row_copy object.
+   */
+  virtual const IRow* fetch_one() = 0;
+  virtual bool next_resultset() = 0;
+
+  /**
+   * Fetches warnings generated while executing query.
+   * @return Warning or null if no more warnings
+   *
+   * Note: in classic protocol, warnings must be fetched after the complete
+   * results are fetched.
+   */
+  virtual std::unique_ptr<Warning> fetch_one_warning() = 0;
 
   // Metadata retrieval
   virtual int64_t get_auto_increment_value() const = 0;
@@ -45,13 +73,13 @@ public:
   virtual uint64_t get_affected_row_count() const = 0;
   virtual uint64_t get_fetched_row_count() const = 0;
   virtual uint64_t get_warning_count() const = 0;
-  virtual unsigned long get_execution_time() const = 0;
   virtual std::string get_info() const = 0;
 
   virtual const std::vector<Column>& get_metadata() const = 0;
 
-  virtual ~IResult() {}
+  virtual ~IResult() {
+  }
 };
-}
-}
-#endif
+}  // namespace db
+}  // namespace mysqlshdk
+#endif  // MYSQLSHDK_LIBS_DB_RESULT_H_

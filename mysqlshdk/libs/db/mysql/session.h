@@ -32,7 +32,6 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -65,35 +64,41 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   void close();
 
-  bool next_data_set();
+  bool next_resultset();
   void prepare_fetch(Result *target, bool buffered);
 
   std::string uri() { return _uri; }
 
   // Utility functions to retriev session status
-  unsigned long get_thread_id() {
-    _prev_result.reset();
-    return mysql_thread_id(_mysql);
+  uint64_t get_thread_id() {
+    if (_mysql)
+      return mysql_thread_id(_mysql);
+    return 0;
   }
-  unsigned long get_protocol_info() {
-    _prev_result.reset();
-    return mysql_get_proto_info(_mysql);
+  uint64_t get_protocol_info() {
+    if (_mysql)
+      return mysql_get_proto_info(_mysql);
+    return 0;
   }
   const char *get_connection_info() {
-    _prev_result.reset();
-    return mysql_get_host_info(_mysql);
+    if (_mysql)
+      return mysql_get_host_info(_mysql);
+    return nullptr;
   }
   const char *get_server_info() {
-    _prev_result.reset();
-    return mysql_get_server_info(_mysql);
+    if (_mysql)
+      return mysql_get_server_info(_mysql);
+    return nullptr;
   }
   const char *get_stats() {
-    _prev_result.reset();
-    return mysql_stat(_mysql);
+    if (_mysql)
+      return mysql_stat(_mysql);
+    return nullptr;
   }
-  const char *get_ssl_cipher() {
-    _prev_result.reset();
-    return mysql_get_ssl_cipher(_mysql);
+  const char *get_ssl_cipher() const {
+    if (_mysql)
+      return mysql_get_ssl_cipher(_mysql);
+    return nullptr;
   }
 
   std::shared_ptr<IResult> run_sql(const std::string &sql,
@@ -102,8 +107,6 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   void throw_on_connection_fail();
   std::string _uri;
   MYSQL *_mysql;
-  MySQL_timer _timer;
-  int _tx_deep;
 
   std::shared_ptr<MYSQL_RES> _prev_result;
 };
@@ -111,7 +114,10 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 class SHCORE_PUBLIC Session : public ISession,
                               public std::enable_shared_from_this<Session> {
  public:
-  Session() { _impl.reset(new Session_impl()); }
+  static std::shared_ptr<Session> create() {
+    return std::shared_ptr<Session>(new Session());
+  }
+
   virtual void connect(
       const mysqlshdk::db::Connection_options &connection_options) {
     _impl->connect(connection_options);
@@ -123,13 +129,14 @@ class SHCORE_PUBLIC Session : public ISession,
   }
 
   virtual void execute(const std::string &sql) { _impl->execute(sql); }
-  virtual void start_transaction() { _impl->start_transaction(); }
-  virtual void commit() { _impl->commit(); }
-  virtual void rollback() { _impl->rollback(); }
   virtual void close() { _impl->close(); }
-  virtual const char *get_ssl_cipher() { return _impl->get_ssl_cipher(); }
+  virtual const char *get_ssl_cipher() const { return _impl->get_ssl_cipher(); }
 
  private:
+  Session() {
+    _impl.reset(new Session_impl());
+  }
+
   std::shared_ptr<Session_impl> _impl;
 };
 }  // namespace mysql

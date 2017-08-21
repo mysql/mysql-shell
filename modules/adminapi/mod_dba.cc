@@ -26,7 +26,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "utils/utils_sqlstring.h"
 //#include "modules/adminapi/mod_dba_instance.h"
-#include "../mysqlxtest_utils.h"
+#include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mod_mysql_resultset.h"
@@ -1531,13 +1531,11 @@ shcore::Value Dba::start_sandbox_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   args.ensure_count(1, 2, get_function_name("startSandboxInstance").c_str());
-
   try {
     ret_val = exec_instance_op("start", args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("startSandboxInstance"));
-
   return ret_val;
 }
 

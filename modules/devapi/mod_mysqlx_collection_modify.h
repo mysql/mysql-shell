@@ -92,9 +92,10 @@ class CollectionModify : public Collection_crud_definition,
   shcore::Value bind(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);
-
- private:
-  std::unique_ptr< ::mysqlx::ModifyStatement> _modify_statement;
+private:
+  Mysqlx::Crud::Update message_;
+  void set_operation(int type, const std::string &path,
+                     const shcore::Value &value, bool validate_array = false);
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

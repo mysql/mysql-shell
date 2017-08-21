@@ -21,69 +21,20 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include "db/mysqlx/expr_parser.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 
-using namespace mysqlsh::mysqlx;
+namespace mysqlsh {
+namespace mysqlx {
 
-::mysqlx::DocumentValue Collection_crud_definition::map_document_value(
-    shcore::Value source) {
-  switch (source.type) {
-    case shcore::Undefined:
-      throw shcore::Exception::argument_error("Invalid value");
-    case shcore::Bool:
-    case shcore::UInteger:
-    case shcore::Integer:
-      return ::mysqlx::DocumentValue(source.as_int());
-      break;
-    case shcore::String:
-      return ::mysqlx::DocumentValue(source.as_string());
-      break;
-    case shcore::Float:
-      return ::mysqlx::DocumentValue(source.as_double());
-      break;
-    case shcore::Object: {
-      shcore::Object_bridge_ref object = source.as_object();
+std::unique_ptr<::Mysqlx::Expr::Expr>
+Collection_crud_definition::encode_document_expr(shcore::Value docexpr) {
+  assert(docexpr.type == shcore::Map);
 
-      std::string object_class = object->class_name();
-
-      if (object_class == "Expression") {
-        std::shared_ptr<Expression> expression =
-            std::dynamic_pointer_cast<Expression>(object);
-
-        if (expression) {
-          std::string expr_data = expression->get_data();
-          if (expr_data.empty())
-            throw shcore::Exception::argument_error(
-                "Expressions can not be empty.");
-          else
-            return ::mysqlx::DocumentValue(
-                expr_data, ::mysqlx::DocumentValue::TExpression);
-        }
-      }
-      if (object_class == "Date") {
-        std::string data = source.descr();
-        return ::mysqlx::DocumentValue(data);
-      } else {
-        std::stringstream str;
-        str << "Unsupported value received: " << source.descr() << ".";
-        throw shcore::Exception::argument_error(str.str());
-      }
-    } break;
-    case shcore::Array:
-      return ::mysqlx::DocumentValue(source.json(),
-                                     ::mysqlx::DocumentValue::TArray);
-      break;
-    case shcore::Map:
-      return ::mysqlx::DocumentValue(::mysqlx::Document(source.json()));
-      break;
-    case shcore::Null:
-    case shcore::MapRef:
-    case shcore::Function:
-      std::stringstream str;
-      str << "Unsupported value received: " << source.descr();
-      throw shcore::Exception::argument_error(str.str());
-      break;
-  }
-
-  return ::mysqlx::DocumentValue();
+  std::unique_ptr<::Mysqlx::Expr::Expr> expr(new ::Mysqlx::Expr::Expr());
+  encode_expression_value(expr.get(), docexpr);
+  return expr;
 }
+
+}  // namespace mysqlx
+}  // namespace mysqlsh

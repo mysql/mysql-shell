@@ -62,7 +62,7 @@ class CollectionDropIndex
 
  private:
   std::weak_ptr<Collection> _owner;
-  shcore::Argument_list _drop_index_args;
+  shcore::Dictionary_t _drop_index_args;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

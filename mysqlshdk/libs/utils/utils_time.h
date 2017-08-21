@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -31,6 +31,8 @@ public:
   unsigned long raw_duration() { return _end - _start; }
   static std::string format_legacy(unsigned long raw_time, int part_seconds, bool in_seconds = false);
   static void parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds = false);
+
+  static unsigned long seconds_to_duration(float s);
 
 private:
   unsigned long _start;

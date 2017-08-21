@@ -62,7 +62,7 @@ class Mock_session : public mysqlshdk::db::ISession {
   MOCK_METHOD0(start_transaction, void());
   MOCK_METHOD0(commit, void());
   MOCK_METHOD0(rollback, void());
-  MOCK_METHOD0(get_ssl_cipher, const char *());
+  MOCK_CONST_METHOD0(get_ssl_cipher, const char *());
 
   // Disconnection
   MOCK_METHOD0(close, void());

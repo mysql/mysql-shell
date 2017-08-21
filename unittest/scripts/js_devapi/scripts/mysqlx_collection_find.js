@@ -189,18 +189,18 @@ print('Find Binding Length:', records.length, '\n');
 print('Find Binding Name:', records[0].name, '\n');
 //! [CollectionFind: Parameter Binding]
 
-// Collection.Find Field Selection Using Field List
+//@ Collection.Find Field Selection Using Field List
 //! [CollectionFind: Field Selection List]
-result = collection.find('name = "jack"').fields(['ucase(name) as FirstName', 'age as Age']).execute();
-record = result.fetchOne();
+var result = collection.find('name = "jack"').fields(['ucase(name) as FirstName', 'age as Age']).execute();
+var record = result.fetchOne();
 print('First Name:', record.FirstName, '\n');
 print('Age:', record.Age, '\n');
 //! [CollectionFind: Field Selection List]
 
 //@ Collection.Find Field Selection Using Field Parameters
 //! [CollectionFind: Field Selection Parameters]
-result = collection.find('name = "jack"').fields('ucase(name) as FirstName', 'age as Age').execute();
-record = result.fetchOne();
+var result = collection.find('name = "jack"').fields('ucase(name) as FirstName', 'age as Age').execute();
+var record = result.fetchOne();
 print('First Name:', record.FirstName, '\n');
 print('Age:', record.Age, '\n');
 //! [CollectionFind: Field Selection Parameters]

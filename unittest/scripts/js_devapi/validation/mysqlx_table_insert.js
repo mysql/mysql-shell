@@ -34,7 +34,7 @@
 ||TableInsert.insert: Argument #1 is expected to be either string, a list of strings or a map with fields and values
 ||TableInsert.insert: Argument #2 is expected to be a string
 ||TableInsert.insert: Element #2 is expected to be a string
-||Unsupported value received: [5]
+||ERROR: 5014: Wrong number of fields in row being inserted
 ||Unsupported value received: <NodeSession
 ||Unknown column 'id' in 'field list'
 

@@ -28,27 +28,20 @@ namespace testing {
 Fake_result::Fake_result(const std::vector<std::string>& names,
                          const std::vector<mysqlshdk::db::Type>& types)
     : _index(0), _windex(0), _names(names), _types(types) {
-  _wnames = {"code", "level", "message"};
-  _wtypes = {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::String,
-             mysqlshdk::db::Type::String};
 }
 
-std::unique_ptr<mysqlshdk::db::IRow> Fake_result::fetch_one() {
-  std::unique_ptr<mysqlshdk::db::IRow> ret_val;
-
+const mysqlshdk::db::IRow* Fake_result::fetch_one() {
   if (_index < _records.size())
-    ret_val.reset(_records[_index++].release());
+    return _records[_index++].get();
 
-  return ret_val;
+  return nullptr;
 }
 
-std::unique_ptr<mysqlshdk::db::IRow> Fake_result::fetch_one_warning() {
-  std::unique_ptr<mysqlshdk::db::IRow> ret_val;
+std::unique_ptr<mysqlshdk::db::Warning> Fake_result::fetch_one_warning() {
+  if (_windex < _warnings.size())
+    return std::move(_warnings[_windex++]);
 
-  if (_windex < _wrecords.size())
-    ret_val.reset(_wrecords[_windex++].release());
-
-  return ret_val;
+  return {};
 }
 
 /**
@@ -73,40 +66,31 @@ void Fake_result::add_row(const std::vector<std::string>& data) {
   _records.push_back(std::move(row));
 }
 
-void Fake_result::add_warning(const std::string& message, int code,
-                              const std::string& level) {
-  // TODO(rennox): Warning handling is divided atm
-  // mysql returns the result of a query but
-  // probably we should define a warning object (at least at low level)
-  std::unique_ptr<NiceMock<Mock_row>> row(new NiceMock<Mock_row>());
-  row->init(_wnames, _wtypes, {std::to_string(code), level, message});
-  _wrecords.push_back(std::move(row));
+void Fake_result::add_warning(const mysqlshdk::db::Warning &warning) {
+  _warnings.push_back(std::unique_ptr<mysqlshdk::db::Warning>(
+      new mysqlshdk::db::Warning(warning)));
 }
 
 Mock_result::Mock_result() : _index(0) {
-  ON_CALL(*this, next_data_set())
-      .WillByDefault(Invoke(this, &Mock_result::fake_next_dataset));
+  ON_CALL(*this, next_resultset())
+      .WillByDefault(Invoke(this, &Mock_result::fake_next_resultset));
 }
 
-std::unique_ptr<mysqlshdk::db::IRow> Mock_result::fetch_one() {
-  std::unique_ptr<mysqlshdk::db::IRow> ret_val;
-
+const mysqlshdk::db::IRow* Mock_result::fetch_one() {
   if (_index < _results.size())
-    ret_val = _results[_index]->fetch_one();
+    return _results[_index]->fetch_one();
 
-  return ret_val;
+  return nullptr;
 }
 
-std::unique_ptr<mysqlshdk::db::IRow> Mock_result::fetch_one_warning() {
-  std::unique_ptr<mysqlshdk::db::IRow> ret_val;
-
+std::unique_ptr<mysqlshdk::db::Warning> Mock_result::fetch_one_warning() {
   if (_index < _results.size())
-    ret_val = _results[_index]->fetch_one_warning();
+    return _results[_index]->fetch_one_warning();
 
-  return ret_val;
+  return {};
 }
 
-bool Mock_result::fake_next_dataset() {
+bool Mock_result::fake_next_resultset() {
   if (_index < _results.size())
     _index++;
 

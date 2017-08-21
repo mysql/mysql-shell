@@ -19,21 +19,24 @@
 
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include <memory>
-#include <string>
-#include <vector>
+#include <utility>
 #include "modules/devapi/base_constants.h"
 #include "mysqlshdk/libs/db/charset.h"
-#include "mysqlx.h"
+#include "mysqlshdk/libs/db/row_copy.h"
+#include "mysqlshdk/libs/db/session.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "scripting/obj_date.h"
+#include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_core_options.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_time.h"
 
-using namespace std::placeholders;
-using namespace shcore;
-using namespace mysqlsh::mysqlx;
+using std::placeholders::_1;
+using shcore::Value;
+
+namespace mysqlsh {
+namespace mysqlx {
 
 // -----------------------------------------------------------------------
 
@@ -42,11 +45,27 @@ REGISTER_HELP(
     BASERESULT_BRIEF,
     "Base class for the different types of results returned by the server.");
 
-BaseResult::BaseResult(std::shared_ptr< ::mysqlx::Result> result)
+BaseResult::BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : _result(result), _execution_time(0) {
   add_property("executionTime", "getExecutionTime");
   add_property("warningCount", "getWarningCount");
   add_property("warnings", "getWarnings");
+}
+
+BaseResult::~BaseResult() {
+}
+
+void BaseResult::buffer() {
+  shcore::Interrupt_handler intr([this]() {
+    _result->stop_pre_fetch();
+    return false;
+  });
+  _result->pre_fetch_rows(true);
+}
+
+bool BaseResult::rewind() {
+  _result->rewind();
+  return true;
 }
 
 // Documentation of getWarnings function
@@ -55,33 +74,36 @@ REGISTER_HELP(BASERESULT_GETWARNINGS_BRIEF,
 REGISTER_HELP(
     BASERESULT_GETWARNINGS_RETURNS,
     "@returns A list containing a warning object for each generated warning.");
-REGISTER_HELP(
-    BASERESULT_GETWARNINGS_DETAIL,
-    "This is the same value than C API mysql_warning_count, see https://dev.mysql.com/doc/refman/5.7/en/mysql-warning-count.html");
-REGISTER_HELP(
-    BASERESULT_GETWARNINGS_DETAIL1,
-    "Each warning object contains a key/value pair describing the information related to a specific warning.");
+REGISTER_HELP(BASERESULT_GETWARNINGS_DETAIL,
+              "This is the same value than C API mysql_warning_count, see "
+              "https://dev.mysql.com/doc/refman/5.7/en/"
+              "mysql-warning-count.html");
+REGISTER_HELP(BASERESULT_GETWARNINGS_DETAIL1,
+              "Each warning object contains a key/value pair describing the "
+              "information related to a specific warning.");
 REGISTER_HELP(BASERESULT_GETWARNINGS_DETAIL2,
               "This information includes: Level, Code and Message.");
 
 /**
-* $(BASERESULT_GETWARNINGS_BRIEF)
-*
-* $(BASERESULT_GETWARNINGS_RETURNS)
-*
-* $(BASERESULT_GETWARNINGS_DETAIL)
-*
-* $(BASERESULT_GETWARNINGS_DETAIL1)
-* $(BASERESULT_GETWARNINGS_DETAIL2)
-*/
+ * $(BASERESULT_GETWARNINGS_BRIEF)
+ *
+ * $(BASERESULT_GETWARNINGS_RETURNS)
+ *
+ * $(BASERESULT_GETWARNINGS_DETAIL)
+ *
+ * $(BASERESULT_GETWARNINGS_DETAIL1)
+ * $(BASERESULT_GETWARNINGS_DETAIL2)
+ */
 #if DOXYGEN_JS
-List BaseResult::getWarnings() {}
+List BaseResult::getWarnings() {
+}
 #elif DOXYGEN_PY
-list BaseResult::get_warnings() {}
+list BaseResult::get_warnings() {
+}
 #endif
 
 shcore::Value BaseResult::get_member(const std::string &prop) const {
-  Value ret_val;
+  shcore::Value ret_val;
 
   if (prop == "executionTime")
     return shcore::Value(get_execution_time());
@@ -92,23 +114,27 @@ shcore::Value BaseResult::get_member(const std::string &prop) const {
   else if (prop == "warnings") {
     std::shared_ptr<shcore::Value::Array_type> array(
         new shcore::Value::Array_type);
-
-    std::vector< ::mysqlx::Result::Warning> warnings = _result->getWarnings();
-
-    if (warnings.size()) {
-      for (size_t index = 0; index < warnings.size(); index++) {
+    if (_result) {
+      while (std::unique_ptr<mysqlshdk::db::Warning> warning =
+                 _result->fetch_one_warning()) {
         mysqlsh::Row *warning_row = new mysqlsh::Row();
-
-        warning_row->add_item(
-            "level",
-            shcore::Value(warnings[index].is_note ? "Note" : "Warning"));
-        warning_row->add_item("code", shcore::Value(warnings[index].code));
-        warning_row->add_item("message", shcore::Value(warnings[index].text));
+        switch (warning->level) {
+          case mysqlshdk::db::Warning::Level::Note:
+            warning_row->add_item("level", shcore::Value("Note"));
+            break;
+          case mysqlshdk::db::Warning::Level::Warning:
+            warning_row->add_item("level", shcore::Value("Warning"));
+            break;
+          case mysqlshdk::db::Warning::Level::Error:
+            warning_row->add_item("level", shcore::Value("Error"));
+            break;
+        }
+        warning_row->add_item("code", shcore::Value(warning->code));
+        warning_row->add_item("message", shcore::Value(warning->msg));
 
         array->push_back(shcore::Value::wrap(warning_row));
       }
     }
-
     ret_val = shcore::Value(array);
   } else {
     ret_val = ShellBaseResult::get_member(prop);
@@ -118,17 +144,19 @@ shcore::Value BaseResult::get_member(const std::string &prop) const {
 }
 
 // Documentation of getExecutionTime function
-REGISTER_HELP(
-    BASERESULT_GETEXECUTIONTIME_BRIEF,
-    "Retrieves a string value indicating the execution time of the executed operation.");
+REGISTER_HELP(BASERESULT_GETEXECUTIONTIME_BRIEF,
+              "Retrieves a string value indicating the execution time of the "
+              "executed operation.");
 
 /**
-* $(BASERESULT_GETEXECUTIONTIME_BRIEF)
-*/
+ * $(BASERESULT_GETEXECUTIONTIME_BRIEF)
+ */
 #if DOXYGEN_JS
-String BaseResult::getExecutionTime() {}
+String BaseResult::getExecutionTime() {
+}
 #elif DOXYGEN_PY
-str BaseResult::get_execution_time() {}
+str BaseResult::get_execution_time() {
+}
 #endif
 
 std::string BaseResult::get_execution_time() const {
@@ -136,48 +164,37 @@ std::string BaseResult::get_execution_time() const {
 }
 
 // Documentation of getWarningCount function
-REGISTER_HELP(
-    BASERESULT_GETWARNINGCOUNT_BRIEF,
-    "The number of warnings produced by the last statement execution. See getWarnings() for more details.");
+REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_BRIEF,
+              "The number of warnings produced by the last statement "
+              "execution. See getWarnings() for more details.");
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_RETURNS,
               "@returns the number of warnings.");
-REGISTER_HELP(
-    BASERESULT_GETWARNINGCOUNT_DETAIL,
-    "This is the same value than C API mysql_warning_count, see https://dev.mysql.com/doc/refman/5.7/en/mysql-warning-count.html");
+REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL,
+              "This is the same value than C API mysql_warning_count, see "
+              "https://dev.mysql.com/doc/refman/5.7/en/"
+              "mysql-warning-count.html");
 
 /**
-* $(BASERESULT_GETWARNINGCOUNT_BRIEF)
-*
-* $(BASERESULT_GETWARNINGCOUNT_RETURNS)
-*
-* $(BASERESULT_GETWARNINGCOUNT_DETAIL)
-*
-* \sa warnings
-*/
+ * $(BASERESULT_GETWARNINGCOUNT_BRIEF)
+ *
+ * $(BASERESULT_GETWARNINGCOUNT_RETURNS)
+ *
+ * $(BASERESULT_GETWARNINGCOUNT_DETAIL)
+ *
+ * \sa warnings
+ */
 #if DOXYGEN_JS
-Integer BaseResult::getWarningCount() {}
+Integer BaseResult::getWarningCount() {
+}
 #elif DOXYGEN_PY
-int BaseResult::get_warning_count() {}
+int BaseResult::get_warning_count() {
+}
 #endif
 
 uint64_t BaseResult::get_warning_count() const {
-  return uint64_t(_result->getWarnings().size());
-}
-
-void BaseResult::buffer() {
-  _result->buffer();
-}
-
-bool BaseResult::rewind() {
-  return _result->rewind();
-}
-
-bool BaseResult::tell(size_t &dataset, size_t &record) {
-  return _result->tell(dataset, record);
-}
-
-bool BaseResult::seek(size_t dataset, size_t record) {
-  return _result->seek(dataset, record);
+  if (_result)
+    return _result->get_warning_count();
+  return 0;
 }
 
 void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
@@ -188,7 +205,7 @@ void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
 
   dumper.append_value("executionTime", get_member("executionTime"));
 
-  if (Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS)) {
+  if (shcore::Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS)) {
     dumper.append_value("warningCount", get_member("warningCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }
@@ -200,25 +217,31 @@ void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
 // -----------------------------------------------------------------------
 
 // Documentation of Result class
-REGISTER_HELP(
-    RESULT_BRIEF,
-    "Allows retrieving information about non query operations performed on the database.");
-REGISTER_HELP(
-    RESULT_DETAIL,
-    "An instance of this class will be returned on the CRUD operations that change the content of the database:");
+REGISTER_HELP(RESULT_BRIEF,
+              "Allows retrieving information about non query operations "
+              "performed on the database.");
+REGISTER_HELP(RESULT_DETAIL,
+              "An instance of this class will be returned on the CRUD "
+              "operations that change the content of the database:");
 REGISTER_HELP(RESULT_DETAIL1, "@li On Table: insert, update and delete");
 REGISTER_HELP(RESULT_DETAIL2, "@li On Collection: add, modify and remove");
-REGISTER_HELP(
-    RESULT_DETAIL3,
-    "Other functions on the BaseSession class also return an instance of this class:");
+REGISTER_HELP(RESULT_DETAIL3,
+              "Other functions on the NodeSession class also return an "
+              "instance of this class:");
 REGISTER_HELP(RESULT_DETAIL4, "@li Transaction handling functions");
 REGISTER_HELP(RESULT_DETAIL5, "@li Transaction handling functions");
 
-Result::Result(std::shared_ptr< ::mysqlx::Result> result) : BaseResult(result) {
+Result::Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
+    : BaseResult(result) {
   add_property("affectedItemCount", "getAffectedItemCount");
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("lastDocumentId", "getLastDocumentId");
   add_property("lastDocumentIds", "getLastDocumentIds");
+}
+
+void Result::set_last_document_ids(const std::vector<std::string> &ids) {
+  last_document_ids_ = ids;
+  has_document_ids_ = true;
 }
 
 shcore::Value Result::get_member(const std::string &prop) const {
@@ -253,25 +276,30 @@ REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_BRIEF,
               "The the number of affected items for the last operation.");
 REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_RETURNS,
               "@returns the number of affected items.");
-REGISTER_HELP(
-    RESULT_GETAFFECTEDITEMCOUNT_DETAIL,
-    "This is the value of the C API mysql_affected_rows(), see https://dev.mysql.com/doc/refman/5.7/en/mysql-affected-rows.html");
+REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_DETAIL,
+              "This is the value of the C API mysql_affected_rows(), see "
+              "https://dev.mysql.com/doc/refman/5.7/en/"
+              "mysql-affected-rows.html");
 
 /**
-* $(RESULT_GETAFFECTEDITEMCOUNT_BRIEF)
-*
-* $(RESULT_GETAFFECTEDITEMCOUNT_RETURNS)
-*
-* $(RESULT_GETAFFECTEDITEMCOUNT_DETAIL)
-*/
+ * $(RESULT_GETAFFECTEDITEMCOUNT_BRIEF)
+ *
+ * $(RESULT_GETAFFECTEDITEMCOUNT_RETURNS)
+ *
+ * $(RESULT_GETAFFECTEDITEMCOUNT_DETAIL)
+ */
 #if DOXYGEN_JS
-Integer Result::getAffectedItemCount() {}
+Integer Result::getAffectedItemCount() {
+}
 #elif DOXYGEN_PY
-int Result::get_affected_item_count() {}
+int Result::get_affected_item_count() {
+}
 #endif
 
 int64_t Result::get_affected_item_count() const {
-  return _result->affectedRows();
+  if (!_result)
+    return -1;
+  return _result->get_affected_row_count();
 }
 
 // Documentation of getAutoIncrementValue function
@@ -279,30 +307,35 @@ REGISTER_HELP(RESULT_GETAUTOINCREMENTVALUE_BRIEF,
               "The last insert id auto generated (from an insert operation)");
 REGISTER_HELP(RESULT_GETAUTOINCREMENTVALUE_RETURNS,
               "@returns the integer representing the last insert id");
-REGISTER_HELP(
-    RESULT_GETAUTOINCREMENTVALUE_DETAIL,
-    "For more details, see https://dev.mysql.com/doc/refman/5.7/en/information-functions.html#function_last-insert-id");
-REGISTER_HELP(
-    RESULT_GETAUTOINCREMENTVALUE_DETAIL1,
-    "Note that this value will be available only when the result is for a Table.insert operation.");
+REGISTER_HELP(RESULT_GETAUTOINCREMENTVALUE_DETAIL,
+              "For more details, see "
+              "https://dev.mysql.com/doc/refman/5.7/en/"
+              "information-functions.html#function_last-insert-id");
+REGISTER_HELP(RESULT_GETAUTOINCREMENTVALUE_DETAIL1,
+              "Note that this value will be available only when the result is "
+              "for a Table.insert operation.");
 
 /**
-* $(RESULT_GETAUTOINCREMENTVALUE_BRIEF)
-*
-* $(RESULT_GETAUTOINCREMENTVALUE_RETURNS)
-*
-* $(RESULT_GETAUTOINCREMENTVALUE_DETAIL)
-*
-* $(RESULT_GETAUTOINCREMENTVALUE_DETAIL1)
-*/
+ * $(RESULT_GETAUTOINCREMENTVALUE_BRIEF)
+ *
+ * $(RESULT_GETAUTOINCREMENTVALUE_RETURNS)
+ *
+ * $(RESULT_GETAUTOINCREMENTVALUE_DETAIL)
+ *
+ * $(RESULT_GETAUTOINCREMENTVALUE_DETAIL1)
+ */
 #if DOXYGEN_JS
-Integer Result::getAutoIncrementValue() {}
+Integer Result::getAutoIncrementValue() {
+}
 #elif DOXYGEN_PY
-int Result::get_auto_increment_value() {}
+int Result::get_auto_increment_value() {
+}
 #endif
 
 int64_t Result::get_auto_increment_value() const {
-  return _result->lastInsertId();
+  if (_result)
+    return _result->get_auto_increment_value();
+  return 0;
 }
 
 // Documentation of getLastDocumentId function
@@ -311,42 +344,50 @@ REGISTER_HELP(RESULT_GETLASTDOCUMENTID_BRIEF,
 REGISTER_HELP(
     RESULT_GETLASTDOCUMENTID_RETURNS,
     "@returns the string representing the if of the last inserted document.");
-REGISTER_HELP(
-    RESULT_GETLASTDOCUMENTID_DETAIL,
-    "Note that this value will be available only when the result is for a Collection.add operation.");
+REGISTER_HELP(RESULT_GETLASTDOCUMENTID_DETAIL,
+              "Note that this value will be available only when the result is "
+              "for a Collection.add operation.");
 
 /**
-* $(RESULT_GETLASTDOCUMENTID_BRIEF)
-*
-* $(RESULT_GETLASTDOCUMENTID_RETURNS)
-*
-* $(RESULT_GETLASTDOCUMENTID_DETAIL)
-*/
+ * $(RESULT_GETLASTDOCUMENTID_BRIEF)
+ *
+ * $(RESULT_GETLASTDOCUMENTID_RETURNS)
+ *
+ * $(RESULT_GETLASTDOCUMENTID_DETAIL)
+ */
 #if DOXYGEN_JS
-String Result::getLastDocumentId() {}
+String Result::getLastDocumentId() {
+}
 #elif DOXYGEN_PY
-str Result::get_last_document_id() {}
+str Result::get_last_document_id() {
+}
 #endif
 
 std::string Result::get_last_document_id() const {
   std::string ret_val;
   try {
-    ret_val = _result->lastDocumentId();
+    if (!has_document_ids_ || last_document_ids_.size() != 1) {
+      // Last document id is only available on collection add operations
+      // and only if a single document is added (MY-139 Spec, Req 4, 6)
+      throw std::logic_error("document id is not available.");
+    }
+    ret_val = last_document_ids_.front();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("getLastDocumentId"));
-
   return ret_val;
 }
 
 const std::vector<std::string> Result::get_last_document_ids() const {
-  std::vector<std::string> ret_val;
   try {
-    ret_val = _result->lastDocumentIds();
+    // Last document ids are available on any collection add operation (MY-139
+    // Spec, Req 1-5)
+    if (!has_document_ids_)
+      throw std::logic_error("document ids are not available.");
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("getLastDocumentIds"));
-  return ret_val;
+  return last_document_ids_;
 }
 
 void Result::append_json(shcore::JSON_dumper &dumper) const {
@@ -364,11 +405,11 @@ void Result::append_json(shcore::JSON_dumper &dumper) const {
 // -----------------------------------------------------------------------
 
 // Documentation of DocResult class
-REGISTER_HELP(
-    DOCRESULT_BRIEF,
-    "Allows traversing the DbDoc objects returned by a Collection.find operation.");
+REGISTER_HELP(DOCRESULT_BRIEF,
+              "Allows traversing the DbDoc objects returned by a "
+              "Collection.find operation.");
 
-DocResult::DocResult(std::shared_ptr< ::mysqlx::Result> result)
+DocResult::DocResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : BaseResult(result) {
   add_method("fetchOne", std::bind(&DocResult::fetch_one, this, _1), NULL);
   add_method("fetchAll", std::bind(&DocResult::fetch_all, this, _1), NULL);
@@ -382,14 +423,16 @@ REGISTER_HELP(
     "@returns A DbDoc object representing the next Document in the result.");
 
 /**
-* $(DOCRESULT_FETCHONE_BRIEF)
-*
-* $(DOCRESULT_FETCHONE_RETURNS)
-*/
+ * $(DOCRESULT_FETCHONE_BRIEF)
+ *
+ * $(DOCRESULT_FETCHONE_RETURNS)
+ */
 #if DOXYGEN_JS
-Document DocResult::fetchOne() {}
+Document DocResult::fetchOne() {
+}
 #elif DOXYGEN_PY
-Document DocResult::fetch_one() {}
+Document DocResult::fetch_one() {
+}
 #endif
 shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const {
   Value ret_val = Value::Null();
@@ -397,10 +440,10 @@ shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
   try {
-    if (_result->columnMetadata() && _result->columnMetadata()->size()) {
-      std::shared_ptr< ::mysqlx::Row> r(_result->next());
-      if (r.get())
-        ret_val = Value::parse(r->stringField(0));
+    if (_result) {
+      if (const mysqlshdk::db::IRow *r = _result->fetch_one()) {
+        ret_val = Value::parse(r->get_string(0));
+      }
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("fetchOne"));
@@ -409,30 +452,33 @@ shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const {
 }
 
 // Documentation of fetchAll function
-REGISTER_HELP(
-    DOCRESULT_FETCHALL_BRIEF,
-    "Returns a list of DbDoc objects which contains an element for every unread document.");
+REGISTER_HELP(DOCRESULT_FETCHALL_BRIEF,
+              "Returns a list of DbDoc objects which contains an element for "
+              "every unread document.");
 REGISTER_HELP(DOCRESULT_FETCHALL_RETURNS, "@returns A List of DbDoc objects.");
-REGISTER_HELP(
-    DOCRESULT_FETCHALL_DETAIL,
-    "If this function is called right after executing a query, it will return a DbDoc for every document on the resultset.");
-REGISTER_HELP(
-    DOCRESULT_FETCHALL_DETAIL1,
-    "If fetchOne is called before this function, when this function is called it will return a DbDoc for each of the remaining documents on the resultset.");
+REGISTER_HELP(DOCRESULT_FETCHALL_DETAIL,
+              "If this function is called right after executing a query, it "
+              "will return a DbDoc for every document on the resultset.");
+REGISTER_HELP(DOCRESULT_FETCHALL_DETAIL1,
+              "If fetchOne is called before this function, when this function "
+              "is called it will return a DbDoc for each of the remaining "
+              "documents on the resultset.");
 
 /**
-* $(DOCRESULT_FETCHALL_BRIEF)
-*
-* $(DOCRESULT_FETCHALL_RETURNS)
-*
-* $(DOCRESULT_FETCHALL_DETAIL)
-*
-* $(DOCRESULT_FETCHALL_DETAIL1)
-*/
+ * $(DOCRESULT_FETCHALL_BRIEF)
+ *
+ * $(DOCRESULT_FETCHALL_RETURNS)
+ *
+ * $(DOCRESULT_FETCHALL_DETAIL)
+ *
+ * $(DOCRESULT_FETCHALL_DETAIL1)
+ */
 #if DOXYGEN_JS
-List DocResult::fetchAll() {}
+List DocResult::fetchAll() {
+}
 #elif DOXYGEN_PY
-list DocResult::fetch_all() {}
+list DocResult::fetch_all() {
+}
 #endif
 shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const {
   Value::Array_type_ref array(new Value::Array_type());
@@ -454,35 +500,9 @@ shcore::Value DocResult::get_metadata() const {
     shcore::Value data_type = mysqlsh::Constant::get_constant(
         "mysqlx", "Type", "JSON", shcore::Argument_list());
 
-    // the plugin may not send these if they are equal to table/name
-    // respectively
-    // We need to reconstruct them
-    std::string orig_table = _result->columnMetadata()->at(0).original_table;
-    std::string orig_name = _result->columnMetadata()->at(0).original_name;
+    const mysqlshdk::db::Column &column_md(_result->get_metadata()[0]);
 
-    if (orig_table.empty())
-      orig_table = _result->columnMetadata()->at(0).table;
-
-    if (orig_name.empty())
-      orig_name = _result->columnMetadata()->at(0).name;
-
-    std::shared_ptr<mysqlsh::Column> metadata(new mysqlsh::Column(
-        _result->columnMetadata()->at(0).schema, orig_table,
-        _result->columnMetadata()->at(0).table, orig_name,
-        _result->columnMetadata()->at(0).name, data_type,
-        _result->columnMetadata()->at(0).length,
-        false,  // IS NUMERIC
-        _result->columnMetadata()->at(0).fractional_digits,
-        false,  // IS SIGNED
-        mysqlshdk::db::charset::collation_name_from_collation_id(
-            _result->columnMetadata()->at(0).collation),
-        mysqlshdk::db::charset::charset_name_from_collation_id(
-            _result->columnMetadata()->at(0).collation),
-        true,     // IS PADDED
-        false));  // ZEROFILL
-
-    _metadata =
-        shcore::Value(std::static_pointer_cast<Object_bridge>(metadata));
+    _metadata = shcore::Value::wrap(new mysqlsh::Column(column_md, data_type));
   }
 
   return _metadata;
@@ -505,7 +525,7 @@ REGISTER_HELP(
     ROWRESULT_BRIEF,
     "Allows traversing the Row objects returned by a Table.select operation.");
 
-RowResult::RowResult(std::shared_ptr< ::mysqlx::Result> result)
+RowResult::RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : BaseResult(result) {
   add_property("columnCount", "getColumnCount");
   add_property("columns", "getColumns");
@@ -513,29 +533,28 @@ RowResult::RowResult(std::shared_ptr< ::mysqlx::Result> result)
 
   add_method("fetchOne", std::bind(&RowResult::fetch_one, this, _1), NULL);
   add_method("fetchAll", std::bind(&RowResult::fetch_all, this, _1), NULL);
+
+  _column_names.reset(new std::vector<std::string>());
+  for (auto &cmd : _result->get_metadata())
+    _column_names->push_back(cmd.get_column_label());
 }
 
 shcore::Value RowResult::get_member(const std::string &prop) const {
   Value ret_val;
-  if (prop == "columnCount")
+  if (prop == "columnCount") {
     ret_val = shcore::Value(get_column_count());
-  else if (prop == "columnNames") {
+  } else if (prop == "columnNames") {
     std::shared_ptr<shcore::Value::Array_type> array(
         new shcore::Value::Array_type);
-
-    if (_result->columnMetadata()) {
-      size_t num_fields = _result->columnMetadata()->size();
-
-      for (size_t i = 0; i < num_fields; i++)
-        array->push_back(shcore::Value(_result->columnMetadata()->at(i).name));
-    }
+    for (auto &cmd : _result->get_metadata())
+      array->push_back(shcore::Value(cmd.get_column_label()));
 
     ret_val = shcore::Value(array);
   } else if (prop == "columns")
     ret_val = shcore::Value(get_columns());
-  else
+  else {
     ret_val = BaseResult::get_member(prop);
-
+  }
   return ret_val;
 }
 
@@ -546,92 +565,79 @@ REGISTER_HELP(ROWRESULT_GETCOLUMNCOUNT_RETURNS,
               "@returns the number of columns on the current result.");
 
 /**
-* $(ROWRESULT_GETCOLUMNCOUNT_BRIEF)
-*
-* $(ROWRESULT_GETCOLUMNCOUNT_RETURNS)
-*/
+ * $(ROWRESULT_GETCOLUMNCOUNT_BRIEF)
+ *
+ * $(ROWRESULT_GETCOLUMNCOUNT_RETURNS)
+ */
 #if DOXYGEN_JS
-Integer RowResult::getColumnCount() {}
+Integer RowResult::getColumnCount() {
+}
 #elif DOXYGEN_PY
-int RowResult::get_column_count() {}
+int RowResult::get_column_count() {
+}
 #endif
 int64_t RowResult::get_column_count() const {
-  size_t count = 0;
-  if (_result->columnMetadata())
-    count = _result->columnMetadata()->size();
-
-  return uint64_t(count);
+  return _result->get_metadata().size();
 }
 
 // Documentation of getColumnNames function
 REGISTER_HELP(ROWRESULT_GETCOLUMNNAMES_BRIEF,
               "Gets the columns on the current result.");
-REGISTER_HELP(
-    ROWRESULT_GETCOLUMNNAMES_RETURNS,
-    "@returns A list with the names of the columns returned on the active result.");
+REGISTER_HELP(ROWRESULT_GETCOLUMNNAMES_RETURNS,
+              "@returns A list with the names of the columns returned on the "
+              "active result.");
 
 /**
-* $(ROWRESULT_GETCOLUMNNAMES_BRIEF)
-*
-* $(ROWRESULT_GETCOLUMNNAMES_RETURNS)
-*/
+ * $(ROWRESULT_GETCOLUMNNAMES_BRIEF)
+ *
+ * $(ROWRESULT_GETCOLUMNNAMES_RETURNS)
+ */
 #if DOXYGEN_JS
-List RowResult::getColumnNames() {}
+List RowResult::getColumnNames() {
+}
 #elif DOXYGEN_PY
-list RowResult::get_column_names() {}
+list RowResult::get_column_names() {
+}
 #endif
 std::vector<std::string> RowResult::get_column_names() const {
-  std::vector<std::string> ret_val;
-
-  if (_result->columnMetadata()) {
-    size_t num_fields = _result->columnMetadata()->size();
-
-    for (size_t i = 0; i < num_fields; i++)
-      ret_val.push_back(_result->columnMetadata()->at(i).name);
-  }
-
-  return ret_val;
+  return *_column_names;
 }
 
 // Documentation of getColumns function
 REGISTER_HELP(ROWRESULT_GETCOLUMNS_BRIEF,
               "Gets the column metadata for the columns on the active result.");
-REGISTER_HELP(
-    ROWRESULT_GETCOLUMNS_RETURNS,
-    "@returns a list of Column objects containing information about the columns included on the active result.");
+REGISTER_HELP(ROWRESULT_GETCOLUMNS_RETURNS,
+              "@returns a list of Column objects containing information about "
+              "the columns included on the active result.");
 
 /**
-* $(ROWRESULT_GETCOLUMNS_BRIEF)
-*
-* $(ROWRESULT_GETCOLUMNS_RETURNS)
-*/
+ * $(ROWRESULT_GETCOLUMNS_BRIEF)
+ *
+ * $(ROWRESULT_GETCOLUMNS_RETURNS)
+ */
 #if DOXYGEN_JS
-List RowResult::getColumns() {}
+List RowResult::getColumns() {
+}
 #elif DOXYGEN_PY
-list RowResult::get_columns() {}
+list RowResult::get_columns() {
+}
 #endif
 shcore::Value::Array_type_ref RowResult::get_columns() const {
   if (!_columns) {
     _columns.reset(new shcore::Value::Array_type);
 
-    size_t num_fields = _result->columnMetadata()->size();
-    for (size_t i = 0; i < num_fields; i++) {
-      ::mysqlx::FieldType type = _result->columnMetadata()->at(i).type;
-      bool is_numeric = type == ::mysqlx::SINT || type == ::mysqlx::UINT ||
-                        type == ::mysqlx::DOUBLE || type == ::mysqlx::FLOAT ||
-                        type == ::mysqlx::DECIMAL;
-
+    for (auto &column_meta : _result->get_metadata()) {
       std::string type_name;
-      bool is_signed = false;
-      bool is_padded = true;
-      bool is_zerofill = false;
-      switch (_result->columnMetadata()->at(i).type) {
-        case ::mysqlx::UINT:
-          is_zerofill = (_result->columnMetadata()->at(i).flags & 0x001) != 0;
-          is_signed = true;  // will be flipped after fall-through
-        case ::mysqlx::SINT:
-          is_signed = !is_signed;
-          switch (_result->columnMetadata()->at(i).length) {
+      switch (column_meta.get_type()) {
+        case mysqlshdk::db::Type::Null:
+          break;
+        case mysqlshdk::db::Type::String:
+          type_name = "STRING";
+          break;
+        case mysqlshdk::db::Type::Integer:
+        case mysqlshdk::db::Type::UInteger:
+          type_name = "INT";
+          switch (column_meta.get_length()) {
             case 3:
             case 4:
               type_name = "TINYINT";
@@ -653,93 +659,50 @@ shcore::Value::Array_type_ref RowResult::get_columns() const {
               break;
           }
           break;
-        case ::mysqlx::BIT:
-          type_name = "BIT";
-          break;
-        case ::mysqlx::DOUBLE:
-          type_name = "DOUBLE";
-          is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
-          break;
-        case ::mysqlx::FLOAT:
+        case mysqlshdk::db::Type::Float:
           type_name = "FLOAT";
-          is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
           break;
-        case ::mysqlx::DECIMAL:
+        case mysqlshdk::db::Type::Double:
+          type_name = "DOUBLE";
+          break;
+        case mysqlshdk::db::Type::Decimal:
           type_name = "DECIMAL";
-          is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
           break;
-        case ::mysqlx::BYTES:
-          is_padded = is_signed =
-              _result->columnMetadata()->at(i).flags & 0x001;
-
-          switch (_result->columnMetadata()->at(i).content_type & 0x0003) {
-            case 1:
-              type_name = "GEOMETRY";
-              break;
-            case 2:
-              type_name = "JSON";
-              break;
-            case 3:
-              type_name = "XML";
-              break;
-            default:
-              if (mysqlshdk::db::charset::charset_name_from_collation_id(
-                      _result->columnMetadata()->at(i).collation) == "binary")
-                type_name = "BYTES";
-              else
-                type_name = "STRING";
-              break;
-          }
+        case mysqlshdk::db::Type::Bytes:
+          type_name = "BYTES";
           break;
-        case ::mysqlx::TIME:
+        case mysqlshdk::db::Type::Geometry:
+          type_name = "GEOMETRY";
+          break;
+        case mysqlshdk::db::Type::Json:
+          type_name = "JSON";
+          break;
+        case mysqlshdk::db::Type::DateTime:
+          type_name = "DATETIME";
+          break;
+        case mysqlshdk::db::Type::Date:
+          type_name = "DATE";
+          break;
+        case mysqlshdk::db::Type::Time:
           type_name = "TIME";
           break;
-        case ::mysqlx::DATETIME:
-          if (_result->columnMetadata()->at(i).flags & 0x001)
-            type_name = "TIMESTAMP";
-          else if (_result->columnMetadata()->at(i).length == 10)
-            type_name = "DATE";
-          else
-            type_name = "DATETIME";
+        case mysqlshdk::db::Type::Bit:
+          type_name = "BIT";
           break;
-        case ::mysqlx::SET:
-          type_name = "SET";
-          break;
-        case ::mysqlx::ENUM:
+        case mysqlshdk::db::Type::Enum:
           type_name = "ENUM";
           break;
+        case mysqlshdk::db::Type::Set:
+          type_name = "SET";
+          break;
       }
-
+      assert(!type_name.empty());
       shcore::Value data_type = mysqlsh::Constant::get_constant(
           "mysqlx", "Type", type_name, shcore::Argument_list());
-
-      // the plugin may not send these if they are equal to table/name
-      // respectively
-      // We need to reconstruct them
-      std::string orig_table = _result->columnMetadata()->at(i).original_table;
-      std::string orig_name = _result->columnMetadata()->at(i).original_name;
-
-      if (orig_table.empty())
-        orig_table = _result->columnMetadata()->at(i).table;
-
-      if (orig_name.empty())
-        orig_name = _result->columnMetadata()->at(i).name;
-
-      std::shared_ptr<mysqlsh::Column> column(new mysqlsh::Column(
-          _result->columnMetadata()->at(i).schema, orig_table,
-          _result->columnMetadata()->at(i).table, orig_name,
-          _result->columnMetadata()->at(i).name, data_type,
-          _result->columnMetadata()->at(i).length, is_numeric,
-          _result->columnMetadata()->at(i).fractional_digits, is_signed,
-          mysqlshdk::db::charset::collation_name_from_collation_id(
-              _result->columnMetadata()->at(i).collation),
-          mysqlshdk::db::charset::charset_name_from_collation_id(
-              _result->columnMetadata()->at(i).collation),
-          is_padded,
-          is_zerofill));
+      assert(data_type);
 
       _columns->push_back(
-          shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
+          shcore::Value::wrap(new mysqlsh::Column(column_meta, data_type)));
     }
   }
 
@@ -754,76 +717,26 @@ REGISTER_HELP(
     "@returns A Row object representing the next record on the result.");
 
 /**
-* $(ROWRESULT_FETCHONE_BRIEF)
-*
-* $(ROWRESULT_FETCHONE_RETURNS)
-*/
+ * $(ROWRESULT_FETCHONE_BRIEF)
+ *
+ * $(ROWRESULT_FETCHONE_RETURNS)
+ */
 #if DOXYGEN_JS
-Row RowResult::fetchOne() {}
+Row RowResult::fetchOne() {
+}
 #elif DOXYGEN_PY
-Row RowResult::fetch_one() {}
+Row RowResult::fetch_one() {
+}
 #endif
 shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
   shcore::Value ret_val;
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
   try {
-    std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata =
-        _result->columnMetadata();
-    if (metadata->size() > 0) {
-      std::shared_ptr< ::mysqlx::Row> row = _result->next();
+    if (_result) {
+      const mysqlshdk::db::IRow *row = _result->fetch_one();
       if (row) {
-        mysqlsh::Row *value_row = new mysqlsh::Row();
-
-        for (int index = 0; index < int(metadata->size()); index++) {
-          Value field_value;
-
-          if (row->isNullField(index))
-            field_value = Value::Null();
-          else {
-            switch (metadata->at(index).type) {
-              case ::mysqlx::SINT:
-                field_value = Value(row->sInt64Field(index));
-                break;
-              case ::mysqlx::UINT:
-                field_value = Value(row->uInt64Field(index));
-                break;
-              case ::mysqlx::DOUBLE:
-                field_value = Value(row->doubleField(index));
-                break;
-              case ::mysqlx::FLOAT:
-                field_value = Value(row->floatField(index));
-                break;
-              case ::mysqlx::BYTES:
-                field_value = Value(row->stringField(index));
-                break;
-              case ::mysqlx::DECIMAL:
-                field_value = Value(row->decimalField(index));
-                break;
-              case ::mysqlx::TIME:
-                field_value = Value(row->timeField(index).to_string());
-                break;
-              case ::mysqlx::DATETIME: {
-                field_value = Value(shcore::Date::from_mysqlx_datetime(
-                    row->dateTimeField(index)));
-                break;
-              }
-              case ::mysqlx::ENUM:
-                field_value = Value(row->enumField(index));
-                break;
-              case ::mysqlx::BIT:
-                field_value = Value(row->bitField(index));
-                break;
-              // TODO: Fix the handling of SET
-              case ::mysqlx::SET:
-                // field_value = Value(row->setField(int(index)));
-                break;
-            }
-          }
-          value_row->add_item(metadata->at(index).name, field_value);
-        }
-
-        ret_val = shcore::Value::wrap(value_row);
+        ret_val = shcore::Value::wrap(new mysqlsh::Row(_column_names, *row));
       }
     }
   }
@@ -833,20 +746,22 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
 }
 
 // Documentation of fetchAll function
-REGISTER_HELP(
-    ROWRESULT_FETCHALL_BRIEF,
-    "Returns a list of DbDoc objects which contains an element for every unread document.");
+REGISTER_HELP(ROWRESULT_FETCHALL_BRIEF,
+              "Returns a list of DbDoc objects which contains an element for "
+              "every unread document.");
 REGISTER_HELP(ROWRESULT_FETCHALL_RETURNS, "@returns A List of DbDoc objects.");
 
 /**
-* $(ROWRESULT_FETCHALL_BRIEF)
-*
-* $(ROWRESULT_FETCHALL_RETURNS)
-*/
+ * $(ROWRESULT_FETCHALL_BRIEF)
+ *
+ * $(ROWRESULT_FETCHALL_RETURNS)
+ */
 #if DOXYGEN_JS
-List RowResult::fetchAll() {}
+List RowResult::fetchAll() {
+}
 #elif DOXYGEN_PY
-list RowResult::fetch_all() {}
+list RowResult::fetch_all() {
+}
 #endif
 shcore::Value RowResult::fetch_all(const shcore::Argument_list &args) const {
   Value::Array_type_ref array(new Value::Array_type());
@@ -878,58 +793,43 @@ void RowResult::append_json(shcore::JSON_dumper &dumper) const {
 }
 
 // Documentation of SqlResult class
-REGISTER_HELP(
-    SQLRESULT_BRIEF,
-    "Allows browsing through the result information after performing an operation on the database done through NodeSession.sql");
+REGISTER_HELP(SQLRESULT_BRIEF,
+              "Allows browsing through the result information after performing "
+              "an operation on the database done through NodeSession.sql");
 
-SqlResult::SqlResult(std::shared_ptr< ::mysqlx::Result> result)
+SqlResult::SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : RowResult(result) {
-  add_method("hasData", std::bind(&SqlResult::has_data, this, _1), "nothing",
-             shcore::String, NULL);
+  add_method("hasData", std::bind(&SqlResult::has_data, this, _1), NULL);
   add_method("nextDataSet", std::bind(&SqlResult::next_data_set, this, _1),
-             "nothing", shcore::String, NULL);
+             NULL);
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("affectedRowCount", "getAffectedRowCount");
-}
-
-// Documentation of hasData function
-REGISTER_HELP(SQLRESULT_HASDATA_BRIEF,
-              "Returns true if the last statement execution has a result set.");
-
-/**
-* $(SQLRESULT_HASDATA_BRIEF)
-*
-*/
-#if DOXYGEN_JS
-Bool SqlResult::hasData() {}
-#elif DOXYGEN_PY
-bool SqlResult::has_data() {}
-#endif
-shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const {
-  args.ensure_count(0, get_function_name("hasData").c_str());
-
-  return Value(_result->has_data());
 }
 
 // Documentation of getAutoIncrementValue function
 REGISTER_HELP(SQLRESULT_GETAUTOINCREMENTVALUE_BRIEF,
               "Returns the identifier for the last record inserted.");
-REGISTER_HELP(
-    SQLRESULT_GETAUTOINCREMENTVALUE_DETAIL,
-    "Note that this value will only be set if the executed statement inserted a record in the database and an ID was automatically generated.");
+REGISTER_HELP(SQLRESULT_GETAUTOINCREMENTVALUE_DETAIL,
+              "Note that this value will only be set if the executed statement "
+              "inserted a record in the database and an ID was automatically "
+              "generated.");
 
 /**
-* $(SQLRESULT_GETAUTOINCREMENTVALUE_BRIEF)
-*
-* $(SQLRESULT_GETAUTOINCREMENTVALUE_DETAIL)
-*/
+ * $(SQLRESULT_GETAUTOINCREMENTVALUE_BRIEF)
+ *
+ * $(SQLRESULT_GETAUTOINCREMENTVALUE_DETAIL)
+ */
 #if DOXYGEN_JS
-Integer SqlResult::getAutoIncrementValue() {}
+Integer SqlResult::getAutoIncrementValue() {
+}
 #elif DOXYGEN_PY
-int SqlResult::get_auto_increment_value() {}
+int SqlResult::get_auto_increment_value() {
+}
 #endif
 int64_t SqlResult::get_auto_increment_value() const {
-  return _result->lastInsertId();
+  if (_result)
+    return _result->get_auto_increment_value();
+  return 0;
 }
 
 // Documentation of getAffectedRowCount function
@@ -937,15 +837,19 @@ REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF,
               "Returns the number of rows affected by the executed query.");
 
 /**
-* $(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF)
-*/
+ * $(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF)
+ */
 #if DOXYGEN_JS
-Integer SqlResult::getAffectedRowCount() {}
+Integer SqlResult::getAffectedRowCount() {
+}
 #elif DOXYGEN_PY
-int SqlResult::get_affected_row_count() {}
+int SqlResult::get_affected_row_count() {
+}
 #endif
 int64_t SqlResult::get_affected_row_count() const {
-  return _result->affectedRows();
+  if (_result)
+    return _result->get_affected_row_count();
+  return 0;
 }
 
 shcore::Value SqlResult::get_member(const std::string &prop) const {
@@ -960,28 +864,51 @@ shcore::Value SqlResult::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-// Documentation of nextDataSet function
-REGISTER_HELP(
-    SQLRESULT_NEXTDATASET_BRIEF,
-    "Prepares the SqlResult to start reading data from the next Result (if many results were returned).");
-REGISTER_HELP(
-    SQLRESULT_NEXTDATASET_RETURNS,
-    "@returns A boolean value indicating whether there is another result or not.");
+// Documentation of hasData function
+REGISTER_HELP(SQLRESULT_HASDATA_BRIEF,
+              "Returns true if the last statement execution has a result set.");
 
 /**
-* $(SQLRESULT_NEXTDATASET_BRIEF)
-*
-* $(SQLRESULT_NEXTDATASET_RETURNS)
-*/
+ * $(SQLRESULT_HASDATA_BRIEF)
+ *
+ */
 #if DOXYGEN_JS
-Bool SqlResult::nextDataSet() {}
+Bool SqlResult::hasData() {
+}
 #elif DOXYGEN_PY
-bool SqlResult::next_data_set() {}
+bool SqlResult::has_data() {
+}
+#endif
+shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const {
+  args.ensure_count(0, get_function_name("hasData").c_str());
+
+  return Value(_result && _result->has_resultset());
+}
+
+// Documentation of nextDataSet function
+REGISTER_HELP(SQLRESULT_NEXTDATASET_BRIEF,
+              "Prepares the SqlResult to start reading data from the next "
+              "Result (if many results were returned).");
+REGISTER_HELP(SQLRESULT_NEXTDATASET_RETURNS,
+              "@returns A boolean value indicating whether there is another "
+              "result or not.");
+
+/**
+ * $(SQLRESULT_NEXTDATASET_BRIEF)
+ *
+ * $(SQLRESULT_NEXTDATASET_RETURNS)
+ */
+#if DOXYGEN_JS
+Bool SqlResult::nextDataSet() {
+}
+#elif DOXYGEN_PY
+bool SqlResult::next_data_set() {
+}
 #endif
 shcore::Value SqlResult::next_data_set(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("nextDataSet").c_str());
 
-  return shcore::Value(_result->nextDataSet());
+  return shcore::Value(_result->next_resultset());
 }
 
 void SqlResult::append_json(shcore::JSON_dumper &dumper) const {
@@ -995,3 +922,6 @@ void SqlResult::append_json(shcore::JSON_dumper &dumper) const {
 
   dumper.end_object();
 }
+
+}  // namespace mysqlx
+}  // namespace mysqlsh

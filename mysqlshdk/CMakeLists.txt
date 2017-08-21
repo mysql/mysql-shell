@@ -17,6 +17,7 @@ include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
     ${CMAKE_SOURCE_DIR}/mysqlshdk/include
+    ${CMAKE_BINARY_DIR}/mysqlshdk/include
     ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
 
 
@@ -24,7 +25,7 @@ include_directories(BEFORE
 # Once warnings everywhere are low, we enable same flags for all
 
 SET(OLD_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-SET(CMAKE_CXX_FLAGS ${CXX_FLAGS_FULL_WARNINGS})
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_FULL_WARNINGS}")
 ADD_SUBDIRECTORY(libs/utils)
 ADD_SUBDIRECTORY(libs/db)
 ADD_SUBDIRECTORY(libs/textui)
@@ -50,19 +51,16 @@ merge_libraries(mysqlshdk-static STATIC
     shellcore NOINSTALL)
 
   #target_link_libraries(mysqlshdk
-  #          mysqlxtest
   #        ${V8_LINK_LIST}
   #        ${PYTHON_LIBRARIES}
   #        ${MYSQL_LIBRARIES}
-  #        ${BOOST_LIBRARIES}
   #        ${PROTOBUF_LIBRARY}
   #        ${SSL_LIBRARIES})
 
 target_link_libraries(mysqlshdk-static
-          mysqlxtest
           ${V8_LINK_LIST}
           ${PYTHON_LIBRARIES}
           ${MYSQL_LIBRARIES}
-          ${BOOST_LIBRARIES}
-          ${PROTOBUF_LIBRARY}
+          ${MYSQLX_LIBRARIES}
+          ${PROTOBUF_LIBRARIES}
           ${SSL_LIBRARIES})

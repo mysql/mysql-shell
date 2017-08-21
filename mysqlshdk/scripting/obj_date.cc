@@ -22,7 +22,6 @@
 #include <time.h>
 #include <cstdio>
 
-#include "mysqlx.h"
 #include "scripting/common.h"
 #include "utils/utils_string.h"
 #include "utils/utils_json.h"
@@ -33,11 +32,28 @@ using namespace shcore;
 REGISTER_OBJECT(mysqlx, Date);
 
 Date::Date(int year, int month, int day, int hour, int min, double sec)
-  : _year(year), _month(month), _day(day), _hour(hour), _min(min), _sec(sec) {}
+    : _year(year),
+      _month(month),
+      _day(day),
+      _hour(hour),
+      _min(min),
+      _sec(sec),
+      _has_time(true) {
+}
+
+Date::Date(int year, int month, int day)
+    : _year(year),
+      _month(month),
+      _day(day),
+      _hour(0),
+      _min(0),
+      _sec(0),
+      _has_time(false) {
+}
 
 bool Date::operator == (const Object_bridge &other) const {
   if (other.class_name() == "Date") {
-    return *this == *(Date*)&other;
+    return *this == *static_cast<const Date *>(&other);
   }
   return false;
 }
@@ -48,23 +64,30 @@ bool Date::operator == (const Date &other) const {
       _day == other._day &&
       _hour == other._hour &&
       _min == other._min &&
-      _sec == other._sec)
+      _sec == other._sec &&
+      _has_time == other._has_time)
     return true;
   return false;
 }
 
-std::string &Date::append_descr(std::string &s_out, int UNUSED(indent), int quote_strings) const {
+std::string &Date::append_descr(std::string &s_out, int /*indent*/,
+                                int quote_strings) const {
   if (quote_strings)
-    s_out.push_back((char)quote_strings);
+    s_out.push_back(quote_strings);
 
-  if ((double)(int)_sec != _sec)
-    s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%09.6f", _year,
-                            (_month + 1), _day, _hour, _min, _sec));
-  else
-    s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%02d", _year,
-                            (_month + 1), _day, _hour, _min, (int)_sec));
+  if (_has_time) {
+    if (static_cast<double>(static_cast<int>(_sec)) != _sec)
+      s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%09.6f", _year,
+                              (_month + 1), _day, _hour, _min, _sec));
+    else
+      s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%02d", _year,
+                              (_month + 1), _day, _hour, _min,
+                              static_cast<int>(_sec)));
+  } else {
+    s_out.append(str_format("%04d-%02d-%02d", _year, (_month + 1), _day));
+  }
   if (quote_strings)
-    s_out.push_back((char)quote_strings);
+    s_out.push_back(quote_strings);
   return s_out;
 }
 
@@ -99,8 +122,11 @@ Object_bridge_ref Date::create(const shcore::Argument_list &args) {
 #define GETi(i) (args.size() > i ? args.int_at(i) : 0)
 #define GETf(i) (args.size() > i ? args.double_at(i) : 0)
 
-  return Object_bridge_ref(new Date(GETi(0), GETi(1), GETi(2), GETi(3), GETi(4), GETf(5)));
-
+  if (args.size() == 3)
+    return Object_bridge_ref(new Date(GETi(0), GETi(1), GETi(2)));
+  else
+    return Object_bridge_ref(
+        new Date(GETi(0), GETi(1), GETi(2), GETi(3), GETi(4), GETf(5)));
 #undef GETi
 #undef GETf
 }
@@ -113,10 +139,14 @@ Object_bridge_ref Date::unrepr(const std::string &s) {
   int min = 0;
   double sec = 0.0;
 
-  sscanf(s.c_str(), "%d-%d-%d %d:%d:%lf", &year, &month, &day, &hour,
-         &min, &sec);
-
-  return Object_bridge_ref(new Date(year, month - 1, day, hour, min, sec));
+  int c = sscanf(s.c_str(), "%d-%d-%d %d:%d:%lf", &year, &month, &day, &hour,
+                 &min, &sec);
+  if (c == 3)
+    return Object_bridge_ref(new Date(year, month - 1, day));
+  else if (c == 6)
+    return Object_bridge_ref(new Date(year, month - 1, day, hour, min, sec));
+  else
+    throw std::invalid_argument("Invalid date value '" + s + "'");
 }
 
 int64_t Date::as_ms() const {
@@ -127,15 +157,15 @@ int64_t Date::as_ms() const {
   t.tm_mday = _day;
   t.tm_hour = _hour;
   t.tm_min = _min;
-  t.tm_sec = (int)_sec;
+  t.tm_sec = static_cast<int>(_sec);
 
   int64_t seconds_since_epoch = mktime(&t);
 
-  return seconds_since_epoch * 1000 + (int)(_sec * 1000.0) % 1000;
+  return seconds_since_epoch * 1000 + static_cast<int>(_sec * 1000.0) % 1000;
 }
 
 Object_bridge_ref Date::from_ms(int64_t ms_since_epoch) {
-  int ms = ms_since_epoch % 1000;
+  double ms = ms_since_epoch % 1000;
   time_t seconds_since_epoch = ms_since_epoch / 1000;
 
   struct tm t;
@@ -146,11 +176,12 @@ Object_bridge_ref Date::from_ms(int64_t ms_since_epoch) {
 #endif
 
   return Object_bridge_ref(new Date(t.tm_year + 1900, t.tm_mon, t.tm_mday,
-                                    t.tm_hour, t.tm_min, t.tm_sec + (double)ms / 1000.0));
+                                    t.tm_hour, t.tm_min,
+                                    t.tm_sec + ms / 1000.0));
 }
 
-Object_bridge_ref Date::from_mysqlx_datetime(const mysqlx::DateTime &date) {
+Object_bridge_ref Date::from_mysqlx_datetime(const xcl::DateTime &date) {
   return Object_bridge_ref(new Date(
       date.year(), date.month()-1, date.day(), date.hour(), date.minutes(),
-      date.seconds() + ((double)date.useconds() / 1000000)));
+      date.seconds() + (static_cast<double>(date.useconds()) / 1000000)));
 }

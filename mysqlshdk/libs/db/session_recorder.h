@@ -20,11 +20,12 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MYSQLSHDK_LIBS_DB_SESSION_RECORDER_H_
-#define _MYSQLSHDK_LIBS_DB_SESSION_RECORDER_H_
+#ifndef MYSQLSHDK_LIBS_DB_SESSION_RECORDER_H_
+#define MYSQLSHDK_LIBS_DB_SESSION_RECORDER_H_
 
-#include "mysqlshdk/libs/db/session.h"
+#include <memory>
 #include "mysqlshdk/libs/db/result.h"
+#include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -33,9 +34,9 @@ namespace db {
  * Using a singleton enables Mock recording even on unrelated classes
  */
 class SHCORE_PUBLIC Mock_record {
-private:
+ private:
   Mock_record() {
-    const char *outfile = std::getenv("MOCK_RECORDING_FILE");
+    const char* outfile = std::getenv("MOCK_RECORDING_FILE");
     if (outfile) {
       std::cerr << "Enabled mock recording at: " << outfile << std::endl;
       _file.open(outfile, std::ofstream::trunc | std::ofstream::out);
@@ -44,8 +45,8 @@ private:
   std::ofstream _file;
   static Mock_record* _instance;
 
-public:
-  static std::ofstream &get() {
+ public:
+  static std::ofstream& get() {
     if (!_instance)
       _instance = new Mock_record();
 
@@ -59,8 +60,8 @@ public:
  * i.e. for Unit Tests
  */
 class SHCORE_PUBLIC Session_recorder : public ISession {
-public:
-  Session_recorder() :_target(nullptr) {};
+ public:
+  Session_recorder() : _target(nullptr) {}
   Session_recorder(ISession* target);
   virtual void connect(
       const mysqlshdk::db::Connection_options& connection_options);
@@ -70,11 +71,11 @@ public:
   virtual void commit();
   virtual void rollback();
   virtual void close();
-  virtual const char* get_ssl_cipher();
+  virtual const char* get_ssl_cipher() const;
 
   void set_target(ISession* target) { _target = target; }
 
-private:
+ private:
   ISession* _target;
 };
 
@@ -84,12 +85,12 @@ private:
  * i.e. for Unit Tests
  */
 class SHCORE_PUBLIC Result_recorder : public IResult {
-public:
+ public:
   Result_recorder(IResult* target);
 
-  virtual std::unique_ptr<IRow> fetch_one();
-  virtual bool next_data_set();
-  virtual std::unique_ptr<IRow> fetch_one_warning();
+  virtual const IRow* fetch_one();
+  virtual bool next_resultset();
+  virtual std::unique_ptr<Warning> fetch_one_warning();
 
   // Metadata retrieval
   virtual int64_t get_auto_increment_value() const;
@@ -98,19 +99,19 @@ public:
   virtual uint64_t get_affected_row_count() const;
   virtual uint64_t get_fetched_row_count() const;
   virtual uint64_t get_warning_count() const;
-  virtual unsigned long get_execution_time() const;
   virtual std::string get_info() const;
 
   virtual const std::vector<Column>& get_metadata() const;
 
-private:
+ private:
   void save_result();
-  void save_current_result(const std::vector<Column>& columns, const std::vector<std::unique_ptr<IRow> >& rows);
+  void save_current_result(const std::vector<Column>& columns,
+                           const std::vector<std::unique_ptr<IRow> >& rows);
   IResult* _target;
 
   std::vector<std::vector<Column>*> _all_metadata;
-  std::vector< std::vector<std::unique_ptr<IRow> > > _all_results;
-  std::vector< std::vector<std::unique_ptr<IRow> > > _all_warnings;
+  std::vector<std::vector<std::unique_ptr<IRow> > > _all_results;
+  std::vector<std::vector<std::unique_ptr<Warning> > > _all_warnings;
   size_t _rset_index;
   size_t _row_index;
   size_t _warning_index;
@@ -119,6 +120,6 @@ private:
 
   std::vector<Column> _empty_metadata;
 };
-}
-}
-#endif
+}  // namespace db
+}  // namespace mysqlshdk
+#endif  // MYSQLSHDK_LIBS_DB_SESSION_RECORDER_H_

@@ -27,7 +27,12 @@ namespace utils {
 template<class C>
 class nullable {
 public:
-  nullable() : _is_null(true) {};
+  nullable() : _is_null(true) {}
+
+  nullable(std::nullptr_t) {
+    _is_null = true;
+  }
+
   nullable(const nullable<C>& other) {
     _value = other._value;
     _is_null = other._is_null;
@@ -47,7 +52,7 @@ public:
 
   operator bool() const { return !_is_null; }
 
-  operator C&() {
+  operator const C&() const {
     if (_is_null)
       throw std::logic_error("Attempt to read null value");
 

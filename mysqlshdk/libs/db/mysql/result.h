@@ -20,11 +20,12 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _CORELIBS_DB_MYSQL_RESULT_H_
-#define _CORELIBS_DB_MYSQL_RESULT_H_
+#ifndef MYSQLSHDK_LIBS_DB_MYSQL_RESULT_H_
+#define MYSQLSHDK_LIBS_DB_MYSQL_RESULT_H_
 
 #include "mysqlshdk/libs/db/result.h"
 
+#include <list>
 #include <memory>
 #include <vector>
 
@@ -44,9 +45,9 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual ~Result();
 
   // Data Retrieving
-  virtual std::unique_ptr<IRow> fetch_one();
-  virtual bool next_data_set();
-  virtual std::unique_ptr<IRow> fetch_one_warning();
+  virtual const IRow* fetch_one();
+  virtual bool next_resultset();
+  virtual std::unique_ptr<Warning> fetch_one_warning();
 
   // Metadata retrieval
   virtual int64_t get_auto_increment_value() const { return _last_insert_id; }
@@ -54,7 +55,6 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual uint64_t get_affected_row_count() const { return _affected_rows; }
   virtual uint64_t get_fetched_row_count() const { return _fetched_row_count; }
   virtual uint64_t get_warning_count() const { return _warning_count; }
-  virtual unsigned long get_execution_time() const { return _execution_time; }
   virtual std::string get_info() const { return _info; }
   virtual const std::vector<Column>& get_metadata() const { return _metadata; }
 
@@ -63,24 +63,23 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
          uint64_t affected_rows, unsigned int warning_count,
          uint64_t last_insert_id, const char* info);
   void reset(std::shared_ptr<MYSQL_RES> res);
-  int fetch_metadata();
-  Type map_data_type(int raw_type);
+  void fetch_metadata();
+  Type map_data_type(int raw_type, int flags);
 
-  std::shared_ptr<mysqlshdk::db::mysql::Session_impl> _session;
+  std::weak_ptr<mysqlshdk::db::mysql::Session_impl> _session;
   std::vector<Column> _metadata;
-
+  std::unique_ptr<IRow> _row;
   std::weak_ptr<MYSQL_RES> _result;
   uint64_t _affected_rows;
   uint64_t _last_insert_id;
   unsigned int _warning_count;
-  unsigned int _fetched_row_count;
+  uint64_t _fetched_row_count;
   std::string _info;
-  unsigned long _execution_time;
+  std::list<std::unique_ptr<Warning>> _warnings;
   bool _has_resultset;
-  bool _fetch_started;
-  std::shared_ptr<IResult> _warnings;
+  bool _fetched_warnings = false;
 };
 }  // namespace mysql
 }  // namespace db
 }  // namespace mysqlshdk
-#endif
+#endif  // MYSQLSHDK_LIBS_DB_MYSQL_RESULT_H_

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,6 +32,7 @@
 #include <sstream>
 #include "scripting/types_cpp.h"
 #include "scripting/python_utils.h"
+#include "mysqlshdk/libs/db/session.h"
 #include "shellcore/shell_core_options.h"//XXX
 
 #ifndef WIN32
@@ -51,6 +52,22 @@ struct PyShMethodObject {
   std::string *method;
 };
 
+void translate_python_exception(const std::string &context = "") {
+  try {
+    throw;
+  } catch (mysqlshdk::db::Error &e) {
+    PyObject *err = PyTuple_New(2);
+    PyTuple_SET_ITEM(err, 0, PyInt_FromLong(e.code()));
+    PyTuple_SET_ITEM(err, 1, PyString_FromString(e.what()));
+    PyErr_SetObject(Python_context::get()->db_error(), err);
+    Py_DECREF(err);
+  } catch (Exception &e) {
+    Python_context::set_python_error(e, context);
+  } catch (const std::exception &exc) {
+    Python_context::set_python_error(exc);
+  }
+}
+
 static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object, const char *method, PyObject *args) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx)
@@ -63,10 +80,10 @@ static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object, c
 
     try {
       arglist.push_back(ctx->pyobj_to_shcore_value(argval));
-    } catch (Exception &e) {
+    } catch (...) {
       char buffer[100];
       snprintf(buffer, sizeof(buffer), "argument #" PY_SIZE_T_FMT, a);
-      Python_context::set_python_error(e, buffer);
+      translate_python_exception(buffer);
       return NULL;
     }
   }
@@ -74,8 +91,8 @@ static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object, c
   try {
     WillLeavePython lock;
     return ctx->shcore_value_to_pyobj(object->call_advanced(method, arglist, shcore::LowerCaseUnderscores));
-  } catch (Exception &e) {
-    Python_context::set_python_error(e);
+  } catch (...) {
+    translate_python_exception();
     return NULL;
   }
   return NULL;
@@ -258,6 +275,9 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
         Python_context::set_python_error(exc, "");
         error_handled = true;
       }
+    } catch (...) {
+      translate_python_exception();
+      error_handled = true;
     }
 
     if (member.type != shcore::Undefined) {
@@ -296,14 +316,14 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
 
       try {
         value = ctx->pyobj_to_shcore_value(attr_value);
-      } catch (const std::exception &exc) {
-        Python_context::set_python_error(exc);
+      } catch (...) {
+        translate_python_exception();
         return -1;
       }
       try {
         cobj->set_member_advanced(attrname, value, shcore::LowerCaseUnderscores);
-      } catch (const std::exception &exc) {
-        Python_context::set_python_error(exc);
+      } catch (...) {
+        translate_python_exception();
         return -1;
       }
       return 0;
@@ -341,8 +361,8 @@ static PyObject *call_object_method(std::shared_ptr<shcore::Object_bridge> objec
     try {
       Value v = ctx->pyobj_to_shcore_value(argval);
       r.push_back(v);
-    } catch (std::exception &exc) {
-      Python_context::set_python_error(exc);
+    } catch (...) {
+      translate_python_exception();
       return NULL;
     }
   }
@@ -358,8 +378,8 @@ static PyObject *call_object_method(std::shared_ptr<shcore::Object_bridge> objec
       result = cobj->call_advanced(cfunc->name(shcore::LowerCaseUnderscores), r, shcore::LowerCaseUnderscores);
     }
     return ctx->shcore_value_to_pyobj(result);
-  } catch (std::exception &exc) {
-    Python_context::set_python_error(exc);
+  } catch (...) {
+    translate_python_exception();
     return NULL;
   }
 
@@ -424,8 +444,8 @@ PyObject *object_item(PyShObjObject *self, Py_ssize_t index) {
 
   try {
     return ctx->shcore_value_to_pyobj(self->object->get()->get_member(index));
-  } catch (std::exception &exc) {
-    Python_context::set_python_error(PyExc_RuntimeError, exc.what());
+  } catch (...) {
+    translate_python_exception();
     return NULL;
   }
 }
@@ -445,8 +465,8 @@ int object_assign(PyShObjObject *self, Py_ssize_t index, PyObject *value) {
     self->object->get()->set_member(index, ctx->pyobj_to_shcore_value(value));
 
     return 0;
-  } catch (std::exception &exc) {
-    Python_context::set_python_error(PyExc_RuntimeError, exc.what());
+  } catch (...) {
+    translate_python_exception();
   }
 
   return -1;

@@ -17,7 +17,9 @@
  * 02110-1301  USA
  */
 
-#include "proj_parser.h"
+#include "dynamic_object.h"
+
+#include "db/mysqlx/mysqlx_parser.h"
 
 #include "modules/devapi/base_database_object.h"
 #include "modules/devapi/crud_definition.h"

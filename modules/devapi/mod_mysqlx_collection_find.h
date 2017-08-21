@@ -92,7 +92,7 @@ class CollectionFind : public Collection_crud_definition,
   virtual shcore::Value execute(const shcore::Argument_list &args);
 
  private:
-  std::unique_ptr< ::mysqlx::FindStatement> _find_statement;
+  Mysqlx::Crud::Find message_;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

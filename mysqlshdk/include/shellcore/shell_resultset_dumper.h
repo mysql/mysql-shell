@@ -22,7 +22,6 @@
 
 #include <stdlib.h>
 #include <iostream>
-#include "cmdline_options.h"
 #include "modules/devapi/base_resultset.h"
 #include "scripting/lang_base.h"
 

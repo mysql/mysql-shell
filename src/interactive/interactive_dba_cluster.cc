@@ -19,7 +19,6 @@
 
 #include <string>
 #include <vector>
-#include <boost/format.hpp>
 #include "interactive_dba_cluster.h"
 #include "interactive_global_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"

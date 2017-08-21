@@ -22,9 +22,8 @@
 #include <vector>
 #include <cstdio>
 
-#include "../mysqlxtest/common/expr_parser.h"
+#include "db/mysqlx/expr_parser.h"
 
-#include "mysqlx_expr.pb.h"
 #include <google/protobuf/text_format.h>
 
 

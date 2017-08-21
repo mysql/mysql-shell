@@ -14,8 +14,8 @@
 |currentSchema: OK|
 
 //@<OUT> NodeSession: help
-Enables interaction with an X Protocol enabled MySQL Server, this includes SQL
-Execution.
+Document Store functionality can be used through this object, in addition to
+SQL.
 
 The following properties are currently supported.
 

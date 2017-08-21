@@ -30,6 +30,7 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
+#include "utils/dtoa.h"
 
 #ifdef WIN32
 #ifdef max
@@ -405,6 +406,16 @@ Value::Value(int64_t i)
 Value::Value(uint64_t ui)
   : type(UInteger) {
   value.ui = ui;
+}
+
+Value::Value(float f)
+  : type(Float) {
+  // direct typecast from float to double works by just appending 0s to the
+  // binary IEEE representation, which will result in a different number
+  // So we convert through decimal instead
+  char buffer[100];
+  my_gcvt(f, MY_GCVT_ARG_FLOAT, sizeof(buffer) - 1, buffer, NULL);
+  value.d = std::stod(buffer);
 }
 
 Value::Value(double d)
@@ -1028,24 +1039,19 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
         s_out += "false";
       break;
     case Integer:
-    {
-      std::ostringstream value_i;
-      value_i << value.i;
-      s_out += value_i.str();
-    }
-    break;
+      s_out += std::to_string(value.i);
+      break;
     case UInteger:
-    {
-      std::ostringstream value_ui;
-      value_ui << value.ui;
-      s_out += value_ui.str();
+      s_out += std::to_string(value.ui);
+      break;
+    case Float: {
+      char buffer[32];
+      size_t len;
+      len = my_gcvt(value.d, MY_GCVT_ARG_DOUBLE,
+                    sizeof(buffer) - 1, buffer, NULL);
+      s_out.append(buffer, len);
+      break;
     }
-    break;
-    case Float:
-    {
-      s_out += str_format("%g", value.d);
-    }
-    break;
     case String:
       if (quote_strings)
         s_out += (char)quote_strings + *value.s + (char)quote_strings;

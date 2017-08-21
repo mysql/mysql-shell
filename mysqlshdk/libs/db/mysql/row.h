@@ -23,11 +23,11 @@
 #ifndef _CORELIBS_DB_MYSQL_ROW_H_
 #define _CORELIBS_DB_MYSQL_ROW_H_
 
-#include "mysqlshdk/libs/db/row.h"
-#include "mysqlshdk/libs/db/column.h"
-#include <vector>
 #include <map>
 #include <set>
+#include <vector>
+#include "mysqlshdk/libs/db/column.h"
+#include "mysqlshdk/libs/db/row.h"
 
 #include <mysql.h>
 #include <memory>
@@ -37,40 +37,36 @@ namespace db {
 namespace mysql {
 class Result;
 class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow {
-public:
-  Row(std::shared_ptr<Result> result, MYSQL_ROW row, unsigned long *lengths);
-  virtual ~Row() {}
+ public:
+  Row(const Row &) = delete;
+  void operator=(const Row &) = delete;
 
-  virtual size_t size() const;
+  uint32_t num_fields() const override;
 
-  virtual int64_t get_int(int index) const;
-  virtual uint64_t get_uint(int index) const;
-  virtual std::string get_string(int index) const;
-  virtual std::pair<const char*, size_t> get_data(int index) const;
-  virtual double get_double(int index) const;
-  virtual std::string get_date(int index) const;
+  Type get_type(uint32_t index) const override;
+  bool is_null(uint32_t index) const override;
+  std::string get_as_string(uint32_t index) const override;
 
+  std::string get_string(uint32_t index) const override;
+  int64_t get_int(uint32_t index) const override;
+  uint64_t get_uint(uint32_t index) const override;
+  float get_float(uint32_t index) const override;
+  double get_double(uint32_t index) const override;
+  std::pair<const char *, size_t> get_string_data(
+      uint32_t index) const override;
+  uint64_t get_bit(uint32_t index) const override;
 
-  virtual bool is_null(int index) const;
-  virtual bool is_int(int index) const;
-  virtual bool is_uint(int index) const;
-  virtual bool is_string(int index) const;
-  virtual bool is_double(int index) const;
-  virtual bool is_date(int index) const;
-  virtual bool is_binary(int index) const;
+ private:
+  friend class Result;
+  Row(std::shared_ptr<Result> result, MYSQL_ROW row,
+      const unsigned long *lengths);
 
-private:
   std::shared_ptr<Result> _result;
   MYSQL_ROW _row;
-  std::vector<unsigned long> _lengths;
-
-  static std::map<std::string, std::set<Type> > _type_mappings;
-  static std::string resolve_mysql_data_type(Type type);
-  void validate_index(int index) const;
-  bool validate_type(int index, const std::string& type, bool throw_on_error = false) const;
+  std::vector<uint64_t> _lengths;
 };
 
-}
-}
-}
+}  // namespace mysql
+}  // namespace db
+}  // namespace mysqlshdk
 #endif

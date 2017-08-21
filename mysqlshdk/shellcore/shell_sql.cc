@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
@@ -19,7 +20,7 @@
 
 #include "shellcore/shell_sql.h"
 #include "shellcore/base_session.h"
-#include "../modules/mod_mysql_session.h"
+#include "modules/mod_mysql_session.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include <fstream>
 #include "utils/utils_string.h"
@@ -61,23 +62,28 @@ Value Shell_sql::process_sql(const std::string &query_str,
       query.push_back(Value(query_str));
 
       // ClassicSession has runSql and returns a ClassicResult object
-      if (session->has_member("runSql"))
+      if (session->has_member("runSql")) {
         ret_val = session->call("runSql", query);
-
-      // NodeSession uses SqlExecute object in which we need to call
-      // .execute() to get the Resultset object
-      else if (session->has_member("sql"))
-        ret_val = session->call("sql", query).as_object()->call("execute",
-                                shcore::Argument_list());
-      else
+      } else if (session->session_type() == mysqlsh::SessionType::Node) {
+        try {
+          ret_val =
+              std::static_pointer_cast<mysqlsh::mysqlx::NodeSession>(session)
+                  ->_execute_sql(query_str);
+        } catch (mysqlshdk::db::Error &e) {
+          throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+        }
+      } else {
         throw shcore::Exception::logic_error("The current session type (" +
             session->class_name() + ") can't be used for SQL execution.");
-
+      }
       // If reached this point, processes the returned result object
       auto shcore_options = Shell_core_options::get();
       auto old_format = (*shcore_options)[SHCORE_OUTPUT_FORMAT];
       if (delimiter == "\\G")
         (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value("vertical");
+      // FIXME eventually remove the result_processor and the shcore::Value
+      // FIXME result wrapper and call the dumper directly on db::IResult,
+      // FIXME since we do only print query results here
       result_processor(ret_val);
       (*shcore_options)[SHCORE_OUTPUT_FORMAT] = old_format;
     } catch (shcore::Exception &exc) {

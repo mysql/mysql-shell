@@ -15,6 +15,7 @@
 
 #include <string>
 #include "unittest/test_utils/command_line_test.h"
+#include "utils/utils_string.h"
 
 extern "C" const char* g_argv0;
 
@@ -302,6 +303,34 @@ TEST_F(Command_line_connection_test, basic_ssl_check_classic) {
                 "-e", ssl_check, nullptr});
   EXPECT_EQ(0, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS("SSL_ON");
+}
+
+TEST_F(Command_line_connection_test, expired_account) {
+  _output.clear();
+  execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "-e",
+           "drop user if exists expired@localhost; "
+           "create user expired@localhost password expire;",
+           nullptr});
+  EXPECT_EQ(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.\n",
+      _output);
+
+  std::string uri;
+
+  uri = "expired:@"+shcore::str_partition(_mysql_uri, "@").second;
+  _output.clear();
+  execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "print('DONE')",
+           nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("DONE");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("ERROR");
+
+  uri = "expired:@" + shcore::str_partition(_uri, "@").second;
+  _output.clear();
+  execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "print('DONE')",
+           nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("DONE");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("ERROR");
 }
 
 }  // namespace tests

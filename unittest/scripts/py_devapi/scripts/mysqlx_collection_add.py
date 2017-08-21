@@ -18,7 +18,7 @@ crud = collection.add([])
 validate_crud_functions(crud, ['add', 'execute'])
 
 #@ CollectionAdd: valid operations after add
-crud = collection.add({"name":"john", "age":17})
+crud = collection.add({"name":"john", "age":17, "account": None})
 validate_crud_functions(crud, ['add', 'execute'])
 
 #@ CollectionAdd: valid operations after execute

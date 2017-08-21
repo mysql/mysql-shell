@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -18,6 +18,7 @@
  */
 
 #include "scripting/types_cpp.h"
+#include <mysqlxclient/xdatetime.h>
 
 #ifndef _SHCORE_OBJ_DATE_H_
 #define _SHCORE_OBJ_DATE_H_
@@ -30,6 +31,7 @@ namespace shcore {
 class SHCORE_PUBLIC Date : public Cpp_object_bridge {
 public:
   Date(int year, int month, int day, int hour, int min, double sec);
+  Date(int year, int month, int day);
 
   virtual std::string class_name() const { return "Date"; }
 
@@ -56,7 +58,7 @@ public:
   static Object_bridge_ref create(const shcore::Argument_list &args);
   static Object_bridge_ref unrepr(const std::string &s);
   static Object_bridge_ref from_ms(int64_t ms_since_epoch);
-  static Object_bridge_ref from_mysqlx_datetime(const mysqlx::DateTime &dt);
+  static Object_bridge_ref from_mysqlx_datetime(const ::xcl::DateTime &dt);
 
 private:
   int _year;
@@ -65,6 +67,7 @@ private:
   int _hour;
   int _min;
   double _sec;
+  bool _has_time;
 };
 }
 

@@ -17,6 +17,9 @@
  * 02110-1301  USA
  */
 #include "modules/mod_shell.h"
+
+#include <memory>
+
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h"
@@ -573,9 +576,9 @@ shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
   return connect_session(args, session_type);
 }*/
 
-std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session
-  (const mysqlshdk::db::Connection_options &connection_options,
-   SessionType session_type) {
+std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
+    const mysqlshdk::db::Connection_options &connection_options,
+    SessionType session_type) {
   std::shared_ptr<ShellBaseSession> ret_val;
 
   mysqlsh::SessionType type(session_type);
@@ -606,17 +609,12 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session
   }
 
   switch (type) {
-    case mysqlsh::SessionType::X:
-      ret_val.reset(new mysqlsh::mysqlx::XSession());
-      break;
     case mysqlsh::SessionType::Node:
       ret_val.reset(new mysqlsh::mysqlx::NodeSession());
       break;
-#ifdef HAVE_LIBMYSQLCLIENT
     case mysqlsh::SessionType::Classic:
       ret_val.reset(new mysql::ClassicSession());
       break;
-#endif
     default:
       throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
       break;

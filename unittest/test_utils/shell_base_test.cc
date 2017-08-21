@@ -24,85 +24,6 @@
 namespace tests {
 
 Shell_base_test::Shell_base_test() {
-  const char *uri = getenv("MYSQL_URI");
-  if (uri == NULL)
-    throw std::runtime_error(
-        "MYSQL_URI environment variable has to be defined for tests");
-
-  // Creates connection data and recreates URI, this will fix URI if no
-  // password is defined So the UT don't prompt for password ever
-  auto data = shcore::get_connection_options(uri);
-
-  _host = data.get_host();
-  _user = data.get_user();
-
-  const char *pwd = getenv("MYSQL_PWD");
-  if (pwd) {
-    _pwd.assign(pwd);
-    data.set_password(_pwd);
-  } else {
-    data.set_password("");
-  }
-
-  _uri = data.as_uri(mysqlshdk::db::uri::formats::full());
-  _mysql_uri = _uri;
-
-  const char *xport = getenv("MYSQLX_PORT");
-  if (xport) {
-    _port_number = atoi(xport);
-    _port.assign(xport);
-    _uri += ":" + _port;
-  }
-  _uri_nopasswd = shcore::strip_password(_uri);
-
-  const char *port = getenv("MYSQL_PORT");
-  if (port) {
-    _mysql_port_number = atoi(port);
-    _mysql_port.assign(port);
-    _mysql_uri += ":" + _mysql_port;
-  }
-
-  _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
-
-
-  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-  if (sandbox_port1)
-    _mysql_sandbox_port1.assign(sandbox_port1);
-  else
-    _mysql_sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
-
-  _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
-
-  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-  if (sandbox_port2)
-    _mysql_sandbox_port2.assign(sandbox_port2);
-  else
-    _mysql_sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
-
-  _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
-
-  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-  if (sandbox_port3)
-    _mysql_sandbox_port3.assign(sandbox_port3);
-  else
-    _mysql_sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
-
-  _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
-
-  const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir) {
-    _sandbox_dir.assign(tmpdir);
-  } else {
-    // If not specified, the tests will create the sandboxes on the
-    // binary folder
-    _sandbox_dir = shcore::get_binary_folder();
-  }
-
-#ifdef WIN32
-  _new_line_char = "\r\n";
-#else
-  _new_line_char = "\n";
-#endif
 }
 
 void Shell_base_test::TearDown() {
@@ -129,34 +50,6 @@ void Shell_base_test::check_string_expectation(const std::string& expected_str,
     SCOPED_TRACE(error);
     ADD_FAILURE();
   }
-}
-
-std::string Shell_base_test::get_path_to_mysqlsh() {
-  std::string command;
-
-#ifdef _WIN32
-  // For now, on windows the executable is expected to be on the same path as
-  // the unit tests
-  char buf[MAX_PATH];
-  GetModuleFileNameA(NULL, buf, MAX_PATH);
-  command = buf;
-  command.resize(command.rfind('\\') + 1);
-  command += "mysqlsh.exe";
-#else
-  std::string prefix = g_argv0;
-  // strip unittest/run_unit_tests
-  size_t pos = prefix.rfind('/');
-  prefix = prefix.substr(0, pos);
-  pos = prefix.rfind('/');
-  if (pos == std::string::npos)
-    prefix = ".";
-  else
-    prefix = prefix.substr(0, pos);
-
-  command = prefix + "/mysqlsh";
-#endif
-
-  return command;
 }
 
 /**

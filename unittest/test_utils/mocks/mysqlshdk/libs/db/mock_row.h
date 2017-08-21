@@ -24,15 +24,16 @@
 #include <utility>
 #include <vector>
 
-#include "unittest/test_utils/mocks/gmock_clean.h"
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/row.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 
 namespace testing {
 class Mock_row : public mysqlshdk::db::IRow {
  public:
-  Mock_row() {}
+  Mock_row() {
+  }
   Mock_row(const std::vector<std::string>& names,
            const std::vector<mysqlshdk::db::Type>& types,
            const std::vector<std::string>& data);
@@ -40,43 +41,40 @@ class Mock_row : public mysqlshdk::db::IRow {
             const std::vector<mysqlshdk::db::Type>& types,
             const std::vector<std::string>& data);
 
-  MOCK_CONST_METHOD0(size, size_t());
-  MOCK_CONST_METHOD1(get_int, int64_t(int index));
-  MOCK_CONST_METHOD1(get_uint, uint64_t(int index));
-  MOCK_CONST_METHOD1(get_string, std::string(int index));
-  MOCK_CONST_METHOD1(get_data, std::pair<const char*, size_t>(int index));
-  MOCK_CONST_METHOD1(get_double, double(int index));
-  MOCK_CONST_METHOD1(get_date, std::string(int index));
+  MOCK_CONST_METHOD1(get_as_string, std::string(uint32_t index));
 
-  MOCK_CONST_METHOD1(is_null, bool(int index));
-  MOCK_CONST_METHOD1(is_int, bool(int index));
-  MOCK_CONST_METHOD1(is_uint, bool(int index));
-  MOCK_CONST_METHOD1(is_string, bool(int index));
-  MOCK_CONST_METHOD1(is_double, bool(int index));
-  MOCK_CONST_METHOD1(is_date, bool(int index));
-  MOCK_CONST_METHOD1(is_binary, bool(int index));
+  MOCK_CONST_METHOD0(num_fields, uint32_t());
+  MOCK_CONST_METHOD1(get_int, int64_t(uint32_t index));
+  MOCK_CONST_METHOD1(get_uint, uint64_t(uint32_t index));
+  MOCK_CONST_METHOD1(get_string, std::string(uint32_t index));
+  MOCK_CONST_METHOD1(get_string_data,
+                     std::pair<const char*, size_t>(uint32_t index));
+  MOCK_CONST_METHOD1(get_float, float(uint32_t index));
+  MOCK_CONST_METHOD1(get_double, double(uint32_t index));
+  MOCK_CONST_METHOD1(get_bit, uint64_t(uint32_t index));
+
+  MOCK_CONST_METHOD1(get_type, mysqlshdk::db::Type(uint32_t index));
+  MOCK_CONST_METHOD1(is_null, bool(uint32_t index));
 
  private:
   std::vector<std::string> _names;
   std::vector<mysqlshdk::db::Type> _types;
   std::vector<std::string> _record;
 
-  virtual size_t def_size() const;
+  virtual std::string def_get_as_string(uint32_t index) const;
+  virtual uint32_t def_num_fields() const;
 
-  virtual int64_t def_get_int(int index) const;
-  virtual uint64_t def_get_uint(int index) const;
-  virtual std::string def_get_string(int index) const;
-  virtual std::pair<const char*, size_t> def_get_data(int index) const;
-  virtual double def_get_double(int index) const;
-  virtual std::string def_get_date(int index) const;
+  virtual int64_t def_get_int(uint32_t index) const;
+  virtual uint64_t def_get_uint(uint32_t index) const;
+  virtual std::string def_get_string(uint32_t index) const;
+  virtual std::pair<const char*, size_t> def_get_string_data(
+      uint32_t index) const;
+  virtual float def_get_float(uint32_t index) const;
+  virtual double def_get_double(uint32_t index) const;
+  virtual uint64_t def_get_bit(uint32_t index) const;
 
-  virtual bool def_is_null(int index) const;
-  virtual bool def_is_int(int index) const;
-  virtual bool def_is_uint(int index) const;
-  virtual bool def_is_string(int index) const;
-  virtual bool def_is_double(int index) const;
-  virtual bool def_is_date(int index) const;
-  virtual bool def_is_binary(int index) const;
+  virtual mysqlshdk::db::Type def_get_type(uint32_t index) const;
+  virtual bool def_is_null(uint32_t index) const;
 
   void enable_fake_engine();
 };

@@ -367,7 +367,10 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::get_dev_session() {
   return _global_dev_session;
 }
 
-void Shell_core::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
+void Shell_core::handle_notification(const std::string &name,
+                                     const shcore::Object_bridge_ref &sender,
+                                     shcore::Value::Map_type_ref data) {
+  // FIXME move this code to Mysql_shell
   if (name == "SN_SESSION_CONNECTION_LOST") {
     auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(sender);
 
@@ -376,20 +379,8 @@ void Shell_core::handle_notification(const std::string &name, const shcore::Obje
   }
 }
 
-bool Shell_core::reconnect() {
-  bool ret_val = false;
-
-  try {
-    _global_dev_session->reconnect();
-    ret_val = true;
-  } catch (shcore::Exception &e) {
-    ret_val = false;
-  }
-
-  return ret_val;
-}
-
 bool Shell_core::reconnect_if_needed() {
+  // FIXME move this code to Mysql_shell
   bool ret_val = false;
   if (_reconnect_session) {
     {
@@ -398,8 +389,12 @@ bool Shell_core::reconnect_if_needed() {
       shcore::sleep_ms(500);
       int attempts = 6;
       while (!ret_val && attempts > 0) {
-        ret_val = reconnect();
-
+        try {
+          _global_dev_session->reconnect();
+          ret_val = true;
+        } catch (shcore::Exception &e) {
+          ret_val = false;
+        }
         if (!ret_val) {
           print("..");
           attempts--;

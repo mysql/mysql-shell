@@ -112,8 +112,8 @@ Connection *ClassicSession::connection() {
   return _conn.get();
 }
 
-void ClassicSession::connect
-  (const mysqlshdk::db::Connection_options& connection_options) {
+void ClassicSession::connect(
+    const mysqlshdk::db::Connection_options &connection_options) {
   try {
     _conn.reset(new Connection(connection_options));
 
@@ -202,7 +202,7 @@ ClassicResult ClassicSession::runSql(String query) {}
 #elif DOXYGEN_PY
 ClassicResult ClassicSession::run_sql(str query) {}
 #endif
-Value ClassicSession::run_sql(const shcore::Argument_list &args) const {
+Value ClassicSession::run_sql(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("runSql").c_str());
   // Will return the result of the SQL execution
   // In case of error will be Undefined
@@ -228,11 +228,11 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) const {
 
   return ret_val;
 }
-shcore::Object_bridge_ref ClassicSession::raw_execute_sql(const std::string& query) const {
+shcore::Object_bridge_ref ClassicSession::raw_execute_sql(const std::string& query) {
   return execute_sql(query, shcore::Argument_list()).as_object();
 }
 
-shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore::Argument_list &UNUSED(args)) const {
+shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore::Argument_list &UNUSED(args)) {
   Value ret_val;
   if (!_conn)
     throw Exception::logic_error("Not connected.");
@@ -249,7 +249,7 @@ shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore
 
 // We need to hide this from doxygen to avoif warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
-std::shared_ptr<ClassicResult> ClassicSession::execute_sql(const std::string& query) const {
+std::shared_ptr<ClassicResult> ClassicSession::execute_sql(const std::string& query) {
   if (!_conn)
     throw Exception::logic_error("Not connected.");
   else {
@@ -384,26 +384,33 @@ Value ClassicSession::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
   Value ret_val;
 
-  if (prop == "uri")
+  if (prop == "__connection_info") {
+    // FIXME: temporary code until ISession refactoring
+    const char *i = _conn->get_connection_info();
+    return Value(i ? i : "");
+  }
+
+  if (prop == "uri") {
     ret_val = shcore::Value(uri());
-  else if (prop == "defaultSchema") {
+  } else if (prop == "defaultSchema") {
     if (_connection_options.has_schema()) {
-      ret_val = shcore::Value(get_schema(_connection_options.get_schema()));
+      ret_val = shcore::Value(const_cast<ClassicSession *>(this)->get_schema(
+          _connection_options.get_schema()));
     } else {
       ret_val = Value::Null();
     }
-  }
-  else if (prop == "currentSchema") {
+  } else if (prop == "currentSchema") {
     ClassicSession *session = const_cast<ClassicSession *>(this);
     std::string name = session->_retrieve_current_schema();
 
     if (!name.empty()) {
-      ret_val = shcore::Value(get_schema(name));
-    } else
+      ret_val = shcore::Value(session->get_schema(name));
+    } else {
       ret_val = Value::Null();
-  } else
+    }
+  } else {
     ret_val = ShellBaseSession::get_member(prop);
-
+  }
   return ret_val;
 }
 
@@ -460,7 +467,7 @@ ClassicSchema ClassicSession::getSchema(String name) {}
 #elif DOXYGEN_PY
 ClassicSchema ClassicSession::get_schema(str name) {}
 #endif
-shcore::Object_bridge_ref ClassicSession::get_schema(const std::string &name) const {
+shcore::Object_bridge_ref ClassicSession::get_schema(const std::string &name) {
   auto ret_val = ShellBaseSession::get_schema(name);
 
   auto dbobject = std::dynamic_pointer_cast<DatabaseObject>(ret_val);
@@ -469,7 +476,7 @@ shcore::Object_bridge_ref ClassicSession::get_schema(const std::string &name) co
   return ret_val;
 }
 
-shcore::Value ClassicSession::_get_schema(const shcore::Argument_list &args) const {
+shcore::Value ClassicSession::_get_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
@@ -495,7 +502,7 @@ List ClassicSession::getSchemas() {}
 #elif DOXYGEN_PY
 list ClassicSession::get_schemas() {}
 #endif
-shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) const {
+shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) {
   shcore::Value::Array_type_ref schemas(new shcore::Value::Array_type);
 
   if (_conn) {
@@ -695,7 +702,7 @@ shcore::Value ClassicSession::drop_schema_object(const shcore::Argument_list &ar
 * If type is not specified and an object with the name is found, the type will be returned.
 */
 
-std::string ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) const {
+std::string ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) {
   std::string statement;
   std::string ret_val;
 
@@ -975,7 +982,7 @@ std::string ClassicSession::query_one_string(const std::string &query,
   return "";
 }
 
-void ClassicSession::kill_query() const {
+void ClassicSession::kill_query() {
   uint64_t cid = get_connection_id();
   try {
     std::shared_ptr<Connection> kill_conn(new Connection(_connection_options));

@@ -18,6 +18,7 @@
  */
 
 #include "mysql_shell.h"
+#include <mysqld_error.h>
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -38,6 +39,7 @@
 #include "utils/utils_time.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlsh {
 Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate) : mysqlsh::Base_shell(options, custom_delegate) {
@@ -336,13 +338,19 @@ shcore::Value Mysql_shell::connect_session(
     try {
       message += "\nServer version: " +
                  new_session->query_one_string(
-                     "select concat(@@version, ' ', @@version_comment)");
+                     "select concat(@@version, ' ', @@version_comment)", 0);
+    } catch (mysqlshdk::db::Error &e) {
+      // ignore password expired errors
+      if (e.code() == ER_MUST_CHANGE_PASSWORD) {
+      } else {
+        throw;
+      }
     } catch (shcore::Exception &e) {
       // ignore password expired errors
-      if (e.is_mysql() && e.code() == 1820)
-        ;
-      else
+      if (e.is_mysql() && e.code() == ER_MUST_CHANGE_PASSWORD) {
+      } else {
         throw;
+      }
     }
     message += "\n";
 
@@ -533,7 +541,7 @@ bool Mysql_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args)) {
 }
 
 bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
-  std::string version_msg("MySQL Shell Version ");
+  std::string version_msg("MySQL Shell version ");
   version_msg += MYSH_VERSION;
   version_msg += "\n";
   println(version_msg);
@@ -550,14 +558,11 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
     else {
       std::string format = "%-30s%s";
 
-      if (status->has_key("STATUS_ERROR"))
+      if (status->has_key("STATUS_ERROR")) {
         println(shcore::str_format(format.c_str(), "Error Retrieving Status: ", (*status)["STATUS_ERROR"].descr(true).c_str()));
-      else {
+      } else {
         if (status->has_key("SESSION_TYPE"))
           println(shcore::str_format(format.c_str(), "Session type: ", (*status)["SESSION_TYPE"].descr(true).c_str()));
-
-        if (status->has_key("NODE_TYPE"))
-          println(shcore::str_format(format.c_str(), "Server type: ", (*status)["NODE_TYPE"].descr(true).c_str()));
 
         if (status->has_key("CONNECTION_ID"))
           println(shcore::str_format(format.c_str(), "Connection Id: ", (*status)["CONNECTION_ID"].descr(true).c_str()));
@@ -682,6 +687,9 @@ bool Mysql_shell::cmd_use(const std::vector<std::string>& args) {
         }
       } catch (shcore::Exception &e) {
         error = e.format();
+      } catch (mysqlshdk::db::Error &e) {
+        error = shcore::Exception::mysql_error_with_code(e.what(), e.code())
+                    .format();
       }
     }
   } else {

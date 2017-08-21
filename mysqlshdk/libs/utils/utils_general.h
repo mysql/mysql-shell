@@ -26,6 +26,7 @@
 #include <vector>
 #ifdef _WIN32
 #include <windows.h>
+#undef ERROR
 #endif
 
 #include "mysqlshdk/libs/db/connection_options.h"

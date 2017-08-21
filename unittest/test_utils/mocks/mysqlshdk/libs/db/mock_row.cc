@@ -35,98 +35,78 @@ void Mock_row::init(const std::vector<std::string>& names,
 }
 
 void Mock_row::enable_fake_engine() {
-  ON_CALL(*this, size()).WillByDefault(Invoke(this, &Mock_row::def_size));
+  ON_CALL(*this, get_as_string(_))
+      .WillByDefault(Invoke(this, &Mock_row::def_get_as_string));
+  ON_CALL(*this, num_fields())
+      .WillByDefault(Invoke(this, &Mock_row::def_num_fields));
   ON_CALL(*this, get_int(_))
       .WillByDefault(Invoke(this, &Mock_row::def_get_int));
   ON_CALL(*this, get_uint(_))
       .WillByDefault(Invoke(this, &Mock_row::def_get_uint));
   ON_CALL(*this, get_string(_))
       .WillByDefault(Invoke(this, &Mock_row::def_get_string));
-  ON_CALL(*this, get_data(_))
-      .WillByDefault(Invoke(this, &Mock_row::def_get_data));
+  ON_CALL(*this, get_string_data(_))
+      .WillByDefault(Invoke(this, &Mock_row::def_get_string_data));
+  ON_CALL(*this, get_float(_))
+      .WillByDefault(Invoke(this, &Mock_row::def_get_float));
   ON_CALL(*this, get_double(_))
       .WillByDefault(Invoke(this, &Mock_row::def_get_double));
-  ON_CALL(*this, get_date(_))
-      .WillByDefault(Invoke(this, &Mock_row::def_get_date));
+  ON_CALL(*this, get_bit(_))
+      .WillByDefault(Invoke(this, &Mock_row::def_get_bit));
+  ON_CALL(*this, get_type(_))
+      .WillByDefault(Invoke(this, &Mock_row::def_get_type));
   ON_CALL(*this, is_null(_))
       .WillByDefault(Invoke(this, &Mock_row::def_is_null));
-  ON_CALL(*this, is_int(_)).WillByDefault(Invoke(this, &Mock_row::def_is_int));
-  ON_CALL(*this, is_uint(_))
-      .WillByDefault(Invoke(this, &Mock_row::def_is_uint));
-  ON_CALL(*this, is_string(_))
-      .WillByDefault(Invoke(this, &Mock_row::def_is_string));
-  ON_CALL(*this, is_double(_))
-      .WillByDefault(Invoke(this, &Mock_row::def_is_double));
-  ON_CALL(*this, is_date(_))
-      .WillByDefault(Invoke(this, &Mock_row::def_is_date));
 }
 
-size_t Mock_row::def_size() const {
-  return _names.size();
+uint32_t Mock_row::def_num_fields() const {
+  return static_cast<uint32_t>(_names.size());
 }
 
-int64_t Mock_row::def_get_int(int index) const {
-  std::string tmp = _record[index];
-  return std::stoi(tmp);
-}
-
-uint64_t Mock_row::def_get_uint(int index) const {
-  std::string tmp = _record[index];
-  return std::stoi(tmp);
-}
-
-std::string Mock_row::def_get_string(int index) const {
+std::string Mock_row::def_get_as_string(uint32_t index) const {
   return _record[index];
 }
 
-std::pair<const char*, size_t> Mock_row::def_get_data(int index) const {
+mysqlshdk::db::Type Mock_row::def_get_type(uint32_t index) const {
+  return _types[index];
+}
+
+int64_t Mock_row::def_get_int(uint32_t index) const {
+  std::string tmp = _record[index];
+  return std::stoi(tmp);
+}
+
+uint64_t Mock_row::def_get_uint(uint32_t index) const {
+  std::string tmp = _record[index];
+  return std::stoi(tmp);
+}
+
+std::string Mock_row::def_get_string(uint32_t index) const {
+  return _record[index];
+}
+
+std::pair<const char*, size_t> Mock_row::def_get_string_data(uint32_t index) const {
   return std::pair<const char*, size_t>(_record[index].c_str(),
                                         _record[index].size());
 }
 
-double Mock_row::def_get_double(int index) const {
+float Mock_row::def_get_float(uint32_t index) const {
+  std::string tmp = _record[index];
+  return std::stof(tmp);
+}
+
+double Mock_row::def_get_double(uint32_t index) const {
   std::string tmp = _record[index];
   return std::stod(tmp);
 }
 
-std::string Mock_row::def_get_date(int index) const {
-  return _record[index];
+uint64_t Mock_row::def_get_bit(uint32_t index) const {
+  std::string tmp = _record[index];
+  return std::stoull(tmp);
 }
 
-bool Mock_row::def_is_null(int index) const {
+bool Mock_row::def_is_null(uint32_t index) const {
   return _record[index] == "___NULL___";
 }
 
-bool Mock_row::def_is_int(int index) const {
-  std::string tmp0 = _record[index];
-  int tmp1 = std::stoi(tmp0);
-  std::string tmp2 = std::to_string(tmp1);
-  return tmp2 == _record[index];
-}
-
-bool Mock_row::def_is_uint(int index) const {
-  std::string tmp0 = _record[index];
-  int tmp1 = std::stoi(tmp0);
-  std::string tmp2 = std::to_string(tmp1);
-  return tmp2 == _record[index];
-}
-
-bool Mock_row::def_is_string(int index) const {
-  return true;
-}
-
-bool Mock_row::def_is_double(int index) const {
-  std::string tmp0 = _record[index];
-  double tmp1 = std::stod(tmp0);
-  std::string tmp2 = std::to_string(tmp1);
-  return tmp2 == _record[index];
-}
-
-bool Mock_row::def_is_binary(int index) const {
-  return false;  // TODO(rennox) : Add proper date comparison logic
-}
-
-bool Mock_row::def_is_date(int index) const {
-  return false;  // TODO(rennox) : Add proper date comparison logic
-}
 }  // namespace testing

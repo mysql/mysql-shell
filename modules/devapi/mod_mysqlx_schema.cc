@@ -60,16 +60,8 @@ REGISTER_HELP(
     SCHEMA_DETAIL3,
     "For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.");
 
-Schema::Schema(std::shared_ptr<BaseSession> session, const std::string &schema)
-    : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema),
-      _schema_impl(session->session_obj()->getSchema(schema)) {
-  init();
-}
-
-Schema::Schema(std::shared_ptr<const BaseSession> session,
-               const std::string &schema)
-    : DatabaseObject(std::const_pointer_cast<BaseSession>(session),
-                     std::shared_ptr<DatabaseObject>(), schema) {
+Schema::Schema(std::shared_ptr<NodeSession> session, const std::string &schema)
+    : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema) {
   init();
 }
 
@@ -144,8 +136,8 @@ void Schema::init() {
 
 void Schema::update_cache() {
   try {
-    std::shared_ptr<BaseSession> sess(
-        std::static_pointer_cast<BaseSession>(_session.lock()));
+    std::shared_ptr<NodeSession> sess(
+        std::static_pointer_cast<NodeSession>(_session.lock()));
     if (sess) {
       std::vector<std::string> tables;
       std::vector<std::string> collections;
@@ -153,21 +145,14 @@ void Schema::update_cache() {
       std::vector<std::string> others;
 
       {
-        shcore::Argument_list args;
-        args.push_back(Value(_name));
-        args.push_back(Value(""));
+        shcore::Dictionary_t args = shcore::make_dict();
+        (*args)["schema"] = Value(_name);
 
-        Value myres = sess->executeAdminCommand("list_objects", true, args);
-        std::shared_ptr<mysqlsh::mysqlx::SqlResult> my_res =
-            myres.as_object<mysqlsh::mysqlx::SqlResult>();
+        auto result = sess->execute_mysqlx_stmt("list_objects", args);
 
-        Value raw_entry;
-
-        while ((raw_entry = my_res->fetch_one(shcore::Argument_list()))) {
-          std::shared_ptr<mysqlsh::Row> row =
-              raw_entry.as_object<mysqlsh::Row>();
-          std::string object_name = row->get_member("name").as_string();
-          std::string object_type = row->get_member("type").as_string();
+        while (auto row = result->fetch_one()) {
+          std::string object_name = row->get_string(0);
+          std::string object_type = row->get_string(1);
 
           if (object_type == "TABLE")
             tables.push_back(object_name);
@@ -545,24 +530,25 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("createCollection").c_str());
 
   // Creates the collection on the server
-  shcore::Argument_list command_args;
+  shcore::Dictionary_t options = shcore::make_dict();
   std::string name = args.string_at(0);
-  command_args.push_back(Value(_name));
-  command_args.push_back(args[0]);
+  options->set("schema", Value(_name));
+  options->set("name", args[0]);
 
-  std::shared_ptr<BaseSession> sess(
-      std::static_pointer_cast<BaseSession>(_session.lock()));
+  std::shared_ptr<NodeSession> sess(
+      std::static_pointer_cast<NodeSession>(_session.lock()));
 
   try {
     if (sess) {
-      sess->executeAdminCommand("create_collection", false, command_args);
+      sess->execute_mysqlx_stmt("create_collection", options);
 
       // If this is reached it implies all went OK on the previous operation
       update_collection_cache(name, true);
       ret_val = (*_collections)[name];
-    } else
+    } else {
       throw shcore::Exception::logic_error("Unable to create collection '" +
                                            name + "', no Session available");
+    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCollection"));
 

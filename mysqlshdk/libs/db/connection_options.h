@@ -44,7 +44,7 @@ class SHCORE_PUBLIC Connection_options
  public:
   explicit Connection_options(Comparison_mode mode =
     Comparison_mode::CASE_SENSITIVE);
-  Connection_options(const std::string& uri,
+  explicit Connection_options(const std::string& uri,
                      Comparison_mode mode = Comparison_mode::CASE_SENSITIVE);
 
   const std::string& get_scheme() const { return get_value(kScheme); }

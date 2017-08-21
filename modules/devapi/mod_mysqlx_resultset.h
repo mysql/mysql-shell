@@ -27,20 +27,21 @@
 #include <string>
 #include <vector>
 #include "modules/devapi/base_resultset.h"
-
-namespace mysqlx {
-class Result;
-}
+#include "db/mysqlx/result.h"
 
 namespace mysqlsh {
 namespace mysqlx {
+
+class Bufferable_result;
+
 /**
 * \ingroup XDevAPI
 * $(BASERESULT_BRIEF)
 */
 class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
- public:
-  explicit BaseResult(std::shared_ptr<::mysqlx::Result> result);
+public:
+  explicit BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
+  virtual ~BaseResult();
 
   virtual shcore::Value get_member(const std::string &prop) const;
   virtual void append_json(shcore::JSON_dumper &dumper) const;
@@ -50,13 +51,12 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
     _execution_time = execution_time;
   }
 
+  virtual void buffer();
+  virtual bool rewind();
+
   // C++ Interface
   std::string get_execution_time() const;
   uint64_t get_warning_count() const;
-  virtual void buffer();
-  virtual bool rewind();
-  virtual bool tell(size_t &dataset, size_t &record);
-  virtual bool seek(size_t dataset, size_t record);
 
 #if DOXYGEN_JS
   Integer warningCount;  //!< Same as getwarningCount()
@@ -76,8 +76,8 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   str get_execution_time();
 #endif
 
- protected:
-  std::shared_ptr< ::mysqlx::Result> _result;
+protected:
+  std::shared_ptr<mysqlshdk::db::mysqlx::Result> _result;
   unsigned long _execution_time;
 };
 
@@ -96,8 +96,8 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
 * $(RESULT_DETAIL5)
 */
 class SHCORE_PUBLIC Result : public BaseResult {
- public:
-  explicit Result(std::shared_ptr< ::mysqlx::Result> result);
+public:
+  explicit Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
   virtual std::string class_name() const { return "Result"; }
   virtual shcore::Value get_member(const std::string &prop) const;
@@ -126,6 +126,12 @@ class SHCORE_PUBLIC Result : public BaseResult {
   int get_auto_increment_value();
   str get_last_document_id();
 #endif
+ public:
+   void set_last_document_ids(const std::vector<std::string> &ids);
+
+ private:
+   std::vector<std::string> last_document_ids_;
+   bool has_document_ids_ = false;
 };
 
 /**
@@ -133,8 +139,8 @@ class SHCORE_PUBLIC Result : public BaseResult {
 * $(DOCRESULT_BRIEF)
 */
 class SHCORE_PUBLIC DocResult : public BaseResult {
- public:
-  explicit DocResult(std::shared_ptr< ::mysqlx::Result> result);
+public:
+  explicit DocResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
   shcore::Value fetch_one(const shcore::Argument_list &args) const;
   shcore::Value fetch_all(const shcore::Argument_list &args) const;
@@ -161,8 +167,8 @@ class SHCORE_PUBLIC DocResult : public BaseResult {
 * $(ROWRESULT_BRIEF)
 */
 class SHCORE_PUBLIC RowResult : public BaseResult {
- public:
-  explicit RowResult(std::shared_ptr< ::mysqlx::Result> result);
+public:
+  explicit RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
   shcore::Value fetch_one(const shcore::Argument_list &args) const;
   shcore::Value fetch_all(const shcore::Argument_list &args) const;
@@ -202,6 +208,7 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
 #endif
 
  private:
+  std::shared_ptr<std::vector<std::string>> _column_names;
   mutable shcore::Value::Array_type_ref _columns;
 };
 
@@ -210,8 +217,8 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
 * $(SQLRESULT_BRIEF)
 */
 class SHCORE_PUBLIC SqlResult : public RowResult {
- public:
-  explicit SqlResult(std::shared_ptr< ::mysqlx::Result> result);
+public:
+  explicit SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
   virtual std::string class_name() const { return "SqlResult"; }
   virtual shcore::Value get_member(const std::string &prop) const;

@@ -5,95 +5,112 @@ Dependencies
 ============
 
 Mandatory
-- cmake
-- boost 1.59+
-- libmysqlclient 5.7+
-- protobuf 2.6.1
+- cmake 2.8.12 (note: if you're using a very recent version of cmake and it
+  doesn't work, try downgrading)
+- gcc 5/VisualStudio 2015/clang 8
+- MySQL 8.0.2 built from sources, for libmysqlclient and libmysqlxclient
+- protobuf (same version used for MySQL 8)
 - zip (gnuwin32 in windows)
-- python 2.6+
+- python 2.7+
 - MySQL Connector Python 2.1.3+ (for Python 2)
 
 Optional
-- gtest 1.7
+- gtest and gmock 1.7
 - v8 3.28.71.19
-
 
 Building From Source
 ====================
-The following instructions build MySQL Shell with a minimal set of features, additional features can be included by properly configuring the related dependencies.
+The following instructions build MySQL Shell with a minimal set of features,
+additional features can be included by properly configuring the related
+dependencies.
 
-* For all platforms: although both Python & Javascript are optional, building with at least one of them is *strongly* recommended to have access to the 
-new features of Shell (like Dev API & Admin API).
+Preparation
+-----------
 
-1) Download the source code for the MySQL Shell, place it on a local folder.
-3) Using a terminal, cd into the source folder.
-4) Linux/OSX
-     - Assuming that BOOST and MySQL are installed on the system:
+Protobuf
+........
 
-       bash> mkdir bld
-       bash> cd bld
-       bash> cmake .. -DWITH_PROTOBUF=<path_to_protobuf> -DHAVE_PYTHON=1
-       bash> make
+To build the MySQL server with X protocol support, you will need to
+have protobuf 2.6 or newer installed or compiled.
 
-   OSX Using XCode
-       bash> mkdir bld
-       bash> cd bld
-     - Assuming that BOOST and MySQL are installed on the system:
+MySQL
+.....
 
-       bash> cmake .. -G "Xcode" <path_to_mysql_shell_source> -DHAVE_PYTHON=1
-       bash> make
+As of MySQL Shell 8.0.3, the MySQL server sources are required to compile
+with the X protocol client library.
 
-   Windows:
-     - mkdir bld
-     - cd bld
-     - cmd> cmake .. -G "Visual Studio 12 Win64" -DBOOST_ROOT=<path_to_boost> -DWITH_SSL=bundled -DCMAKE_BUILD_TYPE=Release -DWITH_PROTOBUF=<path_to_protobuf> -DWITH_STATIC_LINKING=1 -DWITH_CONNECTOR_PYTHON=<path_to_connector_python> -DHAVE_PYTHON=1 -DPYTHON_LIBRARY=<path_to_python_library> -DPYTHON_INCLUDE_DIR=<python_src>\include;<python_src>\PC
-     - Open the generated solution mysh.sln and build it using Visual Studio.
-     * The PATH to Connector Python is the root folder where C/Py's setup.py resides after unzipping it.
-     * Connector Python is needed for the Admin API, but that won't be usable unless either Python or Javascript are enabled, see below for options.
-
-   This will build the shell with support for the SQL Mode only.
-
- Enabling JavaScript Support
- ---------------------------
- JavaScript is enabled by satisfying the dependency with V8.
- To build V8 follow the build V8 standard build instructions.
- To support JavaScript on the MySQL Shell add the next flags to the CMake call:
-
- -DV8_INCLUDE_DIR=<path_to_v8>/include
- -DV8_LIB_DIR=<path_to_folder_containing_the_built_libraries>
-
- Enabling Python Support
- -----------------------
- Python is enabled by satisfying the dependency with Python.
- To support Python on the MySQL Shell add the next flags to the CMake call:
-
- -DHAVE_PYTHON=1
-
- Additional for windows only:
-  -DPYTHON_LIBRARY=<path_to_python_library>
-  -DPYTHON_INCLUDE_DIR=<python_src>\include;<python_src>\PC
+1) Download and unpack MySQL 8.0.2 (or newer) source code
+2) Configure MySQL server with xplugin support
+  mkdir mysql-8.0.2/bld
+  cd mysql-8.0.2/bld
+  cmake .. <cmake options for MySQL>
+3) Compile server
+  Alternatively, you can build just libmysqlclient and libmysqlxclient
+  for faster compilation
 
 
- Using a Custom BOOST
- --------------------
- You can specify the BOOST to be used (i.e. not the installed one) by adding the next parameter to the cmake call.
- -DBOOST_ROOT=<path_to_boost>
-  At least version 1.56 should be used, recommended version is 1.59.
-  Only header files are used so there's no need to build boost.
-  Use the parameter to specify the path to the uncompressed boost root folder.
+Building the Shell
+------------------
+
+1) Download and unpack MySQL Shell source code
+2) Configure and Build
+Linux/OSX
+       mkdir mysql-shell-8.0.3/bld
+       cd bld
+       cmake .. \
+            -DMYSQL_SOURCE_DIR=<path_to_mysql_sources>\
+            -DMYSQL_BUILD_DIR=<path_to_mysql_bld_directory>\
+            -DWITH_PROTOBUF=<path_to_protobuf>\
+            -DHAVE_PYTHON=1\
+            <other options>
+       make -j4
+
+Windows
+     mkdir bld
+     cd bld
+     cmake .. -G "Visual Studio 15 Win64" \
+          -DWITH_PROTOBUF=<path_to_protobuf> \
+          -DWITH_STATIC_LINKING=1 \
+          -DWITH_CONNECTOR_PYTHON=<path_to_connector_python> -DHAVE_PYTHON=1\
+          -DPYTHON_LIBRARY=<path_to_python_library> \
+          -DPYTHON_INCLUDE_DIR=<python_src>\include;<python_src>\PC
+    Open the generated solution mysh.sln and build it using Visual Studio.
+
+* Note that in Windows, all dependencies must be built with compatible build
+  settings, specially regarding Release vs Debug and /MD vs /MT.
+* The PATH to Connector Python is the root folder where C/Py's setup.py resides after unzipping it.
+* Connector Python is needed for the Admin API, but that won't be usable unless either Python or Javascript are enabled, see below for options.
 
 
- Using a Custom MySQL
- --------------------
- Specify the MySQL to be used (i.e. not the installed one) by adding the next parameter to the cmake call.
- -DMYSQL_DIR=<path_to_mysql-folder>
-  Version 5.7 and above is recommended.
-  If MySQL is installed CMake may be able to find it even the parameter is not specified.
-  Use the parameter to specify the path to an uncompressed MySQL package.
+Enabling JavaScript Support
+---------------------------
+JavaScript is enabled by satisfying the dependency with V8.
+To build V8 follow the build V8 standard build instructions.
+To support JavaScript on the MySQL Shell add the next flags to the CMake call:
+
+-DHAVE_V8=1
+
+-DV8_INCLUDE_DIR=<path_to_v8>/include
+-DV8_LIB_DIR=<path_to_folder_containing_the_built_libraries>
+
+Note that version 3.28 is needed and newer versions may not work.
 
 
- Adding Unit Test Support
- ------------------------
- GTest is required to enable Unit Testing. Make them available by adding the next parameters to the cmake call.
- -DWITH_TESTS=1
- -DWITH_GTEST=<path_to_gtest>
+Enabling Python Support
+-----------------------
+Python is enabled by satisfying the dependency with Python.
+To support Python on the MySQL Shell add the next flags to the CMake call:
+
+-DHAVE_PYTHON=1
+
+Additional for windows only:
+-DPYTHON_LIBRARY=<path_to_python_library>
+-DPYTHON_INCLUDE_DIR=<python_src>\include;<python_src>\PC
+
+
+Adding Unit Test Support
+------------------------
+GTest is required to enable Unit Testing. Make them available by adding the
+next parameters to the cmake call.
+-DWITH_TESTS=1
+-DWITH_GTEST=<path_to_gtest>

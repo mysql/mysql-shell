@@ -52,8 +52,8 @@
 ||TableDelete.bind: Unable to bind value for unexisting placeholder: another
 
 //@# TableDelete: Error conditions on execute
-||TableDelete.execute: Missing value bindings for the next placeholders: data, years
-||TableDelete.execute: Missing value bindings for the next placeholders: data
+||TableDelete.execute: Missing value bindings for the following placeholders: data, years
+||TableDelete.execute: Missing value bindings for the following placeholders: data
 
 //@ TableDelete: delete under condition
 |Affected Rows: 1|

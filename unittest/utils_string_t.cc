@@ -13,12 +13,11 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <string>
 #include <stack>
+#include <string>
 #include <tuple>
 
 #include "gtest_clean.h"
@@ -57,21 +56,65 @@ TEST(UtilsString, format) {
   EXPECT_EQ("abab\t%", shcore::str_format("%s\t%%", "abab"));
   EXPECT_EQ("afoo  bar", shcore::str_format("%c%s%5s", 'a', "foo", "bar"));
   EXPECT_EQ("a b", shcore::str_format("%s %s", "a", "b"));
-  EXPECT_EQ("-1152921504606846976 9223372036854775808", shcore::str_format("%lli %llu", -1152921504606846976LL, 9223372036854775808ULL));
+  EXPECT_EQ("-1152921504606846976 9223372036854775808",
+            shcore::str_format("%lli %llu", -1152921504606846976LL,
+                               9223372036854775808ULL));
 
-  EXPECT_EQ("string with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256chars!", shcore::str_format("string with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256chars%c", '!'));
-  EXPECT_EQ("string with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256chars", shcore::str_format("%s", "string with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256charsstring with over 256chars"));
+  EXPECT_EQ(
+      "string with over 256charsstring with over 256charsstring with over "
+      "256charsstring with over 256charsstring with over 256charsstring with "
+      "over 256charsstring with over 256charsstring with over 256charsstring "
+      "with over 256charsstring with over 256charsstring with over "
+      "256charsstring with over 256charsstring with over 256charsstring with "
+      "over 256charsstring with over 256charsstring with over 256chars!",
+      shcore::str_format(
+          "string with over 256charsstring with over 256charsstring with over "
+          "256charsstring with over 256charsstring with over 256charsstring "
+          "with over 256charsstring with over 256charsstring with over "
+          "256charsstring with over 256charsstring with over 256charsstring "
+          "with over 256charsstring with over 256charsstring with over "
+          "256charsstring with over 256charsstring with over 256charsstring "
+          "with over 256chars%c",
+          '!'));
+  EXPECT_EQ(
+      "string with over 256charsstring with over 256charsstring with over "
+      "256charsstring with over 256charsstring with over 256charsstring with "
+      "over 256charsstring with over 256charsstring with over 256charsstring "
+      "with over 256charsstring with over 256charsstring with over "
+      "256charsstring with over 256charsstring with over 256charsstring with "
+      "over 256charsstring with over 256charsstring with over 256chars",
+      shcore::str_format(
+          "%s",
+          "string with over 256charsstring with over 256charsstring with over "
+          "256charsstring with over 256charsstring with over 256charsstring "
+          "with over 256charsstring with over 256charsstring with over "
+          "256charsstring with over 256charsstring with over 256charsstring "
+          "with over 256charsstring with over 256charsstring with over "
+          "256charsstring with over 256charsstring with over 256charsstring "
+          "with over 256chars"));
 
-  EXPECT_EQ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      shcore::str_format("%s%s%s%s", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"));
-  EXPECT_EQ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      shcore::str_format("%s%s%s%s", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"));
+  EXPECT_EQ(
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      shcore::str_format(
+          "%s%s%s%s",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"));
+  EXPECT_EQ(
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      shcore::str_format(
+          "%s%s%s%s",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"));
 }
 
 TEST(UtilsString, upperlower) {
@@ -216,8 +259,8 @@ TEST(UtilsString, join) {
   EXPECT_EQ("a,b", shcore::str_join(std::set<std::string>({"a", "b"}), ","));
 
   const char *args[] = {"a", "b", nullptr};
-  EXPECT_EQ("a,b", shcore::str_join(args, args+2, ","));
-  EXPECT_EQ("a", shcore::str_join(args, args+1, ","));
+  EXPECT_EQ("a,b", shcore::str_join(args, args + 2, ","));
+  EXPECT_EQ("a", shcore::str_join(args, args + 1, ","));
 
   std::vector<std::string> v({"a", "b"});
   EXPECT_EQ("a,b", shcore::str_join(v.begin(), v.end(), ","));
@@ -225,7 +268,6 @@ TEST(UtilsString, join) {
   std::set<std::string> s({"a", "b"});
   EXPECT_EQ("a,b", shcore::str_join(s.begin(), s.end(), ","));
 }
-
 
 TEST(UtilsString, replace) {
   EXPECT_EQ("", shcore::str_replace("", "", ""));
@@ -264,4 +306,64 @@ TEST(UtilsString, replace) {
   EXPECT_EQ("bar", shcore::str_replace("bar", "fo", ""));
   EXPECT_EQ("bar", shcore::str_replace("bar", "fo", "bar"));
   EXPECT_EQ("barbbarabarrbar", shcore::str_replace("bar", "", "bar"));
+}
+
+#include <bitset>
+
+#define MAKE_BITS(strvalue) std::bitset<sizeof(strvalue) - 1>(strvalue)
+
+#define TEST_BIT(strvalue)                                          \
+  EXPECT_EQ(MAKE_BITS(strvalue).to_string(),                        \
+            shcore::bits_to_string(MAKE_BITS(strvalue).to_ullong(), \
+                                   sizeof(strvalue) - 1));
+
+TEST(UtilsString, bits_to_string) {
+  // preliminary tests
+  ASSERT_EQ(0, MAKE_BITS("0").to_ullong());
+  ASSERT_EQ(0, MAKE_BITS("0000").to_ullong());
+  ASSERT_EQ(1, MAKE_BITS("1").to_ullong());
+  ASSERT_EQ(255, MAKE_BITS("11111111").to_ullong());
+  ASSERT_EQ(510, MAKE_BITS("111111110").to_ullong());
+
+  TEST_BIT("0");
+  TEST_BIT("1");
+  TEST_BIT("000");
+  TEST_BIT("0001");
+  TEST_BIT("00011");
+  TEST_BIT("11111111");
+  TEST_BIT("111111110");
+  TEST_BIT("1111111100000000");
+  TEST_BIT("11111111000000000");
+  TEST_BIT("00000000");
+  TEST_BIT("000000000");
+  TEST_BIT("0000000011");
+  TEST_BIT("000000001");
+  TEST_BIT("1111111111111111111111111111111111111111111111111111111111111111");
+  TEST_BIT("1010101010101010101010101010101010101010101010101010101010101010");
+  TEST_BIT("0000111100001111000011110000111100001111000011110000111100001111");
+  TEST_BIT("1111000011110000111100001111000011110000111100001111000011110000");
+}
+
+#undef TEST_BIT
+#define TEST_BIT(strvalue)                           \
+  EXPECT_EQ(MAKE_BITS(strvalue).to_ullong(),         \
+            shcore::string_to_bits(strvalue).first); \
+  EXPECT_EQ(sizeof(strvalue) - 1, shcore::string_to_bits(strvalue).second)
+
+TEST(UtilsString, string_to_bits) {
+  TEST_BIT("0");
+  TEST_BIT("1");
+  TEST_BIT("000");
+  TEST_BIT("0001");
+  TEST_BIT("00011");
+  TEST_BIT("11111111");
+  TEST_BIT("111111110");
+  TEST_BIT("00000000");
+  TEST_BIT("000000000");
+  TEST_BIT("0000000011");
+  TEST_BIT("000000001");
+  TEST_BIT("1111111111111111111111111111111111111111111111111111111111111111");
+  TEST_BIT("1010101010101010101010101010101010101010101010101010101010101010");
+  TEST_BIT("0000111100001111000011110000111100001111000011110000111100001111");
+  TEST_BIT("1111000011110000111100001111000011110000111100001111000011110000");
 }

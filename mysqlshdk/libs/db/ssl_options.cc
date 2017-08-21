@@ -62,6 +62,10 @@ int Ssl_options::get_mode() const {
   return MapSslModeNameToValue::get_value(get_value(kSslMode));
 }
 
+std::string Ssl_options::get_mode_name() const {
+  return get_value(kSslMode);
+}
+
 const std::string& Ssl_options::_get(const std::string& id) const {
   return get_value(id);
 }

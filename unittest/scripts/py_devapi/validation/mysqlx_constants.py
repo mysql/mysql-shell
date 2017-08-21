@@ -16,7 +16,6 @@ from mysqlsh import mysqlx
 |Type.TIME: <Type.TIME>|
 |Type.DATE: <Type.DATE>|
 |Type.DATETIME: <Type.DATETIME>|
-|Type.TIMESTAMP: <Type.TIMESTAMP>|
 |Type.SET: <Type.SET>|
 |Type.ENUM: <Type.ENUM>|
 |Type.GEOMETRY: <Type.GEOMETRY>|
