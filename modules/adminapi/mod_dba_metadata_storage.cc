@@ -26,7 +26,7 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mysql_connection.h"
 #include "modules/adminapi/mod_dba_sql.h"
-#include "mysqlx_connection.h" // for error codes
+#include "db/mysqlx/mysqlxclient_clean.h"
 
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -288,12 +288,7 @@ uint32_t MetadataStorage::insert_host(const std::string &host,
 }
 
 void MetadataStorage::insert_instance(const Instance_definition& options) {
-  // NOTE(rennox): Nothing is being done with these attributes
-  // are we missing something here???
-
   shcore::sqlstring query;
-  std::shared_ptr< ::mysqlx::Result> result;
-  std::shared_ptr< ::mysqlx::Row> row;
 
   /*if (options->has_key("attributes"))
     attributes = (*options)["attributes"].as_map();*/

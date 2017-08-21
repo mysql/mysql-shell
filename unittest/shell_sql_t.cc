@@ -26,8 +26,6 @@
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
-//#include "../modules/mod_session.h"
-//#include "../modules/mod_schema.h"
 #include "scripting/common.h"
 #include "unittest/test_utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"

@@ -19,12 +19,26 @@
 
 #include "scripting/jscript_object_wrapper.h"
 #include "scripting/jscript_context.h"
+#include "mysqlshdk/libs/db/session.h"
 
 #include <iostream>
 
 using namespace shcore;
 
 static int magic_pointer = 0;
+
+
+v8::Handle<v8::Value> translate_exception(JScript_context *context) {
+  try {
+    throw;
+  } catch (mysqlshdk::db::Error &e) {
+    return context->shcore_value_to_v8_value(shcore::Value(
+        shcore::Exception::mysql_error_with_code(e.what(), e.code()).error()));
+  } catch (Exception &e) {
+    return context->shcore_value_to_v8_value(shcore::Value(e.error()));
+  }
+}
+
 
 JScript_object_wrapper::JScript_object_wrapper(JScript_context *context, bool indexed)
   : _context(context) {
@@ -111,14 +125,16 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
       if (!exc.is_attribute())
         info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
       // fallthrough
+    } catch (std::exception &exc) {
+      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
     }
   }
   {
     try {
       Value member = (*object)->get_member(*prop);
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
-    } catch (Exception &exc) {
-      info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+    } catch (...) {
+      info.GetIsolate()->ThrowException(translate_exception(self->_context));
     }
   }
 }
@@ -138,6 +154,8 @@ void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::
     info.GetReturnValue().Set(value);
   } catch (Exception &exc) {
     info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+  } catch (std::exception &exc) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
   }
 }
 
@@ -189,6 +207,8 @@ void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallb
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
     } catch (Exception &exc) {
       info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+    } catch (std::exception &exc) {
+      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
     }
   }
 }
@@ -207,6 +227,8 @@ void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> va
     info.GetReturnValue().Set(value);
   } catch (Exception &exc) {
     info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+  } catch (std::exception &exc) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
   }
 }
 

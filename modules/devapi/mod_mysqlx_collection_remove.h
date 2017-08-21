@@ -72,7 +72,7 @@ class CollectionRemove : public Collection_crud_definition,
   virtual shcore::Value execute(const shcore::Argument_list &args);
 
  private:
-  std::unique_ptr< ::mysqlx::RemoveStatement> _remove_statement;
+   Mysqlx::Crud::Delete message_;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

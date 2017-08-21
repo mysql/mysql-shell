@@ -23,8 +23,8 @@
 #include <iostream>
 
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "shellcore/shell_core_options.h"
 #include "shellcore/interrupt_handler.h"
+#include "shellcore/shell_core_options.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
@@ -38,6 +38,33 @@ const char *g_argv0 = nullptr;
 char *g_mppath = nullptr;
 
 std::vector<std::pair<std::string, std::string> > g_skipped_tests;
+std::vector<std::pair<std::string, std::string> > g_pending_fixes;
+
+static std::pair<std::string, std::string> query_sockets(int port,
+                                                         const char *pwd) {
+  std::string socket, xsocket;
+  MYSQL mysql;
+  mysql_init(&mysql);
+  unsigned int tcp = MYSQL_PROTOCOL_TCP;
+  mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  // if connect succeeds or error is a server error, then there's a server
+  if (mysql_real_connect(&mysql, "localhost", "root", pwd, NULL, port, NULL,
+                         0)) {
+    const char *query = "show variables like '%socket'";
+    if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
+      MYSQL_RES *res = mysql_store_result(&mysql);
+      while (MYSQL_ROW row = mysql_fetch_row(res)) {
+        if (strcmp(row[0], "socket") == 0 && row[1])
+          socket = row[1];
+        if (strcmp(row[0], "mysqlx_socket") == 0 && row[1])
+          xsocket = row[1];
+      }
+      mysql_free_result(res);
+    }
+  }
+  mysql_close(&mysql);
+  return {socket, xsocket};
+}
 
 static void check_zombie_sandboxes() {
   int port = 3306;
@@ -79,6 +106,7 @@ static void check_zombie_sandboxes() {
     std::cout << "Server already running on port " << sport1 << "\n";
     have_zombies = true;
   }
+  mysql_close(&mysql);
   mysql_init(&mysql);
   mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport2, NULL,
@@ -88,6 +116,7 @@ static void check_zombie_sandboxes() {
     std::cout << "Server already running on port " << sport2 << "\n";
     have_zombies = true;
   }
+  mysql_close(&mysql);
   mysql_init(&mysql);
   mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport3, NULL,
@@ -138,6 +167,10 @@ static void check_zombie_sandboxes() {
 }
 
 int main(int argc, char **argv) {
+  // Ignore broken pipe signal from broken connections
+#ifndef _WIN32
+  signal(SIGPIPE, SIG_IGN);
+#endif
   g_argv0 = argv[0];
 #ifdef HAVE_V8
   extern void JScript_context_init();
@@ -146,7 +179,6 @@ int main(int argc, char **argv) {
 #endif
   // init the ^C handler, so it knows what's the main thread
   shcore::Interrupts::init(nullptr);
-
 
   bool show_help = false;
   if (const char *uri = getenv("MYSQL_URI")) {
@@ -188,6 +220,25 @@ int main(int argc, char **argv) {
   if (!getenv("MYSQLX_PORT")) {
     if (putenv(const_cast<char *>("MYSQLX_PORT=33060")) != 0) {
       std::cerr << "MYSQLX_PORT was not set and putenv failed to set it\n";
+      exit(1);
+    }
+  }
+
+  std::pair<std::string, std::string> sockets =
+      query_sockets(atoi(getenv("MYSQL_PORT")), "");
+  if (!getenv("MYSQL_SOCKET")) {
+    static char path[1024];
+    snprintf(path, sizeof(path), "MYSQL_SOCKET=%s", sockets.first.c_str());
+    if (putenv(path) != 0) {
+      std::cerr << "MYSQL_SOCKET was not set and putenv failed to set it\n";
+      exit(1);
+    }
+  }
+  if (!getenv("MYSQLX_SOCKET")) {
+    static char path[1024];
+    snprintf(path, sizeof(path), "MYSQLX_SOCKET=%s", sockets.second.c_str());
+    if (putenv(path) != 0) {
+      std::cerr << "MYSQLX_SOCKET was not set and putenv failed to set it\n";
       exit(1);
     }
   }
@@ -374,7 +425,14 @@ int main(int argc, char **argv) {
   if (!g_skipped_tests.empty()) {
     std::cout << makeyellow("The following tests were SKIPPED:") << "\n";
     for (auto &t : g_skipped_tests) {
-      std::cout << makeyellow("[  SKIPPED  ]") << " " << t.first << "\n";
+      std::cout << makeyellow("[  SKIPPED ]") << " " << t.first << "\n";
+      std::cout << "\tNote: " << t.second << "\n";
+    }
+  }
+  if (!g_pending_fixes.empty()) {
+    std::cout << makeyellow("Tests for unfixed bugs:") << "\n";
+    for (auto &t : g_pending_fixes) {
+      std::cout << makeyellow("[  FIXME   ]") << " at " << t.first << "\n";
       std::cout << "\tNote: " << t.second << "\n";
     }
   }

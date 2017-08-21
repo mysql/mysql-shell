@@ -17,21 +17,25 @@
  * 02110-1301  USA
  */
 
+#include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "mysqlshdk/libs/db/row_copy.h"
 #include "mysqlshdk/libs/db/session_recorder.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace db {
 Mock_record* Mock_record::_instance = NULL;
 
-void Session_recorder::connect
-  (const mysqlshdk::db::Connection_options& connection_options) {
-    _target->connect(connection_options);
-    // TODO(rennox): Create the recording of this call...
+void Session_recorder::connect(
+    const mysqlshdk::db::Connection_options& connection_options) {
+  _target->connect(connection_options);
+  // TODO(rennox): Create the recording of this call...
 }
 
 std::shared_ptr<IResult> Session_recorder::query(const std::string& sql,
@@ -75,28 +79,12 @@ void Session_recorder::execute(const std::string& sql) {
   _target->execute(sql);
 }
 
-void Session_recorder::start_transaction() {
-  Mock_record::get() << "EXPECT_CALL(session, start_transaction());"
-                     << std::endl;
-  _target->start_transaction();
-}
-
-void Session_recorder::commit() {
-  Mock_record::get() << "EXPECT_CALL(session, commit());" << std::endl;
-  _target->commit();
-}
-
-void Session_recorder::rollback() {
-  Mock_record::get() << "EXPECT_CALL(session, rollback());" << std::endl;
-  _target->rollback();
-}
-
 void Session_recorder::close() {
   Mock_record::get() << "EXPECT_CALL(session, close());" << std::endl;
   _target->close();
 }
 
-const char* Session_recorder::get_ssl_cipher() {
+const char* Session_recorder::get_ssl_cipher() const {
   const char* cipher = _target->get_ssl_cipher();
   Mock_record::get()
       << "EXPECT_CALL(session, get_ssl_cipher().WillOnce(Return(\"" << cipher
@@ -117,7 +105,7 @@ void Result_recorder::save_result() {
   Mock_record::get() << "\"<Executed SQL>\"," << std::endl;
 
   bool first = true;
-  while (first || _target->next_data_set()) {
+  while (first || _target->next_resultset()) {
     if (!first)
       Mock_record::get() << "," << std::endl;
 
@@ -129,7 +117,7 @@ void Result_recorder::save_result() {
     std::vector<std::unique_ptr<IRow> > rows;
     auto row = _target->fetch_one();
     while (row) {
-      rows.push_back(std::move(row));
+      rows.push_back(std::unique_ptr<IRow>(new Row_copy(*row)));
       row = _target->fetch_one();
     }
 
@@ -137,7 +125,7 @@ void Result_recorder::save_result() {
 
     _all_results.push_back(std::move(rows));
 
-    std::vector<std::unique_ptr<IRow> > warnings;
+    std::vector<std::unique_ptr<Warning> > warnings;
     auto warning = _target->fetch_one_warning();
     while (warning) {
       warnings.push_back(std::move(warning));
@@ -182,21 +170,48 @@ void Result_recorder::save_current_result(
 
     Mock_record::get() << "     {";  // Row Start
 
-    for (size_t index = 0; index < row->size(); index++) {
-      if (row->is_date(index))
-        Mock_record::get() << "\"" << row->get_date(index) << "\"";
-      else if (row->is_double(index))
-        Mock_record::get() << "\"" << row->get_double(index) << "\"";
-      else if (row->is_int(index))
-        Mock_record::get() << "\"" << row->get_int(index) << "\"";
-      else if (row->is_string(index))
-        Mock_record::get() << "\"" << row->get_string(index) << "\"";
-      else if (row->is_uint(index))
-        Mock_record::get() << "\"" << row->get_uint(index) << "\"";
-      else if (row->is_null(index))
+    for (uint32_t index = 0; index < row->num_fields(); index++) {
+      if (row->is_null(index)) {
         Mock_record::get() << "\"___NULL___\"";
-
-      if (index < (row->size() - 1))
+      } else {
+        switch (row->get_type(index)) {
+          case Type::Null:
+            Mock_record::get() << "\"___NULL___\"";
+            break;
+          case Type::String:
+            Mock_record::get() << "\"" << row->get_string(index) << "\"";
+            break;
+          case Type::UInteger:
+            Mock_record::get() << "\"" << row->get_uint(index) << "\"";
+            break;
+          case Type::Integer:
+            Mock_record::get() << "\"" << row->get_int(index) << "\"";
+            break;
+          case Type::Float:
+            Mock_record::get() << "\"" << row->get_float(index) << "\"";
+            break;
+          case Type::Decimal:
+          case Type::Double:
+            Mock_record::get() << "\"" << row->get_double(index) << "\"";
+            break;
+          case Type::Bytes:
+            Mock_record::get() << "\"" << row->get_string(index) << "\"";
+            break;
+          case Type::Geometry:
+          case Type::Json:
+          case Type::Date:
+          case Type::DateTime:
+          case Type::Time:
+          case Type::Enum:
+          case Type::Set:
+            Mock_record::get() << "\"" << row->get_string(index) << "\"";
+            break;
+          case Type::Bit:
+            Mock_record::get() << "\"" << row->get_bit(index) << "\"";
+            break;
+        }
+      }
+      if (index < (row->num_fields() - 1))
         Mock_record::get() << ", ";
     }
   }
@@ -214,16 +229,13 @@ void Result_recorder::save_current_result(
   Mock_record::get() << std::endl << "}" << std::endl;
 }
 
-std::unique_ptr<IRow> Result_recorder::fetch_one() {
-  std::unique_ptr<IRow> ret_val;
-
+const IRow* Result_recorder::fetch_one() {
   if (_row_index < _all_results[_rset_index].size())
-    ret_val.reset(_all_results[_rset_index][_row_index++].release());
-
-  return ret_val;
+    return _all_results[_rset_index][_row_index++].get();
+  return nullptr;
 }
 
-bool Result_recorder::next_data_set() {
+bool Result_recorder::next_resultset() {
   Mock_record::get() << "EXPECT_CALL(result, next_dataset());" << std::endl;
 
   if (_rset_index < _all_results.size()) {
@@ -235,12 +247,10 @@ bool Result_recorder::next_data_set() {
   return _rset_index < _all_results.size();
 }
 
-std::unique_ptr<IRow> Result_recorder::fetch_one_warning() {
-  std::unique_ptr<IRow> ret_val;
+std::unique_ptr<Warning> Result_recorder::fetch_one_warning() {
   if (_rset_index < _all_results.size())
-    ret_val.reset(_all_warnings[_rset_index][_warning_index++].release());
-
-  return ret_val;
+    return std::move(_all_warnings[_rset_index][_warning_index++]);
+  return nullptr;
 }
 
 int64_t Result_recorder::get_auto_increment_value() const {
@@ -281,14 +291,6 @@ uint64_t Result_recorder::get_warning_count() const {
   return ret_val;
 }
 
-unsigned long Result_recorder::get_execution_time() const {
-  auto ret_val = _target->get_execution_time();
-  Mock_record::get()
-      << "EXPECT_CALL(result, get_execution_time().WillOnce(Return(" << ret_val
-      << "));" << std::endl;
-  return ret_val;
-}
-
 std::string Result_recorder::get_info() const {
   auto ret_val = _target->get_info();
   Mock_record::get() << "EXPECT_CALL(result, get_info().WillOnce(Return(\""
@@ -305,40 +307,7 @@ const std::vector<Column>& Result_recorder::get_metadata() const {
 }
 
 std::string Result_recorder::map_column_type(Type type) {
-  switch (type) {
-    case Type::Null:
-      return "Type::Null";
-    case Type::Decimal:
-      return "Type::Decimal";
-    case Type::Date:
-      return "Type::Date";
-    case Type::Time:
-      return "Type::Time";
-    case Type::String:
-      return "Type::String";
-    case Type::Blob:
-      return "Type::Blob";
-    case Type::Geometry:
-      return "Type::Geometry";
-    case Type::Json:
-      return "Type::Json";
-    case Type::Integer:
-      return "Type::Integer;";
-    case Type::Double:
-      return "Type::Double";
-    case Type::DateTime:
-      return "Type::DateTime";
-    case Type::Bit:
-      return "Type::Bit";
-    case Type::Enum:
-      return "Type::Enum";
-    case Type::Set:
-      return "Type::Set";
-  }
-
-  throw std::runtime_error("Invalid column type found");
-
-  return "";
+  return to_string(type);
 }
 }  // namespace db
 }  // namespace mysqlshdk

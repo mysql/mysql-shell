@@ -18,6 +18,7 @@
 #include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils.h"
 #include "utils/utils_file.h"
+#include "utils/utils_general.h"
 
 namespace mysqlsh {
 class Interactive_shell_test : public Shell_core_test_wrapper {
@@ -25,6 +26,10 @@ class Interactive_shell_test : public Shell_core_test_wrapper {
   virtual void set_options() {
     _options->interactive = true;
     _options->wizards = true;
+  }
+
+  static void SetUpTestCase() {
+    run_script_classic({"drop user if exists expired@localhost"});
   }
 };
 
@@ -652,7 +657,6 @@ TEST_F(Interactive_shell_test, js_db_usage_with_no_wizards) {
   execute("db.name");
   MY_EXPECT_STDOUT_CONTAINS("mysql");
   output_handler.wipe_all();
-
   execute("session.close()");
 }
 
@@ -970,25 +974,18 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
   wipe_all();
   // test zerofill
   execute("select * from itst.tbl;");
+// clang-format off
   MY_EXPECT_STDOUT_CONTAINS(
-      "+---+-------+--------+----------+-------+-------+-------+---------------"
-      "-------+------------------------+\n"
-      "| a | b     | c      | d        | e     | f     | ggggg | h             "
-      "       | i                      |\n"
-      "+---+-------+--------+----------+-------+-------+-------+---------------"
-      "-------+------------------------+\n"
-      "| 1 | one   |    -42 | 00000042 |    42 | 00042 |   042 | "
-      "00000000000000000042 | 0000000000000000000042 |\n"
-      "| 2 | two   | -12345 | 00012345 | 12345 | 12345 |   123 | "
-      "00000000000000012345 | 0000000000000000012345 |\n"
-      "| 3 | three |      0 | 00000000 |    00 | 00000 |   000 | "
-      "00000000000000000000 | 0000000000000000000000 |\n"
-      "| 4 | four  |   NULL |     NULL |  NULL |  NULL |  NULL |               "
-      "  NULL |                   NULL |\n"
-      "+---+-------+--------+----------+-------+-------+-------+---------------"
-      "-------+------------------------+\n"
+      "+---+-------+--------+----------+-------+-------+-------+----------------------+------------------------+\n"
+      "| a | b     | c      | d        | e     | f     | ggggg | h                    | i                      |\n"
+      "+---+-------+--------+----------+-------+-------+-------+----------------------+------------------------+\n"
+      "| 1 | one   |    -42 | 00000042 |    42 | 00042 |   042 | 00000000000000000042 | 0000000000000000000042 |\n"
+      "| 2 | two   | -12345 | 00012345 | 12345 | 12345 |   123 | 00000000000000012345 | 0000000000000000012345 |\n"
+      "| 3 | three |      0 | 00000000 |    00 | 00000 |   000 | 00000000000000000000 | 0000000000000000000000 |\n"
+      "| 4 | four  |   NULL |     NULL |  NULL |  NULL |  NULL |                 NULL |                   NULL |\n"
+      "+---+-------+--------+----------+-------+-------+-------+----------------------+------------------------+\n"
       "4 rows in set (");
-
+// clang-format on
   execute("\\js");
   execute("shell.options['outputFormat']='vertical'");
   execute("\\sql");
@@ -1132,25 +1129,18 @@ TEST_F(Interactive_shell_test, x_sql_result) {
   // test zerofill
   execute("select * from itst.tbl;");
   // NOTE: X protocol does not support zerofill for double atm
+  // clang-format off
   MY_EXPECT_STDOUT_CONTAINS(
-      "+---+-------+--------+----------+-------+-------+-------+---------------"
-      "-------+-------+\n"
-      "| a | b     | c      | d        | e     | f     | ggggg | h             "
-      "       | i     |\n"
-      "+---+-------+--------+----------+-------+-------+-------+---------------"
-      "-------+-------+\n"
-      "| 1 | one   |    -42 | 00000042 |    42 | 00042 |   042 | "
-      "00000000000000000042 |    42 |\n"
-      "| 2 | two   | -12345 | 00012345 | 12345 | 12345 |   123 | "
-      "00000000000000012345 | 12345 |\n"
-      "| 3 | three |      0 | 00000000 |    00 | 00000 |   000 | "
-      "00000000000000000000 |     0 |\n"
-      "| 4 | four  |   NULL |     NULL |  NULL |  NULL |  NULL |               "
-      "  NULL |  NULL |\n"
-      "+---+-------+--------+----------+-------+-------+-------+---------------"
-      "-------+-------+\n"
+      "+---+-------+--------+----------+-------+-------+-------+----------------------+-------+\n"
+      "| a | b     | c      | d        | e     | f     | ggggg | h                    | i     |\n"
+      "+---+-------+--------+----------+-------+-------+-------+----------------------+-------+\n"
+      "| 1 | one   |    -42 | 00000042 |    42 | 00042 |   042 | 00000000000000000042 |    42 |\n"
+      "| 2 | two   | -12345 | 00012345 | 12345 | 12345 |   123 | 00000000000000012345 | 12345 |\n"
+      "| 3 | three |      0 | 00000000 |    00 | 00000 |   000 | 00000000000000000000 |     0 |\n"
+      "| 4 | four  |   NULL |     NULL |  NULL |  NULL |  NULL |                 NULL |  NULL |\n"
+      "+---+-------+--------+----------+-------+-------+-------+----------------------+-------+\n"
       "4 rows in set (");
-
+  // clang-format on
   execute("\\js");
   execute("shell.options['outputFormat']='vertical'");
   execute("\\sql");
@@ -1279,10 +1269,10 @@ TEST_F(Interactive_shell_test, BUG25974014) {
   EXPECT_EQ(system(cmd.str().c_str()), 0);
   output_handler.wipe_all();
 
-  // \use causes a reconnect on the 1st try
   // After the kill first command receives interrupted error
   execute("\\use mysql");
   MY_EXPECT_STDERR_CONTAINS("interrupted");
+  EXPECT_EQ("", output_handler.std_out);
   output_handler.wipe_all();
 
   // On second execution shell should attempt to reconnect
@@ -1331,63 +1321,62 @@ TEST_F(Interactive_shell_test, status_x) {
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Node"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Node"));
+
+  // ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  // EXPECT_NE(std::string::npos, line.find("Server type"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Server type"), std::string::npos);
+  EXPECT_EQ(1, sscanf(line.c_str(), "Connection Id:                %d", &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(sscanf(line.c_str(), "Connection Id:                %d", &dec), 1);
+  EXPECT_NE(std::string::npos, line.find("Default schema"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Default schema"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Current schema"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Current schema"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Current user"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Current user"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("SSL"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("SSL"), std::string::npos);
-
-  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(sscanf(line.c_str(), "Using delimiter:              %c", &c), 1);
+  EXPECT_EQ(1, sscanf(line.c_str(), "Using delimiter:              %c", &c));
   EXPECT_EQ(c, ';');
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Server version"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Server version"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_EQ(line, "Protocol version:             X protocol");
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(sscanf(line.c_str(), "Client library:               %d.%d.%d", &dec,
-                   &dec, &dec),
-            3);
+  EXPECT_EQ(3, sscanf(line.c_str(), "Client library:               %d.%d.%d",
+                      &dec, &dec, &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Connection"), std::string::npos);
-  EXPECT_NE(line.find("via TCP"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Connection"));
+  EXPECT_NE(std::string::npos, line.find("via TCP"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Server characterset"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Server characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Schema characterset"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Schema characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Client characterset"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Client characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Conn. characterset"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Conn. characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(sscanf(line.c_str(), "TCP port:                     %d", &dec), 1);
+  EXPECT_EQ(1, sscanf(line.c_str(), "TCP port:                     %d", &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Uptime"), std::string::npos);
-  EXPECT_NE(line.find("sec"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Uptime"));
+  EXPECT_NE(std::string::npos, line.find("sec"));
 }
 
 TEST_F(Interactive_shell_test, status_classic) {
@@ -1402,62 +1391,60 @@ TEST_F(Interactive_shell_test, status_classic) {
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Classic"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Classic"));
+
+  // ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  // EXPECT_NE(std::string::npos, line.find("Server type"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Server type"), std::string::npos);
+  EXPECT_EQ(1, sscanf(line.c_str(), "Connection Id:                %d", &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(sscanf(line.c_str(), "Connection Id:                %d", &dec), 1);
+  EXPECT_NE(std::string::npos, line.find("Current schema"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Current schema"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Current user"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Current user"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("SSL"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("SSL"), std::string::npos);
-
-  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(sscanf(line.c_str(), "Using delimiter:              %c", &c), 1);
+  EXPECT_EQ(1, sscanf(line.c_str(), "Using delimiter:              %c", &c));
   EXPECT_EQ(c, ';');
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Server version"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Server version"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(
-      sscanf(line.c_str(), "Protocol version:             classic %d", &dec),
-      1);
+  EXPECT_EQ(1,
+      sscanf(line.c_str(), "Protocol version:             classic %d", &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(sscanf(line.c_str(), "Client library:               %d.%d.%d", &dec,
-                   &dec, &dec),
-            3);
+  EXPECT_EQ(3, sscanf(line.c_str(), "Client library:               %d.%d.%d",
+                      &dec, &dec, &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Connection"), std::string::npos);
-  EXPECT_NE(line.find("via TCP"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Connection"));
+  EXPECT_NE(std::string::npos, line.find("via TCP"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Server characterset"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Server characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Schema characterset"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Schema characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Client characterset"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Client characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_NE(line.find("Conn. characterset"), std::string::npos);
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(sscanf(line.c_str(), "TCP port:                     %d", &dec), 1);
+  EXPECT_EQ(1, sscanf(line.c_str(), "TCP port:                     %d", &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_NE(line.find("Uptime"), std::string::npos);
-  EXPECT_NE(line.find("sec"), std::string::npos);
+  EXPECT_NE(std::string::npos, line.find("Uptime"));
+  EXPECT_NE(std::string::npos, line.find("sec"));
 }
 
 }  // namespace mysqlsh

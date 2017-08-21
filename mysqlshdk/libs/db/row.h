@@ -20,37 +20,47 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _CORELIBS_DB_IROW_H_
-#define _CORELIBS_DB_IROW_H_
-
-#include "mysqlshdk_export.h"
+#ifndef MYSQLSHDK_LIBS_DB_ROW_H_
+#define MYSQLSHDK_LIBS_DB_ROW_H_
 
 #include <cstdint>
+#include <set>
 #include <string>
+#include <utility>
+#include <mysqlxclient/xdatetime.h>
+
+#include "mysqlshdk_export.h"
+#include "mysqlshdk/libs/db/column.h"
 
 namespace mysqlshdk {
 namespace db {
+
 class SHCORE_PUBLIC IRow {
-public:
-  virtual size_t size() const = 0;
+ public:
+  IRow() {
+  }
+  // non-copiable
+  IRow(const IRow &) = delete;
+  void operator=(const IRow &) = delete;
 
-  virtual int64_t get_int(int index) const = 0;
-  virtual uint64_t get_uint(int index) const = 0;
-  virtual std::string get_string(int index) const = 0;
-  virtual std::pair<const char*, size_t> get_data(int index) const = 0;
-  virtual double get_double(int index) const = 0;
-  virtual std::string get_date(int index) const = 0;
+  virtual uint32_t num_fields() const = 0;
 
-  virtual bool is_null(int index) const = 0;
-  virtual bool is_int(int index) const = 0;
-  virtual bool is_uint(int index) const = 0;
-  virtual bool is_string(int index) const = 0;
-  virtual bool is_double(int index) const = 0;
-  virtual bool is_date(int index) const = 0;
-  virtual bool is_binary(int index) const = 0;
+  virtual Type get_type(uint32_t index) const = 0;
+  virtual bool is_null(uint32_t index) const = 0;
+  virtual std::string get_as_string(uint32_t index) const = 0;
 
-  virtual ~IRow(){}
+  virtual std::string get_string(uint32_t index) const = 0;
+  virtual int64_t get_int(uint32_t index) const = 0;
+  virtual uint64_t get_uint(uint32_t index) const = 0;
+  virtual float get_float(uint32_t index) const = 0;
+  virtual double get_double(uint32_t index) const = 0;
+  virtual std::pair<const char *, size_t> get_string_data(
+      uint32_t index) const = 0;
+  virtual uint64_t get_bit(uint32_t index) const = 0;
+
+  virtual ~IRow() {
+  }
 };
-}
-}
-#endif
+}  // namespace db
+}  // namespace mysqlshdk
+#endif  // MYSQLSHDK_LIBS_DB_ROW_H_

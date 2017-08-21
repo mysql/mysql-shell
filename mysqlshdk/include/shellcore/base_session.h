@@ -56,12 +56,12 @@ public:
   virtual void create_schema(const std::string& name) = 0;
   virtual void drop_schema(const std::string &name) = 0;
   virtual void set_current_schema(const std::string &name) = 0;
-  virtual shcore::Object_bridge_ref get_schema(const std::string &name) const;
+  virtual shcore::Object_bridge_ref get_schema(const std::string &name);
 
   // This function should be execute_sql, but BaseSession and ClassicSession
   // Have another function with the same signature except the return value
   // Using this name temporarily, at the end only one execute_sql
-  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) const = 0;
+  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) = 0;
 
   std::string uri(mysqlshdk::db::uri::Tokens_mask format =
                       mysqlshdk::db::uri::formats::full_no_password()) const;
@@ -72,7 +72,7 @@ public:
 
   virtual std::string db_object_exists(std::string &type,
                                        const std::string &name,
-                                       const std::string &owner) const = 0;
+                                       const std::string &owner) = 0;
 
   virtual void set_option(const char *option, int value) {}
   virtual uint64_t get_connection_id() const { return 0; }
@@ -99,7 +99,7 @@ public:
   virtual void commit() = 0;
   virtual void rollback() = 0;
 
-  virtual void kill_query() const = 0;
+  virtual void kill_query() = 0;
 
 protected:
   std::string get_quoted_name(const std::string& name);
@@ -112,14 +112,14 @@ protected:
   // handler is used for the whole loop.
   class Interruptible {
    public:
-    explicit Interruptible(const ShellBaseSession *owner) : _owner(owner) {
+    explicit Interruptible(ShellBaseSession *owner) : _owner(owner) {
       _owner->begin_query();
     }
 
     ~Interruptible() { _owner->end_query(); }
 
    private:
-    const ShellBaseSession *_owner;
+    ShellBaseSession *_owner;
   };
 
   mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
@@ -131,8 +131,8 @@ protected:
   void init();
 
   friend class Query_guard;
-  void begin_query() const;
-  void end_query() const;
+  void begin_query();
+  void end_query();
   mutable int _guard_active = 0;
 
 #ifdef FRIEND_TEST

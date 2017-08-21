@@ -109,6 +109,8 @@ static void handle_ctrlc_signal(int sig) {
 
 static void install_signal_handler() {
   signal(SIGINT, handle_ctrlc_signal);
+  // Ignore broken pipe signal
+  signal(SIGPIPE, SIG_IGN);
 }
 
 class Interrupt_helper : public shcore::Interrupt_helper {

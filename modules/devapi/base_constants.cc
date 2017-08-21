@@ -188,8 +188,6 @@ Value Constant::get_constant_value(const std::string &module,
         ret_val = Value("DATE");
       } else if (id == "DATETIME") {
         ret_val = Value("DATETIME");
-      } else if (id == "TIMESTAMP") {
-        ret_val = Value("TIMESTAMP");
       } else if (id == "SET") {
         ret_val = Value("SET");
       } else if (id == "ENUM") {

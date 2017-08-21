@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-
+#include <mysql.h>
 #include "shellcore/base_shell.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_file.h"
@@ -24,16 +24,12 @@
 #include "utils/utils_string.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/ishell_core.h"
-#include "shellcore/shell_core_options.h" // <---
+#include "shellcore/shell_core_options.h"
 #include "shellcore/shell_notifications.h"
 #include "modules/devapi/base_resultset.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_time.h"
 #include "mysqlshdk/libs/utils/logger.h"
-
-// TODO: This should be ported from the server, not used from there (see comment bellow)
-//const int MAX_READLINE_BUF = 65536;
-extern char *mysh_get_tty_password(const char *opt_message);
 
 namespace mysqlsh {
 Base_shell::Base_shell(const Shell_options &options,
@@ -69,6 +65,10 @@ Base_shell::Base_shell(const Shell_options &options,
   _update_variables_pending = 1;
 
   _result_processor = std::bind(&Base_shell::process_result, this, _1);
+
+  // This call is to initialize the SSL engine
+  auto handle = mysql_init(NULL);
+  mysql_close(handle);
 }
 
 void Base_shell::finish_init() {
@@ -226,21 +226,36 @@ void Base_shell::update_prompt_variables(bool reconnected) {
   if (reconnected || _prompt_variables.empty()) {
     if (session) {
       mysqlshdk::db::Connection_options options(session->uri());
+      std::string socket;
+      std::string port;
 
       _prompt_variables["ssl"] = session->get_ssl_cipher().empty() ? "" : "SSL";
       _prompt_variables["uri"] = session->uri();
       _prompt_variables["user"] = options.has_user() ? options.get_user() : "";
       _prompt_variables["host"] =
           options.has_host() ? options.get_host() : "localhost";
-      _prompt_variables["port"] =
-          options.has_socket()
-              ? options.get_socket()
-              : std::to_string(options.has_port() ? options.get_port() : 33060);
-      _prompt_variables["session"] = "";
-      if (session->class_name() == "ClassicSession")
+
+      if (session->get_member("__connection_info").descr().find("TCP") !=
+          std::string::npos) {
+        port =
+            options.has_port() ? std::to_string(options.get_port()) : "";
+      } else {
+        if (options.has_socket())
+          socket = options.get_socket();
+        else
+          socket = "default";
+      }
+      if (session->session_type() == mysqlsh::SessionType::Classic) {
         _prompt_variables["session"] = "c";
-      else if (session->class_name() == "NodeSession")
+        if (socket.empty() && port.empty())
+          port = "3306";
+      } else {
+        if (socket.empty() && port.empty())
+          port = "3306";
         _prompt_variables["session"] = "x";
+      }
+      _prompt_variables["port"] = port;
+      _prompt_variables["socket"] = socket;
       _prompt_variables["node_type"] = session->get_node_type();
     } else {
       _prompt_variables["ssl"] = "";
@@ -248,12 +263,17 @@ void Base_shell::update_prompt_variables(bool reconnected) {
       _prompt_variables["user"] = "";
       _prompt_variables["host"] = "";
       _prompt_variables["port"] = "";
+      _prompt_variables["socket"] = "";
       _prompt_variables["session"] = "";
       _prompt_variables["node_type"] = "";
     }
   }
-  if (session) {
-    _prompt_variables["schema"] = session->get_current_schema();
+  if (session && session->is_open()) {
+    try {
+      _prompt_variables["schema"] = session->get_current_schema();
+    } catch (...) {
+      _prompt_variables["schema"] = "";
+    }
   } else {
     _prompt_variables["schema"] = "";
   }

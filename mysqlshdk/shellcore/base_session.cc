@@ -97,7 +97,7 @@ void ShellBaseSession::reconnect() {
   connect(_connection_options);
 }
 
-shcore::Object_bridge_ref ShellBaseSession::get_schema(const std::string &name) const {
+shcore::Object_bridge_ref ShellBaseSession::get_schema(const std::string &name) {
   shcore::Object_bridge_ref ret_val;
   std::string type = "Schema";
 
@@ -119,7 +119,7 @@ shcore::Object_bridge_ref ShellBaseSession::get_schema(const std::string &name) 
   return ret_val;
 }
 
-void ShellBaseSession::begin_query() const {
+void ShellBaseSession::begin_query() {
   if (_guard_active++ == 0) {
     // Install kill query as ^C handler
     Interrupts::push_handler([this]() {
@@ -129,7 +129,7 @@ void ShellBaseSession::begin_query() const {
   }
 }
 
-void ShellBaseSession::end_query() const {
+void ShellBaseSession::end_query() {
   if (--_guard_active == 0) {
     Interrupts::pop_handler();
   }

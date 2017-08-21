@@ -26,11 +26,15 @@
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
+#include "db/mysqlx/mysqlx_parser.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
 
-using namespace std::placeholders;
-using namespace mysqlsh::mysqlx;
+using std::placeholders::_1;
 using namespace shcore;
+
+namespace mysqlsh {
+namespace mysqlx {
 
 // Documentation of CollectionRemove class
 REGISTER_HELP(COLLECTIONREMOVE_BRIEF,
@@ -46,6 +50,10 @@ REGISTER_HELP(
 CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
     : Collection_crud_definition(
           std::static_pointer_cast<DatabaseObject>(owner)) {
+  message_.mutable_collection()->set_schema(owner->schema()->name());
+  message_.mutable_collection()->set_name(owner->name());
+  message_.set_data_model(Mysqlx::Crud::DOCUMENT);
+
   // Exposes the methods available for chaining
   add_method("remove", std::bind(&CollectionRemove::remove, this, _1), "data");
   add_method("sort", std::bind(&CollectionRemove::sort, this, _1), "data");
@@ -139,8 +147,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("remove").c_str());
 
-  std::shared_ptr<Collection> collection(
-      std::static_pointer_cast<Collection>(_owner.lock()));
+  auto collection(std::static_pointer_cast<Collection>(_owner));
 
   if (collection) {
     try {
@@ -149,8 +156,10 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
       if (search_condition.empty())
         throw shcore::Exception::argument_error("Requires a search condition.");
 
-      _remove_statement.reset(new ::mysqlx::RemoveStatement(
-          collection->_collection_impl->remove(search_condition)));
+      if (!search_condition.empty())
+        message_.set_allocated_criteria(
+            ::mysqlx::parser::parse_collection_filter(search_condition,
+                                                      &_placeholders));
 
       // Updates the exposed functions
       update_functions("remove");
@@ -224,7 +233,9 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
     if (fields.size() == 0)
       throw shcore::Exception::argument_error("Sort criteria can not be empty");
 
-    _remove_statement->sort(fields);
+    for (auto &field : fields)
+      ::mysqlx::parser::parse_collection_sort_column(*message_.mutable_order(),
+                                                     field);
 
     update_functions("sort");
   }
@@ -279,7 +290,7 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
   try {
-    _remove_statement->limit(args.uint_at(0));
+    message_.mutable_limit()->set_row_count(args.uint_at(0));
 
     update_functions("limit");
   }
@@ -340,7 +351,7 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
   try {
-    _remove_statement->bind(args.string_at(0), map_document_value(args[1]));
+    bind_value(args.string_at(0), args[1]);
 
     update_functions("bind");
   }
@@ -392,13 +403,14 @@ Result CollectionRemove::execute() {}
 #endif
 //@}
 shcore::Value CollectionRemove::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlx::Result> result;
-
+  std::unique_ptr<mysqlsh::mysqlx::Result> result;
+  args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
+    insert_bound_values(message_.mutable_args());
     timer.start();
-    result.reset(new mysqlx::Result(safe_exec(*_remove_statement)));
+    result.reset(new mysqlx::Result(
+        safe_exec([this]() { return session()->session()->execute_crud(message_); })));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
@@ -406,3 +418,6 @@ shcore::Value CollectionRemove::execute(const shcore::Argument_list &args) {
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }
+
+}  // namespace mysqlx
+}  // namespace mysqlsh

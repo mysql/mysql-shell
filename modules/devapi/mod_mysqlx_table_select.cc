@@ -20,10 +20,12 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
 #include "scripting/common.h"
 #include "utils/utils_time.h"
+
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
@@ -31,6 +33,10 @@ using namespace shcore;
 
 TableSelect::TableSelect(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
+  message_.mutable_collection()->set_schema(owner->schema()->name());
+  message_.mutable_collection()->set_name(owner->name());
+  message_.set_data_model(Mysqlx::Crud::TABLE);
+
   // Exposes the methods available for chaining
   add_method("select", std::bind(&TableSelect::select, this, _1), "data");
   add_method("where", std::bind(&TableSelect::where, this, _1), "data");
@@ -99,7 +105,7 @@ TableSelect TableSelect::select(List searchExprStr) {}
 TableSelect TableSelect::select(list searchExprStr) {}
 #endif
 shcore::Value TableSelect::select(const shcore::Argument_list &args) {
-  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner));
 
   if (table) {
     try {
@@ -113,8 +119,10 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
               "Field selection criteria can not be empty");
       }
 
-      _select_statement.reset(
-          new ::mysqlx::SelectStatement(table->_table_impl->select(fields)));
+      for (auto &field : fields) {
+        ::mysqlx::parser::parse_table_column_list_with_alias(
+            *message_.mutable_projection(), field);
+      }
 
       // Updates the exposed functions
       update_functions("select");
@@ -166,7 +174,8 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("where").c_str());
 
   try {
-    _select_statement->where(args.string_at(0));
+    message_.set_allocated_criteria(::mysqlx::parser::parse_table_filter(
+        args.string_at(0), &_placeholders));
 
     update_functions("where");
   }
@@ -222,7 +231,10 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
       throw shcore::Exception::argument_error(
           "Grouping criteria can not be empty");
 
-    _select_statement->groupBy(fields);
+    for (auto &field : fields) {
+      message_.mutable_grouping()->AddAllocated(
+          ::mysqlx::parser::parse_table_filter(field));
+    }
 
     update_functions("groupBy");
   }
@@ -272,7 +284,9 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("having").c_str());
 
   try {
-    _select_statement->having(args.string_at(0));
+    message_.set_allocated_grouping_criteria(
+        ::mysqlx::parser::parse_table_filter(args.string_at(0),
+                                             &_placeholders));
 
     update_functions("having");
   }
@@ -333,7 +347,10 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
       throw shcore::Exception::argument_error(
           "Order criteria can not be empty");
 
-    _select_statement->orderBy(fields);
+    for (auto &field : fields) {
+      ::mysqlx::parser::parse_table_sort_column(*message_.mutable_order(),
+                                                field);
+    }
 
     update_functions("orderBy");
   }
@@ -380,7 +397,7 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
   try {
-    _select_statement->limit(args.uint_at(0));
+    message_.mutable_limit()->set_row_count(args.uint_at(0));
 
     update_functions("limit");
   }
@@ -423,7 +440,7 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("offset").c_str());
 
   try {
-    _select_statement->offset(args.uint_at(0));
+    message_.mutable_limit()->set_offset(args.uint_at(0));
 
     update_functions("offset");
   }
@@ -471,7 +488,7 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
   try {
-    _select_statement->bind(args.string_at(0), map_table_value(args[1]));
+    bind_value(args.string_at(0), args[1]);
 
     update_functions("bind");
   }
@@ -510,15 +527,13 @@ RowResult TableSelect::execute() {}
 #endif
 shcore::Value TableSelect::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlx::RowResult> result;
-
+  args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    args.ensure_count(0, get_function_name("execute").c_str());
-
     MySQL_timer timer;
+    insert_bound_values(message_.mutable_args());
     timer.start();
-
-    result.reset(new mysqlx::RowResult(safe_exec(*_select_statement)));
-
+    result.reset(new mysqlx::RowResult(safe_exec(
+        [this]() { return session()->session()->execute_crud(message_); })));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

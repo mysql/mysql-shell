@@ -54,7 +54,6 @@ Type::Type() {
   add_constant("TIME");
   add_constant("DATE");
   add_constant("DATETIME");
-  add_constant("TIMESTAMP");
   add_constant("SET");
   add_constant("ENUM");
   add_constant("GEOMETRY");

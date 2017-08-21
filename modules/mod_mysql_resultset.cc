@@ -21,6 +21,7 @@
 #include <iomanip>
 #include "mod_mysql_resultset.h"
 #include "mysql_connection.h"
+#include "modules/devapi/base_constants.h"
 #include "shellcore/shell_core_options.h"
 #include "shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
@@ -329,21 +330,110 @@ List ClassicResult::getWarnings() {}
 list ClassicResult::get_warnings() {}
 #endif
 
+static shcore::Value get_field_type(Field &meta) {
+  std::string type_name;
+  switch (meta.type()) {
+    case MYSQL_TYPE_NULL:
+      type_name = "NULL";
+      break;
+    case MYSQL_TYPE_NEWDECIMAL:
+    case MYSQL_TYPE_DECIMAL:
+      type_name = "DECIMAL";
+      break;
+    case MYSQL_TYPE_DATE:
+    case MYSQL_TYPE_NEWDATE:
+      type_name = "DATE";
+      break;
+    case MYSQL_TYPE_TIME2:
+    case MYSQL_TYPE_TIME:
+      type_name = "TIME";
+      break;
+    case MYSQL_TYPE_STRING:
+    case MYSQL_TYPE_VARCHAR:
+    case MYSQL_TYPE_VAR_STRING:
+      if (meta.flags() & ENUM_FLAG)
+        type_name = "ENUM";
+      else if (meta.flags() & SET_FLAG)
+        type_name = "SET";
+      else
+        type_name = "STRING";
+      break;
+    case MYSQL_TYPE_TINY_BLOB:
+    case MYSQL_TYPE_MEDIUM_BLOB:
+    case MYSQL_TYPE_LONG_BLOB:
+    case MYSQL_TYPE_BLOB:
+      type_name = "BYTES";
+      break;
+    case MYSQL_TYPE_GEOMETRY:
+      type_name = "GEOMETRY";
+      break;
+    case MYSQL_TYPE_JSON:
+      type_name = "JSON";
+      break;
+    case MYSQL_TYPE_YEAR:
+    case MYSQL_TYPE_TINY:
+    case MYSQL_TYPE_SHORT:
+    case MYSQL_TYPE_INT24:
+    case MYSQL_TYPE_LONG:
+      type_name = "INT";
+      break;
+    case MYSQL_TYPE_LONGLONG:
+      type_name = "BIGINT";
+      break;
+    case MYSQL_TYPE_FLOAT:
+      type_name = "FLOAT";
+      break;
+    case MYSQL_TYPE_DOUBLE:
+      type_name = "DOUBLE";
+      break;
+    case MYSQL_TYPE_DATETIME:
+    case MYSQL_TYPE_TIMESTAMP:
+    case MYSQL_TYPE_DATETIME2:
+    case MYSQL_TYPE_TIMESTAMP2:
+      // The difference between TIMESTAMP and DATETIME is entirely in terms
+      // of internal representation at the server side. At the client side,
+      // there is no difference.
+      // TIMESTAMP is the number of seconds since epoch, so it cannot store
+      // dates before 1970. DATETIME is an arbitrary date and time value,
+      // so it does not have that limitation.
+      type_name = "DATETIME";
+      break;
+    case MYSQL_TYPE_BIT:
+      type_name = "BIT";
+      break;
+    case MYSQL_TYPE_ENUM:
+      type_name = "ENUM";
+      break;
+    case MYSQL_TYPE_SET:
+      type_name = "SET";
+      break;
+  }
+
+  assert(!type_name.empty());
+  return mysqlsh::Constant::get_constant("mysqlx", "Type", type_name,
+                                         shcore::Argument_list());
+}
+
 shcore::Value ClassicResult::get_member(const std::string &prop) const {
   if (prop == "affectedRowCount")
-    return shcore::Value((int64_t)((_result->affected_rows() == ~(my_ulonglong)0) ? 0 : _result->affected_rows()));
+    return shcore::Value(
+        (int64_t)((_result->affected_rows() == ~(my_ulonglong)0)
+                      ? 0
+                      : _result->affected_rows()));
 
   if (prop == "warningCount")
     return shcore::Value(_result->warning_count());
 
   if (prop == "warnings") {
     auto inner_warnings = _result->query_warnings().release();
-    std::shared_ptr<ClassicResult> warnings(new ClassicResult(std::shared_ptr<Result>(inner_warnings)));
+    std::shared_ptr<ClassicResult> warnings(
+        new ClassicResult(std::shared_ptr<Result>(inner_warnings)));
     return warnings->fetch_all(shcore::Argument_list());
   }
 
   if (prop == "executionTime")
-    return shcore::Value(MySQL_timer::format_legacy(_result->execution_time(), 2));
+    return shcore::Value(
+        MySQL_timer::format_legacy(_result->execution_time(), 2));
 
   if (prop == "autoIncrementValue")
     return shcore::Value((int)_result->last_insert_id());
@@ -360,7 +450,8 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
   if (prop == "columnNames") {
     std::vector<Field> metadata(_result->get_metadata());
 
-    std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+    std::shared_ptr<shcore::Value::Array_type> array(
+        new shcore::Value::Array_type);
 
     int num_fields = metadata.size();
 
@@ -373,23 +464,24 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
   if (prop == "columns") {
     std::vector<Field> metadata(_result->get_metadata());
 
-    std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+    std::shared_ptr<shcore::Value::Array_type> array(
+        new shcore::Value::Array_type);
 
     int num_fields = metadata.size();
 
     for (int i = 0; i < num_fields; i++) {
       bool numeric = IS_NUM(metadata[i].type());
+
       std::shared_ptr<mysqlsh::Column> column(new mysqlsh::Column(
           metadata[i].db(), metadata[i].org_table(), metadata[i].table(),
           metadata[i].org_name(), metadata[i].name(),
-          shcore::Value(),  // type
-          metadata[i].length(), numeric, metadata[i].decimals(),
-          false,  // signed
+          get_field_type(metadata[i]),  // type
+          metadata[i].length(), metadata[i].decimals(),
+          (metadata[i].flags() & UNSIGNED_FLAG) == 0,  // signed
           mysqlshdk::db::charset::collation_name_from_collation_id(
               metadata[i].charset()),
           mysqlshdk::db::charset::charset_name_from_collation_id(
               metadata[i].charset()),
-          false,   // padded
           numeric ? metadata[i].flags() & ZEROFILL_FLAG : false));  // zerofill
 
       array->push_back(

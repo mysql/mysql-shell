@@ -61,8 +61,16 @@ class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
 
   virtual std::string get_object_type() { return class_name(); }
 
-  std::shared_ptr<ShellBaseSession> get_session() const {
+  const std::string &name() const {
+    return _name;
+  }
+
+  std::shared_ptr<ShellBaseSession> session() const {
     return _session.lock();
+  }
+
+  std::shared_ptr<DatabaseObject> schema() const {
+    return _schema.lock();
   }
 
 #if DOXYGEN_JS

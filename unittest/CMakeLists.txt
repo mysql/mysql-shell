@@ -17,15 +17,13 @@ if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
 
-    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/unittest
-                ${CMAKE_SOURCE_DIR}/mysqlxtest
-                ${CMAKE_SOURCE_DIR}/mysqlxtest/common
-                ${CMAKE_BINARY_DIR}/mysqlxtest
+    include_directories(BEFORE
+                ${CMAKE_SOURCE_DIR}/unittest
                 ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
                 ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/include
                 ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
                 ${CMAKE_SOURCE_DIR}/mysqlshdk/include
-                ${CMAKE_SOURCE_DIR}/include
+                ${CMAKE_BINARY_DIR}/mysqlshdk/include
                 ${CMAKE_SOURCE_DIR}/
                 ${CMAKE_SOURCE_DIR}/src
                 ${MYSQL_INCLUDE_DIRS}
@@ -95,12 +93,12 @@ if(WITH_TESTS)
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     add_dependencies(run_unit_tests
             api_modules
-            mysqlshdk-static
-            mysqlxtest)
+            mysqlshdk-static)
+
     target_link_libraries(run_unit_tests
             api_modules
+            db
             mysqlshdk-static
-            mysqlxtest
             gtest
             gmock
             ${MYSQL_LIBRARIES}
@@ -110,6 +108,11 @@ if(WITH_TESTS)
             ${V8_LINK_LIST}
             ${PYTHON_LIBRARIES}
     )
+
+    # Disable optimization for certain tests that take forever to compile
+    IF(NOT WIN32)
+      #     SET_SOURCE_FILES_PROPERTIES(mysqlshdk/libs/db/db_row_t.cc PROPERTIES COMPILE_FLAGS -O0)
+    ENDIF()
 
     # Copies the mysql_server_mock to the binary folder
     add_custom_command(TARGET run_unit_tests PRE_BUILD

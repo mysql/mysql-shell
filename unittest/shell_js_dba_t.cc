@@ -173,6 +173,16 @@ protected:
 
 };
 
+// This will deploy the sandbox instances to be recycled by all tests
+TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("dba.verbose = true;");
+
+  validate_interactive("dba_reset_or_deploy.js");
+}
+
 TEST_F(Shell_js_dba_tests, no_active_session_error) {
   _options->wizards = false;
   reset_shell();
@@ -219,15 +229,6 @@ TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
 // required by design
 TEST_F(Shell_js_dba_tests, dba_check_instance_configuration_session) {
   validate_interactive("dba_check_instance_configuration_session.js");
-}
-
-TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
-  _options->wizards = false;
-  reset_shell();
-
-  execute("dba.verbose = true;");
-
-  validate_interactive("dba_reset_or_deploy.js");
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_classic_global_dba) {

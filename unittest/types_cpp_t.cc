@@ -231,6 +231,15 @@ shcore::Argument_list make_args(A1 a1, A2 a2, A3 a3) {
   return args;
 }
 
+TEST_F(Types_cpp, expose_float) {
+  EXPECT_EQ(1, obj.get_members().size());
+  obj.do_expose();
+  EXPECT_EQ(26, obj.get_members().size());
+  EXPECT_DOUBLE_EQ(Value(obj.f_f_v()).as_double(),
+                   obj.call("f_f_v", make_args()).as_double());
+  //EXPECT_EQ(obj.f_f_v(), obj.call("f_f_v", make_args()).as_double());
+}
+
 TEST_F(Types_cpp, expose) {
   EXPECT_EQ(1, obj.get_members().size());
   obj.do_expose();
@@ -245,7 +254,6 @@ TEST_F(Types_cpp, expose) {
   EXPECT_TRUE(obj.call("f_o_v", make_args()).as_object<Test_object>().get() !=
               nullptr);
   EXPECT_EQ(obj.f_d_v(), obj.call("f_d_v", make_args()).as_double());
-  EXPECT_EQ(obj.f_f_v(), obj.call("f_f_v", make_args()).as_double());
   EXPECT_EQ(*obj.f_m_v(), *obj.call("f_m_v", make_args()).as_map());
   EXPECT_EQ(*obj.f_a_v(), *obj.call("f_a_v", make_args()).as_array());
 

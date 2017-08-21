@@ -12,11 +12,12 @@
 
 #@# CollectionAdd: Error conditions on add
 ||Invalid number of arguments in CollectionAdd.add, expected at least 1 but got 0
-||CollectionAdd.add: Argument is expected to be either a document or a list of documents
-||CollectionAdd.add: Unexpected characters left at the end of document: ...+1
+||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents
+||CollectionAdd.add: Element #1 expected to be a document, JSON expression or a list of documents
+||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents
 ||CollectionAdd.add: Invalid data type for _id field, should be a string
-||CollectionAdd.add: Element #2 is expected to be a document or a JSON expression
-||CollectionAdd.add: Argument #2 is expected to be a document or a JSON expression
+||CollectionAdd.add: Element #2 expected to be a document, JSON expression or a list of documents
+||CollectionAdd.add: Argument #2 expected to be a document, JSON expression or a list of documents
 
 #@ Collection.add execution
 |Affected Rows Single: 1|

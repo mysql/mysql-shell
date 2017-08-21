@@ -30,6 +30,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <stdexcept>
 
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
@@ -38,29 +39,28 @@
 
 namespace mysqlshdk {
 namespace db {
+
+class Error : public std::runtime_error {
+ public:
+  Error(const char* what, int code) : std::runtime_error(what), code_(code) {}
+
+  int code() const { return code_; }
+
+ private:
+  int code_;
+};
+
 class SHCORE_PUBLIC ISession {
  public:
   // Connection
   virtual void connect(const mysqlshdk::db::Connection_options& data) = 0;
 
-  // Execution
-  std::unique_ptr<IRow> query_one(const std::string& sql) {
-    auto result(query(sql, true));
-    if (result) {
-      auto row = result->fetch_one();
-      if (row)
-        return row;
-    }
-    throw std::logic_error("Query did not return result");
-  }
+  virtual const char *get_ssl_cipher() const = 0;
 
+  // Execution
   virtual std::shared_ptr<IResult> query(const std::string& sql,
                                          bool buffered = false) = 0;
   virtual void execute(const std::string& sql) = 0;
-  virtual void start_transaction() = 0;
-  virtual void commit() = 0;
-  virtual void rollback() = 0;
-  virtual const char* get_ssl_cipher() = 0;
 
   // Disconnection
   virtual void close() = 0;

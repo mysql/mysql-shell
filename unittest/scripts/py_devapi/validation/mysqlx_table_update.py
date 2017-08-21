@@ -62,8 +62,8 @@
 ||TableUpdate.bind: Unable to bind value for unexisting placeholder: another
 
 #@# TableUpdate: Error conditions on execute
-||TableUpdate.execute: Missing value bindings for the next placeholders: data, years
-||TableUpdate.execute: Missing value bindings for the next placeholders: data
+||TableUpdate.execute: Missing value bindings for the following placeholders: data, years
+||TableUpdate.execute: Missing value bindings for the following placeholders: data
 
 #@# TableUpdate: simple test
 |Affected Rows: 1|

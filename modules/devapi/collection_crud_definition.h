@@ -24,19 +24,14 @@
 #define MODULES_DEVAPI_COLLECTION_CRUD_DEFINITION_H_
 
 #include "modules/devapi/crud_definition.h"
-#include "mysqlx_crud.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "scripting/types_cpp.h"
+#include "db/mysqlx/expr_parser.h"
 
 #include <memory>
 #include <set>
-
-#ifdef __GNUC__
-#define ATTR_UNUSED __attribute__((unused))
-#else
-#define ATTR_UNUSED
-#endif
+#include <string>
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -49,7 +44,15 @@ class Collection_crud_definition : public Crud_definition {
       : Crud_definition(owner) {}
 
  protected:
-  ::mysqlx::DocumentValue map_document_value(shcore::Value source);
+  virtual void parse_string_expression(::Mysqlx::Expr::Expr *expr,
+                                       const std::string &expr_str) {
+    ::mysqlx::Expr_parser parser(expr_str, true);
+    // FIXME the parser should be changed to encode into the provided object
+    expr->CopyFrom(*parser.expr());
+  }
+
+  std::unique_ptr<::Mysqlx::Expr::Expr> encode_document_expr(
+      shcore::Value docexpr);
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

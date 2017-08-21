@@ -26,7 +26,6 @@
 #include <memory>
 #include <string>
 #include "modules/devapi/base_database_object.h"
-#include "mysqlx_crud.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
@@ -85,8 +84,7 @@ class Table : public DatabaseObject,
  private:
   void init();
 
- private:
-  std::shared_ptr< ::mysqlx::Table> _table_impl;
+private:
   bool _is_view;
 
   // Allows initial functions on the CRUD operations

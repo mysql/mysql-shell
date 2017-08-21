@@ -191,6 +191,8 @@ public:
 
   Interpreter_delegate *_delegate;
 
+  PyObject *db_error() { return _db_error; }
+
 private:
   static PyObject *shell_print(PyObject *self, PyObject *args, const std::string& stream);
   static PyObject *shell_flush(PyObject *self, PyObject *args);
@@ -210,6 +212,8 @@ private:
   PyObject *_globals;
   PyObject *_locals;
   PyThreadState *_main_thread_state;
+
+  PyObject *_db_error;
 
   Python_type_bridger _types;
 

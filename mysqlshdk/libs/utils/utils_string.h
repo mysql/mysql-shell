@@ -160,6 +160,16 @@ std::string SHCORE_PUBLIC str_replace(const std::string &s,
                                       const std::string &from,
                                       const std::string &to);
 
+
+std::string SHCORE_PUBLIC bits_to_string(uint64_t bits, int nbits);
+std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);
+
+
+// Macro to turn a symbol into a string
+#define STRINGIFY(s) STRINGIFY_(s)
+#define STRINGIFY_(s) #s
+
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_

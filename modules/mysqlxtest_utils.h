@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,7 +25,7 @@
 
 #include "scripting/types_cpp.h"
 #include "scripting/common.h"
-#include "mysqlxtest/mysqlx.h"
+#include "mysqlshdk/libs/db/session.h"
 
 #ifdef __GNUC__
 #define ATTR_UNUSED __attribute__((unused))
@@ -44,8 +44,8 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation) {
     auto error = e.error();
     (*error)["message"] = shcore::Value(operation + ": " + e.what());
     throw shcore::Exception(error);
-  } catch (::mysqlx::Error &e) {
-    throw shcore::Exception::mysql_error_with_code(e.what(), e.error());
+  } catch (mysqlshdk::db::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   } catch (std::runtime_error &e) {
     throw shcore::Exception::runtime_error(operation + ": " + e.what());
   } catch (std::logic_error &e) {
@@ -66,8 +66,8 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation) {
 static void ATTR_UNUSED translate_exception() {
   try {
     throw;
-  } catch (::mysqlx::Error &e) {
-    throw shcore::Exception::mysql_error_with_code(e.what(), e.error());
+  } catch (mysqlshdk::db::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   } catch (std::runtime_error &e) {
     throw shcore::Exception::runtime_error(e.what());
   } catch (std::logic_error &e) {

@@ -82,8 +82,8 @@
 ||TableSelect.bind: Unable to bind value for unexisting placeholder: another
 
 #@# TableSelect: Error conditions on execute
-||TableSelect.execute: Missing value bindings for the next placeholders: data, years
-||TableSelect.execute: Missing value bindings for the next placeholders: data
+||TableSelect.execute: Missing value bindings for the following placeholders: data, years
+||TableSelect.execute: Missing value bindings for the following placeholders: data
 
 
 

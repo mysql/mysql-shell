@@ -33,8 +33,6 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mysqlxtest_utils.h"
-#include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlx_connection.h"
 #include "shellcore/shell_core_options.h"
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
@@ -48,6 +46,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include <netdb.h>
 #include <unistd.h>
 #endif
 

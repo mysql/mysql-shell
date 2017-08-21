@@ -42,11 +42,10 @@ class Fake_result {
  public:
   Fake_result(const std::vector<std::string>& names,
               const std::vector<mysqlshdk::db::Type>& types);
-  std::unique_ptr<mysqlshdk::db::IRow> fetch_one();
-  std::unique_ptr<mysqlshdk::db::IRow> fetch_one_warning();
+  const mysqlshdk::db::IRow* fetch_one();
+  std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
   void add_row(const std::vector<std::string>& data);
-  void add_warning(const std::string& message, int code,
-                   const std::string& level);
+  void add_warning(const mysqlshdk::db::Warning &warning);
 
  private:
   size_t _index;
@@ -56,9 +55,7 @@ class Fake_result {
   std::vector<mysqlshdk::db::Type> _types;
   std::vector<std::unique_ptr<mysqlshdk::db::IRow> > _records;
 
-  std::vector<std::string> _wnames;
-  std::vector<mysqlshdk::db::Type> _wtypes;
-  std::vector<std::unique_ptr<mysqlshdk::db::IRow> > _wrecords;
+  std::vector<std::unique_ptr<mysqlshdk::db::Warning> > _warnings;
 };
 
 struct Fake_result_data {
@@ -91,7 +88,7 @@ class Mock_result : public mysqlshdk::db::IResult {
  public:
   Mock_result();
 
-  MOCK_METHOD0(next_data_set, bool());
+  MOCK_METHOD0(next_resultset, bool());
 
   // Metadata retrieval
   MOCK_CONST_METHOD0(get_auto_increment_value, int64_t());
@@ -104,8 +101,8 @@ class Mock_result : public mysqlshdk::db::IResult {
 
   MOCK_CONST_METHOD0(get_metadata, std::vector<mysqlshdk::db::Column>&());
 
-  virtual std::unique_ptr<mysqlshdk::db::IRow> fetch_one();
-  virtual std::unique_ptr<mysqlshdk::db::IRow> fetch_one_warning();
+  virtual const mysqlshdk::db::IRow* fetch_one();
+  virtual std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
 
   virtual ~Mock_result() {}
 
@@ -119,8 +116,8 @@ class Mock_result : public mysqlshdk::db::IResult {
   size_t _index;
   std::vector<std::unique_ptr<Fake_result> > _results;
 
-  std::unique_ptr<mysqlshdk::db::IRow> fake_fetch_one();
-  bool fake_next_dataset();
+  const mysqlshdk::db::IRow* fake_fetch_one();
+  bool fake_next_resultset();
 };
 }  // namespace testing
 

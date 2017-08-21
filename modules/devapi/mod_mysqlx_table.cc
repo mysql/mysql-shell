@@ -44,7 +44,6 @@ Table::Table(std::shared_ptr<Schema> owner, const std::string &name,
     : DatabaseObject(owner->_session.lock(),
                      std::static_pointer_cast<DatabaseObject>(owner), name),
       _is_view(is_view) {
-  _table_impl = owner->_schema_impl->getTable(name);
   init();
 }
 
@@ -53,7 +52,6 @@ Table::Table(std::shared_ptr<const Schema> owner, const std::string &name,
     : DatabaseObject(owner->_session.lock(),
                      std::const_pointer_cast<Schema>(owner), name),
       _is_view(is_view) {
-  _table_impl = owner->_schema_impl->getTable(name);
   init();
 }
 

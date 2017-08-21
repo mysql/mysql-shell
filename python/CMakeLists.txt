@@ -23,7 +23,7 @@ add_custom_command(OUTPUT mysqlprovision_exe
     COMMAND ${CMAKE_COMMAND} -E chdir ${WITH_CONNECTOR_PYTHON} python setup.py install --root=${CMAKE_CURRENT_BINARY_DIR} --install-purelib=.
     COMMAND zip -r ../mysqlprovision.zip *py mysql_gadgets mysql
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Creating mysqlprovision executable"
+    COMMENT "Creating mysqlprovision.exe executable"
 )
 
 add_custom_command(OUTPUT mysqlprovision_bin

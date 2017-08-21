@@ -15,13 +15,10 @@
 
 include_directories(
 	${CMAKE_BINARY_DIR}
-	"${CMAKE_SOURCE_DIR}/mysqlxtest"
-	"${CMAKE_SOURCE_DIR}/mysqlxtest/common"
-	"${CMAKE_SOURCE_DIR}/common/uuid/include"
-	"${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
+	${CMAKE_SOURCE_DIR}/common/uuid/include
+	${CMAKE_SOURCE_DIR}/ext/rapidjson/include
 	${PYTHON_INCLUDE_DIR}
 	${V8_INCLUDE_DIR})
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 set(SCRIPTING_SOURCES
     common.cc

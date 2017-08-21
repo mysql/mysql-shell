@@ -181,8 +181,6 @@ private:
   void init_js();
   void init_py();
 
-  bool reconnect();
-
 private:
   Object_registry *_registry;
   std::map<std::string, std::pair<Mode_mask, Value> > _globals;

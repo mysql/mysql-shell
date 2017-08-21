@@ -15,6 +15,7 @@
 
 include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
                     "${CMAKE_SOURCE_DIR}/mysqlshdk/include"
+                    "${CMAKE_BINARY_DIR}/mysqlshdk/include"
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_SOURCE_DIR}/src"
                     "${CMAKE_SOURCE_DIR}/ext/linenoise-ng/include"
@@ -60,7 +61,10 @@ ADD_STAN_TARGET(mysqlsh ${mysh_SRC})
 target_link_libraries(mysqlsh
     api_modules
     mysqlshdk-static
-    ${GCOV_LDFLAGS})
+    ${GCOV_LDFLAGS}
+    ${MYSQLX_LIBRARIES}
+    ${PROTOBUF_LIBRARIES}
+)
 
 install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
 

@@ -344,8 +344,6 @@ void Process_launcher::start()
     ::close(fd_in[1]);
     report_error(NULL);
   }
-  // Ignore broken pipe signal
-  signal(SIGPIPE, SIG_IGN);
 
   childpid = fork();
   if (childpid == -1) {

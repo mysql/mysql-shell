@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -22,12 +22,10 @@
 #include <memory>
 
 #include "gtest_clean.h"
-#include "../mysqlxtest/common/proj_parser.h"
+#include "db/mysqlx/proj_parser.h"
 #include "scripting/types_cpp.h"
 #include "scripting/common.h"
 
-#include "mysqlx_datatypes.pb.h"
-#include "mysqlx_expr.pb.h"
 
 using namespace mysqlx;
 

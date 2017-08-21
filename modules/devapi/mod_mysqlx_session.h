@@ -22,13 +22,13 @@
 
 #include <memory>
 #include <string>
-#include "modules/devapi/mod_mysqlx_session_handle.h"
+#include "db/mysqlx/mysqlxclient_clean.h"
+#include "db/mysqlx/session.h"
 #include "modules/mod_common.h"
-#include "mysqlxtest/mysqlx.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/base_session.h"
-#include "shellcore/ishell_core.h"
+#include "utils/nullable.h"
 
 namespace shcore {
 class Proxy_object;
@@ -37,40 +37,41 @@ class Proxy_object;
 namespace mysqlsh {
 class DatabaseObject;
 namespace mysqlx {
+
 class Schema;
 /**
-* \ingroup XDevAPI
-* $(BASESESSION_BRIEF)
-*
-* $(BASESESSION_DETAIL)
-*
-* $(BASESESSION_DETAIL1)
-* $(BASESESSION_DETAIL2)
-* $(BASESESSION_DETAIL3)
-* $(BASESESSION_DETAIL4)
-*
-* #### JavaScript Examples
-*
-* \include "concepts/Working_with_a_Session_Object.js"
-*
-* #### Python Examples
-*
-* \include "concepts/Working_with_a_Session_Object.py"
-*
-* \sa mysqlx.getSession(String connectionData, String password)
-* \sa mysqlx.getSession(Map connectionData, String password)
-* \sa mysqlx.getNodeSession(String connectionData, String password)
-* \sa mysqlx.getNodeSession(Map connectionData, String password)
-*/
-class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
+ * \ingroup XDevAPI
+ * $(NODESESSION_BRIEF)
+ *
+ * $(NODESESSION_DETAIL)
+ *
+ * #### JavaScript Examples
+ *
+ * \include "concepts/Working_with_a_Session_Object.js"
+ *
+ * #### Python Examples
+ *
+ * \include "concepts/Working_with_a_Session_Object.py"
+ *
+ * \sa mysqlx.getSession(String connectionData, String password)
+ * \sa mysqlx.getSession(Map connectionData, String password)
+ * \sa mysqlx.getNodeSession(String connectionData, String password)
+ * \sa mysqlx.getNodeSession(Map connectionData, String password)
+ */
+class SHCORE_PUBLIC NodeSession
+    : public ShellBaseSession,
+      public std::enable_shared_from_this<NodeSession> {
  public:
 #if DOXYGEN_JS
   String uri;            //!< Same as getUri()
   Schema defaultSchema;  //!< Same as getDefaultSchema()
+  Schema currentSchema;  //!< Same as getCurrentSchema()
 
   Schema createSchema(String name);
   Schema getSchema(String name);
   Schema getDefaultSchema();
+  Schema getCurrentSchema();
+  Schema setCurrentSchema(String name);
   List getSchemas();
   String getUri();
   Undefined close();
@@ -84,14 +85,19 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   Result dropView(String schema, String name);
   Bool isOpen();
 
+  SqlExecute sql(String sql);
+  String quoteName(String id);
  private:
 #elif DOXYGEN_PY
   str uri;                //!< Same as get_uri()
   Schema default_schema;  //!< Same as get_default_schema()
+  Schema current_schema;  //!< Same as get_current_schema()
 
   Schema create_schema(str name);
   Schema get_schema(str name);
   Schema get_default_schema();
+  Schema get_current_schema();
+  Schema set_current_schema(str name);
   list get_schemas();
   str get_uri();
   None close();
@@ -105,19 +111,38 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   Result drop_view(str schema, str name);
   Bool is_open();
 
+  SqlExecute sql(str sql);
+  str quote_name(str id);
  private:
 #endif
 
-  BaseSession();
-  BaseSession(const BaseSession &s);
-  virtual ~BaseSession();
+  NodeSession();
+  NodeSession(const NodeSession &s);
+  virtual ~NodeSession();
 
-  virtual void connect(const mysqlshdk::db::Connection_options& data);
+  virtual std::string class_name() const {
+    return "NodeSession";
+  }
+
+  virtual shcore::Value get_member(const std::string &prop) const;
+
+  virtual std::string get_node_type() {
+    return "Node";
+  }
+
+  virtual SessionType session_type() const {
+    return SessionType::Node;
+  }
+
+  static std::shared_ptr<shcore::Object_bridge> create(
+      const shcore::Argument_list &args);
+
+  virtual void connect(const mysqlshdk::db::Connection_options &data);
   virtual void close();
   virtual void create_schema(const std::string &name);
   virtual void drop_schema(const std::string &name);
   virtual void set_current_schema(const std::string &name);
-  virtual shcore::Object_bridge_ref get_schema(const std::string &name) const;
+  virtual shcore::Object_bridge_ref get_schema(const std::string &name);
   virtual void start_transaction();
   virtual void commit();
   virtual void rollback();
@@ -127,7 +152,6 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   }
 
   shcore::Value _close(const shcore::Argument_list &args);
-  virtual shcore::Value sql(const shcore::Argument_list &args);
   virtual shcore::Value _create_schema(const shcore::Argument_list &args);
   virtual shcore::Value _start_transaction(const shcore::Argument_list &args);
   virtual shcore::Value _commit(const shcore::Argument_list &args);
@@ -137,37 +161,28 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
                                    const std::string &type);
   shcore::Value _is_open(const shcore::Argument_list &args);
 
-  shcore::Value executeAdminCommand(const std::string &command,
-                                    bool expect_data,
-                                    const shcore::Argument_list &args) const;
-  virtual shcore::Object_bridge_ref raw_execute_sql(
-      const std::string &query) const;
-  shcore::Value execute_sql(const std::string &query,
-                            const shcore::Argument_list &args) const;
+  shcore::Value sql(const shcore::Argument_list &args);
+  shcore::Value quote_name(const shcore::Argument_list &args);
 
-  // This function will be removed when ISession is implemented
-  std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
+  shcore::Value _set_current_schema(const shcore::Argument_list &args);
+
+
   virtual bool is_open() const;
   virtual shcore::Value::Map_type_ref get_status();
-  virtual std::string get_node_type();
+
   virtual std::string get_ssl_cipher() const {
-    return _session.get_ssl_cipher();
+    return _session->get_ssl_cipher() ? _session->get_ssl_cipher() : "";
   }
 
-  shcore::Value _get_schema(const shcore::Argument_list &args) const;
+  shcore::Value _get_schema(const shcore::Argument_list &args);
 
-  shcore::Value get_schemas(const shcore::Argument_list &args) const;
+  shcore::Value get_schemas(const shcore::Argument_list &args);
 
   virtual std::string db_object_exists(std::string &type,
                                        const std::string &name,
-                                       const std::string &owner) const;
+                                       const std::string &owner);
 
   shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
-
-  std::shared_ptr< ::mysqlx::Session> session_obj() const;
-
-  static std::shared_ptr<shcore::Object_bridge> create(
-      const shcore::Argument_list &args);
 
   bool table_name_compare(const std::string &n1, const std::string &n2);
 
@@ -176,22 +191,48 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   virtual uint64_t get_connection_id() const;
   virtual std::string query_one_string(const std::string &query, int field = 0);
 
-  virtual void kill_query() const;
+  virtual void kill_query();
+
+  mysqlshdk::db::mysqlx::Session *session() {
+    return _session.get();
+  }
+
+ public:
+  // TODO(alfredo) legacy - replace with mysqlx calls
+  shcore::Value executeAdminCommand(const std::string &command, bool,
+                                    const shcore::Argument_list &args);
+
+  // TODO(alfredo) delete this eventually
+  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string &query);
+
+ public:
+  std::shared_ptr<mysqlshdk::db::mysqlx::Result> execute_sql(
+      const std::string &command,
+      const shcore::Argument_list &args = shcore::Argument_list());
+
+  shcore::Value _execute_sql(
+      const std::string &command,
+      const shcore::Argument_list &args = shcore::Argument_list());
+
+  shcore::Value _execute_mysqlx_stmt(
+      const std::string &command, const shcore::Dictionary_t &args);
+
+  std::shared_ptr<mysqlshdk::db::mysqlx::Result> execute_mysqlx_stmt(
+      const std::string &command, const shcore::Dictionary_t &args);
 
  protected:
-  shcore::Value executeStmt(const std::string &domain,
-                            const std::string &command, bool expect_data,
-                            const shcore::Argument_list &args) const;
+  friend class SqlExecute;
 
-  // Default implementation returns an empty pointer
-  // This is required because close() is called from the destructor
-  // Meaning the _get_shared_this() virtuality takes no effect
-  virtual std::shared_ptr<BaseSession> _get_shared_this() const {
-    return std::shared_ptr<BaseSession>();
-  }
+  std::shared_ptr<mysqlshdk::db::mysqlx::Result> execute_stmt(
+      const std::string &ns, const std::string &command,
+      const ::xcl::Arguments &args);
+
+  shcore::Value _execute_stmt(const std::string &ns, const std::string &command,
+                              const ::xcl::Arguments &args, bool expect_data);
+
   std::string _retrieve_current_schema();
 
-  SessionHandle _session;
+  std::shared_ptr<mysqlshdk::db::mysqlx::Session> _session;
 
   bool _case_sensitive_table_names;
   void init();
@@ -201,82 +242,6 @@ class SHCORE_PUBLIC BaseSession : public ShellBaseSession {
   void reset_session();
 };
 
-/**
-* $(XSESSION_BRIEF)
-*
-* $(XSESSION_DETAIL)
-*
-* $(XSESSION_DETAIL1)
-*
-* \sa BaseSession
-*/
-class SHCORE_PUBLIC XSession : public BaseSession,
-                               public std::enable_shared_from_this<XSession> {
- public:
-  XSession() {}
-  XSession(const XSession &s) : BaseSession(s) {}
-  virtual ~XSession() {}
-  virtual std::string class_name() const { return "XSession"; }
-  static std::shared_ptr<shcore::Object_bridge> create(
-      const shcore::Argument_list &args);
-
-  virtual std::shared_ptr<BaseSession> _get_shared_this() const;
-
-  virtual SessionType session_type() const {
-    return SessionType::X;
-  }
-};
-
-/**
-* \ingroup XDevAPI
-* $(NODESESSION_BRIEF)
-*
-* $(NODESESSION_DETAIL)
-*
-* \sa BaseSession
-*/
-class SHCORE_PUBLIC NodeSession
-    : public BaseSession,
-      public std::enable_shared_from_this<NodeSession> {
- public:
-#if DOXYGEN_JS
-  Schema currentSchema;  //!< Same as getCurrentSchema()
-
-  Schema getCurrentSchema();
-  Schema setCurrentSchema(String name);
-  SqlExecute sql(String sql);
-  String quoteName(String id);
-  Result setFetchWarnings(Boolean enable);
-#elif DOXYGEN_PY
-  Schema current_schema;  //!< Same as get_current_schema()
-
-  Schema get_current_schema();
-  Schema set_current_schema(str name);
-  SqlExecute sql(str sql);
-  str quote_name(str id);
-  Result set_fetch_warnings(bool enable);
-#endif
-  NodeSession();
-  NodeSession(const NodeSession &s);
-  virtual ~NodeSession() {}
-  virtual std::string class_name() const { return "NodeSession"; }
-
-  virtual shcore::Value get_member(const std::string &prop) const;
-
-  static std::shared_ptr<shcore::Object_bridge> create(
-      const shcore::Argument_list &args);
-  virtual std::shared_ptr<BaseSession> _get_shared_this() const;
-  shcore::Value sql(const shcore::Argument_list &args);
-  shcore::Value quote_name(const shcore::Argument_list &args);
-
-  shcore::Value _set_current_schema(const shcore::Argument_list &args);
-
-  virtual SessionType session_type() const {
-    return SessionType::Node;
-  }
- protected:
-  void init();
-};
 }  // namespace mysqlx
 }  // namespace mysqlsh
 

@@ -157,7 +157,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   }
 
   static void slow_deleg_print(void *user_data, const char *text) {
-    shcore::sleep_ms(100);
+    shcore::sleep_ms(10);
     Shell_test_output_handler::deleg_print(user_data, text);
   }
 
@@ -472,8 +472,9 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table) {
                    k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
+    wipe_all();
     execute(
-        "print(db.getTable('data').select(['sleep(20)','b'])."
+        "table = db.getTable('data'); print(table.select(['sleep(20)','b'])."
         "execute().fetchAll());");
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
@@ -708,6 +709,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table) {
                    k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
+    wipe_all();
     execute("db.get_table('data').select(['sleep(20)','b']).execute()");
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
     // MY_EXPECT_STDERR_CONTAINS("Query execution was interrupted");

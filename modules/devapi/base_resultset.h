@@ -24,11 +24,14 @@
 #define MODULES_DEVAPI_BASE_RESULTSET_H_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include "modules/mod_common.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
+#include "db/column.h"
+#include "db/row.h"
 
 namespace mysqlsh {
 // This is the Shell Common Base Class for all the resultset classes
@@ -39,8 +42,6 @@ class ShellBaseResult : public shcore::Cpp_object_bridge {
   // Doing nothing by default to avoid impacting the classic result
   virtual void buffer() {}
   virtual bool rewind() { return false; }
-  virtual bool tell(size_t &dataset, size_t &record) { return false; }
-  virtual bool seek(size_t dataset, size_t record) { return false; }
 };
 
 /**
@@ -51,18 +52,17 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
  public:
   Column(const std::string &schema, const std::string &org_table,
          const std::string &table, const std::string &org_name,
-         const std::string &name, shcore::Value type, uint64_t length,
-         bool numeric, uint64_t fractional, bool is_signed,
-         const std::string &collation, const std::string &charset, bool padded,
+         const std::string &name, shcore::Value type, uint32_t length,
+         int fractional, bool is_unsigned,
+         const std::string &collation, const std::string &charset,
          bool zerofill);
+
+  Column(const mysqlshdk::db::Column &meta, shcore::Value type);
 
   virtual bool operator==(const Object_bridge &other) const;
   virtual std::string class_name() const { return "Column"; }
 
   virtual shcore::Value get_member(const std::string &prop) const;
-
-  // Shell Specific for internal use
-  bool is_numeric() { return _numeric; }
 
 #if DOXYGEN_JS
   schemaName;        //!< Same as getSchemaName()
@@ -76,7 +76,6 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   numberSigned;      //!< Same as isNumberSigned()
   collationName;     //!< Same as getCollationName()
   characterSetName;  //!< Same as getCharacterSetName()
-  padded;            //!< Same as isPadded()
   zeroFill;          //!< Same as isZeroFill()
 #elif DOXYGEN_PY
   schema_name;         //!< Same as get_schema_name()
@@ -90,7 +89,6 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   number_signed;       //!< Same as is_number_signed()
   collation_name;      //!< Same as get_collation_name()
   character_set_name;  //!< Same as get_character_set_name()
-  padded;              //!< Same as is_padded()
   zero_fill;           //!< Same as is_zero_fill()
 #endif
 
@@ -103,7 +101,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_schema_name() {}
 #endif
-  std::string get_schema_name() { return _schema; }
+  const std::string &get_schema_name() const { return _schema; }
 
 /**
  * Retrieves table name where the column is defined.
@@ -114,7 +112,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_table_name() {}
 #endif
-  std::string get_table_name() { return _table_name; }
+  const std::string &get_table_name() const { return _table_name; }
 
 /**
  * Retrieves table alias where the column is defined.
@@ -126,7 +124,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_table_label() {}
 #endif
-  std::string get_table_label() { return _table_label; }
+  const std::string &get_table_label() const { return _table_label; }
 
 /**
  * Retrieves column name.
@@ -137,7 +135,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_column_name() {}
 #endif
-  std::string get_column_name() { return _column_name; }
+  const std::string &get_column_name() const { return _column_name; }
 
 /**
  * Retrieves column alias.
@@ -149,7 +147,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_column_label() {}
 #endif
-  std::string get_column_label() { return _column_label; }
+  const std::string &get_column_label() const { return _column_label; }
 
 /**
  * Retrieves column Type.
@@ -160,7 +158,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   Type get_type() {}
 #endif
-  shcore::Value get_type() { return _type; }
+  shcore::Value get_type() const { return _type; }
 
 /**
  * Retrieves column length.
@@ -171,7 +169,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   int get_length() {}
 #endif
-  uint64_t get_length() { return _length; }
+  uint32_t get_length() const { return _length; }
 
 /**
  * Retrieves the fractional digits if applicable
@@ -183,7 +181,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   int get_fractional_digits() {}
 #endif
-  uint64_t get_fractional_digits() { return _fractional; }
+  int get_fractional_digits() const { return _fractional; }
 
 /**
  * Indicates if a numeric column is signed.
@@ -194,7 +192,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   bool is_number_signed() {}
 #endif
-  bool is_number_signed() { return _signed; }
+  bool is_number_signed() const;
 
 /**
  * Retrieves the collation name
@@ -206,7 +204,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_collation_name() {}
 #endif
-  std::string get_collation_name() { return _collation; }
+  const std::string &get_collation_name() const { return _collation; }
 
 /**
  * Retrieves the character set name
@@ -218,18 +216,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_character_setName() {}
 #endif
-  std::string get_character_set_name() { return _charset; }
-
-/**
- * Indicates if padding is used for the column
- * \return a boolean indicating if padding is used on the column.
- */
-#if DOXYGEN_JS
-  Bool isPadded() {}
-#elif DOXYGEN_PY
-  bool is_padded() {}
-#endif
-  bool is_padded() { return _padded; }
+  const std::string &get_character_set_name() const { return _charset; }
 
 /**
  * Indicates if zerofill is set for the column
@@ -240,7 +227,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   bool is_zero_fill() {}
 #endif
-  bool is_zerofill() { return _zerofill; }
+  bool is_zerofill() const { return _zerofill; }
 
  private:
   std::string _schema;
@@ -250,13 +237,11 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   std::string _column_label;
   std::string _collation;
   std::string _charset;
-  uint64_t _length;
+  uint32_t _length;
   shcore::Value _type;
-  uint64_t _fractional;
-  bool _signed;
-  bool _padded;
+  int _fractional;
+  bool _unsigned;
   bool _zerofill;
-  bool _numeric;
 };
 
 /**
@@ -302,10 +287,14 @@ class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
   int get_length();
   Value get_field(str fieldName);
 #endif
+
   Row();
+  Row(std::shared_ptr<std::vector<std::string>> names,
+      const mysqlshdk::db::IRow &row);
+
   virtual std::string class_name() const { return "Row"; }
 
-  std::vector<std::string> names;
+  std::shared_ptr<std::vector<std::string>> names;
   std::vector<shcore::Value> value_array;
 
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
@@ -314,7 +303,7 @@ class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
   shcore::Value get_field(const shcore::Argument_list &args);
-  shcore::Value get_field_(const std::string &field);
+  shcore::Value get_field_(const std::string &field) const;
 
   virtual bool operator==(const Object_bridge &other) const;
 

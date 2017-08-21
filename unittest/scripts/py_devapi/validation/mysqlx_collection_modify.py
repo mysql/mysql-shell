@@ -70,7 +70,7 @@
 
 #@# CollectionModify: Error conditions on merge
 ||Invalid number of arguments in CollectionModify.merge, expected 1 but got 0
-||CollectionModify.merge: Argument #1 is expected to be a map
+||CollectionModify.merge: Argument expected to be a JSON object
 
 #@# CollectionModify: Error conditions on array_insert
 ||Invalid number of arguments in CollectionModify.array_insert, expected 2 but got 0
@@ -107,8 +107,8 @@
 ||CollectionModify.bind: Unable to bind value for unexisting placeholder: another
 
 #@# CollectionModify: Error conditions on execute
-||CollectionModify.execute: Missing value bindings for the next placeholders: data, years
-||CollectionModify.execute: Missing value bindings for the next placeholders: data
+||CollectionModify.execute: Missing value bindings for the following placeholders: data, years
+||CollectionModify.execute: Missing value bindings for the following placeholders: data
 
 #@# CollectionModify: Set Execution
 |Set Affected Rows: 1|

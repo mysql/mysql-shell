@@ -59,9 +59,8 @@ class TableInsert : public Table_crud_definition,
   shcore::Value values(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);
-
- private:
-  std::unique_ptr< ::mysqlx::InsertStatement> _insert_statement;
+private:
+  Mysqlx::Crud::Insert message_;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

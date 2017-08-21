@@ -23,8 +23,6 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-#include <sstream>
-
 using mysqlshdk::utils::nullable;
 using mysqlshdk::utils::nullable_options::Set_mode;
 using mysqlshdk::utils::nullable_options::Comparison_mode;

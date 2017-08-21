@@ -148,6 +148,10 @@ struct SHCORE_PUBLIC Value {
     const_iterator end() const { return _map.end(); }
     iterator end() { return _map.end(); }
 
+    void set(const std::string &k, const shcore::Value &v) {
+      _map[k] = v;
+    }
+
     const container_type::mapped_type& at(const std::string &k) const { return _map.at(k); }
     container_type::mapped_type& operator [](const std::string &k) { return _map[k]; }
     bool operator == (const Map_type &other) const { return _map == other._map; }
@@ -184,6 +188,7 @@ struct SHCORE_PUBLIC Value {
   explicit Value(unsigned int ui);
   explicit Value(int64_t i);
   explicit Value(uint64_t ui);
+  explicit Value(float f);
   explicit Value(double d);
   explicit Value(bool b);
   explicit Value(std::shared_ptr<Function_base> f);

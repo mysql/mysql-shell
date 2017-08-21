@@ -25,9 +25,17 @@ set(db_SOURCE
     connection_options.cc
     ssl_options.cc
     utils_connection.cc
+    row_copy.cc
     mysql/session.cc
     mysql/result.cc
     mysql/row.cc
+    mysqlx/xsession.cc
+    mysqlx/xresult.cc
+    mysqlx/xrow.cc
+    mysqlx/orderby_parser.cc
+    mysqlx/tokenizer.cc
+    mysqlx/expr_parser.cc
+    mysqlx/proj_parser.cc
 )
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)

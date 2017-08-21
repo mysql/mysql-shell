@@ -30,4 +30,20 @@
 #pragma GCC diagnostic pop
 #endif
 
+
+extern std::vector<std::pair<std::string, std::string>> g_skipped_tests;
+extern std::vector<std::pair<std::string, std::string>> g_pending_fixes;
+
+#define SKIP_TEST(note)                                                        \
+  {                                                                            \
+    g_skipped_tests.push_back(                                                 \
+        {std::string(test_info_->test_case_name()) + "." + test_info_->name(), \
+         note});                                                               \
+    return;                                                                    \
+  }
+
+#define PENDING_BUG_TEST(note) \
+  g_pending_fixes.push_back({__FILE__ ":" STRINGIFY(__LINE__), note})
+
+
 #endif  // UNITTEST_INCLUDE_GTEST_H_

@@ -100,6 +100,7 @@ private:
   std::map<std::string, std::vector<std::string>> _chunks;
   std::vector<std::string> _chunk_order;
   std::map<std::string, Validation_t> _chunk_validations;
+  std::map<std::string, int> _chunk_to_line;
 
   void execute_script(const std::string& path = "", bool in_chunks = false, bool is_pre_script = false);
   void process_setup(std::istream & stream);

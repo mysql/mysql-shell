@@ -25,6 +25,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include "modules/devapi/collection_crud_definition.h"
 
 namespace mysqlsh {
@@ -66,7 +67,10 @@ class CollectionAdd : public Collection_crud_definition,
  private:
   std::string get_new_uuid();
 
-  std::unique_ptr< ::mysqlx::AddStatement> _add_statement;
+  void add_one_document(shcore::Value doc, const std::string &error_context);
+
+  std::vector<std::string> last_document_ids_;
+  Mysqlx::Crud::Insert message_;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

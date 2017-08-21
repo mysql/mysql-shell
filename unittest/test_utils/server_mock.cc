@@ -116,7 +116,7 @@ std::string Server_mock::map_column_type(mysqlshdk::db::Type type) {
     case mysqlshdk::db::Type::Date:
     case mysqlshdk::db::Type::Time:
     case mysqlshdk::db::Type::String:
-    case mysqlshdk::db::Type::Blob:
+    case mysqlshdk::db::Type::Bytes:
     case mysqlshdk::db::Type::Geometry:
     case mysqlshdk::db::Type::Json:
     case mysqlshdk::db::Type::DateTime:
@@ -124,12 +124,13 @@ std::string Server_mock::map_column_type(mysqlshdk::db::Type type) {
     case mysqlshdk::db::Type::Set:
       return "STRING";
     case mysqlshdk::db::Type::Integer:
+    case mysqlshdk::db::Type::UInteger:
+    case mysqlshdk::db::Type::Float:
     case mysqlshdk::db::Type::Double:
+    case mysqlshdk::db::Type::Bit:
       return "LONGLONG";
     case mysqlshdk::db::Type::Decimal:
       return "LONG";
-    case mysqlshdk::db::Type::Bit:
-      return "TINY";
   }
 
   throw std::runtime_error("Invalid column type found");

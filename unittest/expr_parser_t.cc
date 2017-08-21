@@ -22,11 +22,8 @@
 #include <vector>
 
 #include "gtest_clean.h"
-#include "../mysqlxtest/common/expr_parser.h"
+#include "db/mysqlx/expr_parser.h"
 #include "scripting/types_cpp.h"
-
-#include "mysqlx_datatypes.pb.h"
-#include "mysqlx_expr.pb.h"
 
 using namespace mysqlx;
 
@@ -60,8 +57,7 @@ void parse_and_assert_expr(const std::string& input,
   if (expr != NULL)
     *expr = e.release();
   out << s;
-  std::string actual = out.str();
-  ASSERT_EQ(unparsed, actual);
+  EXPECT_EQ(unparsed, out.str());
 }
 
 void assert_member_type(Mysqlx::Expr::Expr* expr,

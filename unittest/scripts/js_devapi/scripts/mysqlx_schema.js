@@ -93,6 +93,9 @@ mySchema.getCollection('');
 //@ Retrieving collection as table
 print('getCollectionAsTable():', mySchema.getCollectionAsTable('collection1'));
 
+//@ Query collection as table
+print('getCollectionAsTable().select():', mySchema.getCollectionAsTable('collection1').select().execute());
+
 //@ Collection creation
 var collection = schema.createCollection('my_sample_collection');
 print('createCollection():', collection);

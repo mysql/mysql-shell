@@ -75,9 +75,8 @@ class TableUpdate : public Table_crud_definition,
   shcore::Value bind(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);
-
- private:
-  std::unique_ptr< ::mysqlx::UpdateStatement> _update_statement;
+private:
+   Mysqlx::Crud::Update message_;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

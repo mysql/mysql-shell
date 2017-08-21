@@ -31,15 +31,13 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
-#include "mysqlx_crud.h"
-
 namespace shcore {
 class Proxy_object;
 };
 
 namespace mysqlsh {
 namespace mysqlx {
-class BaseSession;
+class NodeSession;
 class Table;
 class Collection;
 
@@ -58,8 +56,7 @@ class Collection;
 class SHCORE_PUBLIC Schema : public DatabaseObject,
                              public std::enable_shared_from_this<Schema> {
  public:
-  Schema(std::shared_ptr<BaseSession> owner, const std::string &name);
-  Schema(std::shared_ptr<const BaseSession> owner, const std::string &name);
+  Schema(std::shared_ptr<NodeSession> owner, const std::string &name);
   ~Schema();
 
   virtual std::string class_name() const { return "Schema"; }
@@ -96,9 +93,7 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
   shcore::Value get_collection_as_table(const shcore::Argument_list &args);
   shcore::Value create_collection(const shcore::Argument_list &args);
 
- private:
-  std::shared_ptr< ::mysqlx::Schema> _schema_impl;
-
+private:
   void init();
 
   // Object cache

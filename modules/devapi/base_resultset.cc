@@ -20,9 +20,11 @@
 #include "modules/devapi/base_resultset.h"
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "scripting/common.h"
+#include "scripting/obj_date.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
@@ -38,9 +40,9 @@ bool ShellBaseResult::operator==(const Object_bridge &other) const {
 Column::Column(const std::string &schema, const std::string &table_name,
                const std::string &table_label, const std::string &column_name,
                const std::string &column_label, shcore::Value type,
-               uint64_t length, bool numeric, uint64_t fractional,
-               bool is_signed, const std::string &collation,
-               const std::string &charset, bool padded, bool zerofill)
+               uint32_t length, int fractional, bool is_unsigned,
+               const std::string &collation, const std::string &charset,
+               bool zerofill)
     : _schema(schema),
       _table_name(table_name),
       _table_label(table_label),
@@ -51,10 +53,8 @@ Column::Column(const std::string &schema, const std::string &table_name,
       _length(length),
       _type(type),
       _fractional(fractional),
-      _signed(is_signed),
-      _padded(padded),
-      _zerofill(zerofill),
-      _numeric(numeric) {
+      _unsigned(is_unsigned),
+      _zerofill(zerofill) {
   add_property("schemaName", "getSchemaName");
   add_property("tableName", "getTableName");
   add_property("tableLabel", "getTableLabel");
@@ -66,13 +66,33 @@ Column::Column(const std::string &schema, const std::string &table_name,
   add_property("numberSigned", "isNumberSigned");
   add_property("collationName", "getCollationName");
   add_property("characterSetName", "getCharacterSetName");
-  add_property("padded", "isPadded");
   add_property("zeroFill", "isZeroFill");
 }
+
+Column::Column(const mysqlshdk::db::Column &meta, shcore::Value type)
+    : Column(meta.get_schema(), meta.get_table_name(), meta.get_table_label(),
+             meta.get_column_name(), meta.get_column_label(), type,
+             meta.get_length(), meta.get_fractional(),
+             meta.is_unsigned(), meta.get_collation_name(),
+             meta.get_charset_name(), meta.is_zerofill()) {}
 
 bool Column::operator==(const Object_bridge &other) const {
   return this == &other;
 }
+
+static bool is_numeric_type(shcore::Value value) {
+  std::string id = value.descr();
+  if (id.length() > 7)
+    id = id.substr(6, id.length()-7);
+  return (id == "BIT" || id == "TINYINT" || id == "SMALLINT" ||
+          id == "MEDIUMINT" || id == "INT" || id == "INTEGER" || id == "LONG" ||
+          id == "BIGINT" || id == "FLOAT" || id == "DECIMAL" || id == "DOUBLE");
+}
+
+bool Column::is_number_signed() const {
+  return is_numeric_type(_type) ? !_unsigned : false;
+}
+
 #if DOXYGEN_CPP
 /**
  * Use this function to retrieve an valid member of this class exposed to the
@@ -104,7 +124,7 @@ bool Column::operator==(const Object_bridge &other) const {
  * Column.
  * \li characterSetName: returns a String object with the collation name of the
  * Column.
- * \li padded: returns an boolean value indicating wether the Column is padded.
+
  */
 #endif
 shcore::Value Column::get_member(const std::string &prop) const {
@@ -126,13 +146,11 @@ shcore::Value Column::get_member(const std::string &prop) const {
   else if (prop == "fractionalDigits")
     ret_val = shcore::Value(_fractional);
   else if (prop == "numberSigned")
-    ret_val = shcore::Value(_signed);
+    ret_val = shcore::Value(is_number_signed());
   else if (prop == "collationName")
     ret_val = shcore::Value(_collation);
   else if (prop == "characterSetName")
     ret_val = shcore::Value(_charset);
-  else if (prop == "padded")
-    ret_val = shcore::Value(_padded);
   else if (prop == "zeroFill")
     ret_val = shcore::Value(_zerofill);
   else
@@ -145,6 +163,76 @@ Row::Row() {
   add_property("length", "getLength");
   add_method("getField", std::bind(&Row::get_field, this, _1), "field",
              shcore::String, NULL);
+  names.reset(new std::vector<std::string>());
+}
+
+Row::Row(std::shared_ptr<std::vector<std::string>> names_,
+         const mysqlshdk::db::IRow &row)
+    : names(names_) {
+  add_property("length", "getLength");
+  add_method("getField", std::bind(&Row::get_field, this, _1), "field",
+             shcore::String, NULL);
+
+  for (uint32_t i = 0, c = row.num_fields(); i < c; i++) {
+    const std::string &key = (*names_)[i];
+    // Values would be available as properties if they are valid identifier
+    // and not base members like lenght and getField
+    // O on this case the values would be available as
+    // row.property
+    if (shcore::is_valid_identifier(key) && !has_member(key))
+      add_property(key);
+
+    if (row.is_null(i)) {
+      value_array.push_back(Value::Null());
+    } else {
+      switch (row.get_type(i)) {
+        case mysqlshdk::db::Type::Null:
+          value_array.push_back(Value::Null());
+          break;
+        case mysqlshdk::db::Type::String:
+          value_array.push_back(Value(row.get_string(i)));
+          break;
+        case mysqlshdk::db::Type::Integer:
+          value_array.push_back(Value(row.get_int(i)));
+          break;
+        case mysqlshdk::db::Type::UInteger:
+          value_array.push_back(Value(row.get_uint(i)));
+          break;
+        case mysqlshdk::db::Type::Float:
+          value_array.push_back(Value(row.get_float(i)));
+          break;
+        case mysqlshdk::db::Type::Double:
+          value_array.push_back(Value(row.get_double(i)));
+          break;
+        case mysqlshdk::db::Type::Decimal:
+          value_array.push_back(Value(row.get_as_string(i)));
+          break;
+        case mysqlshdk::db::Type::Bytes:
+          value_array.push_back(Value(row.get_string(i)));
+          break;
+        case mysqlshdk::db::Type::Geometry:
+        case mysqlshdk::db::Type::Json:
+          value_array.push_back(Value(row.get_string(i)));
+          break;
+        case mysqlshdk::db::Type::Time:
+          value_array.push_back(Value(row.get_string(i)));
+          break;
+        case mysqlshdk::db::Type::Date:
+          value_array.push_back(Value(shcore::Date::unrepr(row.get_string(i))));
+          break;
+        case mysqlshdk::db::Type::DateTime:
+          value_array.push_back(Value(shcore::Date::unrepr(row.get_string(i))));
+          break;
+        case mysqlshdk::db::Type::Bit:
+          value_array.push_back(Value(row.get_bit(i)));
+          break;
+        case mysqlshdk::db::Type::Enum:
+        case mysqlshdk::db::Type::Set:
+          value_array.push_back(Value(row.get_string(i)));
+          break;
+      }
+    }
+  }
 }
 
 std::string &Row::append_descr(std::string &s_out, int indent,
@@ -160,8 +248,8 @@ std::string &Row::append_descr(std::string &s_out, int indent,
     if (indent >= 0)
       s_out.append((indent + 1) * 4, ' ');
 
-    value_array[index].append_descr(s_out, indent < 0 ? indent :
-      indent + 1, '"');
+    value_array[index].append_descr(s_out, indent < 0 ? indent : indent + 1,
+                                    '"');
   }
 
   s_out += nl;
@@ -177,7 +265,7 @@ void Row::append_json(shcore::JSON_dumper &dumper) const {
   dumper.start_object();
 
   for (size_t index = 0; index < value_array.size(); index++)
-    dumper.append_value(names[index], value_array[index]);
+    dumper.append_value(names->at(index), value_array[index]);
 
   dumper.end_object();
 }
@@ -212,10 +300,10 @@ shcore::Value Row::get_field(const shcore::Argument_list &args) {
   return get_field_(args[0].as_string());
 }
 
-shcore::Value Row::get_field_(const std::string &field) {
-  auto iter = std::find(names.begin(), names.end(), field);
-  if (iter != names.end())
-    return value_array[iter - names.begin()];
+shcore::Value Row::get_field_(const std::string &field) const {
+  auto iter = std::find(names->begin(), names->end(), field);
+  if (iter != names->end())
+    return value_array[iter - names->begin()];
   else
     throw shcore::Exception::argument_error("Row.getField: Field " + field +
                                             " does not exist");
@@ -250,12 +338,12 @@ int Row::get_length() {}
 #endif
 #endif
 shcore::Value Row::get_member(const std::string &prop) const {
-  if (prop == "length")
+  if (prop == "length") {
     return shcore::Value((int)value_array.size());
-  else {
-    auto it = std::find(names.begin(), names.end(), prop);
-    if (it != names.end())
-      return value_array[it - names.begin()];
+  } else {
+    auto it = std::find(names->begin(), names->end(), prop);
+    if (it != names->end())
+      return value_array[it - names->begin()];
   }
 
   return shcore::Cpp_object_bridge::get_member(prop);
@@ -274,10 +362,9 @@ shcore::Value Row::get_member(size_t index) const {
 }
 
 void Row::add_item(const std::string &key, shcore::Value value) {
-
   // All the values are available through index
   value_array.push_back(value);
-  names.push_back(key);
+  names->push_back(key);
 
   // Values would be available as properties if they are valid identifier
   // and not base members like lenght and getField

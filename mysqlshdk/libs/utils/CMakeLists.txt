@@ -26,6 +26,7 @@ set(utils_SOURCE
     base_tokenizer.cc
     logger.cc
     process_launcher.cc
+    dtoa.cc
 )
 
 add_convenience_library(utils ${utils_SOURCE})

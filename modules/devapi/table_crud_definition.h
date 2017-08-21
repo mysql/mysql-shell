@@ -23,20 +23,14 @@
 #ifndef MODULES_DEVAPI_TABLE_CRUD_DEFINITION_H_
 #define MODULES_DEVAPI_TABLE_CRUD_DEFINITION_H_
 
+#include "db/mysqlx/expr_parser.h"
 #include "modules/devapi/crud_definition.h"
-#include "mysqlx_crud.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "scripting/types_cpp.h"
 
 #include <memory>
 #include <set>
-
-#ifdef __GNUC__
-#define ATTR_UNUSED __attribute__((unused))
-#else
-#define ATTR_UNUSED
-#endif
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -49,7 +43,12 @@ class Table_crud_definition : public Crud_definition {
       : Crud_definition(owner) {}
 
  protected:
-  ::mysqlx::TableValue map_table_value(shcore::Value source);
+  void parse_string_expression(::Mysqlx::Expr::Expr *expr,
+                               const std::string &expr_str) override {
+    ::mysqlx::Expr_parser parser(expr_str, false);
+    // FIXME the parser should be changed to encode into the provided object
+    expr->CopyFrom(*parser.expr());
+  }
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
 #include "scripting/common.h"
@@ -31,6 +32,9 @@ using namespace shcore;
 
 TableDelete::TableDelete(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
+  message_.mutable_collection()->set_schema(owner->schema()->name());
+  message_.mutable_collection()->set_name(owner->name());
+  message_.set_data_model(Mysqlx::Crud::TABLE);
   // Exposes the methods available for chaining
   add_method("delete", std::bind(&TableDelete::remove, this, _1), "data");
   add_method("where", std::bind(&TableDelete::where, this, _1), "data");
@@ -82,13 +86,10 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, get_function_name("delete").c_str());
 
-  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner));
 
   if (table) {
     try {
-      _delete_statement.reset(
-          new ::mysqlx::DeleteStatement(table->_table_impl->remove()));
-
       // Updates the exposed functions
       update_functions("delete");
     }
@@ -138,11 +139,12 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("where").c_str());
 
-  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner));
 
   if (table) {
     try {
-      _delete_statement->where(args.string_at(0));
+      message_.set_allocated_criteria(::mysqlx::parser::parse_table_filter(
+          args.string_at(0), &_placeholders));
 
       // Updates the exposed functions
       update_functions("where");
@@ -203,7 +205,9 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args) {
       throw shcore::Exception::argument_error(
           "Order criteria can not be empty");
 
-    _delete_statement->orderBy(fields);
+    for (auto &field : fields)
+      ::mysqlx::parser::parse_table_sort_column(*message_.mutable_order(),
+                                                field);
 
     update_functions("orderBy");
   }
@@ -248,7 +252,7 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
   try {
-    _delete_statement->limit(args.uint_at(0));
+    message_.mutable_limit()->set_row_count(args.uint_at(0));
 
     update_functions("limit");
   }
@@ -295,7 +299,7 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
   try {
-    _delete_statement->bind(args.string_at(0), map_table_value(args[1]));
+    bind_value(args.string_at(0), args[1]);
 
     update_functions("bind");
   }
@@ -335,14 +339,14 @@ Result TableDelete::execute() {}
 Result TableDelete::execute() {}
 #endif
 shcore::Value TableDelete::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlx::Result> result;
-
+  std::unique_ptr<mysqlsh::mysqlx::Result> result;
+  args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    args.ensure_count(0, get_function_name("execute").c_str());
-
     MySQL_timer timer;
+    insert_bound_values(message_.mutable_args());
     timer.start();
-    result.reset(new mysqlx::Result(safe_exec(*_delete_statement)));
+    result.reset(new mysqlsh::mysqlx::Result(safe_exec(
+        [this]() { return session()->session()->execute_crud(message_); })));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

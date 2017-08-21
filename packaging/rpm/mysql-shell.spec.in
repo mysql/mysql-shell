@@ -33,9 +33,6 @@ License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz
 BuildRequires:  cmake
-%if 0%{!?with_boost:1}
-BuildRequires:  boost-devel
-%endif
 %if 0%{!?with_protobuf:1}
 BuildRequires:  protobuf-devel
 BuildRequires:  protobuf-compiler

@@ -66,8 +66,8 @@ class TableDelete : public Table_crud_definition,
   TableDelete bind(str name, Value value);
   Result execute();
 #endif
- private:
-  std::unique_ptr< ::mysqlx::DeleteStatement> _delete_statement;
+private:
+  Mysqlx::Crud::Delete message_;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

@@ -79,9 +79,8 @@ class TableSelect : public Table_crud_definition,
   shcore::Value bind(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);
-
- private:
-  std::unique_ptr< ::mysqlx::SelectStatement> _select_statement;
+private:
+   Mysqlx::Crud::Find message_;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

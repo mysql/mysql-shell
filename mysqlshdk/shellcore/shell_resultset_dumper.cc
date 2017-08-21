@@ -31,9 +31,10 @@ using options = shcore::Shell_core_options;
 
 class Field_formatter {
  public:
-  Field_formatter(bool align_right, size_t width, size_t zerofill) {
+  Field_formatter(bool align_right, size_t width,
+                  const mysqlsh::Column& column) {
     _allocated = std::max<size_t>(1024, width + 1);
-    _zerofill = zerofill;
+    _zerofill = column.is_zerofill() ? column.get_length() : 0;
     _align_right = align_right;
     _buffer = new char[_allocated];
     _column_width = width;
@@ -59,7 +60,9 @@ class Field_formatter {
     other._allocated = 0;
   }
 
-  ~Field_formatter() { delete[] _buffer; }
+  ~Field_formatter() {
+    delete[] _buffer;
+  }
 
   bool put(const shcore::Value& value) {
     reset();
@@ -82,9 +85,9 @@ class Field_formatter {
         append(value.as_bool() ? "1" : "0", 1);
         break;
 
+      case shcore::Float:
       case shcore::Integer:
-      case shcore::UInteger:
-      case shcore::Float: {
+      case shcore::UInteger: {
         std::string tmp = value.descr();
         if (_zerofill > tmp.length()) {
           tmp = std::string(_zerofill - tmp.length(), '0').append(tmp);
@@ -100,15 +103,20 @@ class Field_formatter {
       }
 
       default:
+        append("????", 4);
         break;
     }
     return true;
   }
 
-  const char* c_str() const { return _buffer; }
+  const char* c_str() const {
+    return _buffer;
+  }
 
  private:
-  void reset() { memset(_buffer, ' ', _allocated); }
+  void reset() {
+    memset(_buffer, ' ', _allocated);
+  }
 
   inline void append(const char* text, size_t length) {
     if (_column_width > 0) {
@@ -131,6 +139,25 @@ class Field_formatter {
   bool _align_right;
 };
 
+// TODO(alfredo) this should be used instead of the below check once
+// code is changed to use mysqlshdk::db
+// static bool is_numeric_type(mysqlshdk::db::Type type) {
+//   return (type == mysqlshdk::db::Type::Integer ||
+//     type == mysqlshdk::db::Type::UInteger ||
+//     type == mysqlshdk::db::Type::Float ||
+//     type == mysqlshdk::db::Type::Double ||
+//     type == mysqlshdk::db::Type::Decimal);
+// }
+
+static bool is_numeric_type(shcore::Value value) {
+  std::string id = value.descr();
+  if (id.length() > 7)
+    id = id.substr(6, id.length()-7);
+  return (id == "BIT" || id == "TINYINT" || id == "SMALLINT" ||
+          id == "MEDIUMINT" || id == "INT" || id == "INTEGER" || id == "LONG" ||
+          id == "BIGINT" || id == "FLOAT" || id == "DECIMAL" || id == "DOUBLE");
+}
+
 ResultsetDumper::ResultsetDumper(
     std::shared_ptr<mysqlsh::ShellBaseResult> target,
     shcore::Interpreter_delegate* output_handler, bool buffer_data)
@@ -149,15 +176,8 @@ void ResultsetDumper::dump() {
   _cancelled = false;
 
   // Buffers the data remaining on the record
-  size_t rset, record;
-  bool buffered = false;
   if (_buffer_data) {
-    // TODO(alfredo) copy the buffering loop here, so that we can interrupt it
-    // or even better, don't buffer
     _resultset->buffer();
-
-    // Stores the current data set/record position on the result
-    buffered = _resultset->tell(rset, record);
   }
 
   {
@@ -175,9 +195,9 @@ void ResultsetDumper::dump() {
         _output_handler->user_data,
         "Result printing interrupted, rows may be missing from the output.\n");
 
-  // Restores the data set/record positions on the result
-  if (buffered)
-    _resultset->seek(rset, record);
+  // Restores data
+  if (_buffer_data)
+    _resultset->rewind();
 }
 
 void ResultsetDumper::dump_json() {
@@ -351,8 +371,7 @@ size_t ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
   for (index = 0; index < field_count; index++) {
     auto column = std::static_pointer_cast<mysqlsh::Column>(
         metadata->at(index).as_object());
-    fmt[index] = Field_formatter(
-        false, 0, column->is_zerofill() ? column->get_length() : 0);
+    fmt[index] = Field_formatter(false, 0, *column);
     _output_handler->print(_output_handler->user_data,
                            column->get_column_label().c_str());
     _output_handler->print(_output_handler->user_data,
@@ -395,7 +414,7 @@ size_t ResultsetDumper::dump_vertical(shcore::Value::Array_type_ref records) {
     auto column = std::static_pointer_cast<mysqlsh::Column>(
         metadata->at(col_index).as_object());
     max_col_len = std::max(max_col_len, column->get_column_label().length());
-    fmt.push_back({false, 0, column->is_zerofill() ? column->get_length() : 0});
+    fmt.push_back({false, 0, *column});
   }
 
   for (size_t row_index = 0; row_index < records->size() && !_cancelled;
@@ -484,11 +503,14 @@ size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
     field_separator.append("+");
     separator.append(field_separator);
 
-    if (column_meta[index]->is_zerofill())
-      fmt.push_back(
-          {true, max_lengths[index], column_meta[index]->get_length()});
-    else
-      fmt.push_back({column_meta[index]->is_numeric(), max_lengths[index], 0});
+    if (column_meta[index]->is_zerofill()) {
+      fmt.push_back({true, static_cast<size_t>(max_lengths[index]),
+                    *column_meta[index]});
+    } else {
+      fmt.push_back({is_numeric_type(column_meta[index]->get_type()),
+                     static_cast<size_t>(max_lengths[index]),
+                     *column_meta[index]});
+    }
   }
   separator.append("\n");
 
@@ -587,9 +609,8 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
     else
       row_count = dump_tabbed(array_records);
 
-    output_stats =
-        shcore::str_format("%lld %s in set", row_count,
-                           (row_count == 1 ? "row" : "rows"));
+    output_stats = shcore::str_format("%lld %s in set", row_count,
+                                      (row_count == 1 ? "row" : "rows"));
   } else {
     output_stats = "Empty set";
   }

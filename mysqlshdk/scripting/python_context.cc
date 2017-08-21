@@ -725,6 +725,9 @@ void Python_context::register_mysqlsh_module() {
                    py_module);
   }
 
+  // Create custom exception objects
+  _db_error = PyErr_NewException((char*)"mysqlsh.DBError", NULL, NULL);
+
   // Finally inserts the globals
   PyDict_SetItem(py_mysqlsh_dict, PyString_FromString("globals"),
                  _global_namespace);

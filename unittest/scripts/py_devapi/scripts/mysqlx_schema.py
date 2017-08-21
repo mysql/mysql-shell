@@ -96,6 +96,9 @@ mySchema.get_collection('')
 #@ Retrieving collection as table
 print 'get_collection_as_table():', mySchema.get_collection_as_table('collection1')
 
+#@ Query collection as table
+print 'get_collection_as_table().select():', mySchema.get_collection_as_table('collection1').select().execute()
+
 #@ Collection creation
 collection = schema.create_collection('my_sample_collection')
 print 'create_collection():', collection

@@ -40,6 +40,9 @@ using namespace shcore;
 */
 TableInsert::TableInsert(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
+  message_.mutable_collection()->set_schema(owner->schema()->name());
+  message_.mutable_collection()->set_name(owner->name());
+  message_.set_data_model(Mysqlx::Crud::TABLE);
   // The values function should not be enabled if values were already given
   add_method("insert", std::bind(&TableInsert::insert, this, _1), "data");
   add_method("values", std::bind(&TableInsert::values, this, _1), "data");
@@ -148,15 +151,12 @@ TableInsert TableInsert::insert(str col1, str col2, ...) {}
 #endif
 #endif
 shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
-  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner));
 
   std::string path;
 
   if (table) {
     try {
-      _insert_statement.reset(
-          new ::mysqlx::InsertStatement(table->_table_impl->insert()));
-
       if (args.size()) {
         shcore::Value::Map_type_ref sh_columns_and_values;
 
@@ -169,34 +169,29 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
 
             parse_string_list(args, columns);
 
-            _insert_statement->insert(columns);
+            for (auto &column : columns)
+              message_.mutable_projection()->Add()->set_name(column);
           }
           // A map with fields and values was received as parameter
           else if (args[0].type == Map) {
-            std::vector< ::mysqlx::TableValue> values;
             path = "FieldsAndValues";
-            sh_columns_and_values = args[0].as_map();
-            shcore::Value::Map_type::iterator index = sh_columns_and_values
-                                                          ->begin(),
-                                              end =
-                                                  sh_columns_and_values->end();
 
-            for (; index != end; index++) {
-              columns.push_back(index->first);
-              values.push_back(map_table_value(index->second));
+            Mysqlx::Crud::Insert_TypedRow* row = message_.mutable_row()->Add();
+            for (auto &iter : *args[0].as_map()) {
+              message_.mutable_projection()->Add()->set_name(iter.first);
+              encode_expression_value(row->mutable_field()->Add(), iter.second);
             }
-
-            _insert_statement->insert(columns);
-            _insert_statement->values(values);
-          } else
+          } else {
             throw shcore::Exception::type_error(
-                "Argument #1 is expected to be either string, a list of strings or a map with fields and values");
+                "Argument #1 is expected to be either string, a list of "
+                "strings or a map with fields and values");
+          }
         } else {
           path = "Fields";
 
           parse_string_list(args, columns);
-
-          _insert_statement->insert(columns);
+          for (auto &column : columns)
+            message_.mutable_projection()->Add()->set_name(column);
         }
       }
     }
@@ -268,15 +263,10 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args) {
   args.ensure_at_least(1, get_function_name("values").c_str());
 
   try {
-    std::vector< ::mysqlx::TableValue> values;
-
+    Mysqlx::Crud::Insert_TypedRow* row = message_.mutable_row()->Add();
     for (size_t index = 0; index < args.size(); index++) {
-      ::mysqlx::TableValue value = map_table_value(args[index]);
-      values.push_back(value);
+      encode_expression_value(row->mutable_field()->Add(), args[index]);
     }
-
-    _insert_statement->values(values);
-
     // Updates the exposed functions
     update_functions("values");
   }
@@ -316,14 +306,18 @@ Result TableInsert::execute() {}
 Result TableInsert::execute() {}
 #endif
 shcore::Value TableInsert::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlx::Result> result;
-
+  std::unique_ptr<mysqlsh::mysqlx::Result> result;
+  args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    args.ensure_count(0, get_function_name("execute").c_str());
-
     MySQL_timer timer;
+    insert_bound_values(message_.mutable_args());
     timer.start();
-    result.reset(new mysqlx::Result(safe_exec(*_insert_statement)));
+    if (message_.mutable_row()->size()) {
+      result.reset(new mysqlsh::mysqlx::Result(
+          safe_exec([this]() { return session()->session()->execute_crud(message_); })));
+    } else {
+      result.reset(new mysqlsh::mysqlx::Result({}));
+    }
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

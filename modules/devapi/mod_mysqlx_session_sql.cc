@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
+
 #include "modules/devapi/mod_mysqlx_session_sql.h"
 #include <memory>
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "mysqlx.h"
+#include "scripting/common.h"
+#include "db/mysqlx/mysqlxclient_clean.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
@@ -238,14 +240,12 @@ shcore::Value SqlExecute::execute(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("execute").c_str());
 
   try {
-    std::shared_ptr<NodeSession> session(
-        std::static_pointer_cast<NodeSession>(_session.lock()));
-
-    if (session)
-      ret_val = session->execute_sql(_sql, _parameters);
-    else
+    if (auto session = _session.lock()) {
+      ret_val = session->_execute_sql(_sql, _parameters);
+    } else {
       throw shcore::Exception::logic_error(
           "Unable to execute sql, no Session available");
+    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("execute"));
 

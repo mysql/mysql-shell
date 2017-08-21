@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
@@ -33,6 +34,10 @@ using namespace shcore;
 
 TableUpdate::TableUpdate(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
+  message_.mutable_collection()->set_schema(owner->schema()->name());
+  message_.mutable_collection()->set_name(owner->name());
+  message_.set_data_model(Mysqlx::Crud::TABLE);
+
   // Exposes the methods available for chaining
   add_method("update", std::bind(&TableUpdate::update, this, _1), "data");
   add_method("set", std::bind(&TableUpdate::set, this, _1), "data");
@@ -87,13 +92,10 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, get_function_name("update").c_str());
 
-  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner));
 
   if (table) {
     try {
-      _update_statement.reset(
-          new ::mysqlx::UpdateStatement(table->_table_impl->update()));
-
       // Updates the exposed functions
       update_functions("update");
     }
@@ -169,12 +171,11 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
     if (args[1].type == shcore::Object) {
       shcore::Object_bridge_ref object = args.object_at(1);
 
-      std::shared_ptr<Expression> expression =
-          std::dynamic_pointer_cast<Expression>(object);
+      auto expression = std::dynamic_pointer_cast<Expression>(object);
 
-      if (expression)
+      if (expression) {
         expr_data = expression->get_data();
-      else {
+      } else {
         std::stringstream str;
         str << "TableUpdate.set: Unsupported value received for table update operation on field \""
             << field << "\", received: " << args[1].descr();
@@ -182,11 +183,20 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
       }
     }
 
+    Mysqlx::Crud::UpdateOperation *operation =
+        message_.mutable_operation()->Add();
+    operation->mutable_source()->set_name(field);
+    operation->set_operation(Mysqlx::Crud::UpdateOperation::SET);
+
     // Calls set for each of the values
-    if (!expr_data.empty())
-      _update_statement->set(field, expr_data);
-    else
-      _update_statement->set(field, map_table_value(args[1]));
+    if (!expr_data.empty()) {
+      ::mysqlx::Expr_parser parser(expr_data, false, false, &_placeholders);
+      operation->set_allocated_value(parser.expr().release());
+    } else {
+      operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
+      operation->mutable_value()->set_allocated_literal(
+          convert_value(args[1]).release());
+    }
 
     update_functions("set");
   }
@@ -238,7 +248,8 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("where").c_str());
 
   try {
-    _update_statement->where(args.string_at(0));
+    message_.set_allocated_criteria(::mysqlx::parser::parse_table_filter(
+        args.string_at(0), &_placeholders));
 
     // Updates the exposed functions
     update_functions("where");
@@ -297,7 +308,8 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args) {
       throw shcore::Exception::argument_error(
           "Order criteria can not be empty");
 
-    _update_statement->orderBy(fields);
+    for (auto &f : fields)
+      ::mysqlx::parser::parse_table_sort_column(*message_.mutable_order(), f);
 
     update_functions("orderBy");
   }
@@ -342,7 +354,7 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
   try {
-    _update_statement->limit(args.uint_at(0));
+    message_.mutable_limit()->set_row_count(args.uint_at(0));
 
     update_functions("limit");
   }
@@ -389,7 +401,7 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
   try {
-    _update_statement->bind(args.string_at(0), map_table_value(args[1]));
+    bind_value(args.string_at(0), args[1]);
 
     update_functions("bind");
   }
@@ -428,13 +440,15 @@ Result TableUpdate::execute() {}
 Result TableUpdate::execute() {}
 #endif
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlx::Result> result;
+  std::unique_ptr<mysqlsh::mysqlx::Result> result;
+  args.ensure_count(0, get_function_name("execute").c_str());
 
   try {
-    args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
+    insert_bound_values(message_.mutable_args());
     timer.start();
-    result.reset(new mysqlx::Result(safe_exec(*_update_statement)));
+    result.reset(new mysqlx::Result(
+        safe_exec([this]() { return session()->session()->execute_crud(message_); })));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
