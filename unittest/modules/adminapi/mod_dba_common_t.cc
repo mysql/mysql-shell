@@ -17,10 +17,8 @@
 * 02110-1301  USA
 */
 
-#include "gtest_clean.h"
 #include <string>
-#include <gtest/gtest.h>
-
+#include "unittest/gtest_clean.h"
 #include "unittest/test_utils/admin_api_test.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/mod_shell.h"
@@ -431,7 +429,6 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_003) {
                                 mysqlshdk::db::Type::String, "YES");
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
   auto instance_session = create_session(_mysql_sandbox_nport2);
-
 
   try {
     auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
@@ -1343,4 +1340,3 @@ TEST(mod_dba_common, is_valid_identifier) {
       // Invalid identifier, contains invalid synbol
       t = "(*)%?"; mysqlsh::dba::validate_cluster_name(t););
 }
-

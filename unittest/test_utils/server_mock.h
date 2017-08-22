@@ -45,6 +45,8 @@ private:
   std::shared_ptr<shcore::Process_launcher> _process;
   std::mutex _mutex;
   std::condition_variable _cond;
+  int _server_status;
+  bool _started;
 
   std::string _server_output;
 };
