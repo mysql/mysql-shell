@@ -116,3 +116,9 @@ The following functions are currently supported.
 |```sample```|
 |```sample`|
 |`sample```|
+
+//@# nodeSession: bad params
+||Invalid connection options, expected either a URI or a Dictionary.
+||Invalid connection options, expected either a URI or a Dictionary.
+||Invalid connection options, expected either a URI or a Dictionary.
+||Invalid connection options, expected either a URI or a Dictionary.
