@@ -4991,8 +4991,8 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema('world_x').getCollection('countryinfo').existsInDatabase();\n", "true"),
-                  ("var myColl = session.getSchema('world_x').getCollection('countryinfo');\n", "mysql-js>"),
+        x_cmds = [("session.getSchema('world_x').getCollection('CountryInfo').existsInDatabase();\n", "true"),
+                  ("var myColl = session.getSchema('world_x').getCollection('CountryInfo');\n", "mysql-js>"),
                   (
                   "myColl.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent']);\n",
                   "1 document"),
@@ -5000,7 +5000,7 @@ class XShell_TestCases(unittest.TestCase):
                   "myColl.find(\"geography.Region = 'Central America'\").fields(['_id', 'Name','geography.Region','geography.Continent']).limit(4);\n",
                   "4 documents"),
                   ("\\py\n", "mysql-py>"),
-                  ("myColl2 = session.get_schema('world_x').get_collection('countryinfo')\n", "mysql-py>"),
+                  ("myColl2 = session.get_schema('world_x').get_collection('CountryInfo')\n", "mysql-py>"),
                   (
                   "myColl2.find(\"Name = 'Mexico'\").fields(['_id', 'Name','geography.Region','geography.Continent'])\n",
                   "1 document"),
@@ -5208,7 +5208,7 @@ class XShell_TestCases(unittest.TestCase):
                   "var mySession = mysqlx.getSession('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + "');\n",
                   "mysql-js>"),
                   ("mySession;\n", "<XSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ""),
-                  ("var result = mySession.getSchema('world_x').getCollection('Countryinfo').find().execute();\n",
+                  ("var result = mySession.getSchema('world_x').getCollection('CountryInfo').find().execute();\n",
                    "mysql-js>"),
                   ("var record = result.fetchOne();\n", "mysql-js>"),
                   ("print(record);\n", "\"government\": {" + os.linesep + ""),
@@ -5227,7 +5227,7 @@ class XShell_TestCases(unittest.TestCase):
                   (
                   "var mySession = mysqlx.getSession('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + "');\n",
                   "mysql-js>"),
-                  ("var result = mySession.getSchema('world_x').getCollection('Countryinfo').find().execute();\n",
+                  ("var result = mySession.getSchema('world_x').getCollection('CountryInfo').find().execute();\n",
                    "mysql-js>"),
                   ("var record = result.fetchAll();\n", "mysql-js>"),
                   ("print(record);\n", "IndepYear\":"),
@@ -8494,7 +8494,7 @@ class XShell_TestCases(unittest.TestCase):
               "geography: { Continent: \"Europe\", Region: \"British Islands\", SurfaceArea: 193}," + \
               "government: { GovernmentForm: \"Monarchy\", HeadOfState: \"Michael Bates\"}}"
 
-        x_cmds = [("var myColl = session.getSchema('world_x').getCollection('countryinfo');\n", "mysql-js>"),
+        x_cmds = [("var myColl = session.getSchema('world_x').getCollection('CountryInfo');\n", "mysql-js>"),
                   ("var result = myColl.add(" + var + " ).execute();\n", "mysql-js>"),
                   ("result.getLastDocumentId();\n", "SEA"),
                   ]

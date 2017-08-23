@@ -132,5 +132,11 @@ print cschema
 #@ ClassicSession: date handling
 classicSession.run_sql("select cast('9999-12-31 23:59:59.999999' as datetime(6))")
 
+#@# ClassicSession: bad params
+mysql.get_classic_session()
+mysql.get_classic_session(42)
+mysql.get_classic_session(["bla"])
+mysql.get_classic_session(None)
+
 # Cleanup
 classicSession.close()

@@ -108,3 +108,9 @@ The following functions are currently supported.
 
 //$ ClassicSession: date handling
 |9999-12-31 23:59:59.999999|
+
+//@# ClassicSession: bad params
+||Invalid connection options, expected either a URI or a Dictionary.
+||Invalid connection options, expected either a URI or a Dictionary.
+||Invalid connection options, expected either a URI or a Dictionary.
+||Invalid connection options, expected either a URI or a Dictionary.

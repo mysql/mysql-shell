@@ -126,5 +126,11 @@ print(cschema);
 //$ ClassicSession: date handling
 classicSession.runSql("select cast('9999-12-31 23:59:59.999999' as datetime(6))");
 
+//@# ClassicSession: bad params
+mysql.getClassicSession()
+mysql.getClassicSession(42)
+mysql.getClassicSession(["bla"])
+mysql.getClassicSession(null)
+
 // Cleanup
 classicSession.close();
