@@ -34,7 +34,7 @@
 
 using namespace shcore;
 
-unsigned long MySQL_timer::get_time() {
+uint64_t MySQL_timer::get_time() {
 #if defined(WIN32)
   return clock();
 #else
@@ -43,11 +43,11 @@ unsigned long MySQL_timer::get_time() {
 #endif
 }
 
-unsigned long MySQL_timer::start() {
+uint64_t MySQL_timer::start() {
   return (_start = get_time());
 }
 
-unsigned long MySQL_timer::end() {
+uint64_t MySQL_timer::end() {
   return (_end = get_time());
 }
 
@@ -63,7 +63,7 @@ unsigned long MySQL_timer::end() {
  used for such cases where raw time is already time in seconds.
  */
 
-std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds, bool in_seconds) {
+std::string MySQL_timer::format_legacy(uint64_t raw_time, int part_seconds, bool in_seconds) {
   std::string str_duration;
 
   int days = 0;
@@ -90,17 +90,17 @@ std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds,
   return str_duration;
 }
 
-unsigned long MySQL_timer::seconds_to_duration(float s) {
-  return static_cast<unsigned long>(s * CLOCKS_PER_SEC);
+uint64_t MySQL_timer::seconds_to_duration(float s) {
+  return static_cast<uint64_t>(s * CLOCKS_PER_SEC);
 }
 
-void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds) {
+void MySQL_timer::parse_duration(uint64_t raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds) {
   double duration;
 
   if (in_seconds)
     duration = raw_time;
   else {
-    unsigned long closk_per_second = CLOCKS_PER_SEC;
+    uint64_t closk_per_second = CLOCKS_PER_SEC;
     duration = (double)raw_time / closk_per_second;
   }
 
