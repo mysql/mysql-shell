@@ -5017,8 +5017,8 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n", "true"),
-                  ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n", "mysql-js>"),
+        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"CountryInfo\").existsInDatabase();\n", "true"),
+                  ("var myColl = session.getSchema(\'world_x\').getCollection(\"CountryInfo\");\n", "mysql-js>"),
                   (
                   "myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n",
                   "Query OK, 1 item affected"),
@@ -5026,7 +5026,7 @@ class XShell_TestCases(unittest.TestCase):
                   "myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n",
                   "Query OK, 1 item affected"),
                   # ("\\py\n","mysql-py>"),
-                  # ("myColl2 = session.getSchema(\'world_x\').getCollection(\"countryinfo\")\n","mysql-py>"),
+                  # ("myColl2 = session.getSchema(\'world_x\').getCollection(\"CountryInfo\")\n","mysql-py>"),
                   # ("myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n","Query OK, 1 item affected"),
                   # ("myColl2.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\')\n","Query OK, 1 item affected"),
                   ]
@@ -5067,12 +5067,12 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--schema=sakila', '--js']
 
-        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n", "true"),
-                  # ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
+        x_cmds = [("session.getSchema(\'world_x\').getCollection(\"CountryInfo\").existsInDatabase();\n", "true"),
+                  # ("var myColl = session.getSchema(\'world_x\').getCollection(\"CountryInfo\");\n","mysql-js>"),
                   # ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                   # ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                   ("\\py\n", "mysql-py>"),
-                  ("myColl2 = session.get_schema(\'world_x\').get_collection(\"countryinfo\")\n", "mysql-py>"),
+                  ("myColl2 = session.get_schema(\'world_x\').get_collection(\"CountryInfo\")\n", "mysql-py>"),
                   (
                   "myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n",
                   "Query OK, 1 item affected"),
