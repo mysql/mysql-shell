@@ -64,6 +64,7 @@ target_link_libraries(mysqlsh
     ${GCOV_LDFLAGS}
     ${MYSQLX_LIBRARIES}
     ${PROTOBUF_LIBRARIES}
+    ${MYSQL_EXTRA_LIBRARIES}
 )
 
 install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})

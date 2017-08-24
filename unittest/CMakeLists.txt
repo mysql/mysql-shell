@@ -101,12 +101,13 @@ if(WITH_TESTS)
             mysqlshdk-static
             gtest
             gmock
-            ${MYSQL_LIBRARIES}
+            ${MYSQLX_LIBRARIES}
             ${PROTOBUF_LIBRARY}
             ${SSL_LIBRARIES}
             ${SSL_LIBRARIES_DL}
             ${V8_LINK_LIST}
             ${PYTHON_LIBRARIES}
+            ${MYSQL_EXTRA_LIBRARIES}
     )
 
     # Disable optimization for certain tests that take forever to compile
