@@ -30,16 +30,16 @@
 namespace shcore {
 namespace utils_time_tests {
 TEST(MySQL_timer_tests, parse_duration) {
-  unsigned long raw_time;
+  uint64_t raw_time;
   int days;
   int hours;
   int minutes;
   float seconds;
-  unsigned long clocks_per_second = MySQL_timer::seconds_to_duration(1);
+  uint64_t clocks_per_second = MySQL_timer::seconds_to_duration(1);
 
-  unsigned long clocks_per_minute = 60 * clocks_per_second;
-  unsigned long clocks_per_hour = 60 * clocks_per_minute;
-  unsigned long clocks_per_day = 24 * clocks_per_hour;
+  uint64_t clocks_per_minute = 60 * clocks_per_second;
+  uint64_t clocks_per_hour = 60 * clocks_per_minute;
+  uint64_t clocks_per_day = 24 * clocks_per_hour;
 
   // Sets some seconds as value.
   raw_time = 56 * clocks_per_second;
@@ -75,13 +75,13 @@ TEST(MySQL_timer_tests, parse_duration) {
 }
 
 TEST(MySQL_timer_tests, format_legacy) {
-  unsigned long raw_time;
+  uint64_t raw_time;
   std::string formatted;
 
-  unsigned long clocks_per_second = MySQL_timer::seconds_to_duration(1);
-  unsigned long clocks_per_minute = 60 * clocks_per_second;
-  unsigned long  clocks_per_hour = 60 * clocks_per_minute;
-  unsigned long  clocks_per_day = 24 * clocks_per_hour;
+  uint64_t clocks_per_second = MySQL_timer::seconds_to_duration(1);
+  uint64_t clocks_per_minute = 60 * clocks_per_second;
+  uint64_t  clocks_per_hour = 60 * clocks_per_minute;
+  uint64_t  clocks_per_day = 24 * clocks_per_hour;
 
   // Sets some seconds as value.
   raw_time = 1.5 * clocks_per_second;

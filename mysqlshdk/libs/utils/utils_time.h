@@ -25,18 +25,18 @@
 
 class SHCORE_PUBLIC MySQL_timer {
 public:
-  unsigned long get_time();
-  unsigned long start();
-  unsigned long end();
-  unsigned long raw_duration() { return _end - _start; }
-  static std::string format_legacy(unsigned long raw_time, int part_seconds, bool in_seconds = false);
-  static void parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds = false);
+  uint64_t get_time();
+  uint64_t start();
+  uint64_t end();
+  uint64_t raw_duration() { return _end - _start; }
+  static std::string format_legacy(uint64_t raw_time, int part_seconds, bool in_seconds = false);
+  static void parse_duration(uint64_t raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds = false);
 
-  static unsigned long seconds_to_duration(float s);
+  static uint64_t seconds_to_duration(float s);
 
 private:
-  unsigned long _start;
-  unsigned long _end;
+  uint64_t _start;
+  uint64_t _end;
 };
 
 #endif /* defined(__mysh__utils_time__) */
