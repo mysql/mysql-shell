@@ -580,6 +580,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
     const mysqlshdk::db::Connection_options &connection_options,
     SessionType session_type) {
   std::shared_ptr<ShellBaseSession> ret_val;
+  std::string connection_error;
 
   mysqlsh::SessionType type(session_type);
 
@@ -590,7 +591,8 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
     try {
       ret_val->connect(connection_options);
 
-      shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
+      shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED",
+                                                ret_val);
 
       return ret_val;
     } catch (shcore::Exception &e) {
@@ -600,10 +602,19 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
       if (e.error()->has_key("code"))
         code = e.error()->get_int("code");
 
-      if (code == 2027 || // Unknown message received from server 10
-         code == 2002)    // No connection could be made because the target machine actively refused it connecting to host:port
+      if (code == 2027 ||  // Unknown message received from server 10
+          code == 2002 ||  // No connection could be made because the target
+                           // machine actively refused it connecting to
+                           // host:port
+          code == 2006) {  // MySQL server has gone away (randomly sent by
+                           // libmysqlx)
         type = mysqlsh::SessionType::Classic;
-      else
+
+        // Since this is an unexpected error, we store the message to be logged
+        // in case the classic session connection fails too
+        if (code == 2006)
+          connection_error = "X protocol error: " + e.format();
+      } else
         throw;
     }
   }
@@ -616,15 +627,27 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
       ret_val.reset(new mysql::ClassicSession());
       break;
     default:
-      throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
+      throw shcore::Exception::argument_error(
+          "Invalid session type specified for MySQL connection.");
       break;
   }
 
-  ret_val->connect(connection_options);
+  try {
+    ret_val->connect(connection_options);
+  } catch (shcore::Exception &e) {
+    if (connection_error.empty())
+      throw;
+    else {
+      // If an error was cached for the X protocol connection
+      // it is included on a new exception
+      connection_error.append("\nClassic protocol error: ");
+      connection_error.append(e.format());
+      throw shcore::Exception::argument_error(connection_error);
+    }
+  }
 
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
 
   return ret_val;
 }
-
 }
