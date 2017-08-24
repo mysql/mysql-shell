@@ -28,9 +28,12 @@
 // Options: --force, --interactive
 
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/shell_core_options.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/command_line_test.h"
+
 
 namespace shellcore {
 
@@ -66,6 +69,9 @@ class ShellRunScript : public Shell_core_test_wrapper {
                         "print 1\n"
                         "raise Exception()\n"
                         "print 'end'\n");
+    shcore::create_file("badsyn.py",
+                        "   if:\n"
+                        "print 'end'\n");
 
     shcore::create_file("good.js",
                         "println(1);\n"
@@ -77,6 +83,9 @@ class ShellRunScript : public Shell_core_test_wrapper {
                         "println(1)\n"
                         "throw 'error'\n"
                         "println('end')\n");
+    shcore::create_file("badsyn.js",
+                        "){}\n"
+                        "println('end')\n");
   }
 
   static void TearDownTestCase() {
@@ -84,9 +93,11 @@ class ShellRunScript : public Shell_core_test_wrapper {
     shcore::delete_file("bad.sql");
     shcore::delete_file("good.js");
     shcore::delete_file("bad.js");
+    shcore::delete_file("badsyn.js");
     shcore::delete_file("good.py");
     shcore::delete_file("good_int.py");
     shcore::delete_file("bad.py");
+    shcore::delete_file("badsyn.py");
   }
 
   void reset(bool force, bool interactive, const std::string &mode) {
@@ -101,6 +112,71 @@ class ShellRunScript : public Shell_core_test_wrapper {
 
   void test_stream() {
     // _interactive_shell->process_stream(stream, "STDIN", {});
+  }
+};
+
+
+class ShellExeRunScript : public tests::Command_line_test {
+ public:
+  static void SetUpTestCase() {
+    shcore::create_file("good.sql",
+                        "select 1;\n"
+                        "select 2\n"
+                        ", 3;\n"
+                        "select 5,\n"
+                        "6,\n"
+                        "7; select 'end';\n");
+    shcore::create_file("bad.sql",
+                        "select 1;\n"
+                        "drop schema bogusdb;\n"
+                        "select 'end';\n");
+
+    shcore::create_file("good_int.py",
+                        "print 1\n"
+                        "print 2\n"
+                        "if 1:\n"
+                        "  print 3\n"
+                        "\n"
+                        "print 'end'\n");
+    shcore::create_file("good.py",
+                        "print 1\n"
+                        "print 2\n"
+                        "if 1:\n"
+                        "  print 3\n"
+                        "print 'end'\n");
+    shcore::create_file("bad.py",
+                        "print 1\n"
+                        "raise Exception()\n"
+                        "print 'end'\n");
+    shcore::create_file("badsyn.py",
+                        "   if:\n"
+                        "print 'end'\n");
+
+    shcore::create_file("good.js",
+                        "println(1);\n"
+                        "println(2);\n"
+                        "if (1)\n"
+                        "  println(3);\n"
+                        "println('end');\n");
+    shcore::create_file("bad.js",
+                        "println(1)\n"
+                        "throw 'error'\n"
+                        "println('end')\n");
+    shcore::create_file("badsyn.js",
+                        "){}\n"
+                        "println('end')\n");
+  }
+
+  static void TearDownTestCase() {
+    shcore::delete_file("good.sql");
+    shcore::delete_file("bad.sql");
+    shcore::delete_file("good.js");
+    shcore::delete_file("bad.js");
+    shcore::delete_file("badsyn.js");
+    shcore::delete_file("good.py");
+    shcore::delete_file("good_int.py");
+    shcore::delete_file("bad.py");
+    shcore::delete_file("badsyn.py");
   }
 };
 
@@ -193,6 +269,31 @@ TEST_F(ShellRunScript, sql_file) {
   }
 }
 
+TEST_F(ShellExeRunScript, sql_file) {
+  int rc;
+  wipe_out();
+  rc = execute({_mysqlsh, _uri.c_str(), "--sql", "-f", "good.sql", nullptr});
+  EXPECT_EQ(0, rc);
+  static const char *result1 = R"(1
+1
+2\t3
+2\t3
+5\t6\t7
+5\t6\t7
+end
+end)";
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Switching");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(shcore::str_replace(result1, "\\t", "\t"));
+
+  wipe_out();
+  rc = execute({_mysqlsh, _uri.c_str(), "--sql", "-f", "bad.sql", nullptr});
+  EXPECT_EQ(1, rc);
+  static const char *result2 = R"(1
+1
+ERROR: 1008: Can't drop database 'bogusdb'; database doesn't exist)";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
+}
+
 TEST_F(ShellRunScript, sql_stream) {
   {
     RESET_BATCH("sql");
@@ -259,6 +360,54 @@ TEST_F(ShellRunScript, js_file) {
   }
 }
 
+TEST_F(ShellExeRunScript, js_file) {
+  int rc;
+  wipe_out();
+  rc = execute({_mysqlsh, _uri.c_str(), "--js", "-f", "good.js", nullptr});
+  // no error, exit code 0
+  EXPECT_EQ(0, rc);
+  static const char *result1 = R"(1
+2
+3
+end)";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result1);
+
+  // Ensures switching message doesn't appear for default/initial mode
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Switching");
+
+  wipe_out();
+  rc = execute({_mysqlsh, _uri.c_str(), "--js", "-f", "bad.js", nullptr});
+  // error, exit code not-0
+  EXPECT_EQ(1, rc);
+  static const char *result2 = R"(1
+error at bad.js:2:0
+in throw 'error'
+   ^)";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+
+  wipe_out();
+  rc = execute({_mysqlsh, _uri.c_str(), "--js", "-f", "badsyn.js", nullptr});
+  // error, exit code not-0
+  EXPECT_EQ(1, rc);
+  static const char *result3 = R"(SyntaxError: Unexpected token ) at badsyn.js:1:0
+in ){}
+   ^)";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result3);
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+
+  wipe_out();
+  rc = execute({_mysqlsh, "--js", "-f", "good.js", nullptr});
+  EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result1);
+
+  wipe_out();
+  rc = execute({_mysqlsh, "--js", "-f", "bad.js", nullptr});
+  EXPECT_EQ(1, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+}
+
 TEST_F(ShellRunScript, js_stream) {
   {
     RESET_BATCH("js");
@@ -319,6 +468,55 @@ TEST_F(ShellRunScript, py_file) {
     RUNFILE_TIL_END("bad.py");
     MY_EXPECT_STDERR_CONTAINS("Exception");
   }
+}
+
+TEST_F(ShellExeRunScript, py_file) {
+  int rc;
+  wipe_out();
+  rc = execute({_mysqlsh, _uri.c_str(), "--py", "-f", "good.py", nullptr});
+  // no error, exit code 0
+  EXPECT_EQ(0, rc);
+  static const char *result1 = R"(1
+2
+3
+end)";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result1);
+
+  // Ensures switching message doesn't appear for default/initial mode
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Switching");
+
+  wipe_out();
+  rc = execute({_mysqlsh, _uri.c_str(), "--py", "-f", "bad.py", nullptr});
+  // error, exit code not-0
+  EXPECT_EQ(1, rc);
+  static const char *result2 = R"(1
+Traceback (most recent call last):
+  File "<string>", line 2, in <module>
+Exception)";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+
+  wipe_out();
+  rc = execute({_mysqlsh, _uri.c_str(), "--py", "-f", "badsyn.py", nullptr});
+  // error, exit code not-0
+  EXPECT_EQ(1, rc);
+  static const char *result3 = R"(File "<string>", line 1
+    if:
+    ^
+IndentationError: unexpected indent)";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result3);
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+
+  wipe_out();
+  rc = execute({_mysqlsh, "--py", "-f", "good.py", nullptr});
+  EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result1);
+
+  wipe_out();
+  rc = execute({_mysqlsh, "--py", "-f", "bad.py", nullptr});
+  EXPECT_EQ(1, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
 }
 
 TEST_F(ShellRunScript, py_stream) {

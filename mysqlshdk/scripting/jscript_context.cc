@@ -704,7 +704,21 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
             "Unexpected error processing script, no exception caught!");
       }
     }
+  } else {
+    if (try_catch.HasCaught()) {
+      Value e = get_v8_exception_data(&try_catch, false);
+
+      throw Exception::scripting_error(format_exception(e));
+    } else {
+      throw shcore::Exception::logic_error(
+          "Unexpected error compiling script, no exception caught!");
+    }
   }
+
+  // hack to workaround hack for signalling script execution errors
+  // via _global_return_code
+  if (executed_ok && ret_val.type == shcore::Undefined)
+    ret_val = shcore::Value::Null();
 
   return ret_val;
 }
