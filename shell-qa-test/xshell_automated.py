@@ -7403,7 +7403,7 @@ class XShell_TestCases(unittest.TestCase):
         p.stdin.write(bytearray(LOCALHOST.password + "\n", 'ascii'))
         p.stdin.flush()
         stdoutdata, stderrordata = p.communicate()
-        if stdoutdata.find(bytearray("Creating a Node Session to '" + user + "@", "ascii"), 0, len(stdoutdata)) >= 0:
+        if stdoutdata.find(bytearray("Creating a Session to '" + user + "@", "ascii"), 0, len(stdoutdata)) >= 0:
             results = "PASS"
         else:
             results = "FAIL"
@@ -7451,9 +7451,8 @@ class XShell_TestCases(unittest.TestCase):
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              stdin=subprocess.PIPE)
         stdoutdata, stderrordata = p.communicate()
-        if stderrordata.find("Requested session assumes MySQL X Protocol but '{0}:{1}'"
-                             " seems to speak the classic MySQL protocol".format(LOCALHOST.host, LOCALHOST.port),
-                             0, len(stderrordata)) > -1:
+        if stderrordata.find("Requested session assumes MySQL X Protocol but '") >= 0 and\
+                stderrordata.find("' seems to speak the classic MySQL protocol") >= 0:
             results = 'PASS'
         self.assertEqual(results, 'PASS')
 
@@ -8648,24 +8647,17 @@ class XShell_TestCases(unittest.TestCase):
                    .format(LOCALHOST.password, LOCALHOST.host, LOCALHOST.port) + "\n", "omar!#$&()*+,/:;=?@[]"),
                   ("\\c -n omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
                    .format(LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port) + "\n",
-                   "omar!#$&()*+,/:;=?@[]")]
+                   "omar!%23$&()*+,%2F%3A;=%3F%40%5B%5D@localhost:33060")]
         for command, expectedResult in x_cmds:
             count = 1
             p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
             p.stdin.write(command)
             p.stdin.flush()
             stdoutdata, stderrdata = p.communicate()
-            stdoutsplitted = (stdoutdata + stderrdata).splitlines()
-            for line in stdoutsplitted:
-                count += 1
-                found = line.find(expectedResult, 0, len(line))
-                if found == -1 and count > len(stdoutsplitted):
-                    results = "FAIL"
-                    break
-                elif found != -1:
-                    results = "PASS"
-                    break
-            if results == "FAIL":
+            if expectedResult not in stdoutdata and expectedResult not in stderrdata:
+                print "CAN'T FIND EXPECTED RESULT", expectedResult
+                print stdoutdata, stderrdata
+                results = "FAIL"
                 break
         self.assertEqual(results, 'PASS')
         init_command = [MYSQL_SHELL, '--interactive=full', '--classic', '--sqlc', '--uri={0}:{1}@{2}:{3}'.
