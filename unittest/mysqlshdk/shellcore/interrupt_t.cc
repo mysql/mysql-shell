@@ -26,6 +26,7 @@
 #include "shellcore/interrupt_handler.h"
 
 #include "./test_utils.h"
+
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_resultset.h"
@@ -976,6 +977,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
     session_wait(session->get_connection_id(), 3, "Sleep",
                  k_processlist_command_column);
     // ensure next query runs ok
+    execute("print 'flush'");  // this will flush any pending async callbacks
     wipe_all();
   }
 
@@ -991,6 +993,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
     session_wait(session->get_connection_id(), 3, "Sleep",
                  k_processlist_command_column);
     // ensure next query runs ok
+    execute("print 'flush'");  // this will flush any pending async callbacks
     wipe_all();
   }
 

@@ -1298,7 +1298,7 @@ void InputBuffer::refreshLine(PromptBase& pi) {
   SetConsoleCursorPosition(console_out, inf.dwCursorPosition);
   DWORD count;
   if (len < pi.promptPreviousInputLen)
-    FillConsoleOutputCharacterA(console_out, ' ', pi.promptPreviousInputLen,
+    FillConsoleOutputCharacterW(console_out, 32, pi.promptPreviousInputLen,
                                 inf.dwCursorPosition, &count);
   pi.promptPreviousInputLen = len;
 

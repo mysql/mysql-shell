@@ -102,7 +102,7 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
                                              const std::string& expected,
                                              const std::string &actual) {
   bool ret_val = true;
-  auto expected_lines = shcore::split_string(expected, _new_line_char);
+  auto expected_lines = shcore::split_string(expected, "\n");
   auto actual_lines = shcore::split_string(actual, "\n");
 
   // Does expected line resolution using the pre-defined tokens
@@ -183,7 +183,7 @@ std::string Shell_base_test::start_server_mock
 }
 
 std::string Shell_base_test::multiline(const std::vector<std::string> input) {
-  return shcore::str_join(input, _new_line_char);
+  return shcore::str_join(input, "\n");
 }
 
 void Shell_base_test::stop_server_mock(int port) {

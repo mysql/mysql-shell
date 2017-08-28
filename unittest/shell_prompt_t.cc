@@ -281,7 +281,8 @@ TEST(Shell_prompt, prompt_line_shrink) {
     prompt.set_width(100);
 
     prompt.add_segment("mysql-js", mysqlshdk::textui::Style(), 100, 7);
-    prompt.add_segment("my.host.com", mysqlshdk::textui::Style(), 70, 2, 0,
+    prompt.add_segment(
+        "my.host.com", mysqlshdk::textui::Style(), 70, 2, 0,
         Prompt_renderer::Shrinker_type::Truncate_on_dot_from_right);
     prompt.add_segment("sakila", mysqlshdk::textui::Style(), 50, 4);
 
@@ -301,17 +302,21 @@ TEST(Shell_prompt, prompt_line_shrink) {
     prompt2.set_prompt("> ", "-> ", mysqlshdk::textui::Style());
 
     prompt1.add_segment("a.a.a.a", mysqlshdk::textui::Style(), 20, 2, 0,
-        Prompt_renderer::Shrinker_type::No_shrink);
-    prompt1.add_segment("b.b.b.b", mysqlshdk::textui::Style(), 10, 2, 0,
+                        Prompt_renderer::Shrinker_type::No_shrink);
+    prompt1.add_segment(
+        "b.b.b.b", mysqlshdk::textui::Style(), 10, 2, 0,
         Prompt_renderer::Shrinker_type::Truncate_on_dot_from_right);
-    prompt1.add_segment("c.c.c.c", mysqlshdk::textui::Style(), 30, 2, 0,
+    prompt1.add_segment(
+        "c.c.c.c", mysqlshdk::textui::Style(), 30, 2, 0,
         Prompt_renderer::Shrinker_type::Truncate_on_dot_from_right);
 
     prompt2.add_segment("a.a.a.a", mysqlshdk::textui::Style(), 30, 2, 0,
-        Prompt_renderer::Shrinker_type::No_shrink);
-    prompt2.add_segment("b.b.b.b", mysqlshdk::textui::Style(), 20, 2, 0,
+                        Prompt_renderer::Shrinker_type::No_shrink);
+    prompt2.add_segment(
+        "b.b.b.b", mysqlshdk::textui::Style(), 20, 2, 0,
         Prompt_renderer::Shrinker_type::Truncate_on_dot_from_right);
-    prompt2.add_segment("c.c.c.c", mysqlshdk::textui::Style(), 10, 2, 0,
+    prompt2.add_segment(
+        "c.c.c.c", mysqlshdk::textui::Style(), 10, 2, 0,
         Prompt_renderer::Shrinker_type::Truncate_on_dot_from_right);
 
     prompt1.set_width(45);
@@ -957,16 +962,16 @@ TEST_F(Shell_prompt_exe, histignore) {
 }
 
 // the last line output is the prompt we will check
-#define EXPECT_PROMPT(prompt)                                             \
-  ASSERT_TRUE(_output.rfind('\n') != std::string::npos);                  \
+#define EXPECT_PROMPT(prompt)                            \
+  ASSERT_TRUE(_output.rfind('\n') != std::string::npos); \
   EXPECT_EQ(prompt, _output.substr(_output.rfind('\n') + 1));
 
 TEST_F(Shell_prompt_exe, prompt_variables) {
   std::string segs;
   for (const char *s :
-       {"host", "port", "mode", "Mode", "uri", "user", "schema", "ssl",
-        "date", "env:MYSQLSH_PROMPT_THEME", "sysvar:autocommit",
-        "sessvar:autocommit", "sessstatus:Mysqlx_ssl_active"}) {
+       {"host", "port", "mode", "Mode", "uri", "user", "schema", "ssl", "date",
+        "env:MYSQLSH_PROMPT_THEME", "sysvar:autocommit", "sessvar:autocommit",
+        "sessstatus:Mysqlx_ssl_active"}) {
     segs.append(shcore::str_format(
         "{\"text\": \"%s=%%%s%%\", \"separator\":\"  \"}, ", s, s));
   }
@@ -1073,8 +1078,12 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_16) {
                "--ssl-mode=REQUIRED", "-e", "1", nullptr});
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
+#ifdef _WIN32
+  // TODO(alfredo)  Escape chars getting stripped in windows
+  EXPECT_PROMPT("MySQL [" + _host + "+ ssl/mysql] JS> ");
+#else
   EXPECT_PROMPT("MySQL \x1B[1m[" + _host + "+ ssl/mysql] \x1B[0mJS> ");
-
+#endif
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
 }
@@ -1090,12 +1099,19 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
                "--ssl-mode=REQUIRED", "-e", "1", nullptr});
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
+
+#ifdef _WIN32
+  // TODO(alfredo)  Escape chars getting stripped in windows
+  EXPECT_PROMPT(" MySQL  " + _host + ":" + _port + "+ ssl  mysql  JS > ");
+#else
   EXPECT_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
-      "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m " + _host + ":" + _port + "+ ssl "
+      "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m " +
+      _host + ":" + _port +
+      "+ ssl "
       "\x1B[0m\x1B[48;5;242m\x1B[38;5;15m mysql "
       "\x1B[0m\x1B[48;5;221m\x1B[38;5;0m JS \x1B[0m\x1B[48;5;0m> \x1B[0m");
-
+#endif
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
 }
@@ -1111,15 +1127,23 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
                "--ssl-mode=REQUIRED", "-e", "1", nullptr});
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
+#ifdef _WIN32
+  // TODO(alfredo) Escape chars getting stripped in windows
+  EXPECT_PROMPT(
+      " MySQL \xEE\x82\xB0 " + _host + ":" + _port +
+      "+ \xEE\x82\xA2 \xEE\x82\xB0 mysql \xEE\x82\xB0 JS \xEE\x82\xB0 ");
+#else
   EXPECT_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
       "\x1B[48;5;237m\x1B[38;5;254m\xEE\x82\xB0\x1B[0m\x1B[48;5;237m\x1B[38;5;"
-      "15m " + _host + ":" + _port + "+ \xEE\x82\xA2 "
+      "15m " +
+      _host + ":" + _port +
+      "+ \xEE\x82\xA2 "
       "\x1B[48;5;242m\x1B[38;5;237m\xEE\x82\xB0\x1B[0m\x1B[48;5;242m\x1B[38;5;"
       "15m mysql "
       "\x1B[48;5;221m\x1B[38;5;242m\xEE\x82\xB0\x1B[0m\x1B[48;5;221m\x1B[38;5;"
       "0m JS \x1B[0m\x1B[48;5;0m\x1B[38;5;221m\xEE\x82\xB0 \x1B[0m");
-
+#endif
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
 }

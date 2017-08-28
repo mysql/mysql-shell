@@ -304,9 +304,11 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
       std::string line;
       std::getline(file, line);
 
+      line = shcore::str_rstrip(line);
+
       if (line.find(get_chunk_token()) == 0) {
         if (format_lines.size()) {
-          std::string value = shcore::str_join(format_lines, "\n");
+          std::string value = multiline(format_lines);
 
           value = str_strip(value);
 
@@ -351,7 +353,7 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
 
     // Adds final formatted value if any
     if (format_lines.size()) {
-      std::string value = shcore::str_join(format_lines, "\n");
+      std::string value = multiline(format_lines);
 
       value = str_strip(value);
 

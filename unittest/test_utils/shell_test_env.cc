@@ -107,12 +107,6 @@ Shell_test_env::Shell_test_env() {
     // binary folder
     _sandbox_dir = shcore::get_binary_folder();
   }
-
-#ifdef WIN32
-  _new_line_char = "\r\n";
-#else
-  _new_line_char = "\n";
-#endif
 }
 
 std::string Shell_test_env::get_path_to_mysqlsh() {

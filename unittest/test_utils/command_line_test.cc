@@ -56,6 +56,8 @@ int Command_line_test::execute(const std::vector<const char *> &args) {
     while (_process->read(&c, 1) > 0) {
       if (debug)
         std::cout << c << std::flush;
+      if (c == '\r' && _strip_carriage_returns)
+        continue;
       _output_mutex.lock();
       _output += c;
       _output_mutex.unlock();

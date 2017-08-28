@@ -88,8 +88,10 @@ TEST_F(Command_line_connection_test, classic_no_socket_no_port) {
         "No default schema selected; type \\use <schema> to set one.");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
   } else {
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Can't connect to MySQL server on 'localhost'");
+    // Can't expect this case to NOT succeed, since there could be
+    // an unrelated server running on 3306
+    // MY_EXPECT_CMD_OUTPUT_CONTAINS(
+    //    "Can't connect to MySQL server on 'localhost'");
   }
 #else
   if (ret_val) {
@@ -311,14 +313,13 @@ TEST_F(Command_line_connection_test, expired_account) {
            "drop user if exists expired@localhost; "
            "create user expired@localhost password expire;",
            nullptr});
-  EXPECT_EQ(
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "mysqlx: [Warning] Using a password on the command line interface can be "
-      "insecure.\n",
-      _output);
+      "insecure.");
 
   std::string uri;
 
-  uri = "expired:@"+shcore::str_partition(_mysql_uri, "@").second;
+  uri = "expired:@" + shcore::str_partition(_mysql_uri, "@").second;
   _output.clear();
   execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "print('DONE')",
            nullptr});

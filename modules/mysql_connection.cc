@@ -18,10 +18,11 @@
  */
 
 #include "modules/mysql_connection.h"
+#include <cstdlib>
 #include <sstream>
-#include <stdlib.h>
 #include <string>
 #include "shellcore/base_session.h"
+#include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/obj_date.h"
@@ -208,6 +209,9 @@ std::string Row::get_value_as_string(int index) {
 }
 
 //----------------------------------------------
+
+DEBUG_OBJ_ENABLE(mysql_Connection);
+
 void Connection::throw_on_connection_fail() {
   std::string local_error(mysql_error(_mysql));
   auto local_errno = mysql_errno(_mysql);
@@ -215,8 +219,10 @@ void Connection::throw_on_connection_fail() {
   close();
   throw shcore::Exception::mysql_error_with_code_and_state(local_error, local_errno, local_sqlstate.c_str());
 }
-Connection::Connection
-  (const mysqlshdk::db::Connection_options& connection_options) {
+
+Connection::Connection(
+    const mysqlshdk::db::Connection_options &connection_options) {
+  DEBUG_OBJ_ALLOC(mysql_Connection);
 
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
   _mysql = mysql_init(NULL);
@@ -401,6 +407,8 @@ bool Connection::next_data_set(Result *target, bool first_result) {
 }
 
 Connection::~Connection() {
+  DEBUG_OBJ_DEALLOC(mysql_Connection);
+
   _prev_result.reset();
   close();
 }

@@ -36,6 +36,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
  public:
   Mysql_shell(const Shell_options& options,
               shcore::Interpreter_delegate* custom_delegate);
+  ~Mysql_shell();
 
   bool connect(bool primary_session = false);
   shcore::Value connect_session(mysqlshdk::db::Connection_options* args,

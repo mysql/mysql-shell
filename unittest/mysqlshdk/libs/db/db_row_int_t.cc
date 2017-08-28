@@ -37,7 +37,7 @@ TEST_F(Db_tests, row_getters_integer) {
       CHECK_FAIL_ALL(10);
       CHECK_FAIL(10, is_null);
 
-      CHECK_EQ(0, -2147483648, get_int);
+      CHECK_EQ(0, -2147483648LL, get_int);
       CHECK_EQ(1, 0, get_int);
       NEXT_ROW();
       CHECK_FAIL(0, get_uint);

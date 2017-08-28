@@ -290,6 +290,7 @@ function reset_or_deploy_sandbox(port) {
 
   // If the instance is up and running, we drop the metadata and reset all transactions
   if (connected) {
+    println("**Recycling instance", port);
     print('Dropping metadata...');
     session.runSql('SET GLOBAL super_read_only = 0'); // (BUG#26422638)
     session.runSql('set sql_log_bin = 0');
@@ -311,7 +312,7 @@ function reset_or_deploy_sandbox(port) {
     session.close();
   } else {
     // Otherwise a full deployment is done
-    println('Deploying instance');
+    println('**Deploying instance', port);
     options = {}
     if (__sandbox_dir != '')
       options['sandboxDir'] = __sandbox_dir;

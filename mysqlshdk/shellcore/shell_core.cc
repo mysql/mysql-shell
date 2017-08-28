@@ -50,7 +50,6 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 
   // Setus the shell core delegate
   _delegate.user_data = this;
-  _delegate.user_data = this;
   _delegate.print = &Shell_core::deleg_print;
   _delegate.print_error = &Shell_core::deleg_print_error;
   _delegate.prompt = &Shell_core::deleg_prompt;
@@ -60,7 +59,11 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 }
 
 Shell_core::~Shell_core() {
+  _global_dev_session.reset();
+
   delete _registry;
+
+  _globals.clear();
 
   if (_langs[Mode::JavaScript])
     delete _langs[Mode::JavaScript];

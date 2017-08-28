@@ -38,7 +38,7 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 public:
   ShellBaseSession();
   ShellBaseSession(const ShellBaseSession& s);
-  virtual ~ShellBaseSession() {};
+  virtual ~ShellBaseSession();
 
   // Virtual methods from object bridge
   virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;

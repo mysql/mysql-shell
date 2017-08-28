@@ -103,6 +103,27 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw(Exception)
 }
 
 Python_context::~Python_context() {
+  PyObject *key, *value;
+  Py_ssize_t pos = 0;
+
+  PyObject *py_mysqlsh_dict = PyModule_GetDict(_shell_mysqlsh_module);
+  // Release all internal module references
+  while (PyDict_Next(py_mysqlsh_dict, &pos, &key, &value)) {
+    if (PyModule_Check(value)) {
+      PyObject *keys;
+      PyObject *dict = PyModule_GetDict(value);
+      keys = PyDict_Keys(dict);
+      for (Py_ssize_t i = 0, c = PyList_GET_SIZE(keys); i < c; i++) {
+        std::string name = PyString_AsString(PyList_GetItem(keys, i));
+        if (_modules.find(value) != _modules.end()) {
+          PyDict_DelItem(dict, PyList_GetItem(keys, i));
+          break;
+        }
+      }
+      Py_XDECREF(keys);
+    }
+  }
+
   PyEval_RestoreThread(_main_thread_state);
   _main_thread_state = NULL;
 }
@@ -137,7 +158,7 @@ Python_context *Python_context::get_and_check() {
   } catch (std::exception &exc) {
     Python_context::set_python_error(
         PyExc_SystemError,
-        "Could not get SHELL context: ");  // TODO(alfredo): add exc content
+        std::string("Could not get SHELL context: ") + exc.what());
   }
   return NULL;
 }
@@ -289,8 +310,11 @@ Value Python_context::get_global(const std::string &value) {
 }
 
 void Python_context::set_global(const std::string &name, const Value &value) {
-  PyDict_SetItemString(_globals, name.c_str(),
-                       _types.shcore_value_to_pyobj(value));
+  PyObject *p = _types.shcore_value_to_pyobj(value);
+  assert(p != nullptr);
+  // incs ref
+  PyDict_SetItemString(_globals, name.c_str(), p);
+  Py_XDECREF(p);
 }
 
 void Python_context::set_global_item(const std::string &global_name,
@@ -302,7 +326,7 @@ void Python_context::set_global_item(const std::string &global_name,
   if (!py_global)
     throw shcore::Exception::logic_error(
         "Python_context: Error setting global item on " + global_name + ".");
-  else
+  else  // steals the ref
     PyModule_AddObject(py_global, item_name.c_str(),
                        _types.shcore_value_to_pyobj(value));
 }
@@ -452,12 +476,6 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
     }
   }
 
-#ifdef _WIN32
-  OutputDebugStringA(text.c_str());
-#else
-// g_print("%s", text.c_str());
-// TODO(rennox): logging
-#endif
   if (stream == "error") {
     ctx->_delegate->print_error(ctx->_delegate->user_data, text.c_str());
   } else {
@@ -661,7 +679,6 @@ PyObject *Python_context::call_module_function(PyObject *self, PyObject *args,
   }
 
   if (py_ret_val) {
-    Py_INCREF(py_ret_val);
     return py_ret_val;
   } else {
     Py_INCREF(Py_None);
@@ -676,13 +693,13 @@ void Python_context::register_mysqlsh_module() {
   // only on the python side of things, this module encloses the inner
   // modules: mysql and mysqlx to prevent class names i.e. using connector/py
   PyMethodDef py_mysqlsh_members[] = {{NULL, NULL, 0, NULL}};
-  PyObject *py_mysqlsh_module = Py_InitModule("mysqlsh", py_mysqlsh_members);
+  _shell_mysqlsh_module = Py_InitModule("mysqlsh", py_mysqlsh_members);
 
-  if (py_mysqlsh_module == NULL)
+  if (_shell_mysqlsh_module == NULL)
     throw std::runtime_error(
         "Error initializing the 'mysqlsh' module in Python support");
 
-  PyObject *py_mysqlsh_dict = PyModule_GetDict(py_mysqlsh_module);
+  PyObject *py_mysqlsh_dict = PyModule_GetDict(_shell_mysqlsh_module);
 
   // Now registers each available module as part of the mysqlsh package
   auto modules = Object_factory::package_contents("__modules__");
@@ -699,38 +716,39 @@ void Python_context::register_mysqlsh_module() {
     // The modules will be registered in python as __<name>__
     // But exposed in the mysqlsh module as the original name
     std::string module_name = "__" + name + "__";
-    PyObject *py_module = Py_InitModule(module_name.c_str(), py_members);
+    PyObject *py_module_ref = Py_InitModule(module_name.c_str(), py_members);
 
-    if (py_module == NULL)
+    if (py_module_ref == NULL)
       throw std::runtime_error("Error initializing the '" + name +
                                "' module in Python support");
 
-    _modules[py_module] = module;
+    _modules[py_module_ref] = module;
 
     // Now inserts every element on the module
-    PyObject *py_dict = PyModule_GetDict(py_module);
+    PyObject *py_dict = PyModule_GetDict(py_module_ref);
 
-    for (auto name :
+    for (auto &name :
          module->get_members_advanced(shcore::LowerCaseUnderscores)) {
       shcore::Value member =
           module->get_member_advanced(name, shcore::LowerCaseUnderscores);
-      if (member.type == shcore::Function || member.type == shcore::Object)
-        PyDict_SetItem(py_dict, PyString_FromString(name.c_str()),
-                       _types.shcore_value_to_pyobj(member));
+      if (member.type == shcore::Function || member.type == shcore::Object) {
+        PyObject *p = _types.shcore_value_to_pyobj(member);
+        // incrs ref
+        PyDict_SetItemString(py_dict, name.c_str(), p);
+        Py_XDECREF(p);
+      }
     }
 
     // Now makes the module available through the mysqlsh module, using the
     // original name
-    PyDict_SetItem(py_mysqlsh_dict, PyString_FromString(name.c_str()),
-                   py_module);
+    PyDict_SetItemString(py_mysqlsh_dict, name.c_str(), py_module_ref);
   }
 
   // Create custom exception objects
   _db_error = PyErr_NewException((char*)"mysqlsh.DBError", NULL, NULL);
 
   // Finally inserts the globals
-  PyDict_SetItem(py_mysqlsh_dict, PyString_FromString("globals"),
-                 _global_namespace);
+  PyDict_SetItemString(py_mysqlsh_dict, "globals", _global_namespace);
 }
 
 void Python_context::register_shell_stderr_module() {
