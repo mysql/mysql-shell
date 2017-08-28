@@ -17,13 +17,13 @@
  * 02110-1301  USA
  */
 
-#include "mysqlshdk/libs/db/mysqlx/session.h"
-
 #include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
 
+#include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "utils/utils_time.h"
 
@@ -118,14 +118,18 @@ do_enable_trace(xcl::XSession *session) {
 
 //-------------------------- Session Implementation ----------------------------
 
+DEBUG_OBJ_ENABLE(db_mysqlx_Session);
+
 XSession_impl::XSession_impl() {
   if (getenv("MYSQLX_TRACE_CONNECTION"))
     _enable_trace = true;
   else
     _enable_trace = false;
+
+  DEBUG_OBJ_ALLOC(db_mysqlx_Session);
 }
 
-void XSession_impl::connect(const mysqlshdk::db::Connection_options& data) {
+void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql.reset(::xcl::create_session().release());
   if (_enable_trace)
     _trace_handler = do_enable_trace(_mysql.get());
@@ -196,11 +200,11 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options& data) {
   std::string host = data.has_host() ? data.get_host() : "localhost";
 
   if ((host.empty() || host == "localhost") && data.has_socket()) {
-    err = _mysql->connect(
-        data.has_socket() ? data.get_socket().c_str() : nullptr,
-        data.has_user() ? data.get_user().c_str() : "",
-        data.has_password() ? data.get_password().c_str() : "",
-        data.has_schema() ? data.get_schema().c_str() : "");
+    err =
+        _mysql->connect(data.has_socket() ? data.get_socket().c_str() : nullptr,
+                        data.has_user() ? data.get_user().c_str() : "",
+                        data.has_password() ? data.get_password().c_str() : "",
+                        data.has_schema() ? data.get_schema().c_str() : "");
 #ifdef _WIN32
     _connection_info = "Localhost via Named pipe";
 #else
@@ -239,7 +243,8 @@ void XSession_impl::close() {
   // This should be logged, for now commenting to
   // avoid having unneeded output on the script mode
   if (auto result = _prev_result.lock()) {
-    while (result->next_resultset()) {}
+    while (result->next_resultset()) {
+    }
   }
   _connection_id = 0;
   _connection_info.clear();
@@ -282,6 +287,8 @@ void XSession_impl::load_session_info() {
 }
 
 XSession_impl::~XSession_impl() {
+  DEBUG_OBJ_DEALLOC(db_mysqlx_Session);
+
   _prev_result.reset();
   close();
 }
@@ -298,7 +305,8 @@ void XSession_impl::before_query() {
     } else {
       // there's no data, but we need to call next_resultset() anyway
       // bug#26581651 filed for this
-      while (result->next_resultset()) {}
+      while (result->next_resultset()) {
+      }
     }
   }
 }
@@ -316,11 +324,10 @@ std::shared_ptr<IResult> XSession_impl::after_query(
 }
 
 std::shared_ptr<IResult> XSession_impl::query(const std::string &sql,
-                                             bool buffered) {
+                                              bool buffered) {
   before_query();
   xcl::XError error;
-  std::unique_ptr<xcl::XQuery_result> xresult(
-      _mysql->execute_sql(sql, &error));
+  std::unique_ptr<xcl::XQuery_result> xresult(_mysql->execute_sql(sql, &error));
   if (error)
     throw mysqlshdk::db::Error(error.what(), error.error());
   return after_query(std::move(xresult), buffered);
@@ -328,7 +335,8 @@ std::shared_ptr<IResult> XSession_impl::query(const std::string &sql,
 
 void XSession_impl::execute(const std::string &sql) {
   std::shared_ptr<IResult> result = query(sql, false);
-  while (result->next_resultset()) {}
+  while (result->next_resultset()) {
+  }
 }
 
 std::shared_ptr<IResult> XSession_impl::execute_stmt(

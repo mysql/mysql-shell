@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -272,7 +272,12 @@ TEST_F(Python, object_to_py) {
 
   WillEnterPython lock;
 
-  ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj2)), py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(Value(std::static_pointer_cast<Object_bridge>(obj)))));
+  PyObject *tmp;
+  ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj2)),
+            py->pyobj_to_shcore_value(
+                tmp = py->shcore_value_to_pyobj(
+                    Value(std::static_pointer_cast<Object_bridge>(obj)))));
+  Py_XDECREF(tmp);
 
   // expose the object to JS
   //py->set_global("test_obj", Value(std::static_pointer_cast<Object_bridge>(obj)));

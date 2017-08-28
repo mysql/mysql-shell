@@ -71,7 +71,7 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
 
   target->full_output << text << std::endl;
 
-  if (target->debug || g_test_debug)
+  if (target->debug || g_test_debug || shcore::str_beginswith(text, "**"))
     std::cout << text << std::flush;
 
   std::lock_guard<std::mutex> lock(target->stdout_mutex);
@@ -309,6 +309,7 @@ void Shell_core_test_wrapper::TearDown() {
       auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
       session->close();
     }
+    _open_sessions.clear();
   }
 
   _interactive_shell.reset();

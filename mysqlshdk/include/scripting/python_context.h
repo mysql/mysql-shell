@@ -217,6 +217,8 @@ private:
 
   Python_type_bridger _types;
 
+  PyObject *_shell_mysqlsh_module;
+
   PyObject *_shell_stderr_module;
   PyObject *_shell_stdout_module;
   PyObject *_shell_python_support_module;

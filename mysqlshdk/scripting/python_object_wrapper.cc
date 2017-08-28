@@ -28,12 +28,13 @@
 #pragma clang diagnostic pop
 #endif
 
-#include <string>
 #include <sstream>
-#include "scripting/types_cpp.h"
-#include "scripting/python_utils.h"
+#include <string>
 #include "mysqlshdk/libs/db/session.h"
-#include "shellcore/shell_core_options.h"//XXX
+#include "mysqlshdk/libs/utils/debug.h"
+#include "scripting/python_utils.h"
+#include "scripting/types_cpp.h"
+#include "shellcore/shell_core_options.h"  // TODO(alfredo) doesn't belong here
 
 #ifndef WIN32
 #define PY_SIZE_T_FMT "%zi"
@@ -42,6 +43,8 @@
 #endif
 
 using namespace shcore;
+
+DEBUG_OBJ_ENABLE(PythonObjectWrapper);
 
 /** Wraps a GRT method as a Python object
  */
@@ -212,6 +215,8 @@ static int object_init(PyShObjObject *self, PyObject *args, PyObject *UNUSED(kwd
     delete self->object;
     delete self->cache;
 
+    DEBUG_OBJ_MALLOC(PythonObjectWrapper, self);
+
     try {
       self->object = new Object_bridge_ref();
       self->cache = new PyMemberCache();
@@ -226,6 +231,8 @@ static int object_init(PyShObjObject *self, PyObject *args, PyObject *UNUSED(kwd
 
 //session.schemas.sakila.city.select().execute()
 static void object_dealloc(PyShObjObject *self) {
+  DEBUG_OBJ_FREE(PythonObjectWrapper, self);
+
   delete self->object;
   delete self->cache;
 
@@ -686,6 +693,8 @@ PyObject *shcore::wrap(std::shared_ptr<Object_bridge> object) {
     wrapper = PyObject_New(PyShObjObject, &PyShObjIndexedObjectType);
   else
     wrapper = PyObject_New(PyShObjObject, &PyShObjObjectType);
+
+  DEBUG_OBJ_MALLOC(PythonObjectWrapper, wrapper);
 
   wrapper->object = new Object_bridge_ref(object);
   wrapper->cache = new PyMemberCache();

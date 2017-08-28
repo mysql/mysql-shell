@@ -23,6 +23,7 @@
 #include <iostream>
 
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_core_options.h"
 #include "unittest/gtest_clean.h"
@@ -416,9 +417,13 @@ int main(int argc, char **argv) {
 #ifndef _WIN32
   // On linux, we need to tell the UTs where the mysqlprovision executable is
   mppath.append("/../mysqlprovision");
-  (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] =
-      shcore::Value(mppath);
+#else
+  mppath.append("\\mysqlprovision.cmd");
 #endif
+
+  (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] =
+    shcore::Value(mppath);
+
   g_mppath = strdup(mppath.c_str());
 
   int ret_val = RUN_ALL_TESTS();
@@ -437,6 +442,11 @@ int main(int argc, char **argv) {
       std::cout << "\tNote: " << t.second << "\n";
     }
   }
+
+#ifndef NDEBUG
+  if (getenv("DEBUG_OBJ"))
+    shcore::debug::debug_object_dump_report(false);
+#endif
 
   return ret_val;
 }

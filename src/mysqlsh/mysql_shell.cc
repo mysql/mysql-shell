@@ -180,6 +180,9 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     "   \\rmconn my_config_name\n";
 }
 
+Mysql_shell::~Mysql_shell() {
+}
+
 bool Mysql_shell::connect(bool primary_session) {
   try {
     mysqlshdk::db::Connection_options connection_options;
@@ -296,6 +299,7 @@ shcore::Value Mysql_shell::connect_session(
     });
     new_session =
         _global_shell->connect_session(*connection_options, session_type);
+
     if (cancelled)
       throw shcore::cancelled("Cancelled");
   }
@@ -309,17 +313,16 @@ shcore::Value Mysql_shell::connect_session(
     try {
       new_session->drop_schema(schema_name);
     } catch (shcore::Exception &e) {
-      if (e.is_mysql() && e.code() == 1008)
-        ; // ignore DB doesn't exist error
-      else
+      if (e.is_mysql() && e.code() == 1008) {
+        // ignore DB doesn't exist error
+      } else {
         throw;
+      }
     }
     new_session->create_schema(schema_name);
-
     if (new_session->class_name().compare("XSession"))
       new_session->call("setCurrentSchema", schema_arg);
   }
-
   if (_options.interactive) {
     if (old_session && old_session.unique() && old_session->is_open()) {
       if (_options.interactive)
@@ -353,7 +356,6 @@ shcore::Value Mysql_shell::connect_session(
       }
     }
     message += "\n";
-
     // Any session could have a default schema after connection is done
     std::string default_schema_name = new_session->get_default_schema();
 
@@ -370,13 +372,13 @@ shcore::Value Mysql_shell::connect_session(
       if (session_type == "ClassicSession")
         message += "Default schema set to `" + default_schema_name + "`.";
       else
-        message += "Default schema `" + default_schema_name + "` accessible through db.";
-    } else
+        message += "Default schema `" + default_schema_name +
+                   "` accessible through db.";
+    } else {
       message += "No default schema selected; type \\use <schema> to set one.";
-
+    }
     println(message);
   }
-
   _update_variables_pending = 2;
 
   return shcore::Value::Null();

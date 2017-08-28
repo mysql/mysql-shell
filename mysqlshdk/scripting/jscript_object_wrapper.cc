@@ -18,15 +18,17 @@
  */
 
 #include "scripting/jscript_object_wrapper.h"
-#include "scripting/jscript_context.h"
-#include "mysqlshdk/libs/db/session.h"
-
 #include <iostream>
+
+#include "scripting/jscript_context.h"
+#include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/db/session.h"
 
 using namespace shcore;
 
 static int magic_pointer = 0;
 
+DEBUG_OBJ_ENABLE(JSObjectWrapper);
 
 v8::Handle<v8::Value> translate_exception(JScript_context *context) {
   try {
@@ -51,9 +53,12 @@ JScript_object_wrapper::JScript_object_wrapper(JScript_context *context, bool in
     templ->SetIndexedPropertyHandler(&JScript_object_wrapper::handler_igetter, &JScript_object_wrapper::handler_isetter, 0, 0, &JScript_object_wrapper::handler_ienumerator);
 
   templ->SetInternalFieldCount(3);
+
+  DEBUG_OBJ_ALLOC(JSObjectWrapper);
 }
 
 JScript_object_wrapper::~JScript_object_wrapper() {
+  DEBUG_OBJ_DEALLOC(JSObjectWrapper);
   _object_template.Reset();
 }
 

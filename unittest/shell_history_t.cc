@@ -736,7 +736,7 @@ TEST_F(Shell_history, history_management) {
 #ifndef _WIN32
   struct stat st;
   EXPECT_EQ(0, stat(histfile.c_str(), &st));
-  EXPECT_EQ(S_IRUSR|S_IWUSR, st.st_mode & S_IRWXU);
+  EXPECT_EQ(S_IRUSR | S_IWUSR, st.st_mode & S_IRWXU);
   EXPECT_EQ(0, st.st_mode & S_IRWXG);
   EXPECT_EQ(0, st.st_mode & S_IRWXO);
 
@@ -744,7 +744,7 @@ TEST_F(Shell_history, history_management) {
   mode_t omode = umask(0);
   shell.process_line("\\history save\n");
   EXPECT_EQ(0, stat(histfile.c_str(), &st));
-  EXPECT_EQ(S_IRUSR|S_IWUSR, st.st_mode & S_IRWXU);
+  EXPECT_EQ(S_IRUSR | S_IWUSR, st.st_mode & S_IRWXU);
   EXPECT_EQ(0, st.st_mode & S_IRWXG);
   EXPECT_EQ(0, st.st_mode & S_IRWXO);
 
@@ -752,7 +752,7 @@ TEST_F(Shell_history, history_management) {
   umask(0022);
   shell.process_line("\\history save\n");
   EXPECT_EQ(0, stat(histfile.c_str(), &st));
-  EXPECT_EQ(S_IRUSR|S_IWUSR, st.st_mode & S_IRWXU);
+  EXPECT_EQ(S_IRUSR | S_IWUSR, st.st_mode & S_IRWXU);
   EXPECT_EQ(0, st.st_mode & S_IRWXG);
   EXPECT_EQ(0, st.st_mode & S_IRWXO);
   shcore::delete_file(histfile);
@@ -797,9 +797,13 @@ TEST_F(Shell_history, history_management) {
   shcore::ensure_dir_exists(histfile.c_str());
   capture.clear();
   shell.process_line("\\history save");
+#ifdef _WIN32
+  EXPECT_EQ("Could not save command history to ./history: Permission denied\n",
+            capture);
+#else
   EXPECT_EQ("Could not save command history to ./history: Is a directory\n",
             capture);
-
+#endif
 #ifndef _WIN32
   EXPECT_EQ(0, chmod(histfile.c_str(), 0));
 

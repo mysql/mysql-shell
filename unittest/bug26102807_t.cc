@@ -25,20 +25,15 @@ TEST_F(Command_line_test, bug26102807) {
                     "create schema bug26102807;\n"
                     "create table bug26102807.test(a varchar (32));\n";
 
-  std::string new_line = "\n";
-#ifdef WIN32
-  new_line = "\r\n";
-#endif
-
   create_file("bug26102807.sql", sql);
   // Testing with a Node Session
   {
     std::string uri = "--uri=" + _uri;
     execute({_mysqlsh, uri.c_str(), "--sqln", "--interactive=full", "-f", "bug26102807.sql", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Node Session to '" + _uri_nopasswd + "'");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("drop database if exists bug26102807;" + new_line + "Query OK");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("create schema bug26102807;" + new_line + "Query OK");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("create table bug26102807.test(a varchar (32));" + new_line + "Query OK");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("drop database if exists bug26102807;\nQuery OK");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("create schema bug26102807;\nQuery OK");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("create table bug26102807.test(a varchar (32));\nQuery OK");
 
     execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "session.sql('select * from bug26102807.test').execute().getColumns()", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS("[");
@@ -51,9 +46,9 @@ TEST_F(Command_line_test, bug26102807) {
     std::string uri = "--uri=" + _mysql_uri;
     execute({_mysqlsh, uri.c_str(), "--sqlc", "--interactive=full", "-f", "bug26102807.sql", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic Session to '" + _mysql_uri_nopasswd + "'");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("drop database if exists bug26102807;" + new_line + "Query OK");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("create schema bug26102807;" + new_line + "Query OK");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("create table bug26102807.test(a varchar (32));" + new_line + "Query OK"); 
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("drop database if exists bug26102807;\nQuery OK");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("create schema bug26102807;\nQuery OK");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("create table bug26102807.test(a varchar (32));\nQuery OK"); 
 
     execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "session.runSql('select * from bug26102807.test');", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Empty set");

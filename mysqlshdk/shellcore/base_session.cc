@@ -24,6 +24,7 @@
 #include "scripting/common.h"
 #include "scripting/proxy_object.h"
 #include "shellcore/interrupt_handler.h"
+#include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
 #include "utils/utils_string.h"
@@ -32,12 +33,19 @@
 using namespace mysqlsh;
 using namespace shcore;
 
-ShellBaseSession::ShellBaseSession() :
-_tx_deep(0) {
+DEBUG_OBJ_ENABLE(ShellBaseSession);
+
+ShellBaseSession::ShellBaseSession() : _tx_deep(0) {
+  DEBUG_OBJ_ALLOC(ShellBaseSession);
 }
 
 ShellBaseSession::ShellBaseSession(const ShellBaseSession& s) :
 _connection_options(s._connection_options), _tx_deep(s._tx_deep) {
+  DEBUG_OBJ_ALLOC(ShellBaseSession);
+}
+
+ShellBaseSession::~ShellBaseSession() {
+  DEBUG_OBJ_DEALLOC(ShellBaseSession);
 }
 
 std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {

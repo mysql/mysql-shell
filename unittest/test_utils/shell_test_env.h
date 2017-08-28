@@ -76,8 +76,6 @@ class Shell_test_env : public ::testing::Test {
   std::string _socket;
   std::string _mysql_socket;
 
-  std::string _new_line_char;
-
   std::map<std::string, std::string> _output_tokens;
   std::string resolve_string(const std::string& source);
 

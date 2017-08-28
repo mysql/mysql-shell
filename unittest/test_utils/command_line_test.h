@@ -44,7 +44,13 @@ class Command_line_test : public Shell_base_test {
 
   bool grep_stdout(const std::string &s);
 
-  void wipe_out() { _output.clear(); }
+  void wipe_out() {
+    _output.clear();
+  }
+
+  void leave_carriage_returns() {
+    _strip_carriage_returns = false;
+  }
 
  protected:
   std::string _mysqlsh_path;
@@ -52,12 +58,12 @@ class Command_line_test : public Shell_base_test {
   shcore::Process_launcher *_process = nullptr;
   std::mutex _process_mutex;
 
+  bool _strip_carriage_returns = true;
   std::string _output;
   std::mutex _output_mutex;
   int execute(const std::vector<const char *> &args);
 
   void send_ctrlc();
-  std::string _new_line_char;
 };
 
 }  // namespace tests

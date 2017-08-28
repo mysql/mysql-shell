@@ -1,0 +1,99 @@
+/*
+ * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; version 2 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc->, 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301  USA
+ */
+
+#include "mysqlshdk/libs/utils/debug.h"
+#include <cstdlib>
+#include <iostream>
+#include <vector>
+
+namespace shcore {
+namespace debug {
+
+#ifndef NDEBUG
+
+static std::vector<Debug_object_info *> g_debug_object_list;
+// static Debug_object_info *g_debug_object_dummy = nullptr;
+
+Debug_object_info *debug_object_enable(const char *name) {
+  for (auto c : g_debug_object_list) {
+    if (c->name.compare(name) == 0)
+      return c;
+  }
+
+  g_debug_object_list.push_back(new Debug_object_info(name));
+  return g_debug_object_list[g_debug_object_list.size() - 1];
+}
+
+bool debug_object_dump_report(bool verbose) {
+  std::cout << "Instrumented mysqlsh object allocation report:\n";
+  int count = 0;
+  for (auto c : g_debug_object_list) {
+    if (verbose || c->allocs != c->deallocs) {
+      std::cout << c->name << "\t" << (c->allocs - c->deallocs) << " leaks ("
+                << c->allocs << " allocations vs " << c->deallocs
+                << " deallocations)\n";
+    }
+    if (c->allocs != c->deallocs) {
+      c->dump();
+      count++;
+    }
+  }
+  if (count == 0)
+    std::cout << "No instrumented allocation errors found.\n";
+  return count == 0;
+}
+
+Debug_object_info::Debug_object_info(const std::string &n) : name(n) {
+  track_instances = false;
+  if (const char *trace = getenv("DEBUG_OBJ_TRACE")) {
+    if (std::string(";").append(trace).append(";").find(";" + n + ";") !=
+        std::string::npos)
+      track_instances = true;
+  }
+}
+
+void Debug_object_info::on_alloc(void *p) {
+  ++allocs;
+  // if (name == "ShellBaseSession") std::abort();
+  if (track_instances) {
+    std::cout << "ALLOC " << name << "  " << p << "\n";
+    instances.insert(p);
+  }
+}
+
+void Debug_object_info::on_dealloc(void *p) {
+  ++deallocs;
+  if (track_instances) {
+    instances.erase(p);
+  }
+}
+
+void Debug_object_info::dump() {
+  if (track_instances) {
+    std::cout << "\tThe following instances of " << name << " are dangling:\n";
+    for (auto &p : instances) {
+      std::cout << "\t" << p << "\n";
+    }
+  }
+}
+
+#endif  // NDEBUG
+
+}  // namespace debug
+}  // namespace shcore
