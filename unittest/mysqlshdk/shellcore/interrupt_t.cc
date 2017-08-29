@@ -151,7 +151,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   void SetUp() {
     shcore::Interrupts::init(&interrupt_tester);
     Shell_core_test_wrapper::SetUp();
-    execute("\\connect " + _mysql_uri);
+    execute("\\connect -c " + _mysql_uri);
     execute("\\py");
     execute("import time");
     wipe_all();

@@ -319,6 +319,8 @@ function reset_or_deploy_sandbox(port) {
 
     options['password'] = 'root';
     options['allowRootFrom'] = '%';
+    // makes deploy faster
+    options["mysqldOptions"] = ["innodb_log_file_size=4M"];
     dba.deploySandboxInstance(port, options);
   }
 

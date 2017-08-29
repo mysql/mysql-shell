@@ -56,7 +56,8 @@ using namespace shcore;
 using mysqlshdk::db::uri::formats::only_transport;
 std::set<std::string> Dba::_deploy_instance_opts = {
     "portx",      "sandboxDir",    "password",
-    "dbPassword", "allowRootFrom", "ignoreSslError"};
+    "dbPassword", "allowRootFrom", "ignoreSslError",
+    "mysqldOptions"};
 std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password",
                                                   "dbPassword"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
@@ -1092,8 +1093,8 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
     if (opt_map.has_key("ignoreSslError"))
       ignore_ssl_error = opt_map.bool_at("ignoreSslError");
 
-    if (options->has_key("options"))
-      mycnf_options = (*options)["options"];
+    if (options->has_key("mysqldOptions"))
+      mycnf_options = (*options)["mysqldOptions"];
   } else {
     if (function == "deploy")
       throw shcore::Exception::argument_error(

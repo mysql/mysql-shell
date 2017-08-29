@@ -308,7 +308,7 @@ def reset_or_deploy_sandbox(port):
 
     options['password'] = 'root'
     options['allowRootFrom'] = '%'
-
+    options['mysqldOptions'] = ["innodb_log_file_size=4M"]
     dba.deploy_sandbox_instance(port, options)
 
   return deployed_here
