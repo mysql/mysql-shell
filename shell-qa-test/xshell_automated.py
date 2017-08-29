@@ -254,7 +254,6 @@ xPrompts.add("      ...")
 
 ###########################################################################################
 
-
 class XShell_TestCases(unittest.TestCase):
     @classmethod
     def setUpClass(self):

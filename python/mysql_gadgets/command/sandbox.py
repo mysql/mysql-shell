@@ -563,7 +563,7 @@ def create_sandbox(**kwargs):
     # If on Linux, create a temporary copy of the mysqld binary to avoid
     # possible AppArmor or SELinux issues.
     # Note: Creating a symbolic link will not solve the problem.
-    if os.name != "nt":
+    if os.name != "nt" and sys.platform != "darwin":
         local_mysqld_path = os.path.join(sandbox_dir, "mysqld")
         try:
             _LOGGER.debug("Copying mysqld binary '%s' to '%s'", mysqld_path,
