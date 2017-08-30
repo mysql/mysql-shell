@@ -115,6 +115,12 @@ TEST_F(Shell_core_test, test_process_stream) {
 }
 
 TEST_F(Shell_core_test, test_process_js_file_with_params) {
+  // TODO(alfredo) this test and feature are broken.. it was
+  // testing \source on non-interactive no, where the feature works
+  // but in interactive it doesn't. \source must work the same way
+  // in both modes (should be reimplemented)
+  _options->interactive = false;
+  reset_shell();
 
   _interactive_shell->process_line("\\js");
 
@@ -147,6 +153,8 @@ TEST_F(Shell_core_test, test_process_js_file_with_params) {
 }
 
 TEST_F(Shell_core_test, test_process_py_file_with_params) {
+  _options->interactive = false;
+  reset_shell();
 
   _interactive_shell->process_line("\\py");
 

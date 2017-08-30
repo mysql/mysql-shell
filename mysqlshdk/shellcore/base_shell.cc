@@ -245,7 +245,7 @@ void Base_shell::update_prompt_variables(bool reconnected) {
           port = "3306";
       } else {
         if (socket.empty() && port.empty())
-          port = "3306";
+          port = "33060";
         _prompt_variables["session"] = "x";
       }
       _prompt_variables["port"] = port;

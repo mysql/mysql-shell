@@ -17,7 +17,9 @@
  * 02110-1301  USA
  */
 
+// clang-format off
 #include "unittest/gtest_clean.h"
+// clang-format on
 #include "mysqlsh/prompt_manager.h"
 #include "mysqlsh/prompt_renderer.h"
 #include "mysqlshdk/libs/textui/term_vt100.h"
@@ -1031,6 +1033,22 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
       "sessvar:autocommit=OFF  "
       "sessstatus:Mysqlx_ssl_active= END> ");
 
+  // This test only works if the test server is listening on default socket path
+  if (0) {
+    wipe_out();
+    rc = execute({_mysqlsh, "--interactive=full", uri.c_str(),
+                  "--password=", "--mysql", "--ssl-mode=DISABLED", "--sql",
+                  "-e", "set autocommit=0;", nullptr});
+    EXPECT_EQ(0, rc);
+    EXPECT_PROMPT(
+        "host=" + _host + "  port=" + "  mode=sql" +
+        "  Mode=SQL  uri=" + uri + "?ssl-mode=disabled" +
+        "  user=root  schema=  ssl=  date=" + fmttime("%F") +
+        "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
+        "sessvar:autocommit=OFF  "
+        "sessstatus:Mysqlx_ssl_active= END> ");
+  }
+
   wipe_out();
   rc = execute({_mysqlsh, "--interactive=full", "--sql", _uri.c_str(),
                 "--schema=mysql", "--ssl-mode=REQUIRED", "-e",
@@ -1044,6 +1062,20 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
                 "sysvar:autocommit=ON  sessvar:autocommit=OFF  "
                 "sessstatus:Mysqlx_ssl_active=ON END> ");
 
+  if (_port == "33060") {
+    wipe_out();
+    rc = execute({_mysqlsh, "--interactive=full", "--sql", uri.c_str(),
+                  "--password=", "--mysqlx", "--schema=mysql",
+                  "--ssl-mode=REQUIRED", "-e", "set autocommit=0;", nullptr});
+    EXPECT_EQ(0, rc);
+    EXPECT_PROMPT("host=" + _host + "  port=" + _port +
+                  "  mode=sql  Mode=SQL  uri=" + uri +
+                  "/mysql?ssl-mode=required  user=root  schema=mysql  ssl=SSL" +
+                  "  date=" + fmttime("%F") +
+                  "  env:MYSQLSH_PROMPT_THEME=allvars.json  "
+                  "sysvar:autocommit=ON  sessvar:autocommit=OFF  "
+                  "sessstatus:Mysqlx_ssl_active=ON END> ");
+  }
   shcore::delete_file("allvars.json");
 
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
