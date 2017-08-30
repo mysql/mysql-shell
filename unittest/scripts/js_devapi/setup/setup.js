@@ -324,7 +324,10 @@ function reset_or_deploy_sandbox(port) {
     dba.deploySandboxInstance(port, options);
   }
 
-  return deployed_here;
+  if (os.file_exists(__sandbox_share))
+    return false;
+  else
+    return deployed_here;
 }
 
 function reset_or_deploy_sandboxes() {

@@ -26,17 +26,6 @@
 namespace tests {
 void Admin_api_test::SetUp() {
   Shell_core_test_wrapper::SetUp();
-
-  std::vector<std::string> path_components = {_sandbox_dir,
-                                              _mysql_sandbox_port1, "my.cnf"};
-  _sandbox_cnf_1 = shcore::str_join(path_components, _path_splitter);
-
-  path_components[1] = _mysql_sandbox_port2;
-  _sandbox_cnf_2 = shcore::str_join(path_components, _path_splitter);
-
-  path_components[1] = _mysql_sandbox_port3;
-  _sandbox_cnf_3 = shcore::str_join(path_components, _path_splitter);
-
   // The Admin_api_test are meant to be run using mock server
   ignore_session_notifications();
 }

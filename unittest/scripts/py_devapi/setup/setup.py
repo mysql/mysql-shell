@@ -1,3 +1,5 @@
+import os.path
+
 def validate_crud_functions(crud, expected):
 	actual = crud.__members__
 
@@ -311,7 +313,10 @@ def reset_or_deploy_sandbox(port):
     options['mysqldOptions'] = ["innodb_log_file_size=4M"]
     dba.deploy_sandbox_instance(port, options)
 
-  return deployed_here
+  if os.path.exists(__sandbox_share):
+    return False
+  else:
+    return deployed_here
 
 def reset_or_deploy_sandboxes():
   deploy1 = reset_or_deploy_sandbox(__mysql_sandbox_port1)

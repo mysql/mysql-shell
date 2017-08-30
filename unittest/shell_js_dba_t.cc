@@ -31,14 +31,35 @@ namespace shcore {
 class Shell_js_dba_tests : public Shell_js_script_tester {
 protected:
   bool _have_ssl;
+  std::string _sandbox_share;
+  std::string _sandbox_done;
+
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
     Shell_js_script_tester::SetUp();
+
+    _sandbox_share = _sandbox_dir + _path_splitter + "sandbox.share";
+    _sandbox_done = _sandbox_dir + _path_splitter + "sandbox.done";
 
     // All of the test cases share the same config folder
     // and setup script
     set_config_folder("js_devapi");
     set_setup_script("setup.js");
+  }
+
+  void backup_sandbox_configurations() {
+    shcore::copy_file(_sandbox_cnf_1, _sandbox_cnf_1_bkp);
+    shcore::copy_file(_sandbox_cnf_2, _sandbox_cnf_2_bkp);
+    shcore::copy_file(_sandbox_cnf_3, _sandbox_cnf_3_bkp);
+  }
+
+  void restore_sandbox_configuration(int port) {
+    if(port == _mysql_sandbox_nport1)
+      shcore::copy_file(_sandbox_cnf_1_bkp, _sandbox_cnf_1);
+    else if (port == _mysql_sandbox_nport2)
+      shcore::copy_file(_sandbox_cnf_2_bkp, _sandbox_cnf_2);
+    else if (port == _mysql_sandbox_nport3)
+      shcore::copy_file(_sandbox_cnf_3_bkp, _sandbox_cnf_3);
   }
 
   virtual void set_defaults() {
@@ -126,6 +147,9 @@ protected:
       exec_and_out_equals(code);
       code = "var __ssl_mode = 'DISABLED';";
     }
+    exec_and_out_equals(code);
+
+    code = "var __sandbox_share = '" + _sandbox_share + "';";
     exec_and_out_equals(code);
 
 
@@ -233,6 +257,9 @@ TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
   execute("dba.verbose = true;");
 
   validate_interactive("dba_reset_or_deploy.js");
+
+  backup_sandbox_configurations();
+  shcore::create_file(_sandbox_share, "");
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_classic_global_dba) {
@@ -426,8 +453,13 @@ TEST_F(Shell_js_dba_tests, configure_local_instance) {
 
   validate_interactive("dba_configure_local_instance.js");
 
-  // Cleans up the cfg file for the third instance
-  remove_from_cfg_file(_sandbox_cnf_3, "group_replication");
+  // Restores the CGF of the thord sandbox
+  std::string stop_options = "{'password': 'root',"
+                              "'sandboxDir': __sandbox_dir}";
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port3, " +
+                                     stop_options + ")");
+
+  restore_sandbox_configuration(_mysql_sandbox_nport3);
 }
 
 
@@ -591,7 +623,7 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
   // Deployment of new sandbox instances.
   // In order to avoid the following bug we ensure the sandboxes are freshly deployed:
   // BUG #25071492: SERVER SESSION ASSERT FAILURE ON SERVER RESTART
-  execute("cleanup_sandboxes(true);");
+  //execute("cleanup_sandboxes(true);");
   execute("var deployed1 = reset_or_deploy_sandbox(__mysql_sandbox_port1);");
   execute("var deployed2 = reset_or_deploy_sandbox(__mysql_sandbox_port2);");
   execute("var deployed3 = reset_or_deploy_sandbox(__mysql_sandbox_port3);");
@@ -632,16 +664,20 @@ TEST_F(Shell_js_dba_tests, no_interactive_rpl_filter_check) {
   // Restart sandbox instances without specific binlog filtering option.
   execute("dba.stopSandboxInstance(__mysql_sandbox_port1, " +
                                    stop_options + ");");
-  remove_from_cfg_file(cfgpath1, "binlog-do-db");
-  execute("try_restart_sandbox(__mysql_sandbox_port1);");
+  //remove_from_cfg_file(cfgpath1, "binlog-do-db");
+  //execute("try_restart_sandbox(__mysql_sandbox_port1);");
   execute("dba.stopSandboxInstance(__mysql_sandbox_port2, " +
                                    stop_options + ");");
-  remove_from_cfg_file(cfgpath2, "binlog-do-db");
-  execute("try_restart_sandbox(__mysql_sandbox_port2);");
+  //remove_from_cfg_file(cfgpath2, "binlog-do-db");
+  //execute("try_restart_sandbox(__mysql_sandbox_port2);");
   execute("dba.stopSandboxInstance(__mysql_sandbox_port3, " +
                                    stop_options + ");");
-  remove_from_cfg_file(cfgpath3, "binlog-ignore-db");
-  execute("try_restart_sandbox(__mysql_sandbox_port3);");
+  //remove_from_cfg_file(cfgpath3, "binlog-ignore-db");
+  //execute("try_restart_sandbox(__mysql_sandbox_port3);");
+
+  restore_sandbox_configuration(_mysql_sandbox_nport1);
+  restore_sandbox_configuration(_mysql_sandbox_nport2);
+  restore_sandbox_configuration(_mysql_sandbox_nport3);
 
   // Clean deployed sandboxes.
   execute("cleanup_or_reset_sandbox(__mysql_sandbox_port1, deployed1);");
@@ -686,18 +722,6 @@ TEST_F(Shell_js_dba_tests, dba_cluster_mts) {
   validate_interactive("dba_cluster_mts.js");
 }
 
-TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
-  _options->wizards = false;
-  reset_shell();
-
-  enable_debug();
-
-  // Execute setup script to be able to use smart deployment functions.
-  execute_setup();
-
-  execute("cleanup_sandboxes(true);");
-}
-
 TEST_F(Shell_js_dba_tests, dba_help) {
   validate_interactive("dba_help.js");
 }
@@ -724,6 +748,23 @@ TEST_F(Shell_js_dba_tests, super_read_only_handling) {
   output_handler.prompts.push_back("y");
 
   validate_interactive("dba_super_read_only_handling.js");
+}
+
+TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
+  _options->wizards = false;
+  reset_shell();
+
+  enable_debug();
+
+  // Execute setup script to be able to use smart deployment functions.
+  execute_setup();
+
+  execute("cleanup_sandboxes(true);");
+
+  shcore::delete_file(_sandbox_share);
+  shcore::delete_file(_sandbox_cnf_1_bkp);
+  shcore::delete_file(_sandbox_cnf_2_bkp);
+  shcore::delete_file(_sandbox_cnf_3_bkp);
 }
 
 
