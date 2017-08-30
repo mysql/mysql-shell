@@ -7,7 +7,7 @@
 # configurations are persisted on my.cnf so upon the restart of any instance
 # it can bootstrap a new group, changing the value of
 # 'group_replication_group_name' and leading to a failure on forceQuorum
-cleanup_sandboxes(True);
+# cleanup_sandboxes(True);
 
 #@ Initialization
 deployed_here = reset_or_deploy_sandboxes()

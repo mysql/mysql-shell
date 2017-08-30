@@ -21,10 +21,17 @@
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace tests {
 
 Shell_test_env::Shell_test_env() {
+#ifdef _WIN32
+  _path_splitter = "\\";
+#else
+  _path_splitter = "/";
+#endif
+
   const char *uri = getenv("MYSQL_URI");
   if (uri == NULL)
     throw std::runtime_error(
@@ -107,6 +114,27 @@ Shell_test_env::Shell_test_env() {
     // binary folder
     _sandbox_dir = shcore::get_binary_folder();
   }
+
+  std::vector<std::string> path_components = {_sandbox_dir,
+                                              _mysql_sandbox_port1, "my.cnf"};
+  _sandbox_cnf_1 = shcore::str_join(path_components, _path_splitter);
+
+  path_components[1] = _mysql_sandbox_port2;
+  _sandbox_cnf_2 = shcore::str_join(path_components, _path_splitter);
+
+  path_components[1] = _mysql_sandbox_port3;
+  _sandbox_cnf_3 = shcore::str_join(path_components, _path_splitter);
+
+  std::vector<std::string> backup_path = {_sandbox_dir + _path_splitter + "my",
+                                         _mysql_sandbox_port1, "cnf"};
+
+  _sandbox_cnf_1_bkp = shcore::str_join(backup_path, ".");
+
+  backup_path[1] = _mysql_sandbox_port2;
+  _sandbox_cnf_2_bkp = shcore::str_join(backup_path, ".");
+
+  backup_path[1] = _mysql_sandbox_port3;
+  _sandbox_cnf_3_bkp = shcore::str_join(backup_path, ".");
 }
 
 std::string Shell_test_env::get_path_to_mysqlsh() {

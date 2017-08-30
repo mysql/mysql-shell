@@ -285,12 +285,6 @@ void Shell_core_test_wrapper::SetUp() {
   set_options();
   output_handler.debug = debug;
 
-#ifdef _WIN32
-  std::string _path_splitter = "\\";
-#else
-  std::string _path_splitter = "/";
-#endif
-
   // Initializes the interactive shell
   reset_shell();
 
