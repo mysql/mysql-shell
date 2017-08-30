@@ -59,7 +59,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void drop_metadata_schema();
   uint64_t get_cluster_id(const std::string &cluster_name);
   uint64_t get_cluster_id(uint64_t rs_id);
-  bool cluster_exists(const std::string &cluster_name);
+  virtual bool cluster_exists(const std::string &cluster_name);
   virtual void insert_cluster(const std::shared_ptr<Cluster> &cluster);
   void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
                           bool is_default, bool is_adopted);
@@ -78,7 +78,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                                  const std::string &group_name);
 
   virtual std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name);
-  std::shared_ptr<Cluster> get_default_cluster();
+  virtual std::shared_ptr<Cluster> get_default_cluster();
   bool has_default_cluster();
 
   std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);

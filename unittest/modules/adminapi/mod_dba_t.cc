@@ -128,7 +128,8 @@ TEST_F(Dba_test, get_cluster_with_invalid_gr_group_name_001) {
   // ---------------------------------------
 
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   add_get_server_variable_query(&_queries, "group_replication_group_name",
                                 mysqlshdk::db::Type::String,
@@ -363,7 +364,8 @@ class Dba_drop_metadata : public Dba_test {};
 
 TEST_F(Dba_drop_metadata, clear_read_only_invalid) {
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   start_mocks(true);
 
@@ -388,7 +390,8 @@ TEST_F(Dba_drop_metadata, clear_read_only_invalid) {
 TEST_F(Dba_drop_metadata, clear_read_only_unset) {
   // Running on a standalone instance
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   // super_read_only is ON, no active sessions
   add_super_read_only_queries(&_queries, true, true, {{"root@localhost", "1"}});
@@ -422,7 +425,8 @@ TEST_F(Dba_drop_metadata, clear_read_only_unset) {
 TEST_F(Dba_drop_metadata, clear_read_only_false) {
   // Running on a standalone instance
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   // super_read_only is ON, no active sessions
   add_super_read_only_queries(&_queries, true, true, {});
@@ -458,9 +462,9 @@ TEST_F(Dba_drop_metadata, clear_read_only_false) {
 class Dba_reboot_cluster : public Dba_test {};
 
 TEST_F(Dba_reboot_cluster, clear_read_only_invalid) {
-  // Running on a standalone instance
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   start_mocks(true);
 
@@ -577,4 +581,174 @@ TEST_F(Dba_reboot_cluster, clear_read_only_false) {
 
 // ----------------------------
 
+
+class Dba_preconditions: public Dba_test {
+  virtual void set_preconditions() = 0;
+
+  virtual void SetUp() {
+    Dba_test::SetUp();
+
+    set_preconditions();
+
+    start_mocks(true);
+
+    _interactive_shell->connect(true);
+  }
+
+  virtual void TearDown() {
+    _interactive_shell->shell_context()->get_dev_session()->close();
+
+    Dba_test::TearDown();
+  }
+};
+
+
+class Dba_preconditions_standalone : public Dba_preconditions {
+  virtual void set_preconditions() {
+    add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
+  }
+};
+
+
+TEST_F(Dba_preconditions_standalone, get_cluster_fails) {
+  EXPECT_THROW_LIKE(_dba.get_cluster({}),
+                    shcore::Exception,
+                    "Dba.getCluster: This function is not available through a "
+                    "session to a standalone instance");
+}
+
+TEST_F(Dba_preconditions_standalone, create_cluster_succeeds) {
+  // Create Cluster is allowed on standalone instance, the precondition
+  // validation passes
+  shcore::Argument_list args;
+  args.push_back(shcore::Value("1nvalidName"));
+  EXPECT_THROW_LIKE(_dba.create_cluster(args),
+                    shcore::Exception,
+                    "Dba.createCluster: The Cluster name can only start with "
+                    "an alphabetic or the '_' character.");
+}
+
+TEST_F(Dba_preconditions_standalone, drop_metadata_schema_fails) {
+  // getCluster is not allowed on standalone instances
+  shcore::Argument_list args;
+  args.push_back(shcore::Value::new_map());
+  EXPECT_THROW_LIKE(_dba.drop_metadata_schema(args),
+                    shcore::Exception,
+                    "Dba.dropMetadataSchema: This function is not available "
+                    "through a session to a standalone instance");
+}
+
+TEST_F(Dba_preconditions_standalone,
+       reboot_cluster_from_complete_outage_succeeds) {
+  std::shared_ptr<mysqlsh::dba::Cluster> nothing;
+  EXPECT_CALL(_dba.get_metadata(), get_default_cluster()).
+    WillOnce(Return(nothing));
+
+  EXPECT_THROW_LIKE(_dba.reboot_cluster_from_complete_outage({}),
+                    shcore::Exception,
+                    "Dba.rebootClusterFromCompleteOutage: No default cluster "
+                    "is configured.");
+}
+
+class Dba_preconditions_unmanaged_gr : public Dba_preconditions {
+  virtual void set_preconditions() {
+    add_precondition_queries(&_queries, mysqlsh::dba::GroupReplication,
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
+  }
+};
+
+
+TEST_F(Dba_preconditions_unmanaged_gr, get_cluster_fails) {
+  // getCluster is not allowed on standalone instances
+  EXPECT_THROW_LIKE(_dba.get_cluster({}),
+                    shcore::Exception,
+                    "Dba.getCluster: This function is not available through a "
+                    "session to an instance belonging to an unmanaged "
+                    "replication group");
+}
+
+TEST_F(Dba_preconditions_unmanaged_gr, create_cluster_succeeds) {
+  // Create Cluster is allowed on standalone instance, the precondition
+  // validation passes
+  shcore::Argument_list args;
+  args.push_back(shcore::Value("1nvalidName"));
+  EXPECT_THROW_LIKE(_dba.create_cluster(args),
+                    shcore::Exception,
+                    "Dba.createCluster: The Cluster name can only start with "
+                    "an alphabetic or the '_' character.");
+}
+
+TEST_F(Dba_preconditions_unmanaged_gr, drop_metadata_schema_fails) {
+  // getCluster is not allowed on standalone instances
+  shcore::Argument_list args;
+  args.push_back(shcore::Value::new_map());
+  EXPECT_THROW_LIKE(_dba.drop_metadata_schema(args),
+                    shcore::Exception,
+                    "Dba.dropMetadataSchema: This function is not available "
+                    "through a session to an instance belonging to an "
+                    "unmanaged replication group");
+}
+
+TEST_F(Dba_preconditions_unmanaged_gr,
+       reboot_cluster_from_complete_outage_succeeds) {
+  std::shared_ptr<mysqlsh::dba::Cluster> nothing;
+  EXPECT_CALL(_dba.get_metadata(), get_default_cluster()).
+    WillOnce(Return(nothing));
+
+  EXPECT_THROW_LIKE(_dba.reboot_cluster_from_complete_outage({}),
+                    shcore::Exception,
+                    "Dba.rebootClusterFromCompleteOutage: No default cluster "
+                    "is configured.");
+}
+
+class Dba_preconditions_innodb : public Dba_preconditions {
+  virtual void set_preconditions() {
+    add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
+  }
+};
+
+
+TEST_F(Dba_preconditions_innodb, get_cluster_succeeds) {
+  std::shared_ptr<mysqlsh::dba::Cluster> nothing;
+  EXPECT_CALL(_dba.get_metadata(), get_default_cluster()).
+    WillOnce(Return(nothing));
+
+  EXPECT_THROW_LIKE(_dba.get_cluster({}),
+                    shcore::Exception,
+                    "Dba.getCluster: No default cluster is configured.");
+}
+
+TEST_F(Dba_preconditions_innodb, create_cluster_fails) {
+  shcore::Argument_list args;
+  args.push_back(shcore::Value("1nvalidName"));
+  EXPECT_THROW_LIKE(_dba.create_cluster(args),
+                    shcore::Exception,
+                    "Dba.createCluster: Unable to create cluster. The instance "
+                    "'localhost:" + _mysql_sandbox_port1 + "' already belongs "
+                    "to an InnoDB cluster. Use <Dba>.getCluster() to access "
+                    "it.");
+}
+
+TEST_F(Dba_preconditions_innodb, drop_metadata_schema_succeeds) {
+  shcore::Argument_list args;
+  args.push_back(shcore::Value::new_map());
+  EXPECT_THROW_LIKE(_dba.drop_metadata_schema(args),
+                    shcore::Exception,
+                    "Dba.dropMetadataSchema: No operation executed, use the "
+                    "'force' option");
+}
+
+TEST_F(Dba_preconditions_innodb, reboot_cluster_from_complete_outage_succeeds) {
+  std::shared_ptr<mysqlsh::dba::Cluster> nothing;
+  EXPECT_CALL(_dba.get_metadata(), get_default_cluster()).
+    WillOnce(Return(nothing));
+
+  EXPECT_THROW_LIKE(_dba.reboot_cluster_from_complete_outage({}),
+                    shcore::Exception,
+                    "Dba.rebootClusterFromCompleteOutage: No default cluster "
+                    "is configured.");
+}
 }  // namespace testing

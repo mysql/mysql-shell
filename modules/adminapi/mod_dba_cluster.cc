@@ -819,6 +819,10 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
 
   // Remove the Instance from the Default ReplicaSet
   try {
+        // Check if we have a Default ReplicaSet
+    if (!_default_replica_set)
+      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
     _default_replica_set->remove_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
@@ -1635,6 +1639,10 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   // Verifies the transaction state of the instance ins relation to the cluster
   try {
+    // Check if we have a Default ReplicaSet
+    if (!_default_replica_set)
+      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
     ret_val = get_default_replicaset()->retrieve_instance_state(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(

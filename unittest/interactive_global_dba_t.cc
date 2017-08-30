@@ -524,7 +524,8 @@ class Interactive_dba_drop_metadata_schema : public Interactive_global_dba {};
 TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_prompts) {
   // Sets the required statements for the session
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   // super_read_only is OFF, no active sessions
   add_super_read_only_queries(&_queries, false, false, {});
@@ -549,7 +550,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_prompts) {
 TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_flag_prompt_yes) {
   // Sets the required statements for the session
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   // super_read_only is ON, no active sessions
   add_super_read_only_queries(&_queries, true, true, {{"root@localhost", "1"}});
@@ -593,7 +595,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_flag_prompt_yes) {
 TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_flag_prompt_no) {
   // Sets the required statements for the session
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   // super_read_only is ON, no active sessions
   add_super_read_only_queries(&_queries, true, true, {});
@@ -632,7 +635,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_flag_prompt_no) {
 TEST_F(Interactive_dba_drop_metadata_schema, read_only_invalid_flag_value) {
   // Sets the required statements for the session
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   init_mocks(true);
 
@@ -657,7 +661,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_invalid_flag_value) {
 TEST_F(Interactive_dba_drop_metadata_schema, read_only_flag_true) {
   // Sets the required statements for the session
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   // super_read_only is ON, no active sessions
   add_super_read_only_queries(&_queries, true, true, {{"root@localhost", "1"}});
@@ -687,7 +692,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_flag_true) {
 TEST_F(Interactive_dba_drop_metadata_schema, read_only_flag_false) {
   // Running on a standalone instance
   add_precondition_queries(&_queries, mysqlsh::dba::InnoDBCluster,
-                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"));
+                           std::string("851f0e89-5730-11e7-9e4f-b86b230042b9"),
+                           {}, std::string("ONLINE"), 3, 0);
 
   // super_read_only is ON, no active sessions
   add_super_read_only_queries(&_queries, true, true, {{"root@localhost", "1"}});
