@@ -89,6 +89,8 @@ if (__sandbox_dir)
 else
   dba.startSandboxInstance(__mysql_sandbox_port3);
 
+wait_slave_state(Cluster, uri3, ["OFFLINE", "(MISSING)"]);
+
 //@: Cluster: rejoinInstance errors
 Cluster.rejoinInstance();
 Cluster.rejoinInstance(1,2,3);
