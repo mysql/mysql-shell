@@ -52,6 +52,13 @@ TEST_F(Shell_history, check_history_sql_not_connected) {
 
   EXPECT_EQ(1, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
+
+  SKIP_TEST("Bug in history handling of empty commands");
+  // Bug
+  shell.process_line("select 2;;");
+  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
+  EXPECT_STREQ("select 2;", linenoiseHistoryLine(1));
 }
 
 TEST_F(Shell_history, check_password_history_linenoise) {
