@@ -194,34 +194,6 @@ void Admin_api_test::add_md_group_name_query(
        {{value}}});
 }
 
-void Admin_api_test::add_get_replication_group_state_online_rw_query(
-    std::vector<testing::Fake_result_data> *data,
-    const std::string &member_id) {
-  data->push_back(
-      {"SELECT @@server_uuid, VARIABLE_VALUE FROM "
-       "performance_schema.global_status WHERE VARIABLE_NAME "
-       "= 'group_replication_primary_member';",
-       {"@@server_uuid", "VARIABLE_VALUE"},
-       {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
-       {{member_id.c_str(), member_id.c_str()}}});
-
-  data->push_back(
-      {"SELECT MEMBER_STATE FROM performance_schema.replication_group_members "
-       "WHERE MEMBER_ID = '" +
-           member_id + "'",
-       {"MEMBER_STATE"},
-       {mysqlshdk::db::Type::String},
-       {{"ONLINE"}}});
-
-  data->push_back(
-      {"SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) "
-       "AS UNREACHABLE,  COUNT(*) AS TOTAL FROM "
-       "performance_schema.replication_group_members",
-       {"SIGNED", "UNREACHABLE"},
-       {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Integer},
-       {{"0", "2"}}});
-}
-
 void Admin_api_test::add_get_cluster_matching_query(
     std::vector<testing::Fake_result_data> *data,
     const std::string &cluster_name) {
@@ -269,20 +241,58 @@ void Admin_api_test::add_is_instance_on_rs_query(
 }
 
 void Admin_api_test::add_precondition_queries(
-    std::vector<testing::Fake_result_data> *data,
-    mysqlsh::dba::GRInstanceType instance_type,
-    nullable<std::string> primary_uuid) {
+        std::vector<testing::Fake_result_data> *data,
+        mysqlsh::dba::GRInstanceType instance_type,
+        nullable<std::string> primary_uuid,
+        nullable<std::string> instance_uuid,
+        nullable<std::string> instance_state,
+        nullable<int> instance_count,
+        nullable<int> unreachable_count) {
+
   add_instance_type_queries(data, instance_type);
 
   if (instance_type == mysqlsh::dba::Standalone && !primary_uuid.is_null())
     throw std::logic_error(
         "There is not primary UUID on a standalone instance");
 
-  if (instance_type != mysqlsh::dba::Standalone && primary_uuid.is_null())
-    throw std::logic_error("Primary UUID for non standalone instance");
+  if (primary_uuid) {
+    std::string primary_id = *primary_uuid;
+    std::string member_id = *primary_uuid;
 
-  if (primary_uuid)
-    add_get_replication_group_state_online_rw_query(data, primary_uuid);
+    if (!instance_uuid.is_null())
+      member_id = *instance_uuid;
+
+      data->push_back(
+          {"SELECT @@server_uuid, VARIABLE_VALUE FROM "
+          "performance_schema.global_status WHERE VARIABLE_NAME "
+          "= 'group_replication_primary_member';",
+          {"@@server_uuid", "VARIABLE_VALUE"},
+          {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
+          {{member_id.c_str(), primary_id.c_str()}}});
+
+      if (!instance_state.is_null()) {
+        data->push_back(
+            {"SELECT MEMBER_STATE FROM performance_schema.replication_group_members "
+            "WHERE MEMBER_ID = '" +
+                member_id + "'",
+            {"MEMBER_STATE"},
+            {mysqlshdk::db::Type::String},
+            {{*instance_state}}});
+      }
+
+      if (!instance_count.is_null() && !unreachable_count.is_null()) {
+        std::string count = std::to_string(*instance_count);
+        std::string unreachable = std::to_string(*unreachable_count);
+
+        data->push_back(
+            {"SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) "
+            "AS UNREACHABLE,  COUNT(*) AS TOTAL FROM "
+            "performance_schema.replication_group_members",
+            {"SIGNED", "UNREACHABLE"},
+            {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Integer},
+            {{unreachable, count}}});
+      }
+    }
 }
 
 void Admin_api_test::add_super_read_only_queries(

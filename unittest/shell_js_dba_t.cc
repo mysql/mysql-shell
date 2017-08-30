@@ -530,26 +530,11 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
   MY_EXPECT_LOG_NOT_CONTAINS(log);
 }
 
-TEST_F(Shell_js_dba_tests, function_preconditions) {
-  _options->wizards = false;
-  reset_shell();
-
-  validate_interactive("dba_preconditions.js");
-}
-
 TEST_F(Shell_js_dba_tests, no_interactive_drop_metadata_schema) {
   _options->wizards = false;
   reset_shell();
 
   validate_interactive("dba_drop_metadata_no_interactive.js");
-}
-
-TEST_F(Shell_js_dba_tests, function_preconditions_interactive) {
-  _options->interactive = true;
-  reset_shell();
-
-  create_file("mybad.cnf", "[sample]\n");
-  validate_interactive("dba_preconditions.js");
 }
 
 TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {

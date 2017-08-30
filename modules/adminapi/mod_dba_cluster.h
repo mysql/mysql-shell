@@ -140,6 +140,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 #endif
 
  protected:
+  Cluster() : _dissolved(false) { init(); }  // To support basic mocking
+
   uint64_t _id;
   std::string _name;
   std::shared_ptr<ReplicaSet> _default_replica_set;
@@ -149,11 +151,10 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value::Map_type_ref _attributes;
   bool _dissolved;
   std::shared_ptr<mysqlsh::ShellBaseSession> _session;
-
- private:
+  std::shared_ptr<MetadataStorage> _metadata_storage;
   void init();
 
-  std::shared_ptr<MetadataStorage> _metadata_storage;
+ private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
   void set_account_data(const std::string &account, const std::string &key,

@@ -24,12 +24,14 @@
 #include <vector>
 
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace testing {
 
 class Mock_cluster : public mysqlsh::dba::Cluster {
  public:
+  Mock_cluster() {}
   Mock_cluster(const std::string &name,
                std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata_storage)
       : Cluster(name, metadata_storage) {
@@ -37,6 +39,13 @@ class Mock_cluster : public mysqlsh::dba::Cluster {
         name, mysqlsh::dba::ReplicaSet::kTopologyPrimaryMaster,
         metadata_storage));
     _default_replica_set->set_id(1);
+  }
+
+  void initialize(const std::string& name,
+    std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata_storage) {
+    _name = name;
+    _metadata_storage = metadata_storage;
+    _session = _metadata_storage->get_session();
   }
 
   MOCK_METHOD2(call, shcore::Value(const std::string &,

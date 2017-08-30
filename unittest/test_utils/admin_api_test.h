@@ -64,9 +64,6 @@ class Admin_api_test : public Shell_core_test_wrapper {
                               const std::string &member_state);
   void add_md_group_name_query(std::vector<testing::Fake_result_data> *data,
                                const std::string &value);
-  void add_get_replication_group_state_online_rw_query(
-      std::vector<testing::Fake_result_data> *data,
-      const std::string &member_id);
   void add_get_cluster_matching_query(
       std::vector<testing::Fake_result_data> *data,
       const std::string &cluster_name);
@@ -78,7 +75,11 @@ class Admin_api_test : public Shell_core_test_wrapper {
 
   void add_precondition_queries(std::vector<testing::Fake_result_data> *data,
                                 mysqlsh::dba::GRInstanceType instance_type,
-                                nullable<std::string> primary_uuid);
+                                nullable<std::string> primary_uuid,
+                                nullable<std::string> instance_uuid = {},
+                                nullable<std::string> instance_state = {},
+                                nullable<int> instance_count = {},
+                                nullable<int> reachable_instances = {});
 
   void add_super_read_only_queries(
       std::vector<testing::Fake_result_data> *data, bool super_read_only,
