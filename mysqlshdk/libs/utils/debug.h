@@ -21,6 +21,7 @@
 #define MYSQLSHDK_LIBS_UTILS_DEBUG_H_
 
 #include <cstdint>
+#include <map>
 #include <set>
 #include <string>
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -39,8 +40,21 @@ namespace debug {
  *  DEBUG_OBJ_DEALLOC(class) on destructor
  */
 
+#define DEBUG_OBJ_FOR_CLASS_(klass) , shcore::debug::Debug_object_for<klass>
+
+#define DEBUG_OBJ_FOR_CLASS(klass) shcore::debug::Debug_object_for<klass>
+
 #define DEBUG_OBJ_ENABLE(name) \
   static shcore::debug::Debug_object_info *g_debug_obj_##name = nullptr
+
+#define DEBUG_OBJ_ALLOC_N(name, n)                             \
+  do {                                                         \
+    if (!g_debug_obj_##name) {                                 \
+      g_debug_obj_##name =                                     \
+          shcore::debug::debug_object_enable(STRINGIFY(name)); \
+    }                                                          \
+    g_debug_obj_##name->on_alloc(this, n);                     \
+  } while (0)
 
 #define DEBUG_OBJ_ALLOC(name)                                  \
   do {                                                         \
@@ -62,6 +76,15 @@ namespace debug {
     g_debug_obj_##name->on_alloc(ptr);                         \
   } while (0)
 
+#define DEBUG_OBJ_MALLOC_N(name, ptr, tag)                     \
+  do {                                                         \
+    if (!g_debug_obj_##name) {                                 \
+      g_debug_obj_##name =                                     \
+          shcore::debug::debug_object_enable(STRINGIFY(name)); \
+    }                                                          \
+    g_debug_obj_##name->on_alloc(ptr, tag);                    \
+  } while (0)
+
 #define DEBUG_OBJ_FREE(name, ptr) g_debug_obj_##name->on_dealloc(ptr)
 
 class Debug_object_info {
@@ -70,20 +93,39 @@ class Debug_object_info {
   uint32_t allocs = 0;
   uint32_t deallocs = 0;
   bool track_instances = false;
+  bool fatal_leaks = false;
   std::set<void *> instances;
+  std::map<void *, std::string> instance_tags;
   void dump();
 
  public:
   explicit Debug_object_info(const std::string &n);
-  void on_alloc(void *p);
+  void on_alloc(void *p, const std::string &tag = "");
   void on_dealloc(void *p);
 };
 
 Debug_object_info *debug_object_enable(const char *name);
+Debug_object_info *debug_object_enable_fatal(const char *name);
+
+template <typename C>
+class Debug_object_for {
+ public:
+  Debug_object_for() {
+    debug_object_enable(typeid(C).name())->on_alloc(this);
+  }
+
+  virtual ~Debug_object_for() {
+    debug_object_enable(typeid(C).name())->on_dealloc(this);
+  }
+};
 
 bool debug_object_dump_report(bool verbose);
 
 #else  // NDEBUG
+
+#define DEBUG_OBJ_FOR_CLASS_(klass)
+
+#define DEBUG_OBJ_FOR_CLASS(klass)
 
 #define DEBUG_OBJ_ENABLE(name)
 
@@ -91,13 +133,20 @@ bool debug_object_dump_report(bool verbose);
   do {                        \
   } while (0)
 
+#define DEBUG_OBJ_ALLOC_N(name, n) \
+  do {                        \
+  } while (0)
+
 #define DEBUG_OBJ_DEALLOC(name) \
   do {                          \
   } while (0)
 
-
 #define DEBUG_OBJ_MALLOC(name, ptr) \
   do {                              \
+  } while (0)
+
+#define DEBUG_OBJ_MALLOC_N(name, ptr, n) \
+  do {                                   \
   } while (0)
 
 #define DEBUG_OBJ_FREE(name, ptr) \

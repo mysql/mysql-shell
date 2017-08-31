@@ -34,6 +34,7 @@
 #include "src/interactive/interactive_global_schema.h"
 #include "src/interactive/interactive_global_session.h"
 #include "src/interactive/interactive_global_shell.h"
+#include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
@@ -41,9 +42,11 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
 
+DEBUG_OBJ_ENABLE(Mysql_shell);
+
 namespace mysqlsh {
 Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate) : mysqlsh::Base_shell(options, custom_delegate) {
-
+  DEBUG_OBJ_ALLOC(Mysql_shell);
   // Registers the interactive objects if required
   _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(_shell.get()));
   _global_js_sys = std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
@@ -182,6 +185,7 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
 }
 
 Mysql_shell::~Mysql_shell() {
+  DEBUG_OBJ_DEALLOC(Mysql_shell);
 }
 
 bool Mysql_shell::connect(bool primary_session) {

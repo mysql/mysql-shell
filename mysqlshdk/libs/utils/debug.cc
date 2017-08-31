@@ -43,6 +43,7 @@ Debug_object_info *debug_object_enable(const char *name) {
 bool debug_object_dump_report(bool verbose) {
   std::cout << "Instrumented mysqlsh object allocation report:\n";
   int count = 0;
+  int fatal_found = 0;
   for (auto c : g_debug_object_list) {
     if (verbose || c->allocs != c->deallocs) {
       std::cout << c->name << "\t" << (c->allocs - c->deallocs) << " leaks ("
@@ -50,29 +51,42 @@ bool debug_object_dump_report(bool verbose) {
                 << " deallocations)\n";
     }
     if (c->allocs != c->deallocs) {
+      if (c->fatal_leaks) {
+        std::cerr << "FATAL LEAK: " << c->name << "\n";
+        fatal_found++;
+      }
       c->dump();
-      count++;
+      count += c->allocs - c->deallocs;
     }
   }
   if (count == 0)
     std::cout << "No instrumented allocation errors found.\n";
+  else
+    std::cout << count << " total instrumented leaks.\n";
+  if (fatal_found > 0)
+    abort();
   return count == 0;
 }
 
 Debug_object_info::Debug_object_info(const std::string &n) : name(n) {
   track_instances = false;
   if (const char *trace = getenv("DEBUG_OBJ_TRACE")) {
-    if (std::string(";").append(trace).append(";").find(";" + n + ";") !=
+    if (std::string(":").append(trace).append(":").find(":" + n + ":") !=
         std::string::npos)
       track_instances = true;
   }
 }
 
-void Debug_object_info::on_alloc(void *p) {
+void Debug_object_info::on_alloc(void *p, const std::string &tag) {
   ++allocs;
   // if (name == "ShellBaseSession") std::abort();
   if (track_instances) {
-    std::cout << "ALLOC " << name << "  " << p << "\n";
+    if (tag.empty()) {
+      std::cout << "ALLOC " << name << "  " << p << "\n";
+    } else {
+      std::cout << "ALLOC " << name << "(" << tag << ")  " << p << "\n";
+      instance_tags[p] = tag;
+    }
     instances.insert(p);
   }
 }
@@ -80,7 +94,11 @@ void Debug_object_info::on_alloc(void *p) {
 void Debug_object_info::on_dealloc(void *p) {
   ++deallocs;
   if (track_instances) {
+    std::cout << "DEALLOC " << name << "  " << p << "\n";
     instances.erase(p);
+    auto iter = instance_tags.find(p);
+    if (iter != instance_tags.end())
+      instance_tags.erase(iter);
   }
 }
 
@@ -88,7 +106,12 @@ void Debug_object_info::dump() {
   if (track_instances) {
     std::cout << "\tThe following instances of " << name << " are dangling:\n";
     for (auto &p : instances) {
-      std::cout << "\t" << p << "\n";
+      auto iter = instance_tags.find(p);
+      if (iter == instance_tags.end()) {
+        std::cout << "\t\t" << p << "\n";
+      } else {
+        std::cout << "\t\t" << p << "\t(" << iter->second << ")\n";
+      }
     }
   }
 }

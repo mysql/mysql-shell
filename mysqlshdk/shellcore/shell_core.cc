@@ -23,6 +23,7 @@
 #include "shellcore/shell_python.h"
 #include "scripting/object_registry.h"
 #include "shellcore/base_session.h"
+#include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "utils/base_tokenizer.h"
 #include "scripting/lang_base.h"
@@ -38,9 +39,12 @@
 using namespace std::placeholders;
 using namespace shcore;
 
+DEBUG_OBJ_ENABLE(Shell_core);
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   : IShell_core(), _client_delegate(shdelegate), _reconnect_session(false) {
+  DEBUG_OBJ_ALLOC(Shell_core);
+
   _mode = Mode::None;
   _registry = new Object_registry();
 
@@ -59,10 +63,20 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 }
 
 Shell_core::~Shell_core() {
+  DEBUG_OBJ_DEALLOC(Shell_core);
+
   _global_dev_session.reset();
 
   delete _registry;
 
+  // unset all globals from all interpreters
+  for (const auto &g : _globals) {
+    for (const auto &l : _langs) {
+      if (g.second.first.is_set(l.first) && l.second) {
+        l.second->set_global(g.first, shcore::Value());
+      }
+    }
+  }
   _globals.clear();
 
   if (_langs[Mode::JavaScript])
