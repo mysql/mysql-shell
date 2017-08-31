@@ -1,4 +1,6 @@
 # Assumptions: smart deployment functions available
+#@ Initialization
+deployed_here = reset_or_deploy_sandboxes()
 
 shell.connect({'scheme': 'mysql', 'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port2})
 
@@ -27,3 +29,6 @@ cluster.add_instance({'user':'root', 'password': 'root', 'host':'localhost', 'po
 cluster.add_instance({'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port3})
 
 session.close()
+
+#@ Finalization
+cleanup_sandboxes(deployed_here)

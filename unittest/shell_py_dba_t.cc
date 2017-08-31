@@ -31,14 +31,10 @@ class Shell_py_dba_tests : public Shell_py_script_tester {
 protected:
   bool _have_ssl;
   std::string _sandbox_share;
-  std::string _sandbox_done;
 
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
     Shell_py_script_tester::SetUp();
-
-    _sandbox_share = _sandbox_dir + _path_splitter + "sandbox.share";
-    _sandbox_done = _sandbox_dir + _path_splitter + "sandbox.done";
 
     // All of the test cases share the same config folder
     // and setup script
@@ -149,9 +145,7 @@ protected:
     }
     exec_and_out_equals(code);
 
-    code = "__sandbox_share = '" + _sandbox_share + "';";
-    exec_and_out_equals(code);
-
+    _sandbox_share = _sandbox_dir + _path_splitter + "sandbox.share";
 
 #ifdef _WIN32
     code = "__path_splitter = '\\\\';";
@@ -169,6 +163,11 @@ protected:
 
     // output sandbox dir
     _output_tokens["__output_sandbox_dir"] = shcore::str_join(tokens, "\\");
+
+    tokens = shcore::split_string(_sandbox_share, "\\");
+    code = "__sandbox_share = '" +
+      shcore::str_join(tokens, "\\\\") + "'";
+    exec_and_out_equals(code);
 #else
     code = "__path_splitter = '/';";
     exec_and_out_equals(code);
@@ -181,6 +180,9 @@ protected:
       code = "__sandbox_dir = '" + _sandbox_dir + "';";
       exec_and_out_equals(code);
       code = "__output_sandbox_dir = '" + _sandbox_dir + "';";
+      exec_and_out_equals(code);
+
+      code = "var __sandbox_share = '" + _sandbox_share + "';";
       exec_and_out_equals(code);
     }
 #endif
