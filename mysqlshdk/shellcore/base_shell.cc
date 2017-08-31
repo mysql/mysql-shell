@@ -517,9 +517,13 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
 void Base_shell::set_global_object(
     const std::string &name, std::shared_ptr<shcore::Cpp_object_bridge> object,
     shcore::IShell_core::Mode_mask modes) {
-  _shell->set_global(
-      name,
-      shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(object)),
-      modes);
+  if (object) {
+    _shell->set_global(
+        name,
+        shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(object)),
+        modes);
+  } else {
+    _shell->set_global(name, shcore::Value(), modes);
+  }
 }
 }

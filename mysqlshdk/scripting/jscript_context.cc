@@ -153,6 +153,9 @@ struct JScript_context::JScript_context_impl {
   }
 
   ~JScript_context_impl() {
+    // force GC
+    while (!isolate->IdleNotification(1000)) {}
+
     for (std::map<std::string, v8::Persistent<v8::Object>* >::iterator i = factory_packages.begin(); i != factory_packages.end(); ++i)
       delete i->second;
 

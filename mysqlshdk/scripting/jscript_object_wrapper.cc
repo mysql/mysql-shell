@@ -53,18 +53,28 @@ JScript_object_wrapper::JScript_object_wrapper(JScript_context *context, bool in
     templ->SetIndexedPropertyHandler(&JScript_object_wrapper::handler_igetter, &JScript_object_wrapper::handler_isetter, 0, 0, &JScript_object_wrapper::handler_ienumerator);
 
   templ->SetInternalFieldCount(3);
-
-  DEBUG_OBJ_ALLOC(JSObjectWrapper);
 }
 
 JScript_object_wrapper::~JScript_object_wrapper() {
-  DEBUG_OBJ_DEALLOC(JSObjectWrapper);
   _object_template.Reset();
 }
 
 struct shcore::JScript_object_wrapper::Collectable {
   std::shared_ptr<Object_bridge> data;
-  v8::Persistent<v8::Object> handle;
+  v8::Persistent<v8::Object> weak_handle;
+
+  explicit Collectable(std::shared_ptr<Object_bridge> d) {
+    data = d;
+    DEBUG_OBJ_ALLOC_N(JSObjectWrapper, d->class_name());
+  }
+
+  std::shared_ptr<Object_bridge> get() {
+    return data;
+  }
+
+  ~Collectable() {
+    DEBUG_OBJ_DEALLOC(JSObjectWrapper);
+  }
 };
 
 v8::Handle<v8::Object> JScript_object_wrapper::wrap(std::shared_ptr<Object_bridge> object) {
@@ -74,18 +84,16 @@ v8::Handle<v8::Object> JScript_object_wrapper::wrap(std::shared_ptr<Object_bridg
     if (!obj.IsEmpty()) {
       obj->SetAlignedPointerInInternalField(0, &magic_pointer);
 
-      Collectable *tmp = new Collectable();
-      tmp->data = object;
+      Collectable *tmp = new Collectable(object);
 
       obj->SetAlignedPointerInInternalField(1, tmp);
       obj->SetAlignedPointerInInternalField(2, this);
 
       // marks the persistent instance to be garbage collectable, with a
       // callback called on deletion
-      tmp->handle.Reset(_context->isolate(),
-                        v8::Persistent<v8::Object>(_context->isolate(), obj));
-      tmp->handle.SetWeak(tmp, wrapper_deleted);
-      tmp->handle.MarkIndependent();
+      tmp->weak_handle.Reset(_context->isolate(), obj);
+      tmp->weak_handle.SetWeak(tmp, wrapper_deleted);
+      tmp->weak_handle.MarkIndependent();
     }
     return obj;
   }
@@ -96,23 +104,27 @@ void JScript_object_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Obje
   // the JS wrapper object was deleted, so we also free the shared-ref to the object
   v8::HandleScope hscope(data.GetIsolate());
   data.GetParameter()->data.reset();
-  data.GetParameter()->handle.Reset();
+  data.GetParameter()->weak_handle.Reset();
   delete data.GetParameter();
 }
 
 void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> *object = static_cast<std::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-
-  if (!object)
-    throw std::logic_error("bug!");
+  std::shared_ptr<Object_bridge> object =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!object) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
 
   v8::String::Utf8Value prop(property);
   /*if (prop == "__members__")
   {
-  std::vector<std::string> members((*object)->get_members());
+  std::vector<std::string> members(object->get_members());
   v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
   int i = 0;
   for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i)
@@ -122,9 +134,10 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   info.GetReturnValue().Set(marray);
   }
   else*/
-  if (strcmp(*prop, "length") == 0 && (*object)->has_member("length")) {
+  if (strcmp(*prop, "length") == 0 && object->has_member("length")) {
     try {
-      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value((*object)->get_member("length")));
+      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(
+          object->get_member("length")));
       return;
     } catch (Exception &exc) {
       if (!exc.is_attribute())
@@ -136,7 +149,7 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   }
   {
     try {
-      Value member = (*object)->get_member(*prop);
+      Value member = object->get_member(*prop);
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
     } catch (...) {
       info.GetIsolate()->ThrowException(translate_exception(self->_context));
@@ -147,15 +160,19 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
 void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> *object = static_cast<std::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-
-  if (!object)
-    throw std::logic_error("bug!");
+  std::shared_ptr<Object_bridge> object =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!object) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
 
   v8::String::Utf8Value prop(property);
   try {
-    (*object)->set_member(*prop, self->_context->v8_value_to_shcore_value(value));
+    object->set_member(*prop, self->_context->v8_value_to_shcore_value(value));
     info.GetReturnValue().Set(value);
   } catch (Exception &exc) {
     info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
@@ -167,14 +184,18 @@ void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::
 void JScript_object_wrapper::handler_query(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Integer>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> *object = static_cast<std::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
-
-  if (!object)
-    throw std::logic_error("bug!");
+  std::shared_ptr<Object_bridge> object =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!object) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
 
   v8::String::Utf8Value prop(property);
 
-  if ((*object)->has_member(*prop)) {
+  if (object->has_member(*prop)) {
     //v8::Integer::New(info.GetIsolate(), 1);
     info.GetReturnValue().Set(v8::None);
   }
@@ -183,12 +204,15 @@ void JScript_object_wrapper::handler_query(v8::Local<v8::String> property, const
 void JScript_object_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> *object = static_cast<std::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
-
-  if (!object)
-    throw std::logic_error("bug!");
-
-  std::vector<std::string> members((*object)->get_members());
+  std::shared_ptr<Object_bridge> object =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!object) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
+  std::vector<std::string> members(object->get_members());
   v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
   int i = 0;
   for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i) {
@@ -200,15 +224,19 @@ void JScript_object_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v
 void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallbackInfo<v8::Value>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> *object = static_cast<std::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-
-  if (!object)
-    throw std::logic_error("bug!");
+  std::shared_ptr<Object_bridge> object =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!object) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
 
   {
     try {
-      Value member = (*object)->get_member(i);
+      Value member = object->get_member(i);
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
     } catch (Exception &exc) {
       info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
@@ -221,14 +249,18 @@ void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallb
 void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> *object = static_cast<std::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-
-  if (!object)
-    throw std::logic_error("bug!");
+  std::shared_ptr<Object_bridge> object =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!object) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
 
   try {
-    (*object)->set_member(i, self->_context->v8_value_to_shcore_value(value));
+    object->set_member(i, self->_context->v8_value_to_shcore_value(value));
     info.GetReturnValue().Set(value);
   } catch (Exception &exc) {
     info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
@@ -240,12 +272,15 @@ void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> va
 void JScript_object_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<v8::Array>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> *object = static_cast<std::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
-
-  if (!object)
-    throw std::logic_error("bug!");
-
-  std::vector<std::string> members((*object)->get_members());
+  std::shared_ptr<Object_bridge> object =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!object) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
+  std::vector<std::string> members(object->get_members());
   v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
   int i = 0;
   for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i) {
@@ -258,8 +293,13 @@ void JScript_object_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<
 
 bool JScript_object_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Object_bridge> &ret_object) {
   if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer) {
-    std::shared_ptr<Object_bridge> *object = static_cast<std::shared_ptr<Object_bridge>*>(value->GetAlignedPointerFromInternalField(1));
-    ret_object = *object;
+    std::shared_ptr<Object_bridge> object =
+        static_cast<Collectable *>(value->GetAlignedPointerFromInternalField(1))
+            ->get();
+    if (!object) {
+      return false;
+    }
+    ret_object = object;
     return true;
   }
   return false;

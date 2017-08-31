@@ -694,7 +694,7 @@ PyObject *shcore::wrap(std::shared_ptr<Object_bridge> object) {
   else
     wrapper = PyObject_New(PyShObjObject, &PyShObjObjectType);
 
-  DEBUG_OBJ_MALLOC(PythonObjectWrapper, wrapper);
+  DEBUG_OBJ_MALLOC_N(PythonObjectWrapper, wrapper, object->class_name());
 
   wrapper->object = new Object_bridge_ref(object);
   wrapper->cache = new PyMemberCache();
