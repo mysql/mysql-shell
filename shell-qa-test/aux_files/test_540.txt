@@ -1,2 +1,2 @@
-#!../bld/mysqlsh -f
+#!/Users/rennox/dev/master/build/mysqlsh -f
 print("Hello World");
