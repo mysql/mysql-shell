@@ -655,7 +655,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
         x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
-                   "Creating a Session"),
+                   "Creating a session"),
                   ("\\js\n", "mysql-js>"),
                   ("print(session);\n", "Session:")
                   ]
@@ -704,7 +704,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\connect -mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                           LOCALHOST.port), "Creating a Classic Session"),
+                                                           LOCALHOST.port), "Creating a Classic session"),
                   ("print(session);\n", "ClassicSession:"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -715,7 +715,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
         x_cmds = [("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
-                   "Creating a Session"),
+                   "Creating a session"),
                   ("\\js\n", "mysql-js>"),
                   ("print(session);\n", "Session:"),
                   ]
@@ -729,7 +729,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
         x_cmds = [("\\connect {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                          REMOTEHOST.xprotocol_port),
-                   "Creating a Session"),
+                   "Creating a session"),
                   ("\\js\n", "mysql-js"),
                   ("print(session);\n", "XSession:"),
                   ]
@@ -764,7 +764,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                           REMOTEHOST.port), "Creating a Classic Session"),
+                                                           REMOTEHOST.port), "Creating a Classic session"),
                   ("print(session);\n", "ClassicSession:"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6934,7 +6934,7 @@ class XShell_TestCases(unittest.TestCase):
                   ('\\saveconn  -f myCConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.port), "Successfully stored"),
                   ('\\connect -mc $myCConn\n',
-                   'Using \'myCConn\' stored connection' + os.linesep + 'Creating a Classic Session'),
+                   'Using \'myCConn\' stored connection' + os.linesep + 'Creating a Classic session'),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7675,13 +7675,13 @@ class XShell_TestCases(unittest.TestCase):
         '''[MYS-420]: Help in command prompt with space blank behaves different (add trim() function)'''
         results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("\\connect\n", "\connect [-<type>] <uri>"),
-                  ("\\connect      \n", "\connect [-<type>] <uri>"),
-                  ("       \\connect      \n", "\connect [-<type>] <uri>"),
+        x_cmds = [("\\connect\n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
+                  ("\\connect      \n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
+                  ("       \\connect      \n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
                   ("\\py\n", "mysql-py>"),
-                  ("\\connect\n", "\connect [-<type>] <uri>"),
-                  ("\\connect      \n", "\connect [-<type>] <uri>"),
-                  ("       \\connect      \n", "\connect [-<type>] <uri>")
+                  ("\\connect\n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
+                  ("\\connect      \n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
+                  ("       \\connect      \n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>")
                   ]
         for command, expectedResult in x_cmds:
             p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -8242,7 +8242,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
         x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
-                   "Creating a Session"),
+                   "Creating a session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
                    "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + ""),
@@ -8273,7 +8273,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
         x_cmds = [("\\connect -mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                           LOCALHOST.port), "Creating a Classic Session"),
+                                                           LOCALHOST.port), "Creating a Classic session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
                    "<ClassicSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + ">" + os.linesep + ""),
@@ -8289,7 +8289,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
         x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
-                   "Creating a Session"),
+                   "Creating a session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
                    "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + "")
@@ -8644,9 +8644,9 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
         init_command = [MYSQL_SHELL, '--interactive=full', '--uri={0}:{1}@{2}:{3}'.
             format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port)]
-        x_cmds = [("\\c -c omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
+        x_cmds = [("\\c -mc omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
                    .format(LOCALHOST.password, LOCALHOST.host, LOCALHOST.port) + "\n", "omar!#$&()*+,/:;=?@[]"),
-                  ("\\c -n omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
+                  ("\\c -mx omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
                    .format(LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port) + "\n",
                    "omar!%23$&()*+,%2F%3A;=%3F%40%5B%5D@localhost:33060")]
         for command, expectedResult in x_cmds:
