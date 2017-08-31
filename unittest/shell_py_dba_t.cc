@@ -440,7 +440,7 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster_multimaster) {
   execute("session.close();");
 }
 
-TEST_F(Shell_py_dba_tests, configure_local_instance) {
+TEST_F(Shell_py_dba_tests, DISABLED_configure_local_instance) {
   _options->wizards = false;
   reset_shell();
 
