@@ -98,7 +98,7 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL4,
 std::map<std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession>>
     Dba::_session_cache;
 
-Dba::Dba(IShell_core *owner) : _shell_core(owner) {
+Dba::Dba(shcore::IShell_core *owner) : _shell_core(owner) {
   init();
 }
 

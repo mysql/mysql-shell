@@ -1148,9 +1148,9 @@ REGISTER_HELP(SESSION_SQL_DETAIL2, "The received SQL is set on the execution "
 * \sa SqlExecute
 */
 #if DOXYGEN_JS
-SqlExecute BaseSession::sql(String sql) {}
+SqlExecute Session::sql(String sql) {}
 #elif DOXYGEN_PY
-SqlExecute BaseSession::sql(str sql) {}
+SqlExecute Session::sql(str sql) {}
 #endif
 shcore::Value Session::sql(const shcore::Argument_list &args) {
   std::shared_ptr<SqlExecute> sql_execute(new SqlExecute(
@@ -1184,9 +1184,9 @@ REGISTER_HELP(SESSION_GETCURRENTSCHEMA_RETURNS, "@return A Schema object "
 * $(SESSION_GETCURRENTSCHEMA_RETURNS)
 */
 #if DOXYGEN_JS
-Schema BaseSession::getCurrentSchema() {}
+Schema Session::getCurrentSchema() {}
 #elif DOXYGEN_PY
-Schema BaseSession::get_current_schema() {}
+Schema Session::get_current_schema() {}
 #endif
 
 Value Session::get_member(const std::string &prop) const {
@@ -1233,9 +1233,9 @@ REGISTER_HELP(SESSION_QUOTENAME_RETURNS,
  * $(SESSION_QUOTENAME_RETURNS)
  */
 #if DOXYGEN_JS
-String BaseSession::quoteName(String id) {}
+String Session::quoteName(String id) {}
 #elif DOXYGEN_PY
-str BaseSession::quote_name(str id) {}
+str Session::quote_name(str id) {}
 #endif
 shcore::Value Session::quote_name(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("quoteName").c_str());
@@ -1273,9 +1273,9 @@ REGISTER_HELP(SESSION_SETCURRENTSCHEMA_DETAIL1,
  * $(SESSION_SETCURRENTSCHEMA_DETAIL1)
  */
 #if DOXYGEN_JS
-Schema BaseSession::setCurrentSchema(String name) {}
+Schema Session::setCurrentSchema(String name) {}
 #elif DOXYGEN_PY
-Schema BaseSession::set_current_schema(str name) {}
+Schema Session::set_current_schema(str name) {}
 #endif
 shcore::Value Session::_set_current_schema(
     const shcore::Argument_list &args) {
