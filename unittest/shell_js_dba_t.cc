@@ -182,10 +182,10 @@ protected:
       exec_and_out_equals(code);
       code = "var __output_sandbox_dir = '" + _sandbox_dir + "';";
       exec_and_out_equals(code);
-
-      code = "var __sandbox_share = '" + _sandbox_share + "';";
-      exec_and_out_equals(code);
     }
+
+    code = "var __sandbox_share = '" + _sandbox_share + "';";
+    exec_and_out_equals(code);
 #endif
 
     code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";

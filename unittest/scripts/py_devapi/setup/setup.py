@@ -281,6 +281,7 @@ def reset_or_deploy_sandbox(port):
 
   # If the instance is up and running, we just drop the metadata
   if connected:
+    print '**Recycling instance %d\n' % port
     print 'Dropping metadata...'
     session.run_sql('SET GLOBAL super_read_only = 0'); # (BUG#26422638)
     session.run_sql('set sql_log_bin = 0')
@@ -302,6 +303,7 @@ def reset_or_deploy_sandbox(port):
 
   # Otherwise a full deployment is done
   else:
+    print '**Deploying instance %d\n' % port
     print 'Deploying instance'
 
     options = {}
@@ -312,6 +314,8 @@ def reset_or_deploy_sandbox(port):
     options['allowRootFrom'] = '%'
     options['mysqldOptions'] = ["innodb_log_file_size=4M"]
     dba.deploy_sandbox_instance(port, options)
+
+  print '**End of sandbox handling\n'
 
   if os.path.exists(__sandbox_share):
     return False

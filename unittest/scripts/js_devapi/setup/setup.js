@@ -324,6 +324,8 @@ function reset_or_deploy_sandbox(port) {
     dba.deploySandboxInstance(port, options);
   }
 
+  println("**End of sandbox handling");
+
   if (os.file_exists(__sandbox_share))
     return false;
   else
