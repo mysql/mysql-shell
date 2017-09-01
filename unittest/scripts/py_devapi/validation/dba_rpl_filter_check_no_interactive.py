@@ -17,4 +17,4 @@
 ||Invalid 'binlog-ignore-db' settings, metadata cannot be excluded. Remove binlog filters or the 'mysql_innodb_cluster_metadata' database from the 'binlog-ignore-db' option.
 
 #@ Finalization
-cleanup_sandboxes(deployed_here)
+||
