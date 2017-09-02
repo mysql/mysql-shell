@@ -82,6 +82,10 @@ cmake .. \
 %if 0%{?with_connector_python:1}
     -DWITH_CONNECTOR_PYTHON="%{with_connector_python}" \
 %endif
+%if 0%{?with_mysql_source:1}
+    -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
+    -DMYSQL_BUILD_DIR="%{with_mysql_source}/bld" \
+%endif
     -DHAVE_PYTHON=1 \
 
 # Supported V8 versions are limited, disable
