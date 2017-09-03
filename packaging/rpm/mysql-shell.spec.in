@@ -1,4 +1,4 @@
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 Summary:        Command line shell and scripting environment for MySQL
 Name:           mysql-shell@PRODUCT_SUFFIX@
 Version:        @MYSH_NO_DASH_VERSION@
-Release:        @RPM_RELEASE@@RPM_EXTRA_VERSION@%{?dist}
+Release:        @RPM_RELEASE@%{?dist}
 License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz

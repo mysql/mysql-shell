@@ -31,28 +31,29 @@ include(../../version.cmake)
 #set(YEAR      2016)  # FIXME automate somehow
 set(PRODUCT   "MySQL Shell ${MYSH_BASE_VERSION}")
 
+# User can specify the RPM_RELEASE string but if not given, create one
+if(NOT RPM_RELEASE)
+  if(EXTRA_VERSION)   # -rc, -dmr, ...., and assume non GA
+    # Extract "rc", "dmr" ...
+    set(_rpm_extra_version "${EXTRA_VERSION}")
+    string(REGEX REPLACE "^[^A-Za-z0-9]" "" _rpm_extra_version "${_rpm_extra_version}")
+    string(REGEX REPLACE "[^A-Za-z0-9]" "_" _rpm_extra_version "${_rpm_extra_version}")
+    set(RPM_RELEASE "0.1.${_rpm_extra_version}")
+  else()
+    set(RPM_RELEASE "1")
+  endif()
+endif()
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/../../LICENSE.mysql")
   set(PRODUCT_SUFFIX "-commercial")
   set(LICENSE_FILE   "LICENSE.mysql")
   set(LICENSE_TYPE   "Commercial")
-  if(NOT RPM_RELEASE)
-    if(MYSH_LEVEL)
-      set(RPM_RELEASE "0.1")
-    else()
-      set(RPM_RELEASE "1.1")
-    endif()
-  endif()
+  # We add ".1" to RPM release if commercial
+  set(RPM_RELEASE "${RPM_RELEASE}.1")
 else()
   set(PRODUCT_SUFFIX "")
   set(LICENSE_FILE   "COPYING.txt")
   set(LICENSE_TYPE   "GPLv2")
-  if(NOT RPM_RELEASE)
-    if(MYSH_LEVEL)
-      set(RPM_RELEASE "0.1")
-    else()
-      set(RPM_RELEASE "1")
-    endif()
-  endif()
 endif()
 
 # ----------------------------------------------------------------------
