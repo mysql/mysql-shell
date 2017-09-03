@@ -19,10 +19,6 @@
 #
 ##############################################################################
 
-# Some stuff for building RPMs, that is not using CPack
-# RPMs doesn't allow "-" in version, so we use like "5.3.0_alpha"
-string(REPLACE "-" "_" MYSH_NODASH_VERSION "${MYSH_VERSION}")
-
 # The rest is mainly about CPack
 if(NOT EXTRA_NAME_SUFFIX)
   set(EXTRA_NAME_SUFFIX "")
