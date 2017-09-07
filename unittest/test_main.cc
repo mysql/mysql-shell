@@ -167,6 +167,7 @@ static void check_zombie_sandboxes() {
   }
 }
 
+
 int main(int argc, char **argv) {
   // Ignore broken pipe signal from broken connections
 #ifndef _WIN32
@@ -294,108 +295,65 @@ int main(int argc, char **argv) {
 #else
   setenv("MYSQLSH_USER_CONFIG_HOME", ".", 1);
 #endif
+  bool got_filter = false;
+
+  for(auto index = 0; index < argc; index++) {
+    if (shcore::str_beginswith(argv[index], "--gtest_filter"))
+      got_filter = true;
+  }
+
   ::testing::InitGoogleTest(&argc, argv);
 
-  // Helper code for DBA specific groups of tests;
-  std::string flags = ::testing::GTEST_FLAG(filter);
-  //::testing::FLAGS_gtest_break_on_failure = true;
+  std::string filter = ::testing::GTEST_FLAG(filter);
+  std::string new_filter = filter;
 
-  if (!flags.empty()) {
+  if (!got_filter) {
+    // We calculate the default test group to be executed as follows
+    // On PB2, the next branches would execute the full test suite:
+    // - mysql-shell
+    // - mysql-shell-staging
+    // - mysql-shell-<version>-release
+    //
+    // In Any other case, we would exclude SYSTEM tests from execution
+    // If a specific filter is passed on the system call, we honor it
+    const char *branch_name = getenv("BRANCH_NAME");
 
-    std::string new_flags;
-
-    if (flags == "DBA")
-      new_flags = "Shell_py_dba_tests.*:Shell_js_dba_tests.*";
-    else if (flags == "DBAJS")
-      new_flags = "Shell_js_dba_tests.*";
-    else if (flags == "DBAPY")
-      new_flags = "Shell_py_dba_tests.*";
-    else if (flags == "DBAJSNIG")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
-          "interactive_classic_global*";
-    else if (flags == "DBAPYNIG")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
-          "interactive_classic_global*";
-    else if (flags == "DBAJSNIGDBA")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
-          "interactive_classic_global_dba";
-    else if (flags == "DBAPYNIGDBA")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
-          "interactive_classic_global_dba";
-    else if (flags == "DBAJSNIC")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
-          "interactive_classic_custom*";
-    else if (flags == "DBAPYNIC")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
-          "interactive_classic_custom*";
-    else if (flags == "DBAJSNICDBA")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
-          "interactive_classic_custom_dba";
-    else if (flags == "DBAPYNICDBA")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
-          "interactive_classic_custom_dba";
-    else if (flags == "DBAJSNI")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests.no_"
-          "interactive_classic_*";
-    else if (flags == "DBAPYNI")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.no_"
-          "interactive_classic_*";
-    else if (flags == "DBAJSIG")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
-          "interactive_classic_global*";
-    else if (flags == "DBAPYIG")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
-          "interactive_classic_global*";
-    else if (flags == "DBAJSIGDBA")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
-          "interactive_classic_global_dba";
-    else if (flags == "DBAPYIGDBA")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
-          "interactive_classic_global_dba";
-    else if (flags == "DBAJSIC")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
-          "interactive_classic_custom*";
-    else if (flags == "DBAPYIC")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
-          "interactive_classic_custom*";
-    else if (flags == "DBAJSICDBA")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
-          "interactive_classic_custom_dba";
-    else if (flags == "DBAPYICDBA")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
-          "interactive_classic_custom_dba";
-    else if (flags == "DBAJSI")
-      new_flags =
-          "Shell_js_dba_tests.no_interactive_deploy*:Shell_js_dba_tests."
-          "interactive_classic_*";
-    else if (flags == "DBAPYI")
-      new_flags =
-          "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests."
-          "interactive_classic_*";
-    else if (flags == "ALLBUTDBA")
-      new_flags = "*:-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
-
-    if (!new_flags.empty())
-      ::testing::GTEST_FLAG(filter) = new_flags.c_str();
+    new_filter = "NOSYSTEM";
+    if (branch_name) {
+      if ((strcmp(branch_name, "mysql-shell") == 0) ||
+        (shcore::str_beginswith(branch_name, "mysql-shell") &&
+        (shcore::str_endswith(branch_name, "release") ||
+          shcore::str_endswith(branch_name, "staging")))) {
+        std::cout << "Detected BRANCH_NAME=" << branch_name << ", executing "
+          "the full test suite." << std::endl;
+        new_filter = "*";
+      } else {
+        std::cout << "Detected BRANCH_NAME=" << branch_name << ", excluding "
+          "the SYSTEM tests" << std::endl;
+      }
+    } else {
+      std::cout << "Unable to detect BRANCH_NAME, excluding the SYSTEM "
+        "tests." << std::endl;
+    }
+  } else {
+    std::cout << "Executing defined filter "
+      ": " << new_filter.c_str() << "." << std::endl;
   }
+
+
+  // System tests include the JS System Tests only
+  // Decision was made to remove the python tests which
+  // Exercise exactly the same functionalify
+  if (new_filter == "SYSTEM")
+    new_filter = "Shell_js_dba_tests.*";
+
+  // non system tests include everything except
+  // PY/JS System Tests
+  else if (new_filter == "NOSYSTEM")
+    new_filter = "*:-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
+
+  if (new_filter != filter)
+    ::testing::GTEST_FLAG(filter) = new_filter.c_str();
 
   const char *generate_option = "--generate_test_groups=";
   if (argc > 1 &&
