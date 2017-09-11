@@ -2,3 +2,4 @@ usr/bin/mysqlsh
 usr/bin/mysqlprovision
 usr/share/mysqlsh/@LIC_FILE@ usr/share/doc/mysqlsh
 usr/share/mysqlsh/README     usr/share/doc/mysqlsh
+usr/share/mysqlsh/prompt/*   usr/share/mysqlsh/prompt
