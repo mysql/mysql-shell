@@ -100,8 +100,13 @@ make %{?_smp_mflags}
 %install
 cd build
 make DESTDIR=%{buildroot} install
-rm -rf %{buildroot}%{_includedir}
-rm -f %{buildroot}%{_prefix}/lib/*.{so,a}
+# FIXME at this moment only headers are installed but no
+# "mysqlshdk" library. It is also unclear if eventually we
+# want the lib and headers, in that case likely in a separate
+# package. Using a work-around removing all the "dev" files
+rm -rf %{buildroot}%{_includedir} 2>/dev/null
+rm -f %{buildroot}%{_prefix}/lib*/*.{so*,a} 2>/dev/null
+# License and readme are included using %%doc below
 rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 
 %files
