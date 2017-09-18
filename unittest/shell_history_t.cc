@@ -439,7 +439,7 @@ TEST_F(Shell_history, history_linenoise) {
     shell.process_line("\\help history");
     EXPECT_EQ(
         "View and edit command line history.\n\n"
-        "TRIGGERS: \\history\n\n"
+        "NAME: \\history\n\n"
         "SYNTAX:\n"
         "   \\history                     Display history entries.\n"
         "   \\history del <num>[-<num>]   Delete entry/entries from history.\n"

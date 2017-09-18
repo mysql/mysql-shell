@@ -158,11 +158,11 @@ TEST_F(Command_handler_tests, getting_command_help) {
 
   help.clear();
   EXPECT_TRUE(_shell_command_handler.get_command_help("cmd2", help));
-  EXPECT_EQ("Shortcut command.\n\nTRIGGERS: cmd2 or \\2", help);
+  EXPECT_EQ("Shortcut command.\n\nNAME: cmd2 or \\2", help);
 
   help.clear();
   EXPECT_TRUE(_shell_command_handler.get_command_help("\\2", help));
-  EXPECT_EQ("Shortcut command.\n\nTRIGGERS: cmd2 or \\2", help);
+  EXPECT_EQ("Shortcut command.\n\nNAME: cmd2 or \\2", help);
 
   help.clear();
   EXPECT_TRUE(_shell_command_handler.get_command_help("three", help));
@@ -170,11 +170,11 @@ TEST_F(Command_handler_tests, getting_command_help) {
 
   help.clear();
   EXPECT_TRUE(_shell_command_handler.get_command_help("four", help));
-  EXPECT_EQ("Shortcut command with help.\n\nTRIGGERS: four or \\4\n\nFourth command.", help);
+  EXPECT_EQ("Shortcut command with help.\n\nNAME: four or \\4\n\nFourth command.", help);
 
   help.clear();
   EXPECT_TRUE(_shell_command_handler.get_command_help("\\4", help));
-  EXPECT_EQ("Shortcut command with help.\n\nTRIGGERS: four or \\4\n\nFourth command.", help);
+  EXPECT_EQ("Shortcut command with help.\n\nNAME: four or \\4\n\nFourth command.", help);
 }
 }
 }

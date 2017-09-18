@@ -175,14 +175,18 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef __APPLE__
-  std::cout << "Increasing open files limit" << std::endl;
   struct rlimit rlp;
   getrlimit(RLIMIT_NOFILE, &rlp);
-  std::cout << "before: " << rlp.rlim_cur << "--" << rlp.rlim_max << std::endl;  
-  rlp.rlim_cur = 10000;
-  setrlimit(RLIMIT_NOFILE, &rlp);
-  getrlimit(RLIMIT_NOFILE, &rlp);
-  std::cout << "after: " << rlp.rlim_cur << "--" << rlp.rlim_max << std::endl;   
+  if (rlp.rlim_cur < 10000) {
+    std::cout << "Increasing open files limit" << std::endl;
+    std::cout << "before: " << rlp.rlim_cur << " - " << rlp.rlim_max
+              << std::endl;
+    rlp.rlim_cur = 10000;
+    setrlimit(RLIMIT_NOFILE, &rlp);
+    getrlimit(RLIMIT_NOFILE, &rlp);
+    std::cout << "after: " << rlp.rlim_cur << " - " << rlp.rlim_max
+              << std::endl;
+  }
 #endif
 
   g_argv0 = argv[0];
