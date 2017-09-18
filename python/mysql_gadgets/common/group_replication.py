@@ -1188,7 +1188,15 @@ def check_server_id(req_checker, error_msgs=None):
     _print_check_unique_id_results(server_id_res)
     if not server_id_res["pass"]:
         duplicate = server_id_res.get("duplicate", None)
-        if duplicate is None:
+        compiled_default = server_id_res.get("compiled_default", None)
+        if compiled_default:
+            msg = ("The server_id {0} on {1} was not changed (using default "
+                   "server value), it must be changed and unique among all "
+                   "servers (valid values: positive integer in the range from "
+                   "1 to 4294967295)."
+                   "".format(server.select_variable("server_id"),
+                             server))
+        elif duplicate is None:
             msg = ("The server_id {0} on {1} is not valid, it must be a "
                    "positive integer in the range from 1 to 4294967295."
                    "".format(server.select_variable("server_id"),

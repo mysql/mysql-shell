@@ -561,11 +561,22 @@ class RequirementChecker(object):
         # Store Result
         results = {}
 
-        if this_server_id == '0':
-            _LOGGER.warning("The server_id can not be 0 ")
-
-            results["pass"] = False
-            return results
+        # Starting from MySQL 8.0.3, server_id = 1 by default (to enable
+        # binary logging). In this when need to check if the default value was
+        # changed by the user. Otherwise server_id is 0 (not set) by default
+        # for previous server versions.
+        if server.check_version_compat(8, 0, 3):
+            if server.has_default_value('server_id'):
+                _LOGGER.warning("The server_id must be changed (using default "
+                                "server value) and unique among all servers.")
+                results["pass"] = False
+                results["compiled_default"] = True
+                return results
+        else:
+            if this_server_id == '0':
+                _LOGGER.warning("The server_id can not be 0 ")
+                results["pass"] = False
+                return results
 
         # check for duplicates
         peer_list = server_values.get("peers", [])
