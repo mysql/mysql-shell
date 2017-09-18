@@ -727,6 +727,45 @@ TEST_F(Shell_py_dba_tests, dba_cluster_mts) {
   validate_interactive("dba_cluster_mts.py");
 }
 
+TEST_F(Shell_py_dba_tests, dba_configure_new_instance) {
+  // Regression for BUG#26818744 : MYSQL SHELL DOESN'T ADD THE SERVER_ID ANYMORE
+  _options->wizards = false;
+  reset_shell();
+
+  // Execute setup script to be able to use smart deployment functions.
+  execute_setup();
+
+  // Clean and delete all sandboxes.
+  execute("cleanup_sandboxes(True)");
+
+  // Deploy new sandbox instances (required for this test).
+  execute("deployed_here = reset_or_deploy_sandboxes()");
+
+  // Remove the server id information from the configuration files.
+  remove_from_cfg_file(_sandbox_cnf_1, "server_id");
+  remove_from_cfg_file(_sandbox_cnf_2, "server_id");
+  remove_from_cfg_file(_sandbox_cnf_3, "server_id");
+
+  // Restart sandbox instances.
+  std::string stop_options = "{'password': 'root',"
+                             "'sandboxDir': __sandbox_dir}";
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port1, " + stop_options +
+      ")");
+  execute("try_restart_sandbox(__mysql_sandbox_port1)");
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port2, " + stop_options +
+      ")");
+  execute("try_restart_sandbox(__mysql_sandbox_port2)");
+  execute("dba.stop_sandbox_instance(__mysql_sandbox_port3, " + stop_options +
+      ")");
+  execute("try_restart_sandbox(__mysql_sandbox_port3)");
+
+  // Test the configuration of a cluster.
+  validate_interactive("dba_configure_new_instance.py");
+
+  // Clean up sandboxes.
+  execute("cleanup_sandboxes(deployed_here)");
+}
+
 TEST_F(Shell_py_dba_tests, dba_help) {
   validate_interactive("dba_help.py");
 }

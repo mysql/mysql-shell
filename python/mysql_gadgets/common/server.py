@@ -1271,6 +1271,31 @@ class Server(object):
         res = self.exec_query("SELECT @@{0}{1}".format(var_type, var_name))
         return res[0][0]
 
+    def has_default_value(self, var_name):
+        """Check if the variable has the default value or was already change.
+
+        Return a boolean value indicating if the variable is set with the
+        compiled default value (true), or if it was already changed explicitly
+        by the user somehow (false), i.e. variable changed with the SET
+        statement, a command line option, or the configuration file.
+
+        NOTE: This method requires the performance_schema to be enabled.
+
+        :param var_name: Name of the target variable to check.
+        :type var_name: string
+        :return: True if the variable value is the compiled default one, or
+                 False otherwise (meaning that the variable value was already
+                 changed by the user).
+        :rtype: boolean
+        """
+        res = self.exec_query("SELECT variable_source "
+                              "FROM performance_schema.variables_info "
+                              "WHERE variable_name='{0}'".format(var_name))
+        if res[0][0] == 'COMPILED':
+            return True
+        else:
+            return False
+
     def flush_logs(self, log_type=None):
         """Execute the FLUSH [log_type] LOGS statement.
 
