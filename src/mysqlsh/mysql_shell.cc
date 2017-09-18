@@ -99,16 +99,17 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
       shcore::Shell_core_options::get();
   set_sql_safe_for_logging((*shcore_options)[SHCORE_HISTIGNORE].descr());
 
+  // clang-format off
   std::string cmd_help_connect =
     "SYNTAX:\n"
     "   \\connect [-<TYPE>] <URI>\n\n"
     "WHERE:\n"
     "   TYPE is an optional parameter to specify the session type. Accepts the following values:\n"
-    "        -mx, --mysqlx: to establish Creating an X protocol session\n"
-    "        -mc, --mysql: to establish a Classic session\n"
-    "        -ma: to establish a session selected by performing automatic protocol selection\n"
-    "        If the session type is not specified, Creating an X protocol session will be established.\n"
-    "   URI is in the format of: [user[:password]@]hostname[:port]\n\n"
+    "        -mc, --mysql: to open a classic MySQL protocol session (default port 3306)\n"
+    "        -mx, --mysqlx: to open an X protocol session (default port 33060)\n"
+    "        -ma: to open a session auto-detecting the protocol type\n"
+    "        If TYPE is omitted, -ma is assumed by default, unless the protocol is given in the URI.\n"
+    "   URI format is: [user[:password]@]hostname[:port]\n\n"
     "EXAMPLE:\n"
     "   \\connect -mx root@localhost";
 
@@ -132,6 +133,7 @@ Mysql_shell::Mysql_shell(const Shell_options &options, shcore::Interpreter_deleg
     "NOTE: This command works with the active session.\n"
     "If it is either an X protocol or a Classic session, the current schema will be updated (affects SQL mode).\n"
     "The global 'db' variable will be updated to hold the requested schema.\n";
+  // clang-format on
 
   SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "",
                     Mysql_shell::cmd_print_shell_help);

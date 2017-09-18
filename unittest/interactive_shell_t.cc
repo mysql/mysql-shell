@@ -723,21 +723,21 @@ TEST_F(Interactive_shell_test, shell_command_help_js) {
   output_handler.wipe_all();
 
   execute("\\help \\connect");
-  MY_EXPECT_STDOUT_CONTAINS("If the session type is not specified, Creating an X protocol session will be established.");
+  MY_EXPECT_STDOUT_CONTAINS("If TYPE is omitted, -ma is assumed by default, unless the protocol is given in the URI.");
   output_handler.wipe_all();
 
   execute("\\h \\connect");
   MY_EXPECT_STDOUT_CONTAINS("Connect to a server.");
-  MY_EXPECT_STDOUT_CONTAINS("TRIGGERS: \\connect or \\c");
+  MY_EXPECT_STDOUT_CONTAINS("NAME: \\connect or \\c");
   MY_EXPECT_STDOUT_CONTAINS("SYNTAX:");
   MY_EXPECT_STDOUT_CONTAINS("   \\connect [-<TYPE>] <URI>");
   MY_EXPECT_STDOUT_CONTAINS("WHERE:");
   MY_EXPECT_STDOUT_CONTAINS("   TYPE is an optional parameter to specify the session type. Accepts the following values:");
-  MY_EXPECT_STDOUT_CONTAINS("        -mx, --mysqlx: to establish Creating an X protocol session");
-  MY_EXPECT_STDOUT_CONTAINS("        -mc, --mysql: to establish a Classic session");
-  MY_EXPECT_STDOUT_CONTAINS("        -ma: to establish a session selected by performing automatic protocol selection");
-  MY_EXPECT_STDOUT_CONTAINS("        If the session type is not specified, Creating an X protocol session will be established.");
-  MY_EXPECT_STDOUT_CONTAINS("   URI is in the format of: [user[:password]@]hostname[:port]");
+  MY_EXPECT_STDOUT_CONTAINS("        -mx, --mysqlx: to open an X protocol session (default port 33060)");
+  MY_EXPECT_STDOUT_CONTAINS("        -mc, --mysql: to open a classic MySQL protocol session (default port 3306)");
+  MY_EXPECT_STDOUT_CONTAINS("        -ma: to open a session auto-detecting the protocol type");
+  MY_EXPECT_STDOUT_CONTAINS("        If TYPE is omitted, -ma is assumed by default, unless the protocol is given in the URI.");
+  MY_EXPECT_STDOUT_CONTAINS("   URI format is: [user[:password]@]hostname[:port]");
   MY_EXPECT_STDOUT_CONTAINS("EXAMPLE:");
   MY_EXPECT_STDOUT_CONTAINS("   \\connect -mx root@localhost");
   output_handler.wipe_all();

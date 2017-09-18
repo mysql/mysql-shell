@@ -741,7 +741,7 @@ bool Shell_command_handler::get_command_help(const std::string& command, std::st
     if (item->second->triggers != command) {
       std::vector<std::string> triggers;
       triggers = split_string(item->second->triggers, "|", true);
-      help += "\n\nTRIGGERS: " + str_join(triggers, " or ");
+      help += "\n\nNAME: " + str_join(triggers, " or ");
     }
 
     // Prints the additional help
