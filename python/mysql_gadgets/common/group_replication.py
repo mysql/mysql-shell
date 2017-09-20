@@ -740,7 +740,8 @@ def get_member_state(server):
     """
     try:
         res = server.exec_query("SELECT MEMBER_STATE FROM {0} as m JOIN {1} "
-                                "as s on m.MEMBER_ID = s.MEMBER_ID"
+                                "as s on m.MEMBER_ID = s.MEMBER_ID "
+                                "AND m.MEMBER_ID = @@server_uuid"
                                 "".format(REP_GROUP_MEMBERS_TABLE,
                                           REP_MEMBER_STATS_TABLE))
         if res:
