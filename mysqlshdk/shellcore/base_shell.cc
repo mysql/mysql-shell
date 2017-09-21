@@ -20,6 +20,7 @@
 #include "shellcore/base_shell.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_file.h"
+#include "utils/utils_path.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "shellcore/interrupt_handler.h"
@@ -437,17 +438,17 @@ void Base_shell::process_result(shcore::Value result) {
   _shell->set_error_processing();
 }
 
-int Base_shell::process_file(const std::string& file, const std::vector<std::string> &argv) {
+int Base_shell::process_file(const std::string &path, const std::vector<std::string> &argv) {
   // Default return value will be 1 indicating there were errors
   int ret_val = 1;
 
-  if (file.empty())
+  if (path.empty())
     print_error("Invalid filename");
-  else if (_shell->is_module(file))
-    _shell->execute_module(file, _result_processor, argv);
+  else if (_shell->is_module(path))
+    _shell->execute_module(path, _result_processor, argv);
   else
-    //TODO: do path expansion (in case ~ is used in linux)
   {
+    std::string file = shcore::path::expand_user(path);
     if (shcore::is_folder(file)) {
         print_error(shcore::str_format("Failed to open file: '%s' is a "
             "directory\n", file.c_str()));

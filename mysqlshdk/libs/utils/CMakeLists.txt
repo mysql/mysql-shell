@@ -18,6 +18,7 @@ set(utils_SOURCE
     utils_mysql_parsing.cc
     utils_time.cc
     utils_file.cc
+    utils_path.cc
     utils_json.cc
     utils_general.cc
     utils_sqlstring.cc
@@ -29,6 +30,13 @@ set(utils_SOURCE
     debug.cc
     dtoa.cc
 )
+
+# platform dependent implementations
+IF(UNIX)
+    LIST(APPEND utils_SOURCE utils_path_unix.cc)
+ELSEIF(WIN32)
+    LIST(APPEND utils_SOURCE utils_path_win32.cc)
+ENDIF()
 
 add_convenience_library(utils ${utils_SOURCE})
 ADD_STAN_TARGET(utils ${utils_SOURCE})
