@@ -382,12 +382,12 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       options.reset(new shcore::Value::Map_type());
     }
 
-    if (state.source_type == mysqlsh::dba::GRInstanceType::GroupReplication &&
-        !adopt_from_gr) {
-      if (prompt("You are connected to an instance that belongs to an "
-                 "unmanaged replication group.\n"
-                 "Do you want to setup an InnoDB cluster based on this "
-                 "replication group?") == Prompt_answer::YES)
+    if (state.source_type ==
+          mysqlsh::dba::GRInstanceType::GroupReplication && !adopt_from_gr) {
+      if (prompt(
+            "You are connected to an instance that belongs to an unmanaged "
+            "replication group.\nDo you want to setup an InnoDB cluster "
+            "based on this replication group?") == Prompt_answer::YES)
         (*options)["adoptFromGR"] = shcore::Value(true);
       else
         throw Exception::argument_error(
@@ -411,30 +411,46 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     Value::Map_type_ref options_check_instance(new shcore::Value::Map_type);
     args.push_back(shcore::Value(options_check_instance));
 
-    shcore::Value check_report =
+    try {
+      shcore::Value check_report =
         call_target("checkInstanceConfiguration", args);
-    auto result = check_report.as_map();
-    std::string status = result->get_string("status");
+      auto result = check_report.as_map();
+      std::string status = result->get_string("status");
 
-    if (status == "error") {
-      println(
-          "Warning: The instance configuration needs to be changed in order "
-          "to\n"
-          "create an InnoDB cluster. To see which changes will be made, "
-          "please\n"
-          "use the dba." +
-          get_member_name("checkInstanceConfiguration", naming_style) +
-          "() function before confirming\n"
-          "to change the configuration.");
-      println();
-
-      if (prompt("Should the configuration be changed accordingly?",
-                 Prompt_answer::NO) == Prompt_answer::NO) {
+      if (status == "error") {
+        println("Warning: The instance configuration needs to be changed in "
+                "order to\ncreate an InnoDB cluster. To see which changes will "
+                "be made, please\nuse the dba." +
+                get_member_name("checkInstanceConfiguration", naming_style) +
+                "() function before confirming\nto change the configuration.");
         println();
-        println("Cancelled");
-        return shcore::Value();
+
+        if (prompt("Should the configuration be changed accordingly?",
+                  Prompt_answer::NO) == Prompt_answer::NO) {
+          println();
+          println("Cancelled");
+          return shcore::Value();
+        } else {
+          println();
+        }
+      }
+    } catch (shcore::Exception &e) {
+      // We must ignore the two possible exceptions of
+      // checkInstanceConfiguration for this call:
+      //  * Instance already being part of a GR group
+      //    - If adoptFromGR is used this must be bypassed
+      //  * Instance already part of an InnoDB cluster
+      //    - Already checked on the function preconditions check
+      // If some other exception is caught we throw it
+      std::string error(e.what());
+      if (error.find("is already part of a Replication Group")
+            != std::string::npos) {
+        // Log the exception ignored
+        log_info("Ignoring exception thrown: '%s', "
+                 "due to the operation of creating the InnoDB cluster based "
+                 "on an existing replication group", e.what());
       } else {
-        println();
+        throw;
       }
     }
 
