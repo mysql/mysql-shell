@@ -87,7 +87,26 @@ protected:
       _mysql_port = "3306";
     }
 
-    std::string code = "var __user = '" + user + "';";
+    connection_options.clear_port();
+    connection_options.set_port(std::stoi(_mysql_port));
+
+    // Set the hostname variable
+    std::string hostname;
+    std::shared_ptr<mysqlsh::ShellBaseSession> session;
+    mysqlsh::mysql::ClassicSession *classic;
+
+    // Connect to test server to get the hostname
+    session = mysqlsh::Shell::connect_session(connection_options,
+                                              mysqlsh::SessionType::Classic);
+    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    mysqlsh::dba::get_server_variable(classic->connection(), "hostname",
+                                        hostname);
+
+    session->close();
+
+    std::string code = "var hostname = '" + hostname + "';";
+    exec_and_out_equals(code);
+    code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
     code = "var __pwd = '" + password + "';";
     exec_and_out_equals(code);
@@ -749,6 +768,24 @@ TEST_F(Shell_js_dba_tests, super_read_only_handling) {
   output_handler.prompts.push_back("y");
 
   validate_interactive("dba_super_read_only_handling.js");
+}
+
+TEST_F(Shell_js_dba_tests, adopt_from_gr) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_adopt_from_gr.js");
+}
+
+TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
+  // Are you sure you want to remove the Metadata? [y|N]:
+  output_handler.prompts.push_back("y");
+
+  // Do you want to setup an InnoDB cluster based on this replication
+  // group? [Y|n]:
+  output_handler.prompts.push_back("y");
+
+  validate_interactive("dba_adopt_from_gr_interactive.js");
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
