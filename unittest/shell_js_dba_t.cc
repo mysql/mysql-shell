@@ -52,12 +52,14 @@ protected:
     std::shared_ptr<mysqlsh::ShellDevelopmentSession> session;
     mysqlsh::mysql::ClassicSession *classic;
     std::string have_ssl;
+    std::string hostname;
     _have_ssl = false;
 
     if (_port.empty())
       _port = "33060";
 
     // Connect to test server and check if SSL is enabled
+    // Also get and set the hostname variable
     mysql_uri.append(_mysql_uri);
     if (_mysql_port.empty()) {
       _mysql_port = "3306";
@@ -69,6 +71,8 @@ protected:
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
       mysqlsh::dba::get_server_variable(classic->connection(), "version_comment",
                                         have_ssl);
+      mysqlsh::dba::get_server_variable(classic->connection(), "hostname",
+                                        hostname);
       std::transform(have_ssl.begin(), have_ssl.end(), have_ssl.begin(), toupper);
       _have_ssl = (have_ssl.find("COMMERCIAL") != std::string::npos) ? true : false;
       shcore::Argument_list args;
@@ -81,7 +85,9 @@ protected:
       output_handler.flush_debug_log();
     }
 
-    std::string code = "var __user = '" + user + "';";
+    std::string code = "var hostname = '" + hostname + "';";
+    exec_and_out_equals(code);
+    code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
     code = "var __pwd = '" + password + "';";
     exec_and_out_equals(code);
@@ -699,6 +705,24 @@ TEST_F(Shell_js_dba_tests, dba_cluster_mts) {
   create_file("mybad.cnf", bad_config);
 
   validate_interactive("dba_cluster_mts.js");
+}
+
+TEST_F(Shell_js_dba_tests, adopt_from_gr) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_adopt_from_gr.js");
+}
+
+TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
+  // Are you sure you want to remove the Metadata? [y|N]:
+  output_handler.prompts.push_back("y");
+
+  // Do you want to setup an InnoDB cluster based on this replication
+  // group? [Y|n]:
+  output_handler.prompts.push_back("y");
+
+  validate_interactive("dba_adopt_from_gr_interactive.js");
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
