@@ -47,6 +47,10 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   add_method("sort", std::bind(&CollectionFind::sort, this, _1), "data");
   add_method("skip", std::bind(&CollectionFind::skip, this, _1), "data");
   add_method("limit", std::bind(&CollectionFind::limit, this, _1), "data");
+  add_method("lockShared", std::bind(&CollectionFind::lock_shared, this, _1),
+             NULL);
+  add_method("lockExclusive",
+             std::bind(&CollectionFind::lock_exclusive, this, _1), NULL);
   add_method("bind", std::bind(&CollectionFind::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
@@ -58,12 +62,19 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   register_dynamic_function("limit", "find, fields, groupBy, having, sort");
   register_dynamic_function("skip", "limit");
   register_dynamic_function(
-      "bind", "find, fields, groupBy, having, sort, skip, limit, bind");
+      "lockShared", "find, fields, groupBy, having, sort, skip, limit");
   register_dynamic_function(
-      "execute", "find, fields, groupBy, having, sort, skip, limit, bind");
+      "lockExclusive", "find, fields, groupBy, having, sort, skip, limit");
+  register_dynamic_function(
+      "bind", "find, fields, groupBy, having, sort, skip, limit, lockShared, "
+      "lockExclusive, bind");
+  register_dynamic_function(
+      "execute", "find, fields, groupBy, having, sort, skip, limit, "
+      "lockShared, lockExclusive, bind");
   register_dynamic_function(
       "__shell_hook__",
-      "find, fields, groupBy, having, sort, skip, limit, bind");
+      "find, fields, groupBy, having, sort, skip, limit, lockShared, "
+      "lockExclusive, bind");
 
   // Initial function update
   update_functions("");
@@ -607,6 +618,140 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
     update_functions("skip");
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.skip");
+
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+REGISTER_HELP(COLLECTIONFIND_LOCK_SHARED_BRIEF,
+              "Instructs the server to acquire shared row locks in documents "
+              "matched by this find operation.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_SHARED_RETURNS,
+              "@returns This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_SHARED_DETAIL,
+              "When this function is called, the selected documents will be"
+              "locked for write operations, they may be retrieved on a "
+              "different session, but no updates will be allowed.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_SHARED_DETAIL1,
+              "The acquired locks will be released when the current "
+              "transaction is commited or rolled back.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_SHARED_DETAIL2,
+              "If another session already holds an exclusive lock on the "
+              "matching documents, the find will block until the lock is "
+              "released.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_SHARED_DETAIL3,
+              "This operation only makes sense within a transaction.");
+
+/**
+ * $(COLLECTIONFIND_LOCK_SHARED_BRIEF)
+ *
+ * $(COLLECTIONFIND_LOCK_SHARED_RETURNS)
+ *
+ * $(COLLECTIONFIND_LOCK_SHARED_DETAIL)
+ *
+ * $(COLLECTIONFIND_LOCK_SHARED_DETAIL1)
+ *
+ * $(COLLECTIONFIND_LOCK_SHARED_DETAIL2)
+ *
+ * $(COLLECTIONFIND_LOCK_SHARED_DETAIL3)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked at any time before bind or execute are called.
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - lockExclusive()
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * If lockExclusive() is called, it will override the lock type to be used on
+ * on the selected documents.
+ */
+//@{
+#if DOXYGEN_JS
+CollectionFind CollectionFind::lockShared() {
+}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::lock_shared() {
+}
+#endif
+//@}
+shcore::Value CollectionFind::lock_shared(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("lockShared").c_str());
+
+  try {
+    message_.set_locking(Mysqlx::Crud::Find_RowLock_SHARED_LOCK);
+
+    update_functions("lockShared");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.lockShared");
+
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+REGISTER_HELP(COLLECTIONFIND_LOCK_EXCLUSIVE_BRIEF,
+              "Instructs the server to acquire an exclusive lock on documents "
+              "matched by this find operation.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_EXCLUSIVE_RETURNS,
+              "@returns This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_EXCLUSIVE_DETAIL,
+              "When this function is called, the selected documents will be"
+              "locked for read operations, they will not be retrievable by "
+              "other session.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_EXCLUSIVE_DETAIL1,
+              "The acquired locks will be released when the current "
+              "transaction is commited or rolled back.");
+REGISTER_HELP(COLLECTIONFIND_LOCK_EXCLUSIVE_DETAIL2,
+              "The operation will block if another session already holds a "
+              "lock on matching documents (either shared and exclusive).");
+REGISTER_HELP(COLLECTIONFIND_LOCK_EXCLUSIVE_DETAIL3,
+              "This operation only makes sense within a transaction.");
+
+/**
+ * $(COLLECTIONFIND_LOCK_EXCLUSIVE_BRIEF)
+ *
+ * $(COLLECTIONFIND_LOCK_EXCLUSIVE_RETURNS)
+ *
+ * $(COLLECTIONFIND_LOCK_EXCLUSIVE_DETAIL)
+ *
+ * $(COLLECTIONFIND_LOCK_EXCLUSIVE_DETAIL1)
+ *
+ * $(COLLECTIONFIND_LOCK_EXCLUSIVE_DETAIL2)
+ *
+ * $(COLLECTIONFIND_LOCK_EXCLUSIVE_DETAIL3)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked at any time before bind or execute are called.
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - lockShared()
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * If lockShared() is called, it will override the lock type to be used on
+ * on the selected documents.
+ */
+//@{
+#if DOXYGEN_JS
+CollectionFind CollectionFind::lockExclusive() {
+}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::lock_exclusive() {
+}
+#endif
+//@}
+shcore::Value CollectionFind::lock_exclusive(
+    const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("lockExclusive").c_str());
+
+  try {
+    message_.set_locking(Mysqlx::Crud::Find_RowLock_EXCLUSIVE_LOCK);
+
+    update_functions("lockExclusive");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.lockExclusive");
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

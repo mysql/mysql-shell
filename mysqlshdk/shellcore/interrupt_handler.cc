@@ -31,6 +31,7 @@ std::atomic<int> Interrupts::_num_handlers;
 std::mutex Interrupts::_handler_mutex;
 bool Interrupts::_propagates_interrupt = false;
 std::thread::id Interrupts::_main_thread_id;
+thread_local bool Interrupts::_ignore_current_thread = false;
 
 /** User interruption (^C) handler. Called by SIGINT handler in console shell.
 
@@ -176,6 +177,10 @@ void Interrupts::init(Interrupt_helper *helper) {
   _main_thread_id = std::this_thread::get_id();
 }
 
+void Interrupts::ignore_thread() {
+  _ignore_current_thread = true;
+}
+
 void Interrupts::setup() {
   if (_helper) {
     _helper->setup();
@@ -187,6 +192,11 @@ bool Interrupts::in_main_thread() {
 }
 
 void Interrupts::push_handler(std::function<bool()> handler) {
+  // The interrupt handler can be disabled by thread,
+  // if that's the case this is a no-op
+  if (_ignore_current_thread)
+    return;
+
   // Only allow cancellation handlers registered in the main thread.
   // We don't want background threads to be affected directly by ^C
   // If you do want a background thread to be cancelled, the main thread should
@@ -212,6 +222,11 @@ void Interrupts::push_handler(std::function<bool()> handler) {
 }
 
 void Interrupts::pop_handler() {
+  // The interrupt handler can be disabled by thread,
+  // if that's the case this is a no-op
+  if (_ignore_current_thread)
+    return;
+
   if (!in_main_thread()) {
     throw std::logic_error("Interrupt handler pop ignored for non-main thread");
   }
@@ -226,6 +241,11 @@ void Interrupts::pop_handler() {
 }
 
 void Interrupts::interrupt() {
+  // The interrupt handler can be disabled by thread,
+  // if that's the case this is a no-op
+  if (_ignore_current_thread)
+    return;
+
   Block_interrupts block_ints;
   std::lock_guard<std::mutex> lock(_handler_mutex);
   int n = _num_handlers.load();

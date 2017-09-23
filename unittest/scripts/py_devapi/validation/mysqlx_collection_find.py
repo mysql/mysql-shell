@@ -26,6 +26,14 @@
 |All expected functions are available|
 |No additional functions are available|
 
+#@ CollectionFind: valid operations after lock_shared
+|All expected functions are available|
+|No additional functions are available|
+
+#@ CollectionFind: valid operations after lock_exclusive
+|All expected functions are available|
+|No additional functions are available|
+
 #@ CollectionFind: valid operations after bind
 |All expected functions are available|
 |No additional functions are available|
@@ -76,6 +84,12 @@
 #@# CollectionFind: Error conditions on skip
 ||Invalid number of arguments in CollectionFind.skip, expected 1 but got 0
 ||CollectionFind.skip: Argument #1 is expected to be an unsigned int
+
+#@# CollectionFind: Error conditions on lock_shared
+||Invalid number of arguments in CollectionFind.lock_shared, expected 0 but got 1
+
+#@# CollectionFind: Error conditions on lock_exclusive
+||Invalid number of arguments in CollectionFind.lock_exclusive, expected 0 but got 1
 
 #@# CollectionFind: Error conditions on bind
 ||Invalid number of arguments in CollectionFind.bind, expected 2 but got 0

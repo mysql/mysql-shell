@@ -24,30 +24,38 @@ result = collection.add({ name: 'angel', age: 14, gender: 'male' }).execute();
 // ----------------------------------------------
 //@ CollectionFind: valid operations after find
 var crud = collection.find();
-validate_crud_functions(crud, ['fields', 'groupBy', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['fields', 'groupBy', 'sort', 'limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after fields
 var crud = crud.fields(['name']);
-validate_crud_functions(crud, ['groupBy', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['groupBy', 'sort', 'limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after groupBy
 var crud = crud.groupBy(['name']);
-validate_crud_functions(crud, ['having', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['having', 'sort', 'limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after having
 var crud = crud.having('age > 10');
-validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['sort', 'limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after sort
 var crud = crud.sort(['age']);
-validate_crud_functions(crud, ['limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after limit
 var crud = crud.limit(1);
-validate_crud_functions(crud, ['skip', 'bind', 'execute']);
+validate_crud_functions(crud, ['skip', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after skip
 var crud = crud.skip(1);
+validate_crud_functions(crud, ['lockShared', 'lockExclusive', 'bind', 'execute']);
+
+//@ CollectionFind: valid operations after lockShared
+var crud = crud = collection.find('name = :data').lockShared()
+validate_crud_functions(crud, ['bind', 'execute']);
+
+//@ CollectionFind: valid operations after lockExclusive
+var crud = crud = collection.find('name = :data').lockExclusive()
 validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionFind: valid operations after bind
@@ -104,6 +112,12 @@ crud = collection.find().limit('');
 //@# CollectionFind: Error conditions on skip
 crud = collection.find().limit(1).skip();
 crud = collection.find().limit(1).skip('');
+
+//@# CollectionFind: Error conditions on lockShared
+crud = collection.find().lockShared(5);
+
+//@# CollectionFind: Error conditions on lockExclusive
+crud = collection.find().lockExclusive(5);
 
 //@# CollectionFind: Error conditions on bind
 crud = collection.find('name = :data and age > :years').bind();

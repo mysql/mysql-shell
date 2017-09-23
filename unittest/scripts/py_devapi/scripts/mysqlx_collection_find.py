@@ -24,30 +24,38 @@ result = collection.add({"name": 'angel', "age": 14, "gender": 'male'}).execute(
 # ----------------------------------------------
 #@ CollectionFind: valid operations after find
 crud = collection.find()
-validate_crud_functions(crud, ['fields', 'group_by', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['fields', 'group_by', 'sort', 'limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after fields
 crud = crud.fields(['name'])
-validate_crud_functions(crud, ['group_by', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['group_by', 'sort', 'limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after group_by
 crud = crud.group_by(['name'])
-validate_crud_functions(crud, ['having', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['having', 'sort', 'limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after having
 crud = crud.having('age > 10')
-validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['sort', 'limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after sort
 crud = crud.sort(['age'])
-validate_crud_functions(crud, ['limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after limit
 crud = crud.limit(1)
-validate_crud_functions(crud, ['skip', 'bind', 'execute'])
+validate_crud_functions(crud, ['skip', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after skip
 crud = crud.skip(1)
+validate_crud_functions(crud, ['lock_shared', 'lock_exclusive', 'bind', 'execute'])
+
+#@ CollectionFind: valid operations after lock_shared
+crud = collection.find('name = :data').lock_shared()
+validate_crud_functions(crud, ['bind', 'execute'])
+
+#@ CollectionFind: valid operations after lock_exclusive
+crud = collection.find('name = :data').lock_exclusive()
 validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ CollectionFind: valid operations after bind
@@ -105,6 +113,12 @@ crud = collection.find().limit('')
 #@# CollectionFind: Error conditions on skip
 crud = collection.find().limit(1).skip()
 crud = collection.find().limit(1).skip('')
+
+#@# CollectionFind: Error conditions on lock_shared
+crud = collection.find().lock_shared(5)
+
+#@# CollectionFind: Error conditions on lock_exclusive
+crud = collection.find().lock_exclusive(5)
 
 #@# CollectionFind: Error conditions on bind
 crud = collection.find('name = :data and age > :years').bind()

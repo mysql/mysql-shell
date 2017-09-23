@@ -56,6 +56,7 @@ class Interrupts {
   static void unblock(bool clear_pending = false);
 
   static void interrupt();
+  static void ignore_thread();
 
  private:
   static Interrupt_helper *_helper;
@@ -64,6 +65,7 @@ class Interrupts {
   static std::mutex _handler_mutex;
   static bool _propagates_interrupt;
   static std::thread::id _main_thread_id;
+  static thread_local bool _ignore_current_thread;
 };
 
 struct Block_interrupts {
