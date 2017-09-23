@@ -30,6 +30,14 @@
 |All expected functions are available|
 |No additional functions are available|
 
+//@ CollectionFind: valid operations after lockShared
+|All expected functions are available|
+|No additional functions are available|
+
+//@ CollectionFind: valid operations after lockExclusive
+|All expected functions are available|
+|No additional functions are available|
+
 //@ CollectionFind: valid operations after execute
 |All expected functions are available|
 |No additional functions are available|
@@ -76,6 +84,12 @@
 //@# CollectionFind: Error conditions on skip
 ||Invalid number of arguments in CollectionFind.skip, expected 1 but got 0
 ||CollectionFind.skip: Argument #1 is expected to be an unsigned int
+
+//@# CollectionFind: Error conditions on lockShared
+||Invalid number of arguments in CollectionFind.lockShared, expected 0 but got 1
+
+//@# CollectionFind: Error conditions on lockExclusive
+||Invalid number of arguments in CollectionFind.lockExclusive, expected 0 but got 1
 
 //@# CollectionFind: Error conditions on bind
 ||Invalid number of arguments in CollectionFind.bind, expected 2 but got 0

@@ -26,6 +26,14 @@
 |All expected functions are available|
 |No additional functions are available|
 
+#@ TableSelect: valid operations after lock_shared
+|All expected functions are available|
+|No additional functions are available|
+
+#@ TableSelect: valid operations after lock_exclusive
+|All expected functions are available|
+|No additional functions are available|
+
 #@ TableSelect: valid operations after bind
 |All expected functions are available|
 |No additional functions are available|
@@ -75,6 +83,12 @@
 #@# TableSelect: Error conditions on offset
 ||Invalid number of arguments in TableSelect.offset, expected 1 but got 0
 ||TableSelect.offset: Argument #1 is expected to be an unsigned int
+
+#@# TableSelect: Error conditions on lock_shared
+||Invalid number of arguments in TableSelect.lock_shared, expected 0 but got 1
+
+#@# TableSelect: Error conditions on lock_exclusive
+||Invalid number of arguments in TableSelect.lock_exclusive, expected 0 but got 1
 
 #@# TableSelect: Error conditions on bind
 ||Invalid number of arguments in TableSelect.bind, expected 2 but got 0
@@ -200,4 +214,3 @@
 |12345|
 |123456789|
 |+-----------+|
-

@@ -25,6 +25,7 @@
 #include "modules/devapi/mod_mysqlx_table.h"
 #include "scripting/common.h"
 #include "utils/utils_time.h"
+#include "shellcore/utils_help.h"
 
 
 using namespace std::placeholders;
@@ -46,6 +47,10 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
   add_method("limit", std::bind(&TableSelect::limit, this, _1), "data");
   add_method("offset", std::bind(&TableSelect::offset, this, _1), "data");
   add_method("bind", std::bind(&TableSelect::bind, this, _1), "data");
+  add_method("lockShared", std::bind(&TableSelect::lock_shared, this, _1),
+             NULL);
+  add_method("lockExclusive", std::bind(&TableSelect::lock_exclusive, this, _1),
+             NULL);
 
   // Registers the dynamic function behavior
   register_dynamic_function("select", "");
@@ -56,13 +61,22 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
   register_dynamic_function("limit", "select, where, groupBy, having, orderBy");
   register_dynamic_function("offset", "limit");
   register_dynamic_function(
-      "bind", "select, where, groupBy, having, orderBy, offset, limit, bind");
+      "lockShared", "select, where, groupBy, having, orderBy, offset, limit");
+  register_dynamic_function(
+      "lockExclusive",
+      "select, where, groupBy, having, orderBy, offset, limit");
+  register_dynamic_function(
+      "bind",
+      "select, where, groupBy, having, orderBy, offset, limit, "
+      "lockShared, lockExclusive, bind");
   register_dynamic_function(
       "execute",
-      "select, where, groupBy, having, orderBy, offset, limit, bind");
+      "select, where, groupBy, having, orderBy, offset, limit, lockShared, "
+      "lockExclusive, bind");
   register_dynamic_function(
       "__shell_hook__",
-      "select, where, groupBy, having, orderBy, offset, limit, bind");
+      "select, where, groupBy, having, orderBy, offset, limit, lockShared, "
+      "lockExclusive, bind");
 
   // Initial function update
   update_functions("");
@@ -445,6 +459,139 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args) {
     update_functions("offset");
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("offset"));
+
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_BRIEF,
+              "Instructs the server to acquire shared row locks in documents "
+              "matched by this find operation.");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_RETURNS,
+              "@returns This TableSelect object.");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL,
+              "When this function is called, the selected documents will be"
+              "locked for write operations, they may be retrieved on a "
+              "different session, but no updates will be allowed.");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL1,
+              "The acquired locks will be released when the current "
+              "transaction is commited or rolled back.");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL2,
+              "If another session already holds an exclusive lock on the "
+              "matching documents, the find will block until the lock is "
+              "released.");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL3,
+              "This operation only makes sense within a transaction.");
+
+/**
+ * $(TABLESELECT_LOCK_SHARED_BRIEF)
+ *
+ * $(TABLESELECT_LOCK_SHARED_RETURNS)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL1)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL2)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL3)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked at any time before bind or execute are called.
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - lockExclusive()
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * If lockExclusive() is called, it will override the lock type to be used on
+ * on the selected documents.
+ */
+//@{
+#if DOXYGEN_JS
+TableSelect TableSelect::lockShared() {
+}
+#elif DOXYGEN_PY
+TableSelect TableSelect::lock_shared() {
+}
+#endif
+//@}
+shcore::Value TableSelect::lock_shared(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("lockShared").c_str());
+
+  try {
+    message_.set_locking(Mysqlx::Crud::Find_RowLock_SHARED_LOCK);
+
+    update_functions("lockShared");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.lockShared");
+
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_BRIEF,
+              "Instructs the server to acquire an exclusive lock on documents "
+              "matched by this find operation.");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_RETURNS,
+              "@returns This TableSelect object.");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL,
+              "When this function is called, the selected documents will be"
+              "locked for read operations, they will not be retrievable by "
+              "other session.");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL1,
+              "The acquired locks will be released when the current "
+              "transaction is commited or rolled back.");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL2,
+              "The operation will block if another session already holds a "
+              "lock on matching documents (either shared and exclusive).");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3,
+              "This operation only makes sense within a transaction.");
+
+/**
+ * $(TABLESELECT_LOCK_EXCLUSIVE_BRIEF)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_RETURNS)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL1)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL2)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked at any time before bind or execute are called.
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - lockShared()
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * If lockShared() is called, it will override the lock type to be used on
+ * on the selected documents.
+ */
+//@{
+#if DOXYGEN_JS
+TableSelect TableSelect::lockExclusive() {
+}
+#elif DOXYGEN_PY
+TableSelect TableSelect::lock_exclusive() {
+}
+#endif
+//@}
+shcore::Value TableSelect::lock_exclusive(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("lockExclusive").c_str());
+
+  try {
+    message_.set_locking(Mysqlx::Crud::Find_RowLock_EXCLUSIVE_LOCK);
+
+    update_functions("lockExclusive");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.lockExclusive");
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

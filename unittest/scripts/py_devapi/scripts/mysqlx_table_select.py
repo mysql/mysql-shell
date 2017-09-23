@@ -27,30 +27,38 @@ result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()
 # ----------------------------------------------
 #@ TableSelect: valid operations after select
 crud = table.select()
-validate_crud_functions(crud, ['where', 'group_by', 'order_by', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['where', 'group_by', 'order_by', 'limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ TableSelect: valid operations after where
 crud = crud.where('age > 13')
-validate_crud_functions(crud, ['group_by', 'order_by', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['group_by', 'order_by', 'limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ TableSelect: valid operations after group_by
 crud = crud.group_by(['name'])
-validate_crud_functions(crud, ['having', 'order_by', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['having', 'order_by', 'limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ TableSelect: valid operations after having
 crud = crud.having('age > 10')
-validate_crud_functions(crud, ['order_by', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['order_by', 'limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ TableSelect: valid operations after order_by
 crud = crud.order_by(['age'])
-validate_crud_functions(crud, ['limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['limit', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ TableSelect: valid operations after limit
 crud = crud.limit(1)
-validate_crud_functions(crud, ['offset', 'bind', 'execute'])
+validate_crud_functions(crud, ['offset', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ TableSelect: valid operations after offset
 crud = crud.offset(1)
+validate_crud_functions(crud, ['lock_shared', 'lock_exclusive', 'bind', 'execute'])
+
+#@ TableSelect: valid operations after lock_shared
+crud = table.select().where('name = :data').lock_shared()
+validate_crud_functions(crud, ['bind', 'execute'])
+
+#@ TableSelect: valid operations after lock_exclusive
+crud = table.select().where('name = :data').lock_exclusive()
 validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ TableSelect: valid operations after bind
@@ -107,6 +115,12 @@ crud = table.select().limit('')
 #@# TableSelect: Error conditions on offset
 crud = table.select().limit(1).offset()
 crud = table.select().limit(1).offset('')
+
+#@# TableSelect: Error conditions on lock_shared
+crud = table.select().lock_shared(5)
+
+#@# TableSelect: Error conditions on lock_exclusive
+crud = table.select().lock_exclusive(5)
 
 #@# TableSelect: Error conditions on bind
 crud = table.select().where('name = :data and age > :years').bind()

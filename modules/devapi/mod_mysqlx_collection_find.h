@@ -63,6 +63,8 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind sort(String sortCriteria[, String sortCriteria, ...]);
   CollectionFind limit(Integer numberOfRows);
   CollectionFind skip(Integer offset);
+  CollectionFind lockShared();
+  CollectionFind lockExclusive();
   CollectionFind bind(String name, Value value);
   DocResult execute();
 #elif DOXYGEN_PY
@@ -77,6 +79,8 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind sort(str sortCriteria[, str sortCriteria, ...]);
   CollectionFind limit(int numberOfRows);
   CollectionFind skip(int offset);
+  CollectionFind lock_shared();
+  CollectionFind lock_exclusive();
   CollectionFind bind(str name, Value value);
   DocResult execute();
 #endif
@@ -87,6 +91,8 @@ class CollectionFind : public Collection_crud_definition,
   shcore::Value sort(const shcore::Argument_list &args);
   shcore::Value limit(const shcore::Argument_list &args);
   shcore::Value skip(const shcore::Argument_list &args);
+  shcore::Value lock_shared(const shcore::Argument_list &args);
+  shcore::Value lock_exclusive(const shcore::Argument_list &args);
   shcore::Value bind(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);

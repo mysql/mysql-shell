@@ -27,30 +27,38 @@ var result = table.insert({ name: 'angel', age: 14, gender: 'male' }).execute();
 // ----------------------------------------------
 //@ TableSelect: valid operations after select
 var crud = table.select();
-validate_crud_functions(crud, ['where', 'groupBy', 'orderBy', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['where', 'groupBy', 'orderBy', 'limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after where
 var crud = crud.where('age > 13');
-validate_crud_functions(crud, ['groupBy', 'orderBy', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['groupBy', 'orderBy', 'limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after groupBy
 var crud = crud.groupBy(['name']);
-validate_crud_functions(crud, ['having', 'orderBy', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['having', 'orderBy', 'limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after having
 var crud = crud.having('age > 10');
-validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['orderBy', 'limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after orderBy
 var crud = crud.orderBy(['age']);
-validate_crud_functions(crud, ['limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['limit', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after limit
 var crud = crud.limit(1);
-validate_crud_functions(crud, ['offset', 'bind', 'execute']);
+validate_crud_functions(crud, ['offset', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ TableSelect: valid operations after offset
 var crud = crud.offset(1);
+validate_crud_functions(crud, ['lockShared', 'lockExclusive', 'bind', 'execute']);
+
+//@ TableSelect: valid operations after lockShared
+var crud = table.select().where('name = :data').lockShared()
+validate_crud_functions(crud, ['bind', 'execute']);
+
+//@ TableSelect: valid operations after lockExclusive
+var crud = table.select().where('name = :data').lockExclusive()
 validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ TableSelect: valid operations after bind
@@ -106,6 +114,12 @@ crud = table.select().limit('');
 //@# TableSelect: Error conditions on offset
 crud = table.select().limit(1).offset();
 crud = table.select().limit(1).offset('');
+
+//@# TableSelect: Error conditions on lockShared
+crud = table.select().lockShared(5);
+
+//@# TableSelect: Error conditions on lockExclusive
+crud = table.select().lockExclusive(5);
 
 //@# TableSelect: Error conditions on bind
 crud = table.select().where('name = :data and age > :years').bind();

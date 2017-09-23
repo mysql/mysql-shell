@@ -26,6 +26,14 @@
 |All expected functions are available|
 |No additional functions are available|
 
+//@ TableSelect: valid operations after lockShared
+|All expected functions are available|
+|No additional functions are available|
+
+//@ TableSelect: valid operations after lockExclusive
+|All expected functions are available|
+|No additional functions are available|
+
 //@ TableSelect: valid operations after bind
 |All expected functions are available|
 |No additional functions are available|
@@ -75,6 +83,12 @@
 //@# TableSelect: Error conditions on offset
 ||Invalid number of arguments in TableSelect.offset, expected 1 but got 0
 ||TableSelect.offset: Argument #1 is expected to be an unsigned int
+
+//@# TableSelect: Error conditions on lockShared
+||Invalid number of arguments in TableSelect.lockShared, expected 0 but got 1
+
+//@# TableSelect: Error conditions on lockExclusive
+||Invalid number of arguments in TableSelect.lockExclusive, expected 0 but got 1
 
 //@# TableSelect: Error conditions on bind
 ||Invalid number of arguments in TableSelect.bind, expected 2 but got 0

@@ -54,6 +54,8 @@ class TableSelect : public Table_crud_definition,
   TableSelect orderBy(List sortExprStr);
   TableSelect limit(Integer numberOfRows);
   TableSelect offset(Integer limitOffset);
+  TableSelect lockShared();
+  TableSelect lockExclusive();
   TableSelect bind(String name, Value value);
   RowResult execute();
 #elif DOXYGEN_PY
@@ -64,6 +66,8 @@ class TableSelect : public Table_crud_definition,
   TableSelect order_by(list sortExprStr);
   TableSelect limit(int numberOfRows);
   TableSelect offset(int limitOffset);
+  TableSelect lock_shared();
+  TableSelect lock_exclusive();
   TableSelect bind(str name, Value value);
   RowResult execute();
 #endif
@@ -76,6 +80,8 @@ class TableSelect : public Table_crud_definition,
   shcore::Value order_by(const shcore::Argument_list &args);
   shcore::Value limit(const shcore::Argument_list &args);
   shcore::Value offset(const shcore::Argument_list &args);
+  shcore::Value lock_shared(const shcore::Argument_list &args);
+  shcore::Value lock_exclusive(const shcore::Argument_list &args);
   shcore::Value bind(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);
