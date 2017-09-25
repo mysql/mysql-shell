@@ -451,7 +451,7 @@ std::pair<int,int> find_cluster_admin_accounts(std::shared_ptr<mysqlsh::mysql::C
 static const std::set<std::string> k_global_privileges{
   "RELOAD", "SHUTDOWN", "PROCESS", "FILE",
   "SUPER", "REPLICATION SLAVE", "REPLICATION CLIENT",
-  "CREATE USER"
+  "CREATE USER", "SELECT"
 };
 
 // Schema privileges needed on the metadata schema
@@ -466,7 +466,6 @@ static const std::set<std::string> k_metadata_schema_privileges{
 // list of (schema, [privilege]) pairs, with the required privileges on each schema
 static const std::map<std::string, std::set<std::string>> k_schema_grants{
   {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
-  {"performance_schema", {"SELECT"}},
   {"mysql", {"SELECT", "INSERT", "UPDATE", "DELETE"}} // need for mysql.plugin, mysql.user others
 };
 
@@ -560,8 +559,7 @@ bool validate_cluster_admin_user_privileges(std::shared_ptr<mysqlsh::mysql::Clas
 static const char *k_admin_user_grants[] = {
   "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.*",
   "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.*",
-  "GRANT SELECT ON performance_schema.*",
-  "GRANT SELECT ON sys.*",
+  "GRANT SELECT ON *.*",
   "GRANT SELECT, INSERT, UPDATE, DELETE ON mysql.*"
 };
 

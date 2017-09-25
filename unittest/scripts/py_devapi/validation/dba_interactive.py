@@ -122,13 +122,13 @@ Validating instance...
 |Number of accounts: 1|
 
 #@ Dba: configure_local_instance not enough privileges 1
-||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the privileges to create an user for managing an InnoDB cluster.
+||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: configure_local_instance not enough privileges 2
-||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the privileges to create an user for managing an InnoDB cluster.
+||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: configure_local_instance not enough privileges 3
-||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the privileges to create an user for managing an InnoDB cluster.
+||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|

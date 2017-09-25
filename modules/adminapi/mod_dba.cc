@@ -734,36 +734,33 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13, "@li sslKey: The path to 
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14, "The options dictionary may contain the following options:");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL15, "@li mycnfPath: The path of the MySQL configuration file for the instance.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL16, "@li password: The password to get connected to the instance.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL17, "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL18, "@li clusterAdminPassword: The password for the InnoDB cluster "\
-                                                       "administrator account.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19, "The connection password may be contained on the instance "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL17, "The connection password may be contained on the instance "\
                                                        "definition, however, it can be overwritten "\
                                                        "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL20, "The returned JSON object contains the following attributes:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL21, "@li status: the final status of the command, either \"ok\" or \"error\"");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22, "@li config_errors: a list of dictionaries containing the failed requirements");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL23, "@li errors: a list of errors of the operation");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL24, "@li restart_required: a boolean value indicating whether a "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL18, "The returned JSON object contains the following attributes:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19, "@li status: the final status of the command, either \"ok\" or \"error\"");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL20, "@li config_errors: a list of dictionaries containing the failed requirements");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL21, "@li errors: a list of errors of the operation");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22, "@li restart_required: a boolean value indicating whether a "\
                                                        "restart is required");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL25, "Each dictionary of the list of config_errors includes the "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL23, "Each dictionary of the list of config_errors includes the "\
                                                        "following attributes:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL26, "@li option: The configuration option for which the requirement "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL24, "@li option: The configuration option for which the requirement "\
                                                        "wasn't met");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL27, "@li current: The current value of the configuration option");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL28, "@li required: The configuration option required value");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL29, "@li action: The action to be taken in order to meet the requirement");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL25, "@li current: The current value of the configuration option");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL26, "@li required: The configuration option required value");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL27, "@li action: The action to be taken in order to meet the requirement");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL30, "The action can be one of the following:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL31, "@li server_update+config_update: Both the server and the "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL28, "The action can be one of the following:");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL29, "@li server_update+config_update: Both the server and the "\
                                                        "configuration need to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL32, "@li config_update+restart: The configuration needs to be "\
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL30, "@li config_update+restart: The configuration needs to be "\
                                                        "updated and the server restarted");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL33, "@li config_update: The configuration needs to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL34, "@li server_update: The server needs to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL35, "@li restart: The server needs to be restarted");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL31, "@li config_update: The configuration needs to be updated");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL32, "@li server_update: The server needs to be updated");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL33, "@li restart: The server needs to be restarted");
 
 /**
 * $(DBA_CHECKINSTANCECONFIGURATION_BRIEF)
@@ -823,8 +820,6 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL35, "@li restart: The server 
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL31)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL32)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL33)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL34)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL35)
 */
 #if DOXYGEN_JS
 Undefined Dba::checkInstanceConfiguration(InstanceDef instance, Dictionary options) {}
@@ -1486,7 +1481,6 @@ std::shared_ptr<mysqlsh::mysql::ClassicSession> Dba::get_session(const shcore::A
 shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Argument_list &args, bool allow_update) {
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
   shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
-  std::set<std::string> check_options;
 
   // Validates the connection options
   shcore::Value::Map_type_ref instance_def = get_instance_options_map(args, mysqlsh::dba::PasswordFormat::OPTIONS);
@@ -1509,16 +1503,14 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
     validate_options = args.map_at(1);
     shcore::Argument_map tmp_map(*validate_options);
 
+    std::set<std::string> check_options {"password", "dbPassword", "mycnfPath"};
     // The clearReadOnly option is only available in configureLocalInstance
     // i.e. with allow_update set as true
     if (allow_update) {
-      check_options = {"password", "dbPassword", "mycnfPath", "clusterAdmin",
-                       "clusterAdminPassword", "clearReadOnly"};
-    } else {
-      check_options = {"password", "dbPassword", "mycnfPath", "clusterAdmin",
-                       "clusterAdminPassword"};
+      check_options.insert("clusterAdmin");
+      check_options.insert("clusterAdminPassword");
+      check_options.insert("clearReadOnly");
     }
-
     tmp_map.ensure_keys({}, check_options, "validation options");
     validate_opt_map = tmp_map;
 
@@ -1549,6 +1541,19 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(const shcore::Arg
   new_args.push_back(shcore::Value(instance_def));
   auto session = Dba::get_session(new_args);
 
+  // Validate the permissions of the user running the operation.
+  if (!validate_cluster_admin_user_privileges(session, session->get_user(),
+                                              session->get_host())) {
+    std::string error_msg =
+        "Account '" + session->get_user() + "'@'" +
+        session->get_host() +
+        "' does not have all the required privileges to execute this "
+        "operation. For more information, see the online documentation.";
+    log_error("%s", error_msg.c_str());
+    throw std::runtime_error(error_msg);
+  }
+
+  // Now validates the instance GR status itself
   std::string uri = session->uri();
 
   GRInstanceType type = get_gr_instance_type(session->connection());
