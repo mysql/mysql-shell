@@ -38,10 +38,10 @@ void Shell_base_test::create_file(const std::string& name,
   }
 }
 
-void Shell_base_test::check_string_expectation(const std::string& expected_str,
-                                               const std::string &actual,
+void Shell_base_test::check_string_expectation(const char* file, int line,
+                                               const std::string& expected_str,
+                                               const std::string& actual,
                                                bool expected) {
-
   std::string resolved_str = resolve_string(expected_str);
 
   bool found = actual.find(resolved_str) != std::string::npos;
@@ -51,7 +51,29 @@ void Shell_base_test::check_string_expectation(const std::string& expected_str,
     error += " Output: " + resolved_str;
     SCOPED_TRACE("Actual: " + actual);
     SCOPED_TRACE(error);
-    ADD_FAILURE();
+    ADD_FAILURE_AT(file, line);
+  }
+}
+
+void Shell_base_test::check_string_list_expectation(
+    const char *file, int line,
+    const std::vector<std::string>& expected_strs, const std::string& actual,
+    bool expected) {
+  bool found = false;
+  for (const auto &expected_str : expected_strs) {
+    std::string resolved_str = resolve_string(expected_str);
+    if (actual.find(resolved_str) != std::string::npos) {
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    std::string error = expected ? "Missing" : "Unexpected";
+    error += " Output: " + shcore::str_join(expected_strs, "\n\t");
+    SCOPED_TRACE("Actual: " + actual);
+    SCOPED_TRACE(error);
+    ADD_FAILURE_AT(file, line);
   }
 }
 

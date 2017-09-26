@@ -232,10 +232,13 @@ bool Mysql_shell::connect(bool primary_session) {
       } else {
         if (scheme == "mysqlx") {
           if (_options.session_type == mysqlsh::SessionType::Classic)
-            error = "Provided URI is not compatible with Classic session configured with --mysql.";
+            error =
+                "The given URI conflicts with the --mysql session type option.";
         } else if (scheme == "mysql") {
           if (_options.session_type == mysqlsh::SessionType::X)
-            error = "Provided URI is not compatible with X protocol session configured with --mysqlx.";
+            error =
+                "The given URI conflicts with the --mysqlx session type "
+                "option.";
         }
       }
 

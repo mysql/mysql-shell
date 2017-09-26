@@ -45,17 +45,14 @@ class Command_line_connection_test : public Command_line_test {
   }
 
   int test_classic_connection(const std::vector<const char*>& additional_args,
-                              const char * password = NULL) {
+                              const char* password = NULL) {
     std::string pwd_param = "--password=" + _pwd;
-    std::vector<const char *> args = { _mysqlsh,
-      "-mc",
-      "--interactive=full",
-      pwd_param.c_str(),
-      "-e",
-      "\\status",
+    std::vector<const char*> args = {
+        _mysqlsh,          "-mc", "--interactive=full",
+        pwd_param.c_str(), "-e",  "\\status",
     };
 
-    for (auto arg: additional_args)
+    for (auto arg : additional_args)
       args.emplace_back(arg);
 
     args.push_back(NULL);
@@ -132,14 +129,14 @@ TEST_F(Command_line_connection_test, bug25268670) {
 // Shell. The password is provided appart as a second parameter after the
 // list argument
 TEST_F(Command_line_connection_test, prompt_sample) {
-  execute({_mysqlsh, "--uri", _mysql_uri_nopasswd.c_str(), "--interactive=full", "--passwords-from-stdin",
-  "-e", "session", NULL}, _pwd.c_str());
+  execute({_mysqlsh, "--uri", _mysql_uri_nopasswd.c_str(), "--interactive=full",
+           "--passwords-from-stdin", "-e", "session", NULL},
+          _pwd.c_str());
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Enter password:");
 };
 
 TEST_F(Command_line_connection_test, session_cmdline_options) {
-
   std::string port = "--port=" + _port;
   std::string mysql_port = "--port=" + _mysql_port;
   std::string uri_db = _uri + "/mysql";
@@ -150,117 +147,138 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
   std::string mysql_uri_scheme_db = "mysql://" + _mysql_uri + "/mysql";
 
   // FR2_5 : mysqlsh -u <user> -p --port=<mysql_port> -ma
-  execute({ _mysqlsh, "-u", _user.c_str(), "-p", mysql_port.c_str(), "-ma",
-          "--interactive=full", "--passwords-from-stdin", "-e", "\\status",
-          NULL}, _pwd.c_str());
+  execute(
+      {_mysqlsh, "-u", _user.c_str(), "-p", mysql_port.c_str(), "-ma",
+       "--interactive=full", "--passwords-from-stdin", "-e", "\\status", NULL},
+      _pwd.c_str());
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
 
   // FR2_7 : mysqlsh -u <user> -p --port=<mysqlx_port> -ma
-  execute({ _mysqlsh, "-u", _user.c_str(), "-p", port.c_str(), "-ma",
-          "--interactive=full", "--passwords-from-stdin", "-e",
-          "\\status", NULL}, _pwd.c_str());
+  execute(
+      {_mysqlsh, "-u", _user.c_str(), "-p", port.c_str(), "-ma",
+       "--interactive=full", "--passwords-from-stdin", "-e", "\\status", NULL},
+      _pwd.c_str());
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
 
   // FR2_10 : mysqlsh --uri user@host:33060/db --mysqlx
-  execute({ _mysqlsh, "--uri", uri_db.c_str(), "--mysqlx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", uri_db.c_str(), "--mysqlx", "--interactive=full",
+           "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to '");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
 
   // FR_EXTRA_3 : mysqlsh --uri mysql://user@host:33060/db --mysqlx
-  execute({ _mysqlsh, "--uri", uri_scheme_db.c_str(), "--mysqlx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "--mysqlx",
+           "--interactive=full", "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Provided URI is not compatible with X protocol session configured with --mysqlx.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "The given URI conflicts with the --mysqlx session type option.");
 
   // FR_EXTRA_4 : mysqlsh --uri mysql://user@host:33060/db -mx
-  execute({ _mysqlsh, "--uri", uri_scheme_db.c_str(), "-mx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "-mx",
+           "--interactive=full", "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Provided URI is not compatible with X protocol session configured with --mysqlx.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "The given URI conflicts with the --mysqlx session type option.");
 
   // FR_EXTRA_5 : mysqlsh --uri mysql://user@host:3306/db --mysqlx
-  execute({ _mysqlsh, "--uri", uri_scheme_db.c_str(), "--mysqlx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "--mysqlx",
+           "--interactive=full", "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Provided URI is not compatible with X protocol session configured with --mysqlx.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "The given URI conflicts with the --mysqlx session type option.");
 
   // FR_EXTRA_6 : mysqlsh --uri mysql://user@host:3306/db -mx
-  execute({ _mysqlsh, "--uri", uri_scheme_db.c_str(), "-mx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "-mx",
+           "--interactive=full", "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Provided URI is not compatible with X protocol session configured with --mysqlx.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "The given URI conflicts with the --mysqlx session type option.");
 
   // FR_EXTRA_11 : mysqlsh --uri mysqlx://user@host:3306/db --mysqlx
-  execute({ _mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "--mysqlx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "--mysqlx",
+           "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Requested session assumes MySQL X Protocol but '" + _host + ":" + _mysql_port + "' seems to speak the classic MySQL protocol");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
+      {"MySQL server has gone away",
+       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+           _mysql_port + "' seems to speak the classic MySQL protocol"}));
 
   // FR_EXTRA_12 : mysqlsh --uri mysqlx://user@host:3306/db -mx
-  execute({ _mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "-mx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "-mx",
+           "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Requested session assumes MySQL X Protocol but '" + _host + ":" + _mysql_port + "' seems to speak the classic MySQL protocol");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
+      {"MySQL server has gone away",
+       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+           _mysql_port + "' seems to speak the classic MySQL protocol"}));
 
   // FR_EXTRA_15 : mysqlsh --uri mysqlx://user@host:33060/db --mysqlx -ma
-  execute({ _mysqlsh, "--uri", uri_xscheme_db.c_str(), "--mysqlx", "-ma",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", uri_xscheme_db.c_str(), "--mysqlx", "-ma",
+           "--interactive=full", "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type already configured to X protocol, automatic protocol detection (-ma) can't be enabled.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "Session type already configured to X protocol, automatic protocol "
+      "detection (-ma) can't be enabled.");
 
   // FR_EXTRA_16 : mysqlsh --uri mysqlx://user@host:33060/db -mx -ma
-  execute({ _mysqlsh, "--uri", uri_xscheme_db.c_str(), "-mx", "-ma",
-          "--interactive=full", "-e", "\\status", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type already configured to X protocol, automatic protocol detection (-ma) can't be enabled.");
+  execute({_mysqlsh, "--uri", uri_xscheme_db.c_str(), "-mx", "-ma",
+           "--interactive=full", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "Session type already configured to X protocol, automatic protocol "
+      "detection (-ma) can't be enabled.");
 
   // FR_EXTRA_19 : mysqlsh --uri user@host:3306/db --mysqlx
-  execute({ _mysqlsh, "--uri", mysql_uri_db.c_str(), "--mysqlx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", mysql_uri_db.c_str(), "--mysqlx",
+           "--interactive=full", "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(" Requested session assumes MySQL X Protocol but '" + _host + ":" + _mysql_port +  "' seems to speak the classic MySQL protocol");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
+      {"MySQL server has gone away",
+       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+           _mysql_port + "' seems to speak the classic MySQL protocol"}));
 
   // FR_EXTRA_20 : mysqlsh --uri user@host:3306/db -mx
-  execute({ _mysqlsh, "--uri", mysql_uri_db.c_str(), "-mx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", mysql_uri_db.c_str(), "-mx", "--interactive=full",
+           "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(" Requested session assumes MySQL X Protocol but '" + _host + ":" + _mysql_port + "' seems to speak the classic MySQL protocol");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
+      {"MySQL server has gone away",
+       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+           _mysql_port + "' seems to speak the classic MySQL protocol"}));
 
   // FR_EXTRA_SUCCEED_1 : mysqlsh --uri mysql://user@host:3306/db -ma
-  execute({ _mysqlsh, "--uri", mysql_uri_scheme_db.c_str(), "-ma",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, "--uri", mysql_uri_scheme_db.c_str(), "-ma",
+           "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
 
   // FR_EXTRA_SUCCEED_2 : mysqlsh --uri mysql://user@host:3306/db -mc
-  execute({ _mysqlsh, mysql_uri_db.c_str(), "-mc",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, mysql_uri_db.c_str(), "-mc", "--interactive=full", "-e",
+           "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
 
   // FR_EXTRA_SUCCEED_3 : mysqlsh --uri mysqlx://user@host:33060/db -ma
-  execute({ _mysqlsh, uri_xscheme_db.c_str(), "-ma",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, uri_xscheme_db.c_str(), "-ma", "--interactive=full", "-e",
+           "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
 
   // FR_EXTRA_SUCCEED_4 : mysqlsh --uri mysqlx://user@host:33060/db -mx
-  execute({ _mysqlsh, uri_xscheme_db.c_str(), "-mx",
-          "--interactive=full", "-e", "\\status", NULL});
+  execute({_mysqlsh, uri_xscheme_db.c_str(), "-mx", "--interactive=full", "-e",
+           "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
-
 };
 
 TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
@@ -268,8 +286,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
 
   // Default ssl-mode as required must work regardless if the server has or not
   // SSL enabled (i.e. commercial vs gpl)
-  execute_in_session(_mysql_uri, "--mysql",
-                     "show variables like 'have_ssl';");
+  execute_in_session(_mysql_uri, "--mysql", "show variables like 'have_ssl';");
   if (_output.find("YES") != std::string::npos)
     have_ssl = true;
 
@@ -326,8 +343,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
 
   // Default ssl-mode as required must work regardless if the server has or not
   // SSL enabled (i.e. commercial vs gpl)
-  execute_in_session(_mysql_uri, "--mysql",
-                     "show variables like 'have_ssl';");
+  execute_in_session(_mysql_uri, "--mysql", "show variables like 'have_ssl';");
   if (_output.find("YES") != std::string::npos)
     have_ssl = true;
 
@@ -464,7 +480,6 @@ TEST_F(Command_line_connection_test, expired_account) {
            nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("DONE");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("ERROR");
-
 }
 
 TEST_F(Command_line_connection_test, invalid_options_WL10912) {
@@ -473,7 +488,6 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
              "shell.connect({user:'root',password:'',host:'localhost',sslMode:"
              "'whatever'})",
              NULL});
-
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Shell.connect: Invalid values in connection options: sslMode");

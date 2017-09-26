@@ -852,8 +852,8 @@ TEST_F(Shell_cmdline_options, test_help_details) {
 
 TEST_F(Shell_cmdline_options, conflicts_session_type) {
   {
-    auto error = "Provided URI is not compatible with "
-                  "Classic session configured with --mysql.\n";
+    auto error =
+        "The given URI conflicts with the --mysql session type option.\n";
 
     const char *argv0[] = {
         "ut",
@@ -866,8 +866,8 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
   }
 
   {
-    auto error = "Provided URI is not compatible with "
-                  "Classic session configured with --sqlc.\n";
+    auto error =
+        "The given URI conflicts with the --sqlc session type option.\n";
 
     const char *argv0[] = {"ut", "--sqlc", "--uri=mysqlx://root@localhost",
                            NULL};
@@ -876,8 +876,8 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
   }
 
   {
-    auto error = "Provided URI is not compatible with "
-                  "X protocol session configured with --mysqlx.\n";
+    auto error =
+        "The given URI conflicts with the --mysqlx session type option.\n";
 
     const char *argv1[] = {
         "ut",
@@ -890,8 +890,8 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
   }
 
   {
-    auto error = "Provided URI is not compatible with "
-                  "X protocol session configured with --sqlx.\n";
+    auto error =
+        "The given URI conflicts with the --sqlx session type option.\n";
 
     const char *argv1[] = {
         "ut",
