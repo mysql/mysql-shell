@@ -350,12 +350,11 @@ void Shell_command_line_options::check_session_type_conflicts() {
   if (_options.session_type != mysqlsh::SessionType::Auto &&
      _uri_data.has_scheme()) {
     if ((_options.session_type == mysqlsh::SessionType::Classic &&
-      _uri_data.get_scheme() != "mysql") ||
-      (_options.session_type == mysqlsh::SessionType::X &&
-      _uri_data.get_scheme() != "mysqlx")) {
-      auto error = "Provided URI is not compatible with " +\
-                   get_session_type_name(_options.session_type) + " session "
-                   "configured with " + _session_type_arg + ".";
+         _uri_data.get_scheme() != "mysql") ||
+        (_options.session_type == mysqlsh::SessionType::X &&
+         _uri_data.get_scheme() != "mysqlx")) {
+      auto error = "The given URI conflicts with the " + _session_type_arg +
+                   " session type option.";
       throw std::runtime_error(error);
     }
   }

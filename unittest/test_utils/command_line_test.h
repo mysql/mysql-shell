@@ -24,16 +24,22 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "unittest/test_utils/shell_base_test.h"
 
-#define MY_EXPECT_CMD_OUTPUT_CONTAINS(e)                         \
-  do {                                                           \
-    SCOPED_TRACE("...in stdout check\n");                        \
-    check_string_expectation(e, _output, true); \
+#define MY_EXPECT_CMD_OUTPUT_CONTAINS(e)                            \
+  do {                                                              \
+    SCOPED_TRACE("...in stdout check\n");                           \
+    check_string_expectation(__FILE__, __LINE__, e, _output, true); \
   } while (0)
 
-#define MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(e)                      \
-  do {                                                            \
-    SCOPED_TRACE("...in stdout check\n");                         \
-    check_string_expectation(e, _output, false); \
+#define MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(e)                          \
+  do {                                                                   \
+    SCOPED_TRACE("...in stdout check\n");                                \
+    check_string_list_expectation(__FILE__, __LINE__, e, _output, true); \
+  } while (0)
+
+#define MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(e)                         \
+  do {                                                               \
+    SCOPED_TRACE("...in stdout check\n");                            \
+    check_string_expectation(__FILE__, __LINE__, e, _output, false); \
   } while (0)
 
 namespace tests {
