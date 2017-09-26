@@ -75,7 +75,7 @@ else
 // XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
 // But won't be available for the GA release. So we need to wait until the instance is reported
 // as offline
-wait_slave_state(Cluster, uri3, ["OFFLINE", "UNREACHABLE"]);
+wait_slave_state(Cluster, uri3, ["(MISSING)"]);
 
 //@# Dba: start instance 3
 if (__sandbox_dir)

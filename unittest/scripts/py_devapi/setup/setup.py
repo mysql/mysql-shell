@@ -238,7 +238,7 @@ def reset_or_deploy_sandbox(port):
     deployed_here = True
 
 
-  # If reboot is needed, kills the sandbox first
+  # If reboot is needed, stops the sandbox first
   if reboot:
     connected = False
 
@@ -260,6 +260,18 @@ def reset_or_deploy_sandbox(port):
   # Start attempt is done either for reboot or if
   # connection was unsuccessful
   if start:
+    # Make sure the server has finished shutting down
+    try:
+      kill_options = {}
+      kill_options['password'] = 'root'
+      if __sandbox_dir != '':
+        kill_options['sandboxDir'] = __sandbox_dir
+
+      dba.kill_sandbox_instance(port, kill_options)
+    except Exception, err:
+      print err.args[0]
+      pass
+
     print 'Starting sandbox at: %s' % port
 
     try:

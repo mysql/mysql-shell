@@ -30,7 +30,7 @@ if __sandbox_dir:
 else:
   dba.kill_sandbox_instance(__mysql_sandbox_port1)
 
-wait_slave_state(single, uri1, ["UNREACHABLE", "OFFLINE"])
+wait_slave_state(single, uri1, ["(MISSING)"])
 
 #@ Restore the quorum
 single.force_quorum_using_partition_of({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password':'root'})
