@@ -246,7 +246,7 @@ function reset_or_deploy_sandbox(port) {
     deployed_here = true;
   }
 
-  // If reboot is needed, kills the sandbox first
+  // If reboot is needed, stops the sandbox first
   if (reboot) {
     connected = false;
 
@@ -268,6 +268,18 @@ function reset_or_deploy_sandbox(port) {
   // Start attempt is done either for reboot or if
   // connection was unsuccessful
   if (start) {
+    // Make sure the server has finished shutting down
+    try {
+      kill_options = {}
+      kill_options['password'] = 'root';
+      if (__sandbox_dir != '')
+        kill_options['sandboxDir'] = __sandbox_dir;
+
+      dba.killSandboxInstance(port, kill_options);
+    } catch (err) {
+      println(err.message);
+    }
+
     println('Starting sandbox at: ' + port);
 
     try {

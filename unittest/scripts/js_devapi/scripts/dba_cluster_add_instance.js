@@ -34,7 +34,7 @@ if (__sandbox_dir)
 else
   dba.killSandboxInstance(__mysql_sandbox_port1);
 
-wait_slave_state(single, uri1, ["UNREACHABLE", "OFFLINE"]);
+wait_slave_state(single, uri1, ["(MISSING)"]);
 
 //@ Restore the quorum
 single.forceQuorumUsingPartitionOf({host: localhost, port: __mysql_sandbox_port2, user: 'root', password:'root'});
