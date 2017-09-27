@@ -154,20 +154,17 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
 }
 
 void Base_shell::load_default_modules(shcore::Shell_core::Mode mode) {
-  // Module preloading only occurs on interactive mode
-  if (_options.interactive) {
-    std::string tmp;
-    if (mode == shcore::Shell_core::Mode::JavaScript) {
-      tmp = "var mysqlx = require('mysqlx');";
-      _shell->handle_input(tmp, _input_mode, _result_processor);
-      tmp = "var mysql = require('mysql');";
-      _shell->handle_input(tmp, _input_mode, _result_processor);
-    } else if (mode == shcore::Shell_core::Mode::Python) {
-      tmp = "from mysqlsh import mysqlx";
-      _shell->handle_input(tmp, _input_mode, _result_processor);
-      tmp = "from mysqlsh import mysql";
-      _shell->handle_input(tmp, _input_mode, _result_processor);
-    }
+  std::string tmp;
+  if (mode == shcore::Shell_core::Mode::JavaScript) {
+    tmp = "var mysqlx = require('mysqlx');";
+    _shell->handle_input(tmp, _input_mode, _result_processor);
+    tmp = "var mysql = require('mysql');";
+    _shell->handle_input(tmp, _input_mode, _result_processor);
+  } else if (mode == shcore::Shell_core::Mode::Python) {
+    tmp = "from mysqlsh import mysqlx";
+    _shell->handle_input(tmp, _input_mode, _result_processor);
+    tmp = "from mysqlsh import mysql";
+    _shell->handle_input(tmp, _input_mode, _result_processor);
   }
 }
 
