@@ -1135,7 +1135,7 @@ REGISTER_HELP(
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS2,
               "@throws ArgumentError if the port value is < 1024 or > 65535.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS3,
-              "@throws RuntimeError f SSL "
+              "@throws RuntimeError if SSL "
               "support can be provided and "
               "ignoreSslError: false.");
 

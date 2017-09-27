@@ -164,7 +164,7 @@ EXCEPTIONS
   ArgumentError: if the options contain an invalid attribute.
   ArgumentError: if the root password is missing on the options.
   ArgumentError: if the port value is < 1024 or > 65535.
-  RuntimeError: f SSL support can be provided and ignoreSslError: false.
+  RuntimeError: if SSL support can be provided and ignoreSslError: false.
 
 RETURNS
 
