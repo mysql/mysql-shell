@@ -119,15 +119,13 @@ if (__sandbox_dir)
 else
   dba.killSandboxInstance(__mysql_sandbox_port3);
 
-wait_slave_state(Cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"]);
+wait_slave_state(Cluster, 'third_sandbox', ["(MISSING)"]);
 
 //@# Dba: start instance 3
 if (__sandbox_dir)
   dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir});
 else
   dba.startSandboxInstance(__mysql_sandbox_port3);
-
-wait_slave_state(Cluster, 'third_sandbox', ["(MISSING)"]);
 
 //@: Cluster: rejoinInstance errors
 Cluster.rejoinInstance();
