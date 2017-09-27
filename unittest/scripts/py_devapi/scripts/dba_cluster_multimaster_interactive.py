@@ -82,15 +82,13 @@ else:
 # XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
 # But won't be available for the GA release. So we need to wait until the instance is reported
 # as offline
-wait_slave_state(cluster, uri3, ["OFFLINE", "UNREACHABLE"])
+wait_slave_state(cluster, uri3, ["(MISSING)"])
 
 #@# Dba: start instance 3
 if __sandbox_dir:
   dba.start_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir": __sandbox_dir})
 else:
   dba.start_sandbox_instance(__mysql_sandbox_port3)
-
-wait_slave_state(cluster, uri3, ["OFFLINE", "(MISSING)"])
 
 #@: Cluster: rejoin_instance errors
 cluster.rejoin_instance();
