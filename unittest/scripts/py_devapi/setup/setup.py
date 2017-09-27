@@ -263,7 +263,6 @@ def reset_or_deploy_sandbox(port):
     # Make sure the server has finished shutting down
     try:
       kill_options = {}
-      kill_options['password'] = 'root'
       if __sandbox_dir != '':
         kill_options['sandboxDir'] = __sandbox_dir
 
