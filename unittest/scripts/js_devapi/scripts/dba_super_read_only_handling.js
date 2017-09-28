@@ -63,14 +63,14 @@ cluster.rejoinInstance(connection3);
 delete cluster;
 session.close();
 
-//@<OUT> Stop sandbox 2
-stop_sandbox(__mysql_sandbox_port2);
+//@<OUT> Kill sandbox 2
+kill_sandbox(__mysql_sandbox_port2);
 
-//@<OUT> Stop sandbox 3
-stop_sandbox(__mysql_sandbox_port3);
+//@<OUT> Kill sandbox 3
+kill_sandbox(__mysql_sandbox_port3);
 
-//@<OUT> Stop sandbox 1
-stop_sandbox(__mysql_sandbox_port1);
+//@<OUT> Kill sandbox 1
+kill_sandbox(__mysql_sandbox_port1);
 
 //@<OUT> Start sandbox 1
 start_sandbox(__mysql_sandbox_port1);
