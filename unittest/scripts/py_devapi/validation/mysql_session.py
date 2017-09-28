@@ -43,7 +43,7 @@ The following functions are currently supported.
  - get_schemas        Retrieves the Schemas available on the session.
  - get_uri            Retrieves the URI for the current session.
  - help               Provides help about this class and it's members
- - is_open            Verifies if the session is still open.
+ - is_open            Returns true if session is known to be open.
  - rollback           Discards all the operations executed after a call to
                       startTransaction().
  - run_sql            Executes a query and returns the corresponding
