@@ -63,6 +63,9 @@ void Session_impl::connect(
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   }
 
+  mysql_options(_mysql, MYSQL_OPT_CONNECT_ATTR_RESET, 0);
+  mysql_options4(_mysql, MYSQL_OPT_CONNECT_ATTR_ADD, "program_name", "mysqlsh");
+
 #ifdef _WIN32
   // Enable pipe connection if required
   if (!connection_options.has_port() &&

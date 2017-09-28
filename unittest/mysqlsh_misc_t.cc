@@ -52,7 +52,6 @@ TEST_F(Mysqlsh_misc, trace_proto) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected2);
 }
 
-
 TEST_F(Mysqlsh_misc, load_builtin_modules) {
   // Regression test for Bug #26174373
   // Built-in modules should auto-load in non-interactive sessions too
@@ -69,4 +68,14 @@ TEST_F(Mysqlsh_misc, load_builtin_modules) {
   wipe_out();
   execute({_mysqlsh, "--py", "-e", "print(mysql)", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("<module '__mysql__' (built-in)>");
+}
+
+TEST_F(Mysqlsh_misc, connection_attribute) {
+  // Regression test for Bug #24735491
+  // MYSQL SHELL DOESN'T SET CONNECTION ATTRIBUTES
+  execute({_mysqlsh, "--js", _mysql_uri.c_str(), "-e",
+           "println(session.runSql('select concat(attr_name, \\'=\\', "
+           "attr_value) from performance_schema.session_connect_attrs where "
+           "attr_name=\\'program_name\\'').fetchOne()[0])", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("program_name=mysqlsh");
 }
