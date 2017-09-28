@@ -89,9 +89,20 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw(Exception)
 
   // set stdin to the shell console when on interactive mode
   if ((*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] ==
-      shcore::Value::True())
-    PySys_SetObject(const_cast<char *>("stdin"),
-                    get_shell_python_support_module());
+      shcore::Value::True()) {
+    register_shell_stdin_module();
+    PySys_SetObject(const_cast<char *>("stdin"), get_shell_stdin_module());
+
+    // also override raw_input() to use the prompt function
+    PyObject *dict = PyModule_GetDict(get_shell_python_support_module());
+    assert(dict != nullptr);
+
+    PyObject *raw_input = PyDict_GetItemString(dict, "raw_input");
+    PyDict_SetItemString(_globals, "raw_input", raw_input);
+    PyDict_SetItemString(
+        PyModule_GetDict(PyDict_GetItemString(_globals, "__builtins__")),
+        "raw_input", raw_input);
+  }
 
   // Stores the main thread state
   _main_thread_state = PyThreadState_Get();
@@ -169,6 +180,10 @@ PyObject *Python_context::get_shell_stderr_module() {
 
 PyObject *Python_context::get_shell_stdout_module() {
   return _shell_stdout_module;
+}
+
+PyObject *Python_context::get_shell_stdin_module() {
+  return _shell_stdin_module;
 }
 
 PyObject *Python_context::get_shell_python_support_module() {
@@ -486,104 +501,52 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
   return Py_None;
 }
 
-PyObject *Python_context::shell_prompt(PyObject *UNUSED(self), PyObject *args) {
-  PyObject *ret_val = NULL;
+PyObject *Python_context::shell_raw_input(PyObject *, PyObject *args) {
+  const char *prompt = nullptr;
+  if (!PyArg_ParseTuple(args, "|s", &prompt))
+    return nullptr;
+
   Python_context *ctx;
-
   if (!(ctx = Python_context::get_and_check()))
-    return NULL;
+    return nullptr;
 
-  PyObject *pyPrompt;
-  PyObject *pyOptions;
-  try {
-    if (PyArg_ParseTuple(args, "S|O", &pyPrompt, &pyOptions)) {
-      Py_ssize_t count = PyTuple_Size(args);
-      if (count < 1 || count > 2) {
-        throw std::runtime_error("Invalid number of parameters");
-      } else {
-        // First parameters is a string object
-        std::string prompt = ctx->pyobj_to_shcore_value(pyPrompt).as_string();
-
-        shcore::Value::Map_type_ref options_map;
-        if (count == 2) {
-          Value options = ctx->pyobj_to_shcore_value(pyOptions);
-          if (options.type != shcore::Map)
-            throw std::runtime_error("Second parameter must be a dictionary");
-          else
-            options_map = options.as_map();
-        }
-
-        // If there are options, reads them to determine how to proceed
-        std::string default_value;
-        bool password = false;
-        bool succeeded = false;
-
-        // Identifies a default value in case en empty string is returned
-        // or hte prompt fails
-        if (options_map) {
-          if (options_map->has_key("defaultValue"))
-            default_value = options_map->get_string("defaultValue");
-
-          // Identifies if it is normal prompt or password prompt
-          if (options_map->has_key("type"))
-            password = (options_map->get_string("type") == "password");
-        }
-
-        // Performs the actual prompt
-        std::string r;
-        if (password)
-          succeeded = ctx->_delegate->password(ctx->_delegate->user_data,
-                                               prompt.c_str(), r);
-        else
-          succeeded = ctx->_delegate->prompt(ctx->_delegate->user_data,
-                                             prompt.c_str(), r);
-
-        // Uses the default value if needed
-        if (!default_value.empty() && (!succeeded || r.empty()))
-          r = default_value;
-
-        ret_val = ctx->shcore_value_to_pyobj(Value(r));
-      }
-    }
-  } catch (std::exception &e) {
-    Python_context::set_python_error(PyExc_SystemError, e.what());
+  shcore::Prompt_result result;
+  std::string line;
+  std::tie(result, line) = ctx->read_line(prompt ? prompt : "");
+  if (result == shcore::Prompt_result::Cancel) {
+    PyErr_SetNone(PyExc_KeyboardInterrupt);
+    return nullptr;
+  } else if (result == shcore::Prompt_result::CTRL_D) {
+    // ^D - normally this would close the fd, but that isn't suitable here
+    PyErr_SetNone(PyExc_EOFError);
+    return nullptr;
   }
-
-  return ret_val;
+  if (!line.empty())
+    line = line.substr(0, line.size() - 1);  // strip \n
+  return PyString_FromString(line.c_str());
 }
 
-PyObject *Python_context::shell_parse_uri(PyObject *UNUSED(self),
-                                          PyObject *args) {
-  PyObject *ret_val = NULL;
-  Python_context *ctx;
-
-  if (!(ctx = Python_context::get_and_check()))
-    return NULL;
-
-  PyObject *pyUri;
-  try {
-    Py_ssize_t count = PyTuple_Size(args);
-    if (count != 1)
-      throw std::runtime_error("Invalid number of parameters");
-
-    shcore::Value uri;
-    if (PyArg_ParseTuple(args, "S", &pyUri))
-      uri = ctx->pyobj_to_shcore_value(pyUri);
-    else
-      throw std::runtime_error("Expected a string parameter");
-
-    shcore::Argument_list args;
-    args.push_back(uri);
-    auto options =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-    auto map = mysqlsh::get_connection_map(options);
-
-    ret_val = ctx->shcore_value_to_pyobj(shcore::Value(map));
-  } catch (std::exception &e) {
-    Python_context::set_python_error(PyExc_SystemError, e.what());
+std::pair<shcore::Prompt_result, std::string> Python_context::read_line(
+    const std::string &prompt) {
+  // Check if there's some leftover in the buffer
+  if (!_stdin_buffer.empty()) {
+    size_t n = _stdin_buffer.find('\n');
+    if (n != std::string::npos) {
+      std::string tmp = _stdin_buffer.substr(0, n + 1);
+      _stdin_buffer = _stdin_buffer.substr(n + 1);
+      return {shcore::Prompt_result::Ok, tmp};
+    }
   }
-
-  return ret_val;
+  std::string ret;
+  shcore::Prompt_result result =
+      _delegate->prompt(_delegate->user_data, prompt.c_str(), &ret);
+  if (result != shcore::Prompt_result::Ok) {
+    return {result, ""};
+  }
+  _stdin_buffer.append(ret).append("\n");
+  std::string tmp;
+  std::swap(tmp, _stdin_buffer);
+  return {result, tmp};
 }
 
 PyObject *Python_context::shell_stdout(PyObject *self, PyObject *args) {
@@ -603,6 +566,63 @@ PyObject *Python_context::shell_flush(PyObject *self, PyObject *args) {
   Py_INCREF(Py_None);
   return Py_None;
 }
+
+PyObject *Python_context::shell_stdin_read(PyObject *self, PyObject *args) {
+  Python_context *ctx;
+
+  if (!(ctx = Python_context::get_and_check()))
+    return nullptr;
+
+  // stdin.read(n) requires n number of chars to be read,
+  // but we can only read one line at a time. Thus, we read one line at a time
+  // from user, buffer it and return the requested number of chars
+  int n;
+  if (!PyArg_ParseTuple(args, "i", &n))
+    return nullptr;
+
+  for (;;) {
+    if (ctx->_stdin_buffer.size() >= n) {
+      PyObject *str =
+          PyString_FromString(ctx->_stdin_buffer.substr(0, n).c_str());
+      ctx->_stdin_buffer = ctx->_stdin_buffer.substr(n);
+      return str;
+    }
+
+    shcore::Prompt_result result;
+    std::string line;
+    std::tie(result, line) = ctx->read_line("");
+    if (result == shcore::Prompt_result::Cancel) {
+      PyErr_SetNone(PyExc_KeyboardInterrupt);
+      return nullptr;
+    } else if (result == shcore::Prompt_result::CTRL_D) {
+      // ^D - normally this would close the fd, but that isn't suitable here
+      PyErr_SetNone(PyExc_EOFError);
+      return nullptr;
+    }
+    ctx->_stdin_buffer.append(line);
+  }
+}
+
+PyObject *Python_context::shell_stdin_readline(PyObject *self, PyObject *args) {
+  Python_context *ctx;
+
+  if (!(ctx = Python_context::get_and_check()))
+    return nullptr;
+
+  shcore::Prompt_result result;
+  std::string line;
+  std::tie(result, line) = ctx->read_line("");
+  if (result == shcore::Prompt_result::Cancel) {
+    PyErr_SetNone(PyExc_KeyboardInterrupt);
+    return nullptr;
+  } else if (result == shcore::Prompt_result::CTRL_D) {
+    // ^D - normally this would close the fd, but that isn't suitable here
+    PyErr_SetNone(PyExc_EOFError);
+    return nullptr;
+  }
+  return PyString_FromString(line.c_str());
+}
+
 
 PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self),
                                                       PyObject *args) {
@@ -641,10 +661,24 @@ PyMethodDef Python_context::ShellStdOutMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
+PyMethodDef Python_context::ShellStdInMethods[] = {
+    {"read", &Python_context::shell_stdin_read, METH_VARARGS,
+     "Read a string through the shell input mechanism."},
+    {"readline", &Python_context::shell_stdin_readline, METH_NOARGS,
+     "Read a line of string through the shell input mechanism."},
+    {NULL, NULL, 0, NULL} /* Sentinel */
+};
+
 PyMethodDef Python_context::ShellPythonSupportMethods[] = {
     {"interactivehook", &Python_context::shell_interactive_eval_hook,
      METH_VARARGS,
      "Custom displayhook to capture interactive expr evaluation results."},
+    {"raw_input", &Python_context::shell_raw_input, METH_VARARGS,
+     "raw_input([prompt]) -> string\n"
+     "\n"
+     "Read a string from standard input.  The trailing newline is stripped.\n"
+     "If the user hits EOF (Unix: Ctl-D, Windows: Ctl-Z+Return), raise "
+     "EOFError.\n"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -767,6 +801,15 @@ void Python_context::register_shell_stdout_module() {
         "Error initializing SHELL module in Python support");
 
   _shell_stdout_module = module;
+}
+
+void Python_context::register_shell_stdin_module() {
+  PyObject *module = Py_InitModule("shell_stdin", ShellStdInMethods);
+  if (module == NULL)
+    throw std::runtime_error(
+        "Error initializing SHELL module in Python support");
+
+  _shell_stdin_module = module;
 }
 
 void Python_context::register_shell_python_support_module() {

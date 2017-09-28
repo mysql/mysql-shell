@@ -143,10 +143,12 @@ class Shell_test_output_handler {
   static void deleg_print(void *user_data, const char *text);
   static void deleg_print_error(void *user_data, const char *text);
   static void deleg_print_value(void *user_data, const char *text);
-  static bool deleg_prompt(void *user_data, const char *UNUSED(prompt),
-                           std::string &ret);
-  static bool deleg_password(void *user_data, const char *UNUSED(prompt),
-                             std::string &ret);
+  static shcore::Prompt_result deleg_prompt(void *user_data,
+                                            const char *UNUSED(prompt),
+                                            std::string *ret);
+  static shcore::Prompt_result deleg_password(void *user_data,
+                                              const char *UNUSED(prompt),
+                                              std::string *ret);
 
   void wipe_out() {
     std::lock_guard<std::mutex> lock(stdout_mutex);
@@ -198,6 +200,10 @@ class Shell_test_output_handler {
   }
 
   bool debug;
+
+  void feed_to_prompt(const std::string &line) {
+    prompts.push_back(line);
+  }
 
   std::list<std::string> prompts;
   std::list<std::string> passwords;

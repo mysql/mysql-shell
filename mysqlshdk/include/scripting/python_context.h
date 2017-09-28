@@ -28,8 +28,10 @@
 #include "utils/utils_file.h"
 
 #include "scripting/python_type_conversion.h"
-#include <string>
 #include <list>
+#include <string>
+#include <utility>
+
 
 namespace shcore {
 class AutoPyObject {
@@ -161,6 +163,7 @@ public:
   static Python_context *get_and_check();
   PyObject *get_shell_stderr_module();
   PyObject *get_shell_stdout_module();
+  PyObject *get_shell_stdin_module();
   PyObject *get_shell_python_support_module();
 
   Value execute(const std::string &code, const std::string& source = "",
@@ -197,21 +200,28 @@ private:
   static PyObject *shell_print(PyObject *self, PyObject *args, const std::string& stream);
   static PyObject *shell_flush(PyObject *self, PyObject *args);
   static PyObject *shell_flush_stderr(PyObject *self, PyObject *args);
-  static PyObject *shell_prompt(PyObject *self, PyObject *args);
   static PyObject *shell_stdout(PyObject *self, PyObject *args);
   static PyObject *shell_stderr(PyObject *self, PyObject *args);
+  static PyObject *shell_raw_input(PyObject *self, PyObject *args);
+  static PyObject *shell_stdin_read(PyObject *self, PyObject *args);
+  static PyObject *shell_stdin_readline(PyObject *self, PyObject *args);
   static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
-  static PyObject *shell_parse_uri(PyObject *self, PyObject *args);
+
+  std::pair<shcore::Prompt_result, std::string> read_line(
+      const std::string &prompt);
+
   static bool exit_error;
   static bool module_processing;
   static PyMethodDef ShellStdErrMethods[];
   static PyMethodDef ShellStdOutMethods[];
+  static PyMethodDef ShellStdInMethods[];
   static PyMethodDef ShellPythonSupportMethods[];
 private:
   PyObject *_global_namespace;
   PyObject *_globals;
   PyObject *_locals;
   PyThreadState *_main_thread_state;
+  std::string _stdin_buffer;
 
   PyObject *_db_error;
 
@@ -221,6 +231,7 @@ private:
 
   PyObject *_shell_stderr_module;
   PyObject *_shell_stdout_module;
+  PyObject *_shell_stdin_module;
   PyObject *_shell_python_support_module;
 
   std::map<PyObject*, std::shared_ptr<shcore::Object_bridge> > _modules;
@@ -230,6 +241,7 @@ private:
 
   void register_shell_stderr_module();
   void register_shell_stdout_module();
+  void register_shell_stdin_module();
   void register_shell_python_support_module();
 
   void init_shell_list_type();

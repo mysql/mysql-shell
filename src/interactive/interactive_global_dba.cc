@@ -1243,10 +1243,12 @@ std::string Global_dba::prompt_confirmed_password() {
   std::string password1;
   std::string password2;
   for (;;) {
-    if (_delegate->password(_delegate->user_data,
-                            "Password for new account: ", password1)) {
-      if (_delegate->password(_delegate->user_data,
-                              "Confirm password: ", password2)) {
+    if (shcore::Prompt_result::Ok ==
+        _delegate->password(_delegate->user_data,
+                            "Password for new account: ", &password1)) {
+      if (shcore::Prompt_result::Ok ==
+          _delegate->password(_delegate->user_data,
+                              "Confirm password: ", &password2)) {
         if (password1 != password2) {
           println("Passwords don't match, please try again.");
           continue;

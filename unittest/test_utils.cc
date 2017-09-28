@@ -89,7 +89,8 @@ void Shell_test_output_handler::deleg_print_error(void *user_data, const char *t
   target->std_err.append(text);
 }
 
-bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt, std::string &ret) {
+shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
+    void *user_data, const char *prompt, std::string *ret) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
   std::string answer;
 
@@ -99,21 +100,22 @@ bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt
     target->std_out.append(prompt);
   }
 
-  bool ret_val = false;
+  shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
   if (!target->prompts.empty()) {
     answer = target->prompts.front();
     target->prompts.pop_front();
 
     target->full_output << answer << std::endl;
 
-    ret_val = true;
+    ret_val = shcore::Prompt_result::Ok;
   }
 
-  ret = answer;
+  *ret = answer;
   return ret_val;
 }
 
-bool Shell_test_output_handler::deleg_password(void *user_data, const char *prompt, std::string &ret) {
+shcore::Prompt_result Shell_test_output_handler::deleg_password(
+    void *user_data, const char *prompt, std::string *ret) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
   std::string answer;
 
@@ -123,17 +125,17 @@ bool Shell_test_output_handler::deleg_password(void *user_data, const char *prom
     target->std_out.append(prompt);
   }
 
-  bool ret_val = false;
+  shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
   if (!target->passwords.empty()) {
     answer = target->passwords.front();
     target->passwords.pop_front();
 
     target->full_output << answer << std::endl;
 
-    ret_val = true;
+    ret_val = shcore::Prompt_result::Ok;
   }
 
-  ret = answer;
+  *ret = answer;
   return ret_val;
 }
 
@@ -143,12 +145,12 @@ void Shell_test_output_handler::validate_stdout_content(const std::string& conte
   if (found != expected) {
     std::string error = expected ? "Missing" : "Unexpected";
     error += " Output: " + shcore::str_replace(content, "\n", "\n\t");
-    SCOPED_TRACE("STDOUT Actual: " +
-                 shcore::str_replace(std_out, "\n", "\n\t"));
-    SCOPED_TRACE("STDERR Actual: " +
-                 shcore::str_replace(std_err, "\n", "\n\t"));
-    SCOPED_TRACE(error);
-    ADD_FAILURE();
+    ADD_FAILURE()
+      << error << "\n"
+      << "STDOUT Actual: " +
+                 shcore::str_replace(std_out, "\n", "\n\t") << "\n"
+      << "STDERR Actual: " +
+                 shcore::str_replace(std_err, "\n", "\n\t");
   }
 }
 
@@ -157,12 +159,12 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
     if (std_err.empty() != expected) {
       std::string error = std_err.empty() ? "Missing" : "Unexpected";
       error += " Error: " + shcore::str_replace(content, "\n", "\n\t");
-      SCOPED_TRACE("STDERR Actual: " +
-                   shcore::str_replace(std_err, "\n", "\n\t"));
-      SCOPED_TRACE("STDOUT Actual: " +
-                   shcore::str_replace(std_out, "\n", "\n\t"));
-      SCOPED_TRACE(error);
-      ADD_FAILURE();
+      ADD_FAILURE()
+        << error << "\n"
+        << "STDERR Actual: " +
+                   shcore::str_replace(std_err, "\n", "\n\t") << "\n"
+        << "STDOUT Actual: " +
+                   shcore::str_replace(std_out, "\n", "\n\t");
     }
   } else {
     bool found = std_err.find(content) != std::string::npos;
@@ -170,12 +172,12 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
     if (found != expected) {
       std::string error = expected ? "Missing" : "Unexpected";
       error += " Error: " + shcore::str_replace(content, "\n", "\n\t");
-      SCOPED_TRACE("STDERR Actual: " +
-                   shcore::str_replace(std_err, "\n", "\n\t"));
-      SCOPED_TRACE("STDOUT Actual: " +
-                   shcore::str_replace(std_out, "\n", "\n\t"));
-      SCOPED_TRACE(error);
-      ADD_FAILURE();
+      ADD_FAILURE()
+        << error << "\n"
+        << "STDERR Actual: " +
+                   shcore::str_replace(std_err, "\n", "\n\t") << "\n"
+        << "STDOUT Actual: " +
+                   shcore::str_replace(std_out, "\n", "\n\t");
     }
   }
 }
@@ -198,9 +200,9 @@ void Shell_test_output_handler::validate_log_content(const std::vector<std::stri
       std::string s;
       for (const auto &piece : log)
         s += piece;
-      SCOPED_TRACE("LOG Actual: " + s);
-      SCOPED_TRACE(error);
-      ADD_FAILURE();
+
+      ADD_FAILURE() << error << "\n"
+        << "LOG Actual: " + s;
     }
   }
 
@@ -225,9 +227,9 @@ void Shell_test_output_handler::validate_log_content(const std::string &content,
     std::string s;
     for (const auto &piece : log)
       s += piece;
-    SCOPED_TRACE("LOG Actual: " + s);
-    SCOPED_TRACE(error);
-    ADD_FAILURE();
+
+    ADD_FAILURE() << error << "\n"
+      << "LOG Actual: " + s;
   }
 
   // Wipe the log here

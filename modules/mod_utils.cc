@@ -303,7 +303,8 @@ void resolve_connection_credentials(mysqlshdk::db::Connection_options* options,
 
       std::string prompt = "Please provide the password for '" + uri + "': ";
 
-      if (delegate->password(delegate->user_data, prompt.c_str(), answer)) {
+      if (delegate->password(delegate->user_data, prompt.c_str(), &answer) ==
+          shcore::Prompt_result::Ok) {
         options->set_password(answer);
       } else {
         throw shcore::Exception::argument_error("Missing password for '" + uri +
