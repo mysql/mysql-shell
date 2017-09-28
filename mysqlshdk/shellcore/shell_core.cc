@@ -170,7 +170,10 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass) {
   if (format.find("json") != std::string::npos)
     prompt = format_json_output(prompt, "password");
 
-  return _client_delegate->password(_client_delegate->user_data, prompt.c_str(), ret_pass);
+  shcore::Prompt_result result;
+  result = _client_delegate->password(_client_delegate->user_data,
+                                      prompt.c_str(), &ret_pass);
+  return (result == shcore::Prompt_result::Ok);
 }
 
 bool Shell_core::prompt(const std::string &s, std::string &ret_val) {
@@ -182,8 +185,10 @@ bool Shell_core::prompt(const std::string &s, std::string &ret_val) {
   if (format.find("json") != std::string::npos)
     prompt = format_json_output(prompt, "prompt");
 
-  return _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(),
-                                  ret_val);
+  shcore::Prompt_result result;
+  result = _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(),
+                                    &ret_val);
+  return (result == shcore::Prompt_result::Ok);
 }
 
 std::string Shell_core::preprocess_input_line(const std::string &s) {
@@ -478,14 +483,16 @@ void Shell_core::deleg_print_error(void *self, const char *text) {
   deleg->print_error(deleg->user_data, output.c_str());
 }
 
-bool Shell_core::deleg_prompt(void *self, const char *text, std::string &ret) {
-  Shell_core *shcore = (Shell_core*)self;
+shcore::Prompt_result Shell_core::deleg_prompt(void *self, const char *text,
+                                               std::string *ret) {
+  Shell_core *shcore = static_cast<Shell_core *>(self);
   auto deleg = shcore->_client_delegate;
   return deleg->prompt(deleg->user_data, text, ret);
 }
 
-bool Shell_core::deleg_password(void *self, const char *text, std::string &ret) {
-  Shell_core *shcore = (Shell_core*)self;
+shcore::Prompt_result Shell_core::deleg_password(void *self, const char *text,
+                                                 std::string *ret) {
+  Shell_core *shcore = static_cast<Shell_core *>(self);
   auto deleg = shcore->_client_delegate;
   return deleg->password(deleg->user_data, text, ret);
 }

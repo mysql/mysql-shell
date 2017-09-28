@@ -208,14 +208,18 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
 
 void Command_line_shell::deleg_print(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
-  std::cout << text << std::flush;
-  self->_output_printed = true;
+  if (text && *text) {
+    std::cout << text << std::flush;
+    self->_output_printed = true;
+  }
 }
 
 void Command_line_shell::deleg_print_error(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
-  std::cerr << text;
-  self->_output_printed = true;
+  if (text && *text) {
+    std::cerr << text;
+    self->_output_printed = true;
+  }
 }
 
 std::string Command_line_shell::query_variable(
@@ -282,29 +286,30 @@ void Command_line_shell::handle_interrupt() {
   _interrupted = true;
 }
 
-bool Command_line_shell::deleg_prompt(void *cdata, const char *prompt,
-                                      std::string &ret) {
+shcore::Prompt_result Command_line_shell::deleg_prompt(void *cdata,
+                                                       const char *prompt,
+                                                       std::string *ret) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
-
-  // Ensure prompt is in its own line, in case there was any output without a \n
-  if (self->_output_printed) {
-    std::cout << "\n";
-    self->_output_printed = false;
-  }
+  self->_interrupted = false;
   char *tmp = Command_line_shell::readline(prompt);
   if (tmp && strcmp(tmp, CTRL_C_STR) == 0)
     self->_interrupted = true;
   if (!tmp || self->_interrupted) {
     if (tmp) free(tmp);
-    return false;
+    *ret = "";
+    if (self->_interrupted)
+      return shcore::Prompt_result::Cancel;
+    else
+      return shcore::Prompt_result::CTRL_D;
   }
-  ret = tmp;
+  *ret = tmp;
   free(tmp);
-  return true;
+  return shcore::Prompt_result::Ok;
 }
 
-bool Command_line_shell::deleg_password(void *cdata, const char *prompt,
-                                        std::string &ret) {
+shcore::Prompt_result Command_line_shell::deleg_password(void *cdata,
+                                                         const char *prompt,
+                                                         std::string *ret) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_interrupted = false;
   shcore::Interrupt_handler inth(
@@ -319,11 +324,15 @@ bool Command_line_shell::deleg_password(void *cdata, const char *prompt,
     self->_interrupted = true;
   if (!tmp || self->_interrupted) {
     if (tmp) free(tmp);
-    return false;
+    *ret = "";
+    if (self->_interrupted)
+      return shcore::Prompt_result::Cancel;
+    else
+      return shcore::Prompt_result::CTRL_D;
   }
-  ret = tmp;
+  *ret = tmp;
   free(tmp);
-  return true;
+  return shcore::Prompt_result::Ok;
 }
 
 void Command_line_shell::deleg_source(void *cdata, const char *module) {
@@ -378,6 +387,12 @@ void Command_line_shell::command_loop() {
         return true;
       });
       if (using_tty) {
+        // Ensure prompt is in its own line, in case there was any output
+        // without a \n
+        if (_output_printed) {
+          std::cout << "\n";
+          _output_printed = false;
+        }
         char *tmp = Command_line_shell::readline(prompt().c_str());
         if (tmp && strcmp(tmp, CTRL_C_STR) != 0) {
           cmd = tmp;

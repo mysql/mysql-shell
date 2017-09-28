@@ -168,8 +168,10 @@ public:
   static void deleg_print(void *self, const char *text);
   static void deleg_print_error(void *self, const char *text);
   static void deleg_print_value(void *self, const shcore::Value &value, const char *tag);
-  static bool deleg_prompt(void *self, const char *text, std::string &ret);
-  static bool deleg_password(void *self, const char *text, std::string &ret);
+  static shcore::Prompt_result deleg_prompt(void *self, const char *text,
+                                            std::string *ret);
+  static shcore::Prompt_result deleg_password(void *self, const char *text,
+                                              std::string *ret);
   static void deleg_source(void *self, const char *module);
 
 private:
