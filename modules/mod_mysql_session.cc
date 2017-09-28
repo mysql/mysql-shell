@@ -163,12 +163,14 @@ Value ClassicSession::_close(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
-REGISTER_HELP(CLASSICSESSION_ISOPEN_BRIEF, "Verifies if the session is still "\
-"open.");
+REGISTER_HELP(CLASSICSESSION_ISOPEN_BRIEF, "Returns true if session is "\
+  "known to be open.");
 REGISTER_HELP(CLASSICSESSION_ISOPEN_RETURNS, "@returns A boolean value "\
-"indicating if the session is still open.");
+  "indicating if the session is still open.");
 REGISTER_HELP(CLASSICSESSION_ISOPEN_DETAIL, "Returns true if the session is "\
-"still open and false otherwise.");
+    "still open and false otherwise. Note: may return true if connection "\
+    "is lost.");
+
 shcore::Value ClassicSession::_is_open(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("isOpen").c_str());
 

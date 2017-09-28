@@ -87,11 +87,21 @@ Session::Session() : _case_sensitive_table_names(false) {
 }
 
 // Documentation of isOpen function
-REGISTER_HELP(SESSION_ISOPEN_BRIEF,
-              "Verifies if the session is still open.");
+REGISTER_HELP(SESSION_ISOPEN_BRIEF, "Returns true if session is "\
+  "known to be open.");
+REGISTER_HELP(SESSION_ISOPEN_RETURNS, "@returns A boolean value "\
+  "indicating if the session is still open.");
+REGISTER_HELP(SESSION_ISOPEN_DETAIL, "Returns true if the session is "\
+  "still open and false otherwise. Note: may return true if connection "\
+  "is lost.");
+
 /**
-* $(SESSION_ISOPEN_BRIEF)
-*/
+ * $(SESSION_ISOPEN_BRIEF)
+ *
+ * $(SESSION_ISOPEN_RETURNS)
+ *
+ * $(SESSION_ISOPEN_DETAIL)
+ */
 #if DOXYGEN_JS
 Bool Session::isOpen() {}
 #elif DOXYGEN_PY

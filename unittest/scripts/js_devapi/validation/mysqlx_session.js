@@ -50,7 +50,7 @@ The following functions are currently supported.
  - getSchemas       Retrieves the Schemas available on the session.
  - getUri           Retrieves the URI for the current session.
  - help             Provides help about this class and it's members
- - isOpen           Verifies if the session is still open.
+ - isOpen           Returns true if session is known to be open.
  - quoteName        Escapes the passed identifier.
  - rollback         Discards all the operations executed after a call to
                     startTransaction().
