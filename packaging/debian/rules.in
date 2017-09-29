@@ -53,4 +53,12 @@ override_dh_auto_clean:
 
 override_dh_auto_install:
 	dh_auto_install -- libdir=$(PRIVATE_BINDIR) DESTDIR=$(TMP_INSTDIR)
+	# FIXME at this moment only headers are installed but no
+	# "mysqlshdk" library. It is also unclear if eventually we
+	# want the lib and headers, in that case likely in a separate
+	# package. Using a work-around removing all the "dev" files
+	-rm -fr debian/tmp/usr/include 2>/dev/null
+	-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null
 
+override_dh_install:
+	dh_install --fail-missing
