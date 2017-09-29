@@ -222,7 +222,8 @@ void Base_shell::update_prompt_variables(bool reconnected) {
       std::string port;
 
       _prompt_variables["ssl"] = session->get_ssl_cipher().empty() ? "" : "SSL";
-      _prompt_variables["uri"] = session->uri();
+      _prompt_variables["uri"] =
+          session->uri(mysqlshdk::db::uri::formats::scheme_user_transport());
       _prompt_variables["user"] = options.has_user() ? options.get_user() : "";
       _prompt_variables["host"] =
           options.has_host() ? options.get_host() : "localhost";

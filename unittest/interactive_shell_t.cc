@@ -44,7 +44,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -62,7 +62,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -101,7 +101,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -118,7 +118,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -142,7 +142,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -158,7 +158,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -176,7 +176,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_x) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -192,7 +192,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_x) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -244,7 +244,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -260,7 +260,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -276,7 +276,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -292,7 +292,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -308,7 +308,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -326,7 +326,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -377,7 +377,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -395,7 +395,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -411,7 +411,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -428,7 +428,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -447,7 +447,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_classic) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -463,7 +463,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_classic) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");

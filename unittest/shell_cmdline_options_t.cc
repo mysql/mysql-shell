@@ -360,10 +360,8 @@ class Shell_cmdline_options : public ::testing::Test {
     EXPECT_STREQ(error.c_str(), cerr.str().c_str());
 
     EXPECT_EQ(expected_exit_code, options.exit_code);
-    if (!expected_exit_code) {
-      EXPECT_EQ(static_cast<int>(mode),
-                options.get_options().ssl_options.get_mode());
-    }
+    if (!expected_exit_code)
+      EXPECT_EQ(mode, options.get_options().ssl_options.get_mode());
 
     // Restore old cerr.
     std::cerr.rdbuf(backup);

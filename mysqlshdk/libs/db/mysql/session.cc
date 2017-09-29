@@ -87,40 +87,44 @@ bool Session_impl::setup_ssl(
     const mysqlshdk::db::Ssl_options &ssl_options) const {
   int value;
 
-  if (ssl_options.has_ca())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CA, (ssl_options.get_ca().c_str()));
+  if (ssl_options.has_data()) {
+    ssl_options.validate();
 
-  if (ssl_options.has_capath())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH,
-                  (ssl_options.get_capath().c_str()));
+    if (ssl_options.has_ca())
+      mysql_options(_mysql, MYSQL_OPT_SSL_CA, (ssl_options.get_ca().c_str()));
 
-  if (ssl_options.has_crl())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CRL, (ssl_options.get_crl().c_str()));
+    if (ssl_options.has_capath())
+      mysql_options(_mysql, MYSQL_OPT_SSL_CAPATH,
+                    (ssl_options.get_capath().c_str()));
 
-  if (ssl_options.has_crlpath())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH,
-                  (ssl_options.get_crlpath().c_str()));
+    if (ssl_options.has_crl())
+      mysql_options(_mysql, MYSQL_OPT_SSL_CRL, (ssl_options.get_crl().c_str()));
 
-  if (ssl_options.has_ciphers())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER,
-                  (ssl_options.get_ciphers().c_str()));
+    if (ssl_options.has_crlpath())
+      mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH,
+                    (ssl_options.get_crlpath().c_str()));
 
-  if (ssl_options.has_tls_version())
-    mysql_options(_mysql, MYSQL_OPT_TLS_VERSION,
-                  (ssl_options.get_tls_version().c_str()));
+    if (ssl_options.has_ciphers())
+      mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER,
+                    (ssl_options.get_ciphers().c_str()));
 
-  if (ssl_options.has_cert())
-    mysql_options(_mysql, MYSQL_OPT_SSL_CERT, (ssl_options.get_cert().c_str()));
+    if (ssl_options.has_tls_version())
+      mysql_options(_mysql, MYSQL_OPT_TLS_VERSION,
+                    (ssl_options.get_tls_version().c_str()));
 
-  if (ssl_options.has_key())
-    mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (ssl_options.get_key().c_str()));
+    if (ssl_options.has_cert())
+      mysql_options(_mysql, MYSQL_OPT_SSL_CERT, (ssl_options.get_cert().c_str()));
 
-  if (ssl_options.has_mode())
-    value = ssl_options.get_mode();
-  else
-    value = static_cast<int>(mysqlshdk::db::Ssl_mode::Preferred);
+    if (ssl_options.has_key())
+      mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (ssl_options.get_key().c_str()));
 
-  mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
+    if (ssl_options.has_mode())
+      value = static_cast<int>(ssl_options.get_mode());
+    else
+      value = static_cast<int>(mysqlshdk::db::Ssl_mode::Preferred);
+
+    mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
+  }
 
   return true;
 }

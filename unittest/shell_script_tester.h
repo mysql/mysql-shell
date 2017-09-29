@@ -68,6 +68,9 @@ public:
 
   void validate_batch(const std::string& name);
   void validate_interactive(const std::string& name);
+  void validate_chunks(const std::string& path,
+                       const std::string& val_path = "",
+                       const std::string& pre_path = "");
 
 protected:
   std::string _setup_script; // Name of the active script

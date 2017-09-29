@@ -35,6 +35,14 @@ namespace db {
 using mysqlshdk::utils::nullable_options::Set_mode;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 
+enum class SHCORE_PUBLIC Ssl_mode {
+  Disabled = 1,
+  Preferred = 2,
+  Required = 3,
+  VerifyCa = 4,
+  VerifyIdentity = 5
+};
+
 struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   explicit Ssl_options(
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
@@ -50,7 +58,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   bool has_ciphers() const { return has_value(kSslCiphers); }
   bool has_tls_version() const { return has_value(kSslTlsVersion); }
 
-  int get_mode() const;
+  Ssl_mode get_mode() const;
   std::string get_mode_name() const;
   const std::string& get_ca() const { return _get(kSslCa); }
   const std::string& get_capath() const { return _get(kSslCaPath); }
@@ -71,7 +79,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void clear_ciphers() { clear_value(kSslCiphers); }
   void clear_tls_version() { clear_value(kSslTlsVersion); }
 
-  void set_mode(int value);
+  void set_mode(Ssl_mode value);
   void set_ca(const std::string& value);
   void set_capath(const std::string& value);
   void set_crl(const std::string& value);
@@ -83,19 +91,12 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
 
   void set(const std::string& name, const std::string& value);
   void remove(const std::string& name);
+  void validate() const;
 
   static const std::set<std::string> option_str_list;
 
  private:
   const std::string& _get(const std::string& attribute) const;
-};
-
-enum class SHCORE_PUBLIC Ssl_mode {
-  Disabled = 1,
-  Preferred = 2,
-  Required = 3,
-  VerifyCa = 4,
-  VerifyIdentity = 5
 };
 }  // namespace db
 }  // namespace mysqlshdk

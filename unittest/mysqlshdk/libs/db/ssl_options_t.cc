@@ -224,18 +224,14 @@ TEST(Ssl_options, mode_functions) {
   Ssl_options options;
   std::string msg;
 
-  msg = "Invalid value for '";
-  msg.append(mysqlshdk::db::kSslMode).append("'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.set_mode(0));
-  EXPECT_FALSE(options.has_mode());
-  EXPECT_NO_THROW(options.set_mode(1));
+  EXPECT_NO_THROW(options.set_mode(mysqlshdk::db::Ssl_mode::Disabled));
   msg = "The SSL Connection option '";
   msg.append(mysqlshdk::db::kSslMode);
   msg.append("' is already defined as '");
   msg.append(mysqlshdk::db::MapSslModeNameToValue::get_value(1)).append("'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.set_mode(2));
+  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.set_mode(mysqlshdk::db::Ssl_mode::Preferred));
   EXPECT_TRUE(options.has_mode());
-  EXPECT_EQ(1, options.get_mode());
+  EXPECT_EQ(mysqlshdk::db::Ssl_mode::Disabled, options.get_mode());
   EXPECT_NO_THROW(options.clear_mode());
   EXPECT_FALSE(options.has_mode());
   msg = "The SSL Connection option '";

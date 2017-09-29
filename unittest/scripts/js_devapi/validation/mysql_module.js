@@ -3,31 +3,6 @@
 |getClassicSession: object|
 |help: object|
 
-//@ mysql module: getClassicSession through URI
-|<ClassicSession:|
-|Session using right URI|
-
-//@ mysql module: getClassicSession through URI and password
-|<ClassicSession:|
-|Session using right URI|
-
-//@ mysql module: getClassicSession through data
-|<ClassicSession:|
-|Session using right URI|
-
-//@ mysql module: getClassicSession through data and password
-|<ClassicSession:|
-|Session using right URI|
-
-//@ mysql module: getClassicSession using URI with duplicated parameters
-||Invalid URI: The SSL Connection option 'ssl-mode' is already defined as 'REQUIRED'.
-
-//@ mysql module: getClassicSession using dictionary with duplicated parameters
-||The SSL Connection option 'ssl-mode' is already defined as 'DISABLED'.
-
-//@ mysql module: getClassicSession using SSL in URI
-|Session using right SSL URI|
-
 //@<OUT> Help on getClassicSession
 Creates a ClassicSession instance using the provided connection data.
 

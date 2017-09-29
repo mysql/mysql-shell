@@ -203,6 +203,14 @@ void Session::connect(const mysqlshdk::db::Connection_options& data) {
   try {
     _connection_options = data;
 
+    // All connections should use mode = VERIFY_CA if no ssl mode is specified
+    // and either ssl-ca or ssl-capath are specified
+    if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&
+        (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
+         _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
+      _connection_options.set(mysqlshdk::db::kSslMode,
+                             {mysqlshdk::db::kSslModeVerifyCA});
+    }
     _session->connect(_connection_options);
 
     _connection_id = _session->get_connection_id();
@@ -266,7 +274,9 @@ void Session::close() {
     // automatic destruction because if shared across different objects
     // it may remain open
 
-    log_warning("Closing session: %s", uri().c_str());
+    log_warning(
+        "Closing session: %s",
+        uri(mysqlshdk::db::uri::formats::scheme_user_transport()).c_str());
 
     if (_session->valid()) {
       did_close = true;
@@ -1134,8 +1144,19 @@ std::shared_ptr<shcore::Object_bridge> Session::create(
     const shcore::Argument_list &args) {
   std::shared_ptr<Session> session(new Session());
 
-  session->connect(
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING));
+  auto connection_options =
+      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
+
+  // DevAPI getClassicSession uses ssl-mode = REQUIRED by default if no
+  // ssl-ca or ssl-capath are specified
+  if (!connection_options.get_ssl_options().has_mode() &&
+      !connection_options.has_value(mysqlshdk::db::kSslCa) &&
+      !connection_options.has_value(mysqlshdk::db::kSslCaPath)) {
+    connection_options.get_ssl_options().set_mode(
+        mysqlshdk::db::Ssl_mode::Required);
+  }
+
+  session->connect(connection_options);
 
   shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", session);
 

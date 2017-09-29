@@ -174,7 +174,6 @@ public:
                                               std::string *ret);
   static void deleg_source(void *self, const char *module);
 
-private:
   std::string format_json_output(const std::string &info, const std::string& tag);
   std::string format_json_output(const shcore::Value &info, const std::string& tag);
 

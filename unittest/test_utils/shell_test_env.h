@@ -104,7 +104,7 @@ class Shell_test_env : public ::testing::Test {
   std::string _sandbox_cnf_2_bkp;
   std::string _sandbox_cnf_3_bkp;
 
-  std::string _path_splitter;
+  static std::string _path_splitter;
 
   std::string _sandbox_dir;
 };

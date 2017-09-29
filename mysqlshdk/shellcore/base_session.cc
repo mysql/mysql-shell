@@ -56,7 +56,7 @@ std::string &ShellBaseSession::append_descr(std::string &s_out, int /*indent*/,
     s_out.append("<" + class_name() + ":disconnected>");
   else
     s_out.append("<" + class_name() + ":" +
-                 uri(mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+                 uri(mysqlshdk::db::uri::formats::scheme_user_transport()) +
                  ">");
   return s_out;
 }
@@ -65,15 +65,15 @@ std::string &ShellBaseSession::append_repr(std::string &s_out) const {
   return append_descr(s_out, false);
 }
 
-void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const {
+void ShellBaseSession::append_json(shcore::JSON_dumper &dumper) const {
   dumper.start_object();
 
   dumper.append_string("class", class_name());
   dumper.append_bool("connected", is_open());
 
   if (is_open())
-    dumper.append_string("uri",
-                         uri(mysqlshdk::db::uri::formats::user_transport()));
+    dumper.append_string(
+        "uri", uri(mysqlshdk::db::uri::formats::scheme_user_transport()));
 
   dumper.end_object();
 }

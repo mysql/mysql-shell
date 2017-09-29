@@ -193,7 +193,7 @@ Shell_command_line_options::Shell_command_line_options(int argc,
         exit_code = 1;
         break;
       }
-      _options.ssl_options.set_mode(mode);
+      _options.ssl_options.set_mode(static_cast<mysqlshdk::db::Ssl_mode>(mode));
     } else if (check_arg_with_value(argv, i, "--ssl", NULL, value, true)) {
       std::cerr << "The --ssl option is deprecated, use --ssl-mode instead";
       exit_code = 1;
