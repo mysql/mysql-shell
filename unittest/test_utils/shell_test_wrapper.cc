@@ -33,11 +33,18 @@ void Shell_test_wrapper::reset() {
   _interactive_shell->finish_init();
 }
 
+void Shell_test_wrapper::enable_debug() {
+  output_handler.debug = true;
+}
+
 Shell_test_output_handler& Shell_test_wrapper::get_output_handler() {
   return output_handler;
 }
 
 void Shell_test_wrapper::execute(const std::string& line) {
+  if (output_handler.debug)
+    std::cout << line << std::endl;
+
   _interactive_shell->process_line(line);
 }
 

@@ -43,6 +43,7 @@ class Shell_test_wrapper {
   void execute(const std::string& line);
   mysqlsh::Shell_options& get_options();
   void trace_protocol();
+  void enable_debug();
 
  private:
   Shell_test_output_handler output_handler;

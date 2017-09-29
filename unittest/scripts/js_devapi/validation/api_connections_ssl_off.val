@@ -1,0 +1,161 @@
+//@ Initialization
+||
+
+// ---------------- CLASSIC TESTS URI -------------------------
+
+//@ getClassicSession with URI, no ssl-mode (Use Required)
+||SSL connection error: SSL is required but the server doesn't support it
+
+//@ shell.connect, with classic URI, no ssl-mode (Use Preferred)
+|~DHE-RSA-AES256-SHA|
+
+//@ getClassicSession with URI, ssl-mode=PREFERRED
+|~DHE-RSA-AES256-SHA|
+
+//@ getClassicSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
+||SSL connection error: SSL is required but the server doesn't support it
+
+//@ shell.connect, with classic URI, no ssl-mode with ssl-ca (Use Verify_Ca)
+||SSL connection error: SSL is required but the server doesn't support it
+
+//@ getClassicSession with URI, ssl-mode=DISABLED
+|~DHE-RSA-AES256-SHA|
+
+//@ shell.connect, with classic URI, ssl-mode=DISABLED
+|~DHE-RSA-AES256-SHA|
+
+//@ getClassicSession with URI, ssl-mode=DISABLED and other ssl option
+||SSL options are not allowed when ssl-mode is set to 'disabled'.
+
+//@ shell.connect, with classic URI, ssl-mode=DISABLED and other ssl option
+||SSL options are not allowed when ssl-mode is set to 'disabled'.
+
+//@ getClassicSession with URI, ssl-mode=REQUIRED and ssl-ca
+||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
+
+//@ shell.connect, with classic URI, ssl-mode=REQUIRED and ssl-ca
+||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
+
+//@ getClassicSession using URI with duplicated parameters
+||Invalid URI: The SSL Connection option 'ssl-mode' is already defined as 'REQUIRED'.
+
+//@ shell.connect using URI with duplicated parameters
+||Invalid URI: The SSL Connection option 'ssl-mode' is already defined as 'REQUIRED'.
+
+// ---------------- CLASSIC TESTS DICT -------------------------
+
+//@ getClassicSession with Dict, no ssl-mode (Use Required)
+||SSL connection error: SSL is required but the server doesn't support it
+
+//@ shell.connect, with classic Dict, no ssl-mode (Use Preferred)
+|~DHE-RSA-AES256-SHA|
+
+//@ getClassicSession with Dict, ssl-mode=PREFERRED
+|~DHE-RSA-AES256-SHA|
+
+//@ getClassicSession with Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
+||SSL connection error: SSL is required but the server doesn't support it
+
+//@ shell.connect, with classic Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
+||SSL connection error: SSL is required but the server doesn't support it
+
+//@ getClassicSession with Dict, ssl-mode=DISABLED
+|~DHE-RSA-AES256-SHA|
+
+//@ shell.connect, with classic Dict, ssl-mode=DISABLED
+|~DHE-RSA-AES256-SHA|
+
+//@ getClassicSession with Dict, ssl-mode=DISABLED and other ssl option
+||SSL options are not allowed when ssl-mode is set to 'disabled'.
+
+//@ shell.connect, with classic Dict, ssl-mode=DISABLED and other ssl option
+||SSL options are not allowed when ssl-mode is set to 'disabled'.
+
+//@ getClassicSession with Dict, ssl-mode=REQUIRED and ssl-ca
+||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
+
+//@ shell.connect, with classic Dict, ssl-mode=REQUIRED and ssl-ca
+||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
+
+//@ getClassicSession using dictionary with duplicated parameters
+||The SSL Connection option 'ssl-mode' is already defined as 'DISABLED'.
+
+//@ shell.connect using dictionary with duplicated parameters
+||The SSL Connection option 'ssl-mode' is already defined as 'DISABLED'.
+
+// ---------------- X TESTS URI -------------------------
+
+//@ getSession with URI, no ssl-mode (Use Required)
+||Capability prepare failed for 'tls'
+
+//@ shell.connect, with X URI, no ssl-mode (Use Preferred)
+|~DHE-RSA-AES256-SHA|
+
+//@ getSession with URI, ssl-mode=PREFERRED
+|~DHE-RSA-AES256-SHA|
+
+//@ getSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
+||Capability prepare failed for 'tls'
+
+//@ shell.connect, with X URI, no ssl-mode with ssl-ca (Use Verify_Ca)
+||Capability prepare failed for 'tls'
+
+//@ getSession with URI, ssl-mode=DISABLED
+|~DHE-RSA-AES256-SHA|
+
+//@ shell.connect, with X URI, ssl-mode=DISABLED
+|~DHE-RSA-AES256-SHA|
+
+//@ getSession with URI, ssl-mode=DISABLED and other ssl option
+||SSL options are not allowed when ssl-mode is set to 'disabled'.
+
+//@ shell.connect, with X URI, ssl-mode=DISABLED and other ssl option
+||SSL options are not allowed when ssl-mode is set to 'disabled'.
+
+//@ getSession with URI, ssl-mode=REQUIRED and ssl-ca
+||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
+
+//@ shell.connect, with X URI, ssl-mode=REQUIRED and ssl-ca
+||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
+
+//@ getSession using URI with duplicated parameters
+||Invalid URI: The SSL Connection option 'ssl-mode' is already defined as 'REQUIRED'.
+
+
+// ---------------- X TESTS DICT -------------------------
+
+//@ getSession with Dict, no ssl-mode (Use Required)
+||Capability prepare failed for 'tls'
+
+//@ shell.connect, with X Dict, no ssl-mode (Use Preferred)
+|~DHE-RSA-AES256-SHA|
+
+//@ getSession with Dict, ssl-mode=PREFERRED
+|~DHE-RSA-AES256-SHA|
+
+//@ getSession with Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
+||Capability prepare failed for 'tls'
+
+//@ shell.connect, with X Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
+||Capability prepare failed for 'tls'
+
+//@ getSession with Dict, ssl-mode=DISABLED
+|~DHE-RSA-AES256-SHA|
+
+//@ shell.connect, with X Dict, ssl-mode=DISABLED
+|~DHE-RSA-AES256-SHA|
+
+//@ getSession with Dict, ssl-mode=DISABLED and other ssl option
+||SSL options are not allowed when ssl-mode is set to 'disabled'.
+
+//@ shell.connect, with X Dict, ssl-mode=DISABLED and other ssl option
+||SSL options are not allowed when ssl-mode is set to 'disabled'.
+
+//@ getSession with Dict, ssl-mode=REQUIRED and ssl-ca
+||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
+
+//@ shell.connect, with X Dict, ssl-mode=REQUIRED and ssl-ca
+||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
+
+//@ getSession using dictionary with duplicated parameters
+||The SSL Connection option 'ssl-mode' is already defined as 'DISABLED'.

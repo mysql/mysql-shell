@@ -138,6 +138,8 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 
   auto &ssl_options(data.get_ssl_options());
   if (ssl_options.has_data()) {
+    ssl_options.validate();
+
     if (ssl_options.has_ca())
       _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_ca,
                                ssl_options.get_ca());

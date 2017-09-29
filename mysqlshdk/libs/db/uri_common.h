@@ -91,6 +91,11 @@ inline Tokens_mask only_transport() {
 inline Tokens_mask user_transport() {
   return Tokens_mask(Tokens::User).set(Tokens::Transport);
 }
+inline Tokens_mask scheme_user_transport() {
+  return Tokens_mask(Tokens::Scheme)
+    .set(Tokens::User)
+    .set(Tokens::Transport);
+}
 }  // namespace formats
 }  // namespace uri
 }  // namespace db

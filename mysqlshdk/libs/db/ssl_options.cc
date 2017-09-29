@@ -45,21 +45,17 @@ bool Ssl_options::has_data() const {
   return false;
 }
 
-void Ssl_options::set_mode(int value) {
-  std::string str_mode = MapSslModeNameToValue::get_value(value);
-
-  if (str_mode.empty()) {
-    std::string error = "Invalid value for '";
-    error.append(kSslMode);
-    error.append("'.");
-    throw std::invalid_argument(error);
-  }
+void Ssl_options::set_mode(Ssl_mode value) {
+  std::string str_mode =
+    MapSslModeNameToValue::get_value(static_cast<int>(value));
 
   Nullable_options::set(kSslMode, str_mode, Set_mode::UPDATE_NULL);
 }
 
-int Ssl_options::get_mode() const {
-  return MapSslModeNameToValue::get_value(get_value(kSslMode));
+Ssl_mode Ssl_options::get_mode() const {
+  int mode = MapSslModeNameToValue::get_value(get_value(kSslMode));
+
+  return static_cast<Ssl_mode>(mode);
 }
 
 std::string Ssl_options::get_mode_name() const {
@@ -122,6 +118,30 @@ void Ssl_options::set(const std::string& name, const std::string& value) {
   }
 
   Nullable_options::set(name, value, Set_mode::UPDATE_NULL);
+}
+
+void Ssl_options::validate() const {
+  if (has_mode()) {
+    auto mode = get_mode();
+
+    // Temporary copy of the options for validation
+    Ssl_options options = *this;
+    options.clear_mode();
+
+    if (mode == Ssl_mode::Disabled && options.has_data())
+      throw std::invalid_argument(shcore::str_format(
+          "SSL options are not allowed when %s is set to '%s'.", kSslMode,
+          kSslModeDisabled));
+
+    if (mode != Ssl_mode::VerifyCa && mode != Ssl_mode::VerifyIdentity &&
+        (has_ca() || has_capath() || has_crl() || has_crlpath())) {
+      throw std::invalid_argument(shcore::str_format(
+          "Invalid %s, value should be either '%s' or '%s' when any of '%s', "
+          "'%s', '%s' or '%s' are provided.",
+          kSslMode, kSslModeVerifyCA, kSslModeVerifyIdentity, kSslCa,
+          kSslCaPath, kSslCrl, kSslCrlPath));
+    }
+  }
 }
 
 }  // namespace db

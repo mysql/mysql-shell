@@ -25,12 +25,13 @@
 
 namespace tests {
 
-Shell_test_env::Shell_test_env() {
 #ifdef _WIN32
-  _path_splitter = "\\";
+  std::string Shell_test_env::_path_splitter = "\\";
 #else
-  _path_splitter = "/";
+  std::string Shell_test_env::_path_splitter = "/";
 #endif
+
+  Shell_test_env::Shell_test_env() {
 
   const char *uri = getenv("MYSQL_URI");
   if (uri == NULL)

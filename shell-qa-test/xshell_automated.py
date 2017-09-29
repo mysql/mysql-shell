@@ -257,6 +257,10 @@ xPrompts.add("      ...")
 class XShell_TestCases(unittest.TestCase):
     @classmethod
     def setUpClass(self):
+        if os.environ.has_key('skip_qa_data'):
+          print "Warning: skip_qa_data environment variable found, skipping data setup..."
+          return;
+
         # install xplugin
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
@@ -7365,7 +7369,8 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila']
-        x_cmds = [("print(session);\n", "Session:" + LOCALHOST.user + "@localhost:33060/sakila")
+        x_cmds = [("println(session);\n", "Session:" + LOCALHOST.user + "@localhost:33060"),
+                  ("println(session.uri);\n", LOCALHOST.user + "@localhost:33060/sakila")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')

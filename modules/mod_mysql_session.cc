@@ -103,15 +103,24 @@ void ClassicSession::init() {
 
 void ClassicSession::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
+  _connection_options = connection_options;
+
   try {
+    // All connections should use mode = VERIFY_CA if no ssl mode is specified
+    // and either ssl-ca or ssl-capath are specified
+    if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&
+        (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
+         _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
+      _connection_options.set(mysqlshdk::db::kSslMode,
+                             {mysqlshdk::db::kSslModeVerifyCA});
+    }
+
     _session = mysqlshdk::db::mysql::Session::create();
 
-    _session->connect(connection_options);
+    _session->connect(_connection_options);
 
-    _connection_options = connection_options;
-
-    if (connection_options.has_schema())
-      update_schema_cache(connection_options.get_schema(), true);
+    if (_connection_options.has_schema())
+      update_schema_cache(_connection_options.get_schema(), true);
   }
   CATCH_AND_TRANSLATE();
 }
@@ -573,11 +582,21 @@ shcore::Value ClassicSession::_set_current_schema(const shcore::Argument_list &a
   return get_member("currentSchema");
 }
 
-std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args) {
+std::shared_ptr<shcore::Object_bridge> ClassicSession::create(
+    const shcore::Argument_list &args) {
   std::shared_ptr<ClassicSession> session(new ClassicSession());
 
   auto connection_options =
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
+
+  // DevAPI getClassicSession uses ssl-mode = REQUIRED by default if no
+  // ssl-ca or ssl-capath are specified
+  if (!connection_options.get_ssl_options().has_mode() &&
+      !connection_options.has_value(mysqlshdk::db::kSslCa) &&
+      !connection_options.has_value(mysqlshdk::db::kSslCaPath)) {
+    connection_options.get_ssl_options().set_mode(
+        mysqlshdk::db::Ssl_mode::Required);
+  }
 
   session->connect(connection_options);
 

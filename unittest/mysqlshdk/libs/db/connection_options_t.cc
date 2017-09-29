@@ -251,8 +251,7 @@ TEST(Connection_options, uri_constructor) {
 
   auto ssl_options = data.get_ssl_options();
   ASSERT_TRUE(ssl_options.has_mode());
-  ASSERT_EQ(3, ssl_options.get_mode());  // 3 is Required
-
+  ASSERT_EQ(mysqlshdk::db::Ssl_mode::Required, ssl_options.get_mode());
   ASSERT_FALSE(ssl_options.has_ca());
   ASSERT_FALSE(ssl_options.has_capath());
   ASSERT_FALSE(ssl_options.has_cert());
