@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -434,7 +434,7 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
 
         self.default_extension = DEFAULT_EXTENSIONS[os.name]
         # get the absolute path for the provided filename
-        self.filename = get_abs_path(filename, os.getcwd())
+        self.filename = os.path.normpath(get_abs_path(filename, os.getcwd()))
         self._parse_option_file(self.filename)
 
         # Convert all section names to lower case.
@@ -495,8 +495,8 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                             files.insert(len(files), filename)
             except (IOError, OSError) as err:
                 raise GadgetConfigParserError(
-                    "Option file '{0}' is not readable: "
-                    "'{1}'".format(self.filename, str(err)),
+                    "Option file '{0}' is not readable."
+                    "".format(self.filename),
                     cause=err)
 
         # Read configurations from option files.
@@ -858,23 +858,23 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                 lines = f.readlines()
         except IOError as err:
             raise GadgetConfigParserError(
-                "Option file '{0}' is not readable: "
-                "'{1}'".format(self.filename, str(err)),
+                "Option file '{0}' is not readable."
+                "".format(self.filename),
                 cause=err)
         # Create a backup file if provided
         if backup_file_path:
             if not os.path.isabs(backup_file_path):
                 raise GadgetConfigParserError(
                     "'{0}' is not an absolute path. Please provide an "
-                    "absolute path to the backup file")
+                    "absolute path to the backup file".format(backup_file_path))
             else:
                 try:
                     with open(backup_file_path, 'w') as bf:
                         bf.writelines(lines)
                 except IOError as err:
                     raise GadgetConfigParserError(
-                        "Backup file '{0}' is not writable: "
-                        "'{1}'".format(backup_file_path, str(err)),
+                        "Backup file '{0}' is not writable."
+                        "".format(backup_file_path),
                         cause=err)
         f = None
         try:
@@ -1002,8 +1002,8 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                         f.write("{0}\n".format(optval_tostr(opt, val)))
         except IOError as err:
             raise GadgetConfigParserError(
-                "Option file '{0}' is not writable: "
-                "'{1}'".format(self.filename, str(err)),
+                "Option file '{0}' is not writable."
+                "".format(self.filename),
                 cause=err)
         else:
             # we've written changes to file, reset modified flag

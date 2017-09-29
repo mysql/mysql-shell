@@ -15,6 +15,7 @@
 
 #include <fstream>
 #include <boost/algorithm/string.hpp>
+#include <utils/utils_path.h>
 #include "unittest/test_utils/shell_base_test.h"
 #include "shellcore/types.h"
 #include "utils/utils_general.h"
@@ -100,16 +101,15 @@ void Shell_base_test::SetUp() {
       _sandbox_dir = shcore::get_binary_folder();
     }
   }
-
-  std::vector<std::string> path_components = {_sandbox_dir,
-                                              _mysql_sandbox_port1, "my.cnf"};
-  _sandbox_cnf_1 = shcore::join_strings(path_components, _path_splitter);
+  std::vector<std::string> path_components {_sandbox_dir,
+                                            _mysql_sandbox_port1, "my.cnf"};
+  _sandbox_cnf_1 = shcore::join_path(path_components);
 
   path_components[1] = _mysql_sandbox_port2;
-  _sandbox_cnf_2 = shcore::join_strings(path_components, _path_splitter);
+  _sandbox_cnf_2 = shcore::join_path(path_components);
 
   path_components[1] = _mysql_sandbox_port3;
-  _sandbox_cnf_3 = shcore::join_strings(path_components, _path_splitter);
+  _sandbox_cnf_3 = shcore::join_path(path_components);
 
   _new_line_char = "\n";
 #ifdef WIN32
