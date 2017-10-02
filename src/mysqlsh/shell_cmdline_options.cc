@@ -28,6 +28,12 @@
 
 using mysqlshdk::db::Transport_type;
 
+static std::string hide_password_in_uri(std::string uri, const std::string& username) {
+  std::size_t pwd_start = uri.find(username) + username.length() + 1;
+  std::size_t pwd_size = uri.find('@', pwd_start) - pwd_start;
+  return uri.replace(pwd_start, pwd_size, pwd_size, '*');
+}
+
 Shell_command_line_options::Shell_command_line_options(int argc,
                                                        const char** argv)
     : Command_line_options(argc, argv) {
@@ -51,17 +57,15 @@ Shell_command_line_options::Shell_command_line_options(int argc,
                                                    false);
 
         if (_uri_data.has_password()) {
-          std::string pwd(_uri_data.get_password().length(), '*');
-
-          std::string old_uri(value);
-          auto nopwd_uri = old_uri.replace(_uri_data.get_user().length()+1,
-                                           pwd.length(), pwd);
+          std::string nopwd_uri =
+              hide_password_in_uri(value, _uri_data.get_user());
 
           // Required replacement when --uri=<value>
           if (arg_format == 3)
             nopwd_uri = "--uri=" + nopwd_uri;
 
-          strcpy(const_cast<char*>(argv[i]), nopwd_uri.substr(0, nopwd_uri.length()).c_str());
+          strcpy(const_cast<char*>(argv[i]),
+                 nopwd_uri.substr(0, nopwd_uri.length()).c_str());
         }
       } catch (const std::invalid_argument &error) {
         std::cerr << error.what() << std::endl;
@@ -305,13 +309,8 @@ Shell_command_line_options::Shell_command_line_options(int argc,
           _options.uri = value;
           auto data = shcore::get_connection_options(value, false);
           if (data.has_password()) {
-            std::string pwd(data.get_password().length(), '*');
-            data.clear_password();
-            data.set_password(pwd);
-
             // Hide password being used.
-            auto nopwd_uri =
-                data.as_uri(mysqlshdk::db::uri::formats::full());
+            std::string nopwd_uri = hide_password_in_uri(value, data.get_user());
             snprintf(const_cast<char*>(argv[i]), nopwd_uri.length() + 1, "%s",
                    nopwd_uri.c_str());
           }
