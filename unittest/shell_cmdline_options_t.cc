@@ -1057,6 +1057,30 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   EXPECT_STREQ(argv3[1], "--uri=r:*@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
+  SCOPED_TRACE("TESTING: user with password with special sign encoded in uri");
+  firstArg = "--uri=root:123%21@localhost:3301";
+
+  char *argv4[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
+                NULL};
+  cmd_options = Shell_command_line_options(2, const_cast<const char **>(argv4));
+  options = cmd_options.get_options();
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(argv4[1], "--uri=root:******@localhost:3301");
+  EXPECT_STREQ("", cerr.str().c_str());
+
+  SCOPED_TRACE("TESTING: anonymous uri with with password with special sign encoded");
+  firstArg = "root:123%21@localhost:3301";
+
+  char *argv5[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
+                NULL};
+  cmd_options = Shell_command_line_options(2, const_cast<const char **>(argv5));
+  options = cmd_options.get_options();
+
+  EXPECT_EQ(0, options.exit_code);
+  EXPECT_STREQ(argv4[1], "root:******@localhost:3301");
+  EXPECT_STREQ("", cerr.str().c_str());
+
   // Restore old cerr.
   std::cerr.rdbuf(backup);
 }
