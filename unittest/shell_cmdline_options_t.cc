@@ -1078,7 +1078,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   options = cmd_options.get_options();
 
   EXPECT_EQ(0, options.exit_code);
-  EXPECT_STREQ(argv4[1], "root:******@localhost:3301");
+  EXPECT_STREQ(argv5[1], "root:******@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
   // Restore old cerr.
