@@ -573,4 +573,4 @@ bool create_file(const std::string& name, const std::string& content) {
   return ret_val;
 }
 
-}
+}  // namespace shcore

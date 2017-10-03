@@ -23,16 +23,6 @@
 namespace tests {
 void Admin_api_test::SetUp() {
   Shell_core_test_wrapper::SetUp();
-
-  std::vector<std::string> path_components = {_sandbox_dir,
-    _mysql_sandbox_port1, "my.cnf"};
-  _sandbox_cnf_1 = shcore::join_strings(path_components, _path_splitter);
-
-  path_components[1] = _mysql_sandbox_port2;
-  _sandbox_cnf_2 = shcore::join_strings(path_components, _path_splitter);
-
-  path_components[1] = _mysql_sandbox_port3;
-  _sandbox_cnf_3 = shcore::join_strings(path_components, _path_splitter);
 }
 
 void Admin_api_test::add_instance_type_queries

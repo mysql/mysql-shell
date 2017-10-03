@@ -201,7 +201,7 @@ TEST_F(Shell_js_dba_tests, no_active_session_error) {
 TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
   _options->wizards = false;
   reset_shell();
-
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
   execute("dba.verbose = true;");
 
   // Create directory with space and quotes in name to test.
@@ -226,6 +226,12 @@ TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
   // Remove previously created directories.
   shcore::remove_directory(dir);
   shcore::remove_directory(dir_long);
+  // BUG#26393614
+  std::vector<std::string> log{
+      "Warning: Sandbox instances are only suitable for deploying and "
+      "running on your local machine for testing purposes and are not "
+      "accessible from external networks."};
+  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, dba_help) {
@@ -250,6 +256,22 @@ TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
   execute("dba.verbose = true;");
 
   validate_interactive("dba_reset_or_deploy.js");
+}
+
+TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
+  _options->interactive = true;
+  reset_shell();
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+  // BUG 26830224
+  // Please enter a MySQL root password for the new instance:
+  output_handler.passwords.push_back("root");
+  validate_interactive("dba_deploy_sandbox.js");
+  // BUG#26393614
+  std::vector<std::string> log{
+      "Warning: Sandbox instances are only suitable for deploying and "
+          "running on your local machine for testing purposes and are not "
+          "accessible from external networks."};
+  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, no_interactive_classic_global_dba) {
@@ -582,7 +604,18 @@ TEST_F(Shell_js_dba_tests, function_preconditions_interactive) {
 TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
   _options->wizards = false;
   reset_shell();
+  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
+
   validate_interactive("dba_cluster_add_instance.js");
+  // BUG#26393614
+  std::vector<std::string> log{
+      "'localhost' (" + _sandbox_dir + _path_splitter + _mysql_sandbox_port2 +
+      _path_splitter +
+      "sandboxdata) detected as local sandbox. "
+      "Sandbox instances are only suitable for deploying and "
+      "running on your local machine for testing purposes and are not "
+      "accessible from external networks."};
+  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, dba_cluster_remove_instance) {

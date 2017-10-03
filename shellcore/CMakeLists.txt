@@ -56,6 +56,7 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_time.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_file.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_file.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_path.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_general.h"
@@ -89,6 +90,13 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
     "${BOOST_SOURCE_CODE}"
 )
+
+# platform dependent implementations
+IF(UNIX)
+  LIST(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/utils/utils_path_unix.cc")
+ELSEIF(WIN32)
+  LIST(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/utils/utils_path_win32.cc")
+ENDIF()
 
 #if(NOT WINDOWS_RUNTIME_MD)
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")

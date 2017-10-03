@@ -1042,7 +1042,6 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, co
           auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
                 mysqlsh::connect_session(uri, password, mysqlsh::SessionType::Classic));
           assert(session);
-
           log_info("Creating root@%s account for sandbox %i", remote_root.c_str(), port);
           session->execute_sql("SET sql_log_bin = 0");
           {
@@ -1062,6 +1061,10 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args, co
           session->close(shcore::Argument_list());
         }
       }
+      log_warning(
+          "Sandbox instances are only suitable for deploying and running on "
+          "your local machine for testing purposes and are not accessible from "
+          "external networks.");
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));

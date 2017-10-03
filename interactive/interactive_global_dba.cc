@@ -30,6 +30,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
+#include "utils/utils_path.h"
 #include "utils/utils_help.h"
 #include <boost/format.hpp>
 
@@ -137,13 +138,21 @@ shcore::Value Global_dba::deploy_sandbox_instance(const shcore::Argument_list &a
 
     std::string message;
     if (prompt_password) {
+      std::vector<std::string> paths {sandbox_dir, std::to_string(port)};
+      std::string path = shcore::join_path(paths);
       if (deploying) {
-        message = "A new MySQL sandbox instance will be created on this host in \n"\
-          "" + sandbox_dir + "/" + std::to_string(port) + "\n\n"
+        message = "A new MySQL sandbox instance will be created on this host "
+          "in \n" + path + "\n\n"
+          "Warning: Sandbox instances are only suitable for deploying and \n"
+          "running on your local machine for testing purposes and are not \n"
+          "accessible from external networks.\n\n"
           "Please enter a MySQL root password for the new instance: ";
       } else {
         message = "The MySQL sandbox instance on this host in \n"\
-          "" + sandbox_dir + "/" + std::to_string(port) + " will be started\n\n"
+          "" + path + " will be started\n\n"
+          "Warning: Sandbox instances are only suitable for deploying and \n"
+          "running on your local machine for testing purposes and are not \n"
+          "accessible from external networks.\n\n"
           "Please enter the MySQL root password of the instance: ";
       }
 
@@ -197,8 +206,10 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
   auto options = valid_args.map_at(1);
 
   std::string sandboxDir {options->get_string("sandboxDir")};
+  std::vector<std::string> paths {sandboxDir, std::to_string(port)};
+  std::string path = shcore::join_path(paths);
   std::string message = "The MySQL sandbox instance on this host in \n"\
-    "" + sandboxDir + "/" + std::to_string(port) + " will be " + past + "\n";
+    "" + path + " will be " + past + "\n";
 
   println(message);
 

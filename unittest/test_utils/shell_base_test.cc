@@ -25,6 +25,12 @@ namespace tests {
 
 void Shell_base_test::SetUp() {
   const char *uri = getenv("MYSQL_URI");
+#ifdef _WIN32
+  _path_splitter = "\\";
+#else
+  _path_splitter = "/";
+#endif
+
   if (uri) {
     // Creates connection data and recreates URI, this will fix URI if no
     // password is defined So the UT don't prompt for password ever
@@ -94,6 +100,16 @@ void Shell_base_test::SetUp() {
       _sandbox_dir = shcore::get_binary_folder();
     }
   }
+
+  std::vector<std::string> path_components = {_sandbox_dir,
+                                              _mysql_sandbox_port1, "my.cnf"};
+  _sandbox_cnf_1 = shcore::join_strings(path_components, _path_splitter);
+
+  path_components[1] = _mysql_sandbox_port2;
+  _sandbox_cnf_2 = shcore::join_strings(path_components, _path_splitter);
+
+  path_components[1] = _mysql_sandbox_port3;
+  _sandbox_cnf_3 = shcore::join_strings(path_components, _path_splitter);
 
   _new_line_char = "\n";
 #ifdef WIN32
