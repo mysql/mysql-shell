@@ -496,7 +496,7 @@ shcore::Value Shell::_set_current_schema(const shcore::Argument_list &args) {
 }
 
 
-/**
+/*
 * Configures the received session as the global development session.
 * \param session: The session to be set as global.
 *
@@ -545,7 +545,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::set_dev_session(const std::sha
   return session;
 }
 
-/**
+/*
 * Returns the global development session.
 */
 std::shared_ptr<mysqlsh::ShellBaseSession> Shell::get_dev_session() {

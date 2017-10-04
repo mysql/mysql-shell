@@ -104,6 +104,7 @@ REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
 
 
 /**
+ * \ingroup mysqlx
  * $(MYSQLX_GETSESSION)
  *
  * $(MYSQLX_GETSESSION_PARAM)
@@ -147,6 +148,7 @@ REGISTER_HELP(
     MYSQLX_EXPR_DETAIL4,
     "@li Defining calculated fields when pulling data from the database");
 /**
+ * \ingroup mysqlx
  * $(MYSQLX_EXPR_BRIEF)
  *
  * $(MYSQLX_EXPR_PARAM)
