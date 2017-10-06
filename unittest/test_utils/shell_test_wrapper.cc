@@ -83,7 +83,7 @@ void Asynch_shell_test_wrapper::dump_err() {
   std::cerr << _shell.get_output_handler().std_err << std::endl;
   _shell.get_output_handler().wipe_err();
 }
-
+*/
 /**
  * This causes the call to wait until the thread state is as specified
  * @param state The state that must be reached to exit the wait loop

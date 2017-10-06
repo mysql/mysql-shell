@@ -1082,7 +1082,7 @@ TEST_F(Shell_history, history_delete_range) {
     SCOPED_TRACE(range);                                                       \
     shell.process_line("\\history del " range);                                \
     shell._history.dump([&dump](const std::string &s) { dump.push_back(s); }); \
-    for (auto i = 0; i < expected.size(); ++i) {                               \
+    for (std::vector<std::string>::size_type i = 0; i < expected.size(); ++i){ \
       EXPECT_TRUE(i < dump.size());                                            \
       EXPECT_EQ(expected[i], shcore::str_strip(dump[i]));                      \
     }                                                                          \
@@ -1271,7 +1271,7 @@ TEST_F(Shell_history, history_numbering) {
     shell.process_line(line);                                                  \
     EXPECT_TRUE(capture.empty());                                              \
     shell._history.dump([&dump](const std::string &s) { dump.push_back(s); }); \
-    for (auto i = 0; i < dump.size(); ++i) {                                   \
+    for (strv::size_type i = 0; i < dump.size(); ++i) {                        \
       EXPECT_TRUE(i < expected.size());                                        \
       EXPECT_EQ(expected[i], shcore::str_strip(dump[i]));                      \
     }                                                                          \

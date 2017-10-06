@@ -22,12 +22,24 @@ namespace db {
   auto result = session->query("select * from xtest." table); \
   const std::vector<Column> &columns = result->get_metadata();
 
-#define CHECK(i, type, length, un, zf, bin)   \
-  EXPECT_EQ(type, columns[i].get_type());     \
-  EXPECT_EQ(length, columns[i].get_length()); \
-  EXPECT_EQ(un, columns[i].is_unsigned());    \
-  EXPECT_EQ(zf, columns[i].is_zerofill());    \
-  EXPECT_EQ(bin, columns[i].is_binary());
+#define CHECK(i, type, length, un, zf, bin)                                    \
+  EXPECT_EQ(type, columns[i].get_type());                                      \
+  EXPECT_EQ(length, columns[i].get_length());                                  \
+  if (un) {                                                                    \
+    EXPECT_TRUE(columns[i].is_unsigned());                                     \
+  } else {                                                                     \
+    EXPECT_FALSE(columns[i].is_unsigned());                                    \
+  }                                                                            \
+  if (zf) {                                                                    \
+    EXPECT_TRUE(columns[i].is_zerofill());                                     \
+  } else {                                                                     \
+    EXPECT_FALSE(columns[i].is_zerofill());                                    \
+  }                                                                            \
+  if (bin) {                                                                   \
+    EXPECT_TRUE(columns[i].is_binary());                                       \
+  } else {                                                                     \
+    EXPECT_FALSE(columns[i].is_binary());                                      \
+  }
 
 TEST_F(Db_tests, metadata_columns_alltypes) {
   do {
