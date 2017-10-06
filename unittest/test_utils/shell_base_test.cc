@@ -128,7 +128,8 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
   auto actual_lines = shcore::split_string(actual, "\n");
 
   // Does expected line resolution using the pre-defined tokens
-  for (auto index = 0; index < expected_lines.size(); index++)
+  for (decltype(expected_lines)::size_type index = 0;
+       index < expected_lines.size(); index++)
     expected_lines[index] = resolve_string(expected_lines[index]);
 
   // Identifies the index of the actual line containing the first expected line

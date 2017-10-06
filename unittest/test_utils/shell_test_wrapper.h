@@ -88,7 +88,7 @@ class Thread_queue {
  * in a threaded way, and there are parts that share resources, i.e. singletons
  * which causes i.e. te global session to be deleted twice, even it's on a
  * a shared pointer.
- * /
+ */
 /*class Asynch_shell_test_wrapper {
  public:
   explicit Asynch_shell_test_wrapper(bool trace = false);
