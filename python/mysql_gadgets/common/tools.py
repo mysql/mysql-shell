@@ -212,7 +212,7 @@ def get_abs_path(path_string, relative_to=None):
                  provided relative_dir parameter is not an absolute path.
     """
     if path_string[0] == '"' and path_string[-1] == '"':
-	  path_string=path_string[1:-1]
+        path_string=path_string[1:-1]
 
     if os.path.isabs(os.path.expanduser(path_string)):
         return os.path.expanduser(path_string)
