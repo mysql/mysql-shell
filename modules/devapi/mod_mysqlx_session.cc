@@ -24,6 +24,7 @@
 #include <set>
 #include <memory>
 #include <string>
+#include <algorithm>
 #include "modules/devapi/mod_mysqlx_session.h"
 
 #include "modules/devapi/mod_mysqlx_constants.h"
@@ -44,6 +45,7 @@
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/utils_uuid.h"
 
 #if _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
@@ -178,6 +180,21 @@ void Session::init() {
                                           bool exists) {
     DatabaseObject::update_cache(name, generator, true, _schemas);
   };
+
+  _session_uuid = shcore::Id_generator::new_document_id();
+}
+
+std::string Session::get_uuid() {
+  std::string new_uuid = shcore::Id_generator::new_document_id();
+
+  // To guarantee the same Node id us used
+  // (in case a random number is generated when MAC address is not available)
+  // We copy the _session_uuid on top of the new uuid node
+  std::copy(_session_uuid.begin(),
+            _session_uuid.begin() + 12,
+            new_uuid.begin());
+
+  return new_uuid;
 }
 
 void Session::connect(const mysqlshdk::db::Connection_options& data) {
