@@ -13,7 +13,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-include_directories(${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
+include_directories(
+  ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
+  ${CMAKE_SOURCE_DIR}/common/uuid/include
+  )
+
 set(utils_SOURCE
     utils_mysql_parsing.cc
     utils_time.cc
@@ -23,12 +27,14 @@ set(utils_SOURCE
     utils_general.cc
     utils_sqlstring.cc
     utils_string.cc
+    utils_uuid.cc
     nullable_options.cc
     base_tokenizer.cc
     logger.cc
     process_launcher.cc
     debug.cc
     dtoa.cc
+    "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 
 # platform dependent implementations

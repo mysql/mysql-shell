@@ -44,14 +44,16 @@ crud = collection.add({name: 'sample'}, 'error');
 // ---------------------------------------
 var records;
 
-//@ Collection.add execution
+//@ Collection.add execution, base
 var result = collection.add({ name: 'my first', Passed: 'document', count: 1 }).execute();
 print("Affected Rows Single:", result.affectedItemCount, "\n");
 print("lastDocumentId Single:", result.lastDocumentId);
 print("getLastDocumentId Single:", result.getLastDocumentId());
 print("#lastDocumentIds Single:", result.lastDocumentIds.length);
 print("#getLastDocumentIds Single:", result.getLastDocumentIds().length);
+var id_prefix = result.lastDocumentId.substr(0, 12);
 
+//@ Collection.add execution, Single Known ID
 var result = collection.add({ _id: "sample_document", name: 'my first', passed: 'document', count: 1 }).execute();
 print("Affected Rows Single Known ID:", result.affectedItemCount, "\n");
 print("lastDocumentId Single Known ID:", result.lastDocumentId);
@@ -60,7 +62,9 @@ print("#lastDocumentIds Single Known ID:", result.lastDocumentIds.length);
 print("#getLastDocumentIds Single Known ID:", result.getLastDocumentIds().length);
 print("#lastDocumentIds Single Known ID:", result.lastDocumentIds[0]);
 print("#getLastDocumentIds Single Known ID:", result.getLastDocumentIds()[0]);
+print("Base Prefix Single Known ID:", result.lastDocumentId.substr(0, 12) == id_prefix);
 
+//@ Collection.add execution, Multiple
 var result = collection.add([{ name: 'my second', passed: 'again', count: 2 }, { name: 'my third', passed: 'once again', count: 3 }]).execute();
 print("Affected Rows Multi:", result.affectedItemCount, "\n");
 try {
@@ -78,7 +82,10 @@ catch (err) {
 
 print("#lastDocumentIds Multi:", result.lastDocumentIds.length);
 print("#getLastDocumentIds Multi:", result.getLastDocumentIds().length);
+print("Base Prefix Multi 1:", result.lastDocumentIds[0].substr(0, 12) == id_prefix);
+print("Base Prefix Multi 2:", result.lastDocumentIds[1].substr(0, 12) == id_prefix);
 
+//@ Collection.add execution, Multiple Known IDs
 var result = collection.add([{ _id: "known_00", name: 'my second', passed: 'again', count: 2 }, { _id: "known_01", name: 'my third', passed: 'once again', count: 3 }]).execute();
 print("Affected Rows Multi Known IDs:", result.affectedItemCount, "\n");
 try {
@@ -100,6 +107,8 @@ print("First lastDocumentIds Multi Known IDs:", result.lastDocumentIds[0]);
 print("First getLastDocumentIds Multi Known IDs:", result.getLastDocumentIds()[0]);
 print("Second lastDocumentIds Multi Known IDs:", result.lastDocumentIds[1]);
 print("Second getLastDocumentIds Multi Known IDs:", result.getLastDocumentIds()[1]);
+print("Base Prefix Multi Known IDs 1:", result.lastDocumentIds[0].substr(0, 12) == id_prefix);
+print("Base Prefix Multi Known IDs 2:", result.lastDocumentIds[1].substr(0, 12) == id_prefix);
 
 var result = collection.add([]).execute();
 print("Affected Rows Empty List:", result.affectedItemCount, "\n");

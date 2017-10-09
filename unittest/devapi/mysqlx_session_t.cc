@@ -126,6 +126,29 @@ TEST_F(Mysqlx_session, create_schema) {
   }
 }
 
+TEST_F(Mysqlx_session, get_uuid) {
+  Session session;
+
+  std::string uuid = session.get_uuid();
+  std::string base_prefix = uuid.substr(0, 12);  // Gets the node element
+  std::map<std::string, int> uuids;
+
+  uuids[uuid] = 1;
+
+  for (int index = 0; index < 1000; index++) {
+    uuid = session.get_uuid();
+
+    // Ensures the new UUID has the same prefix as the base
+    ASSERT_STREQ(base_prefix.c_str(), uuid.substr(0, 12).c_str());
+
+    // Ensures the UUID is unique
+    ASSERT_EQ(0, uuids.count(uuid));
+
+    uuids[uuid] = 1;
+  }
+}
+
+
 // Our own tests to check for regressions in libmysqlx
 
 #if 0

@@ -19,8 +19,8 @@ INCLUDE_DIRECTORIES(BEFORE
 	 ${CMAKE_SOURCE_DIR}
      ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
      ${CMAKE_SOURCE_DIR}/mysqlshdk/include
-	 ${CMAKE_SOURCE_DIR}/common/uuid/include
 	 ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
+	 ${CMAKE_SOURCE_DIR}/common/uuid/include
 	 ${MYSQL_INCLUDE_DIRS})
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/generate_metadata_source.cmake)
@@ -36,7 +36,6 @@ file(GLOB api_module_SOURCES
       "mod_utils.cc"
       "mysql_connection.cc"
       "interactive_object_wrapper.cc"
-      "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
       "adminapi/password_hasher.cc"
       "adminapi/mod_dba.cc"
       "adminapi/mod_dba_cluster.cc"

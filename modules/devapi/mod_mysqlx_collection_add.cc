@@ -29,19 +29,6 @@
 #include "db/mysqlx/util/setter_any.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
-#include "uuid_gen.h"
-
-struct Init_uuid_gen {
-  Init_uuid_gen() {
-    // Use a random seed for UUIDs
-    std::time_t now = std::time(NULL);
-    std::uniform_int_distribution<> dist(INT_MIN, INT_MAX);
-    std::mt19937 gen;
-    gen.seed(now);
-    init_uuid(dist(gen));
-  }
-};
-static Init_uuid_gen __init_uuid;
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -226,7 +213,8 @@ void CollectionAdd::add_one_document(shcore::Value doc,
 
   std::string id = extract_id(docx.get());
   if (id.empty()) {
-    id = get_new_uuid();
+    auto session = std::dynamic_pointer_cast<Session>(_owner->session());
+    id = session->get_uuid();
     // inject the id
     auto fld = docx->mutable_object()->add_fld();
     fld->set_key("_id");
@@ -234,25 +222,6 @@ void CollectionAdd::add_one_document(shcore::Value doc,
   }
   last_document_ids_.push_back(id);
   message_.mutable_row()->Add()->mutable_field()->AddAllocated(docx.release());
-}
-
-std::string CollectionAdd::get_new_uuid() {
-  uuid_type uuid;
-  generate_uuid(uuid);
-
-  std::stringstream str;
-  str << std::hex << std::noshowbase << std::setfill('0') << std::setw(2);
-  //*
-  str << (int)uuid[0] << std::setw(2) << (int)uuid[1] << std::setw(2)
-      << (int)uuid[2] << std::setw(2) << (int)uuid[3];
-  str << std::setw(2) << (int)uuid[4] << std::setw(2) << (int)uuid[5];
-  str << std::setw(2) << (int)uuid[6] << std::setw(2) << (int)uuid[7];
-  str << std::setw(2) << (int)uuid[8] << std::setw(2) << (int)uuid[9];
-  str << std::setw(2) << (int)uuid[10] << std::setw(2) << (int)uuid[11]
-      << std::setw(2) << (int)uuid[12] << std::setw(2) << (int)uuid[13]
-      << std::setw(2) << (int)uuid[14] << std::setw(2) << (int)uuid[15];
-
-  return str.str();
 }
 
 REGISTER_HELP(COLLECTIONADD_EXECUTE_BRIEF,

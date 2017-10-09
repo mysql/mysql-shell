@@ -65,8 +65,6 @@ class CollectionAdd : public Collection_crud_definition,
 #endif
 
  private:
-  std::string get_new_uuid();
-
   void add_one_document(shcore::Value doc, const std::string &error_context);
 
   std::vector<std::string> last_document_ids_;
