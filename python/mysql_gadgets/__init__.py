@@ -44,7 +44,8 @@ VERSION_FRM = "{program} version %s" % VERSION_STRING
 LICENSE_FRM = (VERSION_FRM + "\n" + COPYRIGHT_FULL)
 PYTHON_MIN_VERSION = (2, 7, 0)
 PYTHON_MAX_VERSION = (4, 0, 0)
-CONNECTOR_MIN_VERSION = (1, 2, 1)
+# Minimum connector-python version that supports secure connection by default.
+CONNECTOR_MIN_VERSION = (2, 1, 7)
 
 # Using mathematical notation for intervals, supported MYSQL versions are as
 # follows: [MIN_MYSQL_VERSION, MAX_MYSQL_VERSION [
