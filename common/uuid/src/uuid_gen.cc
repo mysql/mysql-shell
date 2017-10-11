@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+  Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
 */
 
 #include <uuid_gen.h>
+
+#include <sstream>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -565,4 +567,47 @@ void generate_uuid(uuid_type &uuid)
   uuid_internal.time_hi_and_version= (uint16) ((tv >> 48) | UUID_VERSION);
 
   memcpy(uuid, &uuid_internal, sizeof(uuid_internal));
+}
+
+/**
+ * Generate a UUID and return its string representation.
+ *
+ * This function requires the init_uuid() to be called first, like for the
+ * generate_uuid() function.
+ *
+ * The UUID returned is a string representation of 5 hexadecimal numbers
+ * with the format aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.
+ *
+ * @return a string with the new genereted UUID.
+ */
+std::string get_string_uuid() {
+  // Generate a UUID, using existing generation function.
+  uuid_type uuid;
+  generate_uuid(uuid);
+
+  // Convert UUID to a string.
+  std::stringstream str;
+  str << std::hex << std::noshowbase << std::setfill('0') << std::setw(2);
+  str << static_cast<int>(uuid[0]) << std::setw(2)
+      << static_cast<int>(uuid[1]) << std::setw(2)
+      << static_cast<int>(uuid[2]) << std::setw(2)
+      << static_cast<int>(uuid[3]);
+  str << "-";
+  str << std::setw(2) << static_cast<int>(uuid[4])
+      << std::setw(2) << static_cast<int>(uuid[5]);
+  str << "-";
+  str << std::setw(2) << static_cast<int>(uuid[6])
+      << std::setw(2) << static_cast<int>(uuid[7]);
+  str << "-";
+  str << std::setw(2) << static_cast<int>(uuid[8])
+      << std::setw(2) << static_cast<int>(uuid[9]);
+  str << "-";
+  str << std::setw(2) << static_cast<int>(uuid[10])
+      << std::setw(2) << static_cast<int>(uuid[11])
+      << std::setw(2) << static_cast<int>(uuid[12])
+      << std::setw(2) << static_cast<int>(uuid[13])
+      << std::setw(2) << static_cast<int>(uuid[14])
+      << std::setw(2) << static_cast<int>(uuid[15]);
+
+  return str.str();
 }

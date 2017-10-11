@@ -35,7 +35,9 @@ if(WITH_TESTS)
     file(GLOB mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/shellcore/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/db/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/mysql/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/utils/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/gr/group_replication_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/*/*.cc"

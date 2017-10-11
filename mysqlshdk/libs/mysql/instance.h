@@ -22,6 +22,7 @@
 
 #include <map>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
@@ -32,16 +33,50 @@ namespace mysqlshdk {
 namespace mysql {
 
 /**
+ * Supported system variables scopes: SESSION (default), GLOBAL.
+ */
+enum class VarScope {
+  SESSION,
+  GLOBAL
+};
+
+/**
  * This interface defines the low level instance operations to be available.
  */
 class IInstance {
+ public:
+  virtual ~IInstance() {}
   virtual utils::nullable<bool> get_sysvar_bool(
-      const std::string& name) const = 0;
+      const std::string& name,
+      const VarScope &scope = VarScope::SESSION) const = 0;
   virtual utils::nullable<std::string> get_sysvar_string(
-      const std::string& name) const = 0;
+      const std::string& name,
+      const VarScope &scope = VarScope::SESSION) const = 0;
   virtual utils::nullable<int64_t> get_sysvar_int(
-      const std::string& name) const = 0;
+      const std::string& name,
+      const VarScope &scope = VarScope::SESSION) const = 0;
+  virtual void set_sysvar(const std::string &name,
+                          const std::string &value,
+                          const VarScope &scope = VarScope::SESSION) const = 0;
+  virtual void set_sysvar(const std::string &name, const int64_t value,
+                          const VarScope &scope = VarScope::SESSION) const = 0;
+  virtual void set_sysvar(const std::string &name, const bool value,
+                          const VarScope &scope = VarScope::SESSION) const = 0;
   virtual std::shared_ptr<db::ISession> get_session() const = 0;
+  virtual void install_plugin(const std::string &plugin_name) const = 0;
+  virtual void uninstall_plugin(const std::string &plugin_name) const = 0;
+  virtual utils::nullable<std::string> get_plugin_status(
+      const std::string &plugin_name) const = 0;
+  virtual void create_user(
+      const std::string &user, const std::string &host, const std::string &pwd,
+      const std::vector<std::tuple<std::string, std::string, bool>> &privileges)
+      const = 0;
+  virtual void drop_user(const std::string &user,
+                         const std::string &host) const = 0;
+  virtual std::tuple<bool, std::string, bool> check_user(
+      const std::string &user, const std::string &host,
+      const std::vector<std::string> &privileges,
+      const std::string &on_db, const std::string &on_obj) const = 0;
 };
 
 /**
@@ -51,17 +86,53 @@ class Instance : public IInstance {
  public:
   explicit Instance(std::shared_ptr<db::ISession> session);
 
-  virtual utils::nullable<bool> get_sysvar_bool(const std::string& name) const;
-  virtual utils::nullable<std::string> get_sysvar_string(
-      const std::string& name) const;
-  virtual utils::nullable<int64_t> get_sysvar_int(
-      const std::string& name) const;
-  virtual std::shared_ptr<db::ISession> get_session() const {return _session;}
+  utils::nullable<bool> get_sysvar_bool(
+      const std::string& name,
+      const VarScope &scope = VarScope::SESSION) const override;
+  utils::nullable<std::string> get_sysvar_string(
+      const std::string& name,
+      const VarScope &scope = VarScope::SESSION) const override;
+  utils::nullable<int64_t> get_sysvar_int(
+      const std::string& name,
+      const VarScope &scope = VarScope::SESSION) const override;
+  void set_sysvar(const std::string &name,
+                  const std::string &value,
+                  const VarScope &scope = VarScope::SESSION) const override;
+  void set_sysvar(const std::string &name, const int64_t value,
+                  const VarScope &scope = VarScope::SESSION) const override;
+  void set_sysvar(const std::string &name, const bool value,
+                  const VarScope &scope = VarScope::SESSION) const override;
+  std::shared_ptr<db::ISession> get_session() const override {
+    return _session;
+  }
   std::map<std::string, utils::nullable<std::string> > get_system_variables(
-      const std::vector<std::string>& names) const;
+      const std::vector<std::string>& names,
+      const VarScope &scope = VarScope::SESSION) const;
+  void install_plugin(const std::string &plugin_name) const override;
+  void uninstall_plugin(const std::string &plugin_name) const override;
+  utils::nullable<std::string> get_plugin_status(
+      const std::string &plugin_name) const override;
+  void create_user(
+      const std::string &user, const std::string &host, const std::string &pwd,
+      const std::vector<std::tuple<std::string, std::string, bool>> &grants)
+      const override;
+  void drop_user(const std::string &user,
+                 const std::string &host) const override;
+  std::tuple<bool, std::string, bool> check_user(
+      const std::string &user, const std::string &host,
+      const std::vector<std::string> &privileges,
+      const std::string &on_db, const std::string &on_obj) const override;
 
  private:
   std::shared_ptr<db::ISession> _session;
+  // List of privileges equivalent to "ALL [PRIVILEGES]".
+  const std::vector<std::string> kAllPrivileges = {
+      "ALTER", "ALTER ROUTINE", "CREATE", "CREATE ROUTINE",
+      "CREATE TABLESPACE", "CREATE TEMPORARY TABLES", "CREATE USER",
+      "CREATE VIEW", "DELETE", "DROP", "EVENT", "EXECUTE", "FILE", "INDEX",
+      "INSERT", "LOCK TABLES", "PROCESS", "REFERENCES", "RELOAD",
+      "REPLICATION CLIENT", "REPLICATION SLAVE", "SELECT", "SHOW DATABASES",
+      "SHOW VIEW", "SHUTDOWN", "SUPER", "TRIGGER", "UPDATE"};
 };
 
 }  // namespace mysql

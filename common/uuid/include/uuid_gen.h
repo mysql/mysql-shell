@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+  Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,11 +18,14 @@
 #ifndef UUID_GEN_INCLUDED
 #define UUID_GEN_INCLUDED
 
+#include <string>
+
 #define UUID_LENGTH_BIN 16
 typedef unsigned char uuid_type[UUID_LENGTH_BIN];
 
 void init_uuid(unsigned long);
 void end_uuid();
 void generate_uuid(uuid_type &uuid);
+std::string get_string_uuid();
 
 #endif
