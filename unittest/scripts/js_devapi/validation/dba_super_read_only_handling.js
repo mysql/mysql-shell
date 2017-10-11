@@ -93,20 +93,14 @@ Stopping MySQL instance...
 
 Instance localhost:<<<__mysql_sandbox_port1>>> successfully stopped.
 
-//@<OUT> Start sandbox 1
-Starting MySQL instance...
+//@ Start sandbox 1
+||
 
-Instance localhost:<<<__mysql_sandbox_port1>>> successfully started.
+//@ Start sandbox 2
+||
 
-//@<OUT> Start sandbox 2
-Starting MySQL instance...
-
-Instance localhost:<<<__mysql_sandbox_port2>>> successfully started.
-
-//@<OUT> Start sandbox 3
-Starting MySQL instance...
-
-Instance localhost:<<<__mysql_sandbox_port3>>> successfully started.
+//@ Start sandbox 3
+||
 
 //@<OUT> Reboot the cluster
 Reconfiguring the cluster 'sample' from complete outage...
