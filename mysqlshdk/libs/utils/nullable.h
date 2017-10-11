@@ -66,6 +66,20 @@ public:
     return _value;
   }
 
+  C* operator ->() {
+    if (_is_null)
+      throw std::logic_error("Attempt to read null value");
+
+    return &_value;
+  }
+
+  const C* operator ->() const {
+    if (_is_null)
+      throw std::logic_error("Attempt to read null value");
+
+    return &_value;
+  }
+
   bool is_null() const { return _is_null; }
 
   void reset() {
