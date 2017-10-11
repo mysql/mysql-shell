@@ -16,6 +16,13 @@ function start_sandbox(port) {
 	    dba.startSandboxInstance(port);
 }
 
+function stop_sandbox(port) {
+	if (__sandbox_dir)
+	    dba.stopSandboxInstance(port, {sandboxDir:__sandbox_dir, password: 'root'});
+	else
+	    dba.stopSandboxInstance(port, {password: 'root'});
+}
+
 function ensureSuperReadOnly(connection) {
 	var tmpSession = mysql.getClassicSession(connection);
 	var res = tmpSession.runSql('set global super_read_only=ON');
@@ -63,23 +70,29 @@ cluster.rejoinInstance(connection3);
 delete cluster;
 session.close();
 
-//@<OUT> Kill sandbox 2
-kill_sandbox(__mysql_sandbox_port2);
+// killSandboxInstance does not wait until the process is actually killed
+// before returning, so the function does not fit this use-case.
+// OTOH stopSandboxInstance waits until the MySQL classic port is not listening
+// anymore, but the x-protocol port may take a bit longer. As so, we must use
+// try_restart_sandbox() to make sure the instance is restarted.
 
-//@<OUT> Kill sandbox 3
-kill_sandbox(__mysql_sandbox_port3);
+//@<OUT> Stop sandbox 1
+stop_sandbox(__mysql_sandbox_port1);
 
-//@<OUT> Kill sandbox 1
-kill_sandbox(__mysql_sandbox_port1);
+//@<OUT> Stop sandbox 2
+stop_sandbox(__mysql_sandbox_port2);
 
-//@<OUT> Start sandbox 1
-start_sandbox(__mysql_sandbox_port1);
+//@<OUT> Stop sandbox 3
+stop_sandbox(__mysql_sandbox_port3);
 
-//@<OUT> Start sandbox 2
-start_sandbox(__mysql_sandbox_port2);
+//@ Start sandbox 1
+try_restart_sandbox(__mysql_sandbox_port1);
 
-//@<OUT> Start sandbox 3
-start_sandbox(__mysql_sandbox_port3);
+//@ Start sandbox 2
+try_restart_sandbox(__mysql_sandbox_port2);
+
+//@ Start sandbox 3
+try_restart_sandbox(__mysql_sandbox_port3);
 
 //@<OUT> Reboot the cluster
 shell.connect(connection1);

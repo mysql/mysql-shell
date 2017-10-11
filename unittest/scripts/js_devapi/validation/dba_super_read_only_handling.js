@@ -78,20 +78,20 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoi
 
 The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the MySQL Cluster.
 
-//@<OUT> Kill sandbox 2
-Killing MySQL instance...
+//@<OUT> Stop sandbox 2
+Stopping MySQL instance...
 
-Instance localhost:<<<__mysql_sandbox_port2>>> successfully killed.
+Instance localhost:<<<__mysql_sandbox_port2>>> successfully stopped.
 
-//@<OUT> Kill sandbox 3
-Killing MySQL instance...
+//@<OUT> Stop sandbox 3
+Stopping MySQL instance...
 
-Instance localhost:<<<__mysql_sandbox_port3>>> successfully killed.
+Instance localhost:<<<__mysql_sandbox_port3>>> successfully stopped.
 
-//@<OUT> Kill sandbox 1
-Killing MySQL instance...
+//@<OUT> Stop sandbox 1
+Stopping MySQL instance...
 
-Instance localhost:<<<__mysql_sandbox_port1>>> successfully killed.
+Instance localhost:<<<__mysql_sandbox_port1>>> successfully stopped.
 
 //@<OUT> Start sandbox 1
 Starting MySQL instance...
