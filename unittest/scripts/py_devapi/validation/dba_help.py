@@ -438,9 +438,6 @@ The options dictionary may contain the following options:
 
  - mycnfPath: The path of the MySQL configuration file for the instance.
  - password: The password to get connected to the instance.
- - clusterAdmin: The name of the InnoDB cluster administrator user.
- - clusterAdminPassword: The password for the InnoDB cluster administrator
-   account.
 
 The connection password may be contained on the instance definition, however,
 it can be overwritten if it is specified on the options.

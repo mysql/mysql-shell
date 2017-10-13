@@ -464,6 +464,15 @@ TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
   _options->wizards = false;
   reset_shell();
 
+  // Execute setup script to be able to use smart deployment functions.
+  execute_setup();
+
+  // Clean and delete all sandboxes.
+  execute("cleanup_sandboxes(true)");
+
+  // Deploy new sandbox instances (required for this test).
+  execute("deployed_here = reset_or_deploy_sandboxes()");
+
 
   // Ensures the three sandboxes contain no group group_replication
   // configuration
@@ -471,18 +480,23 @@ TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
   remove_from_cfg_file(_sandbox_cnf_2, "group_replication");
   remove_from_cfg_file(_sandbox_cnf_3, "group_replication");
 
+  // Restart sandbox instances.
+  std::string stop_options = "{password: 'root', sandboxDir: __sandbox_dir}";
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port1, " + stop_options +
+      ");");
+  execute("try_restart_sandbox(__mysql_sandbox_port1);");
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port2, " + stop_options +
+      ");");
+  execute("try_restart_sandbox(__mysql_sandbox_port2);");
+  execute("dba.stopSandboxInstance(__mysql_sandbox_port3, " + stop_options +
+      ");");
+  execute("try_restart_sandbox(__mysql_sandbox_port3);");
+
+  // Run the tests
   validate_interactive("dba_configure_local_instance.js");
-
-  // Restores the CGF of the thord sandbox
-  std::string stop_options = "{'password': 'root',"
-                              "'sandboxDir': __sandbox_dir}";
-  execute("dba.stopSandboxInstance(__mysql_sandbox_port3, " +
-                                     stop_options + ")");
-
-  restore_sandbox_configuration(_mysql_sandbox_nport3);
+  // Clean up sandboxes.
+  execute("cleanup_sandboxes(true)");
 }
-
-
 
 TEST_F(Shell_js_dba_tests, force_quorum) {
   _options->wizards = false;

@@ -872,58 +872,52 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4,
               "instance.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5,
               "@li password: The password to get connected to the instance.");
-REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL6,
-    "@li clusterAdmin: The name of the InnoDB cluster administrator user.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7,
-              "@li clusterAdminPassword: The password for the InnoDB cluster "
-              "administrator account.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL6,
               "The connection password may be contained on the instance "
               "definition, however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7,
               "The returned JSON object contains the following attributes:");
 REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL10,
+    DBA_CHECKINSTANCECONFIGURATION_DETAIL8,
     "@li status: the final status of the command, either \"ok\" or \"error\".");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL11,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9,
               "@li config_errors: a list of dictionaries containing the failed "
               "requirements");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL12,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL10,
               "@li errors: a list of errors of the operation");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL11,
               "@li restart_required: a boolean value indicating whether a "
               "restart is required");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL12,
               "Each dictionary of the list of config_errors includes the "
               "following attributes:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL15,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13,
               "@li option: The configuration option for which the requirement "
               "wasn't met");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL16,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14,
               "@li current: The current value of the configuration option");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL17,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL15,
               "@li required: The configuration option required value");
 REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL18,
+    DBA_CHECKINSTANCECONFIGURATION_DETAIL16,
     "@li action: The action to be taken in order to meet the requirement");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL17,
               "The action can be one of the following:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL20,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL18,
               "@li server_update+config_update: Both the server and the "
               "configuration need to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL21,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19,
               "@li config_update+restart: The configuration needs to be "
               "updated and the server restarted");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL20,
               "@li config_update: The configuration needs to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL23,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL21,
               "@li server_update: The server needs to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL24,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
               "@li restart: The server needs to be restarted");
 
 /**
@@ -974,8 +968,6 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL24,
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL20)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL21)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL22)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL23)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL24)
 */
 #if DOXYGEN_JS
 Undefined Dba::checkInstanceConfiguration(InstanceDef instance,
@@ -1627,7 +1619,7 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7,
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8,
               "@li clearReadOnly: boolean value used to confirm that "
               "super_read_only must be disabled.");
-              
+
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9,
               "The connection password may be contained on the instance "
@@ -1785,7 +1777,6 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
     const shcore::Value::Map_type_ref &options, bool allow_update) {
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
   shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
-  std::set<std::string> check_options;
 
   shcore::Argument_map validate_opt_map;
 
@@ -1797,16 +1788,14 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   if (options) {
     shcore::Argument_map tmp_map(*options);
 
+    std::set<std::string> check_options {"password", "dbPassword", "mycnfPath"};
     // The clearReadOnly option is only available in configureLocalInstance
     // i.e. with allow_update set as true
     if (allow_update) {
-      check_options = {"password", "dbPassword", "mycnfPath", "clusterAdmin",
-                       "clusterAdminPassword", "clearReadOnly"};
-    } else {
-      check_options = {"password", "dbPassword", "mycnfPath", "clusterAdmin",
-                       "clusterAdminPassword"};
+      check_options.insert("clusterAdmin");
+      check_options.insert("clusterAdminPassword");
+      check_options.insert("clearReadOnly");
     }
-
     tmp_map.ensure_keys({}, check_options, "validation options");
     validate_opt_map = tmp_map;
 
@@ -1840,6 +1829,19 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   // Now validates the instance GR status itself
   auto session = Dba::get_session(instance_def);
 
+  // Validate the permissions of the user running the operation.
+  if (!validate_cluster_admin_user_privileges(session, session->get_user(),
+                                              session->get_host())) {
+    std::string error_msg =
+        "Account '" + session->get_user() + "'@'" +
+        session->get_host() +
+        "' does not have all the required privileges to execute this "
+        "operation. For more information, see the online documentation.";
+    log_error("%s", error_msg.c_str());
+    throw std::runtime_error(error_msg);
+  }
+
+  // Now validates the instance GR status itself
   std::string uri = session->uri();
 
   GRInstanceType type = get_gr_instance_type(session->connection());
