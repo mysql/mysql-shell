@@ -440,13 +440,25 @@ int main(int argc, char **argv) {
       // Performs the connection
       if (options.has_connection_data()) {
         try {
-          if (!shell.connect(true))
-            return 1;
+          mysqlshdk::db::Connection_options target =
+              options.connection_options();
+
+          if (target.has(mysqlshdk::db::kAuthMethod) &&
+              target.get(mysqlshdk::db::kAuthMethod) == "PLAIN") {
+            std::cerr << "mysqlx: [Warning] PLAIN authentication method is NOT "
+                         "secure!\n";
+          }
+          if (target.has_password()) {
+            std::cerr << "mysqlx: [Warning] Using a password on the command "
+                         "line interface can be insecure.\n";
+          }
+
+          shell.connect(target, options.recreate_database);
         } catch (shcore::Exception &e) {
-          shell.print_error(e.format());
+          std::cerr << e.format() << "\n";
           return 1;
         } catch (std::exception &e) {
-          shell.print_error(e.what());
+          std::cerr << e.what() << "\n";
           return 1;
         }
       }

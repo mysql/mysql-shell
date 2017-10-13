@@ -25,6 +25,8 @@
 #include "utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "utils/utils_file.h"
 
 namespace shcore {
@@ -92,18 +94,15 @@ protected:
 
     // Set the hostname variable
     std::string hostname;
-    std::shared_ptr<mysqlsh::ShellBaseSession> session;
-    mysqlsh::mysql::ClassicSession *classic;
+    {
+      std::shared_ptr<mysqlshdk::db::mysql::Session> session;
+      // Connect to test server to get the hostname
+      session = mysqlshdk::db::mysql::Session::create();
+      session->connect(connection_options);
 
-    // Connect to test server to get the hostname
-    session = mysqlsh::Shell::connect_session(connection_options,
-                                              mysqlsh::SessionType::Classic);
-    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-    mysqlsh::dba::get_server_variable(classic->connection(), "hostname",
-                                        hostname);
-
-    session->close();
-
+      hostname = *mysqlshdk::mysql::Instance(session).get_sysvar_string(
+          "hostname", mysqlshdk::mysql::VarScope::GLOBAL);
+    }
     std::string code = "var hostname = '" + hostname + "';";
     exec_and_out_equals(code);
     code = "var __user = '" + user + "';";

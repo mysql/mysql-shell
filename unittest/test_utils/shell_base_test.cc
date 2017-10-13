@@ -188,8 +188,8 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
   return ret_val;
 }
 
-std::string Shell_base_test::start_server_mock
-  (int port, const std::vector< testing::Fake_result_data >& data) {
+std::string Shell_base_test::start_server_mock(
+    int port, const std::vector<testing::Fake_result_data>& data) {
   std::string ret_val;
   assert(_servers.find(port) == _servers.end());
   _servers[port] = std::shared_ptr<Server_mock>(new Server_mock());

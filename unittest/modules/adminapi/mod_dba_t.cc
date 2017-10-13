@@ -59,26 +59,6 @@ class Dba_test : public tests::Admin_api_test {
     _interactive_shell->shell_context()->set_global("dba", dba);
   }
 
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> get_classic_session() {
-    auto session = _interactive_shell->shell_context()->get_dev_session();
-    return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
-  }
-
-  std::shared_ptr<mysqlsh::ShellBaseSession> create_base_session(int port) {
-    std::shared_ptr<mysqlsh::ShellBaseSession> session;
-
-    mysqlshdk::db::Connection_options session_args;
-    session_args.set_host("localhost");
-    session_args.set_port(port);
-    session_args.set_user("user");
-    session_args.set_password("");
-
-    session = mysqlsh::Shell::connect_session(session_args,
-                                              mysqlsh::SessionType::Classic);
-
-    return session;
-  }
-
   StrictMock<Mock_dba> _dba;
   std::vector<testing::Fake_result_data> _queries;
   bool _mock_started;
@@ -93,7 +73,7 @@ TEST_F(Dba_test, create_cluster_with_cluster_admin_type) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   args.push_back(shcore::Value("dev"));
@@ -142,7 +122,7 @@ TEST_F(Dba_test, get_cluster_with_invalid_gr_group_name_001) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   args.push_back(shcore::Value("testCluster"));
@@ -187,7 +167,7 @@ TEST_F(Dba_create_cluster, clear_read_only_invalid) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
@@ -214,7 +194,7 @@ TEST_F(Dba_create_cluster, clear_read_only_unset) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   args.push_back(shcore::Value("dev"));
@@ -246,7 +226,7 @@ TEST_F(Dba_create_cluster, clear_read_only_false) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
@@ -369,7 +349,7 @@ TEST_F(Dba_drop_metadata, clear_read_only_invalid) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
@@ -398,7 +378,7 @@ TEST_F(Dba_drop_metadata, clear_read_only_unset) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
@@ -433,7 +413,7 @@ TEST_F(Dba_drop_metadata, clear_read_only_false) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
@@ -468,7 +448,7 @@ TEST_F(Dba_reboot_cluster, clear_read_only_invalid) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
@@ -496,7 +476,7 @@ TEST_F(Dba_reboot_cluster, clear_read_only_unset) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   args.push_back(shcore::Value("dev"));
@@ -541,7 +521,7 @@ TEST_F(Dba_reboot_cluster, clear_read_only_false) {
 
   start_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
@@ -592,7 +572,7 @@ class Dba_preconditions: public Dba_test {
 
     start_mocks(true);
 
-    _interactive_shell->connect(true);
+    _interactive_shell->connect(_options->connection_options());
   }
 
   virtual void TearDown() {

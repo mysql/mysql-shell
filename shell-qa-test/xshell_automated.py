@@ -1418,7 +1418,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, "wronpassw", LOCALHOST.host), "mysql-js>"),
-                  ("print(session)\n", "Undefined"),
+                  ("print(session)\n", "null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1429,7 +1429,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -mx {0}:{1}@{2}\n".format(LOCALHOST.user, "wrongpassw", LOCALHOST.host), "mysql-js>"),
-                  ("print(session)\n", "Undefined"),
+                  ("print(session)\n", "null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1441,7 +1441,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.port),
                    "mysql-js>"),
-                  ("print(session)\n", "Undefined"),
+                  ("print(session)\n", "null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1452,7 +1452,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, "wronpassw", REMOTEHOST.host), "mysql-js>"),
-                  ("print(session)\n", "Undefined"),
+                  ("print(session)\n", "null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1463,7 +1463,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -mx {0}:{1}@{2}\n".format(REMOTEHOST.user, "wrongpassw", REMOTEHOST.host), "mysql-js>"),
-                  ("print(session)\n", "Undefined"),
+                  ("print(session)\n", "null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1475,7 +1475,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
-                  ("print(session)\n", "Undefined"),
+                  ("print(session)\n", "null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -1935,7 +1935,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
                         '--mysql', '--sqlc']
-        x_cmds = [("use sakila;\n", "Query OK"),
+        x_cmds = [("use sakila;\n", "Default schema set to "),
                   ("Update actor set last_name ='Test Last Name', last_update = now() where actor_id = 2;\n", "Query OK"),
                   ("select last_name from actor where actor_id = 2;\n", "Test Last Name")
                   ]
@@ -3274,7 +3274,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
                         '--mysql', '--sqlc']
-        x_cmds = [("use sakila;\n", "Query OK"),
+        x_cmds = [("use sakila;\n", "Default schema set to "),
                   ("DROP TABLE IF EXISTS example_automation;\n", "Query OK"),
                   ("CREATE TABLE example_automation\n", "..."),
                   ("( id INT, data VARCHAR(100) );\n", "Query OK"),
@@ -3294,7 +3294,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
                         '--mysqlx', '--sql']
-        x_cmds = [("use sakila;\n", "Query OK"),
+        x_cmds = [("use sakila;\n", "Default schema "),
                   ("DROP TABLE IF EXISTS example_automation;\n", "Query OK"),
                   ("CREATE TABLE example_automation \n", "..."),
                   ("( id INT, data VARCHAR(100) );\n", "Query OK"),
@@ -6601,10 +6601,10 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--py', '--json=raw']
         x_cmds = [("\n", 'mysql-py>'),
                   ("session\n",
-                   '{"class":"Session","connected":true,"uri":"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '"}'),
+                   '{"class":"Session","connected":true,"uri":"mysqlx://' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '"}'),
                   ("\\sql\n", "mysql-sql>"),
                   ("use world_x;\n",
-                   "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
+                   "{\"info\":\"Default schema `world_x` accessible through db.\"}"),
                   ("create table test_classic (variable varchar(10));\n",
                    "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
                   ("select * from test_classic;\n",
@@ -6626,9 +6626,9 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--py', '--json=pretty']
         x_cmds = [("\n", 'mysql-py>'),
                   ("session\n",
-                   '\"uri\": \"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"'),
+                   '\"uri\": \"mysqlx://' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"'),
                   ("\\sql\n", "mysql-sql>"),
-                  ("use world_x;\n", "\"rows\": []"),
+                  ("use world_x;\n", "Default schema "),
                   ("create table test_pretty (variable varchar(10));\n", "\"rows\": []"),
                   ("select * from test_pretty;\n", "\"rows\": []"),
                   ("drop table world_x.test_pretty;\n", "\"rows\": []")
@@ -7045,7 +7045,7 @@ class XShell_TestCases(unittest.TestCase):
         p.stdin.write(bytearray("use sakas;\n", 'ascii'))
         p.stdin.flush()
         stdout, stderr = p.communicate()
-        if stderr.find(bytearray("ERROR:", "ascii"), 0, len(stderr)) >= 0:
+        if stderr.find(bytearray("Unknown database", "ascii"), 0, len(stderr)) >= 0:
             results = "PASS"
         else:
             results = "FAIL"
@@ -7058,8 +7058,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
-                  ("println(session)\n", "Undefined"),
-                  ("session\n", "Undefined"),
+                  ("println(session)\n", "null")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7071,8 +7070,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
-                  ("println(db)\n", "Undefined"),
-                  ("db\n", "Undefined"),
+                  ("println(db)\n", "null")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7084,7 +7082,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
-                  ("db.name\n", "The db variable is not set, establish a session first."),
+                  ("db.name\n", "Cannot read property 'name' of null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7468,11 +7466,11 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--py', '--json=raw']
         x_cmds = [("session\n",
-                   '{\"class\":\"Session\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host +
+                   '{\"class\":\"Session\",\"connected\":true,\"uri\":\"mysqlx://' + LOCALHOST.user + '@' + LOCALHOST.host +
                    ':' + LOCALHOST.xprotocol_port + '\"}'),
                   ("\\sql\n", "mysql-sql>"),
                   ("use world_x;\n",
-                   "warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
+                   "Default schema "),
                   ("create table test_classic (variable varchar(10));\n",
                    "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
                   ("select * from test_classic;\n",
@@ -8105,12 +8103,12 @@ class XShell_TestCases(unittest.TestCase):
                   ("db=session.get_schema('collections')\n", "mysql-py>"),
                   ("db.create_collection('flags')\n", "<Collection:flags>"),
                   ("\\sql\n", "mysql-sql>"),
-                  ("use collections;\n", "Query OK"),
+                  ("use collections;\n", "accessible through db."),
                   ("show tables;\n", "flags"),
                   ("\\py\n", "mysql-py>"),
                   ("db.get_collections()\n", "<Collection:flags>"),
                   ("\\sql\n", "mysql-sql>"),
-                  ("use collections;\n", "Query OK"),
+                  ("use collections;\n", "accessible through db."),
                   ("drop table flags;\n", "Query OK"),
                   ("\\py\n", "mysql-py>"),
                   ("db.get_collections()\n", "[]"),

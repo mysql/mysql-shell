@@ -27,7 +27,7 @@ result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()
 # ------------------------------------------------
 #@ TableDelete: valid operations after delete
 crud = table.delete()
-validate_crud_functions(crud, ['where', 'order_by', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['where', 'order_by', 'limit', 'execute'])
 
 #@ TableDelete: valid operations after where
 crud = crud.where("id < 100")

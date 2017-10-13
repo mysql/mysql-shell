@@ -24,6 +24,7 @@
 #include <iostream>
 #include "shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 struct SHCORE_PUBLIC Shell_options {
@@ -77,6 +78,8 @@ public:
   int exit_code;
 
   bool has_connection_data();
+
+  mysqlshdk::db::Connection_options connection_options();
 };
 }
 #endif

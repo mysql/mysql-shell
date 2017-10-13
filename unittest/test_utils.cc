@@ -256,6 +256,14 @@ void Shell_test_output_handler::flush_debug_log() {
 }
 
 
+void Shell_core_test_wrapper::connect_classic() {
+  execute("\\connect -mc " + _mysql_uri);
+}
+
+void Shell_core_test_wrapper::connect_x() {
+  execute("\\connect -mx " + _uri);
+}
+
 std::string Shell_core_test_wrapper::context_identifier() {
   std::string ret_val;
 
@@ -274,7 +282,6 @@ std::string Shell_core_test_wrapper::context_identifier() {
 }
 
 void Shell_core_test_wrapper::SetUp() {
-
   Shell_base_test::SetUp();
 
   output_handler.debug_print_header(context_identifier());

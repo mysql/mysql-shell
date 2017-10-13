@@ -80,6 +80,8 @@ class Thread_queue {
   std::mutex _mutex;
   std::condition_variable _cond;
 };
+
+#if 0
 /*
  * This class provides a shell wrapper that runs in a thread.
  * NOTE: This class is not being used as using the shell in a thread
@@ -121,7 +123,7 @@ class Thread_queue {
 
   Thread_queue<std::string> _input_lines;
 };*/
-
+#endif
 }  // namespace tests
 
 #endif  // UNITTEST_TEST_UTILS_SHELL_TEST_WRAPPER_H_

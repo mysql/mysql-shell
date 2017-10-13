@@ -28,7 +28,6 @@
 #include "shellcore/base_session.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "modules/interactive_object_wrapper.h"
 #include "modules/devapi/base_database_object.h"
 #include "shellcore/shell_notifications.h"
 #include "modules/mod_utils.h"
@@ -41,8 +40,8 @@ namespace mysqlsh {
 
 REGISTER_HELP(SHELL_BRIEF, "Gives access to general purpose functions and properties.");
 
-Shell::Shell(shcore::IShell_core* owner):
-_shell_core(owner) {
+Shell::Shell(Mysql_shell *owner)
+    : _shell(owner), _shell_core(owner->shell_context().get()) {
   init();
 }
 
@@ -149,8 +148,8 @@ shcore::Value Shell::get_member(const std::string &prop) const {
 REGISTER_HELP(SHELL_PARSEURI_BRIEF, "Utility function to parse a URI string.");
 REGISTER_HELP(SHELL_PARSEURI_PARAM, "@param uri a URI string.");
 REGISTER_HELP(SHELL_PARSEURI_RETURNS, "@returns A dictionary containing all "\
-                                      "the elements contained on the given URI "\
-                                      "string.");
+                                      "the elements contained on the given "\
+                                      "URI string.");
 REGISTER_HELP(SHELL_PARSEURI_DETAIL, "Parses a URI string and returns a "\
                                      "dictionary containing an item for each "\
                                      "found element.");
@@ -177,9 +176,9 @@ REGISTER_HELP(SHELL_PARSEURI_DETAIL2, "For more details about how a URI is "
  *
  */
 #if DOXYGEN_JS
-Dictionary Shell::parseUri(String uri){}
+Dictionary Shell::parseUri(String uri) {}
 #elif DOXYGEN_PY
-dict Shell::parse_uri(str uri){}
+dict Shell::parse_uri(str uri) {}
 #endif
 shcore::Value Shell::parse_uri(const shcore::Argument_list &args) {
 
@@ -197,15 +196,14 @@ shcore::Value Shell::parse_uri(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+// clang-format off
 REGISTER_HELP(SHELL_PROMPT_BRIEF, "Utility function to prompt data from the user.");
 REGISTER_HELP(SHELL_PROMPT_PARAM, "@param message a string with the message to be shown to the user.");
 REGISTER_HELP(SHELL_PROMPT_PARAM1, "@param options Optional dictionary with "\
-                                   "options that change the function "\
-                                   "behavior.");
+                                   "options that change the function behavior.");
 REGISTER_HELP(SHELL_PROMPT_RETURNS, "@returns A string value containing the input from the user.");
 REGISTER_HELP(SHELL_PROMPT_DETAIL, "This function allows creating scripts that "\
-                                   "require interaction with the user to "\
-                                   "gather data.");
+                                   "require interaction with the user to gather data.");
 REGISTER_HELP(SHELL_PROMPT_DETAIL1, "Calling this function with no options will show the given "\
                                     "message to the user and wait for the input. "\
                                     "The information entered by the user will be the returned value");
@@ -214,6 +212,7 @@ REGISTER_HELP(SHELL_PROMPT_DETAIL3, "@li defaultValue: a string value to be retu
 REGISTER_HELP(SHELL_PROMPT_DETAIL4, "@li type: a string value to define the prompt type.");
 REGISTER_HELP(SHELL_PROMPT_DETAIL5, "The type option supports the following values:");
 REGISTER_HELP(SHELL_PROMPT_DETAIL6, "@li password: the user input will not be echoed on the screen.");
+// clang-format on
 
 /**
  * $(SHELL_PROMPT_BRIEF)
@@ -426,12 +425,11 @@ REGISTER_HELP(SHELL_CONNECT_DETAIL3,
  * $(SHELL_CONNECT_DETAIL7)
  */
 #if DOXYGEN_JS
-Session Shell::connect(ConnectionData connectionData, String password){}
+Session Shell::connect(ConnectionData connectionData, String password) {}
 #elif DOXYGEN_PY
-Session Shell::connect(ConnectionData connectionData, str password){}
+Session Shell::connect(ConnectionData connectionData, str password) {}
 #endif
 shcore::Value Shell::connect(const shcore::Argument_list &args) {
-
   args.ensure_count(1, 2, get_function_name("connect").c_str());
 
   try {
@@ -440,15 +438,7 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
 
     mysqlsh::resolve_connection_credentials(&connection_options);
 
-    SessionType type = SessionType::Auto;
-    if (connection_options.has_scheme()) {
-      if (connection_options.get_scheme() == "mysqlx")
-        type = SessionType::X;
-      else if (connection_options.get_scheme() == "mysql")
-        type = SessionType::Classic;
-    }
-
-    set_dev_session(connect_session(connection_options, type));
+    _shell->connect(connection_options);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
 
@@ -456,7 +446,6 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
 }
 
 void Shell::set_current_schema(const std::string& name) {
-
   auto session = _shell_core->get_dev_session();
   shcore::Value new_schema;
 
@@ -466,24 +455,12 @@ void Shell::set_current_schema(const std::string& name) {
     new_schema = shcore::Value(session->get_schema(name));
   }
 
-  if(_shell_core->get_global("db")) {
-    auto db = _shell_core->get_global("db").as_object<shcore::Interactive_object_wrapper>();
-
-    if (db) {
-      if (new_schema)
-        db->set_target(new_schema.as_object<Cpp_object_bridge>());
-      else
-        db->set_target(std::shared_ptr<Cpp_object_bridge>());
-    }
-    else
-      _shell_core->set_global("db", new_schema,
-                              shcore::IShell_core::all_scripting_modes());
-  }
+  _shell_core->set_global("db", new_schema,
+                          shcore::IShell_core::all_scripting_modes());
 }
 
 shcore::Value Shell::_set_current_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
-
 
   shcore::Value new_schema;
 
@@ -495,59 +472,37 @@ shcore::Value Shell::_set_current_schema(const shcore::Argument_list &args) {
   return new_schema;
 }
 
-
 /*
-* Configures the received session as the global development session.
-* \param session: The session to be set as global.
-*
-* If there's a selected schema on the received session, it will be made available to the scripting interfaces on the global *db* variable
-*/
-std::shared_ptr<mysqlsh::ShellBaseSession> Shell::set_dev_session(const std::shared_ptr<mysqlsh::ShellBaseSession>& session) {
-  _shell_core->set_dev_session(session);
+ * Configures the received session as the global development session.
+ * \param session: The session to be set as global.
+ *
+ * If there's a selected schema on the received session, it will be made
+ * available to the scripting interfaces on the global *db* variable
+ */
+std::shared_ptr<mysqlsh::ShellBaseSession> Shell::set_session_global(
+    const std::shared_ptr<mysqlsh::ShellBaseSession> &session) {
+  if (session) {
+    _shell_core->set_global(
+        "session",
+        shcore::Value(std::static_pointer_cast<Object_bridge>(session)));
 
-  // When using the interactive wrappers instead of setting the global variables
-  // The target Objects on the wrappers are set
-  std::shared_ptr<shcore::Interactive_object_wrapper> wrapper;
-  auto raw_session = _shell_core->get_global("session");
-  if (raw_session && raw_session.type == shcore::Object) {
-    wrapper = raw_session.as_object<shcore::Interactive_object_wrapper>();
-    if (wrapper)
-      wrapper->set_target(session);
-  }
+    std::string currentSchema = session->get_default_schema();
+    shcore::Value schema;
+    if (!currentSchema.empty())
+      schema = shcore::Value(session->get_schema(currentSchema));
 
-  if (!wrapper)
-    _shell_core->set_global("session", shcore::Value(std::static_pointer_cast<Object_bridge>(session)));
-
-  wrapper.reset();
-
-
-  std::string currentSchema = session->get_default_schema();
-  shcore::Value schema;
-  if (!currentSchema.empty())
-    schema = shcore::Value(session->get_schema(currentSchema));
-
-  auto raw_db = _shell_core->get_global("db");
-  if (raw_db && raw_db.type == shcore::Object) {
-    wrapper = raw_db.as_object<shcore::Interactive_object_wrapper>();
-    if (wrapper) {
-      if (currentSchema.empty())
-        wrapper->set_target(std::shared_ptr<shcore::Cpp_object_bridge>());
-      else
-        wrapper->set_target(schema.as_object<shcore::Cpp_object_bridge>());
-    }
-  }
-
-  if (!wrapper)
     _shell_core->set_global("db", schema);
-
-  wrapper.reset();
+  } else {
+    _shell_core->set_global("session", shcore::Value::Null());
+    _shell_core->set_global("db", shcore::Value::Null());
+  }
 
   return session;
 }
 
 /*
-* Returns the global development session.
-*/
+ * Returns the global development session.
+ */
 std::shared_ptr<mysqlsh::ShellBaseSession> Shell::get_dev_session() {
   return _shell_core->get_dev_session();
 }
@@ -559,10 +514,12 @@ shcore::Value Shell::set_session(const shcore::Argument_list &args) {
   try {
     auto object = args.object_at<mysqlsh::ShellBaseSession>(0);
 
-    if (object)
-      set_dev_session(object);
-    else
-      throw shcore::Exception::runtime_error("Invalid session object provided");
+    if (object) {
+      _shell_core->set_dev_session(object);
+      set_session_global(object);
+    } else {
+      throw shcore::Exception::runtime_error("Invalid session object");
+    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setSession"));
 
@@ -588,91 +545,6 @@ shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
   }
 
   return shcore::Value(ret_val);
-
 }
 
-/*std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
-    const std::string &uri, const std::string &password, SessionType session_type) {
-  shcore::Argument_list args;
-
-  args.push_back(shcore::Value(shcore::get_connection_options(uri, true)));
-  (*args.map_at(0))["password"] = shcore::Value(password);
-
-  return connect_session(args, session_type);
-}*/
-
-std::shared_ptr<mysqlsh::ShellBaseSession> Shell::connect_session(
-    const mysqlshdk::db::Connection_options &connection_options,
-    SessionType session_type) {
-  std::shared_ptr<ShellBaseSession> ret_val;
-  std::string connection_error;
-
-  mysqlsh::SessionType type(session_type);
-
-  // Automatic protocol detection is ON
-  // Attempts X Protocol first, then Classic
-  if (type == mysqlsh::SessionType::Auto) {
-    ret_val.reset(new mysqlsh::mysqlx::Session());
-    try {
-      ret_val->connect(connection_options);
-
-      shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED",
-                                                ret_val);
-
-      return ret_val;
-    } catch (shcore::Exception &e) {
-      // Unknown message received from server indicates an attempt to create
-      // And X Protocol session through the MySQL protocol
-      int code = 0;
-      if (e.error()->has_key("code"))
-        code = e.error()->get_int("code");
-
-      if (code == 2027 ||  // Unknown message received from server 10
-          code == 2002 ||  // No connection could be made because the target
-                           // machine actively refused it connecting to
-                           // host:port
-          code == 2006) {  // MySQL server has gone away (randomly sent by
-                           // libmysqlx)
-        type = mysqlsh::SessionType::Classic;
-
-        // Since this is an unexpected error, we store the message to be logged
-        // in case the classic session connection fails too
-        if (code == 2006)
-          connection_error = "X protocol error: " + e.format();
-      } else
-        throw;
-    }
-  }
-
-  switch (type) {
-    case mysqlsh::SessionType::X:
-      ret_val.reset(new mysqlsh::mysqlx::Session());
-      break;
-    case mysqlsh::SessionType::Classic:
-      ret_val.reset(new mysql::ClassicSession());
-      break;
-    default:
-      throw shcore::Exception::argument_error(
-          "Invalid session type specified for MySQL connection.");
-      break;
-  }
-
-  try {
-    ret_val->connect(connection_options);
-  } catch (shcore::Exception &e) {
-    if (connection_error.empty())
-      throw;
-    else {
-      // If an error was cached for the X protocol connection
-      // it is included on a new exception
-      connection_error.append("\nClassic protocol error: ");
-      connection_error.append(e.format());
-      throw shcore::Exception::argument_error(connection_error);
-    }
-  }
-
-  shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
-
-  return ret_val;
-}
-}
+}  // namespace mysqlsh

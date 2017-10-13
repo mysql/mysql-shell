@@ -23,14 +23,27 @@
 #include "unittest/test_utils.h"
 
 namespace testing {
+
+class Mock_mysql_shell : public mysqlsh::Mysql_shell {
+ public:
+  Mock_mysql_shell(const mysqlsh::Shell_options& options,
+                   shcore::Interpreter_delegate* custom_delegate)
+      : mysqlsh::Mysql_shell(options, custom_delegate) {
+  }
+
+  MOCK_METHOD2(connect, void(const mysqlshdk::db::Connection_options&, bool));
+};
+
 class mod_shell_test : public Shell_core_test_wrapper {
-  virtual void SetUp() {
-    _shell_core.reset(new shcore::Shell_core(&output_handler.deleg));
-    _shell.reset(new mysqlsh::Shell(_shell_core.get()));
+  void SetUp() override {
+    Shell_core_test_wrapper::SetUp();
+
+    _backend.reset(new Mock_mysql_shell(*_options, &output_handler.deleg));
+    _shell.reset(new mysqlsh::Shell(_backend.get()));
   }
 
  protected:
-  std::shared_ptr<shcore::Shell_core> _shell_core;
+  std::shared_ptr<Mock_mysql_shell> _backend;
   std::shared_ptr<mysqlsh::Shell> _shell;
 };
 
@@ -156,6 +169,16 @@ TEST_F(mod_shell_test, parse_uri) {
     EXPECT_STREQ("TLSv1.0",
                  dict->get_string(mysqlshdk::db::kSslTlsVersion).c_str());
   }
+}
+
+TEST_F(mod_shell_test, connect) {
+  // ensure that shell.connect() calls Mysql_shell::connect()
+
+  EXPECT_CALL(*_backend, connect(_, false));
+
+  shcore::Argument_list args;
+  args.push_back(shcore::Value(_mysql_uri));
+  _shell->connect(args);
 }
 
 }  // namespace testing

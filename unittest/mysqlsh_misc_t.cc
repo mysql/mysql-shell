@@ -79,3 +79,41 @@ TEST_F(Mysqlsh_misc, connection_attribute) {
            "attr_name=\\'program_name\\'').fetchOne()[0])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("program_name=mysqlsh");
 }
+
+TEST_F(Mysqlsh_misc, warning_insecure_password) {
+#if 0  // passing password through stdin doesn't work so this will freeze
+  // Test secure call passing uri with no password (will be prompted)
+  execute({_mysqlsh, "root@localhost", nullptr}, "whatever");
+
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
+  wipe_out();
+#endif
+  // Test non secure call passing uri and password with cmd line params
+  execute({_mysqlsh, "root@localhost", "-pwhatever", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
+  wipe_out();
+
+  execute({_mysqlsh, "root@localhost", "--password=whatever", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
+  wipe_out();
+
+  // Test non secure call passing uri with empty password
+  execute({_mysqlsh, "root:@localhost", "-e1", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
+  wipe_out();
+
+  // Test non secure call passing uri with password
+  execute({_mysqlsh, "root:whatever@localhost", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "mysqlx: [Warning] Using a password on the command line interface can be "
+      "insecure.");
+  wipe_out();
+}

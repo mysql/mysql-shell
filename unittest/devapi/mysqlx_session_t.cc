@@ -115,8 +115,8 @@ TEST_F(Mysqlx_session, create_schema) {
     EXPECT_THROW_NOTHING(
         session->connect(mysqlshdk::db::Connection_options(_uri)));
 
-    EXPECT_NO_THROW(session->execute_sql("drop schema if exists `testsch`",
-                                         {}));
+    EXPECT_NO_THROW(
+        session->execute_sql("drop schema if exists `testsch`", {}));
 
     EXPECT_THROW_NOTHING(session->create_schema("testsch"));
     EXPECT_THROW_LIKE(session->create_schema("testsch"), mysqlshdk::db::Error,

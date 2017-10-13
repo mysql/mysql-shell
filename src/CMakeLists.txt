@@ -32,8 +32,6 @@ set(mysh_SRC
     mysqlsh/prompt_manager.cc
     interactive/interactive_dba_cluster.cc
     interactive/interactive_global_dba.cc
-    interactive/interactive_global_schema.cc
-    interactive/interactive_global_session.cc
     interactive/interactive_global_shell.cc
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/linenoise.cpp
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp

@@ -20,22 +20,29 @@
 namespace tests {
 
 TEST_F(Command_line_test, bug26102807) {
-
-  std::string sql = "drop database if exists bug26102807;\n"
-                    "create schema bug26102807;\n"
-                    "create table bug26102807.test(a varchar (32));\n";
+  std::string sql =
+      "drop database if exists bug26102807;\n"
+      "create schema bug26102807;\n"
+      "create table bug26102807.test(a varchar (32));\n";
 
   create_file("bug26102807.sql", sql);
   // Testing with a Node Session
   {
     std::string uri = "--uri=" + _uri;
-    execute({_mysqlsh, uri.c_str(), "--sqlx", "--interactive=full", "-f", "bug26102807.sql", NULL});
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to '" + _uri_nopasswd + "'");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("drop database if exists bug26102807;\nQuery OK");
+    execute({_mysqlsh, uri.c_str(), "--sqlx", "--interactive=full", "-f",
+             "bug26102807.sql", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Creating an X protocol session to '" + _uri_nopasswd + "'");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "drop database if exists bug26102807;\nQuery OK");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("create schema bug26102807;\nQuery OK");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("create table bug26102807.test(a varchar (32));\nQuery OK");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "create table bug26102807.test(a varchar (32));\nQuery OK");
 
-    execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "session.sql('select * from bug26102807.test').execute().getColumns()", NULL});
+    execute(
+        {_mysqlsh, uri.c_str(), "--interactive=full", "-e",
+         "session.sql('select * from bug26102807.test').execute().getColumns()",
+         NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS("[");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("<Column>");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("]");
@@ -44,16 +51,21 @@ TEST_F(Command_line_test, bug26102807) {
   // Testing with a Classic Session
   {
     std::string uri = "--uri=" + _mysql_uri;
-    execute({_mysqlsh, uri.c_str(), "--sqlc", "--interactive=full", "-f", "bug26102807.sql", NULL});
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" + _mysql_uri_nopasswd + "'");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("drop database if exists bug26102807;\nQuery OK");
+    execute({_mysqlsh, uri.c_str(), "--sqlc", "--interactive=full", "-f",
+             "bug26102807.sql", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" +
+                                  _mysql_uri_nopasswd + "'");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "drop database if exists bug26102807;\nQuery OK");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("create schema bug26102807;\nQuery OK");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("create table bug26102807.test(a varchar (32));\nQuery OK");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "create table bug26102807.test(a varchar (32));\nQuery OK");
 
-    execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "session.runSql('select * from bug26102807.test');", NULL});
+    execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e",
+             "session.runSql('select * from bug26102807.test');", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Empty set");
   }
 
   shcore::delete_file("bug26102807.sql");
 };
-}
+}  // namespace tests

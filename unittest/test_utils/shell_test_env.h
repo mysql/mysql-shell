@@ -61,6 +61,8 @@ class Shell_test_env : public ::testing::Test {
  public:
   Shell_test_env();
 
+  virtual void SetUpOnce() {}
+
  protected:
   std::string _host;
   std::string _port;
@@ -78,6 +80,9 @@ class Shell_test_env : public ::testing::Test {
 
   std::map<std::string, std::string> _output_tokens;
   std::string resolve_string(const std::string& source);
+
+  void SetUp() override;
+  static void SetUpTestCase();
 
  public:
   static std::string get_path_to_mysqlsh();

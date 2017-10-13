@@ -40,13 +40,13 @@ TEST(Cmdline_shell, query_variable_classic) {
                     "version", mysqlsh::Prompt_manager::Mysql_system_variable));
 
   const char *pwd = getenv("MYSQL_PWD");
-  auto coptions = shcore::get_connection_options("root@localhost");
+  auto coptions = shcore::get_connection_options("mysql://root@localhost");
   if (pwd)
     coptions.set_password(pwd);
   else
     coptions.set_password("");
   coptions.set_port(getenv("MYSQL_PORT") ? atoi(getenv("MYSQL_PORT")) : 3306);
-  shell.connect_session(&coptions, mysqlsh::SessionType::Classic, false);
+  shell.connect(coptions, false);
   EXPECT_NE("", shell.query_variable(
                     "version", mysqlsh::Prompt_manager::Mysql_system_variable));
   EXPECT_NE("",
@@ -68,14 +68,14 @@ TEST(Cmdline_shell, query_variable_x) {
   shell.finish_init();
 
   const char *pwd = getenv("MYSQL_PWD");
-  auto coptions = shcore::get_connection_options("root@localhost");
+  auto coptions = shcore::get_connection_options("mysqlx://root@localhost");
   if (pwd)
     coptions.set_password(pwd);
   else
     coptions.set_password("");
   coptions.set_port(getenv("MYSQLX_PORT") ? atoi(getenv("MYSQLX_PORT"))
                                           : 33060);
-  shell.connect_session(&coptions, mysqlsh::SessionType::X, false);
+  shell.connect(coptions, false);
   EXPECT_NE("", shell.query_variable(
                     "version", mysqlsh::Prompt_manager::Mysql_system_variable));
   EXPECT_NE("",

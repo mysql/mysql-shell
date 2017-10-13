@@ -454,6 +454,67 @@ std::string get_member_name(const std::string& name, shcore::NamingStyle style) 
   return new_name;
 }
 
+/** Convert string from under_score naming convention to camelCase
+
+  As a special case, if string is longer than 2 characters and
+  all characters are uppercase, conversion will be skipped.
+  */
+std::string to_camel_case(const std::string& name) {
+  std::string new_name;
+  bool upper_next = false;
+  size_t upper_count = 0;
+  for (auto ch : name) {
+    if (isupper(ch))
+      upper_count++;
+    if (ch == '_') {
+      upper_count++;
+      upper_next = true;
+    } else if (upper_next) {
+      upper_next = false;
+      new_name.push_back(toupper(ch));
+    } else {
+      new_name.push_back(ch);
+    }
+  }
+  if (upper_count == name.length())
+    return name;
+  return new_name;
+}
+
+/** Convert string from camcelCase naming convention to under_score
+
+  As a special case, if string is longer than 2 characters and
+  all characters are uppercase, conversion will be skipped.
+  */
+std::string from_camel_case(const std::string& name) {
+  std::string new_name;
+  size_t upper_count = 0;
+  // Uppercase letters will be converted to underscore+lowercase letter
+  // except in two situations:
+  // - When it is the first letter
+  // - When an underscore is already before the uppercase letter
+  bool skip_underscore = true;
+  for (auto character : name) {
+    if (isupper(character)) {
+      upper_count++;
+      if (!skip_underscore)
+        new_name.append(1, '_');
+      else
+        skip_underscore = false;
+      new_name.append(1, tolower(character));
+    } else {
+      // if character is '_'
+      skip_underscore = character == '_';
+      if (skip_underscore)
+        upper_count++;
+      new_name.append(1, character);
+    }
+  }
+  if (upper_count == name.length())
+    return name;
+  return new_name;
+}
+
 std::string format_text(const std::vector<std::string>& lines, size_t width, size_t left_padding, bool paragraph_per_line) {
   std::string ret_val;
 

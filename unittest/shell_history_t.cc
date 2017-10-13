@@ -77,12 +77,13 @@ TEST_F(Shell_history, check_password_history_linenoise) {
 
   const char *pwd = getenv("MYSQL_PWD");
   auto coptions = shcore::get_connection_options(getenv("MYSQL_URI"));
+  coptions.set_scheme("mysql");
   if (pwd)
     coptions.set_password(pwd);
   else
     coptions.set_password("");
   coptions.set_port(atoi(getenv("MYSQL_PORT")));
-  shell.connect_session(&coptions, mysqlsh::SessionType::Classic, false);
+  shell.connect(coptions, false);
 
   // TS_CV#9
   EXPECT_EQ("*IDENTIFIED*:*PASSWORD*",

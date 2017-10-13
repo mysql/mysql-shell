@@ -23,6 +23,7 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
+#include "modules/mod_shell.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
@@ -90,9 +91,8 @@ class Shell_sql_test : public ::testing::Test {
     else
       connection_options.set_password("");
 
-    auto session =
-      mysqlsh::Shell::connect_session(connection_options,
-                                      mysqlsh::SessionType::Classic);
+    auto session = std::make_shared<mysqlsh::mysql::ClassicSession>();
+    session->connect(connection_options);
 
     env.shell_core->set_dev_session(session);
   }

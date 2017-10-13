@@ -69,6 +69,9 @@ bool SHCORE_PUBLIC match_glob(const std::string &pattern, const std::string &s,
                               bool case_sensitive = false);
 std::string SHCORE_PUBLIC fmttime(const char *fmt);
 
+std::string SHCORE_PUBLIC to_camel_case(const std::string &name);
+std::string SHCORE_PUBLIC from_camel_case(const std::string &name);
+
 void SHCORE_PUBLIC split_account(const std::string &account,
                                  std::string *out_user, std::string *out_host);
 std::string SHCORE_PUBLIC make_account(const std::string &user,
@@ -81,6 +84,8 @@ std::string SHCORE_PUBLIC format_text(const std::vector<std::string> &lines,
                                       bool paragraph_per_line);
 std::string SHCORE_PUBLIC format_markup_text(
     const std::vector<std::string> &lines, size_t width, size_t left_padding);
+
+// TODO(alfredo) - redundant
 std::string SHCORE_PUBLIC replace_text(const std::string &source,
                                        const std::string &from,
                                        const std::string &to);

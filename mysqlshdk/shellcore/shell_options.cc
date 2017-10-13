@@ -18,6 +18,7 @@
  */
 
 #include "shellcore/shell_options.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
 Shell_options::Shell_options() {
@@ -66,4 +67,69 @@ bool Shell_options::has_connection_data() {
     prompt_password ||
     ssl_options.has_data();
 }
+
+static mysqlsh::SessionType get_session_type(
+    const mysqlshdk::db::Connection_options &opt) {
+  if (!opt.has_scheme()) {
+    return mysqlsh::SessionType::Auto;
+  } else {
+    std::string scheme = opt.get_scheme();
+    if (scheme == "mysqlx")
+      return mysqlsh::SessionType::X;
+    else if (scheme == "mysql")
+      return mysqlsh::SessionType::Classic;
+    else
+      throw std::invalid_argument("Unknown MySQL URI type "+scheme);
+  }
+}
+
+/**
+ * Builds Connection_options from options given by user through command line
+ */
+mysqlshdk::db::Connection_options Shell_options::connection_options() {
+  mysqlshdk::db::Connection_options target_server;
+  if (!uri.empty()) {
+    target_server = shcore::get_connection_options(uri);
+  }
+
+  shcore::update_connection_data(&target_server, user, password, host, port,
+                                 sock, schema, ssl_options, auth_method);
+
+  // If a scheme is given on the URI the session type must match the URI
+  // scheme
+  if (target_server.has_scheme()) {
+    mysqlsh::SessionType uri_session_type = get_session_type(target_server);
+    std::string error;
+
+    if (session_type != mysqlsh::SessionType::Auto &&
+        session_type != uri_session_type) {
+      if (session_type == mysqlsh::SessionType::Classic)
+        error = "The given URI conflicts with the --mysql session type option.";
+      else if (session_type == mysqlsh::SessionType::X)
+        error =
+            "The given URI conflicts with the --mysqlx session type "
+            "option.";
+    }
+    if (!error.empty())
+      throw shcore::Exception::argument_error(error);
+  } else {
+    switch (session_type) {
+      case mysqlsh::SessionType::Auto:
+        target_server.clear_scheme();
+        break;
+      case mysqlsh::SessionType::X:
+        target_server.set_scheme("mysqlx");
+        break;
+      case mysqlsh::SessionType::Classic:
+        target_server.set_scheme("mysql");
+        break;
+    }
+  }
+
+  // TODO(rennox): Analize if this should actually exist... or if it
+  // should be done right before connection for the missing data
+  shcore::set_default_connection_data(&target_server);
+  return target_server;
+}
+
 }

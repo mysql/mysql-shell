@@ -518,14 +518,14 @@ void Shell_script_tester::process_setup(std::istream & stream) {
             "A setup script must be specified when there are assumptions on "
             "the tested scripts.");
       else
-        execute_script(); // Executes the active setup script
+        execute_script();  // Executes the active setup script
     } else
       done = true;
   }
 
   // Once the assumptions are processed, rewinds the read position
   // To the beggining of the script
-  stream.clear(); // To clean up the eof flag in case it was set
+  stream.clear();  // To clean up the eof flag in case it was set
   stream.seekg(0, stream.beg);
 }
 
@@ -549,7 +549,7 @@ void Shell_py_script_tester::set_defaults() {
   output_handler.wipe_all();
 }
 
-void Shell_script_tester::execute_setup(){
+void Shell_script_tester::execute_setup() {
   const std::vector<std::string> argv;
   _interactive_shell->process_file(_setup_script, argv);
 }

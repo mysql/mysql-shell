@@ -39,7 +39,8 @@ Session_impl::Session_impl() : _mysql(NULL) {}
 
 void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
-  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
+  long flags = CLIENT_MULTI_RESULTS |   // NOLINT runtime/int
+               CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
   int port = 0;
   std::string host;
   std::string user;
