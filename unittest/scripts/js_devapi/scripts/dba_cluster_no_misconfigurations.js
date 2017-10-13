@@ -17,9 +17,9 @@ cluster.dissolve({force:true});
 // Test can only be performed if SSL is supported.
 //@ Create cluster requiring secure connections (if supported)
 if (__have_ssl) {
-  var result = session.runSql("SELECT @@global.require_secure_transport");
+  var result = session.runSql("SHOW GLOBAL VARIABLES LIKE 'require_secure_transport'");
   var row = result.fetchOne();
-  var req_sec_trans = row[0];
+  var req_sec_trans = row[1];
   session.runSql("SET @@global.require_secure_transport = ON");
   var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 } else {
