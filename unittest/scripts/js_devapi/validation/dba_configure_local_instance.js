@@ -1,10 +1,10 @@
-//@ Initialization
-||
-
 //@<OUT> create GR admin account using configureLocalInstance
 {
     "status": "ok"
 }
+
+//@ Error: user has no privileges to run the configure command (BUG#26609909)
+||Dba.configureLocalInstance: Account 'gr_user'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 //@ create cluster using cluster admin account (BUG#26523629)
 ||
@@ -149,6 +149,3 @@
         "2"
     ]
 ]
-
-//@ Finalization
-||

@@ -4,6 +4,14 @@ var deployed_here = reset_or_deploy_sandboxes();
 
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
+// Create root@<hostname> account with all privileges, required to create a
+// cluster.
+session.runSql("SET sql_log_bin = 0");
+session.runSql("CREATE USER 'root'@'" + hostname + "' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'" + hostname +
+    "'WITH GRANT OPTION");
+session.runSql("SET sql_log_bin = 1");
+
 //@ Create cluster
 if (__have_ssl)
   var cluster = dba.createCluster('testCluster', {memberSslMode: 'REQUIRED'});
