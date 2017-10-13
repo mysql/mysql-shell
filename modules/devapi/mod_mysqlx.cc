@@ -83,7 +83,7 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 #endif
 
 // DEFINE_FUNCTION(Mysqlx, get_session) {
-//   auto session = connect_session(args, mysqlsh::SessionType::X);
+//   auto session = connect(args, mysqlsh::SessionType::X);
 //   return
 //   shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 // }

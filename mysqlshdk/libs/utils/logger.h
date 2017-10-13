@@ -183,7 +183,7 @@ private:
 #define log_info(...)           ngcommon::Logger::log(ngcommon::Logger::LOG_INFO,    LOG_DOMAIN, __VA_ARGS__)
 #define log_debug(...)          ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG,   LOG_DOMAIN, __VA_ARGS__)
 
-#ifdef WITH_DEBUG
+#ifndef NDEBUG
   #define log_debug2(args) ngcommon::Logger::log_text(ngcommon::Logger::LOG_DEBUG2, LOG_DOMAIN, ngcommon::Logger::format args)
   #define log_debug3(args) ngcommon::Logger::log_text(ngcommon::Logger::LOG_DEBUG3, LOG_DOMAIN, ngcommon::Logger::format args)
 

@@ -77,8 +77,8 @@ class Command_line_connection_test : public Command_line_test {
 TEST_F(Command_line_connection_test, classic_no_socket_no_port) {
   int ret_val = test_classic_connection({"-u", _user.c_str()});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" + _user +
-                                "@localhost'");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" +
+                                _user + "@localhost'");
 
 #ifdef _WIN32
   // On windows a tcp connection is expected
@@ -102,18 +102,18 @@ TEST_F(Command_line_connection_test, classic_no_socket_no_port) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Localhost via UNIX socket");
   }
 #endif
-};
+}
 
 TEST_F(Command_line_connection_test, classic_port) {
   test_classic_connection({"-u", _user.c_str(), "-P", _mysql_port.c_str()});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" + _user +
-                                "@localhost:" + _mysql_port + "'");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" +
+                                _user + "@localhost:" + _mysql_port + "'");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Your MySQL connection id is");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "No default schema selected; type \\use <schema> to set one.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
-};
+}
 
 TEST_F(Command_line_connection_test, bug25268670) {
   execute({_mysqlsh, "-e",
@@ -123,7 +123,7 @@ TEST_F(Command_line_connection_test, bug25268670) {
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Shell.connect: Invalid values in connection options: invalid_option");
-};
+}
 
 // This example tests shows a case where the password will be prompted by the
 // Shell. The password is provided appart as a second parameter after the
@@ -134,7 +134,7 @@ TEST_F(Command_line_connection_test, prompt_sample) {
           _pwd.c_str());
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Enter password:");
-};
+}
 
 TEST_F(Command_line_connection_test, session_cmdline_options) {
   std::string port = "--port=" + _port;
@@ -279,7 +279,7 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
-};
+}
 
 TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
   bool have_ssl = false;
@@ -315,7 +315,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
     execute_in_session(ssl_uri, "--mysql");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to");
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "ERROR: 3159 (HY000): Connections using "
+        "MySQL Error 3159 (HY000): Connections using "
         "insecure transport are prohibited while "
         "--require_secure_transport=ON.");
     _output.clear();
@@ -332,7 +332,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
     execute_in_session(ssl_uri, "--mysql");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to");
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "ERROR: 2026 (HY000): SSL connection error: SSL is required "
+        "MySQL Error 2026 (HY000): SSL connection error: SSL is required "
         "but the server doesn't support it");
     _output.clear();
   }
@@ -372,7 +372,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
     execute_in_session(ssl_uri, "--mysqlx");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "ERROR: 1045: Secure transport required. To log in you must use "
+        "MySQL Error 1045: Secure transport required. To log in you must use "
         "TCP+SSL or UNIX socket connection.");
     _output.clear();
 
@@ -388,7 +388,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
     execute_in_session(ssl_uri, "--mysqlx");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "ERROR: 5001: Capability prepare failed for 'tls'");
+        "MySQL Error 5001: Capability prepare failed for 'tls'");
     _output.clear();
   }
 }

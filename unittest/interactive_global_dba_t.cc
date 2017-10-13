@@ -32,7 +32,7 @@ class Interactive_global_dba : public tests::Admin_api_test {
 
     // Resets the shell in non interactive mode
     _options->session_type = mysqlsh::SessionType::Classic;
-    _options->uri = "user:@localhost:" + _mysql_sandbox_port1;
+    _options->uri = "mysql://user:@localhost:" + _mysql_sandbox_port1;
     _options->wizards = true;
     _output_tokens["sb_port_1"] = _mysql_sandbox_port1;
     reset_shell();
@@ -68,26 +68,6 @@ class Interactive_global_dba : public tests::Admin_api_test {
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(shared_dba));
   }
 
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> get_classic_session() {
-    auto session = _interactive_shell->shell_context()->get_dev_session();
-    return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
-  }
-
-  std::shared_ptr<mysqlsh::ShellBaseSession> create_base_session(int port) {
-    std::shared_ptr<mysqlsh::ShellBaseSession> session;
-
-    mysqlshdk::db::Connection_options session_args;
-    session_args.set_host("localhost");
-    session_args.set_port(port);
-    session_args.set_user("user");
-    session_args.set_password("");
-
-    session = mysqlsh::Shell::connect_session(session_args,
-                                              mysqlsh::SessionType::Classic);
-
-    return session;
-  }
-
   // Using a strict mock will:
   // - Properly validate expected calls to mock functions
   // - Error out on unexpected calls to mock functions
@@ -107,7 +87,7 @@ TEST_F(Interactive_dba_create_cluster, read_only_no_prompts) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
 
   // It must call the Non Interactive checkInstanceConfiguration, we choose to
   // Return success since the path we are covering is abouy super_read_only
@@ -147,7 +127,8 @@ TEST_F(Interactive_dba_create_cluster, read_only_no_flag_prompt_yes) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // It must call the Non Interactive checkInstanceConfiguration, we choose to
   // Return success since the path we are covering is abouy super_read_only
@@ -197,7 +178,8 @@ TEST_F(Interactive_dba_create_cluster, read_only_no_flag_prompt_no) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // It must call the Non Interactive checkInstanceConfiguration, we choose to
   // Return success since the path we are covering is abouy super_read_only
@@ -238,7 +220,8 @@ TEST_F(Interactive_dba_create_cluster, read_only_invalid_flag_value) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // Since no expectation is set for create_cluster, a call to it would raise
   // an exception
@@ -263,7 +246,8 @@ TEST_F(Interactive_dba_create_cluster, read_only_flag_true) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // It must call the Non Interactive checkInstanceConfiguration, we choose to
   // Return success since the path we are covering is abouy super_read_only
@@ -309,7 +293,8 @@ TEST_F(Interactive_dba_create_cluster, read_only_flag_false) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // It must call the Non Interactive checkInstanceConfiguration, we choose to
   // Return success since the path we are covering is abouy super_read_only
@@ -532,7 +517,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_prompts) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // It must call the Non Interactive dropMetadataSchema, we choose to
   // Return success since the path we are covering is abouy super_read_only
@@ -558,7 +544,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_flag_prompt_yes) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // It must call the Non Interactive checkInstanceConfiguration, we choose to
   // Return success since the path we are covering is abouy super_read_only
@@ -603,7 +590,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_flag_prompt_no) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // The answer to the prompt about continuing cleaning up the read only
   output_handler.prompts.push_back("n");
@@ -640,7 +628,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_invalid_flag_value) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // Since no expectation is set for create_cluster, a call to it would raise
   // an exception
@@ -669,7 +658,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_flag_true) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // It must call the Non Interactive checkInstanceConfiguration, we choose to
   // Return success since the path we are covering is abouy super_read_only
@@ -700,7 +690,8 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_flag_false) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // It must call the Non Interactive checkInstanceConfiguration,
   // Non interactive API will fail since the instance is read only
@@ -728,7 +719,8 @@ TEST_F(Interactive_dba_reboot_cluster, read_only_no_prompts) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
   std::vector<std::pair<std::string, std::string>> status;
@@ -761,7 +753,8 @@ TEST_F(Interactive_dba_reboot_cluster, read_only_no_flag_prompt_yes) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
   std::vector<std::pair<std::string, std::string>> status;
@@ -812,7 +805,8 @@ TEST_F(Interactive_dba_reboot_cluster, read_only_no_flag_prompt_no) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
   std::vector<std::pair<std::string, std::string>> status;
@@ -853,7 +847,8 @@ TEST_F(Interactive_dba_reboot_cluster, read_only_invalid_flag_value) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   // Since no expectation is set for create_cluster, a call to it would raise
   // an exception
@@ -880,7 +875,8 @@ TEST_F(Interactive_dba_reboot_cluster, read_only_flag_true) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
   std::vector<std::pair<std::string, std::string>> status;
@@ -919,7 +915,8 @@ TEST_F(Interactive_dba_reboot_cluster, read_only_flag_false) {
 
   init_mocks(true);
 
-  _interactive_shell->connect(true);
+  _interactive_shell->connect(_options->connection_options());
+
 
   EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
   std::vector<std::pair<std::string, std::string>> status;

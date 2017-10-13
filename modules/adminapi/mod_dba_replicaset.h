@@ -77,12 +77,12 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   std::string get_topology_type() const { return _topology_type; }
 
-  void add_instance_metadata
-    (const mysqlshdk::db::Connection_options &instance_definition,
-     const std::string& label = "");
+  void add_instance_metadata(
+      const mysqlshdk::db::Connection_options &instance_definition,
+      const std::string &label = "");
 
-  void remove_instance_metadata
-    (const mysqlshdk::db::Connection_options &instance_def);
+  void remove_instance_metadata(
+      const mysqlshdk::db::Connection_options &instance_def);
 
   void adopt_from_gr();
 
@@ -117,12 +117,12 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
-  shcore::Value add_instance
-    (const mysqlshdk::db::Connection_options& connection_options,
-     const shcore::Argument_list &args,
-     const std::string &existing_replication_user = "",
-     const std::string &existing_replication_password = "",
-     bool overwrite_seed = false, const std::string &group_name = "");
+  shcore::Value add_instance(
+      const mysqlshdk::db::Connection_options &connection_options,
+      const shcore::Argument_list &args,
+      const std::string &existing_replication_user = "",
+      const std::string &existing_replication_password = "",
+      bool overwrite_seed = false, const std::string &group_name = "");
 
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);

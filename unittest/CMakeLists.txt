@@ -74,8 +74,6 @@ if(WITH_TESTS)
 
         "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_dba.cc"
         "${CMAKE_SOURCE_DIR}/src/interactive/interactive_dba_cluster.cc"
-        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_schema.cc"
-        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_session.cc"
         "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_shell.cc"
     )
     if(NOT HAVE_PROTOBUF)
@@ -116,11 +114,6 @@ if(WITH_TESTS)
             ${PYTHON_LIBRARIES}
             ${MYSQL_EXTRA_LIBRARIES}
     )
-
-    # Disable optimization for certain tests that take forever to compile
-    IF(NOT WIN32)
-      #     SET_SOURCE_FILES_PROPERTIES(mysqlshdk/libs/db/db_row_t.cc PROPERTIES COMPILE_FLAGS -O0)
-    ENDIF()
 
     # Copies the mysql_server_mock to the binary folder
     add_custom_command(TARGET run_unit_tests PRE_BUILD

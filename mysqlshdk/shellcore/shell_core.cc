@@ -18,37 +18,36 @@
  */
 
 #include "shellcore/shell_core.h"
-#include "shellcore/shell_sql.h"
-#include "shellcore/shell_jscript.h"
-#include "shellcore/shell_python.h"
-#include "scripting/object_registry.h"
-#include "shellcore/base_session.h"
-#include "utils/debug.h"
-#include "utils/utils_general.h"
-#include "utils/base_tokenizer.h"
-#include "scripting/lang_base.h"
 #include <fstream>
 #include <locale>
-#include "utils/utils_string.h"
 #ifdef WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
 #endif
+#include "scripting/lang_base.h"
+#include "scripting/object_registry.h"
+#include "shellcore/base_session.h"
+#include "shellcore/shell_jscript.h"
+#include "shellcore/shell_python.h"
+#include "shellcore/shell_sql.h"
+#include "utils/base_tokenizer.h"
+#include "utils/debug.h"
+#include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
-using namespace std::placeholders;
-using namespace shcore;
+using std::placeholders::_1;
 
 DEBUG_OBJ_ENABLE(Shell_core);
+namespace shcore {
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-  : IShell_core(), _client_delegate(shdelegate), _reconnect_session(false) {
+    : IShell_core(),
+      _client_delegate(shdelegate),
+      _reconnect_session(false) {
   DEBUG_OBJ_ALLOC(Shell_core);
-
   _mode = Mode::None;
   _registry = new Object_registry();
-
-  // The sys global is for JavaScript only
 
   observe_notification("SN_SESSION_CONNECTION_LOST");
 
@@ -89,7 +88,7 @@ Shell_core::~Shell_core() {
     delete _langs[Mode::SQL];
 }
 
-bool Shell_core::print_help(const std::string& topic) {
+bool Shell_core::print_help(const std::string &topic) {
   return _langs[_mode]->print_help(topic);
 }
 
@@ -97,13 +96,14 @@ void Shell_core::print(const std::string &s) {
   _delegate.print(_delegate.user_data, s.c_str());
 }
 
-void Shell_core::println(const std::string &s, const std::string& tag) {
+void Shell_core::println(const std::string &s, const std::string &tag) {
   std::string output(s);
   bool add_new_line = true;
 
   // When using JSON output ALL must be JSON
   if (!s.empty()) {
-    std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+    std::string format =
+        (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
     if (format.find("json") != std::string::npos) {
       output = format_json_output(output, tag.empty() ? "info" : tag);
       add_new_line = false;
@@ -116,11 +116,13 @@ void Shell_core::println(const std::string &s, const std::string& tag) {
   _client_delegate->print(_client_delegate->user_data, output.c_str());
 }
 
-void Shell_core::print_value(const shcore::Value &value, const std::string& tag) {
+void Shell_core::print_value(const shcore::Value &value,
+                             const std::string &tag) {
   _delegate.print_value(_delegate.user_data, value, tag.c_str());
 }
 
-std::string Shell_core::format_json_output(const std::string &info, const std::string& tag) {
+std::string Shell_core::format_json_output(const std::string &info,
+                                           const std::string &tag) {
   // Splits the incoming text in lines
   auto lines = shcore::split_string(info, "\n");
 
@@ -141,8 +143,10 @@ std::string Shell_core::format_json_output(const std::string &info, const std::s
   return format_json_output(shcore::Value(target), tag);
 }
 
-std::string Shell_core::format_json_output(const shcore::Value &info, const std::string& tag) {
-  shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
+std::string Shell_core::format_json_output(const shcore::Value &info,
+                                           const std::string &tag) {
+  shcore::JSON_dumper dumper(
+      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
   dumper.start_object();
   dumper.append_value(tag, info);
   dumper.end_object();
@@ -153,7 +157,8 @@ std::string Shell_core::format_json_output(const shcore::Value &info, const std:
 void Shell_core::print_error(const std::string &s) {
   std::string output;
   // When using JSON output ALL must be JSON
-  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format =
+      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
   if (format.find("json") != std::string::npos)
     output = format_json_output(output, "error");
   else
@@ -166,7 +171,8 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass) {
   std::string prompt(s);
 
   // When using JSON output ALL must be JSON
-  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format =
+      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
   if (format.find("json") != std::string::npos)
     prompt = format_json_output(prompt, "password");
 
@@ -195,7 +201,9 @@ std::string Shell_core::preprocess_input_line(const std::string &s) {
   return _langs[_mode]->preprocess_input_line(s);
 }
 
-void Shell_core::handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) {
+void Shell_core::handle_input(
+    std::string &code, Input_state &state,
+    std::function<void(shcore::Value)> result_processor) {
   try {
     _langs[_mode]->handle_input(code, state, result_processor);
   } catch (...) {
@@ -208,17 +216,21 @@ std::string Shell_core::get_handled_input() {
 }
 
 /*
-* process_stream will process the content of an opened stream until EOF is found.
-* return values:
-* - 1 in case of any processing error is found.
-* - 0 if no processing errors were found.
-*/
-int Shell_core::process_stream(std::istream& stream, const std::string& source,
-                            std::function<void(shcore::Value)> result_processor,
-                            const std::vector<std::string> &argv) {
+ * process_stream will process the content of an opened stream until EOF is
+ * found.
+ *
+ * return values:
+ * - 1 in case of any processing error is found.
+ * - 0 if no processing errors were found.
+ */
+int Shell_core::process_stream(
+    std::istream &stream, const std::string &source,
+    std::function<void(shcore::Value)> result_processor,
+    const std::vector<std::string> &argv) {
   // NOTE: global return code is unused at the moment
-  //       return code should be determined at application level on process_result
-  //       this global return code may be used again once the exit() function is in place
+  //       return code should be determined at application level on
+  //       process_result this global return code may be used again once the
+  //       exit() function is in place
   Input_state state = Input_state::Ok;
   _global_return_code = 0;
 
@@ -234,7 +246,9 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source,
 
       handle_input(line, state, result_processor);
 
-      if (_global_return_code && !(*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR].as_bool())
+      if (_global_return_code &&
+          !(*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR]
+               .as_bool())
         break;
     }
 
@@ -256,11 +270,11 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source,
       std::streamsize fsize = stream.tellg();
       stream.seekg(0, stream.beg);
       data.resize(fsize);
-      stream.read(const_cast<char*>(data.data()), fsize);
+      stream.read(const_cast<char *>(data.data()), fsize);
     }
 
-    // When processing JavaScript files, validates the very first line to start with #!
-    // If that's the case, it is replaced by a comment indicator //
+    // When processing JavaScript files, validates the very first line to start
+    // with #! If that's the case, it is replaced by a comment indicator //
     if (_mode == IShell_core::Mode::JavaScript && data.size() > 1 &&
         data[0] == '#' && data[1] == '!')
       data.replace(0, 2, "//");
@@ -285,6 +299,7 @@ bool Shell_core::switch_mode(Mode mode, bool &lang_initialized) {
           break;
         case Mode::SQL:
           init_sql();
+          lang_initialized = true;
           break;
         case Mode::JavaScript:
           init_js();
@@ -337,7 +352,7 @@ void Shell_core::set_global(const std::string &name, const Value &value,
                             Mode_mask mode) {
   _globals[name] = std::make_pair(mode, value);
 
-  for (std::map<Mode, Shell_language*>::const_iterator iter = _langs.begin();
+  for (std::map<Mode, Shell_language *>::const_iterator iter = _langs.begin();
        iter != _langs.end(); ++iter) {
     // Only sets the global where applicable
     if (mode.is_set(iter->first)) {
@@ -371,20 +386,22 @@ bool Shell_core::handle_shell_command(const std::string &line) {
 }
 
 /**
-* Configures the received session as the global development session.
-* \param session: The session to be set as global.
-*
-* If there's a selected schema on the received session, it will be made available to the scripting interfaces on the global *db* variable
-*/
-std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::set_dev_session(const std::shared_ptr<mysqlsh::ShellBaseSession>& session) {
+ * Configures the received session as the global development session.
+ * \param session: The session to be set as global.
+ *
+ * If there's a selected schema on the received session, it will be made
+ * available to the scripting interfaces on the global *db* variable
+ */
+std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::set_dev_session(
+    const std::shared_ptr<mysqlsh::ShellBaseSession> &session) {
   _global_dev_session = session;
 
   return _global_dev_session;
 }
 
 /**
-* Returns the global development session.
-*/
+ * Returns the global development session.
+ */
 std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::get_dev_session() {
   return _global_dev_session;
 }
@@ -406,7 +423,9 @@ bool Shell_core::reconnect_if_needed() {
   bool ret_val = false;
   if (_reconnect_session) {
     {
-      print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'..");
+      print(
+          "The global session got disconnected.\nAttempting to reconnect to '" +
+          _global_dev_session->uri() + "'..");
 
       shcore::sleep_ms(500);
       int attempts = 6;
@@ -430,7 +449,10 @@ bool Shell_core::reconnect_if_needed() {
       if (ret_val)
         print("\nThe global session was successfully reconnected.\n");
       else
-        print("\nThe global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
+        print(
+            "\nThe global session could not be reconnected "
+            "automatically.\nPlease use '\\connect " +
+            _global_dev_session->uri() + "' instead to manually reconnect.\n");
     }
   }
 
@@ -446,19 +468,23 @@ std::string Shell_core::get_main_delimiter() const {
   return dynamic_cast<Shell_sql *>(it->second)->get_main_delimiter();
 }
 
-void Shell_core::execute_module(const std::string &file_name, std::function<void(shcore::Value)> result_processor, const std::vector<std::string> &argv) {
+void Shell_core::execute_module(
+    const std::string &file_name,
+    std::function<void(shcore::Value)> result_processor,
+    const std::vector<std::string> &argv) {
   _input_args = argv;
 
   _langs[_mode]->execute_module(file_name, result_processor);
 }
 
 void Shell_core::deleg_print(void *self, const char *text) {
-  Shell_core *shcore = (Shell_core*)self;
+  Shell_core *shcore = static_cast<Shell_core *>(self);
 
   std::string output(text);
 
   // When using JSON output ALL must be JSON
-  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format =
+      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
   if (format.find("json") != std::string::npos)
     output = shcore->format_json_output(output, "info");
 
@@ -467,7 +493,7 @@ void Shell_core::deleg_print(void *self, const char *text) {
 }
 
 void Shell_core::deleg_print_error(void *self, const char *text) {
-  Shell_core *shcore = (Shell_core*)self;
+  Shell_core *shcore = static_cast<Shell_core *>(self);
   auto deleg = shcore->_client_delegate;
 
   std::string output;
@@ -476,7 +502,8 @@ void Shell_core::deleg_print_error(void *self, const char *text) {
     output.assign(text);
 
   // When using JSON output ALL must be JSON
-  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format =
+      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
   if (format.find("json") != std::string::npos)
     output = shcore->format_json_output(output, "error");
 
@@ -498,13 +525,14 @@ shcore::Prompt_result Shell_core::deleg_password(void *self, const char *text,
 }
 
 void Shell_core::deleg_source(void *self, const char *module) {
-  Shell_core *shcore = (Shell_core*)self;
+  Shell_core *shcore = static_cast<Shell_core *>(self);
   auto deleg = shcore->_client_delegate;
   deleg->source(deleg->user_data, module);
 }
 
-void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const char *tag) {
-  Shell_core *shcore = (Shell_core*)self;
+void Shell_core::deleg_print_value(void *self, const shcore::Value &value,
+                                   const char *tag) {
+  Shell_core *shcore = static_cast<Shell_core *>(self);
   auto deleg = shcore->_client_delegate;
   std::string mtag;
 
@@ -513,17 +541,20 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
 
   // If the client delegate has it's own logic to print errors then let it go
   // not expected to be the case.
-  if (deleg->print_value)
+  if (deleg->print_value) {
     deleg->print_value(deleg->user_data, value, tag);
-  else {
+  } else {
     std::string output;
     bool add_new_line = true;
     // When using JSON output ALL must be JSON
-    std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+    std::string format =
+        (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
     if (format.find("json") != std::string::npos) {
       // If no tag is provided, prints the JSON representation of the Value
       if (mtag.empty()) {
-        output = value.json((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
+        output = value.json(
+            (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() ==
+            "json");
       } else {
         if (value.type == shcore::String)
           output = shcore->format_json_output(value.as_string(), mtag);
@@ -538,7 +569,7 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
         Value::Map_type_ref error_map = value.as_map();
 
         if (error_map->has_key("code")) {
-          //message.append(" ");
+          // message.append(" ");
           output.append(((*error_map)["code"].repr()));
 
           if (error_map->has_key("state") && (*error_map)["state"])
@@ -551,8 +582,9 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
           output.append((*error_map)["message"].as_string());
         else
           output.append("?");
-      } else
+      } else {
         output = value.descr(true);
+      }
     }
 
     if (add_new_line)
@@ -566,7 +598,8 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
-std::vector<std::string> Shell_command_handler::split_command_line(const std::string &command_line) {
+std::vector<std::string> Shell_command_handler::split_command_line(
+    const std::string &command_line) {
   shcore::BaseTokenizer _tokenizer;
 
   std::vector<std::string> escaped_quotes = {"\\", "\""};
@@ -574,15 +607,17 @@ std::vector<std::string> Shell_command_handler::split_command_line(const std::st
 
   _tokenizer.set_complex_token("escaped-quote", escaped_quotes);
   _tokenizer.set_complex_token("quote", quote);
-  _tokenizer.set_complex_token_callback("space",
-    [](const std::string& input, size_t& index, std::string& text)->bool {
-    std::locale locale;
-    while (std::isspace(input[index], locale))
-      text += input[index++];
+  _tokenizer.set_complex_token_callback(
+      "space",
+      [](const std::string &input, size_t &index, std::string &text) -> bool {
+        std::locale locale;
+        while (std::isspace(input[index], locale))
+          text += input[index++];
 
-    return !text.empty();
-  });
-  _tokenizer.set_allow_unknown_tokens(true);;
+        return !text.empty();
+      });
+  _tokenizer.set_allow_unknown_tokens(true);
+
   _tokenizer.set_allow_spaces(true);
 
   _tokenizer.set_input(command_line);
@@ -598,13 +633,13 @@ std::vector<std::string> Shell_command_handler::split_command_line(const std::st
 
     // Quoted params will get accumulated into a single
     // command argument
-    if (quoted_param)
+    if (quoted_param) {
       param += _tokenizer.consume_any_token().get_text();
-    else {
+    } else {
       auto token = _tokenizer.consume_any_token();
-      if (token.get_type() != "space")
+      if (token.get_type() != "space") {
         param += token.get_text();
-      else {
+      } else {
         if (!param.empty()) {
           ret_val.push_back(param);
           param.clear();
@@ -616,7 +651,8 @@ std::vector<std::string> Shell_command_handler::split_command_line(const std::st
   // Adds the last argument or raises an error if needed
   if (!param.empty()) {
     if (quoted_param)
-      throw shcore::Exception::runtime_error("Missing closing quotes on command parameter");
+      throw shcore::Exception::runtime_error(
+          "Missing closing quotes on command parameter");
     else
       ret_val.push_back(param);
   }
@@ -624,7 +660,7 @@ std::vector<std::string> Shell_command_handler::split_command_line(const std::st
   return ret_val;
 }
 
-bool Shell_command_handler::process(const std::string& command_line) {
+bool Shell_command_handler::process(const std::string &command_line) {
   bool ret_val = false;
   std::vector<std::string> tokens;
 
@@ -632,11 +668,13 @@ bool Shell_command_handler::process(const std::string& command_line) {
     std::locale locale;
     // Identifies if the line is a registered command
     size_t index = 0;
-    while (index < command_line.size() && std::isspace(command_line[index], locale))
+    while (index < command_line.size() &&
+           std::isspace(command_line[index], locale))
       index++;
 
     size_t start = index;
-    while (index < command_line.size() && !std::isspace(command_line[index], locale))
+    while (index < command_line.size() &&
+           !std::isspace(command_line[index], locale))
       index++;
 
     std::string command = command_line.substr(start, index - start);
@@ -657,7 +695,10 @@ bool Shell_command_handler::process(const std::string& command_line) {
   return ret_val;
 }
 
-void Shell_command_handler::add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function) {
+void Shell_command_handler::add_command(const std::string &triggers,
+                                        const std::string &description,
+                                        const std::string &help,
+                                        Shell_command_function function) {
   Shell_command command = {triggers, description, help, function};
   _commands.push_back(command);
 
@@ -668,12 +709,13 @@ void Shell_command_handler::add_command(const std::string& triggers, const std::
 
   // Inserts a mapping for each given token
   while (index != end) {
-    _command_dict.insert(std::pair < const std::string&, Shell_command* >(*index, &_commands.back()));
+    _command_dict.insert(std::pair<const std::string &, Shell_command *>(
+        *index, &_commands.back()));
     index++;
   }
 }
 
-std::string Shell_command_handler::get_commands(const std::string& title) {
+std::string Shell_command_handler::get_commands(const std::string &title) {
   // Gets the length of the longest command
   Command_list::iterator index, end = _commands.end();
   int max_length = 0;
@@ -719,13 +761,16 @@ std::string Shell_command_handler::get_commands(const std::string& title) {
 
   size_t tmpindex = 0;
   for (index = _commands.begin(); index != end; index++, tmpindex++) {
-    ret_val += str_format(format.c_str(), tmp_commands[tmpindex].c_str(), tmp_alias[tmpindex].c_str(), (*index).description.c_str());
+    ret_val +=
+        str_format(format.c_str(), tmp_commands[tmpindex].c_str(),
+                   tmp_alias[tmpindex].c_str(), (*index).description.c_str());
   }
 
   return ret_val;
 }
 
-bool Shell_command_handler::get_command_help(const std::string& command, std::string &help) {
+bool Shell_command_handler::get_command_help(const std::string &command,
+                                             std::string &help) {
   bool ret_val = false;
   std::string cmd = command;
 
@@ -760,3 +805,4 @@ bool Shell_command_handler::get_command_help(const std::string& command, std::st
 
   return ret_val;
 }
+}  // namespace shcore

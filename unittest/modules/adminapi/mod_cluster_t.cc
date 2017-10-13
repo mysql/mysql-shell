@@ -57,7 +57,7 @@ class Cluster_test : public tests::Admin_api_test {
   void reset_cluster(const std::string& name) {
     start_mocks(true);
 
-    _interactive_shell->connect(true);
+    _interactive_shell->connect(_options->connection_options());
 
     EXPECT_CALL(_mock_metadata, set_session(_)).
       WillOnce(Invoke(&_mock_metadata, &MetadataStorage::set_session));
@@ -70,26 +70,6 @@ class Cluster_test : public tests::Admin_api_test {
     auto md_storage =
         std::dynamic_pointer_cast<MetadataStorage>(metadata);
      _cluster.initialize(name, md_storage);
-  }
-
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> get_classic_session() {
-    auto session = _interactive_shell->shell_context()->get_dev_session();
-    return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
-  }
-
-  std::shared_ptr<mysqlsh::ShellBaseSession> create_base_session(int port) {
-    std::shared_ptr<mysqlsh::ShellBaseSession> session;
-
-    mysqlshdk::db::Connection_options session_args;
-    session_args.set_host("localhost");
-    session_args.set_port(port);
-    session_args.set_user("user");
-    session_args.set_password("");
-
-    session = mysqlsh::Shell::connect_session(session_args,
-                                              mysqlsh::SessionType::Classic);
-
-    return session;
   }
 
   StrictMock<Mock_cluster> _cluster;

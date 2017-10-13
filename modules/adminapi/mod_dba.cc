@@ -18,6 +18,7 @@
  */
 
 #include <algorithm>
+#include <memory>
 #include <random>
 #include <string>
 #ifndef WIN32
@@ -1239,11 +1240,8 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
           mysqlshdk::db::Connection_options instance_def(uri);
           mysqlsh::set_password_from_map(&instance_def, map);
 
-          auto session =
-              std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
-                  Shell::connect_session(instance_def,
-                                         mysqlsh::SessionType::Classic));
-          assert(session);
+          std::shared_ptr<mysqlsh::mysql::ClassicSession> session(
+              get_session(instance_def));
 
           log_info("Creating root@%s account for sandbox %i",
                    remote_root.c_str(), port);
@@ -1765,11 +1763,10 @@ Dba::~Dba() {
 
 std::shared_ptr<mysqlsh::mysql::ClassicSession> Dba::get_session(
     const mysqlshdk::db::Connection_options &args) {
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> ret_val;
-
-  auto session = Shell::connect_session(args, mysqlsh::SessionType::Classic);
-
-  return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> session(
+      new mysqlsh::mysql::ClassicSession());
+  session->connect(args);
+  return session;
 }
 
 shcore::Value::Map_type_ref Dba::_check_instance_configuration(
@@ -2189,7 +2186,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   _metadata_storage->set_session(get_active_session());
 
   shcore::Value ret_val;
-  bool default_cluster = false;
   std::string cluster_name, group_replication_group_name, port,
       host, instance_session_address;
   shcore::Value::Map_type_ref options;
@@ -2551,8 +2547,7 @@ Dba::get_replicaset_instances_status(
       log_info(
           "Opening a new session to the instance to determine its status: %s",
           instance_address.c_str());
-      session = Shell::connect_session(connection_options,
-                                       mysqlsh::SessionType::Classic);
+      session = get_session(connection_options);
       session->close();
     } catch (std::exception &e) {
       conn_status = e.what();
@@ -2669,8 +2664,7 @@ void Dba::validate_instances_status_reboot_cluster(
     try {
       log_info("Opening a new session to the instance: %s",
                instance_address.c_str());
-      session = Shell::connect_session(connection_options,
-                                       mysqlsh::SessionType::Classic);
+      session = get_session(connection_options);
       classic = dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
     } catch (std::exception &e) {
       throw Exception::runtime_error("Could not open connection to " +
@@ -2785,7 +2779,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
       std::make_pair(active_session_address, gtid_executed_current);
 
   for (auto &value : instances_status) {
-    mysqlsh::mysql::ClassicSession *classic;
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> classic;
     std::string instance_address = value.first;
     std::string instance_status = value.second;
 
@@ -2803,9 +2797,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
     try {
       log_info("Opening a new session to the instance for gtid validations %s",
                instance_address.c_str());
-      session = Shell::connect_session(connection_options,
-                                       mysqlsh::SessionType::Classic);
-      classic = dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
+      classic = get_session(connection_options);
     } catch (std::exception &e) {
       throw Exception::runtime_error("Could not open a connection to " +
                                      instance_address + ": " + e.what() + ".");
@@ -2818,7 +2810,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
                         gtid_executed);
 
     // Close the session
-    session->close();
+    classic->close();
 
     std::string msg = "The instance: '" + instance_address +
                       "' GLOBAL.GTID_EXECUTED is: " + gtid_executed;

@@ -224,14 +224,20 @@ std::string Exception::format() {
   std::string type = _error->get_string("type", "");
   std::string message = _error->get_string("message", "");
   int64_t code = _error->get_int("code", -1);
+  std::string state = _error->get_string("state", "");
   std::string error_location = _error->get_string("location", "");
 
   if (!message.empty()) {
     if (!type.empty())
       error_message += type;
 
-    if (code != -1)
-      error_message += str_format(" (%lld)", (long long int)code);
+    if (code != -1) {
+      if (state.empty())
+        error_message += " " + std::to_string(code);
+      else
+        error_message +=
+            str_format(" %s (%s)", std::to_string(code), state.c_str());
+    }
 
     if (!error_message.empty())
       error_message += ": ";

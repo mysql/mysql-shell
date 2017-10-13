@@ -52,7 +52,9 @@ std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(inden
   if (!is_open())
     s_out.append("<" + class_name() + ":disconnected>");
   else
-    s_out.append("<" + class_name() + ":" + uri() + ">");
+    s_out.append("<" + class_name() + ":" +
+                 uri(mysqlshdk::db::uri::formats::user_transport()) +
+                 ">");
   return s_out;
 }
 
@@ -67,7 +69,8 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const {
   dumper.append_bool("connected", is_open());
 
   if (is_open())
-    dumper.append_string("uri", uri());
+    dumper.append_string("uri",
+                         uri(mysqlshdk::db::uri::formats::user_transport()));
 
   dumper.end_object();
 }

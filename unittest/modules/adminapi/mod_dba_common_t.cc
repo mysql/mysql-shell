@@ -40,20 +40,6 @@ class Dba_common_test : public Admin_api_test {
 
     return session;
   }
-  std::shared_ptr<mysqlsh::ShellBaseSession> create_base_session(int port) {
-    std::shared_ptr<mysqlsh::ShellBaseSession> session;
-
-    mysqlshdk::db::Connection_options connection_options;
-    connection_options.set_host("localhost");
-    connection_options.set_port(port);
-    connection_options.set_user("user");
-    connection_options.set_password("");
-
-    session = mysqlsh::Shell::connect_session(connection_options,
-                                              mysqlsh::SessionType::Classic);
-
-    return session;
-  }
 };
 
 TEST_F(Dba_common_test, resolve_cluster_ssl_mode_001) {
@@ -805,7 +791,7 @@ TEST_F(Dba_common_test, get_instances_gr) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
 
-  auto md_session = create_base_session(_mysql_sandbox_nport1);
+  auto md_session = create_local_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -844,7 +830,7 @@ TEST_F(Dba_common_test, get_instances_md) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
 
-  auto md_session = create_base_session(_mysql_sandbox_nport1);
+  auto md_session = create_local_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -888,7 +874,7 @@ TEST_F(Dba_common_test, get_newly_discovered_instances_001) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
 
-  auto md_session = create_base_session(_mysql_sandbox_nport1);
+  auto md_session = create_local_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -957,7 +943,7 @@ TEST_F(Dba_common_test, get_newly_discovered_instances_002) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
 
-  auto md_session = create_base_session(_mysql_sandbox_nport1);
+  auto md_session = create_local_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -1001,7 +987,7 @@ TEST_F(Dba_common_test, get_unavailable_instances_001) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
 
-  auto md_session = create_base_session(_mysql_sandbox_nport1);
+  auto md_session = create_local_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -1071,7 +1057,7 @@ TEST_F(Dba_common_test, get_unavailable_instances_002) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
 
-  auto md_session = create_base_session(_mysql_sandbox_nport1);
+  auto md_session = create_local_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -1151,7 +1137,7 @@ TEST_F(Dba_common_test, validate_replicaset_group_name_001) {
   EXPECT_NO_THROW(session = create_session(_mysql_sandbox_nport1));
 
   std::shared_ptr<mysqlsh::ShellBaseSession> md_session;
-  EXPECT_NO_THROW(md_session = create_base_session(_mysql_sandbox_nport2));
+  EXPECT_NO_THROW(md_session = create_local_session(_mysql_sandbox_nport2));
 
   if (md_session && session) {
     std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
@@ -1206,7 +1192,7 @@ TEST_F(Dba_common_test, validate_replicaset_group_name_002) {
   EXPECT_NO_THROW(session = create_session(_mysql_sandbox_nport1));
 
   std::shared_ptr<mysqlsh::ShellBaseSession> md_session;
-  EXPECT_NO_THROW(md_session = create_base_session(_mysql_sandbox_nport2));
+  EXPECT_NO_THROW(md_session = create_local_session(_mysql_sandbox_nport2));
 
   if (md_session && session) {
     std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;

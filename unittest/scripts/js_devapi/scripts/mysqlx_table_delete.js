@@ -27,7 +27,7 @@ var result = table.insert({ name: 'angel', age: 14, gender: 'male' }).execute();
 // ------------------------------------------------
 //@ TableDelete: valid operations after delete
 var crud = table.delete();
-validate_crud_functions(crud, ['where', 'orderBy', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['where', 'orderBy', 'limit', 'execute']);
 
 //@ TableDelete: valid operations after where
 var crud = crud.where("id < 100");

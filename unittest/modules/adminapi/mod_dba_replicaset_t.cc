@@ -27,26 +27,10 @@ namespace tests {
 
 class Dba_replicaset_test: public Admin_api_test {
  protected:
-  std::shared_ptr<mysqlsh::ShellBaseSession> create_base_session(
-        int port) {
-    std::shared_ptr<mysqlsh::ShellBaseSession> session;
-
-    mysqlshdk::db::Connection_options connection_options;
-
-    connection_options.set_host("localhost");
-    connection_options.set_port(port);
-    connection_options.set_user("user");
-    connection_options.set_password("");
-
-    session = mysqlsh::Shell::connect_session(connection_options,
-                                              mysqlsh::SessionType::Classic);
-
-    return session;
-  }
-
   // Creates a replicaset instance mock
   void init_test() {
-    _base_session = create_base_session(_mysql_sandbox_nport1);
+    _base_session = std::static_pointer_cast<mysqlsh::ShellBaseSession>(
+        create_local_session(_mysql_sandbox_nport1));
     std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
     metadata.reset(new mysqlsh::dba::MetadataStorage(_base_session));
 

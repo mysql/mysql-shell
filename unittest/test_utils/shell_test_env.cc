@@ -137,6 +137,19 @@ Shell_test_env::Shell_test_env() {
   _sandbox_cnf_3_bkp = shcore::str_join(backup_path, ".");
 }
 
+static bool g_initialized_test = false;
+
+void Shell_test_env::SetUp() {
+  if (!g_initialized_test) {
+    SetUpOnce();
+    g_initialized_test = true;
+  }
+}
+
+void Shell_test_env::SetUpTestCase() {
+  g_initialized_test = false;
+}
+
 std::string Shell_test_env::get_path_to_mysqlsh() {
   std::string command;
 

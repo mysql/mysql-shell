@@ -10,7 +10,7 @@ For more information see: https://dev.mysql.com/doc/refman/en/server-system-vari
 Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
 You may want to kill these sessions to prevent them from performing unexpected updates:
 
-2 open session(s) of 'root@localhost'.
+1 open session(s) of 'root@localhost'.
 
 Do you want to disable super_read_only and continue? [y|N]:
 Validating instance...
@@ -27,7 +27,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for Cluster usage
 You can now use it in an InnoDB Cluster.
 
 //@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt
-A new InnoDB cluster will be created on instance 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
 system variable set to protect it from inadvertent updates from applications.
@@ -37,10 +37,10 @@ For more information see: https://dev.mysql.com/doc/refman/en/server-system-vari
 Note: there are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
 You may want to kill these sessions to prevent them from performing unexpected updates:
 
-4 open session(s) of 'root@localhost'.
+1 open session(s) of 'root@localhost'.
 
 Do you want to disable super_read_only and continue? [y|N]:
-Creating InnoDB cluster 'sample' on 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB cluster 'sample' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.

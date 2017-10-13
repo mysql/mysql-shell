@@ -191,6 +191,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state,
 void Shell_sql::clear_input() {
   std::stack<std::string> empty;
   _parsing_context_stack.swap(empty);
+  _sql_cache.clear();
 }
 
 std::string Shell_sql::get_continued_input_context() {

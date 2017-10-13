@@ -50,6 +50,7 @@ void Shell_test_wrapper::trace_protocol() {
       "trace_protocol", 1);
 }
 
+#if 0
 /*Asynch_shell_test_wrapper::Asynch_shell_test_wrapper(bool trace)
     : _trace(trace), _state("IDLE"), _started(false) {
 }
@@ -167,5 +168,5 @@ void Asynch_shell_test_wrapper::start() {
 void Asynch_shell_test_wrapper::shutdown() {
   _thread->join();
 }*/
-
+#endif
 }  // namespace tests

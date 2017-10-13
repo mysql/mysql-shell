@@ -47,7 +47,7 @@ TableDelete::TableDelete(std::shared_ptr<Table> owner)
   register_dynamic_function("where", "delete");
   register_dynamic_function("orderBy", "delete, where");
   register_dynamic_function("limit", "delete, where, orderBy");
-  register_dynamic_function("bind", "delete, where, orderBy, limit, bind");
+  register_dynamic_function("bind", "where, orderBy, limit, bind");
   register_dynamic_function("execute", "delete, where, orderBy, limit, bind");
   register_dynamic_function("__shell_hook__",
                             "delete, where, orderBy, limit, bind");

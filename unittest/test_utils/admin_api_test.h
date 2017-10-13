@@ -16,12 +16,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #ifndef UNITTEST_TEST_UTILS_ADMIN_API_TEST_H_
 #define UNITTEST_TEST_UTILS_ADMIN_API_TEST_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 #include "modules/adminapi/mod_dba_common.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "unittest/test_utils.h"
+
 using mysqlshdk::utils::nullable;
+
 namespace tests {
 class Admin_api_test : public Shell_core_test_wrapper {
  public:
@@ -89,6 +92,29 @@ class Admin_api_test : public Shell_core_test_wrapper {
   void add_is_gtid_subset_query(std::vector<testing::Fake_result_data> *data,
                                 const std::string &start,
                                 const std::string &end, bool success);
+
+ public:
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> get_classic_session() {
+    auto session = _interactive_shell->shell_context()->get_dev_session();
+    return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
+  }
+
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> create_local_session(
+      int port) {
+    std::shared_ptr<mysqlsh::mysql::ClassicSession> session;
+
+    mysqlshdk::db::Connection_options session_args;
+    session_args.set_scheme("mysql");
+    session_args.set_host("localhost");
+    session_args.set_port(port);
+    session_args.set_user("user");
+    session_args.set_password("");
+
+    session.reset(new mysqlsh::mysql::ClassicSession());
+    session->connect(session_args);
+
+    return session;
+  }
 };
 }  // namespace tests
 

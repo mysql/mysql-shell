@@ -54,6 +54,10 @@ inline int str_casecmp(const char *a, const char *b) {
 #endif
 }
 
+inline int str_casecmp(const std::string &a, const std::string &b) {
+  return str_casecmp(a.c_str(), b.c_str());
+}
+
 inline bool str_caseeq(const char *a, const char *b) {
 #ifdef _WIN32
   return ::_stricmp(a, b) == 0;
@@ -75,12 +79,24 @@ inline bool str_beginswith(const char *s, const char *prefix) {
   return strncmp(s, prefix, strlen(prefix)) == 0;
 }
 
-inline bool str_beginswith(const std::string &s, const char *prefix) {
-  return s.compare(0, strlen(prefix), prefix) == 0;
-}
-
 inline bool str_beginswith(const std::string &s, const std::string &prefix) {
   return s.compare(0, prefix.length(), prefix) == 0;
+}
+
+inline bool str_ibeginswith(const char *s, const char *prefix) {
+#ifdef _WIN32
+  return ::_strnicmp(s, prefix, strlen(prefix)) == 0;
+#else
+  return strncasecmp(s, prefix, strlen(prefix)) == 0;
+#endif
+}
+
+inline bool str_ibeginswith(const std::string &s, const std::string &prefix) {
+  #ifdef _WIN32
+    return ::_strnicmp(s.c_str(), prefix.c_str(), prefix.size()) == 0;
+  #else
+    return strncasecmp(s.c_str(), prefix.c_str(), prefix.size()) == 0;
+  #endif
 }
 
 /** Checks whether a string has another as a suffix */
@@ -92,17 +108,34 @@ inline bool str_endswith(const char *s, const char *suffix) {
   return strncmp(s + sl - l, suffix, l) == 0;
 }
 
-inline bool str_endswith(const std::string &s, const char *suffix) {
-  size_t l = strlen(suffix);
-  if (l > s.length())
-    return false;
-  return s.compare(s.length() - l, l, suffix) == 0;
-}
-
 inline bool str_endswith(const std::string &s, const std::string &suffix) {
   if (suffix.length() > s.length())
     return false;
   return s.compare(s.length() - suffix.length(), suffix.length(), suffix) == 0;
+}
+
+inline bool str_iendswith(const char *s, const char *suffix) {
+  size_t l = strlen(suffix);
+  size_t sl = strlen(s);
+  if (l > sl)
+    return false;
+#ifdef _WIN32
+  return ::_strnicmp(s + sl - l, suffix, l) == 0;
+#else
+  return strncasecmp(s + sl - l, suffix, l) == 0;
+#endif
+}
+
+inline bool str_iendswith(const std::string &s, const std::string &suffix) {
+  if (suffix.length() > s.length())
+    return false;
+#ifdef _WIN32
+  return ::_strnicmp(s.c_str() + s.length() - suffix.length(), suffix.c_str(),
+                     suffix.length()) == 0;
+#else
+  return strncasecmp(s.c_str() + s.length() - suffix.length(), suffix.c_str(),
+                     suffix.length()) == 0;
+#endif
 }
 
 /** Partition a string in 2 at a separator, if present */

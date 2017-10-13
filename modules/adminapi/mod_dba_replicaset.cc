@@ -632,8 +632,7 @@ shcore::Value ReplicaSet::rejoin_instance(
   std::string ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
   std::string ip_whitelist, user, password;
   shcore::Value::Array_type_ref errors;
-  mysqlsh::mysql::ClassicSession *classic, *seed_classic;
-  std::shared_ptr<mysqlsh::ShellBaseSession> session, seed_session;
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> classic, seed_classic;
 
   // Retrieves the options
   if (rejoin_options) {
@@ -687,16 +686,16 @@ shcore::Value ReplicaSet::rejoin_instance(
     try {
       log_info("Opening a new session to the rejoining instance %s",
                instance_address.c_str());
-      session = mysqlsh::Shell::connect_session(*instance_def,
-                                                mysqlsh::SessionType::Classic);
-      classic = dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
+      classic.reset(new mysql::ClassicSession());
+      classic->connect(*instance_def);
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;
     }
 
-    if (!validate_replicaset_group_name(_metadata_storage, classic, _id)) {
+    if (!validate_replicaset_group_name(_metadata_storage, classic.get(),
+                                        _id)) {
       std::string nice_error =
           "The instance '" + instance_address +
           "' "
@@ -706,7 +705,7 @@ shcore::Value ReplicaSet::rejoin_instance(
           "registered in the ReplicaSet's Metadata: possible split-brain "
           "scenario. Please remove the instance from the cluster.";
 
-      session->close();
+      classic->close();
 
       throw shcore::Exception::runtime_error(nice_error);
     }
@@ -739,10 +738,8 @@ shcore::Value ReplicaSet::rejoin_instance(
   try {
     log_info("Opening a new session to seed instance: %s",
              seed_instance.c_str());
-    seed_session = Shell::connect_session(connection_options,
-                                     mysqlsh::SessionType::Classic);
-    seed_classic =
-        dynamic_cast<mysqlsh::mysql::ClassicSession *>(seed_session.get());
+    seed_classic.reset(new mysql::ClassicSession());
+    seed_classic->connect(connection_options);
   } catch (std::exception &e) {
     throw Exception::runtime_error("Could not open a connection to " +
                                    seed_instance + ": " + e.what() + ".");
@@ -776,11 +773,12 @@ shcore::Value ReplicaSet::rejoin_instance(
     shcore::Argument_list temp_args;
 
     // Check replication filters before creating the Metadata.
-    validate_replication_filters(classic);
+    validate_replication_filters(classic.get());
 
     std::string new_ssl_mode;
     // Resolve the SSL Mode to use to configure the instance.
-    new_ssl_mode = resolve_instance_ssl_mode(classic, seed_classic, ssl_mode);
+    new_ssl_mode =
+        resolve_instance_ssl_mode(classic.get(), seed_classic.get(), ssl_mode);
     if (new_ssl_mode != ssl_mode) {
       ssl_mode = new_ssl_mode;
       log_warning("SSL mode used to configure the instance: '%s'",
@@ -788,7 +786,7 @@ shcore::Value ReplicaSet::rejoin_instance(
     }
 
     // Get SSL values to connect to peer instance
-    auto seed_instance_def = seed_session->get_connection_options();
+    auto seed_instance_def = seed_classic->get_connection_options();
 
     // Stop group-replication
     log_info("Stopping group-replication at instance %s",
@@ -1371,9 +1369,8 @@ void ReplicaSet::add_instance_metadata(
   {
     std::shared_ptr<mysqlsh::mysql::ClassicSession> classic;
     try {
-      classic = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
-          mysqlsh::Shell::connect_session(instance_definition,
-                                          mysqlsh::SessionType::Classic));
+      classic.reset(new mysqlsh::mysql::ClassicSession());
+      classic->connect(instance_definition);
     } catch (Exception &e) {
       std::stringstream ss;
       ss << "Error opening session to '" << instance_address
@@ -1540,8 +1537,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     const shcore::Argument_list &args) {
   shcore::Value ret_val;
   uint64_t rset_id = get_id();
-  std::shared_ptr<mysqlsh::ShellBaseSession> session;
-  mysqlsh::mysql::ClassicSession *classic;
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> classic;
 
   auto instance_def =
       mysqlsh::get_connection_options(args, PasswordFormat::STRING);
@@ -1580,16 +1576,16 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     try {
       log_info("Opening a new session to the partition instance %s",
                instance_address.c_str());
-      session = mysqlsh::Shell::connect_session(instance_def,
-                                                mysqlsh::SessionType::Classic);
-      classic = dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
+      classic.reset(new mysql::ClassicSession());
+      classic->connect(instance_def);
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;
     }
 
-    if (!validate_replicaset_group_name(_metadata_storage, classic, _id)) {
+    if (!validate_replicaset_group_name(_metadata_storage, classic.get(),
+                                        _id)) {
       std::string nice_error =
           "The instance '" + instance_address +
           "' "
@@ -1600,7 +1596,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
           "registered in the ReplicaSet's Metadata: possible split-brain "
           "scenario.";
 
-      session->close();
+      classic->close();
 
       throw shcore::Exception::runtime_error(nice_error);
     }
@@ -1614,9 +1610,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
              instance_address.c_str());
     // NOTE(rennox): A session was already opened above, is another reqlly
     // required??
-    session = mysqlsh::Shell::connect_session(instance_def,
-                                              mysqlsh::SessionType::Classic);
-    classic = dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
+    classic.reset(new mysql::ClassicSession());
+    classic->connect(instance_def);
   } catch (std::exception &e) {
     log_error("Could not open connection to '%s': %s", instance_address.c_str(),
               e.what());
@@ -1646,7 +1641,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     throw shcore::Exception::runtime_error(message);
   }
 
-  session->close();
+  classic->close();
 
   // Get the online instances of the ReplicaSet to user as group_peers
   auto online_instances =
@@ -1672,9 +1667,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
           "Opening a new session to a group_peer instance to obtain the XCOM "
           "address %s",
           instance_host.c_str());
-      session = mysqlsh::Shell::connect_session(instance_def,
-                                                mysqlsh::SessionType::Classic);
-      classic = dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
+      classic.reset(new mysql::ClassicSession());
+      classic->connect(instance_def);
     } catch (std::exception &e) {
       log_error("Could not open connection to %s: %s", instance_address.c_str(),
                 e.what());
@@ -1692,7 +1686,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     group_peers.append(",");
   }
 
-  session->close();
+  classic->close();
 
   // Force the reconfiguration of the GR group
   {
@@ -1702,9 +1696,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
       // NOTE(rennox): This is the third session opened to the same instance
       // :), let's open sessions on every single scope! At least let's make it
       // a function
-      session = mysqlsh::Shell::connect_session(instance_def,
-                                                mysqlsh::SessionType::Classic);
-      classic = dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
+      classic.reset(new mysql::ClassicSession());
+      classic->connect(instance_def);
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
@@ -1721,7 +1714,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     set_global_variable(classic->connection(),
                         "group_replication_force_members", group_peers);
 
-    session->close();
+    classic->close();
   }
 
   return ret_val;

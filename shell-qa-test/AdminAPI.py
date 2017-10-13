@@ -1,4 +1,19 @@
 # -*- coding: utf-8 -*-
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
 import subprocess
 import time
 import sys
@@ -9166,7 +9181,7 @@ class XShell_TestCases(unittest.TestCase):
 #             "\\warnings   (\\W)       Show warnings after every statement."+os.linesep +\
 #             "\\nowarnings (\\w)       Don't show warnings after every statement."+os.linesep +\
 #             "\\status     (\\s)       Print information about the current global connection."+os.linesep +\
-#             "\\use        (\\u)       Set the current schema for the global session."+os.linesep +\
+#             "\\use                    Set the current schema for the global session."+os.linesep +\
 #             "\\saveconn   (\\savec)   Store a session configuration."+os.linesep +\
 #             "\\rmconn     (\\rmc)     Remove the stored session configuration."+os.linesep +\
 #             "\\lsconn     (\\lsc)     List stored session configurations."

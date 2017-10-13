@@ -85,8 +85,9 @@ TEST_F(Command_line_test, bug24905066) {
     execute({_mysqlsh, "--mysql", "-i", "--uri",
             "root:@(/path/to/whatever/socket.sock)", NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to "
-                                  "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Creating a Classic session to "
+        "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
   }
 
   // Tests URI formatting using X protocol
@@ -94,8 +95,9 @@ TEST_F(Command_line_test, bug24905066) {
     execute({_mysqlsh, "--mysqlx", "-i", "--uri",
             "root:@(/path/to/whatever/socket.sock)", "-e", "1", NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to "
-                                  "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Creating an X protocol session to "
+        "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
   }
 
   // Tests the connection fails if invalid schema is provided on classic session
@@ -104,7 +106,7 @@ TEST_F(Command_line_test, bug24905066) {
 
     execute({_mysqlsh, "--mysql", "-i", "--uri", uri.c_str(), NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 1049 (42000): Unknown database "
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL Error 1049 (42000): Unknown database "
                                   "'some_unexisting_schema'");
   }
 
@@ -112,9 +114,10 @@ TEST_F(Command_line_test, bug24905066) {
   {
     std::string uri = _uri + "/some_unexisting_schema";
 
-    execute({_mysqlsh, "--mysqlx", "-i", "--uri", uri.c_str(), "-e", "1", NULL});
+    execute(
+        {_mysqlsh, "--mysqlx", "-i", "--uri", uri.c_str(), "-e", "1", NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: Unknown database "
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("RuntimeError: Unknown database "
                                   "'some_unexisting_schema'");
   }
 }

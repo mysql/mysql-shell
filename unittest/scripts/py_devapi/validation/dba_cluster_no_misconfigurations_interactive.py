@@ -2,14 +2,14 @@
 ||
 
 #@ connect
-|Creating a Classic session to 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'|
+|Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'|
 |Your MySQL connection id is|
 |No default schema selected; type \use <schema> to set one.|
 
 #@<OUT> create cluster no misconfiguration: ok
-A new InnoDB cluster will be created on instance 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
-Creating InnoDB cluster 'dev' on 'mysql://root@localhost:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.

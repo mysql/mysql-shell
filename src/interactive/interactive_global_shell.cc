@@ -59,7 +59,9 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
   // Messages prior to the connection
   std::string message;
   message += "Creating " + stype + " session to '" +
-    instance_def.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + "'";
+             instance_def.as_uri(
+                 mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+             "'";
 
   println(message);
 
@@ -67,32 +69,7 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(instance_map));
 
-  shcore::Value ret_val = call_target("connect", new_args);
-
-  auto new_session = _shell_core.get_dev_session();
-
-  // Messages after the connection
-  std::string session_type = new_session->class_name();
-
-  message.clear();
-
-  message = "Your MySQL connection id is " +
-            std::to_string(new_session->get_connection_id());
-  if (new_session->class_name() == "Session")
-    message += " (X protocol)";
-  message += "\n";
-
-  shcore::Value default_schema = new_session->get_member("currentSchema");
-
-  if (default_schema) {
-    if (session_type == "ClassicSession")
-      message += "Default schema set to `" + default_schema.as_object()->get_member("name").as_string() + "`.";
-    else
-      message += "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
-  } else
-    message += "No default schema selected; type \\use <schema> to set one.";
-
-  println(message);
+  call_target("connect", new_args);
 
   return shcore::Value();
 }

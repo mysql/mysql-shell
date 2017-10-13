@@ -399,7 +399,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
     session = dba->get_active_session();
     println("A new InnoDB cluster will be created on instance '" +
-            session->uri() + "'.\n");
+            session->uri(mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+            "'.\n");
 
     // Use check_instance_configuration() in order to verify if we need
     // to prompt the user to allow the configuration changes
@@ -502,7 +503,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     new_args.push_back(shcore::Value(options));
 
   println("Creating InnoDB cluster '" + cluster_name + "' on '" +
-          session->uri() + "'...");
+          session->uri(mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+          "'...");
 
   // This is an instance of the API cluster
   auto raw_cluster = call_target("createCluster", new_args);

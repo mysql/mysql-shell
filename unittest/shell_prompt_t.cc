@@ -1069,7 +1069,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
                   "--ssl-mode=REQUIRED", "-e", "set autocommit=0;", nullptr});
     EXPECT_EQ(0, rc);
     EXPECT_PROMPT("host=" + _host + "  port=" + _port +
-                  "  mode=sql  Mode=SQL  uri=" + uri +
+                  "  mode=sql  Mode=SQL  uri=mysqlx://" + uri +
                   "/mysql?ssl-mode=required  user=root  schema=mysql  ssl=SSL" +
                   "  date=" + fmttime("%F") +
                   "  env:MYSQLSH_PROMPT_THEME=allvars.json  "

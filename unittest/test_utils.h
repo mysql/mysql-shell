@@ -296,13 +296,16 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   virtual void set_options() {
   }
 
-  void reset_shell() {
+  virtual void reset_shell() {
     _interactive_shell.reset(
         new mysqlsh::Mysql_shell(*_options.get(), &output_handler.deleg));
 
-    set_defaults();
     _interactive_shell->finish_init();
+    set_defaults();
   }
+
+  void connect_classic();
+  void connect_x();
 
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
