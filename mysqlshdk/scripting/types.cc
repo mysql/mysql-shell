@@ -232,11 +232,9 @@ std::string Exception::format() {
       error_message += type;
 
     if (code != -1) {
-      if (state.empty())
-        error_message += " " + std::to_string(code);
-      else
-        error_message +=
-            str_format(" %s (%s)", std::to_string(code), state.c_str());
+      error_message += " " + std::to_string(code);
+      if (!state.empty())
+        error_message += " (" + state + ")";
     }
 
     if (!error_message.empty())
