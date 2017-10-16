@@ -39,8 +39,10 @@ ShellBaseSession::ShellBaseSession() : _tx_deep(0) {
   DEBUG_OBJ_ALLOC(ShellBaseSession);
 }
 
-ShellBaseSession::ShellBaseSession(const ShellBaseSession& s) :
-_connection_options(s._connection_options), _tx_deep(s._tx_deep) {
+ShellBaseSession::ShellBaseSession(const ShellBaseSession &s)
+    : Cpp_object_bridge(),
+      _connection_options(s._connection_options),
+      _tx_deep(s._tx_deep) {
   DEBUG_OBJ_ALLOC(ShellBaseSession);
 }
 
