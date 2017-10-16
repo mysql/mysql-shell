@@ -17,12 +17,10 @@
  * 02110-1301  USA
  */
 
-#include "mod_mysql_session.h"
+#include "modules/mod_mysql_session.h"
 
 #include <set>
 #include <thread>
-
-#include <set>
 #include <string>
 
 #include "scripting/object_factory.h"
@@ -31,7 +29,7 @@
 #include "shellcore/shell_notifications.h"
 
 #include "scripting/proxy_object.h"
-#include "mysqlxtest_utils.h"
+#include "modules/mysqlxtest_utils.h"
 
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_schema.h"
@@ -60,8 +58,10 @@ ClassicSession::ClassicSession() {
   init();
 }
 
-ClassicSession::ClassicSession(const ClassicSession& session) :
-ShellBaseSession(session), _session(session._session) {
+ClassicSession::ClassicSession(const ClassicSession &session)
+    : ShellBaseSession(session),
+      std::enable_shared_from_this<mysqlsh::mysql::ClassicSession>(session),
+      _session(session._session) {
   init();
 }
 

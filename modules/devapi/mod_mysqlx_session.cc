@@ -120,7 +120,9 @@ shcore::Value Session::_is_open(const shcore::Argument_list &args) {
 }
 
 Session::Session(const Session &s)
-    : ShellBaseSession(s), _case_sensitive_table_names(false) {
+    : ShellBaseSession(s),
+      std::enable_shared_from_this<Session>(s),
+      _case_sensitive_table_names(false) {
   init();
 }
 

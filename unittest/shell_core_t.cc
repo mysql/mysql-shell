@@ -84,8 +84,8 @@ TEST_F(Shell_core_test, test_process_stream) {
   process("sql/sql_err.sql");
   EXPECT_EQ(1, _ret_val);
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
-  EXPECT_TRUE(0 <= output_handler.std_err.find(err_table_57) ||
-              0 <= output_handler.std_err.find(err_table_80));
+  EXPECT_TRUE(std::string::npos != output_handler.std_err.find(err_table_57) ||
+              std::string::npos != output_handler.std_err.find(err_table_80));
   EXPECT_EQ(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
   // Failed without the force option
@@ -93,8 +93,8 @@ TEST_F(Shell_core_test, test_process_stream) {
   process("sql/sql_err.sql");
   EXPECT_EQ(1, _ret_val);
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
-  EXPECT_TRUE(0 <= output_handler.std_err.find(err_table_57) ||
-              0 <= output_handler.std_err.find(err_table_80));
+  EXPECT_TRUE(std::string::npos != output_handler.std_err.find(err_table_57) ||
+              std::string::npos != output_handler.std_err.find(err_table_80));
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
   // JS tests: outputs are not validated since in batch mode there's no
@@ -107,8 +107,8 @@ TEST_F(Shell_core_test, test_process_stream) {
 
   process("js/js_err.js");
   // Error in 5.7 and 8.0 are different
-  EXPECT_TRUE(0 <= output_handler.std_err.find(err_table_57) ||
-              0 <= output_handler.std_err.find(err_table_80));
+  EXPECT_TRUE(std::string::npos != output_handler.std_err.find(err_table_57) ||
+              std::string::npos != output_handler.std_err.find(err_table_80));
 
   // Closes the connection
   _interactive_shell->process_line("session.close()");

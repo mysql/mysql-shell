@@ -56,7 +56,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  const uint64_t get_id() { return _id; }
+  uint64_t get_id() const { return _id; }
   void set_id(uint64_t id) { _id = id; }
   std::shared_ptr<mysqlshdk::db::ISession> get_session() {return _session; }
   std::shared_ptr<ReplicaSet> get_default_replicaset() {
