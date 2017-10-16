@@ -93,6 +93,12 @@ class Admin_api_test : public Shell_core_test_wrapper {
                                 const std::string &start,
                                 const std::string &end, bool success);
 
+void add_validate_cluster_admin_user_privileges_queries(
+                                std::vector<testing::Fake_result_data> *data,
+                                const std::string& user,
+                                const std::string& host,
+                                const std::string& non_grantable = "",
+                                const std::string& missing = "");
  public:
   std::shared_ptr<mysqlsh::mysql::ClassicSession> get_classic_session() {
     auto session = _interactive_shell->shell_context()->get_dev_session();

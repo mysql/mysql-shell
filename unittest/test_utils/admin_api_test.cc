@@ -15,6 +15,7 @@
 
 #include "unittest/test_utils/admin_api_test.h"
 #include <fstream>
+#include "modules/adminapi/mod_dba_common.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
@@ -186,20 +187,18 @@ void Admin_api_test::add_md_group_name_query(
 void Admin_api_test::add_get_cluster_matching_query(
     std::vector<testing::Fake_result_data> *data,
     const std::string &cluster_name) {
-  data->push_back({
-    "SELECT cluster_id, cluster_name, default_replicaset, description, "
-    "options, attributes FROM mysql_innodb_cluster_metadata.clusters "
-    "WHERE cluster_name = '" + cluster_name + "'",
-    {"cluster_id", "cluster_name", "default_replicaset", "description",
-     "options", "attributes"},
-    {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::String,
-     mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Bytes,
-     mysqlshdk::db::Type::Json, mysqlshdk::db::Type::Json},
-    {
-      {"1", cluster_name.c_str(), "1", "Test Cluster", "null",
-        "{\"default\": true}"}
-    }
-  });
+  data->push_back(
+      {"SELECT cluster_id, cluster_name, default_replicaset, description, "
+       "options, attributes FROM mysql_innodb_cluster_metadata.clusters "
+       "WHERE cluster_name = '" +
+           cluster_name + "'",
+       {"cluster_id", "cluster_name", "default_replicaset", "description",
+        "options", "attributes"},
+       {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::String,
+        mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Bytes,
+        mysqlshdk::db::Type::Json, mysqlshdk::db::Type::Json},
+       {{"1", cluster_name.c_str(), "1", "Test Cluster", "null",
+         "{\"default\": true}"}}});
 }
 
 void Admin_api_test::add_get_replicaset_query(
@@ -230,14 +229,11 @@ void Admin_api_test::add_is_instance_on_rs_query(
 }
 
 void Admin_api_test::add_precondition_queries(
-        std::vector<testing::Fake_result_data> *data,
-        mysqlsh::dba::GRInstanceType instance_type,
-        nullable<std::string> primary_uuid,
-        nullable<std::string> instance_uuid,
-        nullable<std::string> instance_state,
-        nullable<int> instance_count,
-        nullable<int> unreachable_count) {
-
+    std::vector<testing::Fake_result_data> *data,
+    mysqlsh::dba::GRInstanceType instance_type,
+    nullable<std::string> primary_uuid, nullable<std::string> instance_uuid,
+    nullable<std::string> instance_state, nullable<int> instance_count,
+    nullable<int> unreachable_count) {
   add_instance_type_queries(data, instance_type);
 
   if (instance_type == mysqlsh::dba::Standalone && !primary_uuid.is_null())
@@ -251,37 +247,38 @@ void Admin_api_test::add_precondition_queries(
     if (!instance_uuid.is_null())
       member_id = *instance_uuid;
 
+    data->push_back(
+        {"SELECT @@server_uuid, VARIABLE_VALUE FROM "
+         "performance_schema.global_status WHERE VARIABLE_NAME "
+         "= 'group_replication_primary_member';",
+         {"@@server_uuid", "VARIABLE_VALUE"},
+         {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
+         {{member_id.c_str(), primary_id.c_str()}}});
+
+    if (!instance_state.is_null()) {
       data->push_back(
-          {"SELECT @@server_uuid, VARIABLE_VALUE FROM "
-          "performance_schema.global_status WHERE VARIABLE_NAME "
-          "= 'group_replication_primary_member';",
-          {"@@server_uuid", "VARIABLE_VALUE"},
-          {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
-          {{member_id.c_str(), primary_id.c_str()}}});
-
-      if (!instance_state.is_null()) {
-        data->push_back(
-            {"SELECT MEMBER_STATE FROM performance_schema.replication_group_members "
-            "WHERE MEMBER_ID = '" +
-                member_id + "'",
-            {"MEMBER_STATE"},
-            {mysqlshdk::db::Type::String},
-            {{*instance_state}}});
-      }
-
-      if (!instance_count.is_null() && !unreachable_count.is_null()) {
-        std::string count = std::to_string(*instance_count);
-        std::string unreachable = std::to_string(*unreachable_count);
-
-        data->push_back(
-            {"SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) "
-            "AS UNREACHABLE,  COUNT(*) AS TOTAL FROM "
-            "performance_schema.replication_group_members",
-            {"SIGNED", "UNREACHABLE"},
-            {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Integer},
-            {{unreachable, count}}});
-      }
+          {"SELECT MEMBER_STATE FROM "
+           "performance_schema.replication_group_members "
+           "WHERE MEMBER_ID = '" +
+               member_id + "'",
+           {"MEMBER_STATE"},
+           {mysqlshdk::db::Type::String},
+           {{*instance_state}}});
     }
+
+    if (!instance_count.is_null() && !unreachable_count.is_null()) {
+      std::string count = std::to_string(*instance_count);
+      std::string unreachable = std::to_string(*unreachable_count);
+
+      data->push_back(
+          {"SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) "
+           "AS UNREACHABLE,  COUNT(*) AS TOTAL FROM "
+           "performance_schema.replication_group_members",
+           {"SIGNED", "UNREACHABLE"},
+           {mysqlshdk::db::Type::Integer, mysqlshdk::db::Type::Integer},
+           {{unreachable, count}}});
+    }
+  }
 }
 
 void Admin_api_test::add_super_read_only_queries(
@@ -313,6 +310,154 @@ void Admin_api_test::add_is_gtid_subset_query(
                    {"GTID_SUBSET"},
                    {mysqlshdk::db::Type::Integer},
                    {{success ? "1" : "0"}}});
+}
+
+/**
+ * Adds the queries about cluster admin privileges based on the received
+ * parameters
+ * @param user: the user to be used on the queries
+ * @param host: the host to be used on the queries
+ * @param non_grantable: a formatted string with the privileges to
+ * be marked as non grantable, format is as follows:
+ *   GLOBAL_LIST|MD_LIST|MYSQL_LIST
+ * Where each of the *LIST components is a comma separated list if the
+ * privileges to be marked as non grantable for the specific domain (Global,
+ * Metadata, MySQL)
+ *
+ * @param missing: a formatted string with the privileges to
+ * be marked as missing, format is as follows:
+ *   GLOBAL_LIST|MD_LIST|MYSQL_LIST
+ * Where each of the *LIST components is a comma separated list if the
+ * privileges to be marked as missing for the specific domain (Global, Metadata,
+ * MySQL)
+ */
+void Admin_api_test::add_validate_cluster_admin_user_privileges_queries(
+    std::vector<testing::Fake_result_data> *data, const std::string &user,
+    const std::string &host, const std::string &non_grantable,
+    const std::string &missing) {
+  std::vector<std::string> ng_global;
+  std::vector<std::string> ng_metadata;
+  std::vector<std::string> ng_mysql;
+  std::vector<std::string> missing_global;
+  std::vector<std::string> missing_metadata;
+  std::vector<std::string> missing_mysql;
+
+  // Parses the privileges to be marked as non grantable
+  if (!non_grantable.empty()) {
+    auto ng_list = shcore::split_string(non_grantable, "|", false);
+    assert(ng_list.size() == 3);
+
+    if (!ng_list[0].empty())
+      ng_global = shcore::split_string(ng_list[0], ",", true);
+    if (!ng_list[1].empty())
+      ng_metadata = shcore::split_string(ng_list[1], ",", true);
+    if (!ng_list[2].empty())
+      ng_mysql = shcore::split_string(ng_list[2], ",", true);
+  }
+
+  // Parses the privileges to be missing
+  if (!missing.empty()) {
+    auto missing_list = shcore::split_string(missing, "|", false);
+    assert(missing_list.size() == 3);
+
+    if (!missing_list[0].empty())
+      missing_global = shcore::split_string(missing_list[0], ",", true);
+    if (!missing_list[1].empty())
+      missing_metadata = shcore::split_string(missing_list[1], ",", true);
+    if (!missing_list[2].empty())
+      missing_mysql = shcore::split_string(missing_list[2], ",", true);
+  }
+
+  // Creates the list of global privileges to be returned on the
+  // query for the globals;
+
+  // Global privileges includes all in k_global_privileges and
+  // k_metadata_schema_privileges
+  std::vector<std::vector<std::string>> global_privileges;
+  std::set<std::string> all_globals;
+  all_globals.insert(mysqlsh::dba::k_global_privileges.begin(),
+                     mysqlsh::dba::k_global_privileges.end());
+  all_globals.insert(mysqlsh::dba::k_metadata_schema_privileges.begin(),
+                     mysqlsh::dba::k_metadata_schema_privileges.end());
+
+  for (const auto &privilege : all_globals) {
+    // Skips the privileges marked as missing
+    if (std::find(missing_global.begin(), missing_global.end(), privilege) ==
+        missing_global.end()) {
+      // Creates a record for each of the remaining ones with the
+      // indicated grantable value
+      if (std::find(ng_global.begin(), ng_global.end(), privilege) ==
+          ng_global.end()) {
+        global_privileges.push_back({privilege, "YES"});
+      } else {
+        global_privileges.push_back({privilege, "NO"});
+      }
+    }
+  }
+
+  // Creates the expected query as passing the records to be returned
+  shcore::sqlstring query;
+  query = shcore::sqlstring(
+              "SELECT privilege_type, is_grantable"
+              " FROM information_schema.user_privileges"
+              " WHERE grantee = ?",
+              0)
+          << shcore::make_account(user, host);
+
+  data->push_back({query.str(),
+                   {"privilege_type", "is_grantable"},
+                   {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
+                   global_privileges});
+
+  // If any of the global privileges is either missing or non grantable
+  // a second query will be sent asking about the schema privileges
+  if (!ng_global.empty() || !missing_global.empty()) {
+    std::vector<std::vector<std::string>> schema_privileges;
+
+    // Creates the  list of records to be returned for the metadata schema
+    for (const auto &privilege : mysqlsh::dba::k_metadata_schema_privileges) {
+      // Skips privileges marked as missing for the metadata schema
+      if (std::find(missing_metadata.begin(), missing_metadata.end(),
+                    privilege) == missing_metadata.end()) {
+        if (std::find(ng_metadata.begin(), ng_metadata.end(), privilege) ==
+            ng_metadata.end()) {
+          global_privileges.push_back(
+              {"mysql_innodb_cluster_metadata", privilege, "YES"});
+        } else {
+          schema_privileges.push_back(
+              {"mysql_innodb_cluster_metadata", privilege, "NO"});
+        }
+      }
+    }
+
+    // Creates the  list of records to be returned for the metadata schema
+    for (const auto &privilege : mysqlsh::dba::k_mysql_schema_privileges) {
+      // Skips privileges marked as missing for the mysql schema
+      if (std::find(missing_mysql.begin(), missing_mysql.end(), privilege) ==
+          missing_mysql.end()) {
+        if (std::find(ng_mysql.begin(), ng_mysql.end(), privilege) ==
+            ng_mysql.end()) {
+          global_privileges.push_back({"mysql", privilege, "YES"});
+        } else {
+          schema_privileges.push_back({"mysql", privilege, "NO"});
+        }
+      }
+    }
+
+    // Adds the second query with the records to be returned
+    query = shcore::sqlstring(
+                "SELECT table_schema, privilege_type, is_grantable"
+                " FROM information_schema.schema_privileges"
+                " WHERE grantee = ?",
+                0)
+            << shcore::make_account(user, host);
+
+    data->push_back({query.str(),
+                     {"table_schema", "privilege_type", "is_grantable"},
+                     {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String,
+                      mysqlshdk::db::Type::String},
+                     schema_privileges});
+  }
 }
 
 }  // namespace tests

@@ -274,7 +274,9 @@ TEST_F(Dba_configure_local_instance, clear_read_only_invalid) {
 }
 
 TEST_F(Dba_configure_local_instance, clear_read_only_unset) {
-  add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
+  add_validate_cluster_admin_user_privileges_queries(&_queries, "user", "localhost");
+
+  add_instance_type_queries(&_queries, mysqlsh::dba::Standalone);
 
   // super_read_only is ON, active sessions
   add_super_read_only_queries(&_queries, true, true, {{"root@localhost", "1"}});
@@ -307,7 +309,9 @@ TEST_F(Dba_configure_local_instance, clear_read_only_unset) {
 }
 
 TEST_F(Dba_configure_local_instance, clear_read_only_false) {
-  add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
+  add_validate_cluster_admin_user_privileges_queries(&_queries, "user", "localhost");
+
+  add_instance_type_queries(&_queries, mysqlsh::dba::Standalone);
 
   // super_read_only is ON, no active sessions
   add_super_read_only_queries(&_queries, true, true, {});
