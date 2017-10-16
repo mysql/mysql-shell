@@ -418,14 +418,14 @@ std::pair<int, int> find_cluster_admin_accounts(
  */
 
 // Global privs needed for managing cluster instances
-static const std::set<std::string> k_global_privileges{
+const const std::set<std::string> k_global_privileges{
   "RELOAD", "SHUTDOWN", "PROCESS", "FILE",
   "SUPER", "REPLICATION SLAVE", "REPLICATION CLIENT",
   "CREATE USER", "SELECT"
 };
 
 // Schema privileges needed on the metadata schema
-static const std::set<std::string> k_metadata_schema_privileges{
+const const std::set<std::string> k_metadata_schema_privileges{
   "ALTER", "ALTER ROUTINE", "CREATE",
   "CREATE ROUTINE", "CREATE TEMPORARY TABLES",
   "CREATE VIEW", "DELETE", "DROP",
@@ -433,11 +433,16 @@ static const std::set<std::string> k_metadata_schema_privileges{
   "REFERENCES", "SELECT", "SHOW VIEW", "TRIGGER", "UPDATE"
 };
 
+// Schema privileges needed on the mysql schema
+const std::set<std::string> k_mysql_schema_privileges{
+  "SELECT", "INSERT", "UPDATE", "DELETE"
+};
+
 // list of (schema, [privilege]) pairs, with the required privileges on each
 // schema
 static const std::map<std::string, std::set<std::string>> k_schema_grants {
   {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
-  {"mysql", {"SELECT", "INSERT", "UPDATE", "DELETE"}}  // need for mysql.plugin,
+  {"mysql", k_mysql_schema_privileges }  // need for mysql.plugin,
                                                        // mysql.user others
 };
 

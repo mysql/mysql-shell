@@ -27,6 +27,10 @@
 
 #include "mysql/instance.h"
 
+#ifdef _WIN32
+#undef ERROR
+#endif
+
 namespace mysqlshdk {
 namespace gr {
 
