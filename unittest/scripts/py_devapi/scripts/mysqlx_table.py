@@ -28,7 +28,7 @@ print 'schema:', table.schema
 
 #@ Testing existence
 print 'Valid:', table.exists_in_database()
-mySession.drop_table('js_shell_test', 'table1')
+schema.drop_table('table1')
 print 'Invalid:', table.exists_in_database()
 
 #@ Testing view check

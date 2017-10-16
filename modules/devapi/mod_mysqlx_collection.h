@@ -57,7 +57,7 @@ class Collection : public DatabaseObject,
   CollectionModify modify(String searchCondition);
   CollectionCreateIndex createIndex(String name);
   CollectionCreateIndex createIndex(String name, IndexType type);
-  CollectionDropIndex dropIndex(String name);
+  Undefined dropIndex(String name);
 #elif DOXYGEN_PY
   CollectionAdd add(...);
   CollectionFind find(...);
@@ -65,7 +65,7 @@ class Collection : public DatabaseObject,
   CollectionModify modify(str search_condition);
   CollectionCreateIndex create_index(str name);
   CollectionCreateIndex create_index(str name, IndexType type);
-  CollectionDropIndex drop_index(str name);
+  None drop_index(str name);
 #endif
   shcore::Value add_(const shcore::Argument_list &args);
   shcore::Value find_(const shcore::Argument_list &args);

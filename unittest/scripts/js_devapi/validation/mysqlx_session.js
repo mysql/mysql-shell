@@ -39,10 +39,7 @@ The following functions are currently supported.
                     startTransaction().
  - createSchema     Creates a schema on the database and returns the
                     corresponding object.
- - dropCollection   Drops a collection from the specified schema.
  - dropSchema       Drops the schema with the specified name.
- - dropTable        Drops a table from the specified schema.
- - dropView         Drops a view from the specified schema.
  - getCurrentSchema Retrieves the active schema on the session.
  - getDefaultSchema Retrieves the Schema configured as default for the session.
  - getSchema        Retrieves a Schema object from the current session through
@@ -61,6 +58,29 @@ The following functions are currently supported.
                     SQL statement on the target MySQL Server.
  - startTransaction Starts a transaction context on the server.
 
+//@<OUT> Session: dir
+[
+    "uri",
+    "defaultSchema",
+    "currentSchema",
+    "close",
+    "commit",
+    "createSchema",
+    "dropSchema",
+    "getCurrentSchema",
+    "getDefaultSchema",
+    "getSchema",
+    "getSchemas",
+    "getUri",
+    "help",
+    "isOpen",
+    "quoteName",
+    "rollback",
+    "setCurrentSchema",
+    "setFetchWarnings",
+    "sql",
+    "startTransaction"
+]
 
 //@ Session: accessing Schemas
 |<Schema:mysql>|
@@ -88,6 +108,33 @@ The following functions are currently supported.
 
 //@ Session: Transaction handling: commit
 |Inserted Documents: 3|
+
+//@ Session: Testing dropping existing schema
+|undefined|
+
+//@ Session: Testing if the schema is actually dropped
+||Unknown database 'node_session_schema'
+
+//@<OUT> Session: Testing dropSchema help
+
+Drops the schema with the specified name.
+
+SYNTAX
+
+  <Session>.dropSchema()
+
+RETURNS
+
+ Nothing.
+
+
+//@ Session: Testing dropping non-existing schema
+|undefined|
+
+//@ Session: test for drop schema functions
+||Invalid object member dropCollection (AttributeError)
+||Invalid object member dropTable (AttributeError)
+||Invalid object member dropView (AttributeError)
 
 //@ Session: current schema validations: nodefault, mysql
 |null|

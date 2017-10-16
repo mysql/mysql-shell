@@ -17,6 +17,9 @@ result = mySession.getSchema('js_shell_test').createCollection('collection1');
 
 var schema = mySession.getSchema('js_shell_test');
 
+//@<OUT> Schema: help
+schema.help()
+
 // We need to know the lower_case_table_names option to
 // properly handle the table shadowing unit tests
 var lcresult = mySession.sql('select @@lower_case_table_names').execute();
@@ -48,6 +51,9 @@ validateMember(members, 'getCollections');
 validateMember(members, 'createCollection');
 validateMember(members, 'getCollectionAsTable');
 validateMember(members, 'help');
+validateMember(members, 'dropCollection')
+validateMember(members, 'dropView')
+validateMember(members, 'dropTable')
 
 //Dynamic Properties
 validateMember(members, 'table1');
@@ -99,6 +105,38 @@ print('getCollectionAsTable().select():', mySchema.getCollectionAsTable('collect
 //@ Collection creation
 var collection = schema.createCollection('my_sample_collection');
 print('createCollection():', collection);
+
+//@<OUT> Testing help for dropCollection
+print (mySchema.help("dropCollection"))
+
+//@<OUT> Testing help for dropView
+print (mySchema.help("dropView"));
+
+//@<OUT> Testing help for dropTable
+print (mySchema.help("dropTable"));
+
+//@ Testing dropping existing schema objects
+print(mySchema.getTable('table1'));
+print(mySchema.dropTable('table1'));
+print(mySchema.getTable('view1'));
+print(mySchema.dropView('view1'));
+print(mySchema.getCollection('collection1'));
+print(mySchema.dropCollection('collection1'));
+
+//@ Testing dropped objects are actually dropped
+mySchema.getTable('table1');
+mySchema.getTable('view1');
+mySchema.getCollection('collection1');
+
+//@ Testing dropping non-existing schema objects
+print(mySchema.dropTable('non_existing_table'));
+print(mySchema.dropView('non_existing_view'));
+print(mySchema.dropCollection('non_existing_collection'));
+
+//@ Testing drop functions using execute
+mySchema.dropTable('table1').execute();
+mySchema.dropView('view1').execute();
+mySchema.dropCollection('collection1').execute();
 
 //@ Testing existence
 print('Valid:', schema.existsInDatabase());
@@ -175,7 +213,6 @@ print(schema.getTable('get_collection'))
 
 //@ cleanup
 mySession.dropSchema('js_db_object_shadow')
-
 
 // Closes the session
 mySession.close();

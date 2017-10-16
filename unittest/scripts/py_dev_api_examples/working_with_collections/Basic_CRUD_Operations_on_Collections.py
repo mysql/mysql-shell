@@ -29,4 +29,4 @@ doc = docs.fetch_one()
 print doc
 
 # Drop the collection
-session.drop_collection('test','my_collection')
+myDb.drop_collection('my_collection')

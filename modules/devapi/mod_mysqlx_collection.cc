@@ -20,11 +20,11 @@
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include <memory>
 #include <string>
+#include <mysqld_error.h>
 #include "modules/devapi/mod_mysqlx_schema.h"
 
 #include "modules/devapi/mod_mysqlx_collection_add.h"
 #include "modules/devapi/mod_mysqlx_collection_create_index.h"
-#include "modules/devapi/mod_mysqlx_collection_drop_index.h"
 #include "modules/devapi/mod_mysqlx_collection_find.h"
 #include "modules/devapi/mod_mysqlx_collection_modify.h"
 #include "modules/devapi/mod_mysqlx_collection_remove.h"
@@ -665,28 +665,9 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(COLLECTION_DROPINDEX_BRIEF, "Drops an index from a collection.");
-REGISTER_HELP(COLLECTION_DROPINDEX_CHAINED,
-              "CollectionDropIndex.dropIndex.[execute]");
 
 /**
 * $(COLLECTION_DROPINDEX_BRIEF)
-*
-* <code>
-*   <table border = "0">
-*/
-#if DOXYGEN_JS
-/**
-*     <tr><td>Collection</td><td>.dropIndex(...)</td></tr>
-*/
-#elif DOXYGEN_PY
-/**
-*     <tr><td>Collection</td><td>.drop_index(...)</td></tr>
-*/
-#endif
-/**
-*     <tr><td></td><td>[.execute(...)]</td></tr>
-*   </table>
-* </code>
 *
 */
 #if DOXYGEN_JS
@@ -698,23 +679,36 @@ REGISTER_HELP(COLLECTION_DROPINDEX_CHAINED,
 * #### .drop_index(...)
 */
 #endif
-/**
-* $(COLLECTIONDROPINDEX_DROPINDEX_BRIEF)
-*
-* #### .execute(...)
-*
-* $(COLLECTIONDROPINDEX_EXECUTE_BRIEF)
-*
-* \sa CollectionDropIndex
-*/
 #if DOXYGEN_JS
-CollectionDropIndex Collection::dropIndex(String name) {}
+Undefined Collection::dropIndex(String name) {}
 #elif DOXYGEN_PY
-CollectionDropIndex Collection::drop_index(str name) {}
+None Collection::drop_index(str name) {}
 #endif
 shcore::Value Collection::drop_index_(const shcore::Argument_list &args) {
-  std::shared_ptr<CollectionDropIndex> dropIndex(
-      new CollectionDropIndex(shared_from_this()));
+  args.ensure_count(1, get_function_name("dropIndex").c_str());
 
-  return dropIndex->drop_index(args);
+  try {
+    args.string_at(0);
+
+    shcore::Dictionary_t drop_index_args = shcore::make_dict();
+    Value schema = this->get_member("schema");
+    (*drop_index_args)["schema"] = schema.as_object()->get_member("name");
+    (*drop_index_args)["collection"] = this->get_member("name");
+    (*drop_index_args)["name"] = args[0];
+
+    Value session = this->get_member("session");
+    auto session_obj =
+          std::static_pointer_cast<Session>(session.as_object());
+    try {
+    session_obj->_execute_mysqlx_stmt("drop_collection_index",
+                                       drop_index_args);
+    }
+    catch (const mysqlshdk::db::Error e) {
+      if (e.code() != ER_CANT_DROP_FIELD_OR_KEY)
+        throw;
+    }
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropIndex"));
+  return shcore::Value();
 }
+

@@ -880,7 +880,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
                    k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
-    execute("session.dropTable('itst', 'data')");
+    execute("session.getSchema('itst').dropTable('data')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
     session_wait(session->get_connection_id(), 3, "Sleep",
@@ -895,7 +895,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
                    k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
-    execute("session.dropCollection('itst', 'cdata')");
+    execute("session.getSchema('itst').dropCollection('cdata')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
     session_wait(session->get_connection_id(), 3, "Sleep",
@@ -955,7 +955,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
                    k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
-    execute("session.drop_table('itst', 'data')");
+    execute("session.get_schema('itst').drop_table('data')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
     session_wait(session->get_connection_id(), 3, "Sleep",
@@ -970,7 +970,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
                    k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
-    execute("session.drop_collection('itst', 'cdata')");
+    execute("session.get_schema('itst').drop_collection('cdata')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
     session_wait(session->get_connection_id(), 3, "Sleep",

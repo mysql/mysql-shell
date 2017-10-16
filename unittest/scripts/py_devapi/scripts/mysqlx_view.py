@@ -29,7 +29,7 @@ print 'schema:', view.schema
 
 #@ Testing existence
 print 'Valid:', view.exists_in_database()
-mySession.drop_view('js_shell_test', 'view1')
+schema.drop_view('view1')
 print 'Invalid:', view.exists_in_database()
 
 #@ Testing view check
