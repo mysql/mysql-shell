@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
+#define __STDC_FORMAT_MACROS 1
 
 #include "shellcore/shell_resultset_dumper.h"
 
 #include <algorithm>
+#include <cinttypes>
 
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/mod_mysql_resultset.h"
@@ -323,8 +325,8 @@ void ResultsetDumper::dump_normal(
   if (array_docs->size()) {
     _output_handler->print_value(_output_handler->user_data, documents, "");
 
-    uint64_t row_count = array_docs->size();
-    output = shcore::str_format("%llu %s in set", row_count,
+    size_t row_count = array_docs->size();
+    output = shcore::str_format("%zu %s in set", row_count,
                                 (row_count == 1 ? "document" : "documents"));
   } else {
     output = "Empty set";
@@ -569,7 +571,7 @@ std::string ResultsetDumper::get_affected_stats(const std::string& member,
   else
     // In case of Query OK, prints the actual number of affected rows.
     output = shcore::str_format(
-        "Query OK, %lld %s affected", affected_items,
+        "Query OK, %" PRId64 " %s affected", affected_items,
         (affected_items == 1 ? legend : legend + "s").c_str());
 
   return output;
@@ -600,7 +602,7 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
   shcore::Value::Array_type_ref array_records = records.as_array();
 
   if (array_records->size()) {
-    uint64_t row_count;
+    size_t row_count = 0;
     // print rows from result, with stats etc
     if (_format == "vertical")
       row_count = dump_vertical(array_records);
@@ -609,7 +611,7 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
     else
       row_count = dump_tabbed(array_records);
 
-    output_stats = shcore::str_format("%lld %s in set", row_count,
+    output_stats = shcore::str_format("%zu %s in set", row_count,
                                       (row_count == 1 ? "row" : "rows"));
   } else {
     output_stats = "Empty set";

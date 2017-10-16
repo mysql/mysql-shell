@@ -120,7 +120,7 @@ Row_copy::Row_copy(const IRow &row) {
   }
 }
 
-Row_copy::Row_copy(const Row_copy &row) {
+Row_copy::Row_copy(const Row_copy &row) : IRow() {
   _data = row._data;
 }
 
