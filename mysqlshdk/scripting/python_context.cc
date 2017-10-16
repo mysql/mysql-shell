@@ -576,8 +576,8 @@ PyObject *Python_context::shell_stdin_read(PyObject *self, PyObject *args) {
   // stdin.read(n) requires n number of chars to be read,
   // but we can only read one line at a time. Thus, we read one line at a time
   // from user, buffer it and return the requested number of chars
-  int n;
-  if (!PyArg_ParseTuple(args, "i", &n))
+  size_t n = 0;
+  if (!PyArg_ParseTuple(args, "I", &n))
     return nullptr;
 
   for (;;) {
