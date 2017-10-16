@@ -177,7 +177,8 @@ class Prompt_segment {
         size_t until = a.length();
         size_t pos = a.find_last_of('.', until);
         size_t prev = pos;
-        while (pos != std::string::npos && (a.length() - pos) < length) {
+        size_t non_negative_length = ((length < 0) ? 0 : length);
+        while (pos != std::string::npos && (a.length() - pos) < non_negative_length) {
           until = pos - 1;
           prev = pos;
           pos = a.find_last_of('.', until);

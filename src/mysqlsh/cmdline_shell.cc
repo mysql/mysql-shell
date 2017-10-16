@@ -76,7 +76,7 @@ Command_line_shell::Command_line_shell(const Shell_options &options)
 
   _history.set_limit(std::min<int64_t>(
       shcore::Shell_core_options::get()->at(SHCORE_HISTORY_MAX_SIZE).as_int(),
-      (1 << 31) - 1));
+      std::numeric_limits<int>::max()));
 
   observe_notification(SN_SHELL_OPTION_CHANGED);
 
@@ -165,15 +165,15 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
     } else {
       auto sep = args[2].find('-');
       try {
-        int first;
-        int last;
+        uint32_t first = 0;
+        uint32_t last = 0;
         try {
           if (sep != std::string::npos) {
-            first = std::stol(args[2].substr(0, sep), nullptr);
+            first = std::stoul(args[2].substr(0, sep), nullptr);
             if (args[2].substr(sep+1).empty()) {
               last = _history.last_entry();
             } else {
-              last = std::stol(args[2].substr(sep+1), nullptr);
+              last = std::stoul(args[2].substr(sep+1), nullptr);
               if (first > last) {
                 println("Invalid history range " + args[2] +
                         ". Last item must be greater than first");
@@ -181,7 +181,7 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
               }
             }
           } else {
-            first = std::stol(args[2], nullptr);
+            first = std::stoul(args[2], nullptr);
             last = first;
           }
         } catch (...) {

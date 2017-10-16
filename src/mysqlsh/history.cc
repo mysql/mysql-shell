@@ -109,7 +109,7 @@ void History::add(const std::string &s) {
 }
 
 void History::set_limit(uint32_t limit) {
-  if (limit > (1 << 31))
+  if (limit > std::numeric_limits<int>::max() - 1)
     throw std::invalid_argument("invalid history limit");
   // Note: the linenoise history includes the "current" line being edited, thus
   // it can't be set to 0. OTOH users are not expecting that line to be counted
@@ -118,7 +118,7 @@ void History::set_limit(uint32_t limit) {
   // line, but as soon as Enter is pressed on the keyboard, the current line
   // is cleared from history.
 
-  if (limit < linenoiseHistorySize()) {
+  if (static_cast<int>(limit) < linenoiseHistorySize()) {
     int del_count = linenoiseHistorySize() - limit;
     // shrinking history so delete whatever will be pushed out
     _serials.erase(_serials.begin(), _serials.begin() + del_count);
