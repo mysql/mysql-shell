@@ -14,11 +14,11 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 include_directories(
-	${CMAKE_BINARY_DIR}
-	${CMAKE_SOURCE_DIR}/common/uuid/include
-	${CMAKE_SOURCE_DIR}/ext/rapidjson/include
-	${PYTHON_INCLUDE_DIR}
-	${V8_INCLUDE_DIR})
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_SOURCE_DIR}/common/uuid/include
+    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
+    ${PYTHON_INCLUDE_DIR}
+    ${V8_INCLUDE_DIR})
 
 set(SCRIPTING_SOURCES
     common.cc
@@ -50,8 +50,8 @@ if(HAVE_V8)
                  "${CMAKE_BINARY_DIR}/scripting/jscript_core_definitions.h")
 
   set(SCRIPTING_SOURCES
-	${SCRIPTING_SOURCES}
-	types_jscript.cc
+    ${SCRIPTING_SOURCES}
+    types_jscript.cc
     jscript_array_wrapper.cc
     jscript_context.cc
     jscript_function_wrapper.cc
@@ -61,15 +61,24 @@ if(HAVE_V8)
 endif()
 
 if(HAVE_PYTHON)
-  set(SCRIPTING_SOURCES
-	${SCRIPTING_SOURCES}
-	types_python.cc
-	python_array_wrapper.cc
+  set(PYTHON_SCRIPTING_SOURCES
+    types_python.cc
+    python_array_wrapper.cc
     python_context.cc
     python_function_wrapper.cc
     python_map_wrapper.cc
     python_object_wrapper.cc
-    python_type_conversion.cc)
+    python_type_conversion.cc
+  )
+  set(SCRIPTING_SOURCES
+    ${SCRIPTING_SOURCES}
+    ${PYTHON_SCRIPTING_SOURCES}
+  )
+
+  # dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  # https://www.python.org/dev/peps/pep-3123/
+  # This should be removed when we switch to Python 3.x
+  set_source_files_properties(${PYTHON_SCRIPTING_SOURCES} PROPERTIES COMPILE_FLAGS -fno-strict-aliasing)
 endif()
 
 
