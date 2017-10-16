@@ -3889,7 +3889,7 @@ class XShell_TestCases(unittest.TestCase):
                   "Query OK"),
                   ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n",
                   '1 row in set'),
-                  ("session.dropView('sakila','js_view');\n", "Query OK"),
+                  ("session.dropView('sakila', 'js_view');\n", "Query OK"),
                   ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n",
                   'Empty set')]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -3907,7 +3907,7 @@ class XShell_TestCases(unittest.TestCase):
                   (
                   "session.sql(\"create view js_view as select first_name from actor where first_name like '%a%';\").execute();\n",
                   "Query OK"),
-                  ("session.dropView(\'sakila\',\'js_view\');\n", "Query OK"),
+                  ("session.getSchema(\'sakila\').dropView(\'js_view\');\n", ""),
                   (
                   "session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\").execute();\n",
                   'Empty set')
@@ -3934,7 +3934,7 @@ class XShell_TestCases(unittest.TestCase):
                   "session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n",
                   '1 row'),
                   ("session.\n", "..."),
-                  ("dropView('sakila','js_view');\n", "..."),
+                  ("dropView('sakila', 'js_view');\n", "..."),
                   ("\n", "mysql-js>"),
                   (
                   "session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n",
@@ -3961,7 +3961,7 @@ class XShell_TestCases(unittest.TestCase):
                   "session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\").execute();\n",
                   '1 row'),
                   ("session.\n", "..."),
-                  ("dropView(\'sakila\',\'js_view\');\n", "..."),
+                  ("getSchema('sakila').dropView('js_view');\n", "..."),
                   ("\n", "mysql-js>"),
                   (
                   "session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\").execute();\n",
@@ -4455,7 +4455,7 @@ class XShell_TestCases(unittest.TestCase):
                   (
                       "session.run_sql(\"create view py_view as select first_name from actor where first_name like '%a%';\")\n",
                       "Query OK"),
-                  ("session.drop_view('sakila','py_view')\n", "Query OK"),
+                  ("session.drop_view('sakila', 'py_view')\n", "Query OK"),
                   (
                       "session.run_sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\")\n",
                       "Empty set"),
@@ -4478,7 +4478,7 @@ class XShell_TestCases(unittest.TestCase):
                   (
                       "session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\").execute()\n",
                       "1 row"),
-                  ("session.drop_view('sakila','py_view')\n", "Query OK"),
+                  ("session.get_schema('sakila').drop_view('py_view')\n", ""),
                   (
                       "session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\").execute()\n",
                       "Empty set"),
@@ -4528,7 +4528,7 @@ class XShell_TestCases(unittest.TestCase):
                       "session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\")\n",
                       "1 row in set"),
                   ("session.\\\n", "..."),
-                  ("drop_view('sakila','py_view').execute()\n", "..."),
+                  ("get_schema(\'sakila\').drop_view(\'py_view\')\n", "..."),
                   ("\n", "mysql-py>"),
                   (
                       "session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\")\n",
@@ -4926,12 +4926,12 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila', '--js']
 
-        x_cmds = [("session.dropCollection(\"sakila\",\"test_collection_js\");\n", "mysql-js>"),
+        x_cmds = [("session.getSchema(\"sakila\").dropCollection(\"test_collection_js\");\n", "mysql-js>"),
                   ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
                   ("session.getSchema(\'sakila\').getCollection(\"test_collection_js\")\n",
                    "<Collection:test_collection_js"),
                   ("\\py\n", "mysql-py>"),
-                  ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
+                  ("session.get_schema(\"sakila\").drop_collection(\"test_collection_py\")\n", "mysql-py>"),
                   ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
                   ("session.get_schema(\'sakila\').get_collection(\"test_collection_py\")\n",
                    "<Collection:test_collection_py"),
@@ -4945,11 +4945,11 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila', '--js']
 
-        x_cmds = [("session.dropCollection(\"sakila\",\"test_collection_js\");\n", "mysql-js>"),
+        x_cmds = [("session.getSchema(\"sakila\").dropCollection(\"test_collection_js\");\n", "mysql-js>"),
                   ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
                   ("session.getSchema(\'sakila\').getCollection(\"test_collection_js\").existsInDatabase()\n", "true"),
                   ("\\py\n", "mysql-py>"),
-                  ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
+                  ("session.get_schema(\"sakila\").drop_collection(\"test_collection_py\")\n", "mysql-py>"),
                   ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
                   ("session.get_schema(\'sakila\').get_collection(\"test_collection_py\").exists_in_database()\n",
                    "true"),
@@ -4964,7 +4964,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila', '--js']
 
-        x_cmds = [("session.dropCollection('sakila','test_collection_js');\n", "mysql-js>"),
+        x_cmds = [("session.getSchema('sakila').dropCollection('test_collection_js');\n", "mysql-js>"),
                   ("session.getSchema('sakila').createCollection('test_collection_js');\n", "mysql-js>"),
                   ("session.getSchema('sakila').getCollection('test_collection_js').existsInDatabase();\n", "true"),
                   ("var myColl = session.getSchema('sakila').getCollection('test_collection_js');\n", "mysql-js>"),
@@ -4972,7 +4972,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("myColl.add({ name: 'Test2', lastname:'lastname2'});\n", "Query OK"),
                   ("session.getSchema('sakila').getCollectionAsTable('test_collection_js').select();\n", "2 rows"),
                   ("\\py\n", "mysql-py>"),
-                  ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
+                  ("session.get_schema(\"sakila\").drop_collection(\"test_collection_py\")\n", "mysql-py>"),
                   ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
                   (
                   "session.get_schema('sakila').get_collection(\"test_collection_py\").exists_in_database()\n", "true"),
@@ -5042,7 +5042,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila', '--js']
 
-        x_cmds = [("session.dropCollection(\"sakila\",\"test_merge_js\");\n", "mysql-js>"),
+        x_cmds = [("session.getSchema(\"sakila\").dropCollection(\"test_merge_js\");\n", "mysql-js>"),
                   ("session.getSchema(\'sakila\').createCollection(\"test_merge_js\");\n", "mysql-js>"),
                   ("session.getSchema(\'sakila\').getCollection(\"test_merge_js\").existsInDatabase();\n", "true"),
                   ("var myColl = session.getSchema(\'sakila\').getCollection(\"test_merge_js\");\n", "mysql-js>"),
@@ -5092,7 +5092,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila', '--js']
 
-        x_cmds = [  # ("session.drop_collection(\"sakila\",\"test_merge_js\");\n", "mysql-js>"),
+        x_cmds = [  # ("session.get_schema(\"sakila\").drop_collection(\"test_merge_js\");\n", "mysql-js>"),
             #           ("session.get_schema(\'sakila\').create_collection(\"test_merge_js\");\n", "mysql-js>"),
             #           ("session.get_schema(\'sakila\').get_collection(\"test_merge_js\").exists_in_database();\n","true"),
             #           ("var myColl = session.get_schema(\'sakila\').get_collection(\"test_merge_js\");\n","mysql-js>"),
@@ -5102,7 +5102,7 @@ class XShell_TestCases(unittest.TestCase):
             #           ("myColl.modify(\'nombre =: Name\').array_append(\'apellido\', 'aburto').bind(\'Name\',\'Test1\');\n","Query OK, 1 item affected"),
             # ----------------------------------------------------------------
             ("\\py\n", "mysql-py>"),
-            ("session.drop_collection(\"sakila\",\"test_merge_py\")\n", "mysql-py>"),
+            ("session.get_schema(\"sakila\").drop_collection(\"test_merge_py\")\n", "mysql-py>"),
             ("session.get_schema(\'sakila\').create_collection(\"test_merge_py\")\n", "mysql-py>"),
             ("session.get_schema(\'sakila\').get_collection(\"test_merge_py\").exists_in_database()\n", "true"),
             ("myColl2 = session.get_schema(\'sakila\').get_collection(\"test_merge_py\")\n", "mysql-py>"),
@@ -5918,7 +5918,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("Table.delete().where(\'stringCol like :likeFilter\').limit(" + str(
                       jsRowsNum_Test) + ").bind(\'likeFilter\', \'Node\%\').execute();\n",
                    "Query OK, " + str(jsRowsNum_Test) + " items affected"),
-                  ("session.dropTable(\'world_x\', \'big_data_node_js\');\n", "Query OK"),
+                  ("session.getSchema(\'world_x\').dropTable(\'big_data_node_js\');\n", ""),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -5934,7 +5934,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("myColl.remove(\'Name=:country\').limit(" + str(
                       jsRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n",
                    "Query OK, " + str(jsRowsNum_Test) + " items affected"),
-                  ("session.dropCollection(\'world_x\', \'big_coll_node_js\');\n", "Query OK"),
+                  ("session.getSchema(\'world_x\').dropCollection(\'big_coll_node_js\');\n", ""),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6155,7 +6155,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("Table.delete().where(\"stringCol like :likeFilter\").limit(" + str(
                       pyRowsNum_Test) + ").bind(\"likeFilter\", \"Node%\").execute()\n",
                    "Query OK, " + str(pyRowsNum_Test) + " items affected"),
-                  ("session.drop_table(\'world_x\', \'big_data_node_py\')\n", "Query OK"),
+                  ("session.get_schema(\'world_x\').drop_table(\'big_data_node_py\')\n", ""),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6172,7 +6172,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("myColl.remove(\"Name=:country\").limit(" + str(
                       pyRowsNum_Test) + ").bind(\"country\",\"Mexico\").execute()\n",
                    "Query OK, " + str(pyRowsNum_Test) + " items affected"),
-                  ("session.drop_collection(\"world_x\", \"big_coll_node_py\")\n", "Query OK"),
+                  ("session.get_schema(\"world_x\").drop_collection(\"big_coll_node_py\")\n", ""),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6319,7 +6319,7 @@ class XShell_TestCases(unittest.TestCase):
                   "mysql-js>"),
                   ("var schema = session.getSchema('sakila_x');\n", "mysql-js>"),
                   ("var coll = session.getSchema('sakila_x').getCollection('movies');\n", "mysql-js>"),
-                  ("coll.dropIndex('rating_index').execute();\n", "Query OK"),
+                  ("coll.dropIndex('rating_index');\n", "Query OK"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6330,7 +6330,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila', '--js']
 
-        x_cmds = [("session.dropCollection('sakila','my_collection');\n", "mysql-js>"),
+        x_cmds = [("session.getSchema('sakila').dropCollection('my_collection');\n", "mysql-js>"),
                   ("session.getSchema('sakila').createCollection('my_collection');\n", "mysql-js>"),
                   ("var myColl = session.getSchema('sakila').getCollection('my_collection');\n", "mysql-js>"),
                   ("myColl.add( { _id: '12345', a : 1 } );\n", "Query OK"),
@@ -7345,7 +7345,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--py']
         x_cmds = [(";\n", 'mysql-py>'),
-                  ("session.drop_collection('world_x','MyBindColl')\n", "mysql-py>"),
+                  ("session.get_schema('world_x').drop_collection('MyBindColl')\n", "mysql-py>"),
                   ("coll = session.get_schema('world_x').create_collection('MyBindColl')\n", "mysql-py>"),
                   (
                   "coll.add({'name': ['jhon', 'Test'], 'pages': ['Default'], 'hobbies': ['default'], 'lastname': ['TestLastName']})\n",
@@ -7358,7 +7358,7 @@ class XShell_TestCases(unittest.TestCase):
                   (
                   "coll.modify('name = :nameclause').array_append('name','UpdateName').bind('nameclause',['jhon', 'Test'])\n",
                   "Query OK, 1 item affected "),
-                  ("session.drop_collection('world_x','MyBindColl')\n", "")
+                  ("session.get_schema('world_x').drop_collection('MyBindColl')\n", "")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7531,7 +7531,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("res.getLastDocumentId()\n", "3"),
                   # Validate getDocumentIds() without chaining
                   ("res.getLastDocumentIds()\n", "\"3\""),
-                  ("session.dropCollection('sakila_x','colldocumentids');\n", "Query OK")
+                  ("session.getSchema('sakila_x').dropCollection('colldocumentids');\n", "")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7557,7 +7557,7 @@ class XShell_TestCases(unittest.TestCase):
             ("res.get_last_document_id()\n", "3"),
             # Validate getDocumentIds() without chaining
             ("res.get_last_document_ids()\n", "\"3\""),
-            ("session.drop_collection('sakila_x','colldocumentids');\n", "Query OK")
+            ("session.get_schema('sakila_x').drop_collection('colldocumentids');\n", "")
             ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8062,7 +8062,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("view.insert().values(250, 'XShellName','XShellLastName').execute()\n", "Query OK, 1 item affected"),
                   ("view.update().set('lname','XShellUpd').where('id=250').execute()\n", "Query OK, 1 item affected"),
                   ("view.delete().where('id=250').execute()\n", "Query OK, 1 item affected"),
-                  ("session.dropView('sakila','actor_list2')\n", "Query OK")
+                  ("session.getSchema('sakila').dropView('actor_list2')\n", "")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8081,7 +8081,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("view.insert().values(250, 'XShellName','XShellLastName').execute()\n", "Query OK, 1 item affected"),
                   ("view.update().set('lname','XShellUpd').where('id=250').execute()\n", "Query OK, 1 item affected"),
                   ("view.delete().where('id=250').execute()\n", "Query OK, 1 item affected"),
-                  ("session.drop_view('sakila','actor_list2')\n", "Query OK")
+                  ("session.get_schema('sakila').drop_view('actor_list2')\n", "")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8132,7 +8132,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [("testCollection = session.get_schema('sakila_x').create_collection('testcoll');\n", "mysql-py>"),
                   ("res = testCollection.add([]).execute();\n", ""),
                   ("session.sql(\"select * from sakila_x.testcoll;\").execute();\n", "Empty set"),
-                  ("session.drop_collection('sakila_x','testcoll');\n", "Query OK")
+                  ("session.get_schema('sakila_x').drop_collection('testcoll');\n", "")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')

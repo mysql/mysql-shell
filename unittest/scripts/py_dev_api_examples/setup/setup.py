@@ -173,7 +173,7 @@ def ensure_not_collection(name):
     test_coll = testSession.get_schema('test').get_collection(name)
 
     print "Dropping %s...\n" % name
-    testSession.drop_collection('test', name)
+    testSession.get_schema('test').drop_collection(name)
   except:
     print "%s does not exist...\n" % name
 

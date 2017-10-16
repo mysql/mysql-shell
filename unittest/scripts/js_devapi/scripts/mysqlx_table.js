@@ -26,7 +26,7 @@ print('schema:', table.schema);
 
 //@ Testing existence
 print('Valid:', table.existsInDatabase());
-mySession.dropTable('js_shell_test', 'table1');
+schema.dropTable('table1');
 print('Invalid:', table.existsInDatabase());
 
 //@ Testing view check

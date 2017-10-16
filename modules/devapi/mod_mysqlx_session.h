@@ -82,10 +82,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   Result startTransaction();
   Result commit();
   Result rollback();
-  Result dropSchema(String name);
-  Result dropTable(String schema, String name);
-  Result dropCollection(String schema, String name);
-  Result dropView(String schema, String name);
+  Undefined dropSchema(String name);
   Bool isOpen();
 
   SqlExecute sql(String sql);
@@ -108,10 +105,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   Result start_transaction();
   Result commit();
   Result rollback();
-  Result drop_schema(str name);
-  Result drop_table(str schema, str name);
-  Result drop_collection(str schema, str name);
-  Result drop_view(str schema, str name);
+  None drop_schema(str name);
   Bool is_open();
 
   SqlExecute sql(str sql);
@@ -158,8 +152,6 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   virtual shcore::Value _commit(const shcore::Argument_list &args);
   virtual shcore::Value _rollback(const shcore::Argument_list &args);
   shcore::Value _drop_schema(const shcore::Argument_list &args);
-  shcore::Value drop_schema_object(const shcore::Argument_list &args,
-                                   const std::string &type);
   shcore::Value _is_open(const shcore::Argument_list &args);
   shcore::Value _set_current_schema(const shcore::Argument_list &args);
   shcore::Value sql(const shcore::Argument_list &args);

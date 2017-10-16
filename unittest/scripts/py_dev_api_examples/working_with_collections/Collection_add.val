@@ -2,6 +2,6 @@ tstRes = myColl.find().sort(['name']).execute()||
 print tstRes.fetch_one().name|Mike|
 print tstRes.fetch_one().name|Sakila|
 print tstRes.fetch_one().name|Susanne|
-testSession.drop_collection('test','my_collection')||
+db.drop_collection('my_collection')||
 testSession.close()||
 testSession = None||

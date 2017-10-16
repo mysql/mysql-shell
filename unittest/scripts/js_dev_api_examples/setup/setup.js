@@ -210,7 +210,7 @@ function ensure_not_collection(name) {
     var test_coll = testSession.getSchema('test').getCollection(name);
 
     print ("Dropping " + name + "...\n");
-    testSession.dropCollection('test', name);
+    testSession.getSchema('test').dropCollection(name);
   }
   catch(err){
     print(name + " does not exist...\n");

@@ -23,6 +23,9 @@ validateMember(mySessionMembers, 'currentSchema');
 //@<OUT> Session: help
 mySession.help();
 
+//@<OUT> Session: dir
+dir(mySession);
+
 //@ Session: accessing Schemas
 var schemas = mySession.getSchemas();
 print(getSchemaFromList(schemas, 'mysql'));
@@ -76,7 +79,22 @@ mySession.commit();
 var result = collection.find().execute();
 print('Inserted Documents:', result.fetchAll().length);
 
-mySession.dropSchema('node_session_schema');
+//@ Session: test for drop schema functions
+mySession.dropCollection('node_session_schema', 'coll');
+mySession.dropTable('node_session_schema', 'table');
+mySession.dropView('node_session_schema', 'view');
+
+//@ Session: Testing dropping existing schema
+print(mySession.dropSchema('node_session_schema'));
+
+//@ Session: Testing if the schema is actually dropped
+mySession.getSchema('node_session_schema');
+
+//@ Session: Testing dropping non-existing schema
+print(mySession.dropSchema('non_existing'));
+
+//@<OUT> Session: Testing dropSchema help
+print(mySession.help('dropSchema'));
 
 //@ Session: current schema validations: nodefault, mysql
 mySession.setCurrentSchema('mysql');

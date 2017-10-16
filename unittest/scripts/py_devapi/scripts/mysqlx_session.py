@@ -30,6 +30,9 @@ validateMember(mySessionMembers, 'current_schema')
 #@<OUT> Session: help
 mySession.help()
 
+#@<OUT> Session: dir
+dir(mySession)
+
 #@ Session: accessing Schemas
 schemas = mySession.get_schemas()
 print getSchemaFromList(schemas, 'mysql')
@@ -80,7 +83,22 @@ mySession.commit()
 result = collection.find().execute()
 print 'Inserted Documents:', len(result.fetch_all())
 
-mySession.drop_schema('node_session_schema')
+#@ Session: test for drop schema functions
+mySession.drop_collection('node_session_schema', 'coll')
+mySession.drop_table('node_session_schema', 'table')
+mySession.drop_view('node_session_schema', 'view')
+
+#@ Session: Testing dropping existing schema
+print mySession.drop_schema('node_session_schema')
+
+#@ Session: Testing if the schema is actually dropped
+mySession.get_schema('node_session_schema')
+
+#@<OUT> Session: Testing drop_schema help
+print mySession.help('drop_schema')
+
+#@ Session: Testing dropping non-existing schema
+print mySession.drop_schema('non_existing')
 
 #@ Session: current schema validations: nodefault, mysql
 mySession.set_current_schema('mysql')

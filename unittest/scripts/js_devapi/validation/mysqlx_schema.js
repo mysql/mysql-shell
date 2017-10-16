@@ -1,5 +1,48 @@
+//@<OUT> Schema: help
+**  View Support  **
+
+MySQL Views are stored queries that when executed produce a result set.
+
+MySQL supports the concept of Updatable Views: in specific conditions are met,
+Views can be used not only to retrieve data from them but also to update, add
+and delete records.
+
+For the purpose of this API, Views behave similar to a Table, and so they are
+threated as Tables.
+
+The following properties are currently supported.
+
+ - name
+ - session
+ - schema
+ - table1
+ - view1
+ - collection1
+
+
+The following functions are currently supported.
+
+ - createCollection     Creates in the current schema a new collection with the
+                        specified name and retrieves an object representing the
+                        new collection created.
+ - dropCollection       Drops the specified collection.
+ - dropTable            Drops the specified table.
+ - dropView             Drops the specified view
+ - existsInDatabase
+ - getCollection        Returns the Collection of the given name for this
+                        schema.
+ - getCollectionAsTable Returns a Table object representing a Collection on the
+                        database.
+ - getCollections       Returns a list of Collections for this Schema.
+ - getName
+ - getSchema
+ - getSession
+ - getTable             Returns the Table of the given name for this schema.
+ - getTables            Returns a list of Tables for this Schema.
+ - help                 Provides help about this class and it's members
+
 //@ Schema: validating members
-|Member Count: 17|
+|Member Count: 20|
 
 |name: OK|
 |schema: OK|
@@ -15,6 +58,9 @@
 |createCollection: OK|
 |getCollectionAsTable: OK|
 |help: OK|
+|dropCollection: OK|
+|dropView: OK|
+|dropTable: OK|
 
 |table1: OK|
 |view1: OK|
@@ -62,6 +108,65 @@
 
 //@ Collection creation
 |createCollection(): <Collection:my_sample_collection>|
+
+//@<OUT> Testing help for dropCollection
+Drops the specified collection.
+
+SYNTAX
+
+  <Schema>.dropCollection()
+
+RETURNS
+
+ nothing.
+
+
+//@<OUT> Testing help for dropView
+Drops the specified view
+
+SYNTAX
+
+  <Schema>.dropView()
+
+RETURNS
+
+ nothing.
+
+
+//@<OUT> Testing help for dropTable
+Drops the specified table.
+
+SYNTAX
+
+  <Schema>.dropTable()
+
+RETURNS
+
+ nothing.
+
+
+//@ Testing dropping existing schema objects
+|<Table:table1>|
+|undefined|
+|<Table:view1>|
+|undefined|
+|<Collection:collection1>|
+|undefined|
+
+//@ Testing dropped objects are actually dropped
+||The table js_shell_test.table1 does not exist
+||The table js_shell_test.view1 does not exist
+||The collection js_shell_test.collection1 does not exist
+
+//@ Testing dropping non-existing schema objects
+|undefined|
+|undefined|
+|undefined|
+
+//@ Testing drop functions using execute
+||TypeError: Cannot read property 'execute' of undefined
+||TypeError: Cannot read property 'execute' of undefined
+||TypeError: Cannot read property 'execute' of undefined
 
 //@ Testing existence
 |Valid: true|

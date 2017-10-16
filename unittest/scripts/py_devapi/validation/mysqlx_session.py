@@ -39,10 +39,7 @@ The following functions are currently supported.
                       startTransaction().
  - create_schema      Creates a schema on the database and returns the
                       corresponding object.
- - drop_collection    Drops a collection from the specified schema.
  - drop_schema        Drops the schema with the specified name.
- - drop_table         Drops a table from the specified schema.
- - drop_view          Drops a view from the specified schema.
  - get_current_schema Retrieves the active schema on the session.
  - get_default_schema Retrieves the Schema configured as default for the
                       session.
@@ -62,7 +59,46 @@ The following functions are currently supported.
                       SQL statement on the target MySQL Server.
  - start_transaction  Starts a transaction context on the server.
 
-
+#@<OUT> Session: dir
+[
+    "__callmethod__",
+    "__class__",
+    "__cmp__",
+    "__delattr__",
+    "__doc__",
+    "__format__",
+    "__getattribute__",
+    "__hash__",
+    "__init__",
+    "__new__",
+    "__reduce__",
+    "__reduce_ex__",
+    "__repr__",
+    "__setattr__",
+    "__sizeof__",
+    "__str__",
+    "__subclasshook__",
+    "close",
+    "commit",
+    "create_schema",
+    "current_schema",
+    "default_schema",
+    "drop_schema",
+    "get_current_schema",
+    "get_default_schema",
+    "get_schema",
+    "get_schemas",
+    "get_uri",
+    "help",
+    "is_open",
+    "quote_name",
+    "rollback",
+    "set_current_schema",
+    "set_fetch_warnings",
+    "sql",
+    "start_transaction",
+    "uri"
+]
 
 
 #@ Session: accessing Schemas
@@ -91,6 +127,32 @@ The following functions are currently supported.
 
 #@ Session: Transaction handling: commit
 |Inserted Documents: 3|
+
+#@ Session: Testing dropping existing schema
+|None|
+
+#@ Session: Testing if the schema is actually dropped
+||Unknown database 'node_session_schema'
+
+#@<OUT> Session: Testing drop_schema help
+Drops the schema with the specified name.
+
+SYNTAX
+
+  <Session>.drop_schema()
+
+RETURNS
+
+ Nothing.
+
+
+#@ Session: Testing dropping non-existing schema
+|None|
+
+#@ Session: test for drop schema functions
+||unknown attribute: drop_collection
+||unknown attribute: drop_table
+||unknown attribute: drop_view
 
 #@ Session: current schema validations: nodefault, mysql
 |None|

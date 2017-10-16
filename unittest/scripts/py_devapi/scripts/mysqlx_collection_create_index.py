@@ -71,7 +71,7 @@ result = collection.add({'alias':'Rock', 'last_name':'Doe', 'age':19}).execute()
 result = collection.create_index('_name').field('alias', "TEXT(50)", True).execute()
 
 #@ ERROR: Attempt to create unique index when records already duplicate the key field
-result = collection.drop_index('_name').execute()
+result = collection.drop_index('_name')
 result = collection.create_index('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", True).execute()
 
 #@ ERROR: Attempt to create unique index when records are missing the key field

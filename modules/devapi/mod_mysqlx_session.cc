@@ -148,16 +148,6 @@ void Session::init() {
              NULL);
   add_method("dropSchema", std::bind(&Session::_drop_schema, this, _1),
              "data");
-  add_method("dropTable",
-             std::bind(&Session::drop_schema_object, this, _1, "Table"),
-             "data");
-  add_method(
-      "dropCollection",
-      std::bind(&Session::drop_schema_object, this, _1, "Collection"),
-      "data");
-  add_method("dropView",
-             std::bind(&Session::drop_schema_object, this, _1, "View"),
-             "data");
   add_property("uri", "getUri");
   add_property("defaultSchema", "getDefaultSchema");
   add_property("currentSchema", "getCurrentSchema");
@@ -675,25 +665,21 @@ shcore::Value Session::set_fetch_warnings(
 REGISTER_HELP(SESSION_DROPSCHEMA_BRIEF,
               "Drops the schema with the specified name.");
 REGISTER_HELP(SESSION_DROPSCHEMA_RETURNS,
-              "@returns A SqlResult object if succeeded.");
-REGISTER_HELP(SESSION_DROPSCHEMA_EXCEPTION,
-              "@exception An error is raised if the schema did not exist.");
+              "@returns Nothing.");
 
 /**
  * $(SESSION_DROPSCHEMA_BRIEF)
  *
  * $(SESSION_DROPSCHEMA_RETURNS)
  *
- * $(SESSION_DROPSCHEMA_EXCEPTION)
  */
 #if DOXYGEN_JS
-Result Session::dropSchema(String name) {}
+Undefined Session::dropSchema(String name) {}
 #elif DOXYGEN_PY
-Result Session::drop_schema(str name) {}
+None Session::drop_schema(str name) {}
 #endif
 void Session::drop_schema(const std::string &name) {
-  execute_sql(sqlstring("drop schema !", 0) << name, shcore::Argument_list());
-
+  execute_sql(sqlstring("drop schema if exists !", 0) << name, shcore::Argument_list());
   if (_schemas->find(name) != _schemas->end())
     _schemas->erase(name);
 }
@@ -709,113 +695,6 @@ shcore::Value Session::_drop_schema(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(function);
 
   return shcore::Value();
-}
-
-// Documentation of dropTable function
-REGISTER_HELP(SESSION_DROPTABLE_BRIEF,
-              "Drops a table from the specified schema.");
-REGISTER_HELP(SESSION_DROPTABLE_RETURNS,
-              "@returns A SqlResult object if succeeded.");
-REGISTER_HELP(SESSION_DROPTABLE_EXCEPTION,
-              "@exception An error is raised if the table did not exist.");
-
-/**
- * $(SESSION_DROPTABLE_BRIEF)
- *
- * $(SESSION_DROPTABLE_RETURNS)
- *
- * $(SESSION_DROPTABLE_EXCEPTION)
- */
-#if DOXYGEN_JS
-Result Session::dropTable(String schema, String name) {}
-#elif DOXYGEN_PY
-Result Session::drop_table(str schema, str name) {}
-#endif
-
-// Documentation of dropCollection function
-REGISTER_HELP(SESSION_DROPCOLLECTION_BRIEF,
-              "Drops a collection from the specified schema.");
-REGISTER_HELP(SESSION_DROPCOLLECTION_RETURNS,
-              "@returns A SqlResult object if succeeded.");
-REGISTER_HELP(SESSION_DROPCOLLECTION_EXCEPTION,
-              "@exception An error is raised if the collection did not exist.");
-
-/**
- * $(SESSION_DROPCOLLECTION_BRIEF)
- *
- * $(SESSION_DROPCOLLECTION_RETURNS)
- *
- * $(SESSION_DROPCOLLECTION_EXCEPTION)
- */
-#if DOXYGEN_JS
-Result Session::dropCollection(String schema, String name) {}
-#elif DOXYGEN_PY
-Result Session::drop_collection(str schema, str name) {}
-#endif
-
-// Documentation of dropView function
-REGISTER_HELP(SESSION_DROPVIEW_BRIEF,
-              "Drops a view from the specified schema.");
-REGISTER_HELP(SESSION_DROPVIEW_RETURNS,
-              "@returns A SqlResult object if succeeded.");
-REGISTER_HELP(SESSION_DROPVIEW_EXCEPTION,
-              "@exception An error is raised if the view did not exist.");
-
-/**
- * $(SESSION_DROPVIEW_BRIEF)
- *
- * $(SESSION_DROPVIEW_RETURNS)
- *
- * $(SESSION_DROPVIEW_EXCEPTION)
- */
-#if DOXYGEN_JS
-Result Session::dropView(String schema, String name) {}
-#elif DOXYGEN_PY
-Result Session::drop_view(str schema, str name) {}
-#endif
-
-shcore::Value Session::drop_schema_object(const shcore::Argument_list &args,
-                                              const std::string &type) {
-  std::string function = get_function_name("drop" + type);
-
-  args.ensure_count(2, function.c_str());
-
-  if (args[0].type != shcore::String)
-    throw shcore::Exception::argument_error(
-        function + ": Argument #1 is expected to be a string");
-
-  if (args[1].type != shcore::String)
-    throw shcore::Exception::argument_error(
-        function + ": Argument #2 is expected to be a string");
-
-  std::string schema = args[0].as_string();
-  std::string name = args[1].as_string();
-
-  shcore::Value ret_val;
-
-  try {
-    if (type == "View") {
-      ret_val =
-          _execute_sql(sqlstring("drop view !.!", 0) << schema << name + "",
-                       shcore::Argument_list());
-    } else {
-      shcore::Argument_list command_args;
-      command_args.push_back(Value(schema));
-      command_args.push_back(Value(name));
-
-      ret_val = executeAdminCommand("drop_collection", false, command_args);
-    }
-
-    if (_schemas->count(schema)) {
-      std::shared_ptr<Schema> schema_obj =
-          std::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
-      if (schema_obj)
-        schema_obj->_remove_object(name, type);
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("drop" + type));
-
-  return ret_val;
 }
 
 /*
@@ -1121,7 +1000,7 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
           "SN_SESSION_CONNECTION_LOST",
           std::dynamic_pointer_cast<Cpp_object_bridge>(shared_from_this()));
     }
-    throw;
+      throw;
   }
 }
 

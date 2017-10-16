@@ -68,7 +68,7 @@ var result = collection.add({ alias: 'Rock', last_name: 'Doe', age: 19 }).execut
 var result = collection.createIndex('_name').field('alias', "TEXT(50)", true).execute();
 
 //@ ERROR: Attempt to create unique index when records already duplicate the key field
-var result = collection.dropIndex('_name').execute();
+var result = collection.dropIndex('_name');
 var result = collection.createIndex('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", true).execute();
 
 //@ ERROR: Attempt to create unique index when records are missing the key field

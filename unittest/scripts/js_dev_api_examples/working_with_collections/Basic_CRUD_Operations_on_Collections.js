@@ -26,4 +26,4 @@ var docs = myColl.find('name like :param1 AND age < :param2').limit(1).
 print(docs.fetchOne());
 
 // Drop the collection
-session.dropCollection('test','my_collection');
+myDb.dropCollection('my_collection');

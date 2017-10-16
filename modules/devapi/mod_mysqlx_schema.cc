@@ -21,6 +21,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <mysqld_error.h>
 
 #include "scripting/lang_base.h"
 #include "scripting/object_factory.h"
@@ -37,6 +38,8 @@
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
+#include "utils/utils_sqlstring.h"
+
 
 using namespace mysqlsh;
 using namespace mysqlsh::mysqlx;
@@ -83,6 +86,17 @@ void Schema::init() {
   add_method("createCollection",
              std::bind(&Schema::create_collection, this, _1), "name",
              shcore::String, NULL);
+
+  add_method("dropTable",
+             std::bind(&Schema::drop_schema_object, this, _1, "Table"),
+             "name", shcore::String, NULL);
+  add_method(
+      "dropCollection",
+      std::bind(&Schema::drop_schema_object, this, _1, "Collection"),
+      "name", shcore::String, NULL);
+  add_method("dropView",
+             std::bind(&Schema::drop_schema_object, this, _1, "View"),
+             "name", shcore::String, NULL);
 
   // Note: If properties are added uncomment this
   // _base_property_count = _properties.size();
@@ -554,3 +568,98 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
 
   return ret_val;
 }
+
+// Documentation of dropTable function
+REGISTER_HELP(SCHEMA_DROPTABLE_BRIEF,
+              "Drops the specified table.");
+REGISTER_HELP(SCHEMA_DROPTABLE_RETURNS,
+              "@returns nothing.");
+
+/**
+ * $(SCHEMA_DROPTABLE_BRIEF)
+ *
+ * $(SCHEMA_DROPTABLE_RETURNS)
+ */
+#if DOXYGEN_JS
+Undefined Schema::dropTable(String name) {}
+#elif DOXYGEN_PY
+None Schema::drop_table(str name) {}
+#endif
+
+// Documentation of dropView function
+REGISTER_HELP(SCHEMA_DROPVIEW_BRIEF,
+              "Drops the specified view");
+REGISTER_HELP(SCHEMA_DROPVIEW_RETURNS,
+              "@returns nothing.");
+
+/**
+ * $(SCHEMA_DROPVIEW_BRIEF)
+ *
+ * $(SCHEMA_DROPVIEW_RETURNS)
+ */
+#if DOXYGEN_JS
+Undefined Schema::dropView(String name) {}
+#elif DOXYGEN_PY
+None Schema::drop_view(str name) {}
+#endif
+
+// Documentation of dropCollection function
+REGISTER_HELP(SCHEMA_DROPCOLLECTION_BRIEF,
+              "Drops the specified collection.");
+REGISTER_HELP(SCHEMA_DROPCOLLECTION_RETURNS,
+              "@returns nothing.");
+
+/**
+ * $(SCHEMA_DROPCOLLECTION_BRIEF)
+ *
+ * $(SCHEMA_DROPCOLLECTION_RETURNS)
+ */
+#if DOXYGEN_JS
+Undefined Schema::dropCollection(String name) {}
+#elif DOXYGEN_PY
+None Schema::drop_collection(str name) {}
+#endif
+shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
+                                              const std::string &type) {
+  std::string function = get_function_name("drop" + type);
+  args.ensure_count(1, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(
+        function + ": Argument #1 is expected to be a string");
+
+  Value schema = this->get_member("name");
+  std::string name = args[0].as_string();
+
+  try {
+    if (type == "View") {
+        std::shared_ptr<Session> sess(
+          std::static_pointer_cast<Session>(_session.lock()));
+        sess->_execute_sql(sqlstring("drop view if exists !.!", 0) << schema.as_string() << name + "",
+                       shcore::Argument_list());
+    } else {
+      if ((type == "Table") ||
+          (type == "Collection")) {
+        shcore::Argument_list command_args;
+        command_args.push_back(schema);
+        command_args.push_back(Value(name));
+
+        std::shared_ptr<Session> sess(
+          std::static_pointer_cast<Session>(_session.lock()));
+        try {
+          sess->executeAdminCommand("drop_collection", false, command_args);
+        }
+        catch (const mysqlshdk::db::Error e) {
+          if (e.code() != ER_BAD_TABLE_ERROR)
+            throw;
+        }
+      }
+    }
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("drop" + type));
+
+  this->_remove_object(name, type);
+
+  return shcore::Value();
+}
+
