@@ -34,9 +34,9 @@
 namespace mysqlshdk {
 namespace gr {
 
-static const char *kPluginName = "group_replication";
-static const char *kPluginActive = "ACTIVE";
-static const char *kPluginDisabled = "DISABLED";
+static constexpr char kPluginName[] = "group_replication";
+static constexpr char kPluginActive[] = "ACTIVE";
+static constexpr char kPluginDisabled[] = "DISABLED";
 
 /**
  * Enumeration of the supported states for Group Replication members.

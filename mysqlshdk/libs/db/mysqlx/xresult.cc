@@ -129,6 +129,7 @@ void Result::fetch_metadata() {
 
     // Note: padded means RIGHTPAD with \0 for CHAR columns
     // It is internal to the client lib
+    (void)is_padded;
 
     _metadata.push_back(mysqlshdk::db::Column(
         column.schema,
