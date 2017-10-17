@@ -48,12 +48,13 @@ ShellBaseSession::~ShellBaseSession() {
   DEBUG_OBJ_DEALLOC(ShellBaseSession);
 }
 
-std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {
+std::string &ShellBaseSession::append_descr(std::string &s_out, int /*indent*/,
+                                            int /*quote_strings*/) const {
   if (!is_open())
     s_out.append("<" + class_name() + ":disconnected>");
   else
     s_out.append("<" + class_name() + ":" +
-                 uri(mysqlshdk::db::uri::formats::user_transport()) +
+                 uri(mysqlshdk::db::uri::formats::no_scheme_no_password()) +
                  ">");
   return s_out;
 }
