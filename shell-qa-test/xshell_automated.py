@@ -6346,9 +6346,10 @@ class XShell_TestCases(unittest.TestCase):
                             '--schema=sakila', '--mysql']
             p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
             stdin, stdout = p.communicate()
-            if stdout.find(bytearray("ERROR", "ascii"), 0, len(stdin)) > -1 or stdout != '':
-                results = "FAIL"
-                break
+            if stdout.find(bytearray("ERROR", "ascii"), 0, len(stdout)) > -1 or stdout != '':
+                if "[Warning]" not in stdout:
+                    results = "FAIL"
+                    break
             if stdin.find(bytearray("Creating a Classic session to", "ascii"), 0, len(stdin)) > -1 and stdin.find(
                     bytearray("mysql" + w + ">", "ascii"), 0, len(stdin)) > -1:
                 results = 'PASS'
@@ -6365,9 +6366,10 @@ class XShell_TestCases(unittest.TestCase):
             p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
             stdin, stdout = p.communicate()
             print "---->" + stdout
-            if stdout.find(bytearray("ERROR", "ascii"), 0, len(stdin)) > -1 or stdout != '':
-                results = "FAIL"
-                break
+            if stdout.find(bytearray("ERROR", "ascii"), 0, len(stdout)) > -1 or stdout != '':
+                if "[Warning]" not in stdout:
+                    results = "FAIL"
+                    break
             print "---->" + stdin
             if stdin.find(bytearray("Creating an X protocol session to", "ascii"), 0, len(stdin)) > -1 and stdin.find(
                     bytearray("mysql" + w + ">", "ascii"), 0, len(stdin)) > -1:
@@ -6601,7 +6603,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--py', '--json=raw']
         x_cmds = [("\n", 'mysql-py>'),
                   ("session\n",
-                   '{"class":"Session","connected":true,"uri":"mysqlx://' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '"}'),
+                   '{"class":"Session","connected":true,"uri":"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '"}'),
                   ("\\sql\n", "mysql-sql>"),
                   ("use world_x;\n",
                    "{\"info\":\"Default schema `world_x` accessible through db.\"}"),
@@ -6626,7 +6628,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--py', '--json=pretty']
         x_cmds = [("\n", 'mysql-py>'),
                   ("session\n",
-                   '\"uri\": \"mysqlx://' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"'),
+                   '\"uri\": \"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"'),
                   ("\\sql\n", "mysql-sql>"),
                   ("use world_x;\n", "Default schema "),
                   ("create table test_pretty (variable varchar(10));\n", "\"rows\": []"),
@@ -7466,7 +7468,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--py', '--json=raw']
         x_cmds = [("session\n",
-                   '{\"class\":\"Session\",\"connected\":true,\"uri\":\"mysqlx://' + LOCALHOST.user + '@' + LOCALHOST.host +
+                   '{\"class\":\"Session\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host +
                    ':' + LOCALHOST.xprotocol_port + '\"}'),
                   ("\\sql\n", "mysql-sql>"),
                   ("use world_x;\n",
@@ -7706,6 +7708,7 @@ class XShell_TestCases(unittest.TestCase):
                         '--js']
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdin, stdout = p.communicate()
+        stdin += stdout
         if stdin.find(bytearray("[Warning]", "ascii"), 0, len(stdin)) > -1:
             results = 'PASS'
         else:
