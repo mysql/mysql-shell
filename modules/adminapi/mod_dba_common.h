@@ -21,6 +21,8 @@
 #define MODULES_ADMINAPI_MOD_DBA_COMMON_H_
 
 #include <locale>
+#include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include <set>
@@ -144,6 +146,7 @@ extern const std::set<std::string> k_global_privileges;
 extern const std::set<std::string> k_metadata_schema_privileges;
 extern const std::set<std::string> k_mysql_schema_privileges;
 extern const std::map<std::string, std::set<std::string>> k_schema_grants;
+
 void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
 void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options);
 void validate_replication_filters(mysqlsh::mysql::ClassicSession *session);
