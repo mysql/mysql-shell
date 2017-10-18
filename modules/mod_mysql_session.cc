@@ -33,7 +33,6 @@
 #include "scripting/proxy_object.h"
 #include "mysqlxtest_utils.h"
 
-#include "modules/mysql_connection.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_schema.h"
 #include "utils/utils_general.h"
@@ -62,19 +61,13 @@ ClassicSession::ClassicSession() {
 }
 
 ClassicSession::ClassicSession(const ClassicSession& session) :
-ShellBaseSession(session), _conn(session._conn) {
+ShellBaseSession(session), _session(session._session) {
   init();
 }
 
 ClassicSession::~ClassicSession() {
-  try {
-    // our own close() method will send out a notification with a
-    // shared_from_this(), which we can't call from d-tor
-    if (_conn)
-      _conn->close();
-    _conn.reset();
-  } catch (...) {
-  }
+  if (is_open())
+    close();
 }
 
 void ClassicSession::init() {
@@ -108,14 +101,12 @@ void ClassicSession::init() {
   update_schema_cache = [generator, this](const std::string &name, bool exists) {DatabaseObject::update_cache(name, generator, exists, _schemas); };
 }
 
-Connection *ClassicSession::connection() {
-  return _conn.get();
-}
-
 void ClassicSession::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
   try {
-    _conn.reset(new Connection(connection_options));
+    _session = mysqlshdk::db::mysql::Session::create();
+
+    _session->connect(connection_options);
 
     _connection_options = connection_options;
 
@@ -126,7 +117,7 @@ void ClassicSession::connect(
 }
 
 std::string ClassicSession::get_ssl_cipher() const {
-  const char *cipher = _conn->get_ssl_cipher();
+  const char *cipher = _session->get_ssl_cipher();
   return cipher ? cipher : "";
 }
 
@@ -147,12 +138,17 @@ void ClassicSession::close() {
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
   // it may remain open
-  if (_conn)
-    _conn->close();
+  if (_session)
+    _session->close();
 
-  _conn.reset();
+  _session.reset();
 
-  ShellNotifications::get()->notify("SN_SESSION_CLOSED", shared_from_this());
+  try {
+    // this shouldn't be getting clled from teh d-tor...
+    ShellNotifications::get()->notify("SN_SESSION_CLOSED", shared_from_this());
+  } catch (std::bad_weak_ptr) {
+    ShellNotifications::get()->notify("SN_SESSION_CLOSED", {});
+  }
 }
 
 Value ClassicSession::_close(const shcore::Argument_list &args) {
@@ -209,9 +205,9 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) {
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
-  if (!_conn)
+  if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
-  else {
+  } else {
     try {
       Interruptible intr(this);
       ret_val = execute_sql(args.string_at(0), shcore::Argument_list());
@@ -234,16 +230,24 @@ shcore::Object_bridge_ref ClassicSession::raw_execute_sql(const std::string& que
   return execute_sql(query, shcore::Argument_list()).as_object();
 }
 
-shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore::Argument_list &UNUSED(args)) {
+shcore::Value ClassicSession::execute_sql(
+    const std::string &query, const shcore::Argument_list &UNUSED(args)) {
   Value ret_val;
-  if (!_conn)
+  if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
-  else {
+  } else {
     if (query.empty()) {
       throw Exception::argument_error("No query specified.");
     } else {
       Interruptible intr(this);
-      ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(query))));
+      try {
+        ret_val = Value::wrap(new ClassicResult(
+            std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
+                _session->query(query))));
+      } catch (const shcore::database_error &error) {
+        throw shcore::Exception::mysql_error_with_code_and_state(
+            error.error(), error.code(), error.sqlstate().c_str());
+      }
     }
   }
   return ret_val;
@@ -252,13 +256,14 @@ shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore
 // We need to hide this from doxygen to avoif warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
 std::shared_ptr<ClassicResult> ClassicSession::execute_sql(const std::string& query) {
-  if (!_conn)
+  if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
-  else {
-    if (query.empty())
+  } else {
+    if (query.empty()) {
       throw Exception::argument_error("No query specified.");
-    else
-      return std::shared_ptr<ClassicResult>(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(query))));
+    } else {
+      return std::shared_ptr<ClassicResult>(new ClassicResult(std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(_session->query(query))));
+    }
   }
 }
 #endif
@@ -298,15 +303,15 @@ Value ClassicSession::_create_schema(const shcore::Argument_list &args) {
 }
 
 void ClassicSession::create_schema(const std::string &name) {
-  if (!_conn)
+  if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
-  else {
+  } else {
     // Options are the statement and optionally options to modify
     // How the resultset is created.
 
-    if (name.empty())
+    if (name.empty()) {
       throw Exception::argument_error("The schema name can not be empty.");
-    else {
+    } else {
       std::string statement = sqlstring("create schema !", 0) << name;
       execute_sql(statement, shcore::Argument_list());
 
@@ -388,7 +393,7 @@ Value ClassicSession::get_member(const std::string &prop) const {
 
   if (prop == "__connection_info") {
     // FIXME: temporary code until ISession refactoring
-    const char *i = _conn->get_connection_info();
+    const char *i = _session->get_connection_info();
     return Value(i ? i : "");
   }
 
@@ -419,7 +424,7 @@ Value ClassicSession::get_member(const std::string &prop) const {
 std::string ClassicSession::_retrieve_current_schema() {
   std::string name;
 
-  if (_conn) {
+  if (_session && _session->is_open()) {
     shcore::Argument_list query;
     query.push_back(Value("select schema()"));
 
@@ -507,7 +512,7 @@ list ClassicSession::get_schemas() {}
 shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) {
   shcore::Value::Array_type_ref schemas(new shcore::Value::Array_type);
 
-  if (_conn) {
+  if (_session && _session->is_open()) {
     shcore::Argument_list query;
     query.push_back(Value("show databases;"));
 
@@ -558,7 +563,7 @@ void ClassicSession::set_current_schema(const std::string &name) {
 shcore::Value ClassicSession::_set_current_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
 
-  if (_conn) {
+  if (_session && _session->is_open()) {
     std::string name = args[0].as_string();
 
     set_current_schema(name);
@@ -834,101 +839,90 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
   try {
-    auto val_result = execute_sql("select DATABASE(), USER() limit 1", shcore::Argument_list());
-    auto result = val_result.as_object<ClassicResult>();
-    auto val_row = result->fetch_one(shcore::Argument_list());
-    if (val_row) {
-      auto row = val_row.as_object<mysqlsh::Row>();
-
-      if (row) {
-        (*status)["SESSION_TYPE"] = shcore::Value("Classic");
-        (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
+    auto result = _session->query("select DATABASE(), USER() limit 1");
+    auto row = result->fetch_one();
+    if (row) {
+      (*status)["SESSION_TYPE"] = shcore::Value("Classic");
+      (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
 //        (*status)["DEFAULT_SCHEMA"] =
 //          shcore::Value(_connection_options.has_schema() ?
 //                        _connection_options.get_schema() : "");
 
-        std::string current_schema = row->get_member(0).descr(true);
-        if (current_schema == "null")
-          current_schema = "";
+      std::string current_schema;
+      if (!row->is_null(0))
+        current_schema = row->get_string(0);
 
-        (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
-        (*status)["CURRENT_USER"] = row->get_member(1);
-        (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_conn->get_thread_id()));
+      (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
+      (*status)["CURRENT_USER"] = shcore::Value(row->get_string(1));
+      (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_session->get_connection_id()));
 
-        //(*status)["SKIP_UPDATES"] = shcore::Value(???);
+      //(*status)["SKIP_UPDATES"] = shcore::Value(???);
 
-        (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
+      (*status)["SERVER_INFO"] = shcore::Value(_session->get_server_info());
 
-        (*status)["PROTOCOL_VERSION"] =
-            shcore::Value(std::string("classic ") +
-                          std::to_string(_conn->get_protocol_info()));
-        (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
-        //(*status)["INSERT_ID"] = shcore::Value(???);
-      }
+      (*status)["PROTOCOL_VERSION"] =
+          shcore::Value(std::string("classic ") +
+                        std::to_string(_session->get_protocol_info()));
+      (*status)["CONNECTION"] = shcore::Value(_session->get_connection_info());
+      //(*status)["INSERT_ID"] = shcore::Value(???);
     }
 
-    const char *cipher = _conn->get_ssl_cipher();
+    const char *cipher = _session->get_ssl_cipher();
     if (cipher != NULL) {
-      val_result = execute_sql("show session status like 'ssl_version';",
-                               shcore::Argument_list());
-      result = val_result.as_object<ClassicResult>();
-      val_row = result->fetch_one(shcore::Argument_list());
+      result = _session->query("show session status like 'ssl_version';");
+      row = result->fetch_one();
       std::string version;
-      if (val_row) {
-        auto row = val_row.as_object<mysqlsh::Row>();
-        version =  " " + row->get_member(1).descr(true);
+      if (row) {
+        version =  " " + row->get_string(1);
       }
       (*status)["SSL_CIPHER"] = shcore::Value(cipher + version);
+      (*status)["SERVER_STATS"] = shcore::Value(_session->get_stats());
     }
 
-    val_result = execute_sql(
+
+    result = _session->query(
         "select @@character_set_client, @@character_set_connection, "
         "@@character_set_server, @@character_set_database, "
         "concat(@@version, \" \", @@version_comment) as version, "
         "@@socket, @@port "
-        "limit 1",
-        shcore::Argument_list());
-    result = val_result.as_object<ClassicResult>();
-    val_row = result->fetch_one(shcore::Argument_list());
+        "limit 1");
 
-    if (val_row) {
-      auto row = val_row.as_object<mysqlsh::Row>();
+    row = result->fetch_one();
 
-      if (row) {
-        (*status)["CLIENT_CHARSET"] = row->get_member(0);
-        (*status)["CONNECTION_CHARSET"] = row->get_member(1);
-        (*status)["SERVER_CHARSET"] = row->get_member(2);
-        (*status)["SCHEMA_CHARSET"] = row->get_member(3);
-        (*status)["SERVER_VERSION"] = row->get_member(4);
+    if (row) {
+      (*status)["CLIENT_CHARSET"] = shcore::Value(row->get_string(0));
+      (*status)["CONNECTION_CHARSET"] = shcore::Value(row->get_string(1));
+      (*status)["SERVER_CHARSET"] = shcore::Value(row->get_string(2));
+      (*status)["SCHEMA_CHARSET"] = shcore::Value(row->get_string(3));
+      (*status)["SERVER_VERSION"] = shcore::Value(row->get_string(4));
 
-        if (!_connection_options.has_transport_type() ||
-            _connection_options.get_transport_type() ==
-                mysqlshdk::db::Transport_type::Tcp)
-          (*status)["TCP_PORT"] = row->get_member(6);
-        else if (_connection_options.get_transport_type() ==
-                 mysqlshdk::db::Transport_type::Socket)
-          (*status)["UNIX_SOCKET"] = row->get_member(5);
-
-        unsigned long ver = mysql_get_client_version();
-        std::stringstream sv;
-        sv << ver/10000 << "." << (ver%10000)/100 << "." << ver % 100;
-        (*status)["CLIENT_LIBRARY"] = shcore::Value(sv.str());
-
-        (*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
-
-        try {
-          if (_connection_options.get_transport_type() ==
+      if (!_connection_options.has_transport_type() ||
+          _connection_options.get_transport_type() ==
               mysqlshdk::db::Transport_type::Tcp)
-            (*status)["TCP_PORT"] =
-                shcore::Value(_connection_options.get_port());
-        } catch (...) {
-        }
-        //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
+        (*status)["TCP_PORT"] = shcore::Value(row->get_int(6));
+      else if (_connection_options.get_transport_type() ==
+                mysqlshdk::db::Transport_type::Socket)
+        (*status)["UNIX_SOCKET"] = shcore::Value(row->get_string(5));
 
-        // STATUS
+      unsigned long ver = mysql_get_client_version();
+      std::stringstream sv;
+      sv << ver/10000 << "." << (ver%10000)/100 << "." << ver % 100;
+      (*status)["CLIENT_LIBRARY"] = shcore::Value(sv.str());
 
-        // SAFE UPDATES
+      (*status)["SERVER_STATS"] = shcore::Value(_session->get_stats());
+
+      try {
+        if (_connection_options.get_transport_type() ==
+            mysqlshdk::db::Transport_type::Tcp)
+          (*status)["TCP_PORT"] =
+              shcore::Value(_connection_options.get_port());
+      } catch (...) {
       }
+      //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
+
+      // STATUS
+
+      // SAFE UPDATES
     }
   } catch (shcore::Exception& e) {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
@@ -963,11 +957,11 @@ void ClassicSession::rollback() {
 }
 
 uint64_t ClassicSession::get_connection_id() const {
-  return (uint64_t)_conn->get_thread_id();
+  return _session->get_connection_id();
 }
 
 bool ClassicSession::is_open() const {
-  return _conn ? true : false;
+  return _session && _session->is_open();
 }
 
 std::string ClassicSession::query_one_string(const std::string &query,
@@ -987,8 +981,13 @@ std::string ClassicSession::query_one_string(const std::string &query,
 void ClassicSession::kill_query() {
   uint64_t cid = get_connection_id();
   try {
-    std::shared_ptr<Connection> kill_conn(new Connection(_connection_options));
-    kill_conn->run_sql("kill query " + std::to_string(cid));
+    auto kill_session = mysqlshdk::db::mysql::Session::create();
+
+    kill_session->connect(_session->get_connection_options());
+
+    kill_session->execute("kill query " + std::to_string(cid));
+
+    kill_session->close();
   } catch (std::exception &e) {
     log_warning("Error cancelling SQL query: %s", e.what());
   }

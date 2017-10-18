@@ -54,6 +54,10 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
   XSession_impl();
   void connect(const mysqlshdk::db::Connection_options& data);
 
+  const mysqlshdk::db::Connection_options & get_connection_options() {
+    return _connection_options;
+  }
+
   void enable_trace(bool flag);
 
   std::shared_ptr<IResult> query(const std::string &sql, bool buffered = false);
@@ -103,6 +107,7 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
   bool _case_sensitive_table_names = false;
 
   std::weak_ptr<Result> _prev_result;
+  mysqlshdk::db::Connection_options _connection_options;
 };
 
 class SHCORE_PUBLIC Session : public ISession,
@@ -114,6 +119,11 @@ class SHCORE_PUBLIC Session : public ISession,
 
   void connect(const mysqlshdk::db::Connection_options& data) override {
     _impl->connect(data);
+  }
+
+  const mysqlshdk::db::Connection_options &get_connection_options()
+      const override {
+    return _impl->get_connection_options();
   }
 
   void close() override {
@@ -171,6 +181,10 @@ class SHCORE_PUBLIC Session : public ISession,
   std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Find &msg) {
     return _impl->execute_crud(msg);
   }
+
+  bool is_open() const override {
+    return valid();
+  };
 
  private:
   Session() {

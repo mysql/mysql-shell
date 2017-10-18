@@ -17,12 +17,13 @@
  * 02110-1301  USA
  */
 
-#include "modules/mysql_connection.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
+#include "modules/mod_mysql_session.h"
+#include "modules/mod_mysql_resultset.h"
 
 namespace mysqlsh {
 
@@ -438,7 +439,7 @@ TEST_F(Interrupt_mysqlsh, sql_cli) {
   auto result = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(
       session->raw_execute_sql("select count(*) from itst.data"));
   auto row = result->fetch_one();
-  EXPECT_EQ("52", row->get_value_as_string(0));
+  EXPECT_EQ("52", row->get_as_string(0));
 }
 
 TEST_F(Interrupt_mysqlsh, sqlx_cli) {
@@ -454,7 +455,7 @@ TEST_F(Interrupt_mysqlsh, sqlx_cli) {
   auto result = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(
       session->raw_execute_sql("select count(*) from itst.data"));
   auto row = result->fetch_one();
-  EXPECT_EQ("52", row->get_value_as_string(0));
+  EXPECT_EQ("52", row->get_as_string(0));
 }
 
 TEST_F(Interrupt_mysqlsh, sql_file_batch) {

@@ -29,6 +29,7 @@
 #include "shellcore/shell_notifications.h"
 #include "src/mysqlsh/mysql_shell.h"
 #include "unittest/test_utils/shell_base_test.h"
+#include "shellcore/base_session.h"
 
 #ifndef UNITTEST_TEST_UTILS_H_
 #define UNITTEST_TEST_UTILS_H_

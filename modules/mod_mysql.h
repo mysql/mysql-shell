@@ -20,6 +20,7 @@
 #ifndef _MOD_MYSQL_H_
 #define _MOD_MYSQL_H_
 
+#include <string>
 #include "scripting/module_registry.h"
 
 namespace mysqlsh {
@@ -67,6 +68,14 @@ ClassicSession get_classic_session(ConnectionData connectionData, str password);
 DECLARE_MODULE(Mysql, mysql);
 
 DECLARE_FUNCTION(get_classic_session);
+
+// We need to hide this from doxygen to avoif warnings
+#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
+virtual shcore::Value get_member(const std::string &prop) const;
+#endif
+
+private:
+shcore::Object_bridge_ref _type;
 
 END_DECLARE_MODULE();
 }

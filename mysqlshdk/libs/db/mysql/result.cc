@@ -87,6 +87,15 @@ const IRow *Result::fetch_one() {
 
         // Each read row increases the count
         _fetched_row_count++;
+      } else {
+        if (auto session = _session.lock()) {
+          int code = 0;
+          const char *state;
+          const char *err = session->get_last_error(&code, &state);
+          if (code != 0)
+            throw shcore::Exception::mysql_error_with_code_and_state(err, code,
+                                                                    state);
+        }
       }
     }
   }

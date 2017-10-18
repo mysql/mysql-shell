@@ -73,7 +73,7 @@ class Mock_dba : public mysqlsh::dba::Dba {
       validate_instances_gtid_reboot_cluster,
       void(std::string *out_cluster_name,
            const shcore::Value::Map_type_ref &options,
-           const std::shared_ptr<mysqlsh::ShellBaseSession> &instance_session));
+           const std::shared_ptr<mysqlshdk::db::ISession> &instance_session));
 
   MOCK_METHOD2(get_replicaset_instances_status,
                std::vector<std::pair<std::string, std::string>>(

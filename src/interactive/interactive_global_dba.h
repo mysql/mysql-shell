@@ -78,14 +78,14 @@ class Global_dba : public Interactive_object_wrapper {
       const shcore::Value::Map_type_ref &extra_options);
 
   bool ensure_admin_account_usable(
-      std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+      std::shared_ptr<mysqlshdk::db::ISession> session,
       const std::string &user, const std::string &host,
       std::string *out_create_account);
 
   std::string prompt_confirmed_password();
   int prompt_menu(const std::vector<std::string> &options, int defopt);
   bool prompt_super_read_only(
-      std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+      std::shared_ptr<mysqlshdk::db::ISession> session,
       const shcore::Value::Map_type_ref &options);
 };
 }  // namespace shcore

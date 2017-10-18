@@ -34,7 +34,7 @@ file(GLOB api_module_SOURCES
       "mod_shell.cc"
       "mod_sys.cc"
       "mod_utils.cc"
-      "mysql_connection.cc"
+      "mod_mysql_constants.cc"
       "interactive_object_wrapper.cc"
       "adminapi/password_hasher.cc"
       "adminapi/mod_dba.cc"

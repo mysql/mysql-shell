@@ -27,14 +27,12 @@
 #include <string>
 
 #include "modules/mod_common.h"
-#include "modules/mod_mysql_session.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "shellcore/base_session.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
-
+#include "mysqlshdk/libs/db/session.h"
 #define ER_CANNOT_USER 1396
 
 namespace mysqlsh {
@@ -62,7 +60,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   virtual void set_member(const std::string &prop, shcore::Value value);
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  std::shared_ptr<ShellBaseSession> get_active_session() const;
+  std::shared_ptr<mysqlshdk::db::ISession> get_active_session() const;
   ReplicationGroupState check_preconditions(
       const std::string& function_name) const;
   virtual int get_default_port() const { return 33060; }
@@ -101,7 +99,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   virtual void validate_instances_gtid_reboot_cluster(
       std::string *out_cluster_name,
       const shcore::Value::Map_type_ref &options,
-      const std::shared_ptr<ShellBaseSession> &instance_session);
+      const std::shared_ptr<mysqlshdk::db::ISession> &instance_session);
 
 #if DOXYGEN_JS
   Integer verbose;
@@ -136,11 +134,11 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   None reboot_cluster_from_complete_outage(str clusterName, dict options);
 #endif
 
-  static std::shared_ptr<mysqlsh::mysql::ClassicSession> get_session(
+  static std::shared_ptr<mysqlshdk::db::ISession> get_session(
       const mysqlshdk::db::Connection_options &args);
 
  protected:
-  std::shared_ptr<mysqlsh::ShellBaseSession> _custom_session;
+  std::shared_ptr<mysqlshdk::db::ISession> _custom_session;
   shcore::IShell_core *_shell_core;
 
   void init();
@@ -163,7 +161,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const mysqlshdk::db::Connection_options &instance_def,
       const shcore::Value::Map_type_ref &options, bool allow_update);
   static std::map <std::string, std::shared_ptr<
-                  mysqlsh::mysql::ClassicSession> > _session_cache;
+                  mysqlshdk::db::ISession> > _session_cache;
 };
 }  // namespace dba
 }  // namespace mysqlsh

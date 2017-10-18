@@ -31,7 +31,6 @@
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
-#include "modules/mysql_connection.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_jscript.h"
@@ -237,12 +236,11 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   void session_wait(uint64_t sid, int timeout, const char *str,
                     int column = 7) {
     auto connection_options = shcore::get_connection_options(_mysql_uri);
-    std::shared_ptr<mysqlsh::mysql::Connection> conn(
-        new mysqlsh::mysql::Connection(connection_options));
+    auto conn = mysqlshdk::db::mysql::Session::create();
+    conn->connect(connection_options);
     timeout *= 1000;
     while (timeout > 0) {
-      std::unique_ptr<mysqlsh::mysql::Result> result(
-          conn->run_sql("show full processlist"));
+      auto result = conn->query("show full processlist");
       for (;;) {
         auto row = result->fetch_one();
         if (!row)
@@ -250,13 +248,14 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
         // for (int i = 0; i < 8; i++)
         //   printf("%s\t", row->get_value(i).descr().c_str());
         // printf("\n");
-        if ((sid == 0 || row->get_value(0).as_uint() == sid) &&
-            row->get_value_as_string(column).find(str) != std::string::npos)
+        if ((sid == 0 || row->get_uint(0) == sid) &&
+            row->get_as_string(column).find(str) != std::string::npos)
           return;
       }
       shcore::sleep_ms(200);
       timeout -= 200;
     }
+    conn->close();
     FAIL() << "timeout waiting for " << str << "\n";
   }
 };
@@ -297,7 +296,7 @@ TEST_F(Interrupt_mysql, sql_classic) {
           session->raw_execute_sql("select sleep(5) as test1"));
       auto row = result->fetch_one();
       EXPECT_TRUE(kill_sent);
-      EXPECT_EQ("1", row->get_value_as_string(0));
+      EXPECT_EQ("1", row->get_as_string(0));
     } catch (std::exception &e) {
       FAIL() << e.what();
     }
@@ -926,7 +925,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
           "select count(*) from information_schema.tables where "
           "table_schema='itst'"));
   auto row = result->fetch_one();
-  EXPECT_EQ(2, row->get_value(0).as_int());
+  EXPECT_EQ(2, row->get_int(0));
 }
 
 TEST_F(Interrupt_mysqlx, db_python_drop) {
@@ -1003,7 +1002,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
           "select count(*) from information_schema.tables where "
           "table_schema='itst'"));
   auto row = result->fetch_one();
-  EXPECT_EQ(2, row->get_value(0).as_int());
+  EXPECT_EQ(2, row->get_int(0));
 }
 
 // Test that native JavaScript code gets interrupted

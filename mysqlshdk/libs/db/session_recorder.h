@@ -72,6 +72,7 @@ class SHCORE_PUBLIC Session_recorder : public ISession {
   virtual void rollback();
   virtual void close();
   virtual const char* get_ssl_cipher() const;
+  virtual bool is_open() const { return _target->is_open(); }
 
   void set_target(ISession* target) { _target = target; }
 

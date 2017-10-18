@@ -18,7 +18,8 @@
  */
 
 #include "mod_mysql.h"
-#include "mod_mysql_session.h"
+#include "modules/mod_mysql_session.h"
+#include "modules/mod_mysql_constants.h"
 #include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
@@ -40,7 +41,24 @@ REGISTER_HELP(MYSQL_DETAIL4,"When running the shell in interactive mode, this mo
 
 REGISTER_MODULE(Mysql, mysql) {
   REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getClassicSession);
+
+  _type.reset(new Type());
 }
+
+// We need to hide this from doxygen to avoif warnings
+#if !defined(DOXYGEN_JS) && !defined(DOXYGEN_PY)
+shcore::Value Mysql::get_member(const std::string &prop) const {
+  shcore::Value ret_val;
+
+  if (prop == "Type")
+    ret_val = shcore::Value(_type);
+  else
+    ret_val = Cpp_object_bridge::get_member(prop);
+
+  return ret_val;
+}
+#endif
+
 
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_BRIEF, "Creates a ClassicSession instance using the provided connection data.");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM,  "@param connectionData The connection data for the session");

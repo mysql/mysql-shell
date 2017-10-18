@@ -68,6 +68,11 @@ class Interactive_global_dba : public tests::Admin_api_test {
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(shared_dba));
   }
 
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> get_classic_session() {
+    auto session = _interactive_shell->shell_context()->get_dev_session();
+    return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
+  }
+
   // Using a strict mock will:
   // - Properly validate expected calls to mock functions
   // - Error out on unexpected calls to mock functions

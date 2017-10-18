@@ -132,7 +132,11 @@ Type Row::get_type(uint32_t index) const {
 std::string Row::get_as_string(uint32_t index) const {
   VALIDATE_INDEX(index);
   if (!_row[index])
-    throw FIELD_ERROR(index, "field is NULL");
+    // Now we mimic the old row behavior since AdminAPI dependes on "NULL"
+    // being returned on these cases, if previous logic is required, AdminAPI
+    // must be fixed
+    // throw FIELD_ERROR(index, "field is NULL");
+    return "NULL";
   if (get_type(index) == Type::Bit)
     return shcore::bits_to_string(get_bit(index),
                                   _result->get_metadata()[index].get_length());

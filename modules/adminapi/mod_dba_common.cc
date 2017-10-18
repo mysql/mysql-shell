@@ -184,8 +184,7 @@ ReplicationGroupState check_function_preconditions(
       AdminAPI_function_availability.at(precondition_key);
   std::string error;
   ReplicationGroupState state;
-  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
-                    metadata->get_session());
+  auto session = metadata->get_session();
 
   // A classic session is required to perform any of the AdminAPI operations
   if (!session) {
@@ -196,7 +195,7 @@ ReplicationGroupState check_function_preconditions(
   } else {
     // Retrieves the instance configuration type from the perspective of the
     // active session
-    auto instance_type = get_gr_instance_type(session->connection());
+    auto instance_type = get_gr_instance_type(session);
     state.source_type = instance_type;
 
     // Validates availability based on the configuration state
@@ -205,8 +204,7 @@ ReplicationGroupState check_function_preconditions(
       if (instance_type != GRInstanceType::Standalone) {
         // Retrieves the instance cluster statues from the perspective of the
         // active session (The Metadata Session)
-        state = get_replication_group_state(session->connection(),
-                                            instance_type);
+        state = get_replication_group_state(session, instance_type);
 
         // Validates availability based on the instance status
         if (state.source_state & availability.instance_status) {
@@ -328,8 +326,9 @@ void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options) {
  * metadata from being replicated.
  * Raise an exception if invalid replication filters are found.
  */
-void validate_replication_filters(mysqlsh::mysql::ClassicSession *session) {
-  shcore::Value status = get_master_status(session->connection());
+void validate_replication_filters(
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  shcore::Value status = get_master_status(session);
   auto status_map = status.as_map();
 
   std::string binlog_do_db = status_map->get_string("BINLOG_DO_DB");
@@ -364,7 +363,7 @@ void validate_replication_filters(mysqlsh::mysql::ClassicSession *session) {
   @return # of wildcarded accounts, # of other accounts
   */
 std::pair<int, int> find_cluster_admin_accounts(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &admin_user, std::vector<std::string> *out_hosts) {
 
   shcore::sqlstring query;
@@ -378,11 +377,11 @@ std::pair<int, int> find_cluster_admin_accounts(
   int local = 0;
   int w = 0;
   int nw = 0;
-  auto result = session->execute_sql(query);
+  auto result = session->query(query);
   if (result) {
     auto row = result->fetch_one();
     while (row) {
-      std::string account = row->get_value(0).as_string();
+      std::string account = row->get_string(0);
       std::string user, host;
       shcore::split_account(account, &user, &host);
       assert(user == admin_user);
@@ -449,7 +448,7 @@ const std::map<std::string, std::set<std::string>> k_schema_grants {
 /** Check that the provided account has privileges to manage a cluster.
   */
 bool validate_cluster_admin_user_privileges(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &admin_user, const std::string &admin_host) {
 
   shcore::sqlstring query;
@@ -463,14 +462,14 @@ bool validate_cluster_admin_user_privileges(
 
   std::set<std::string> global_privs;
 
-  auto result = session->execute_sql(query);
+  auto result = session->query(query);
   if (result) {
     auto row = result->fetch_one();
     while (row) {
-      global_privs.insert(row->get_value(0).as_string());
-      if (row->get_value(1).as_string() == "NO") {
+      global_privs.insert(row->get_string(0));
+      if (row->get_string(1) == "NO") {
         log_info(" Privilege %s for %s@%s is not grantable",
-                 row->get_value(0).as_string().c_str(),
+                 row->get_string(0).c_str(),
                  admin_user.c_str(), admin_host.c_str());
         return false;
       }
@@ -502,18 +501,18 @@ bool validate_cluster_admin_user_privileges(
       " WHERE grantee = ?", 0) << shcore::make_account(admin_user, admin_host);
 
   auto required_privileges(k_schema_grants);
-  result = session->execute_sql(query);
+  result = session->query(query);
   if (result) {
     auto row = result->fetch_one();
     while (row) {
-      std::string schema = row->get_value(0).as_string();
-      std::string priv = row->get_value(1).as_string();
+      std::string schema = row->get_string(0);
+      std::string priv = row->get_string(1);
 
       if (required_privileges.find(schema) != required_privileges.end()) {
         auto &privs(required_privileges[schema]);
         privs.erase(std::find(privs.begin(), privs.end(), priv));
       }
-      if (row->get_value(2).as_string() == "NO") {
+      if (row->get_string(2) == "NO") {
         log_info(" %s on %s for %s@%s is not grantable",
                  priv.c_str(), schema.c_str(), admin_user.c_str(),
                  admin_host.c_str());
@@ -546,7 +545,7 @@ static const char *k_admin_user_grants[] = {
 };
 
 void create_cluster_admin_user(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &username, const std::string &password) {
 #ifndef NDEBUG
   shcore::split_account(username, nullptr, nullptr);
@@ -555,20 +554,25 @@ void create_cluster_admin_user(
   shcore::sqlstring query;
   // we need to check if the provided account has the privileges to
   // create the new account
+  auto connection_options = session->get_connection_options();
+  std::string user, host;
+  if (connection_options.has_user())
+    user = connection_options.get_user();
+  if (connection_options.has_host())
+    host = connection_options.get_host();
   if (!mysqlsh::dba::validate_cluster_admin_user_privileges
-      (session, session->get_user(), session->get_host())) {
+      (session, user, host)) {
     log_error(
         "Account '%s'@'%s' lacks the required privileges to create a new "
-            "user account", session->get_user().c_str(),
-        session->get_host().c_str());
+            "user account", user.c_str(), host.c_str());
     std::string msg;
-    msg = "Account '" + session->get_user() + "'@'" + session->get_host()
+    msg = "Account '" + user + "'@'" + host
         + "' does not have all the ";
     msg += "privileges to create an user for managing an InnoDB cluster.";
     throw std::runtime_error(msg);
   }
-  session->execute_sql("SET sql_log_bin = 0");
-  session->execute_sql("START TRANSACTION");
+  session->execute("SET sql_log_bin = 0");
+  session->execute("START TRANSACTION");
   try {
     log_info("Creating account %s", username.c_str());
     // Create the user
@@ -577,20 +581,20 @@ void create_cluster_admin_user(
                                  " IDENTIFIED BY ?").c_str(), 0);
       query << password;
       query.done();
-      session->execute_sql(query);
+      session->execute(query);
     }
 
     // Give the grants
     for (size_t i = 0; i < sizeof(k_admin_user_grants) / sizeof(char*); i++) {
       std::string grant(k_admin_user_grants[i]);
       grant += " TO " + username + " WITH GRANT OPTION";
-      session->execute_sql(grant);
+      session->execute(grant);
     }
-    session->execute_sql("COMMIT");
-    session->execute_sql("SET sql_log_bin = 1");
+    session->execute("COMMIT");
+    session->execute("SET sql_log_bin = 1");
   } catch (...) {
-    session->execute_sql("ROLLBACK");
-    session->execute_sql("SET sql_log_bin = 1");
+    session->execute("ROLLBACK");
+    session->execute("SET sql_log_bin = 1");
     throw;
   }
 }
@@ -612,12 +616,13 @@ void create_cluster_admin_user(
  *     is DISABLED
  *   - If SSL mode is not supported and member_ssl_mode is REQUIRED
  */
-std::string resolve_cluster_ssl_mode(mysqlsh::mysql::ClassicSession *session,
-                                     const std::string& member_ssl_mode) {
+std::string resolve_cluster_ssl_mode(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &member_ssl_mode) {
   std::string ret_val;
   std::string have_ssl;
 
-  get_server_variable(session->connection(), "global.have_ssl",
+  get_server_variable(session, "global.have_ssl",
                       have_ssl);
 
   // The instance supports SSL
@@ -625,7 +630,7 @@ std::string resolve_cluster_ssl_mode(mysqlsh::mysql::ClassicSession *session,
     // memberSslMode is DISABLED
     if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED")) {
       int require_secure_transport = 0;
-      get_server_variable(session->connection(),
+      get_server_variable(session,
                           "GLOBAL.require_secure_transport",
                           require_secure_transport);
 
@@ -679,14 +684,15 @@ std::string resolve_cluster_ssl_mode(mysqlsh::mysql::ClassicSession *session,
  *   - Cluster has SSL disabled and member_ssl_mode is REQUIRED
  *   - Cluster has SSL disabled and the instance has require_secure_transport ON
  */
-std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
-                                      mysqlsh::mysql::ClassicSession *psession,
-                                      const std::string& member_ssl_mode) {
+std::string resolve_instance_ssl_mode(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> psession,
+    const std::string &member_ssl_mode) {
   std::string ret_val;
   std::string gr_ssl_mode;
 
   // Checks how memberSslMode was configured on the cluster
-  get_server_variable(psession->connection(),
+  get_server_variable(psession,
                       "global.group_replication_ssl_mode",
                       gr_ssl_mode);
 
@@ -703,7 +709,7 @@ std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
     // Now checks if SSL is actually supported on the instance
     std::string have_ssl;
 
-    get_server_variable(session->connection(), "global.have_ssl",
+    get_server_variable(session, "global.have_ssl",
                         have_ssl);
 
     // SSL is not supported on the instance
@@ -732,7 +738,7 @@ std::string resolve_instance_ssl_mode(mysqlsh::mysql::ClassicSession *session,
     // If the instance session requires SSL connections, then it can's
     // Join a cluster with SSL disabled
     int secure_transport_required = 0;
-    get_server_variable(session->connection(),
+    get_server_variable(session,
                         "global.require_secure_transport",
                         secure_transport_required);
     if (secure_transport_required) {
@@ -774,18 +780,15 @@ std::vector<std::string> get_instances_gr(
       "SELECT member_id FROM performance_schema.replication_group_members";
 
   auto result = metadata->execute_sql(query);
-  auto members_ids = result->call("fetchAll", shcore::Argument_list());
 
-  // build the instances array
-  auto instances_gr = members_ids.as_array();
-  std::vector<std::string> instances_gr_array;
-
-  for (auto value : *instances_gr.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-    instances_gr_array.push_back(row->get_member(0).as_string());
+  std::vector<std::string> ret_val;
+  auto row = result->fetch_one();
+  while (row) {
+    ret_val.push_back(row->get_string(0));
+    row = result->fetch_one();
   }
 
-  return instances_gr_array;
+  return ret_val;
 }
 
 /**
@@ -809,18 +812,15 @@ std::vector<std::string> get_instances_md(
   query.done();
 
   auto result = metadata->execute_sql(query);
-  auto mysql_server_uuids = result->call("fetchAll", shcore::Argument_list());
+  std::vector<std::string> ret_val;
+  auto row = result->fetch_one();
 
-  // build the instances array
-  auto instances_md = mysql_server_uuids.as_array();
-  std::vector<std::string> instances_md_array;
-
-  for (auto value : *instances_md.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-    instances_md_array.push_back(row->get_member(0).as_string());
+  while (row) {
+    ret_val.push_back(row->get_string(0));
+    row = result->fetch_one();
   }
 
-  return instances_md_array;
+  return ret_val;
 }
 
 /**
@@ -868,9 +868,9 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
     auto row = result->fetch_one();
 
     NewInstanceInfo info;
-    info.member_id = row->get_value(0).as_string();
-    info.host = row->get_value(1).as_string();
-    info.port = row->get_value(2).as_int();
+    info.member_id = row->get_string(0);
+    info.host = row->get_string(1);
+    info.port = row->get_int(2);
 
     ret.push_back(info);
   }
@@ -923,9 +923,9 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
     auto result = metadata->execute_sql(query);
     auto row = result->fetch_one();
     MissingInstanceInfo info;
-    info.id = row->get_value(0).as_string();
-    info.label = row->get_value(1).as_string();
-    info.host = row->get_value(2).as_string();
+    info.id = row->get_string(0);
+    info.label = row->get_string(1);
+    info.host = row->get_string(2);
     ret.push_back(info);
   }
 
@@ -1034,16 +1034,16 @@ void SHCORE_PUBLIC validate_label(const std::string &label) {
  * @return string with the value of @@group_replication_group_name
  */
 std::string get_gr_replicaset_group_name(
-      mysqlsh::mysql::ClassicSession *session) {
+      std::shared_ptr<mysqlshdk::db::ISession>session) {
   std::string group_name;
 
   std::string query("SELECT @@group_replication_group_name");
 
   // Any error will bubble up right away
-  auto result = session->execute_sql(query);
+  auto result = session->query(query);
   auto row = result->fetch_one();
   if (row) {
-    group_name = row->get_value_as_string(0);
+    group_name = row->get_as_string(0);
   }
   return group_name;
 }
@@ -1062,7 +1062,7 @@ std::string get_gr_replicaset_group_name(
  */
 bool validate_replicaset_group_name(
     const std::shared_ptr<MetadataStorage> &metadata,
-    mysqlsh::mysql::ClassicSession *session,
+    std::shared_ptr<mysqlshdk::db::ISession>session,
     uint64_t rs_id) {
   std::string gr_group_name = get_gr_replicaset_group_name(session);
   std::string md_group_name = metadata->get_replicaset_group_name(rs_id);
@@ -1088,11 +1088,11 @@ bool validate_replicaset_group_name(
  *
  * @return a boolean value indicating the status of super_read_only
  */
-bool validate_super_read_only(mysqlsh::mysql::ClassicSession *session,
+bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession>session,
                               bool clear_read_only) {
   int super_read_only = 0;
 
-  get_server_variable(session->connection(), "super_read_only",
+  get_server_variable(session, "super_read_only",
                       super_read_only, false);
 
   if (super_read_only) {
@@ -1101,7 +1101,7 @@ bool validate_super_read_only(mysqlsh::mysql::ClassicSession *session,
           session->uri(mysqlshdk::db::uri::formats::only_transport());
       log_info("Disabling super_read_only on the instance '%s'",
                session_address.c_str());
-      set_global_variable(session->connection(), "super_read_only", "OFF");
+      set_global_variable(session, "super_read_only", "OFF");
     } else {
       auto session_options = session->get_connection_options();
 
@@ -1120,7 +1120,7 @@ bool validate_super_read_only(mysqlsh::mysql::ClassicSession *session,
 
       // Get the list of open session to the instance
       std::vector<std::pair<std::string, int>> open_sessions;
-      open_sessions = get_open_sessions(session->connection());
+      open_sessions = get_open_sessions(session);
 
       if (!open_sessions.empty()) {
         error_msg +=

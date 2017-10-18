@@ -66,6 +66,8 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation) {
 static void ATTR_UNUSED translate_exception() {
   try {
     throw;
+  } catch (shcore::database_error &e) {
+    throw shcore::Exception::mysql_error_with_code_and_state(e.error(),e.code(), e.sqlstate().c_str());
   } catch (mysqlshdk::db::Error &e) {
     throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   } catch (std::runtime_error &e) {

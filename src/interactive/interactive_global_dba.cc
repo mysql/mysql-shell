@@ -340,7 +340,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Value::Map_type_ref options;
   std::string cluster_name;
-  std::shared_ptr<mysqlsh::ShellBaseSession> session;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
 
   try {
     cluster_name = args.string_at(0);
@@ -490,10 +490,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
     if (prompt_read_only) {
-      auto classic =
-          std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
-
-      if (!prompt_super_read_only(classic, options))
+      if (!prompt_super_read_only(session, options))
         return shcore::Value();
     }
   }
@@ -583,9 +580,7 @@ shcore::Value Global_dba::drop_metadata_schema(
     if (prompt_read_only) {
       auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
       auto session = dba->get_active_session();
-      auto classic =
-          std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
-      if (!prompt_super_read_only(classic, options))
+      if (!prompt_super_read_only(session, options))
         return shcore::Value();
 
       if (args.size() < 1)
@@ -794,7 +789,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     // Only after a validation of the list (if provided)
     // we can move forward to the interaction
     if (confirm_rescan_rejoins) {
-      for (auto &value : instances_status) {
+      for (const auto &value : instances_status) {
         std::string instance_address = value.first;
         std::string instance_status = value.second;
 
@@ -833,7 +828,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     }
 
     if (confirm_rescan_removes) {
-      for (auto &value : instances_status) {
+      for (const auto &value : instances_status) {
         std::string instance_address = value.first;
         std::string instance_status = value.second;
 
@@ -873,10 +868,8 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     if (prompt_read_only) {
       auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
       auto session = dba->get_active_session();
-      auto classic =
-          std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
 
-      if (!prompt_super_read_only(classic, options))
+      if (!prompt_super_read_only(session, options))
         return shcore::Value();
     }
 
@@ -1066,7 +1059,7 @@ bool Global_dba::resolve_cnf_path(
 
   // If the instance is a sandbox, we can obtain directly the path from
   // the datadir
-  mysqlsh::dba::get_port_and_datadir(session->connection(), port, datadir);
+  mysqlsh::dba::get_port_and_datadir(session, port, datadir);
 
   std::string path_separator = datadir.substr(datadir.size() - 1);
   auto path_elements = shcore::split_string(datadir, path_separator);
@@ -1294,7 +1287,7 @@ int Global_dba::prompt_menu(const std::vector<std::string> &options,
 }
 
 bool Global_dba::ensure_admin_account_usable(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &user, const std::string &host,
     std::string *out_create_account) {
   int n_wildcard_accounts, n_non_wildcard_accounts;
@@ -1410,7 +1403,7 @@ bool Global_dba::ensure_admin_account_usable(
 }
 
 bool Global_dba::prompt_super_read_only(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const shcore::Value::Map_type_ref &options) {
   auto options_session = session->get_connection_options();
   auto active_session_address =
@@ -1419,7 +1412,7 @@ bool Global_dba::prompt_super_read_only(
   // Get the status of super_read_only in order to verify if we need to
   // prompt the user to disable it
   int super_read_only = 0;
-  mysqlsh::dba::get_server_variable(session->connection(), "super_read_only",
+  mysqlsh::dba::get_server_variable(session, "super_read_only",
                                     super_read_only, false);
 
   if (super_read_only) {
@@ -1435,7 +1428,7 @@ bool Global_dba::prompt_super_read_only(
 
     // Get the list of open session to the instance
     std::vector<std::pair<std::string, int>> open_sessions;
-    open_sessions = mysqlsh::dba::get_open_sessions(session->connection());
+    open_sessions = mysqlsh::dba::get_open_sessions(session);
 
     if (!open_sessions.empty()) {
       println("Note: there are open sessions to '" + active_session_address +
@@ -1545,7 +1538,7 @@ shcore::Value Global_dba::configure_local_instance(
       std::string admin_user_host = "%";
       std::string account;
 
-      std::shared_ptr<mysqlsh::mysql::ClassicSession> session;
+      std::shared_ptr<mysqlshdk::db::ISession> session;
 
       // User passed clusterAdmin option, we ensure that account exists
       if (extra_options->has_key("clusterAdmin")) {

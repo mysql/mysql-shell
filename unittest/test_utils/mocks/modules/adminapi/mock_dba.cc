@@ -25,12 +25,12 @@ namespace testing {
 void Mock_dba::initialize(shcore::IShell_core *owner, bool chain_dba) {
   set_owner(owner);
 
-  if (chain_dba) {
-    std::shared_ptr<StrictMock<Mock_metadata_storage>> metadata(
-        &_mock_metadata, SharedDoNotDelete());
-    _metadata_storage =
-        std::dynamic_pointer_cast<mysqlsh::dba::MetadataStorage>(metadata);
+  std::shared_ptr<StrictMock<Mock_metadata_storage>> metadata(
+      &_mock_metadata, SharedDoNotDelete());
+  _metadata_storage =
+      std::dynamic_pointer_cast<mysqlsh::dba::MetadataStorage>(metadata);
 
+  if (chain_dba) {
     ON_CALL(*this, call(_, _))
         .WillByDefault(Invoke(this, &mysqlsh::dba::Dba::call));
   }

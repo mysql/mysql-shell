@@ -18,19 +18,16 @@
  */
 
 #include <random>
-
 #include "utils/utils_sqlstring.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/metadata-model_definitions.h"
 // #include "modules/adminapi/mod_dba_instance.h"
-#include "modules/mod_mysql_session.h"
-#include "modules/mod_mysql_resultset.h"
-#include "modules/mysql_connection.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "db/mysqlx/mysqlxclient_clean.h"
 
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
 
 // How many times to retry a query if it fails because it's SUPER_READ_ONLY
 static const int kMaxReadOnlyRetries = 10;
@@ -40,14 +37,14 @@ using namespace mysqlsh::dba;
 using namespace shcore;
 
 MetadataStorage::MetadataStorage(
-    std::shared_ptr<mysqlsh::ShellBaseSession> session) :
-  _session(session) {}
+    std::shared_ptr<mysqlshdk::db::ISession> session) :
+  _session(session), _tx_deep(0) {}
 
 MetadataStorage::~MetadataStorage() {}
 
-std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(
+std::shared_ptr<mysqlshdk::db::IResult> MetadataStorage::execute_sql(
     const std::string &sql, bool retry, const std::string &log_sql) const {
-  shcore::Object_bridge_ref ret_val;
+  std::shared_ptr<mysqlshdk::db::IResult> ret_val;
 
   if (log_sql.empty())
     log_debug("DBA: execute_sql('%s'", sql.c_str());
@@ -60,11 +57,14 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(
   int retry_count = kMaxReadOnlyRetries;
   while (retry_count > 0) {
     try {
-      ret_val = _session->raw_execute_sql(sql);
+      ret_val = _session->query(sql);
 
       // If reached here it means there were no errors
       retry_count = 0;
-    } catch (shcore::Exception& e) {
+    } catch (shcore::database_error& err) {
+      auto e = shcore::Exception::mysql_error_with_code_and_state(
+          err.error(), err.code(), err.sqlstate().c_str());
+
       if (CR_SERVER_GONE_ERROR == e.code()) {
         log_debug("%s", e.format().c_str());
         log_debug("DBA: The Metadata is inaccessible");
@@ -80,42 +80,68 @@ std::shared_ptr<mysql::ClassicResult> MetadataStorage::execute_sql(
         retry_count--;
       } else {
         log_debug("%s", e.format().c_str());
-        throw;
+        throw e;
       }
     }
   }
 
-  return std::dynamic_pointer_cast<mysql::ClassicResult>(ret_val);
+  return ret_val;
 }
 
 void MetadataStorage::set_session(
-    std::shared_ptr<mysqlsh::ShellBaseSession> session) {
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  if (_session != session)
+    _tx_deep = 0;
+
   _session = session;
 }
 
 void MetadataStorage::start_transaction() {
-  _session->start_transaction();
+  if (_tx_deep == 0)
+    _session->execute("start transaction");
+
+  _tx_deep++;
 }
 
 void MetadataStorage::commit() {
-  _session->commit();
+  _tx_deep--;
+
+  assert(_tx_deep >= 0);
+
+  if (_tx_deep == 0)
+  _session->execute("commit");
 }
 
 void MetadataStorage::rollback() {
-  _session->rollback();
+  _tx_deep--;
+
+  assert(_tx_deep >= 0);
+
+  // TODO(rennox): I think this is wrong, I thing rollback should be executed
+  // whenever it is called, and it should actually set _tx_deep to 0.
+  // I just put the logic as it was in the past, but needs to be reviewed
+  if (_tx_deep == 0)
+    _session->execute("rollback");
 }
 
 bool MetadataStorage::metadata_schema_exists() {
-  std::string found_object;
-  std::string type = "Schema";
-  std::string search_name = "mysql_innodb_cluster_metadata";
+  bool ret_val = false;
+  std::string schema = "mysql_innodb_cluster_metadata";
 
-  if (_session)
-    found_object = _session->db_object_exists(type, search_name, "");
-  else
-    throw shcore::Exception::logic_error("");
+  if (_session && _session->is_open()) {
+    std::string statement = sqlstring("show databases like ?", 0) << schema;
 
-  return !found_object.empty();
+    auto result = _session->query(statement);
+
+    auto row = result->fetch_one();
+
+    if (row && row->get_string(0) == schema)
+      ret_val = true;
+  } else {
+    throw shcore::Exception::logic_error("An active session is required.");
+  }
+
+  return ret_val;
 }
 
 void MetadataStorage::create_metadata_schema() {
@@ -158,7 +184,7 @@ uint64_t MetadataStorage::get_cluster_id(const std::string &cluster_name) {
   auto result = execute_sql(query);
   auto row = result->fetch_one();
   if (row)
-    cluster_id = row->get_value(0).as_uint();
+    cluster_id = row->get_uint(0);
   return cluster_id;
 }
 
@@ -179,7 +205,7 @@ uint64_t MetadataStorage::get_cluster_id(uint64_t rs_id) {
   auto result = execute_sql(query);
   auto row = result->fetch_one();
   if (row)
-    cluster_id = row->get_value(0).as_uint();
+    cluster_id = row->get_uint(0);
   return cluster_id;
 }
 
@@ -213,8 +239,8 @@ void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster) {
   // Insert the Cluster on the cluster table
   try {
     auto result = execute_sql(query);
-    cluster->set_id(result->get_member("autoIncrementValue").as_int());
-  } catch (shcore::Exception &e) {
+    cluster->set_id(result->get_auto_increment_value());
+  } catch (shcore::database_error &e) {
     if (e.what() == "Duplicate entry '" + cluster->get_name() +
                     "' for key 'cluster_name'") {
       log_debug("DBA: A Cluster with the name '%s' already exists",
@@ -223,7 +249,8 @@ void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster) {
                                       cluster->get_name() +
                                       "' already exists.");
     } else {
-      throw;
+      throw shcore::Exception::mysql_error_with_code_and_state(
+          e.error(), e.code(), e.sqlstate().c_str());
     }
   }
 }
@@ -249,7 +276,7 @@ void MetadataStorage::insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
 
   // Update the replicaset_id
   uint64_t rs_id = 0;
-  rs_id = result->get_member("autoIncrementValue").as_uint();
+  rs_id = result->get_auto_increment_value();
 
   // Update the cluster entry with the replicaset_id
   replicaset->set_id(rs_id);
@@ -282,7 +309,7 @@ uint32_t MetadataStorage::insert_host(const std::string &host,
     if (result) {
       auto row = result->fetch_one();
       if (row) {
-        uint32_t host_id = static_cast<uint32_t>(row->get_value(0).as_uint());
+        uint32_t host_id = static_cast<uint32_t>(row->get_uint(0));
 
         log_info("Found host entry %u in metadata for host %s (%s)",
                   host_id, host.c_str(), ip_address.c_str());
@@ -304,7 +331,7 @@ uint32_t MetadataStorage::insert_host(const std::string &host,
   // possibly because it's recovering
   auto result(execute_sql(query, true));
   return static_cast<uint32_t>(
-      result->get_member("autoIncrementValue").as_int());
+      result->get_auto_increment_value());
 }
 
 void MetadataStorage::insert_instance(const Instance_definition& options) {
@@ -409,7 +436,7 @@ bool MetadataStorage::cluster_has_default_replicaset_only(
   auto row = result->fetch_one();
   int count = 0;
   if (row) {
-    count = row->get_value(0).as_int();
+    count = row->get_int(0);
   }
 
   return count == 0;
@@ -429,7 +456,7 @@ bool MetadataStorage::is_cluster_empty(uint64_t cluster_id) {
   auto row = result->fetch_one();
   uint64_t count = 0;
   if (row) {
-    count = row->get_value(0).as_int();
+    count = row->get_int(0);
   }
 
   return count == 0;
@@ -456,7 +483,7 @@ void MetadataStorage::drop_replicaset(uint64_t rs_id) {
 
   auto row = result->fetch_one();
   if (row) {
-    rs_name = row->get_value_as_string(0);
+    rs_name = row->get_as_string(0);
   }
 
   if (rs_name == "default")
@@ -527,7 +554,7 @@ bool MetadataStorage::is_replicaset_active(uint64_t rs_id) {
   auto row = result->fetch_one();
   int active = 0;
   if (row) {
-    active = row->get_value(0).as_int();
+    active = row->get_int(0);
   }
 
   return active == 1;
@@ -553,7 +580,7 @@ std::string MetadataStorage::get_replicaset_group_name(uint64_t rs_id) {
   auto row = result->fetch_one();
 
   if (row)
-    group_name = row->get_value(0).as_string();
+    group_name = row->get_string(0);
 
   return group_name;
 }
@@ -587,8 +614,8 @@ std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id) {
   auto result = execute_sql(query);
   auto row = result->fetch_one();
   if (row) {
-    std::string rs_name = row->get_value(0).as_string();
-    std::string topo = row->get_value(1).as_string();
+    std::string rs_name = row->get_string(0);
+    std::string topo = row->get_string(1);
 
     // Create a ReplicaSet Object to match the Metadata
     std::shared_ptr<ReplicaSet> rs(
@@ -614,21 +641,23 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_from_query(
       shcore::Argument_list args;
 
       cluster.reset(
-          new Cluster(row->get_value(1).as_string(), shared_from_this()));
+          new Cluster(row->get_string(1), shared_from_this()));
 
-      cluster->set_id(row->get_value(0).as_int());
-      cluster->set_description(row->get_value(3).as_string());
-      cluster->set_attributes(row->get_value(5).as_string());
+      cluster->set_id(row->get_int(0));
 
-      auto options_val = row->get_value(4);
-      if (options_val.json() != "\"null\"")
-        cluster->set_options(options_val.as_string());
+      if (!row->is_null(3))
+        cluster->set_description(row->get_string(3));
 
-      auto rsetid_val = row->get_value(2);
-      if (rsetid_val)
-        cluster->set_default_replicaset(get_replicaset(rsetid_val.as_int()));
+      if (!row->is_null(5))
+        cluster->set_attributes(row->get_string(5));
+
+      if (!row->is_null(4))
+        cluster->set_options(row->get_string(4));
+
+      if (!row->is_null(2))
+        cluster->set_default_replicaset(get_replicaset(row->get_int(2)));
     }
-  } catch (shcore::Exception &e) {
+  } catch (shcore::database_error &e) {
     std::string error = e.what();
 
     if (error == "Table 'mysql_innodb_cluster_metadata.clusters' "
@@ -636,7 +665,8 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_from_query(
       log_debug("Metadata Schema does not exist.");
       throw Exception::metadata_error("Metadata Schema does not exist.");
     } else {
-      throw;
+      throw shcore::Exception::mysql_error_with_code_and_state(
+          e.error(), e.code(), e.sqlstate().c_str());
     }
   }
 
@@ -718,7 +748,7 @@ bool MetadataStorage::is_replicaset_empty(uint64_t rs_id) {
   auto row = result->fetch_one();
   uint64_t count = 0;
   if (row) {
-    count = row->get_value(0).as_int();
+    count = row->get_int(0);
   }
 
   return count == 0;
@@ -746,7 +776,7 @@ uint64_t MetadataStorage::get_replicaset_count(uint64_t rs_id) const {
   auto row = result->fetch_one();
   uint64_t count = 0;
   if (row) {
-    count = row->get_value(0).as_int();
+    count = row->get_int(0);
   }
   return count;
 }
@@ -767,7 +797,7 @@ bool MetadataStorage::is_instance_on_replicaset(
   auto row = result->fetch_one();
   uint64_t count = 0;
   if (row) {
-    count = row->get_value(0).as_int();
+    count = row->get_int(0);
   }
   return count == 1;
 }
@@ -793,32 +823,57 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
 
   auto row = result->fetch_one();
   if (row) {
-    seed_address = row->get_value_as_string(0);
+    seed_address = row->get_as_string(0);
   }
   return seed_address;
 }
 
-std::shared_ptr<shcore::Value::Array_type>
-    MetadataStorage::get_replicaset_instances(uint64_t rs_id) {
+std::vector<Instance_definition>
+    MetadataStorage::get_replicaset_instances(uint64_t rs_id, bool with_state) {
+  std::vector<Instance_definition> ret_val;
+  std::string statement;
   shcore::sqlstring query;
 
-  query = shcore::sqlstring(
-      "select mysql_server_uuid, instance_name, role,"
-      " JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host"
-      " from mysql_innodb_cluster_metadata.instances"
-      " where replicaset_id = ?", 0);
+  statement = "select mysql_server_uuid, instance_name, role, "
+          "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host";
+
+  if (with_state)
+    statement.append(", MEMBER_STATE");
+
+  statement.append(" from mysql_innodb_cluster_metadata.instances ");
+
+  if (with_state)
+    statement.append("LEFT JOIN performance_schema.replication_group_members "
+                 "ON `mysql_server_uuid`=`MEMBER_ID` ");
+
+  statement.append(" WHERE replicaset_id = ?");
+
+  query = shcore::sqlstring(statement.c_str(), 0);
   query << rs_id;
   query.done();
 
   auto result = execute_sql(query);
-  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
-  auto instances = raw_instances.as_array();
+  auto row = result->fetch_one();
+  while (row) {
+    Instance_definition instance;
+    instance.uuid = row->get_string(0);
+    instance.label = row->get_string(1);
+    instance.role = row->get_string(2);
+    instance.endpoint = row->get_string(3);
 
-  return instances;
+    if (with_state && !row->is_null(4))
+      instance.state = row->get_string(4);
+
+    ret_val.push_back(instance);
+    row = result->fetch_one();
+  }
+
+  return ret_val;
 }
 
-std::shared_ptr<shcore::Value::Array_type>
+std::vector<Instance_definition>
     MetadataStorage::get_replicaset_online_instances(uint64_t rs_id) {
+  std::vector<Instance_definition> ret_val;
   shcore::sqlstring query;
 
   query = shcore::sqlstring(
@@ -833,10 +888,18 @@ std::shared_ptr<shcore::Value::Array_type>
   query.done();
 
   auto result = execute_sql(query);
-  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
-  auto instances = raw_instances.as_array();
+  auto row = result->fetch_one();
+  while (row) {
+    Instance_definition instance;
+    instance.uuid = row->get_string(0);
+    instance.label = row->get_string(1);
+    instance.role = row->get_string(2);
+    instance.endpoint = row->get_string(3);
+    ret_val.push_back(instance);
+    row = result->fetch_one();
+  }
 
-  return instances;
+  return ret_val;
 }
 
 Instance_definition MetadataStorage::get_instance(
@@ -861,18 +924,18 @@ Instance_definition MetadataStorage::get_instance(
   auto row = result->fetch_one();
 
   if (row) {
-    ret_val.host_id = row->get_value(0).as_uint();
-    ret_val.replicaset_id = row->get_value(1).as_uint();
-    ret_val.uuid = row->get_value(2).as_string();
-    ret_val.label = row->get_value(3).as_string();
-    ret_val.role = row->get_value(4).as_string();
-    // weight = row->get_value(5).as_float();
-    ret_val.endpoint = row->get_value(6).as_string();
-    ret_val.xendpoint = row->get_value(7).as_string();
-    ret_val.grendpoint = row->get_value(8).as_string();
+    ret_val.host_id = row->get_uint(0);
+    ret_val.replicaset_id = row->get_uint(1);
+    ret_val.uuid = row->get_string(2);
+    ret_val.label = row->get_string(3);
+    ret_val.role = row->get_string(4);
+    // weight = row->get_float(5);
+    ret_val.endpoint = row->get_string(6);
+    ret_val.xendpoint = row->get_string(7);
+    ret_val.grendpoint = row->get_string(8);
     // attributes = row->get_value(10).as_map();
-    // version_token = row->get_value(11).as_int();
-    // description = row->get_value(12).as_string();
+    // version_token = row->get_int(11);
+    // description = row->get_string(12);
 
     return ret_val;
   }
@@ -957,7 +1020,7 @@ void MetadataStorage::create_repl_account(std::string &username,
 
       // If it reached here it means there were no errors
       retry_count = 0;
-    } catch (shcore::Exception &e) {
+    } catch (shcore::database_error &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
       // the current policy requirements
       // We regenerate the password to retry
@@ -966,8 +1029,8 @@ void MetadataStorage::create_repl_account(std::string &username,
           try {
             auto result = execute_sql("select @@validate_password_length");
             auto row = result->fetch_one();
-            if (row && password_length < row->get_value(0).as_int()) {
-              password_length = row->get_value(0).as_int();
+            if (row && password_length < row->get_int(0)) {
+              password_length = row->get_int(0);
             }
           } catch (...) {
             password_length = 32;
@@ -980,7 +1043,8 @@ void MetadataStorage::create_repl_account(std::string &username,
         }
         password = generate_password(password_length);
       } else {
-        throw;
+        throw shcore::Exception::mysql_error_with_code_and_state(
+            e.error(), e.code(), e.sqlstate().c_str());
       }
     }
   }

@@ -27,9 +27,8 @@
 namespace tests {
 class Dba_sql_test: public Admin_api_test {
  protected:
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> create_session(int port) {
-    auto session = std::shared_ptr<mysqlsh::mysql::ClassicSession>
-        (new mysqlsh::mysql::ClassicSession());
+  std::shared_ptr<mysqlshdk::db::ISession> create_session(int port) {
+    auto session = mysqlshdk::db::mysql::Session::create();
 
     auto connection_options =
       shcore::get_connection_options("user:@localhost:" + std::to_string(port),
@@ -76,7 +75,7 @@ TEST_F(Dba_sql_test, get_instance_state) {
     auto session = create_session(_mysql_sandbox_nport1);
     try {
       mysqlsh::dba::ManagedInstance::State state =
-          mysqlsh::dba::get_instance_state(session->connection(),
+          mysqlsh::dba::get_instance_state(session,
                                            "localhost:3300");
       EXPECT_EQ(state, std::get<0>(expected_res));
     } catch (const shcore::Exception &e) {
@@ -108,7 +107,7 @@ TEST_F(Dba_sql_test, get_instance_state) {
     session = create_session(_mysql_sandbox_nport1);
     try {
       mysqlsh::dba::ManagedInstance::State state =
-          mysqlsh::dba::get_instance_state(session->connection(),
+          mysqlsh::dba::get_instance_state(session,
                                            "localhost:3300");
       EXPECT_EQ(state, std::get<1>(expected_res));
     } catch (const shcore::Exception &e) {
@@ -139,7 +138,7 @@ TEST_F(Dba_sql_test, get_instance_state) {
     session = create_session(_mysql_sandbox_nport1);
     try {
       mysqlsh::dba::ManagedInstance::State state =
-          mysqlsh::dba::get_instance_state(session->connection(),
+          mysqlsh::dba::get_instance_state(session,
                                            "localhost:3300");
       EXPECT_EQ(state, std::get<2>(expected_res));
     } catch (const shcore::Exception &e) {
@@ -172,7 +171,7 @@ TEST_F(Dba_sql_test, get_instance_state_errors) {
   START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
   auto session = create_session(_mysql_sandbox_nport1);
   try {
-    mysqlsh::dba::get_instance_state(session->connection(), "localhost:3300");
+    mysqlsh::dba::get_instance_state(session, "localhost:3300");
     SCOPED_TRACE("Exception expected to be thrown for 'INVALID' state.");
     ADD_FAILURE();
   } catch (shcore::Exception &err) {

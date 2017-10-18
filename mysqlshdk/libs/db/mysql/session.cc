@@ -39,27 +39,12 @@ Session_impl::Session_impl() : _mysql(NULL) {}
 
 void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
-  long flags = CLIENT_MULTI_RESULTS |   // NOLINT runtime/int
-               CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
-  int port = 0;
-  std::string host;
-  std::string user;
-
-  if (connection_options.has_port())
-    port = connection_options.get_port();
-  else if (!connection_options.has_socket())
-    port = 3306;
-
-  host = connection_options.has_host() ? connection_options.get_host()
-                                       : "localhost";
-
-  user = connection_options.has_user() ? connection_options.get_user()
-                                       : shcore::get_system_user();
-
+  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
   _mysql = mysql_init(NULL);
 
   setup_ssl(connection_options.get_ssl_options());
-  if (port != 0 || (host != "localhost" && host != "")) {
+  if (connection_options.has_transport_type() &&
+      connection_options.get_transport_type() == mysqlshdk::db::Tcp) {
     unsigned int tcp = MYSQL_PROTOCOL_TCP;
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   }
@@ -78,20 +63,24 @@ void Session_impl::connect(
   }
 #endif
 
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(),
-                          connection_options.has_password()
-                              ? connection_options.get_password().c_str()
-                              : "",
-                          connection_options.has_schema()
-                              ? connection_options.get_schema().c_str()
-                              : NULL,
-                          port,
-                          connection_options.has_socket()
-                              ? connection_options.get_socket().c_str()
-                              : NULL,
+  if (!mysql_real_connect(_mysql,
+                          connection_options.has_host() ?
+                          connection_options.get_host().c_str() : NULL,
+                          connection_options.has_user() ?
+                          connection_options.get_user().c_str() : NULL,
+                          connection_options.has_password() ?
+                          connection_options.get_password().c_str() : NULL,
+                          connection_options.has_schema() ?
+                          connection_options.get_schema().c_str() : NULL,
+                          connection_options.has_port() ?
+                          connection_options.get_port() : 0,
+                          connection_options.has_socket() ?
+                          connection_options.get_socket().c_str() : NULL,
                           flags)) {
     throw_on_connection_fail();
   }
+
+  _connection_options = connection_options;
 }
 
 bool Session_impl::setup_ssl(

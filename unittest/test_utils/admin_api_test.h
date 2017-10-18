@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #include "modules/adminapi/mod_dba_common.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "unittest/test_utils.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 
 using mysqlshdk::utils::nullable;
 
@@ -100,14 +101,12 @@ void add_validate_cluster_admin_user_privileges_queries(
                                 const std::string& non_grantable = "",
                                 const std::string& missing = "");
  public:
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> get_classic_session() {
-    auto session = _interactive_shell->shell_context()->get_dev_session();
-    return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
+  std::shared_ptr<mysqlshdk::db::ISession> get_classic_session() {
+    return _interactive_shell->shell_context()->get_dev_session()->get_core_session();
   }
 
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> create_local_session(
+  std::shared_ptr<mysqlshdk::db::ISession> create_local_session(
       int port) {
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session;
 
     mysqlshdk::db::Connection_options session_args;
     session_args.set_scheme("mysql");
@@ -116,9 +115,8 @@ void add_validate_cluster_admin_user_privileges_queries(
     session_args.set_user("user");
     session_args.set_password("");
 
-    session.reset(new mysqlsh::mysql::ClassicSession());
+    auto session = mysqlshdk::db::mysql::Session::create();
     session->connect(session_args);
-
     return session;
   }
 };

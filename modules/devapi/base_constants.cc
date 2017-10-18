@@ -117,7 +117,7 @@ Value Constant::get_constant_value(const std::string &module,
 
   // param_count = args.size();
 
-  if (module == "mysqlx") {
+  if (module == "mysqlx" || module == "mysql") {
     if (group == "Type") {
       if (id == "BIT") {
         ret_val = Value("BIT");
@@ -194,6 +194,9 @@ Value Constant::get_constant_value(const std::string &module,
         ret_val = Value("ENUM");
       } else if (id == "GEOMETRY") {
         ret_val = Value("GEOMETRY");
+      // NULL is only registered for mysql module
+      } else if (id == "NULL" && module == "mysql") {
+        ret_val = Value("NULL");
       }
     } else if (group == "IndexType") {
       if (id == "UNIQUE") {

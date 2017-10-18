@@ -63,6 +63,9 @@ class Mock_session : public mysqlshdk::db::ISession {
   MOCK_METHOD0(commit, void());
   MOCK_METHOD0(rollback, void());
   MOCK_CONST_METHOD0(get_ssl_cipher, const char *());
+  MOCK_CONST_METHOD0(get_connection_options,
+                     const mysqlshdk::db::Connection_options &());
+  MOCK_CONST_METHOD0(is_open, bool());
 
   // Disconnection
   MOCK_METHOD0(close, void());

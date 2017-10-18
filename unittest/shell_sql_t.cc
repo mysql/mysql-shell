@@ -30,6 +30,7 @@
 #include "scripting/common.h"
 #include "unittest/test_utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "modules/mod_mysql_session.h"
 
 using namespace std::placeholders;
 

@@ -33,14 +33,9 @@
 #include "scripting/types_cpp.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
-#include "modules/mod_mysql_resultset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
-namespace mysql {
-class ClassicSession;
-}
-
 namespace dba {
 class MetadataStorage;
 class Cluster;
@@ -142,9 +137,10 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Value get_status(
       const mysqlsh::dba::ReplicationGroupState &state) const;
 
-  void remove_instances_from_gr(const shcore::Value::Array_type_ref &instances);
-  void remove_instance_from_gr(const std::string& instance_str,
-                               const mysqlshdk::db::Connection_options& data);
+  void remove_instances_from_gr(
+      const std::vector<Instance_definition> &instances);
+  void remove_instance_from_gr(const std::string &instance_str,
+                               const mysqlshdk::db::Connection_options &data);
   ReplicationGroupState check_preconditions(
       const std::string& function_name) const;
   void remove_instances(const std::vector<std::string> &remove_instances);
@@ -179,7 +175,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::string get_peer_instance();
 
   void validate_instance_address(
-      std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+      std::shared_ptr<mysqlshdk::db::ISession> session,
       const std::string &hostname, int port);
 
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
@@ -187,6 +183,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::shared_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
+  std::shared_ptr<mysqlshdk::db::ISession> get_session(
+    const mysqlshdk::db::Connection_options &args);
 
  protected:
   virtual int get_default_port() const { return 3306; }

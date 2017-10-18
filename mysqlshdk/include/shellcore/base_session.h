@@ -29,6 +29,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlsh {
 #if DOXYGEN_CPP
@@ -101,8 +102,13 @@ public:
 
   virtual void kill_query() = 0;
 
+  virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() = 0;
+
+
 protected:
   std::string get_quoted_name(const std::string& name);
+  // TODO(rennox): Note that these are now stored on the low level session
+  // object too, they should be removed from here
   mysqlshdk::db::Connection_options _connection_options;
 
  protected:

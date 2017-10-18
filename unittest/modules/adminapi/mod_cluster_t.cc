@@ -63,7 +63,7 @@ class Cluster_test : public tests::Admin_api_test {
       WillOnce(Invoke(&_mock_metadata, &MetadataStorage::set_session));
 
     _mock_metadata.set_session(_interactive_shell
-      ->shell_context()->get_dev_session());
+      ->shell_context()->get_dev_session()->get_core_session());
 
     std::shared_ptr<StrictMock<Mock_metadata_storage>> metadata(
       &_mock_metadata, SharedDoNotDelete());

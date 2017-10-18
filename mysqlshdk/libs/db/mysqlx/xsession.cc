@@ -134,6 +134,8 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   if (_enable_trace)
     _trace_handler = do_enable_trace(_mysql.get());
 
+  _connection_options = data;
+
   auto &ssl_options(data.get_ssl_options());
   if (ssl_options.has_data()) {
     if (ssl_options.has_ca())
