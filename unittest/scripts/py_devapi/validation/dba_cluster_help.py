@@ -82,6 +82,10 @@ EXCEPTIONS
                  allowed: "AUTO", "DISABLED", "REQUIRED".
   RuntimeError: if the SSL mode specified is not compatible with the one used
                 in the cluster.
+  ArgumentError: if the value for the ipWhitelist, localAddress, or groupSeeds
+                 options is empty.
+  RuntimeError: if the value for the localAddress or groupSeeds options is not
+                valid for Group Replication.
 
 RETURNS
 
@@ -117,6 +121,11 @@ The options dictionary may contain the following attributes:
  - memberSslMode: SSL mode used on the instance
  - ipWhitelist: The list of hosts allowed to connect to the instance for group
    replication
+ - localAddress: string value with the Group Replication local address to be
+   used instead of the automatically generated one.
+ - groupSeeds: string value with a comma-separated list of the Group
+   Replication peer addresses to be used instead of the automatically generated
+   one.
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -135,6 +144,25 @@ The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
 notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
 AUTOMATIC, allowing addresses from the instance private network to be
 automatically set for the whitelist.
+
+The localAddress and groupSeeds are advanced options and their usage is
+discouraged since incorrect values can lead to Group Replication errors.
+
+The value for localAddress is used to set the Group Replication system variable
+'group_replication_local_address'. The localAddress option accepts values in
+the format: '<host>:<port>' or '<host>:' or ':<port>'. If the specified value
+does not include a colon (:) and it is numeric, then it is assumed to be the
+<port>, otherwise it is considered to be the <host>. When <host> is not
+specified, the default value is the host of the target instance specified as
+argument. When <port> is not specified, the default value is the port of the
+target instance + 10000. In case the automatically determined default port
+value is invalid (> 65535) then a random value in the range [1000, 65535] is
+used.
+
+The value for groupSeeds is used to set the Group Replication system variable
+'group_replication_group_seeds'. The groupSeeds option accepts a
+comma-separated list of addresses in the format:
+'<host1>:<port1>,...,<hostN>:<portN>'.
 
 
 #@<OUT> Check Instance State

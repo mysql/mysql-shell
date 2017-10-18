@@ -73,6 +73,11 @@ class Admin_api_test: public Shell_core_test_wrapper {
       std::vector<tests::Fake_result_data> *data,
       const std::string &replicast_id,
       const std::string &instance_address);
+  void add_get_peer_seeds_queries(
+      std::vector<tests::Fake_result_data> *data,
+      const std::vector<std::vector<std::string>> &metada_values,
+      const std::string &gr_group_seed_value,
+      const std::string &instance_address);
 };
 }  // namespace tests
 

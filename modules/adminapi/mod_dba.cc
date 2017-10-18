@@ -52,7 +52,7 @@ std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 
 std::set<std::string> Dba::_create_cluster_opts = {
     "multiMaster", "adoptFromGR", "force", "memberSslMode", "ipWhitelist",
-    "clearReadOnly"};
+    "clearReadOnly", "groupName", "localAddress", "groupSeeds"};
 std::set<std::string> Dba::_reboot_cluster_opts = {
     "user", "dbUser", "password", "dbPassword", "removeInstances",
     "rejoinInstances", "clearReadOnly"};
@@ -286,6 +286,13 @@ REGISTER_HELP(DBA_CREATECLUSTER_THROWS5, "@throws ArgumentError if adoptFromGR "
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS6, "@throws ArgumentError if the value "\
                                          "for the memberSslMode option is not "\
                                          "one of the allowed.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS7,
+              "@throws ArgumentError if the value for the ipWhitelist, "\
+              "groupName, localAddress, or groupSeeds options is empty.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS8,
+              "@throws RuntimeError if the value for the groupName, "\
+              "localAddress, or groupSeeds options is not valid for Group "\
+              "Replication.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_RETURNS, "@returns The created cluster object.");
 
@@ -309,34 +316,76 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL5, "@li memberSslMode: SSL mode used to "\
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL6, "@li ipWhitelist: The list of hosts "\
                                          "allowed to connect to the instance "\
                                          "for group replication.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7,
+              "@li clearReadOnly: boolean value used to confirm that "\
+              "super_read_only must be disabled.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8,
+              "@li groupName: string value with the Group Replication group "\
+              "name UUID to be used instead of the automatically generated "
+              "one.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9,
+              "@li localAddress: string value with the Group Replication "\
+              "local address to be used instead of the automatically "\
+              "generated one.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10,
+              "@li groupSeeds: string value with a comma-separated list of "\
+              "the Group Replication peer addresses to be used instead of the "\
+              "automatically generated one.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7, "@li clearReadOnly: boolean value "
-                                         "used to confirm that super_read_only "
-                                         "must be disabled.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8,"A InnoDB cluster may be setup in two ways:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9, "@li Single Master: One member of the cluster allows write "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11,"A InnoDB cluster may be setup in two ways:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "@li Single Master: One member of the cluster allows write "\
                                           "operations while the rest are in read only mode.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10, "@li Multi Master: All the members "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13, "@li Multi Master: All the members "\
                                           "in the cluster support both read "\
                                           "and write operations.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11, "By default this function create a Single Master cluster, use "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14, "By default this function create a Single Master cluster, use "\
                                           "the multiMaster option set to true "\
                                           "if a Multi Master cluster is required.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12, "The memberSslMode option supports these values:");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13, "@li REQUIRED: if used, SSL (encryption) will be enabled for the "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15, "The memberSslMode option supports these values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16, "@li REQUIRED: if used, SSL (encryption) will be enabled for the "\
                                           "instances to communicate with other members of the cluster");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14, "@li DISABLED: if used, SSL (encryption) will be disabled");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15, "@li AUTO: if used, SSL (encryption) "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17, "@li DISABLED: if used, SSL (encryption) will be disabled");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18, "@li AUTO: if used, SSL (encryption) "\
                                           "will be enabled if supported by the "\
                                           "instance, otherwise disabled");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16, "If memberSslMode is not specified AUTO will be used by default.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL19, "If memberSslMode is not specified AUTO will be used by default.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17, "The ipWhitelist format is a comma separated list of IP "\
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL20, "The ipWhitelist format is a comma separated list of IP "\
                                           "addresses or subnet CIDR "\
                                           "notation, for example: 192.168.1.0/24,10.0.0.1. By default the "\
                                           "value is set to AUTOMATIC, allowing addresses "\
                                           "from the instance private network to be automatically set for "\
                                           "the whitelist.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL21,
+              "The groupName, localAddress, and groupSeeds are advanced "\
+              "options and their usage is discouraged since incorrect values "\
+              "can lead to Group Replication errors.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL22,
+              "The value for groupName is used to set the Group Replication "\
+              "system variable 'group_replication_group_name'.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL23,
+              "The value for localAddress is used to set the Group "\
+              "Replication system variable 'group_replication_local_address'. "\
+              "The localAddress option accepts values in the format: "\
+              "'<host>:<port>' or '<host>:' or ':<port>'. If the specified "\
+              "value does not include a colon (:) and it is numeric, then it "\
+              "is assumed to be the <port>, otherwise it is considered to be "\
+              "the <host>. When <host> is not specified, the default value is "\
+              "the host of the current active connection (session). When "\
+              "<port> is not specified, the default value is the port of the "\
+              "current active connection (session) + 10000. In case the "\
+              "automatically determined default port value is invalid "\
+              "(> 65535) then a random value in the range [1000, 65535] is "\
+              "used.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
+              "The value for groupSeeds is used to set the Group Replication "\
+              "system variable 'group_replication_group_seeds'. The "\
+              "groupSeeds option accepts a comma-separated list of addresses "\
+              "in the format: '<host1>:<port1>,...,<hostN>:<portN>'.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -351,6 +400,8 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17, "The ipWhitelist format is a comma sep
  * $(DBA_CREATECLUSTER_THROWS4)
  * $(DBA_CREATECLUSTER_THROWS5)
  * $(DBA_CREATECLUSTER_THROWS6)
+ * $(DBA_CREATECLUSTER_THROWS7)
+ * $(DBA_CREATECLUSTER_THROWS8)
  *
  * $(DBA_CREATECLUSTER_RETURNS)
  *
@@ -363,20 +414,31 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17, "The ipWhitelist format is a comma sep
  * $(DBA_CREATECLUSTER_DETAIL5)
  * $(DBA_CREATECLUSTER_DETAIL6)
  * $(DBA_CREATECLUSTER_DETAIL7)
- *
  * $(DBA_CREATECLUSTER_DETAIL8)
- *
  * $(DBA_CREATECLUSTER_DETAIL9)
  * $(DBA_CREATECLUSTER_DETAIL10)
+ *
  * $(DBA_CREATECLUSTER_DETAIL11)
  *
  * $(DBA_CREATECLUSTER_DETAIL12)
  * $(DBA_CREATECLUSTER_DETAIL13)
  * $(DBA_CREATECLUSTER_DETAIL14)
+ *
  * $(DBA_CREATECLUSTER_DETAIL15)
  * $(DBA_CREATECLUSTER_DETAIL16)
- *
  * $(DBA_CREATECLUSTER_DETAIL17)
+ * $(DBA_CREATECLUSTER_DETAIL18)
+ * $(DBA_CREATECLUSTER_DETAIL19)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL20)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL21)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL22)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL23)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL24)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -418,7 +480,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   bool force = false;
   bool clear_read_only = false;
   // SSL values are only set if available from args.
-  std::string ssl_mode;
+  std::string ssl_mode, group_name, local_address, group_seeds;
 
   std::string replication_user;
   std::string replication_pwd;
@@ -445,6 +507,15 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       //Validate ip whitelist option
       validate_ip_whitelist_option(options);
 
+      // Validate group name option
+      validate_group_name_option(options);
+
+      // Validate local address option
+      validate_local_address_option(options);
+
+      // Validate group seeds option
+      validate_group_seeds_option(options);
+
       if (opt_map.has_key("multiMaster"))
         multi_master = opt_map.bool_at("multiMaster");
 
@@ -465,6 +536,14 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       if (opt_map.has_key("clearReadOnly"))
         clear_read_only = opt_map.bool_at("clearReadOnly");
 
+      if (opt_map.has_key("groupName"))
+        group_name = opt_map.string_at("groupName");
+
+      if (opt_map.has_key("localAddress"))
+        local_address = opt_map.string_at("localAddress");
+
+      if (opt_map.has_key("groupSeeds"))
+        group_seeds = opt_map.string_at("groupSeeds");
     }
 
     if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
@@ -542,6 +621,14 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     if (!ip_whitelist.empty())
       (*options)["ipWhitelist"] = Value(ip_whitelist);
 
+    // Set local address
+    if (!local_address.empty())
+      (*options)["localAddress"] = Value(local_address);
+
+    // Set group seeds
+    if (!group_seeds.empty())
+      (*options)["groupSeeds"] = Value(group_seeds);
+
     (*options)["password"] = Value(session->get_password());
     new_args.push_back(shcore::Value(options));
 
@@ -549,7 +636,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       throw shcore::Exception::argument_error("Use of multiMaster mode is not recommended unless you understand the limitations. Please use the 'force' option if you understand and accept them.");
     }
 
-    cluster->add_seed_instance(new_args, multi_master, adopt_from_gr, replication_user, replication_pwd);
+    cluster->add_seed_instance(new_args, multi_master, adopt_from_gr,
+                               replication_user, replication_pwd, group_name);
 
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));

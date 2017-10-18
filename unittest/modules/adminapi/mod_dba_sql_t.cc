@@ -202,4 +202,113 @@ TEST_F(Dba_sql_test, get_instance_state_errors) {
   // (empty)
 }
 
+// Test get_peer_seeds()
+TEST_F(Dba_sql_test, get_peer_seeds) {
+  std::vector< tests::Fake_result_data > queries;
+  std::vector<std::vector<std::string>> metadata_values;
+  std::string gr_group_seed;
+
+  // Test with metadata GR addresses not in gr_group_seed variable:
+  // group_replication_group_seeds
+  // -----------------------------
+  // localhost:13300
+
+  // JSON_UNQUOTE(addresses->'$.grLocal')
+  // ------------------------------------
+  // localhost:13301
+  // localhost:13302
+  gr_group_seed = "localhost:13300";
+  metadata_values = {{"localhost:13301"}, {"localhost:13302"}};
+  add_get_peer_seeds_queries(&queries, metadata_values, gr_group_seed,
+                             "localhost:3300");
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+  auto session = create_session(_mysql_sandbox_nport1);
+  try {
+    std::vector<std::string> seeds =
+        mysqlsh::dba::get_peer_seeds(session->connection(), "localhost:3300");
+    std::vector<std::string> result = {"localhost:13300", "localhost:13301",
+                                       "localhost:13302"};
+    EXPECT_EQ(result, seeds);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure getting peer seeds.");
+    ADD_FAILURE();
+  }
+  session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport1);
+
+  // Test with metadata GR addresses in gr_group_seed variable:
+  // group_replication_group_seeds
+  // -----------------------------
+  // localhost:13300,localhost:13301,localhost:13302
+
+  // JSON_UNQUOTE(addresses->'$.grLocal')
+  // ------------------------------------
+  // localhost:13301
+  // localhost:13302
+  queries.clear();
+  gr_group_seed = "localhost:13300,localhost:13301,localhost:13302";
+  metadata_values = {{"localhost:13301"}, {"localhost:13302"}};
+  add_get_peer_seeds_queries(&queries, metadata_values, gr_group_seed,
+                             "localhost:3300");
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+  session = create_session(_mysql_sandbox_nport1);
+  try {
+    std::vector<std::string> seeds =
+        mysqlsh::dba::get_peer_seeds(session->connection(), "localhost:3300");
+    std::vector<std::string> result = {"localhost:13300", "localhost:13301",
+                                       "localhost:13302"};
+    EXPECT_EQ(result, seeds);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure getting peer seeds.");
+    ADD_FAILURE();
+  }
+  session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport1);
+
+  // Test with metadata GR addresses and gr_group_seed variable is "" (empty):
+  // group_replication_group_seeds
+  // -----------------------------
+  // "" (empty)
+
+  // JSON_UNQUOTE(addresses->'$.grLocal')
+  // ------------------------------------
+  // localhost:13301
+  // localhost:13302
+  queries.clear();
+  gr_group_seed = "";
+  metadata_values = {{"localhost:13301"}, {"localhost:13302"}};
+  add_get_peer_seeds_queries(&queries, metadata_values, gr_group_seed,
+                             "localhost:3300");
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+  session = create_session(_mysql_sandbox_nport1);
+  try {
+    std::vector<std::string> seeds =
+        mysqlsh::dba::get_peer_seeds(session->connection(), "localhost:3300");
+    std::vector<std::string> result = {"localhost:13301", "localhost:13302"};
+    EXPECT_EQ(result, seeds);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure getting peer seeds.");
+    ADD_FAILURE();
+  }
+  session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport1);
+
+  // NOTE: No test added to validate the returned seeds when no rows are
+  // returned from the metadata query (only one instance in the cluster)
+  // because returning results with no rows (empty) is currently NOT
+  // supported by server mock code.
+  // TODO: Add a test later (when supported) to validate this situation,
+  //       using the following data:
+  // group_replication_group_seeds
+  // -----------------------------
+  // localhost:13300,localhost:13301,localhost:13302
+
+  // JSON_UNQUOTE(addresses->'$.grLocal')
+  // ------------------------------------
+  // (empty)
+}
+
 }  // namespace tests

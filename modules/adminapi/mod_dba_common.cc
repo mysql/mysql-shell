@@ -359,6 +359,72 @@ void validate_ip_whitelist_option(shcore::Value::Map_type_ref &options) {
   }
 }
 
+/**
+ * Validate the value specified for the localAddress option.
+ *
+ * @param options Map type value with containing the specified options.
+ * @throw ArgumentError if the value is empty or no host and port is specified
+ *        (i.e., value is ":").
+ */
+void validate_local_address_option(const shcore::Value::Map_type_ref &options) {
+  // Minimal validation is performed here, the rest is already currently
+  // handled at the mysqlprovision level (including the logic to automatically
+  // set the host and port when not specified).
+  shcore::Argument_map opt_map(*options);
+  if (opt_map.has_key("localAddress")) {
+    std::string local_address = opt_map.string_at("localAddress");
+    boost::trim(local_address);
+    if (local_address.empty())
+      throw shcore::Exception::argument_error(
+          "Invalid value for localAddress, string value cannot be empty.");
+    if (local_address.compare(":") == 0)
+      throw shcore::Exception::argument_error(
+          "Invalid value for localAddress. If ':' is specified then at least a "
+          "non-empty host or port must be specified: '<host>:<port>' or "
+          "'<host>:' or ':<port>'.");
+  }
+}
+
+/**
+ * Validate the value specified for the groupSeeds option.
+ *
+ * @param options Map type value with containing the specified options.
+ * @throw ArgumentError if the value is empty.
+ */
+void validate_group_seeds_option(const shcore::Value::Map_type_ref &options) {
+  // Minimal validation is performed here the rest is already currently
+  // handled at the mysqlprovision level (including the logic to automatically
+  // set the group seeds when not specified)
+  shcore::Argument_map opt_map(*options);
+  if (opt_map.has_key("groupSeeds")) {
+    std::string group_seeds = opt_map.string_at("groupSeeds");
+    boost::trim(group_seeds);
+    if (group_seeds.empty())
+      throw shcore::Exception::argument_error(
+          "Invalid value for groupSeeds, string value cannot be empty.");
+  }
+}
+
+/**
+ * Validate the value specified for the groupName option.
+ *
+ * @param options Map type value with containing the specified options.
+ * @throw ArgumentError if the value is empty.
+ */
+void validate_group_name_option(const shcore::Value::Map_type_ref &options) {
+  // Minimal validation is performed here, the rest is already currently
+  // handled at the mysqlprovision level (including the logic to automatically
+  // set the group name when not specified)
+  shcore::Argument_map opt_map(*options);
+  if (opt_map.has_key("groupName")) {
+    std::string group_name = opt_map.string_at("groupName");
+    boost::trim(group_name);
+    if (group_name.empty())
+      throw shcore::Exception::argument_error(
+          "Invalid value for groupName, string value cannot be empty.");
+  }
+}
+
 /*
  * Check the existence of replication filters that do not exclude the
  * metadata from being replicated.

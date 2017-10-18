@@ -19,10 +19,12 @@
 
 #include "modules/adminapi/mod_dba_sql.h"
 #include "utils/utils_sqlstring.h"
+#include <algorithm>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
+#include <utils/utils_general.h>
 #include "utils/utils_sqlstring.h"
 
 namespace mysqlsh {
@@ -443,11 +445,26 @@ std::vector<std::string> get_peer_seeds(mysqlsh::mysql::Connection *connection, 
   query.done();
 
   try {
-    auto result = connection->run_sql(query);
+    // Get current GR group seeds value
+    auto result = connection->run_sql(
+        "SELECT @@global.group_replication_group_seeds");
     auto row = result->fetch_one();
+    std::string group_seeds_str = row->get_value(0).as_string();
+    if (!group_seeds_str.empty())
+      ret_val = shcore::split_string(group_seeds_str, ",");
 
-    while(row) {
-      ret_val.push_back(row->get_value(0).as_string());
+    // Get the list of known seeds from the metadata.
+    result = connection->run_sql(query);
+    row = result->fetch_one();
+
+    while (row) {
+      std::string seed = row->get_value(0).as_string();
+
+      if (std::find(ret_val.begin(), ret_val.end(), seed) ==
+          ret_val.end()) {
+        // Only add seed from metadata if not already in the GR group seeds.
+        ret_val.push_back(seed);
+      }
       row = result->fetch_one();
     }
   } catch (shcore::Exception &error) {

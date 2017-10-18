@@ -59,6 +59,10 @@ EXCEPTIONS
   ArgumentError: if adoptFromGR is true and the memberSslMode option is used.
   ArgumentError: if the value for the memberSslMode option is not one of the
                  allowed.
+  ArgumentError: if the value for the ipWhitelist, groupName, localAddress, or
+                 groupSeeds options is empty.
+  RuntimeError: if the value for the groupName, localAddress, or groupSeeds
+                options is not valid for Group Replication.
 
 RETURNS
 
@@ -81,6 +85,13 @@ The options dictionary can contain the next values:
    replication.
  - clearReadOnly: boolean value used to confirm that super_read_only must be
    disabled.
+ - groupName: string value with the Group Replication group name UUID to be
+   used instead of the automatically generated one.
+ - localAddress: string value with the Group Replication local address to be
+   used instead of the automatically generated one.
+ - groupSeeds: string value with a comma-separated list of the Group
+   Replication peer addresses to be used instead of the automatically generated
+   one.
 
 A InnoDB cluster may be setup in two ways:
 
@@ -106,6 +117,29 @@ The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
 notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
 AUTOMATIC, allowing addresses from the instance private network to be
 automatically set for the whitelist.
+
+The groupName, localAddress, and groupSeeds are advanced options and their
+usage is discouraged since incorrect values can lead to Group Replication
+errors.
+
+The value for groupName is used to set the Group Replication system variable
+'group_replication_group_name'.
+
+The value for localAddress is used to set the Group Replication system variable
+'group_replication_local_address'. The localAddress option accepts values in
+the format: '<host>:<port>' or '<host>:' or ':<port>'. If the specified value
+does not include a colon (:) and it is numeric, then it is assumed to be the
+<port>, otherwise it is considered to be the <host>. When <host> is not
+specified, the default value is the host of the current active connection
+(session). When <port> is not specified, the default value is the port of the
+current active connection (session) + 10000. In case the automatically
+determined default port value is invalid (> 65535) then a random value in the
+range [1000, 65535] is used.
+
+The value for groupSeeds is used to set the Group Replication system variable
+'group_replication_group_seeds'. The groupSeeds option accepts a
+comma-separated list of addresses in the format:
+'<host1>:<port1>,...,<hostN>:<portN>'.
 
 
 //@<OUT> Delete Sandbox

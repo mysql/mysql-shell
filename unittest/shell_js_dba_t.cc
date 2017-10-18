@@ -862,6 +862,13 @@ TEST_F(Shell_js_dba_tests, dba_cluster_dissolve) {
   validate_interactive("dba_cluster_dissolve.js");
 }
 
+TEST_F(Shell_js_dba_tests, advanced_options) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_advanced_options.js");
+}
+
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
   reset_shell();

@@ -62,7 +62,9 @@ using namespace mysqlsh;
 using namespace mysqlsh::dba;
 using namespace shcore;
 
-std::set<std::string> ReplicaSet::_add_instance_opts = {"label", "password", "dbPassword", "memberSslMode", "ipWhitelist"};
+std::set<std::string> ReplicaSet::_add_instance_opts = {
+    "label", "password", "dbPassword", "memberSslMode",
+    "ipWhitelist", "localAddress", "groupSeeds"};
 std::set<std::string> ReplicaSet::_remove_instance_opts = {"password", "dbPassword", "force"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
@@ -298,8 +300,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
 
   bool seed_instance = false;
   std::string ssl_mode = dba::kMemberSSLModeAuto; //SSL Mode AUTO by default
-  std::string ip_whitelist;
-  std::string instance_label;
+  std::string ip_whitelist, instance_label, local_address, group_seeds;
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Cluster class, hence this just throws exceptions
@@ -330,6 +331,12 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
     //Validate ip whitelist option
     validate_ip_whitelist_option(add_options);
 
+    // Validate local address option
+    validate_local_address_option(add_options);
+
+    // Validate group seeds option
+    validate_group_seeds_option(add_options);
+
     if (add_options->has_key("memberSslMode"))
       ssl_mode = add_options->get_string("memberSslMode");
 
@@ -340,6 +347,12 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
       instance_label = add_options->get_string("label");
       mysqlsh::dba::validate_label(instance_label);
     }
+
+    if (add_options->has_key("localAddress"))
+      local_address = add_options->get_string("localAddress");
+
+    if (add_options->has_key("groupSeeds"))
+      group_seeds = add_options->get_string("groupSeeds");
   }
 
   if (!instance_def->has_key("port"))
@@ -451,8 +464,10 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
       log_info("Joining '%s' to group using account %s@%s",
           instance_address.c_str(),
           user.c_str(), instance_address.c_str());
-      log_info("Using 'group_replication_group_name': %s",
+      log_info("Using Group Replication group name: %s",
           group_name.c_str());
+      log_info("Using Group Replication local address: %s", local_address.c_str());
+      log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
       // Call mysqlprovision to bootstrap the group using "start"
       do_join_replicaset(user + "@" + instance_address,
                          instance_ssl_opts,
@@ -460,7 +475,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
                          nullptr,
                          super_user_password,
                          replication_user, replication_user_password,
-                         ssl_mode, ip_whitelist, group_name);
+                         ssl_mode, ip_whitelist, group_name, local_address,
+                         group_seeds);
     } else {
       // We need to retrieve a peer instance, so let's use the Seed one
       std::string peer_instance = get_peer_instance();
@@ -483,12 +499,13 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args,
           user.c_str(), instance_address.c_str(), peer_instance.c_str());
       // Call mysqlprovision to do the work
       do_join_replicaset(user + "@" + instance_address,
-                           instance_ssl_opts,
-                          user + "@" + peer_instance,
-                           peer_instance_ssl_opts,
-                          super_user_password,
-                          replication_user, replication_user_password,
-                           ssl_mode, ip_whitelist);
+                         instance_ssl_opts,
+                         user + "@" + peer_instance,
+                         peer_instance_ssl_opts,
+                         super_user_password,
+                         replication_user, replication_user_password,
+                         ssl_mode, ip_whitelist, group_name, local_address,
+                         group_seeds);
     }
   }
 
@@ -510,7 +527,9 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                                     const std::string &repl_user_password,
                                     const std::string &ssl_mode,
                                     const std::string &ip_whitelist,
-                                    const std::string &group_name) {
+                                    const std::string &group_name,
+                                    const std::string &local_address,
+                                    const std::string &group_seeds) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -520,21 +539,15 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   shcore::Value::Array_type_ref errors, warnings;
 
   if (is_seed_instance) {
-    exit_code = _cluster->get_provisioning_interface()->start_replicaset(instance_url,
-                instance_ssl,
-                repl_user, super_user_password,
-                repl_user_password,
-                _topology_type == kTopologyMultiMaster,
-                ssl_mode, ip_whitelist,
-                group_name,
-                errors);
+    exit_code = _cluster->get_provisioning_interface()->start_replicaset(
+        instance_url, instance_ssl, repl_user, super_user_password,
+        repl_user_password, _topology_type == kTopologyMultiMaster, ssl_mode,
+        ip_whitelist, group_name, local_address, group_seeds, errors);
   } else {
-    exit_code = _cluster->get_provisioning_interface()->join_replicaset(instance_url,
-                instance_ssl,
-                repl_user, peer_instance_url, peer_instance_ssl,
-                super_user_password, repl_user_password,
-                ssl_mode, ip_whitelist, "", false,
-                errors);
+    exit_code = _cluster->get_provisioning_interface()->join_replicaset(
+        instance_url, instance_ssl, repl_user, peer_instance_url,
+        peer_instance_ssl, super_user_password, repl_user_password, ssl_mode,
+        ip_whitelist, local_address, group_seeds, false, errors);
   }
 
   if (exit_code == 0) {
@@ -855,7 +868,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
                           seed_session_user + "@" + seed_session_address,
                           seed_instance_ssl_opts,
                           instance_password, "",
-                          ssl_mode, ip_whitelist,
+                          ssl_mode, ip_whitelist, "",
                           seed_instance_xcom_address, true,
                           errors);
     if (exit_code == 0) {

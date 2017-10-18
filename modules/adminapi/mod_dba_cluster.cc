@@ -158,7 +158,8 @@ None add_seed_instance(Document doc) {}
 shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
                                          bool multi_master, bool is_adopted,
                                          const std::string &replication_user,
-                                         const std::string &replication_pwd) {
+                                         const std::string &replication_pwd,
+                                         const std::string &group_name) {
   shcore::Value ret_val;
 
   MetadataStorage::Transaction tx(_metadata_storage);
@@ -185,8 +186,11 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args,
     // Update the Cluster table with the Default ReplicaSet on the Metadata
     _metadata_storage->insert_replica_set(_default_replica_set, true, is_adopted);
   }
-  // Add the Instance to the Default ReplicaSet passing already created replication user
-  ret_val = _default_replica_set->add_instance(args, replication_user, replication_pwd);
+  // Add the Instance to the Default ReplicaSet passing already created
+  // replication user and the group_name (if provided)
+  ret_val = _default_replica_set->add_instance(args, replication_user,
+                                               replication_pwd, true,
+                                               group_name);
 
   auto metadata_session = dynamic_cast<mysqlsh::mysql::ClassicSession*>(
                               _metadata_storage->get_session().get());
@@ -230,6 +234,12 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS7, "@throws ArgumentError if the "\
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS8, "@throws RuntimeError if the SSL "\
                                            "mode specified is not compatible "\
                                            "with the one used in the cluster.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS9,
+              "@throws ArgumentError if the value for the ipWhitelist, "\
+              "localAddress, or groupSeeds options is empty.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS10,
+              "@throws RuntimeError if the value for the localAddress or "\
+              "groupSeeds options is not valid for Group Replication.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_RETURNS, "@returns nothing");
 
@@ -272,28 +282,36 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17, "@li memberSslMode: SSL mode used "\
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18, "@li ipWhitelist: The list of "\
                                             "hosts allowed to connect to the "\
                                             "instance for group replication");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
+              "@li localAddress: string value with the Group Replication "\
+              "local address to be used instead of the automatically "\
+              "generated one.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20,
+              "@li groupSeeds: string value with a comma-separated list of "\
+              "the Group Replication peer addresses to be used instead of the "\
+              "automatically generated one.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19, "The password may be contained on "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21, "The password may be contained on "\
                                             "the instance definition, "\
                                             "however, it can be overwritten "\
                                             "if it is specified on the options.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20, "The memberSslMode option supports "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22, "The memberSslMode option supports "\
                                             "these values:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21, "@li REQUIRED: if used, SSL "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23, "@li REQUIRED: if used, SSL "\
                                             "(encryption) will be enabled for "\
                                             "the instance to communicate with "\
                                             "other members of the cluster");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22, "@li DISABLED: if used, SSL "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24, "@li DISABLED: if used, SSL "\
                                             "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23, "@li AUTO: if used, SSL (encryption)"\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25, "@li AUTO: if used, SSL (encryption)"\
                                             " will be automatically "\
                                             "enabled or disabled based on the "\
                                             "cluster configuration");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24, "If memberSslMode is not specified "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL26, "If memberSslMode is not specified "\
                                             "AUTO will be used by default.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25, "The ipWhitelist format is a comma "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL27, "The ipWhitelist format is a comma "\
                                             "separated list of IP "\
                                             "addresses or subnet CIDR "\
                                             "notation, for example: "\
@@ -304,7 +322,30 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25, "The ipWhitelist format is a comma "
                                             "instance private network to be "\
                                             "automatically set for "\
                                             "the whitelist.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL28,
+              "The localAddress and groupSeeds are advanced options and "\
+              "their usage is discouraged since incorrect values can lead to "\
+              "Group Replication errors.");
 
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL29,
+              "The value for localAddress is used to set the Group "\
+              "Replication system variable 'group_replication_local_address'. "\
+              "The localAddress option accepts values in the format: "\
+              "'<host>:<port>' or '<host>:' or ':<port>'. If the specified "\
+              "value does not include a colon (:) and it is numeric, then it "\
+              "is assumed to be the <port>, otherwise it is considered to be "\
+              "the <host>. When <host> is not specified, the default value is "\
+              "the host of the target instance specified as argument. When "\
+              "<port> is not specified, the default value is the port of the "\
+              "target instance + 10000. In case the automatically determined "\
+              "default port value is invalid (> 65535) then a random value "\
+              "in the range [1000, 65535] is used.");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL30,
+              "The value for groupSeeds is used to set the Group Replication "\
+              "system variable 'group_replication_group_seeds'. The "\
+              "groupSeeds option accepts a comma-separated list of addresses "
+              "in the format: '<host1>:<port1>,...,<hostN>:<portN>'.");
 /**
 * $(CLUSTER_ADDINSTANCE_BRIEF)
 *
@@ -320,6 +361,8 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25, "The ipWhitelist format is a comma "
 * $(CLUSTER_ADDINSTANCE_THROWS6)
 * $(CLUSTER_ADDINSTANCE_THROWS7)
 * $(CLUSTER_ADDINSTANCE_THROWS8)
+* $(CLUSTER_ADDINSTANCE_THROWS9)
+* $(CLUSTER_ADDINSTANCE_THROWS10)
 *
 * $(CLUSTER_ADDINSTANCE_RETURNS)
 *
@@ -346,16 +389,24 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25, "The ipWhitelist format is a comma "
 * $(CLUSTER_ADDINSTANCE_DETAIL16)
 * $(CLUSTER_ADDINSTANCE_DETAIL17)
 * $(CLUSTER_ADDINSTANCE_DETAIL18)
-*
 * $(CLUSTER_ADDINSTANCE_DETAIL19)
-*
 * $(CLUSTER_ADDINSTANCE_DETAIL20)
+*
 * $(CLUSTER_ADDINSTANCE_DETAIL21)
+*
 * $(CLUSTER_ADDINSTANCE_DETAIL22)
 * $(CLUSTER_ADDINSTANCE_DETAIL23)
 * $(CLUSTER_ADDINSTANCE_DETAIL24)
-*
 * $(CLUSTER_ADDINSTANCE_DETAIL25)
+* $(CLUSTER_ADDINSTANCE_DETAIL26)
+*
+* $(CLUSTER_ADDINSTANCE_DETAIL27)
+*
+* $(CLUSTER_ADDINSTANCE_DETAIL28)
+*
+* $(CLUSTER_ADDINSTANCE_DETAIL29)
+*
+* $(CLUSTER_ADDINSTANCE_DETAIL30)
 */
 #if DOXYGEN_JS
 Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}

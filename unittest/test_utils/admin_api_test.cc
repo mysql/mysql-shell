@@ -291,4 +291,40 @@ void Admin_api_test::add_is_instance_on_rs_query(
     }
   });
 }
+
+/**
+ * Add the "fake" queries data for the get_peer_seeds() function to be used
+ * by mock tests.
+ *
+ * @param data vector that will be changed by the function to include all the
+ *             "fake" (mock) data results.
+ * @param metada_values "fake" values returned by the query to the metadata
+ *                      with the known GR addresses.
+ * @param gr_group_seed_value "fake" value returned by the
+ *                            group_replication_group_seeds variable.
+ * @param instance_address target instance address to use in the queries.
+ */
+void Admin_api_test::add_get_peer_seeds_queries(
+    std::vector<tests::Fake_result_data> *data,
+    const std::vector<std::vector<std::string>> &metada_values,
+    const std::string &gr_group_seed_value,
+    const std::string &instance_address) {
+  data->push_back({"SELECT @@global.group_replication_group_seeds",
+                   {"group_replication_group_seeds"},
+                   {Type::VarString},
+                   {
+                       {{gr_group_seed_value}}
+                   }});
+  data->push_back({
+      "SELECT JSON_UNQUOTE(addresses->'$.grLocal') "
+      "FROM mysql_innodb_cluster_metadata.instances "
+      "WHERE addresses->'$.mysqlClassic' <> '" + instance_address + "' "
+      "AND replicaset_id IN (SELECT replicaset_id "
+      "FROM mysql_innodb_cluster_metadata.instances "
+      "WHERE addresses->'$.mysqlClassic' = '" + instance_address + "')",
+      {"JSON_UNQUOTE(addresses->'$.grLocal')"},
+      {Type::VarString},
+      {metada_values}});
+}
+
 }  // namespace tests
