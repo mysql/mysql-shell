@@ -22,20 +22,32 @@
 #include "unittest/test_utils/admin_api_test.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
-#include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils/admin_api_test.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 
 namespace tests {
 class Dba_common_test : public Admin_api_test {
  protected:
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> create_session(int port) {
-    auto session = std::shared_ptr<mysqlsh::mysql::ClassicSession>(
-        new mysqlsh::mysql::ClassicSession());
+  std::shared_ptr<mysqlshdk::db::ISession> create_session(int port) {
+    auto session = mysqlshdk::db::mysql::Session::create();
 
     auto connection_options = shcore::get_connection_options(
         "user:@localhost:" + std::to_string(port), false);
+    session->connect(connection_options);
+
+    return session;
+  }
+  std::shared_ptr<mysqlshdk::db::ISession> create_base_session(int port) {
+    auto session = mysqlshdk::db::mysql::Session::create();
+
+    mysqlshdk::db::Connection_options connection_options;
+    connection_options.set_host("localhost");
+    connection_options.set_port(port);
+    connection_options.set_user("user");
+    connection_options.set_password("");
+
     session->connect(connection_options);
 
     return session;
@@ -57,7 +69,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_001) {
   auto session = create_session(_mysql_sandbox_nport1);
 
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -84,7 +96,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_002) {
   auto session = create_session(_mysql_sandbox_nport1);
 
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -110,7 +122,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_003) {
   auto session = create_session(_mysql_sandbox_nport1);
 
   try {
-    mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "DISABLED");
+    mysqlsh::dba::resolve_cluster_ssl_mode(session, "DISABLED");
     SCOPED_TRACE("Unexpected success at resolve_cluster_ssl_mode_003");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -143,7 +155,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_004) {
 
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "DISABLED");
+        mysqlsh::dba::resolve_cluster_ssl_mode(session, "DISABLED");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -168,7 +180,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_005) {
 
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "REQUIRED");
+        mysqlsh::dba::resolve_cluster_ssl_mode(session, "REQUIRED");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -193,7 +205,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_006) {
 
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "AUTO");
+        mysqlsh::dba::resolve_cluster_ssl_mode(session, "AUTO");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -216,7 +228,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_007) {
   auto session = create_session(_mysql_sandbox_nport1);
 
   try {
-    mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "REQUIRED");
+    mysqlsh::dba::resolve_cluster_ssl_mode(session, "REQUIRED");
     SCOPED_TRACE("Unexpected success at resolve_cluster_ssl_mode_007");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -246,7 +258,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_008) {
   auto session = create_session(_mysql_sandbox_nport1);
 
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -270,7 +282,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_009) {
 
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "DISABLED");
+        mysqlsh::dba::resolve_cluster_ssl_mode(session, "DISABLED");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -294,7 +306,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_010) {
 
   try {
     auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(session.get(), "AUTO");
+        mysqlsh::dba::resolve_cluster_ssl_mode(session, "AUTO");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -325,8 +337,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_001) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                                        peer_session.get(), "");
+    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                                        peer_session, "");
     EXPECT_STREQ("REQUIRED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -358,8 +370,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_002) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                            peer_session.get(), "DISABLED");
+    mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                            peer_session, "DISABLED");
     SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_002");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -402,7 +414,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_003) {
 
   try {
     auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
-        instance_session.get(), peer_session.get(), "AUTO");
+        instance_session, peer_session, "AUTO");
     EXPECT_STREQ("REQUIRED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -436,8 +448,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_004) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                            peer_session.get(), "AUTO");
+    mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                            peer_session, "AUTO");
     SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_004");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -479,7 +491,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_005) {
 
   try {
     auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
-        instance_session.get(), peer_session.get(), "REQUIRED");
+        instance_session, peer_session, "REQUIRED");
     EXPECT_STREQ("REQUIRED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -513,8 +525,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_006) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                            peer_session.get(), "REQUIRED");
+    mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                            peer_session, "REQUIRED");
     SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_006");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -553,8 +565,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_007) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                            peer_session.get(), "REQUIRED");
+    mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                            peer_session, "REQUIRED");
     SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_007");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -596,8 +608,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_008) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                            peer_session.get(), "");
+    mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                            peer_session, "");
     SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_008");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -639,8 +651,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_009) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                                        peer_session.get(), "");
+    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                                        peer_session, "");
     EXPECT_STREQ("DISABLED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -674,8 +686,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_010) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                            peer_session.get(), "AUTO");
+    mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                            peer_session, "AUTO");
     SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_010");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -718,7 +730,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_011) {
 
   try {
     auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
-        instance_session.get(), peer_session.get(), "AUTO");
+        instance_session, peer_session, "AUTO");
     EXPECT_STREQ("DISABLED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -750,8 +762,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_012) {
   auto instance_session = create_session(_mysql_sandbox_nport2);
 
   try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance_session.get(),
-                                            peer_session.get(), "AUTO");
+    mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
+                                            peer_session, "AUTO");
     SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_012");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1093,7 +1105,7 @@ TEST_F(Dba_common_test, get_gr_replicaset_group_name) {
 
   try {
     std::string result =
-        mysqlsh::dba::get_gr_replicaset_group_name(session.get());
+        mysqlsh::dba::get_gr_replicaset_group_name(session);
 
     EXPECT_STREQ("fd4b70e8-5cb1-11e7-a68b-b86b230042b9", result.c_str());
   } catch (const shcore::Exception &e) {
@@ -1133,18 +1145,18 @@ TEST_F(Dba_common_test, validate_replicaset_group_name_001) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries_server2);
 
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> session;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
   EXPECT_NO_THROW(session = create_session(_mysql_sandbox_nport1));
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> md_session;
-  EXPECT_NO_THROW(md_session = create_local_session(_mysql_sandbox_nport2));
+  std::shared_ptr<mysqlshdk::db::ISession> md_session;
+  EXPECT_NO_THROW(md_session = create_base_session(_mysql_sandbox_nport2));
 
   if (md_session && session) {
     std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
     metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
 
     try {
-      EXPECT_TRUE(validate_replicaset_group_name(metadata, session.get(), 1));
+      EXPECT_TRUE(validate_replicaset_group_name(metadata, session, 1));
     } catch (const shcore::Exception &e) {
       SCOPED_TRACE(e.what());
       SCOPED_TRACE("Unexpected failure at validate_replicaset_group_name_001");
@@ -1188,18 +1200,18 @@ TEST_F(Dba_common_test, validate_replicaset_group_name_002) {
 
   START_SERVER_MOCK(_mysql_sandbox_nport2, queries_server2);
 
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> session;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
   EXPECT_NO_THROW(session = create_session(_mysql_sandbox_nport1));
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> md_session;
-  EXPECT_NO_THROW(md_session = create_local_session(_mysql_sandbox_nport2));
+  std::shared_ptr<mysqlshdk::db::ISession> md_session;
+  EXPECT_NO_THROW(md_session = create_base_session(_mysql_sandbox_nport2));
 
   if (md_session && session) {
     std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
     metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
 
     try {
-      EXPECT_FALSE(validate_replicaset_group_name(metadata, session.get(), 1));
+      EXPECT_FALSE(validate_replicaset_group_name(metadata, session, 1));
     } catch (const shcore::Exception &e) {
       SCOPED_TRACE(e.what());
       SCOPED_TRACE("Unexpected failure at validate_replicaset_group_name_001");
@@ -1230,7 +1242,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
 
   try {
     auto read_only =
-        mysqlsh::dba::validate_super_read_only(session.get(), true);
+        mysqlsh::dba::validate_super_read_only(session, true);
     EXPECT_TRUE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -1253,7 +1265,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
   auto session = create_session(_mysql_sandbox_nport1);
 
   try {
-    mysqlsh::dba::validate_super_read_only(session.get(), false);
+    mysqlsh::dba::validate_super_read_only(session, false);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1287,7 +1299,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
   auto session = create_session(_mysql_sandbox_nport1);
 
   try {
-    mysqlsh::dba::validate_super_read_only(session.get(), false);
+    mysqlsh::dba::validate_super_read_only(session, false);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1319,7 +1331,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
 
   try {
     auto read_only =
-        mysqlsh::dba::validate_super_read_only(session.get(), true);
+        mysqlsh::dba::validate_super_read_only(session, true);
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -1343,7 +1355,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
 
   try {
     auto read_only =
-        mysqlsh::dba::validate_super_read_only(session.get(), false);
+        mysqlsh::dba::validate_super_read_only(session, false);
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());

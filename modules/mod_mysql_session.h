@@ -29,6 +29,7 @@
 #include "shellcore/ishell_core.h"
 #include "shellcore/base_session.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 
 namespace shcore {
 class Shell_core;
@@ -119,7 +120,9 @@ public:
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
 
-  Connection *connection();
+  virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() {
+    return _session;
+  }
 
   virtual uint64_t get_connection_id() const;
   virtual std::string query_one_string(const std::string &query, int field = 0);
@@ -195,7 +198,7 @@ private:
   void init();
   std::string _retrieve_current_schema();
   void _remove_schema(const std::string& name);
-  std::shared_ptr<Connection> _conn;
+  std::shared_ptr<mysqlshdk::db::mysql::Session> _session;
 };
 };
 };

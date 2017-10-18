@@ -45,6 +45,7 @@
 
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
@@ -96,7 +97,7 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL3,
 REGISTER_HELP(DBA_VERBOSE_DETAIL4,
               "@li Boolean: equivalent to assign either 0 or 1");
 
-std::map<std::string, std::shared_ptr<mysqlsh::mysql::ClassicSession>>
+std::map<std::string, std::shared_ptr<mysqlshdk::db::ISession>>
     Dba::_session_cache;
 
 Dba::Dba(shcore::IShell_core *owner) : _shell_core(owner) {
@@ -147,7 +148,12 @@ void Dba::init() {
       std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
-  _metadata_storage.reset(new MetadataStorage(_shell_core->get_dev_session()));
+  if (_shell_core && _shell_core->get_dev_session()) {
+    _metadata_storage.reset(new MetadataStorage(
+        _shell_core->get_dev_session()->get_core_session()));
+  } else {
+     _metadata_storage.reset(new MetadataStorage(nullptr));
+  }
   _provisioning_interface.reset(
       new ProvisioningInterface(_shell_core->get_delegate()));
 }
@@ -190,12 +196,12 @@ Value Dba::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-std::shared_ptr<ShellBaseSession> Dba::get_active_session() const {
-  std::shared_ptr<ShellBaseSession> ret_val;
+std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_session() const {
+  std::shared_ptr<mysqlshdk::db::ISession> ret_val;
   if (_custom_session)
     ret_val = _custom_session;
-  else
-    ret_val = _shell_core->get_dev_session();
+  else if (_shell_core && _shell_core->get_dev_session())
+    ret_val = _shell_core->get_dev_session()->get_core_session();
 
   if (!ret_val)
     throw shcore::Exception::logic_error(
@@ -294,9 +300,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
     if (cluster) {
       // Verify if the current session instance group_replication_group_name
       // value differs from the one registered in the Metadata
-      auto current_session = get_active_session();
-      auto classic =
-          dynamic_cast<mysqlsh::mysql::ClassicSession *>(current_session.get());
+      auto classic = get_active_session();
       if (!validate_replicaset_group_name(
               _metadata_storage, classic,
               cluster->get_default_replicaset()->get_id())) {
@@ -304,7 +308,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
             get_function_name("getCluster") +
             ": Unable to get cluster. "
             "The instance '" +
-            current_session->uri(
+            classic->uri(
                 mysqlshdk::db::uri::formats::only_transport()) +
             ""
             "' may belong to "
@@ -522,6 +526,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     } else {
       throw;
     }
+  } catch (const shcore::database_error& dberr) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        dberr.error(), dberr.code(), dberr.sqlstate().c_str());
   }
 
   // Available options
@@ -592,8 +599,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           "Creating a cluster on an unmanaged replication group requires "
           "adoptFromGR option to be true");
 
-    auto session = get_active_session();
-    auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    auto classic = get_active_session();
 
     // Check if super_read_only is turned off and disable it if required
     // NOTE: this is left for last to avoid setting super_read_only to true
@@ -629,20 +635,20 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     if (adopt_from_gr) {  // TODO(paulo): move this to a GR specific class
       // check whether single_primary_mode is on
-      auto result = classic->execute_sql(
+      auto result = classic->query(
           "select @@group_replication_single_primary_mode");
       auto row = result->fetch_one();
       if (row) {
         log_info("Adopted cluster: group_replication_single_primary_mode=%s",
-                 row->get_value_as_string(0).c_str());
-        multi_master = row->get_value(0).as_int() == 0;
+                 row->get_as_string(0).c_str());
+        multi_master = row->get_int(0) == 0;
       }
     }
 
     Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list new_args;
 
-    auto instance_def = session->get_connection_options();
+    auto instance_def = classic->get_connection_options();
 
     // Only set SSL option if available from createCluster options (not empty).
     // Do not set default values to avoid validation issues for addInstance.
@@ -760,20 +766,20 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
     if (opt_map.has_key("clearReadOnly"))
         clear_read_only = opt_map.bool_at("clearReadOnly");
 
-    auto session = get_active_session();
-    auto classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    auto classic = get_active_session();
 
-    // Check if super_read_only is turned off and disable it if required
-    // NOTE: this is left for last to avoid setting super_read_only to true
-    // and right before some execution failure of the command leaving the
-    // instance in an incorrect state
-    validate_super_read_only(classic, clear_read_only);
+    if (force) {
+      // Check if super_read_only is turned off and disable it if required
+      // NOTE: this is left for last to avoid setting super_read_only to true
+      // and right before some execution failure of the command leaving the
+      // instance in an incorrect state
+      validate_super_read_only(classic, clear_read_only);
 
-    if (force)
       _metadata_storage->drop_metadata_schema();
-    else
+    } else {
       throw shcore::Exception::runtime_error(
           "No operation executed, use the 'force' option");
+    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("dropMetadataSchema"))
@@ -819,7 +825,9 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
   try {
     if (args.size()) {
       // TODO(someone): Review the case when using a Global_session
-      _custom_session = args[0].as_object<ShellBaseSession>();
+      auto session = args[0].as_object<ShellBaseSession>();
+      if (session)
+        _custom_session = session->get_core_session();
 
       if (!_custom_session)
         throw shcore::Exception::argument_error("Invalid session object.");
@@ -1240,12 +1248,12 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
           mysqlshdk::db::Connection_options instance_def(uri);
           mysqlsh::set_password_from_map(&instance_def, map);
 
-          std::shared_ptr<mysqlsh::mysql::ClassicSession> session(
-              get_session(instance_def));
+          auto session = get_session(instance_def);
+          assert(session);
 
           log_info("Creating root@%s account for sandbox %i",
                    remote_root.c_str(), port);
-          session->execute_sql("SET sql_log_bin = 0");
+          session->execute("SET sql_log_bin = 0");
           {
             std::string pwd;
             if (instance_def.has_password())
@@ -1254,15 +1262,15 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
             sqlstring create_user("CREATE USER root@? IDENTIFIED BY ?", 0);
             create_user << remote_root << pwd;
             create_user.done();
-            session->execute_sql(create_user);
+            session->execute(create_user);
           }
           {
             sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
             grant << remote_root;
             grant.done();
-            session->execute_sql(grant);
+            session->execute(grant);
           }
-          session->execute_sql("SET sql_log_bin = 1");
+          session->execute("SET sql_log_bin = 1");
 
           session->close();
         }
@@ -1765,12 +1773,15 @@ Dba::~Dba() {
   Dba::_session_cache.clear();
 }
 
-std::shared_ptr<mysqlsh::mysql::ClassicSession> Dba::get_session(
+std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
     const mysqlshdk::db::Connection_options &args) {
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> session(
-      new mysqlsh::mysql::ClassicSession());
-  session->connect(args);
-  return session;
+  std::shared_ptr<mysqlshdk::db::ISession> ret_val;
+
+  ret_val = mysqlshdk::db::mysql::Session::create();
+
+  ret_val->connect(args);
+
+  return ret_val;
 }
 
 shcore::Value::Map_type_ref Dba::_check_instance_configuration(
@@ -1830,12 +1841,16 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   // Now validates the instance GR status itself
   auto session = Dba::get_session(instance_def);
 
+  std::string user, host;
+  if (instance_def.has_user())
+    user = instance_def.get_user();
+  if (instance_def.has_host())
+    host = instance_def.get_host();
+
   // Validate the permissions of the user running the operation.
-  if (!validate_cluster_admin_user_privileges(session, session->get_user(),
-                                              session->get_host())) {
+  if (!validate_cluster_admin_user_privileges(session, user, host)) {
     std::string error_msg =
-        "Account '" + session->get_user() + "'@'" +
-        session->get_host() +
+        "Account '" + user + "'@'" + host +
         "' does not have all the required privileges to execute this "
         "operation. For more information, see the online documentation.";
     log_error("%s", error_msg.c_str());
@@ -1845,7 +1860,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   // Now validates the instance GR status itself
   std::string uri = session->uri();
 
-  GRInstanceType type = get_gr_instance_type(session->connection());
+  GRInstanceType type = get_gr_instance_type(session);
 
   if (type == GRInstanceType::GroupReplication) {
     session->close();
@@ -1860,19 +1875,16 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
         "The instance '" + uri + "' is already part of an InnoDB Cluster");
   } else {
     if (!cluster_admin.empty() && allow_update) {
-      auto classic =
-          dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
-
       // Check if super_read_only is turned off and disable it if required
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      bool super_read_only = validate_super_read_only(classic, clear_read_only);
+      bool super_read_only = validate_super_read_only(session, clear_read_only);
 
       try {
         create_cluster_admin_user(session, cluster_admin,
                                   cluster_admin_password);
-      } catch (shcore::Exception &err) {
+      } catch (shcore::database_error &err) {
         // Catch ER_CANNOT_USER (1396) if the user already exists, and skip it
         // if the user has the needed privileges.
         if (err.code() == ER_CANNOT_USER) {
@@ -1907,19 +1919,19 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
           auto session_address =
             session->uri(mysqlshdk::db::uri::formats::only_transport());
           log_info("Enabling super_read_only on the instance '%s'",
-                   session_address.c_str());
-          set_global_variable(classic->connection(), "super_read_only", "ON");
+                  session_address.c_str());
+          set_global_variable(session, "super_read_only", "ON");
         }
       }
     }
 
     if (type == GRInstanceType::InnoDBCluster) {
       auto seeds =
-          get_peer_seeds(session->connection(),
+          get_peer_seeds(session,
                          instance_def.as_uri(only_transport()));
 
       auto peer_seeds = shcore::str_join(seeds, ",");
-      set_global_variable(session->connection(),
+      set_global_variable(session,
                           "group_replication_group_seeds", peer_seeds);
     }
 
@@ -2181,8 +2193,7 @@ Undefined Dba::rebootClusterFromCompleteOutage(String clusterName,
 None Dba::reboot_cluster_from_complete_outage(str clusterName, dict options) {}
 #endif
 
-shcore::Value Dba::reboot_cluster_from_complete_outage(
-    const shcore::Argument_list &args) {
+shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_list &args) {
   args.ensure_count(
       0, 2, get_function_name("rebootClusterFromCompleteOutage").c_str());
 
@@ -2190,21 +2201,19 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   _metadata_storage->set_session(get_active_session());
 
   shcore::Value ret_val;
-  std::string cluster_name, group_replication_group_name, port,
-      host, instance_session_address;
+  std::string cluster_name, instance_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
-  std::shared_ptr<mysqlsh::ShellBaseSession> session;
   Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection;
-  std::shared_ptr<shcore::Value::Array_type> online_instances;
 
   check_preconditions("rebootClusterFromCompleteOutage");
 
   try {
-    bool default_cluster = false, clear_read_only = false;
+    bool default_cluster = false;
+    bool clear_read_only = false;
 
     if (args.size() == 0) {
       default_cluster = true;
@@ -2434,14 +2443,11 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
     // 6. Set the current session instance as the seed instance of the Cluster
     {
-      auto classic =
-        dynamic_cast<mysqlsh::mysql::ClassicSession*>(instance_session.get());
-
       // Check if super_read_only is turned off and disable it if required
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(classic, clear_read_only);
+      validate_super_read_only(instance_session, clear_read_only);
 
       shcore::Argument_list new_args;
       std::string replication_user, replication_user_password;
@@ -2498,9 +2504,7 @@ std::vector<std::pair<std::string, std::string>>
 Dba::get_replicaset_instances_status(
     std::string *out_cluster_name, const shcore::Value::Map_type_ref &options) {
   std::vector<std::pair<std::string, std::string>> instances_status;
-  std::shared_ptr<mysqlsh::ShellBaseSession> session;
-  std::string host, port, active_session_address,
-      instance_address, conn_status;
+  std::string active_session_address, instance_address, conn_status;
 
   // Point the metadata session to the dba session
   _metadata_storage->set_session(get_active_session());
@@ -2511,7 +2515,7 @@ Dba::get_replicaset_instances_status(
   std::shared_ptr<Cluster> cluster =
       _metadata_storage->get_cluster(*out_cluster_name);
   uint64_t rs_id = cluster->get_default_replicaset()->get_id();
-  std::shared_ptr<shcore::Value::Array_type> instances =
+  std::vector<Instance_definition> instances =
       _metadata_storage->get_replicaset_instances(rs_id);
 
   // get the current session information
@@ -2530,11 +2534,9 @@ Dba::get_replicaset_instances_status(
   }
 
   // Iterate on all instances from the metadata
-  for (auto it = instances->begin(); it != instances->end(); ++it) {
-    auto row = it->as_object<mysqlsh::Row>();
-    instance_address = row->get_member("host").as_string();
+  for (const auto &it : instances) {
+    instance_address = it.endpoint;
     conn_status.clear();
-    session = NULL;
 
     // Skip the current session instance
     if (instance_address == active_session_address) {
@@ -2551,7 +2553,7 @@ Dba::get_replicaset_instances_status(
       log_info(
           "Opening a new session to the instance to determine its status: %s",
           instance_address.c_str());
-      session = get_session(connection_options);
+      auto session = get_session(connection_options);
       session->close();
     } catch (std::exception &e) {
       conn_status = e.what();
@@ -2578,10 +2580,8 @@ Dba::get_replicaset_instances_status(
  */
 void Dba::validate_instances_status_reboot_cluster(
     const shcore::Argument_list &args) {
-  std::string cluster_name, port, host, active_session_address;
+  std::string cluster_name, active_session_address;
   shcore::Value::Map_type_ref options;
-  std::shared_ptr<mysqlsh::ShellBaseSession> session;
-  mysqlsh::mysql::ClassicSession *classic_current;
 
   if (args.size() == 1)
     cluster_name = args.string_at(0);
@@ -2595,10 +2595,8 @@ void Dba::validate_instances_status_reboot_cluster(
 
   // get the current session information
   auto instance_session(_metadata_storage->get_session());
-  classic_current =
-      dynamic_cast<mysqlsh::mysql::ClassicSession *>(instance_session.get());
 
-  auto current_session_options = classic_current->get_connection_options();
+  auto current_session_options = instance_session->get_connection_options();
 
   // Get the current session instance address
   active_session_address =
@@ -2615,7 +2613,7 @@ void Dba::validate_instances_status_reboot_cluster(
                         "the options");
   }
 
-  GRInstanceType type = get_gr_instance_type(classic_current->connection());
+  GRInstanceType type = get_gr_instance_type(instance_session);
 
   switch (type) {
     case GRInstanceType::InnoDBCluster:
@@ -2647,9 +2645,7 @@ void Dba::validate_instances_status_reboot_cluster(
   std::vector<std::pair<std::string, std::string>> instances_status =
       get_replicaset_instances_status(&cluster_name, options);
 
-  for (auto &value : instances_status) {
-    mysqlsh::mysql::ClassicSession *classic;
-
+  for (const auto &value : instances_status) {
     std::string instance_address = value.first;
     std::string instance_status = value.second;
 
@@ -2665,17 +2661,18 @@ void Dba::validate_instances_status_reboot_cluster(
     connection_options.set_user(current_session_options.get_user());
     connection_options.set_password(current_session_options.get_password());
 
+    std::shared_ptr<mysqlshdk::db::ISession> session;
+
     try {
       log_info("Opening a new session to the instance: %s",
                instance_address.c_str());
       session = get_session(connection_options);
-      classic = dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
     } catch (std::exception &e) {
       throw Exception::runtime_error("Could not open connection to " +
                                      instance_address + "");
     }
 
-    GRInstanceType type = get_gr_instance_type(classic->connection());
+    GRInstanceType type = get_gr_instance_type(session);
 
     // Close the session
     session->close();
@@ -2719,7 +2716,7 @@ void Dba::validate_instances_status_reboot_cluster(
  */
 void Dba::validate_instances_gtid_reboot_cluster(
     std::string *out_cluster_name, const shcore::Value::Map_type_ref &options,
-    const std::shared_ptr<ShellBaseSession> &instance_session) {
+    const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) {
   /* GTID verification is done by verifying which instance has the GTID
    * superset.the In order to do so, a union of the global gtid executed and the
    * received transaction set must be done using:
@@ -2741,15 +2738,11 @@ void Dba::validate_instances_gtid_reboot_cluster(
    */
 
   std::pair<std::string, std::string> most_updated_instance;
-  mysqlsh::mysql::ClassicSession *classic_current;
-  std::shared_ptr<mysqlsh::ShellBaseSession> session;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string active_session_address;
 
   // get the current session information
-  classic_current =
-      dynamic_cast<mysqlsh::mysql::ClassicSession *>(instance_session.get());
-
-  auto current_session_options = classic_current->get_connection_options();
+  auto current_session_options = instance_session->get_connection_options();
 
   // Get the current session instance address
   active_session_address = current_session_options.as_uri(only_transport());
@@ -2765,7 +2758,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
   // Get @@GLOBAL.GTID_EXECUTED
   std::string gtid_executed_current;
-  get_server_variable(classic_current->connection(), "GLOBAL.GTID_EXECUTED",
+  get_server_variable(instance_session, "GLOBAL.GTID_EXECUTED",
                       gtid_executed_current);
 
   std::string msg = "The current session instance GLOBAL.GTID_EXECUTED is: " +
@@ -2782,8 +2775,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
   most_updated_instance =
       std::make_pair(active_session_address, gtid_executed_current);
 
-  for (auto &value : instances_status) {
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> classic;
+  for (const auto &value : instances_status) {
     std::string instance_address = value.first;
     std::string instance_status = value.second;
 
@@ -2801,7 +2793,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
     try {
       log_info("Opening a new session to the instance for gtid validations %s",
                instance_address.c_str());
-      classic = get_session(connection_options);
+      session = get_session(connection_options);
     } catch (std::exception &e) {
       throw Exception::runtime_error("Could not open a connection to " +
                                      instance_address + ": " + e.what() + ".");
@@ -2810,11 +2802,11 @@ void Dba::validate_instances_gtid_reboot_cluster(
     std::string gtid_executed;
 
     // Get @@GLOBAL.GTID_EXECUTED
-    get_server_variable(classic->connection(), "GLOBAL.GTID_EXECUTED",
+    get_server_variable(session, "GLOBAL.GTID_EXECUTED",
                         gtid_executed);
 
     // Close the session
-    classic->close();
+    session->close();
 
     std::string msg = "The instance: '" + instance_address +
                       "' GLOBAL.GTID_EXECUTED is: " + gtid_executed;
@@ -2829,7 +2821,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
   for (auto &value : gtids) {
     // Compare the gtid's: SELECT GTID_SUBSET("Total_instance1",
     // "Total_instance2")
-    if (!is_gtid_subset(classic_current->connection(), value.second,
+    if (!is_gtid_subset(instance_session, value.second,
                         most_updated_instance.second))
       most_updated_instance = value;
   }

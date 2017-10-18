@@ -94,15 +94,14 @@ protected:
 
     // Set the hostname variable
     std::string hostname;
-    {
-      std::shared_ptr<mysqlshdk::db::mysql::Session> session;
-      // Connect to test server to get the hostname
-      session = mysqlshdk::db::mysql::Session::create();
-      session->connect(connection_options);
+    auto session = mysqlshdk::db::mysql::Session::create();
 
-      hostname = *mysqlshdk::mysql::Instance(session).get_sysvar_string(
-          "hostname", mysqlshdk::mysql::VarScope::GLOBAL);
-    }
+    // Connect to test server to get the hostname
+    session->connect(connection_options);
+    mysqlsh::dba::get_server_variable(session, "hostname", hostname);
+
+    session->close();
+
     std::string code = "var hostname = '" + hostname + "';";
     exec_and_out_equals(code);
     code = "var __user = '" + user + "';";

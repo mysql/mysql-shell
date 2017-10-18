@@ -23,15 +23,17 @@
 #ifndef _MOD_RESULT_H_
 #define _MOD_RESULT_H_
 
+#include <vector>
+#include<string>
+#include <list>
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "modules/devapi/base_resultset.h"
-#include <list>
+#include "mysqlshdk/libs/db/mysql/result.h"
+#include "mysqlshdk/libs/db/mysql/row.h"
 
 namespace mysqlsh {
 namespace mysql {
-class Result;
-class Row;
 
 /**
 * \ingroup ShellAPI
@@ -41,10 +43,12 @@ class Row;
 */
 class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 public:
-  ClassicResult(std::shared_ptr<Result> result);
+  explicit ClassicResult(std::shared_ptr<mysqlshdk::db::mysql::Result> result);
 
-  std::shared_ptr<mysql::Row> fetch_one() const;
-  std::vector<std::shared_ptr<mysql::Row>> fetch_all() const;
+  // TODO(rennox): This function should be removed, the callers of this function
+  // should either use the low level implementation (ISession) or the high level
+  // implementation ClassicResult as exposed to the user API.
+  const mysqlshdk::db::IRow* fetch_one() const;
 
   virtual std::string class_name() const { return "ClassicResult"; }
   virtual shcore::Value get_member(const std::string &prop) const;
@@ -55,8 +59,18 @@ public:
   virtual shcore::Value fetch_all(const shcore::Argument_list &args) const;
   virtual shcore::Value next_data_set(const shcore::Argument_list &args);
 
-protected:
-  std::shared_ptr<Result> _result;
+  shcore::Value::Array_type_ref get_columns() const;
+
+  void set_execution_time(unsigned long execution_time) {
+    _execution_time = execution_time;
+  }
+
+ private:
+  std::shared_ptr<mysqlshdk::db::mysql::Result> _result;
+  unsigned long _execution_time;
+  std::shared_ptr<std::vector<std::string>> _column_names;
+  mutable shcore::Value::Array_type_ref _columns;
+
 
 #if DOXYGEN_JS
   Integer affectedRowCount; //!< Same as getAffectedItemCount()

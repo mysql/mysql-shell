@@ -30,10 +30,10 @@
 
 #include "scripting/types.h"
 #include "scripting/lang_base.h"
-#include "modules/mod_mysql_session.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "modules/mod_utils.h"
+#include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -42,6 +42,30 @@ void SHCORE_PUBLIC validate_cluster_name(const std::string& name);
 void SHCORE_PUBLIC validate_label(const std::string &lavel);
 
 class MetadataStorage;
+
+struct Instance_definition {
+  int host_id;
+  int replicaset_id;
+  std::string uuid;
+  std::string label;
+  std::string role;
+  std::string state;
+  std::string endpoint;
+  std::string xendpoint;
+  std::string grendpoint;
+
+  bool operator==(const Instance_definition& other) const {
+    return host_id == other.host_id &&
+           replicaset_id == other.replicaset_id &&
+           uuid == other.uuid &&
+           label == other.label &&
+           role == other.role &&
+           state == other.state &&
+           endpoint == other.endpoint &&
+           xendpoint == other.xendpoint &&
+           grendpoint == other.grendpoint;
+  }
+};
 
 // Note that this structure may be initialized using initializer
 // lists, so the order of hte fields is very important
@@ -149,22 +173,23 @@ extern const std::map<std::string, std::set<std::string>> k_schema_grants;
 
 void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
 void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options);
-void validate_replication_filters(mysqlsh::mysql::ClassicSession *session);
+void validate_replication_filters(
+    std::shared_ptr<mysqlshdk::db::ISession> session);
 std::pair<int, int> find_cluster_admin_accounts(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &admin_user, std::vector<std::string> *out_hosts);
 bool validate_cluster_admin_user_privileges(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &admin_user, const std::string &admin_host);
 void create_cluster_admin_user(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &username, const std::string &password);
 std::string SHCORE_PUBLIC resolve_cluster_ssl_mode(
-    mysqlsh::mysql::ClassicSession *session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string& member_ssl_mode);
 std::string SHCORE_PUBLIC resolve_instance_ssl_mode(
-    mysqlsh::mysql::ClassicSession *session,
-    mysqlsh::mysql::ClassicSession *psession,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> psession,
     const std::string& member_ssl_mode);
 std::vector<std::string> get_instances_gr(
     const std::shared_ptr<MetadataStorage> &metadata);
@@ -175,12 +200,12 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
 std::vector<MissingInstanceInfo> get_unavailable_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 std::string SHCORE_PUBLIC get_gr_replicaset_group_name(
-    mysqlsh::mysql::ClassicSession *session);
+    std::shared_ptr<mysqlshdk::db::ISession> session);
 bool SHCORE_PUBLIC validate_replicaset_group_name(
     const std::shared_ptr<MetadataStorage> &metadata,
-    mysqlsh::mysql::ClassicSession *session, uint64_t rs_id);
+    std::shared_ptr<mysqlshdk::db::ISession> session, uint64_t rs_id);
 bool validate_super_read_only(
-    mysqlsh::mysql::ClassicSession *session, bool clear_read_only);
+    std::shared_ptr<mysqlshdk::db::ISession> session, bool clear_read_only);
 }  // namespace dba
 }  // namespace mysqlsh
 

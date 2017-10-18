@@ -86,14 +86,15 @@ std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent),
 }
 
 static void append_member_status(const shcore::Value::Map_type_ref &node,
-                                 std::shared_ptr<mysqlsh::Row> member_row,
+                                 const Instance_definition& instance,
                                  bool read_write,
                                  bool active_session_instance) {
-  (*node)["address"] = member_row->get_member(4);
+  (*node)["address"] = shcore::Value(instance.endpoint);
 
-  auto status = member_row->get_member(3);
-  (*node)["status"] = status ? status : shcore::Value("(MISSING)");
-  (*node)["role"] = member_row->get_member(2);
+  (*node)["status"] = instance.state.empty() ?
+      shcore::Value("(MISSING)") :
+      shcore::Value(instance.state);
+  (*node)["role"] = shcore::Value(instance.role);
   (*node)["mode"] = shcore::Value(read_write ? "R/W" : "R/O");
 }
 
@@ -158,10 +159,8 @@ void ReplicaSet::init() {
 void ReplicaSet::verify_topology_type_change() const {
   // Get GR single primary mode value.
   int gr_primary_mode;
-  auto instance_session(_metadata_storage->get_session());
-  auto classic =
-      dynamic_cast<mysqlsh::mysql::ClassicSession *>(instance_session.get());
-  get_server_variable(classic->connection(),
+  auto classic(_metadata_storage->get_session());
+  get_server_variable(classic,
                       "group_replication_single_primary_mode", gr_primary_mode);
 
   // Check if the topology type matches the real settings used by the
@@ -275,14 +274,14 @@ static bool check_if_local_host(const std::string &hostname) {
 }
 
 void ReplicaSet::validate_instance_address(
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> session,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &hostname, int port) {
   if (check_if_local_host(hostname)) {
     // if the address is local (localhost or 127.0.0.1), we know it's local and
     // so can be used with sandboxes only
-    std::string datadir = session->execute_sql("SELECT @@datadir")
+    std::string datadir = session->query("SELECT @@datadir")
                               ->fetch_one()
-                              ->get_value_as_string(0);
+                              ->get_as_string(0);
     if (!datadir.empty() && (datadir[datadir.size() - 1] == '/' ||
                              datadir[datadir.size() - 1] == '\\'))
       datadir.pop_back();
@@ -303,14 +302,14 @@ void ReplicaSet::validate_instance_address(
           hostname.c_str(), datadir.c_str());
     }
   } else {
-    auto result = session->execute_sql("select @@report_host, @@hostname");
+    auto result = session->query("select @@report_host, @@hostname");
     auto row = result->fetch_one();
     // host is not set explicitly by the user, so GR will pick hostname by
     // default now we check if this is a loopback address
-    if (!row->get_value(0)) {
-      if (check_if_local_host(row->get_value_as_string(1))) {
+    if (row->is_null(0)) {
+      if (check_if_local_host(row->get_as_string(1))) {
         std::string msg = "MySQL server reports hostname as being '" +
-                          row->get_value_as_string(1) +
+                          row->get_as_string(1) +
                           "', which may cause the cluster to be inaccessible "
                           "externally. Please set report_host in MySQL to fix "
                           "this.";
@@ -391,19 +390,18 @@ shcore::Value ReplicaSet::add_instance(
   validate_instance_address(session, joiner_host, instance_def.get_port());
 
   // Check replication filters before creating the Metadata.
-  validate_replication_filters(session.get());
+  validate_replication_filters(session);
 
   // Resolve the SSL Mode to use to configure the instance.
   std::string new_ssl_mode;
   std::string target;
   if (seed_instance) {
-    new_ssl_mode = resolve_cluster_ssl_mode(session.get(), ssl_mode);
+    new_ssl_mode = resolve_cluster_ssl_mode(session, ssl_mode);
     target = "cluster";
   } else {
-    auto peer_session = dynamic_cast<mysqlsh::mysql::ClassicSession *>(
-        _metadata_storage->get_session().get());
+    auto peer_session = _metadata_storage->get_session();
     new_ssl_mode =
-        resolve_instance_ssl_mode(session.get(), peer_session, ssl_mode);
+        resolve_instance_ssl_mode(session, peer_session, ssl_mode);
     target = "instance";
   }
 
@@ -413,23 +411,19 @@ shcore::Value ReplicaSet::add_instance(
                 ssl_mode.c_str());
   }
 
-  GRInstanceType type = get_gr_instance_type(session->connection());
+  GRInstanceType type = get_gr_instance_type(session);
 
   if (type != GRInstanceType::Standalone) {
     // Retrieves the new instance UUID
     std::string uuid;
-    get_server_variable(session->connection(), "server_uuid", uuid);
+    get_server_variable(session, "server_uuid", uuid);
     session->close();
 
     // Verifies if the instance is part of the cluster replication group
     auto cluster_session = _metadata_storage->get_session();
-    auto cluster_classic_session =
-        std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
-            cluster_session);
 
     // Verifies if this UUID is part of the current replication group
-    if (is_server_on_replication_group(cluster_classic_session->connection(),
-                                       uuid)) {
+    if (is_server_on_replication_group(cluster_session, uuid)) {
       if (type == GRInstanceType::InnoDBCluster) {
         log_debug("Instance '%s' already managed by InnoDB cluster",
                   instance_address.c_str());
@@ -635,7 +629,7 @@ shcore::Value ReplicaSet::rejoin_instance(
   std::string ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
   std::string ip_whitelist, user, password;
   shcore::Value::Array_type_ref errors;
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> classic, seed_classic;
+  std::shared_ptr<mysqlshdk::db::ISession> session, seed_session;
 
   // Retrieves the options
   if (rejoin_options) {
@@ -689,16 +683,14 @@ shcore::Value ReplicaSet::rejoin_instance(
     try {
       log_info("Opening a new session to the rejoining instance %s",
                instance_address.c_str());
-      classic.reset(new mysql::ClassicSession());
-      classic->connect(*instance_def);
+      session = get_session(*instance_def);
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;
     }
 
-    if (!validate_replicaset_group_name(_metadata_storage, classic.get(),
-                                        _id)) {
+    if (!validate_replicaset_group_name(_metadata_storage, session, _id)) {
       std::string nice_error =
           "The instance '" + instance_address +
           "' "
@@ -708,7 +700,7 @@ shcore::Value ReplicaSet::rejoin_instance(
           "registered in the ReplicaSet's Metadata: possible split-brain "
           "scenario. Please remove the instance from the cluster.";
 
-      classic->close();
+      session->close();
 
       throw shcore::Exception::runtime_error(nice_error);
     }
@@ -729,10 +721,14 @@ shcore::Value ReplicaSet::rejoin_instance(
   // current metadata session
 
   // Get the current cluster session from the metadata
-  auto md_session(_metadata_storage->get_session());
+  auto md_session = _metadata_storage->get_session();
+  auto md_connection_options = md_session->get_connection_options();
 
-  user = md_session->get_user();
-  password = md_session->get_connection_options().get_password();
+  if (md_connection_options.has_user())
+    user = md_connection_options.get_user();
+
+  if (md_connection_options.has_password())
+    password = md_connection_options.get_password();
 
   connection_options.set_user(user);
   connection_options.set_password(password);
@@ -741,8 +737,7 @@ shcore::Value ReplicaSet::rejoin_instance(
   try {
     log_info("Opening a new session to seed instance: %s",
              seed_instance.c_str());
-    seed_classic.reset(new mysql::ClassicSession());
-    seed_classic->connect(connection_options);
+    seed_session = get_session(connection_options);
   } catch (std::exception &e) {
     throw Exception::runtime_error("Could not open a connection to " +
                                    seed_instance + ": " + e.what() + ".");
@@ -756,7 +751,7 @@ shcore::Value ReplicaSet::rejoin_instance(
         seed_instance.c_str());
 
     std::string plugin_status =
-        get_plugin_status(seed_classic->connection(), "group_replication");
+        get_plugin_status(seed_session, "group_replication");
 
     if (plugin_status != "ACTIVE") {
       throw shcore::Exception::runtime_error(
@@ -767,21 +762,19 @@ shcore::Value ReplicaSet::rejoin_instance(
 
   // Get @@group_replication_local_address
   std::string seed_instance_xcom_address;
-  get_server_variable(classic->connection(), "group_replication_local_address",
+  get_server_variable(session, "group_replication_local_address",
                       seed_instance_xcom_address);
 
   // join Instance to cluster
   {
     int exit_code;
-    shcore::Argument_list temp_args;
 
     // Check replication filters before creating the Metadata.
-    validate_replication_filters(classic.get());
+    validate_replication_filters(session);
 
     std::string new_ssl_mode;
     // Resolve the SSL Mode to use to configure the instance.
-    new_ssl_mode =
-        resolve_instance_ssl_mode(classic.get(), seed_classic.get(), ssl_mode);
+    new_ssl_mode = resolve_instance_ssl_mode(session, seed_session, ssl_mode);
     if (new_ssl_mode != ssl_mode) {
       ssl_mode = new_ssl_mode;
       log_warning("SSL mode used to configure the instance: '%s'",
@@ -789,14 +782,12 @@ shcore::Value ReplicaSet::rejoin_instance(
     }
 
     // Get SSL values to connect to peer instance
-    auto seed_instance_def = seed_classic->get_connection_options();
+    auto seed_instance_def = seed_session->get_connection_options();
 
     // Stop group-replication
     log_info("Stopping group-replication at instance %s",
              instance_address.c_str());
-    temp_args.clear();
-    temp_args.push_back(shcore::Value("STOP GROUP_REPLICATION"));
-    classic->run_sql(temp_args);
+    session->execute("STOP GROUP_REPLICATION");
 
     // Get the seed session connection data
     // use mysqlprovision to rejoin the cluster.
@@ -882,14 +873,14 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   // If missing, get instance admin and user information from the metadata
   // session which is the session saved on the cluster
   if (!instance_def.has_user() || !instance_def.has_password()) {
-    auto instance_session(_metadata_storage->get_session());
+    auto instance_session = _metadata_storage->get_session();
+    auto connection_options = instance_session->get_connection_options();
 
-    if (!instance_def.has_user())
-      instance_def.set_user(instance_session->get_user());
+    if (!instance_def.has_user() && connection_options.has_user())
+      instance_def.set_user(connection_options.get_user());
 
-    if (!instance_def.has_password())
-      instance_def.set_password(
-          instance_session->get_connection_options().get_password());
+    if (!instance_def.has_password() && connection_options.has_password())
+      instance_def.set_password(connection_options.get_password());
   }
 
   // Check if the instance was already added
@@ -924,10 +915,8 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   }
 
   auto session = _metadata_storage->get_session();
-  mysqlsh::mysql::ClassicSession *classic =
-      dynamic_cast<mysqlsh::mysql::ClassicSession *>(session.get());
 
-  GRInstanceType type = get_gr_instance_type(classic->connection());
+  GRInstanceType type = get_gr_instance_type(session);
 
   // TODO(miguel): do we remove the host? we check if is the last instance of
   // that host and them remove? auto result =
@@ -988,7 +977,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
         // If leave replicaset failed and force was not used then check the
         // state of the instance to assess the possible cause of the failure.
         ManagedInstance::State state =
-            get_instance_state(classic->connection(), instance_address);
+            get_instance_state(session, instance_address);
         if (state == ManagedInstance::Unreachable ||
             state == ManagedInstance::Missing) {
           // Send a diferent error if the instance is not reachable
@@ -1071,12 +1060,10 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
 }
 
 void ReplicaSet::remove_instances_from_gr(
-    const shcore::Value::Array_type_ref &instances) {
+    const std::vector<Instance_definition> &instances) {
   MetadataStorage::Transaction tx(_metadata_storage);
 
   auto instance_session(_metadata_storage->get_session());
-  auto classic =
-      dynamic_cast<mysqlsh::mysql::ClassicSession *>(instance_session.get());
   auto connection_options = instance_session->get_connection_options();
 
   /* This function usually starts by removing from the replicaset the R/W
@@ -1087,22 +1074,19 @@ void ReplicaSet::remove_instances_from_gr(
 
   // Get the R/W instance
   std::string master_uuid, master_instance;
-  get_status_variable(classic->connection(), "group_replication_primary_member",
+  get_status_variable(instance_session, "group_replication_primary_member",
                       master_uuid, false);
 
   if (!master_uuid.empty()) {
-    for (auto value : *instances.get()) {
-      auto row = value.as_object<mysqlsh::Row>();
-      if (row->get_member(0).as_string() == master_uuid) {
-        master_instance = row->get_member("host").as_string();
+    for (const auto& value : instances) {
+      if (value.uuid == master_uuid) {
+        master_instance = value.endpoint;
       }
     }
   }
 
-  for (auto value : *instances.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-
-    std::string instance_str = row->get_member("host").as_string();
+  for (const auto& value : instances) {
+    std::string instance_str = value.endpoint;
 
     if (instance_str != master_instance) {
       remove_instance_from_gr(instance_str, connection_options);
@@ -1242,26 +1226,22 @@ std::string ReplicaSet::get_peer_instance() {
   // We need to retrieve a peer instance, so let's use the Seed one
   // If using single-primary mode the Seed instance is the primary
   auto instance_session = _metadata_storage->get_session();
-  auto classic =
-      dynamic_cast<mysqlsh::mysql::ClassicSession *>(instance_session.get());
-  get_status_variable(classic->connection(), "group_replication_primary_member",
+  get_status_variable(instance_session, "group_replication_primary_member",
                       master_uuid, false);
 
   auto instances = _metadata_storage->get_replicaset_online_instances(get_id());
 
   if (!master_uuid.empty()) {
-    for (auto value : *instances.get()) {
-      auto row = value.as_object<mysqlsh::Row>();
-      if (row->get_member(0).as_string() == master_uuid) {
-        master_instance = row->get_member("host").as_string();
+    for (auto& instance : instances) {
+      if (instance.uuid == master_uuid) {
+        master_instance = instance.endpoint;
       }
     }
-  } else {
+  } else if (!instances.empty()){
     // If in multi-master mode, any instance works
     // so we can get the first one that is online
-    auto value = instances.get()->front();
-    auto row = value.as_object<mysqlsh::Row>();
-    master_instance = row->get_member("host").as_string();
+    auto instance = instances[0];
+    master_instance = instance.endpoint;
   }
 
   return master_instance;
@@ -1296,10 +1276,7 @@ shcore::Value ReplicaSet::retrieve_instance_state(
 
   // We will work with the session saved on the metadata which points to the
   // cluster Assuming it is the R/W instance
-  auto master_dev_session = _metadata_storage->get_session();
-  auto master_session =
-      std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
-          master_dev_session);
+  auto master_session = _metadata_storage->get_session();
 
   // We have to retrieve these variables to do the actual state validation
   std::string master_gtid_executed;
@@ -1307,14 +1284,14 @@ shcore::Value ReplicaSet::retrieve_instance_state(
   std::string instance_gtid_executed;
   std::string instance_gtid_purged;
 
-  get_gtid_state_variables(master_session->connection(), master_gtid_executed,
+  get_gtid_state_variables(master_session, master_gtid_executed,
                            master_gtid_purged);
-  get_gtid_state_variables(instance_session->connection(),
+  get_gtid_state_variables(instance_session,
                            instance_gtid_executed, instance_gtid_purged);
 
   // Now we perform the validation
   SlaveReplicationState state = get_slave_replication_state(
-      master_session->connection(), instance_gtid_executed);
+      master_session, instance_gtid_executed);
 
   std::string reason;
   std::string status;
@@ -1370,10 +1347,9 @@ void ReplicaSet::add_instance_metadata(
             instance_address.c_str());
   // get the server_uuid from the joining instance
   {
-    std::shared_ptr<mysqlsh::mysql::ClassicSession> classic;
+    std::shared_ptr<mysqlshdk::db::ISession> classic;
     try {
-      classic.reset(new mysqlsh::mysql::ClassicSession());
-      classic->connect(instance_definition);
+      classic = get_session(instance_definition);
     } catch (Exception &e) {
       std::stringstream ss;
       ss << "Error opening session to '" << instance_address
@@ -1399,26 +1375,26 @@ void ReplicaSet::add_instance_metadata(
     }
     {
       // Query UUID of the member and its public hostname
-      auto result = classic->execute_sql("SELECT @@server_uuid");
+      auto result = classic->query("SELECT @@server_uuid");
       auto row = result->fetch_one();
       if (row) {
-        mysql_server_uuid = row->get_value_as_string(0);
+        mysql_server_uuid = row->get_as_string(0);
       } else {
         throw Exception::runtime_error("@@server_uuid could not be queried");
       }
     }
     try {
-      auto result = classic->execute_sql("SELECT @@mysqlx_port");
+      auto result = classic->query("SELECT @@mysqlx_port");
       auto xport_row = result->fetch_one();
       if (xport_row)
-        xport = static_cast<int>(xport_row->get_value(0).as_int());
+        xport = xport_row->get_int(0);
     } catch (std::exception &e) {
       log_info("Could not query xplugin port, using default value: %s",
                e.what());
     }
 
     // Loads the local HR host data
-    get_server_variable(classic->connection(),
+    get_server_variable(classic,
                         "group_replication_local_address", local_gr_address,
                         false);
 
@@ -1486,10 +1462,9 @@ std::vector<std::string> ReplicaSet::get_online_instances() {
   auto online_instances =
       _metadata_storage->get_replicaset_online_instances(_id);
 
-  for (auto value : *online_instances.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-
-    std::string instance_host = row->get_member(3).as_string();
+  for (auto &instance : online_instances) {
+    // TODO: Review if end point is the right thing
+    std::string instance_host = instance.endpoint;
     online_instances_array.push_back(instance_host);
   }
 
@@ -1540,7 +1515,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     const shcore::Argument_list &args) {
   shcore::Value ret_val;
   uint64_t rset_id = get_id();
-  std::shared_ptr<mysqlsh::mysql::ClassicSession> classic;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
 
   auto instance_def =
       mysqlsh::get_connection_options(args, PasswordFormat::STRING);
@@ -1579,16 +1554,14 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     try {
       log_info("Opening a new session to the partition instance %s",
                instance_address.c_str());
-      classic.reset(new mysql::ClassicSession());
-      classic->connect(instance_def);
+      session = get_session(instance_def);
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;
     }
 
-    if (!validate_replicaset_group_name(_metadata_storage, classic.get(),
-                                        _id)) {
+    if (!validate_replicaset_group_name(_metadata_storage, session, _id)) {
       std::string nice_error =
           "The instance '" + instance_address +
           "' "
@@ -1599,7 +1572,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
           "registered in the ReplicaSet's Metadata: possible split-brain "
           "scenario.";
 
-      classic->close();
+      session->close();
 
       throw shcore::Exception::runtime_error(nice_error);
     }
@@ -1608,23 +1581,10 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   // Get the instance state
   ReplicationGroupState state;
 
-  try {
-    log_info("Opening a new session to the partition instance %s",
-             instance_address.c_str());
-    // NOTE(rennox): A session was already opened above, is another reqlly
-    // required??
-    classic.reset(new mysql::ClassicSession());
-    classic->connect(instance_def);
-  } catch (std::exception &e) {
-    log_error("Could not open connection to '%s': %s", instance_address.c_str(),
-              e.what());
-    throw;
-  }
-
-  auto instance_type = get_gr_instance_type(classic->connection());
+  auto instance_type = get_gr_instance_type(session);
 
   if (instance_type != GRInstanceType::Standalone) {
-    state = get_replication_group_state(classic->connection(), instance_type);
+    state = get_replication_group_state(session, instance_type);
 
     if (state.source_state != ManagedInstance::OnlineRW &&
         state.source_state != ManagedInstance::OnlineRO) {
@@ -1644,22 +1604,20 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     throw shcore::Exception::runtime_error(message);
   }
 
-  classic->close();
+  session->close();
 
   // Get the online instances of the ReplicaSet to user as group_peers
   auto online_instances =
       _metadata_storage->get_replicaset_online_instances(rset_id);
 
-  if (!online_instances)
+  if (online_instances.empty())
     throw shcore::Exception::logic_error(
         "No online instances are visible from the given one.");
 
   std::string group_peers;
 
-  for (auto value : *online_instances.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
-
-    std::string instance_host = row->get_member(3).as_string();
+  for (auto &instance : online_instances) {
+    std::string instance_host = instance.endpoint;
     auto instance_def = shcore::get_connection_options(instance_host, false);
     instance_def.set_user("root");
     // We assume the root password is the same on all instances
@@ -1670,8 +1628,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
           "Opening a new session to a group_peer instance to obtain the XCOM "
           "address %s",
           instance_host.c_str());
-      classic.reset(new mysql::ClassicSession());
-      classic->connect(instance_def);
+      session = get_session(instance_def);
     } catch (std::exception &e) {
       log_error("Could not open connection to %s: %s", instance_address.c_str(),
                 e.what());
@@ -1681,7 +1638,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     std::string group_peer_instance_xcom_address;
 
     // Get @@group_replication_local_address
-    get_server_variable(classic->connection(),
+    get_server_variable(session,
                         "group_replication_local_address",
                         group_peer_instance_xcom_address);
 
@@ -1689,24 +1646,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     group_peers.append(",");
   }
 
-  classic->close();
-
   // Force the reconfiguration of the GR group
   {
-    try {
-      log_info("Opening a new session to the partition instance %s",
-               instance_address.c_str());
-      // NOTE(rennox): This is the third session opened to the same instance
-      // :), let's open sessions on every single scope! At least let's make it
-      // a function
-      classic.reset(new mysql::ClassicSession());
-      classic->connect(instance_def);
-    } catch (std::exception &e) {
-      log_error("Could not open connection to '%s': %s",
-                instance_address.c_str(), e.what());
-      throw;
-    }
-
     // Remove the trailing comma of group_peers
     if (group_peers.back() == ',')
       group_peers.pop_back();
@@ -1714,10 +1655,10 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     log_info("Setting the group_replication_force_members at instance %s",
              instance_address.c_str());
 
-    set_global_variable(classic->connection(),
+    set_global_variable(session,
                         "group_replication_force_members", group_peers);
 
-    classic->close();
+    session->close();
   }
 
   return ret_val;
@@ -1734,35 +1675,21 @@ shcore::Value ReplicaSet::get_description() const {
   shcore::Value ret_val = shcore::Value::new_map();
   auto description = ret_val.as_map();
 
-  shcore::sqlstring query(
-      "SELECT mysql_server_uuid, instance_name, role, "
-      "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) AS host "
-      "FROM mysql_innodb_cluster_metadata.instances "
-      "WHERE replicaset_id = ?",
-      0);
-  query << _id;
-  query.done();
-
-  auto result = _metadata_storage->execute_sql(query);
-
-  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
-
   // First we identify the master instance
-  auto instances = raw_instances.as_array();
+  auto instances = _metadata_storage->get_replicaset_instances(_id);
 
   (*description)["name"] = shcore::Value(_name);
   (*description)["instances"] = shcore::Value::new_array();
 
   auto instance_list = description->get_array("instances");
 
-  for (auto value : *instances.get()) {
-    auto row = value.as_object<mysqlsh::Row>();
+  for (const auto &value : instances) {
     auto instance = shcore::Value::new_map();
     auto instance_obj = instance.as_map();
 
-    (*instance_obj)["label"] = row->get_member(1);
-    (*instance_obj)["host"] = row->get_member(3);
-    (*instance_obj)["role"] = row->get_member(2);
+    (*instance_obj)["label"] = shcore::Value(value.label);
+    (*instance_obj)["host"] = shcore::Value(value.endpoint);
+    (*instance_obj)["role"] = shcore::Value(value.role);
 
     instance_list->push_back(instance);
   }
@@ -1783,48 +1710,33 @@ shcore::Value ReplicaSet::get_status(
 
   // get the current cluster session from the metadata
   auto instance_session = _metadata_storage->get_session();
-  auto classic =
-      dynamic_cast<mysqlsh::mysql::ClassicSession *>(instance_session.get());
 
   // Identifies the master node
   std::string master_uuid;
   if (single_primary_mode) {
-    get_status_variable(classic->connection(),
+    get_status_variable(instance_session,
                         "group_replication_primary_member", master_uuid, false);
   }
 
   // Get SSL Mode used by the cluster (same on all members of the replicaset).
   std::string gr_ssl_mode;
-  get_server_variable(classic->connection(), "group_replication_ssl_mode",
+  get_server_variable(instance_session, "group_replication_ssl_mode",
                       gr_ssl_mode, true);
 
-  shcore::sqlstring query(
-      "SELECT mysql_server_uuid, instance_name, role, MEMBER_STATE, "
-      "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host "
-      "FROM mysql_innodb_cluster_metadata.instances "
-      "LEFT JOIN performance_schema.replication_group_members "
-      "ON `mysql_server_uuid`=`MEMBER_ID` WHERE replicaset_id = ?",
-      0);
-  query << _id;
-  query.done();
+  auto instances = _metadata_storage->get_replicaset_instances(_id, true);
 
-  auto result = _metadata_storage->execute_sql(query);
-
-  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
-
-  auto instances = raw_instances.as_array();
-
-  std::shared_ptr<mysqlsh::Row> master;
+  Instance_definition master;
+  bool master_found = false;
   int online_count = 0, total_count = 0;
 
-  for (auto value : *instances.get()) {
+  for (const auto &value : instances) {
     total_count++;
-    auto row = value.as_object<mysqlsh::Row>();
-    if (row->get_member(0).as_string() == master_uuid)
-      master = row;
+    if (value.uuid == master_uuid) {
+      master = value;
+      master_found = true;
+    }
 
-    auto status = row->get_member(3);
-    if (status && status.as_string() == "ONLINE")
+    if (value.state == "ONLINE")
       online_count++;
   }
 
@@ -1844,8 +1756,7 @@ shcore::Value ReplicaSet::get_status(
   ReplicaSetStatus::Status rs_status;
 
   // Get the current cluster session from the metadata
-  auto session = std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(
-      _metadata_storage->get_session());
+  auto session = _metadata_storage->get_session();
   auto options = session->get_connection_options();
 
   std::string active_session_address =
@@ -1890,32 +1801,30 @@ shcore::Value ReplicaSet::get_status(
   (*status)["ssl"] = shcore::Value(gr_ssl_mode);
 
   // In single primary mode we need to add the "primary" field
-  if (single_primary_mode && master)
-    (*status)["primary"] = master->get_member(4);
+  if (single_primary_mode && master_found)
+    (*status)["primary"] = shcore::Value(master.endpoint);
 
   // Creates the topology node
   (*status)["topology"] = shcore::Value::new_map();
   auto instance_owner_node = status->get_map("topology");
 
   // Inserts the instances
-  for (auto value : *instances.get()) {
+  for (const auto &value : instances) {
     // Gets each row
-    auto row = value.as_object<mysqlsh::Row>();
-
-    auto instance_label = row->get_member(1).as_string();
+    auto instance_label = value.label;
     (*instance_owner_node)[instance_label] = shcore::Value::new_map();
     auto instance_node = instance_owner_node->get_map(instance_label);
 
     // check if it is the active session instance
     bool active_session_instance = false;
 
-    if (active_session_address == row->get_member(4).as_string())
+    if (active_session_address == value.endpoint)
       active_session_instance = true;
 
-    if (row == master && single_primary_mode)
-      append_member_status(instance_node, row, true, active_session_instance);
+    if (value == master && single_primary_mode)
+      append_member_status(instance_node, value, true, active_session_instance);
     else
-      append_member_status(instance_node, row,
+      append_member_status(instance_node, value,
                            single_primary_mode ? false : true,
                            active_session_instance);
 
@@ -1990,4 +1899,15 @@ void ReplicaSet::rejoin_instances(
       }
     }
   }
+}
+
+std::shared_ptr<mysqlshdk::db::ISession> ReplicaSet::get_session(
+    const mysqlshdk::db::Connection_options &args) {
+  std::shared_ptr<mysqlshdk::db::ISession> ret_val;
+
+  ret_val = mysqlshdk::db::mysql::Session::create();
+
+  ret_val->connect(args);
+
+  return ret_val;
 }

@@ -211,11 +211,8 @@ shcore::Value Cluster::add_seed_instance(
   ret_val = _default_replica_set->add_instance(
       connection_options, args, replication_user, replication_pwd);
 
-  auto metadata_session = dynamic_cast<mysqlsh::mysql::ClassicSession *>(
-      _metadata_storage->get_session().get());
-
   std::string group_replication_group_name =
-      get_gr_replicaset_group_name(metadata_session);
+      get_gr_replicaset_group_name(_metadata_storage->get_session());
   _metadata_storage->set_replicaset_group_name(_default_replica_set,
                                                group_replication_group_name);
 
@@ -387,7 +384,6 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
-  // Point the metadata session to the cluster session
   _metadata_storage->set_session(_session);
 
   check_preconditions("addInstance");

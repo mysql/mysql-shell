@@ -631,12 +631,6 @@ void ResultsetDumper::dump_warnings(bool classic) {
       std::string level = "level";
       std::string message = "message";
 
-      if (classic) {
-        code = "Code";
-        level = "Level";
-        message = "Message";
-      }
-
       unsigned long error = row->get_member(code).as_int();
 
       std::string type = row->get_member(level).as_string();

@@ -21,29 +21,17 @@
 #define MODULES_ADMINAPI_MOD_DBA_METADATA_STORAGE_H_
 
 #include <string>
+#include <vector>
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_replicaset.h"
+#include "mysqlshdk/libs/db/session.h"
 
 #define ER_NOT_VALID_PASSWORD 1819
 #define ER_PLUGIN_IS_NOT_LOADED 1524
 
 namespace mysqlsh {
-namespace mysql {
-class ClassicResult;
-}
 namespace dba {
-struct Instance_definition {
-  int host_id;
-  int replicaset_id;
-  std::string uuid;
-  std::string label;
-  std::string role;
-  std::string endpoint;
-  std::string xendpoint;
-  std::string grendpoint;
-};
-
 #if DOXYGEN_CPP
 /**
 * Represents a session to a Metadata Storage
@@ -51,7 +39,7 @@ struct Instance_definition {
 #endif
 class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
  public:
-  explicit MetadataStorage(std::shared_ptr<mysqlsh::ShellBaseSession> session);
+  explicit MetadataStorage(std::shared_ptr<mysqlshdk::db::ISession> session);
   ~MetadataStorage();
 
   bool metadata_schema_exists();
@@ -88,9 +76,9 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   uint64_t get_replicaset_count(uint64_t rs_id) const;
 
   std::string get_seed_instance(uint64_t rs_id);
-  virtual std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(
-      uint64_t rs_id);
-  std::shared_ptr<shcore::Value::Array_type> get_replicaset_online_instances(
+  std::vector<Instance_definition> get_replicaset_instances(
+      uint64_t rs_id, bool with_state = false);
+  std::vector<Instance_definition> get_replicaset_online_instances(
       uint64_t rs_id);
 
   Instance_definition get_instance(const std::string &instance_address);
@@ -98,13 +86,13 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   virtual void create_repl_account(std::string &username,
                                    std::string &password);
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> get_session() const {
+  std::shared_ptr<mysqlshdk::db::ISession> get_session() const {
     return _session;
   }
 
-  void set_session(std::shared_ptr<mysqlsh::ShellBaseSession> session);
+  void set_session(std::shared_ptr<mysqlshdk::db::ISession> session);
 
-  std::shared_ptr<mysql::ClassicResult> execute_sql(
+  std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
       const std::string &sql, bool retry = false,
       const std::string &log_sql = "") const;
 
@@ -143,7 +131,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   MetadataStorage() {}
 
  private:
-  std::shared_ptr<mysqlsh::ShellBaseSession> _session;
+  std::shared_ptr<mysqlshdk::db::ISession> _session;
+  int _tx_deep;
 
   virtual void start_transaction();
   virtual void commit();

@@ -22,15 +22,31 @@
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 
 namespace tests {
 
 class Dba_replicaset_test: public Admin_api_test {
  protected:
+  std::shared_ptr<mysqlshdk::db::ISession> create_base_session(
+        int port) {
+    mysqlshdk::db::Connection_options connection_options;
+
+    connection_options.set_host("localhost");
+    connection_options.set_port(port);
+    connection_options.set_user("user");
+    connection_options.set_password("");
+
+    auto session = mysqlshdk::db::mysql::Session::create();
+
+    session->connect(connection_options);
+
+    return session;
+  }
+
   // Creates a replicaset instance mock
   void init_test() {
-    _base_session = std::static_pointer_cast<mysqlsh::ShellBaseSession>(
-        create_local_session(_mysql_sandbox_nport1));
+    _base_session = create_local_session(_mysql_sandbox_nport1);
     std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
     metadata.reset(new mysqlsh::dba::MetadataStorage(_base_session));
 
@@ -41,7 +57,7 @@ class Dba_replicaset_test: public Admin_api_test {
     _replicaset->set_id(1);
   }
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> _base_session;
+  std::shared_ptr<mysqlshdk::db::ISession> _base_session;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> _replicaset;
   std::vector<testing::Fake_result_data> _queries;
 };

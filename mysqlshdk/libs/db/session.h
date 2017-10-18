@@ -55,6 +55,9 @@ class SHCORE_PUBLIC ISession {
   // Connection
   virtual void connect(const mysqlshdk::db::Connection_options& data) = 0;
 
+  virtual const mysqlshdk::db::Connection_options& get_connection_options()
+      const = 0;
+
   virtual const char *get_ssl_cipher() const = 0;
 
   // Execution
@@ -65,7 +68,17 @@ class SHCORE_PUBLIC ISession {
   // Disconnection
   virtual void close() = 0;
 
+  virtual bool is_open() const = 0;
+
   virtual ~ISession() {}
+
+  // TODO(rennox): This is a convenient function as URI is being retrieved from
+  // the session in many places, eventually should be removed, if needed URI
+  // should be retrieved as get_connection_options().as_uri()
+  std::string uri(mysqlshdk::db::uri::Tokens_mask format =
+                    mysqlshdk::db::uri::formats::full_no_password()) const {
+                      return get_connection_options().as_uri(format);
+                    }
 };
 }  // namespace db
 }  // namespace mysqlshdk

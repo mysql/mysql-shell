@@ -71,34 +71,56 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   // Utility functions to retriev session status
   uint64_t get_thread_id() {
+    _prev_result.reset();
     if (_mysql)
       return mysql_thread_id(_mysql);
     return 0;
   }
   uint64_t get_protocol_info() {
+    _prev_result.reset();
     if (_mysql)
       return mysql_get_proto_info(_mysql);
     return 0;
   }
   const char *get_connection_info() {
+    _prev_result.reset();
     if (_mysql)
       return mysql_get_host_info(_mysql);
     return nullptr;
   }
   const char *get_server_info() {
+    _prev_result.reset();
     if (_mysql)
       return mysql_get_server_info(_mysql);
     return nullptr;
   }
   const char *get_stats() {
+    _prev_result.reset();
     if (_mysql)
       return mysql_stat(_mysql);
     return nullptr;
   }
-  const char *get_ssl_cipher() const {
+  const char *get_ssl_cipher() {
+    _prev_result.reset();
     if (_mysql)
       return mysql_get_ssl_cipher(_mysql);
     return nullptr;
+  }
+
+  bool is_open() const { return _mysql ? true: false; }
+
+  const char* get_last_error(int* out_code, const char** out_sqlstate) {
+    if (out_code)
+      *out_code = mysql_errno(_mysql);
+    if (out_sqlstate)
+      *out_sqlstate = mysql_sqlstate(_mysql);
+
+    return mysql_error(_mysql);
+  }
+
+
+  const mysqlshdk::db::Connection_options & get_connection_options() const {
+    return _connection_options;
   }
 
   std::shared_ptr<IResult> run_sql(const std::string &sql,
@@ -109,6 +131,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   MYSQL *_mysql;
 
   std::shared_ptr<MYSQL_RES> _prev_result;
+  mysqlshdk::db::Connection_options _connection_options;
 };
 
 class SHCORE_PUBLIC Session : public ISession,
@@ -123,6 +146,11 @@ class SHCORE_PUBLIC Session : public ISession,
     _impl->connect(connection_options);
   }
 
+  virtual const mysqlshdk::db::Connection_options &get_connection_options()
+      const {
+    return _impl->get_connection_options();
+  }
+
   virtual std::shared_ptr<IResult> query(const std::string &sql,
                                          bool buffered = false) {
     return _impl->query(sql, buffered);
@@ -131,6 +159,23 @@ class SHCORE_PUBLIC Session : public ISession,
   virtual void execute(const std::string &sql) { _impl->execute(sql); }
   virtual void close() { _impl->close(); }
   virtual const char *get_ssl_cipher() const { return _impl->get_ssl_cipher(); }
+  virtual bool is_open() const { return _impl->is_open(); }
+
+  uint64_t get_connection_id() const {
+    return _impl->get_thread_id();
+  }
+  uint64_t get_protocol_info() {
+    return _impl->get_protocol_info();
+  }
+  const char *get_connection_info() {
+    return _impl->get_connection_info();
+  }
+  const char *get_server_info() {
+    return _impl->get_server_info();
+  }
+  const char *get_stats() {
+    return _impl->get_stats();
+  }
 
  private:
   Session() {

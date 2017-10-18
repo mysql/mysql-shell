@@ -196,6 +196,10 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
     return _session.get();
   }
 
+  virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() {
+    return _session;
+  }
+
  public:
   // TODO(alfredo) legacy - replace with mysqlx calls
   shcore::Value executeAdminCommand(const std::string &command, bool,

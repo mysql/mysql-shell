@@ -81,10 +81,10 @@ class Mock_metadata_storage : public mysqlsh::dba::MetadataStorage {
   MOCK_METHOD2(create_repl_account,
                void(std::string &username, std::string &password));
 
-  MOCK_CONST_METHOD0(get_session, std::shared_ptr<mysqlsh::ShellBaseSession>());
+  MOCK_CONST_METHOD0(get_session, std::shared_ptr<mysqlshdk::db::ISession>());
 
   MOCK_METHOD1(set_session,
-               void(std::shared_ptr<mysqlsh::ShellBaseSession> session));
+               void(std::shared_ptr<mysqlshdk::db::ISession> session));
 
   MOCK_CONST_METHOD3(execute_sql,
                      std::shared_ptr<mysqlsh::mysql::ClassicResult>(

@@ -59,6 +59,11 @@ class Dba_test : public tests::Admin_api_test {
     _interactive_shell->shell_context()->set_global("dba", dba);
   }
 
+  std::shared_ptr<mysqlsh::mysql::ClassicSession> get_classic_session() {
+    auto session = _interactive_shell->shell_context()->get_dev_session();
+    return std::dynamic_pointer_cast<mysqlsh::mysql::ClassicSession>(session);
+  }
+
   StrictMock<Mock_dba> _dba;
   std::vector<testing::Fake_result_data> _queries;
   bool _mock_started;
@@ -386,6 +391,8 @@ TEST_F(Dba_drop_metadata, clear_read_only_unset) {
 
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
+  auto map = options.as_map();
+  (*map)["force"] = shcore::Value(true);
   args.push_back(shcore::Value(options));
 
   std::string error =
@@ -422,6 +429,7 @@ TEST_F(Dba_drop_metadata, clear_read_only_false) {
   shcore::Argument_list args;
   auto options = shcore::Value::new_map();
   auto map = options.as_map();
+  (*map)["force"] = shcore::Value(true);
   (*map)["clearReadOnly"] = shcore::Value(false);
   args.push_back(shcore::Value(options));
 

@@ -20,11 +20,12 @@
 #include <string>
 #include <iomanip>
 #include "mod_mysql_resultset.h"
-#include "mysql_connection.h"
 #include "modules/devapi/base_constants.h"
 #include "shellcore/shell_core_options.h"
 #include "shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
+#include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -37,8 +38,9 @@ REGISTER_HELP(CLASSICRESULT_BRIEF, "Allows browsing through the result informati
 REGISTER_HELP(CLASSICRESULT_DETAIL, "This class allows access to the result set from "\
 "the classic MySQL data model to be retrieved from Dev API queries.");
 
-ClassicResult::ClassicResult(std::shared_ptr<Result> result)
-  : _result(result) {
+ClassicResult::ClassicResult(
+    std::shared_ptr<mysqlshdk::db::mysql::Result> result)
+    : _result(result) {
   add_property("columns", "getColumns");
   add_property("columnCount", "getColumnCount");
   add_property("columnNames", "getColumnNames");
@@ -53,6 +55,10 @@ ClassicResult::ClassicResult(std::shared_ptr<Result> result)
   add_method("fetchAll", std::bind((shcore::Value(ClassicResult::*)(const shcore::Argument_list &)const)&ClassicResult::fetch_all, this, _1), NULL);
   add_method("nextDataSet", std::bind(&ClassicResult::next_data_set, this, _1), NULL);
   add_method("hasData", std::bind(&ClassicResult::has_data, this, _1), NULL);
+
+  _column_names.reset(new std::vector<std::string>());
+  for (auto &cmd : _result->get_metadata())
+    _column_names->push_back(cmd.get_column_label());
 }
 
 // Documentation of the hasData function
@@ -87,32 +93,36 @@ Row ClassicResult::fetchOne() {}
 #elif DOXYGEN_PY
 Row ClassicResult::fetch_one() {}
 #endif
-shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const {
+shcore::Value ClassicResult::fetch_one(
+    const shcore::Argument_list &args) const {
+  shcore::Value ret_val = shcore::Value::Null();
+
   args.ensure_count(0, get_function_name("fetchOne").c_str());
-  auto inner_row = std::unique_ptr<Row>(_result->fetch_one());
 
-  if (inner_row) {
-    mysqlsh::Row *value_row = new mysqlsh::Row();
-
-    std::vector<Field> metadata(_result->get_metadata());
-
-    for (size_t index = 0; index < metadata.size(); index++) {
-      value_row->add_item(metadata[index].name(), inner_row->get_value(index));
+  try {
+    if (_result) {
+      const mysqlshdk::db::IRow *row = _result->fetch_one();
+      if (row) {
+        ret_val = shcore::Value::wrap(new mysqlsh::Row(_column_names, *row));
+      }
     }
-
-    return shcore::Value::wrap(value_row);
   }
-  return shcore::Value::Null();
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("fetchOne"));
+
+  return ret_val;
 }
 
-std::shared_ptr<mysql::Row> ClassicResult::fetch_one() const {
-  return std::shared_ptr<Row>(_result->fetch_one());
+const mysqlshdk::db::IRow* ClassicResult::fetch_one() const {
+  return _result->fetch_one();
 }
 
 // Documentation of the nextDataSet function
-REGISTER_HELP(CLASSICRESULT_NEXTDATASET_BRIEF, "Prepares the SqlResult to start reading data from the next Result (if many results were returned).");
-REGISTER_HELP(CLASSICRESULT_NEXTDATASET_RETURNS, "@returns A boolean value indicating whether "\
-"there is another result or not.");
+REGISTER_HELP(CLASSICRESULT_NEXTDATASET_BRIEF,
+              "Prepares the SqlResult to start reading data from the next "
+              "Result (if many results were returned).");
+REGISTER_HELP(CLASSICRESULT_NEXTDATASET_RETURNS,
+              "@returns A boolean value indicating whether "
+              "there is another result or not.");
 
 /**
 * $(CLASSICRESULT_NEXTDATASET_BRIEF)
@@ -127,7 +137,7 @@ bool ClassicResult::next_data_set() {}
 shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("nextDataSet").c_str());
 
-  return shcore::Value(_result->next_data_set());
+  return shcore::Value(_result->next_resultset());
 }
 
 // Documentation of the fetchAll function
@@ -164,16 +174,6 @@ shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args) const 
   }
 
   return shcore::Value(array);
-}
-
-std::vector<std::shared_ptr<mysql::Row>> ClassicResult::fetch_all() const {
-  std::vector<std::shared_ptr<mysql::Row>> rows;
-  std::shared_ptr<mysql::Row> row = fetch_one();
-  while (row) {
-    rows.push_back(row);
-    row = fetch_one();
-  }
-  return rows;
 }
 
 // Documentation of the getAffectedRowCount function
@@ -330,7 +330,9 @@ List ClassicResult::getWarnings() {}
 list ClassicResult::get_warnings() {}
 #endif
 
-static shcore::Value get_field_type(Field &meta) {
+
+
+/*static shcore::Value get_field_type(Field &meta) {
   std::string type_name;
   switch (meta.type()) {
     case MYSQL_TYPE_NULL:
@@ -412,34 +414,61 @@ static shcore::Value get_field_type(Field &meta) {
   assert(!type_name.empty());
   return mysqlsh::Constant::get_constant("mysqlx", "Type", type_name,
                                          shcore::Argument_list());
-}
+}*/
+
 
 shcore::Value ClassicResult::get_member(const std::string &prop) const {
   if (prop == "affectedRowCount")
     return shcore::Value(
-        (int64_t)((_result->affected_rows() == ~(my_ulonglong)0)
+        (int64_t)((_result->get_affected_row_count() == ~(my_ulonglong)0)
                       ? 0
-                      : _result->affected_rows()));
+                      : _result->get_affected_row_count()));
 
   if (prop == "warningCount")
-    return shcore::Value(_result->warning_count());
+    return shcore::Value(_result->get_warning_count());
 
   if (prop == "warnings") {
-    auto inner_warnings = _result->query_warnings().release();
+    std::shared_ptr<shcore::Value::Array_type> array(
+        new shcore::Value::Array_type);
+    if (_result) {
+      while (std::unique_ptr<mysqlshdk::db::Warning> warning =
+                 _result->fetch_one_warning()) {
+        mysqlsh::Row *warning_row = new mysqlsh::Row();
+        switch (warning->level) {
+          case mysqlshdk::db::Warning::Level::Note:
+            warning_row->add_item("level", shcore::Value("Note"));
+            break;
+          case mysqlshdk::db::Warning::Level::Warning:
+            warning_row->add_item("level", shcore::Value("Warning"));
+            break;
+          case mysqlshdk::db::Warning::Level::Error:
+            warning_row->add_item("level", shcore::Value("Error"));
+            break;
+        }
+        warning_row->add_item("code", shcore::Value(warning->code));
+        warning_row->add_item("message", shcore::Value(warning->msg));
+
+        array->push_back(shcore::Value::wrap(warning_row));
+      }
+    }
+
+    return shcore::Value(array);
+
+/*    auto inner_warnings = _result->query_warnings().release();
     std::shared_ptr<ClassicResult> warnings(
         new ClassicResult(std::shared_ptr<Result>(inner_warnings)));
-    return warnings->fetch_all(shcore::Argument_list());
+    return warnings->fetch_all(shcore::Argument_list());*/
   }
 
   if (prop == "executionTime")
     return shcore::Value(
-        MySQL_timer::format_legacy(_result->execution_time(), 2));
+        MySQL_timer::format_legacy(_execution_time, 2));
 
   if (prop == "autoIncrementValue")
-    return shcore::Value((int)_result->last_insert_id());
+    return shcore::Value((int)_result->get_auto_increment_value());
 
   if (prop == "info")
-    return shcore::Value(_result->info());
+    return shcore::Value(_result->get_info());
 
   if (prop == "columnCount") {
     size_t count = _result->get_metadata().size();
@@ -448,7 +477,14 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
   }
 
   if (prop == "columnNames") {
-    std::vector<Field> metadata(_result->get_metadata());
+    std::shared_ptr<shcore::Value::Array_type> array(
+        new shcore::Value::Array_type);
+    for (auto &cmd : _result->get_metadata())
+      array->push_back(shcore::Value(cmd.get_column_label()));
+
+    return shcore::Value(array);
+
+    /*std::vector<Field> metadata(_result->get_metadata());
 
     std::shared_ptr<shcore::Value::Array_type> array(
         new shcore::Value::Array_type);
@@ -458,11 +494,12 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
     for (int i = 0; i < num_fields; i++)
       array->push_back(shcore::Value(metadata[i].name()));
 
-    return shcore::Value(array);
+    return shcore::Value(array);*/
   }
 
   if (prop == "columns") {
-    std::vector<Field> metadata(_result->get_metadata());
+    return shcore::Value(get_columns());
+    /*std::vector<Field> metadata(_result->get_metadata());
 
     std::shared_ptr<shcore::Value::Array_type> array(
         new shcore::Value::Array_type);
@@ -488,10 +525,99 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
           shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
     }
 
-    return shcore::Value(array);
+    return shcore::Value(array);*/
   }
 
   return ShellBaseResult::get_member(prop);
+}
+
+shcore::Value::Array_type_ref ClassicResult::get_columns() const {
+  if (!_columns) {
+    _columns.reset(new shcore::Value::Array_type);
+
+    for (auto &column_meta : _result->get_metadata()) {
+      std::string type_name;
+      switch (column_meta.get_type()) {
+        case mysqlshdk::db::Type::Null:
+          type_name = "NULL";
+          break;
+        case mysqlshdk::db::Type::String:
+          type_name = "STRING";
+          break;
+        case mysqlshdk::db::Type::Integer:
+        case mysqlshdk::db::Type::UInteger:
+          type_name = "INT";
+          switch (column_meta.get_length()) {
+            case 3:
+            case 4:
+              type_name = "TINYINT";
+              break;
+            case 5:
+            case 6:
+              type_name = "SMALLINT";
+              break;
+            case 8:
+            case 9:
+              type_name = "MEDIUMINT";
+              break;
+            case 10:
+            case 11:
+              type_name = "INT";
+              break;
+            case 20:
+              type_name = "BIGINT";
+              break;
+          }
+          break;
+        case mysqlshdk::db::Type::Float:
+          type_name = "FLOAT";
+          break;
+        case mysqlshdk::db::Type::Double:
+          type_name = "DOUBLE";
+          break;
+        case mysqlshdk::db::Type::Decimal:
+          type_name = "DECIMAL";
+          break;
+        case mysqlshdk::db::Type::Bytes:
+          type_name = "BYTES";
+          break;
+        case mysqlshdk::db::Type::Geometry:
+          type_name = "GEOMETRY";
+          break;
+        case mysqlshdk::db::Type::Json:
+          type_name = "JSON";
+          break;
+        case mysqlshdk::db::Type::DateTime:
+          type_name = "DATETIME";
+          break;
+        case mysqlshdk::db::Type::Date:
+          type_name = "DATE";
+          break;
+        case mysqlshdk::db::Type::Time:
+          type_name = "TIME";
+          break;
+        case mysqlshdk::db::Type::Bit:
+          type_name = "BIT";
+          break;
+        case mysqlshdk::db::Type::Enum:
+          type_name = "ENUM";
+          break;
+        case mysqlshdk::db::Type::Set:
+          type_name = "SET";
+          break;
+      }
+      assert(!type_name.empty());
+      shcore::Value data_type = mysqlsh::Constant::get_constant(
+          "mysql", "Type", type_name, shcore::Argument_list());
+
+      assert(data_type);
+
+      _columns->push_back(
+          shcore::Value::wrap(new mysqlsh::Column(column_meta, data_type)));
+    }
+  }
+
+  return _columns;
 }
 
 void ClassicResult::append_json(shcore::JSON_dumper& dumper) const {
