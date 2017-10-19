@@ -66,22 +66,17 @@ Cluster.status();
 
 // Rejoin tests
 
-//@# Dba: kill instance 3
+//@# Dba: stop instance 3
+// Use stop sandbox instance to make sure the instance is gone before restarting it
 if (__sandbox_dir)
-  dba.killSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir});
+    dba.stopSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir, password: 'root'});
 else
-  dba.killSandboxInstance(__mysql_sandbox_port3);
+    dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root'});
 
-// XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
-// But won't be available for the GA release. So we need to wait until the instance is reported
-// as offline
 wait_slave_state(Cluster, uri3, ["(MISSING)"]);
 
-//@# Dba: start instance 3
-if (__sandbox_dir)
-  dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir});
-else
-  dba.startSandboxInstance(__mysql_sandbox_port3);
+// start instance 3
+try_restart_sandbox(__mysql_sandbox_port3);
 
 //@ Cluster: rejoinInstance errors
 Cluster.rejoinInstance();
