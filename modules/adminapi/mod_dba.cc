@@ -1900,16 +1900,16 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
           errors->push_back(shcore::Value(error_msg));
           log_error("%s", error_msg.c_str());
         }
-      }
 
-      // If we disabled super_read_only we must enable it back
-      // also confirm that the initial status was 1/ON
-      if (clear_read_only && super_read_only) {
-        auto session_address =
-          session->uri(mysqlshdk::db::uri::formats::only_transport());
-        log_info("Enabling super_read_only on the instance '%s'",
-                 session_address.c_str());
-        set_global_variable(classic->connection(), "super_read_only", "ON");
+        // If we disabled super_read_only we must enable it back
+        // also confirm that the initial status was 1/ON
+        if (clear_read_only && super_read_only) {
+          auto session_address =
+            session->uri(mysqlshdk::db::uri::formats::only_transport());
+          log_info("Enabling super_read_only on the instance '%s'",
+                   session_address.c_str());
+          set_global_variable(classic->connection(), "super_read_only", "ON");
+        }
       }
     }
 
