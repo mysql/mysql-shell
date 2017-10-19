@@ -1267,6 +1267,10 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
           session->close();
         }
       }
+      log_warning(
+          "Sandbox instances are only suitable for deploying and running on "
+          "your local machine for testing purposes and are not accessible from "
+          "external networks.");
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
