@@ -55,9 +55,15 @@ var cluster = dba.createCluster('sample');
 cluster.addInstance(connection2);
 wait_slave_state(cluster, uri2, "ONLINE");
 
+// Wait for the second added instance to fetch all the replication data
+wait_sandbox_in_metadata(__mysql_sandbox_port2);
+
 //@<OUT> Adds other instance
 cluster.addInstance(connection3);
 wait_slave_state(cluster, uri3, "ONLINE");
+
+// Wait for the third added instance to fetch all the replication data
+wait_sandbox_in_metadata(__mysql_sandbox_port3);
 
 //@<OUT> Rejoins an instance
 kill_sandbox(__mysql_sandbox_port3);

@@ -73,22 +73,17 @@ cluster.status()
 
 # Rejoin tests
 
-#@# Dba: kill instance 3
+#@# Dba: stop instance 3
+# Use stop sandbox instance to make sure the instance is gone before restarting it
 if __sandbox_dir:
-  dba.kill_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir":__sandbox_dir})
+    dba.stop_sandbox_instance(__mysql_sandbox_port3, {'sandboxDir': __sandbox_dir, 'password': 'root'})
 else:
-  dba.kill_sandbox_instance(__mysql_sandbox_port3)
+    dba.stop_sandbox_instance(__mysql_sandbox_port3, {'password': 'root'})
 
-# XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
-# But won't be available for the GA release. So we need to wait until the instance is reported
-# as offline
 wait_slave_state(cluster, uri3, ["(MISSING)"])
 
-#@# Dba: start instance 3
-if __sandbox_dir:
-  dba.start_sandbox_instance(__mysql_sandbox_port3, {"sandboxDir": __sandbox_dir})
-else:
-  dba.start_sandbox_instance(__mysql_sandbox_port3)
+# start instance 3
+try_restart_sandbox(__mysql_sandbox_port3)
 
 #@: Cluster: rejoin_instance errors
 cluster.rejoin_instance();
@@ -112,3 +107,8 @@ wait_slave_state(cluster, uri3, "ONLINE")
 cluster.status()
 
 cluster.dissolve({'force': True})
+
+# Disable super-read-only (BUG#26422638)
+shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
+session.run_sql("SET GLOBAL SUPER_READ_ONLY = 0;")
+session.close()
