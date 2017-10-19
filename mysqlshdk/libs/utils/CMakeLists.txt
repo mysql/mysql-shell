@@ -23,6 +23,7 @@ set(utils_SOURCE
     utils_time.cc
     utils_file.cc
     utils_path.cc
+    utils_process.cc
     utils_json.cc
     utils_general.cc
     utils_sqlstring.cc

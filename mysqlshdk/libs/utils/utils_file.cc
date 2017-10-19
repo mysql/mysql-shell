@@ -519,6 +519,16 @@ bool load_text_file(const std::string& path, std::string& data) {
   return ret_val;
 }
 
+std::string SHCORE_PUBLIC get_text_file(const std::string& path) {
+  std::string data;
+  if (!load_text_file(path, data)) {
+    char sys_err[64];
+    (void)strerror_r(errno, sys_err, sizeof(sys_err));
+    throw std::runtime_error(path + ": " + sys_err);
+  }
+  return data;
+}
+
 /*
  * Deletes a file in a cross platform manner. If file removal file, an exception is thrown.
  * If file does not exist, fails silently.

@@ -986,10 +986,12 @@ def start_sandbox(**kwargs):
             # Find out last position of error log, before starting the process
             # since the error log persists several sessions.
             error_log_end_pos = os.path.getsize(error_log_path)
+            error_log_mtime = os.stat(error_log_path).st_mtime
         else:
             # if error_log didn't exist, start reading at the beginning of the
             # file
             error_log_end_pos = 0
+            error_log_mtime = 0
 
         server_proc = tools.run_subprocess(start_cmd, shell=False,
                                            close_fds=True)
@@ -1006,9 +1008,13 @@ def start_sandbox(**kwargs):
                 # Wait for the log file to be created by the server.
                 time.sleep(1)
                 i += 1
-            else:
-                # Log file created by the server and available.
+            elif os.stat(error_log_path).st_mtime > error_log_mtime:
+                # Log file created or updated by the server and available.
                 break
+            else:
+                # Wait for something to be written by the server
+                time.sleep(1)
+                i += 1
         else:
             raise exceptions.GadgetError(
                 "Timeout waiting for the MySQL log error file to be "

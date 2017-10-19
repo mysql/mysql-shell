@@ -77,9 +77,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   execute("\\connect -mx " + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS("Requested session assumes MySQL X Protocol but '" +
-                            _host + ":" + _mysql_port +
-                            "' seems to speak the classic MySQL protocol");
+  // wrong protocol can manifest as this error or a 2006 'gone away' error
+  if (output_handler.std_err.find("MySQL Error 2006") == std::string::npos)
+    MY_EXPECT_STDERR_CONTAINS(
+        "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+        _mysql_port + "' seems to speak the classic MySQL protocol");
   output_handler.wipe_all();
 
   // Invalid user/password
