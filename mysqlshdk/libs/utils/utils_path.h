@@ -21,6 +21,7 @@
 #define MYSQLSHDK_LIBS_UTILS_UTILS_PATH_H_
 
 #include <string>
+#include <vector>
 #include "scripting/common.h"
 
 namespace shcore {
@@ -28,6 +29,17 @@ namespace path {
 namespace detail {
 std::string expand_user(const std::string &path, const std::string &sep);
 }  // namespace detail
+
+std::string SHCORE_PUBLIC join_path(const std::vector<std::string>& components);
+
+std::pair<std::string, std::string> SHCORE_PUBLIC splitdrive(
+    const std::string &path);
+
+#ifdef WIN32
+const char path_separator = '\\';
+#else
+const char path_separator = '/';
+#endif
 
 /**
  * Get home directory path of the user executing the shell.

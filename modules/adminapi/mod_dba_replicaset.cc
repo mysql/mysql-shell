@@ -296,8 +296,11 @@ void ReplicaSet::validate_instance_address(
           "hostname or IP. " +
           hostname + " can only be used with sandbox MySQL instances.");
     } else {
-      log_info("'%s' (%s) detected as local sandbox", hostname.c_str(),
-               datadir.c_str());
+      log_warning(
+          "'%s' (%s) detected as local sandbox. Sandbox instances are only "
+          "suitable for deploying and running on your local machine for "
+          "testing purposes and are not accessible from external networks.",
+          hostname.c_str(), datadir.c_str());
     }
   } else {
     auto result = session->execute_sql("select @@report_host, @@hostname");
