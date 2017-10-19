@@ -388,6 +388,7 @@ EXCEPTIONS
                  allowed: "AUTO", "DISABLED", "REQUIRED".
   RuntimeError: if the SSL mode specified is not compatible with the one used
                 in the cluster.
+  RuntimeError: if the instance is an active member of the ReplicaSet.
 
 RETURNS
 

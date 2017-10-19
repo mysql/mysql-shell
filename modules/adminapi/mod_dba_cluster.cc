@@ -411,6 +411,9 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS5, "@throws ArgumentError if the "\
 REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS6, "@throws RuntimeError if the SSL "\
                                               "mode specified is not compatible "\
                                               "with the one used in the cluster.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS7, "@throws RuntimeError if the "\
+                                              "instance is an active member "\
+                                              "of the ReplicaSet.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_RETURNS, "@returns nothing.");
 
@@ -493,6 +496,7 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL25, "The ipWhitelist format is a "\
 * $(CLUSTER_REJOININSTANCE_THROWS4)
 * $(CLUSTER_REJOININSTANCE_THROWS5)
 * $(CLUSTER_REJOININSTANCE_THROWS6)
+* $(CLUSTER_REJOININSTANCE_THROWS7)
 *
 * $(CLUSTER_REJOININSTANCE_RETURNS)
 *

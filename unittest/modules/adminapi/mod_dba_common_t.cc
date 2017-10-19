@@ -1038,7 +1038,7 @@ TEST_F(Dba_common_test, get_unavailable_instances_001) {
     EXPECT_TRUE(unavailable_instances_list.empty());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at get_instances_md");
+    SCOPED_TRACE("Unexpected failure at get_unavailable_instances_001");
     ADD_FAILURE();
   }
 
@@ -1109,7 +1109,7 @@ TEST_F(Dba_common_test, get_unavailable_instances_002) {
     EXPECT_TRUE(unavailable_instances_list.empty());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at get_instances_md");
+    SCOPED_TRACE("Unexpected failure at get_unavailable_instances_002");
     ADD_FAILURE();
   }
 
@@ -1245,6 +1245,205 @@ TEST_F(Dba_common_test, validate_replicaset_group_name_002) {
   stop_server_mock(_mysql_sandbox_nport1);
   stop_server_mock(_mysql_sandbox_nport2);
 }
+
+TEST_F(Dba_common_test, validate_instance_rejoinable_01) {
+  // There are missing instances and the instance we are checking belongs to
+  // that list
+
+  // get_instances_gr():
+  //
+  // member_id
+  // ------------------------------------
+  // 851f0e89-5730-11e7-9e4f-b86b230042b9
+  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
+
+  std::vector<tests::Fake_result_data> queries;
+
+  std::vector<std::vector<std::string>> values;
+  values = {{"8fcb92c9-5730-11e7-aa60-b86b230042b9"},
+            {"851f0e89-5730-11e7-9e4f-b86b230042b9"}};
+
+  add_ps_gr_group_members_query(&queries, values);
+
+  // get_instances_md():
+  //
+  // member_id
+  // ------------------------------------
+  // 851f0e89-5730-11e7-9e4f-b86b230042b9
+  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
+  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_md_group_members_query(&queries, values);
+
+  values = {{"8a8ae9ce-5730-11e7-a437-b86b230042b9", "localhost:3320",
+             "localhost:3320"}};
+
+  add_md_group_members_full_query(
+      &queries, "8a8ae9ce-5730-11e7-a437-b86b230042b9", values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_dev_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  std::vector<tests::Fake_result_data> instance_queries;
+  add_get_server_variable_query(&instance_queries, "server_uuid",
+                                tests::Type::String,
+                                "8a8ae9ce-5730-11e7-a437-b86b230042b9");
+  START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
+  auto instance_session = create_session(_mysql_sandbox_nport2);
+  try {
+    bool is_rejoinable(
+        validate_instance_rejoinable(instance_session.get(), metadata, 1));
+
+    EXPECT_TRUE(is_rejoinable);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_01");
+    ADD_FAILURE();
+  }
+
+  md_session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport1);
+  instance_session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport2);
+}
+
+TEST_F(Dba_common_test, validate_instance_rejoinable_02) {
+  // There are missing instances but the instance we are checking does not
+  // belong to that list.
+
+  // get_instances_gr():
+  //
+  // member_id
+  // ------------------------------------
+  // 851f0e89-5730-11e7-9e4f-b86b230042b9
+  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
+
+  std::vector<tests::Fake_result_data> queries;
+
+  std::vector<std::vector<std::string>> values;
+  values = {{"8fcb92c9-5730-11e7-aa60-b86b230042b9"},
+            {"851f0e89-5730-11e7-9e4f-b86b230042b9"}};
+
+  add_ps_gr_group_members_query(&queries, values);
+
+  // get_instances_md():
+  //
+  // member_id
+  // ------------------------------------
+  // 851f0e89-5730-11e7-9e4f-b86b230042b9
+  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
+  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_md_group_members_query(&queries, values);
+
+  values = {{"8a8ae9ce-5730-11e7-a437-b86b230042b9", "localhost:3320",
+             "localhost:3320"}};
+
+  add_md_group_members_full_query(
+      &queries, "8a8ae9ce-5730-11e7-a437-b86b230042b9", values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_dev_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  std::vector<tests::Fake_result_data> instance_queries;
+  add_get_server_variable_query(&instance_queries, "server_uuid",
+                                tests::Type::String,
+                                "8a8ae9ce-5730-11e7-a437-b86b230042b1");
+  START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
+  auto instance_session = create_session(_mysql_sandbox_nport2);
+  try {
+    bool is_rejoinable(
+        validate_instance_rejoinable(instance_session.get(), metadata, 1));
+
+    EXPECT_FALSE(is_rejoinable);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_02");
+    ADD_FAILURE();
+  }
+
+  md_session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport1);
+  instance_session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport2);
+}
+
+TEST_F(Dba_common_test, validate_instance_rejoinable_03) {
+  // There are no missing instances
+
+  // get_instances_gr():
+  //
+  // member_id
+  // ------------------------------------
+  // 851f0e89-5730-11e7-9e4f-b86b230042b9
+  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
+  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  std::vector<tests::Fake_result_data> queries;
+
+  std::vector<std::vector<std::string>> values;
+  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
+            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
+            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
+
+  add_ps_gr_group_members_query(&queries, values);
+
+  // get_instances_md():
+  //
+  // member_id
+  // ------------------------------------
+  // 851f0e89-5730-11e7-9e4f-b86b230042b9
+  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
+  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
+
+  add_md_group_members_query(&queries, values);
+
+  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+
+  auto md_session = create_dev_session(_mysql_sandbox_nport1);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  std::vector<tests::Fake_result_data> instance_queries;
+  add_get_server_variable_query(&instance_queries, "server_uuid",
+                                tests::Type::String,
+                                "8a8ae9ce-5730-11e7-a437-b86b230042b9");
+  START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
+  auto instance_session = create_session(_mysql_sandbox_nport2);
+  try {
+    bool is_rejoinable(
+        validate_instance_rejoinable(instance_session.get(), metadata, 1));
+
+    EXPECT_FALSE(is_rejoinable);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_03");
+    ADD_FAILURE();
+  }
+
+  md_session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport1);
+  instance_session->close(shcore::Argument_list());
+  stop_server_mock(_mysql_sandbox_nport2);
+}
+
 }  // namespace tests
 
 TEST(mod_dba_common, validate_label) {

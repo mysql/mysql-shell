@@ -17,12 +17,13 @@
  * 02110-1301  USA
  */
 
-#ifndef _MODULES_ADMINAPI_MOD_DBA_COMMON_
-#define _MODULES_ADMINAPI_MOD_DBA_COMMON_
+#ifndef MODULES_ADMINAPI_MOD_DBA_COMMON_H_
+#define MODULES_ADMINAPI_MOD_DBA_COMMON_H_
 
 #include <locale>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/mod_mysql_session.h"
@@ -165,6 +166,9 @@ bool SHCORE_PUBLIC validate_replicaset_group_name(
     mysqlsh::mysql::ClassicSession *session, uint64_t rs_id);
 bool validate_super_read_only(
     mysqlsh::mysql::ClassicSession *session, bool clear_read_only);
-}
-}
-#endif
+bool validate_instance_rejoinable(
+    mysqlsh::mysql::ClassicSession *instance_session,
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+}  // namespace dba
+}  // namespace mysqlsh
+#endif  // MODULES_ADMINAPI_MOD_DBA_COMMON_H_

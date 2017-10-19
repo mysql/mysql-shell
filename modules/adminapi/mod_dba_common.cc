@@ -1075,7 +1075,7 @@ std::string get_gr_replicaset_group_name(
  *
  * @param metadata metadata object which represents the session to the metadata
  *                 storage, i.e. the current instance session on this case
- * @param rd_id the ReplicaSet id
+ * @param rs_id the ReplicaSet id
  * @return a boolean value indicating whether the replicaSet
  * 'group_replication_group_name' is the same as the one registered in the
  * corresponding replicaset in the Metadata
@@ -1156,6 +1156,40 @@ bool validate_super_read_only(
     }
   }
   return super_read_only;
+}
+
+/*
+ * Checks if an instance can be rejoined to a given ReplicaSet.
+ *
+ * @param session Object which represents the session to the instance
+ * @param metadata Metadata object which represents the session to the metadata
+ * storage
+ * @param rs_id The ReplicaSet id
+ *
+ * @return a boolean value which is true if the instance can be rejoined to the
+ * ReplicaSet and false otherwise.
+ */
+bool validate_instance_rejoinable(
+    mysqlsh::mysql::ClassicSession *instance_session,
+    const std::shared_ptr<MetadataStorage> &metadata,
+    uint64_t rs_id) {
+  std::string instance_uuid;
+  // get server_uuid from the instance that we're trying to rejoin
+  get_server_variable(instance_session->connection(), "server_uuid",
+                      instance_uuid);
+  // get the list of missing instances
+  std::vector<MissingInstanceInfo> missing_instances_list =
+      get_unavailable_instances(metadata, rs_id);
+
+  // Unless the instance is missing, we cannot add it back to the cluster
+  auto it =
+      std::find_if(missing_instances_list.begin(), missing_instances_list.end(),
+                   [&instance_uuid](MissingInstanceInfo &info) {
+                     return instance_uuid == info.id;
+                   });
+  // if the instance is not on the list of missing instances, then it cannot
+  // be rejoined
+  return it != std::end(missing_instances_list);
 }
 
 }  // namespace dba

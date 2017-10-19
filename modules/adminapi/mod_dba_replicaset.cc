@@ -725,6 +725,33 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     }
   }
 
+  // Verify if the instance being added is MISSING, otherwise throw an error
+  // Bug#26870329
+  {
+    // get server_uuid from the instance that we're trying to rejoin
+    classic = dynamic_cast<mysqlsh::mysql::ClassicSession*>(session.get());
+    if (!validate_instance_rejoinable(classic, _metadata_storage, _id)) {
+      // instance not missing, so throw an error
+      std::string get_state_query =
+          "SELECT MEMBER_STATE FROM "
+          "performance_schema.replication_group_members as m JOIN "
+          "performance_schema.replication_group_member_stats as s "
+          "on m.MEMBER_ID = s.MEMBER_ID "
+          "AND m.MEMBER_ID = @@server_uuid";
+      auto result = classic->execute_sql(get_state_query);
+      auto row = result->fetch_one();
+      std::string member_state = row->get_value(0).as_string();
+      std::string nice_error_msg = "Cannot rejoin instance '" +
+                                   instance_address + "' with state '" +
+                                   member_state +
+                                   "' since it "
+                                   "is an active member of the ReplicaSet '" +
+                                   get_member("name").as_string() + "'.";
+      session->close(shcore::Argument_list());
+      throw std::runtime_error(nice_error_msg);
+    }
+  }
+
   // Get @@group_replication_local_address
   std::string seed_instance_xcom_address;
   get_server_variable(classic->connection(), "group_replication_local_address",
