@@ -69,9 +69,9 @@ Cluster.status();
 //@# Dba: stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
 if (__sandbox_dir)
-    dba.stopSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir, password: 'root'});
+  dba.stopSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir, password: 'root'});
 else
-    dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root'});
+  dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root'});
 
 wait_slave_state(Cluster, uri3, ["(MISSING)"]);
 

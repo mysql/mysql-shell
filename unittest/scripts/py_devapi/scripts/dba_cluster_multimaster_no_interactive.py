@@ -72,9 +72,6 @@ if __sandbox_dir:
 else:
   dba.stop_sandbox_instance(__mysql_sandbox_port3, {'password': 'root'})
 
-# XCOM needs time to kick out the member of the group. The GR team has a patch to fix this
-# But won't be available for the GA release. So we need to wait until the instance is reported
-# as offline
 wait_slave_state(cluster, uri3, ["(MISSING)"])
 
 # start instance 3
