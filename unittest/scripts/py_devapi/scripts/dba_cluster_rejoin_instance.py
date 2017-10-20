@@ -47,20 +47,18 @@ cluster.add_instance({'dbUser': 'foo', 'host': 'localhost', 'port':__mysql_sandb
 # Waiting for the instance 3 to become online
 wait_slave_state(cluster, uri3, "ONLINE")
 
-# kill instance 2
+# stop instance 2
+# Use stop sandbox instance to make sure the instance is gone before restarting it
 if __sandbox_dir:
-  dba.kill_sandbox_instance(__mysql_sandbox_port2, {'sandboxDir':__sandbox_dir})
+  dba.stop_sandbox_instance(__mysql_sandbox_port2, {'sandboxDir':__sandbox_dir, 'password': 'root'})
 else:
-  dba.kill_sandbox_instance(__mysql_sandbox_port2)
+  dba.stop_sandbox_instance(__mysql_sandbox_port2, {'password': 'root'})
 
 # Waiting for instance 2 to become missing
 wait_slave_state(cluster, uri2, "(MISSING)")
 
 # Start instance 2
-if __sandbox_dir:
-  dba.start_sandbox_instance(__mysql_sandbox_port2, {'sandboxDir':__sandbox_dir})
-else:
-  dba.start_sandbox_instance(__mysql_sandbox_port2)
+try_restart_sandbox(__mysql_sandbox_port2)
 
 #@<OUT> Cluster status
 cluster.status()

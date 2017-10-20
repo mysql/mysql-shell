@@ -166,10 +166,7 @@
     }
 }
 
-#@# Dba: kill instance 3
-||
-
-#@# Dba: start instance 3
+#@# Dba: stop instance 3
 ||
 
 #@ Cluster: rejoin_instance errors

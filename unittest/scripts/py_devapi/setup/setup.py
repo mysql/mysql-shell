@@ -148,6 +148,28 @@ def wait_slave_state(cluster, slave_uri, states):
 
   recov_cluster = None
 
+def wait_sandbox(timeout, wait_interval, condition, sandbox_port):
+  waiting = 0
+  res = condition([sandbox_port])
+  while not res and waiting < timeout:
+    time.sleep(wait_interval)
+    waiting = waiting + 1
+    res = condition([sandbox_port])
+  return res
+
+def check_sandbox_in_metadata(instance_port):
+  sandbox_count_metadata = session.run_sql("select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:{0}'".format(instance_port)).fetch_one()[0]
+
+  print "---> count(*) sandbox in metadata = %s" % sandbox_count_metadata
+
+  return sandbox_count_metadata == "1"
+
+def wait_sandbox_in_metadata(instance_port):
+  connected = connect_to_sandbox([instance_port]);
+  if (connected):
+    wait_sandbox(60, 1, check_sandbox_in_metadata, instance_port)
+    session.close()
+
 # Smart deployment routines
 
 def connect_to_sandbox(params):
@@ -379,6 +401,12 @@ def try_restart_sandbox(port):
     def try_start():
         try:
             dba.start_sandbox_instance(port, options)
+
+            # Try to establish a connection to the instance to make sure
+            # it's up and running.
+            shell.connect({'host': localhost, 'port': port, 'user': 'root', 'password': 'root'})
+            session.close();
+
             print "succeeded"
             return True
         except Exception, err:

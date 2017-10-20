@@ -123,7 +123,7 @@ if __sandbox_dir:
 else:
   dba.kill_sandbox_instance(__mysql_sandbox_port3)
 
-wait_slave_state(cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"])
+wait_slave_state(cluster, 'third_sandbox', ["(MISSING)"])
 
 #@# Dba: start instance 3
 if __sandbox_dir:

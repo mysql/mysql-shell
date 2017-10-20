@@ -235,10 +235,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     }
 }
 
-#@# Dba: kill instance 3
-||
-
-#@# Dba: start instance 3
+#@# Dba: stop instance 3
 ||
 
 #@: Cluster: rejoin_instance errors
