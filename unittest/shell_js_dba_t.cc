@@ -17,6 +17,10 @@
 * 02110-1301  USA
 */
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <algorithm>
 #include "modules/adminapi/mod_dba_sql.h"
 #include "shellcore/base_session.h"
@@ -517,6 +521,46 @@ TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
   // Clean up sandboxes.
   execute("cleanup_sandboxes(true)");
 }
+
+TEST_F(Shell_js_dba_tests, configure_local_instance_errors) {
+  _options->wizards = false;
+  reset_shell();
+
+  // Execute setup script to be able to use smart deployment functions.
+  execute_setup();
+
+  // Clean and delete all sandboxes.
+  execute("cleanup_sandbox(__mysql_sandbox_port1);");
+
+  // Deploy new sandbox instance (required for this test).
+  execute(
+      "var deployed_here = reset_or_deploy_sandbox(__mysql_sandbox_port1);");
+
+  // create Cluster
+  execute(
+      "shell.connect({scheme: 'mysql', host: localhost, port: "
+      "__mysql_sandbox_port1, user: 'root', password: 'root'});");
+  execute("var cluster = dba.createCluster('Cluster')");
+
+#ifndef _WIN32
+  // Set permissions on configuration file to 444 (chmod only works on
+  // unix systems).
+  chmod(_sandbox_cnf_1.c_str(), S_IRUSR | S_IRGRP | S_IROTH);
+#else
+  auto dwAttrs = GetFileAttributes(_sandbox_cnf_1.c_str());
+  // set permissions on configuration file to read only
+  SetFileAttributes(_sandbox_cnf_1.c_str(), dwAttrs | FILE_ATTRIBUTE_READONLY);
+#endif
+  validate_interactive("dba_configure_local_instance_errors.js");
+
+#ifdef _WIN32
+  // Restore original permissions of configuration file
+  SetFileAttributes(_sandbox_cnf_1.c_str(), dwAttrs);
+#endif
+  // Cleans up the used sandbox
+  execute("cleanup_sandbox(__mysql_sandbox_port1)");
+}
+
 
 TEST_F(Shell_js_dba_tests, force_quorum) {
   _options->wizards = false;

@@ -299,8 +299,7 @@ def check(**kwargs):
                 _LOGGER.info("Updating option file '%s' with Group "
                              "Replication settings from "
                              "%s", option_file, str(server))
-                persist_gr_config(option_file, gr_configs)
-                result = True
+                result = persist_gr_config(option_file, gr_configs)
             else:
                 result = False
         # If the server doesn't belong to any group, check if it meets GR
