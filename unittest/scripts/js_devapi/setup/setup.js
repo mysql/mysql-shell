@@ -160,6 +160,15 @@ function wait_sandbox(timeout, wait_interval, condition, sandbox_port){
   return res;
 }
 
+function check_sandbox_has_metadata() {
+  var sandbox_has_metadata =
+    session.runSql("SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = 'mysql_innodb_cluster_metadata') AND (TABLE_NAME = 'instances')").fetchOne()[0];
+
+    println("---> count(*) sandbox has metadata = " + sandbox_has_metadata);
+
+    return sandbox_has_metadata == "1";
+}
+
 function check_sandbox_in_metadata(instance_port) {
   var sandbox_count_metadata =
     session.runSql("select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:" + instance_port + "'").fetchOne()[0];
@@ -172,6 +181,7 @@ function check_sandbox_in_metadata(instance_port) {
 function wait_sandbox_in_metadata(instance_port) {
   var connected = connect_to_sandbox([instance_port]);
   if (connected) {
+    wait(60, 1, check_sandbox_has_metadata);
     wait_sandbox(60, 1, check_sandbox_in_metadata, instance_port);
     session.close();
   }
