@@ -65,12 +65,12 @@ wait_slave_state(cluster, uri3, "ONLINE");
 // Wait for the third added instance to fetch all the replication data
 wait_sandbox_in_metadata(__mysql_sandbox_port3);
 
-//@<OUT> Rejoins an instance
-kill_sandbox(__mysql_sandbox_port3);
+// Rejoin instance
+stop_sandbox(__mysql_sandbox_port3);
 wait_slave_state(cluster, uri3, "(MISSING)");
-start_sandbox(__mysql_sandbox_port3);
-
+try_restart_sandbox(__mysql_sandbox_port3);
 ensureSuperReadOnly(connection3);
+//@<OUT> Rejoins an instance
 cluster.rejoinInstance(connection3);
 
 delete cluster;
