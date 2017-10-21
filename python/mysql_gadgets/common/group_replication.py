@@ -836,9 +836,6 @@ def update_option_file(opt_parser, missing_values, update_values,
     dic_msg = str(update_values)
     dic_msg = dic_msg.replace("\\\\", "\\")
     _LOGGER.debug("update_values %s", dic_msg)
-    # Verify option parser can update file
-    if not os.access(opt_parser.filename, os.W_OK):
-        return False
 
     # Create the section if does not exist already
     if not opt_parser.has_section(MYSQLD_SECTION):

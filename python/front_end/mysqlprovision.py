@@ -877,7 +877,10 @@ if __name__ == "__main__":
         command_error_msg = "executing operation"
         try:
             if command == CHECK:
-                command_error_msg = "checking instance"
+                if cmd_options.get("update", False):
+                    command_error_msg = "configuring instance"
+                else:
+                    command_error_msg = "checking instance"
                 check(**cmd_options)
 
             elif command == CLONE:
