@@ -122,7 +122,7 @@ shcore::Value BaseResult::get_member(const std::string &prop) const {
           case mysqlshdk::db::Warning::Level::Note:
             warning_row->add_item("level", shcore::Value("Note"));
             break;
-          case mysqlshdk::db::Warning::Level::Warning:
+          case mysqlshdk::db::Warning::Level::Warn:
             warning_row->add_item("level", shcore::Value("Warning"));
             break;
           case mysqlshdk::db::Warning::Level::Error:

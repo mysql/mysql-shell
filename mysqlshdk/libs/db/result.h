@@ -34,7 +34,7 @@ namespace mysqlshdk {
 namespace db {
 
 struct Warning {
-  enum class Level { Note, Warning, Error };
+  enum class Level { Note, Warn, Error };
   Level level;
   std::string msg;
   uint32_t code;

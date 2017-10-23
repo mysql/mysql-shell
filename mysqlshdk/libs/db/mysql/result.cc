@@ -124,7 +124,7 @@ std::unique_ptr<Warning> Result::fetch_one_warning() {
         if (level == "Error") {
           w->level = Warning::Level::Error;
         } else if (level == "Warning") {
-          w->level = Warning::Level::Warning;
+          w->level = Warning::Level::Warn;
         } else {
           assert(level == "Note");
           w->level = Warning::Level::Note;
