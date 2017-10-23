@@ -261,7 +261,7 @@ std::unique_ptr<Warning> Result::fetch_one_warning() {
         w->level = Warning::Level::Note;
         break;
       case Mysqlx::Notice::Warning::WARNING:
-        w->level = Warning::Level::Warning;
+        w->level = Warning::Level::Warn;
         break;
       case Mysqlx::Notice::Warning::ERROR:
         w->level = Warning::Level::Error;
