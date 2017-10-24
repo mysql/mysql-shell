@@ -64,15 +64,19 @@ class CollectionRemove : public Collection_crud_definition,
   virtual std::string class_name() const { return "CollectionRemove"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
+ private:
   shcore::Value remove(const shcore::Argument_list &args);
   shcore::Value sort(const shcore::Argument_list &args);
   shcore::Value limit(const shcore::Argument_list &args);
-  shcore::Value bind(const shcore::Argument_list &args);
+  shcore::Value bind_(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute();
 
- private:
-   Mysqlx::Crud::Delete message_;
+  friend class Collection;
+  CollectionRemove &set_filter(const std::string& filter);
+  CollectionRemove &bind(const std::string &name, shcore::Value value);
+  Mysqlx::Crud::Delete message_;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

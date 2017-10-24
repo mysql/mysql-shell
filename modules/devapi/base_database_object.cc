@@ -33,10 +33,14 @@
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
 #include "utils/utils_general.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
 using namespace shcore;
+
+REGISTER_HELP(DATABASEOBJECT_BRIEF,
+              "Provides base functionality for database objects.");
 
 DatabaseObject::DatabaseObject(std::shared_ptr<ShellBaseSession> session,
                                std::shared_ptr<DatabaseObject> schema,
@@ -89,43 +93,41 @@ bool DatabaseObject::operator==(const Object_bridge &other) const {
   return false;
 }
 
-#if DOXYGEN_CPP
+REGISTER_HELP(DATABASEOBJECT_NAME_BRIEF, "The name of this database object.");
+REGISTER_HELP(DATABASEOBJECT_GETNAME_BRIEF,
+              "Returns the name of this database object.");
+
 /**
- * Use this function to retrieve an valid member of this class exposed to the
- * scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this
- * function. The content of the returned value depends on the property being
- * requested. The next list shows the valid properties as well as the returned
- * value for each of them:
- *
- * \li name: returns a String object with the name of this database object.
- * \li schema: returns the schema object that owns this DatabaseObject, so it
- * could be either an instance of Schema or ClassicSchema. If this
- * DatabaseObject is either an instance of Schema or ClassicSchema it returns
- * Null.
- * \li session: returns a session object under which the DatabaseObject was
- * created, it could be any of Session, ClassicSession.
- */
-#else
-/**
-* Returns the name of this database object.
-* \return the name as an String object.
+* $(DATABASEOBJECT_GETNAME)
 */
 #if DOXYGEN_JS
 String DatabaseObject::getName() {}
 #elif DOXYGEN_PY
 str DatabaseObject::get_name() {}
 #endif
+
+REGISTER_HELP(DATABASEOBJECT_SESSION_BRIEF,
+              "The Session object of this database object.");
+REGISTER_HELP(DATABASEOBJECT_GETSESSION_BRIEF,
+              "Returns the Session object of this database object.");
+REGISTER_HELP(DATABASEOBJECT_GETSESSION_RETURNS,
+              "@returns The Session object used to get to this object.");
+REGISTER_HELP(DATABASEOBJECT_GETSESSION_DETAIL,
+              "Note that the returned object can be any of:");
+REGISTER_HELP(DATABASEOBJECT_GETSESSION_DETAIL1,
+              "@li Session: if the object was created/retrieved using an "
+              "Session instance.");
+REGISTER_HELP(DATABASEOBJECT_GETSESSION_DETAIL2,
+              "@li ClassicSession: if the object was created/retrieved using "
+              "an ClassicSession.");
+
 /**
-* Returns the Session object of this database object.
-* \return the Session object used to get to this object.
+* $(DATABASEOBJECT_GETSESSION_BRIEF)
+* $(DATABASEOBJECT_GETSESSION_RETURNS)
 *
-* Note that the returned object can be any of:
-* - Session: if the object was created/retrieved using an Session instance.
-* - ClassicSession: if the object was created/retrieved using an ClassicSession
-* instance.
+* $(DATABASEOBJECT_GETSESSION_DETAIL)
+* $(DATABASEOBJECT_GETSESSION_DETAIL1)
+* $(DATABASEOBJECT_GETSESSION_DETAIL2)
 */
 #if DOXYGEN_JS
 Object DatabaseObject::getSession() {}
@@ -133,27 +135,45 @@ Object DatabaseObject::getSession() {}
 object DatabaseObject::get_session() {}
 #endif
 
+REGISTER_HELP(DATABASEOBJECT_SCHEMA_BRIEF,
+              "The Schema object of this database object.");
+REGISTER_HELP(DATABASEOBJECT_GETSCHEMA_BRIEF,
+              "Returns the Schema object of this database object.");
+REGISTER_HELP(DATABASEOBJECT_GETSCHEMA_RETURNS,
+              "@returns The Schema object used to get to this object.");
+REGISTER_HELP(DATABASEOBJECT_GETSCHEMA_DETAIL,
+              "Note that the returned object can be any of:");
+REGISTER_HELP(
+    DATABASEOBJECT_GETSCHEMA_DETAIL1,
+    "@li Schema: if the object was created/retrieved using a Schema instance.");
+REGISTER_HELP(DATABASEOBJECT_GETSCHEMA_DETAIL2,
+              "@li ClassicSchema: if the object was created/retrieved using an "
+              "ClassicSchema.");
+REGISTER_HELP(
+    DATABASEOBJECT_GETSCHEMA_DETAIL3,
+    "@li Null: if this database object is a Schema or ClassicSchema.");
+
 /**
-* Returns the Schema object of this database object.
-* \return the object for this schema of this database object.
+* $(DATABASEOBJECT_GETSCHEMA_BRIEF)
+* $(DATABASEOBJECT_GETSCHEMA_RETURNS)
 *
-* Note that the returned object can be any of:
-* - Schema: if the object was created/retrieved using a Schema instance.
-* - ClassicSchema: if the object was created/retrieved using an ClassicSchema
-* instance.
+* $(DATABASEOBJECT_GETSCHEMA_DETAIL)
+* $(DATABASEOBJECT_GETSCHEMA_DETAIL1)
+* $(DATABASEOBJECT_GETSCHEMA_DETAIL2)
+* $(DATABASEOBJECT_GETSCHEMA_DETAIL3)
 */
 #if DOXYGEN_JS
 Object DatabaseObject::getSchema() {}
 #elif DOXYGEN_PY
 object DatabaseObject::get_schema() {}
 #endif
-#endif
+
 Value DatabaseObject::get_member(const std::string &prop) const {
   Value ret_val;
 
-  if (prop == "name")
+  if (prop == "name") {
     ret_val = Value(_name);
-  else if (prop == "session") {
+  } else if (prop == "session") {
     if (_session.expired())
       ret_val = Value::Null();
     else {
@@ -178,7 +198,15 @@ Value DatabaseObject::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-//! Verifies if this object exists in the database.
+REGISTER_HELP(DATABASEOBJECT_EXISTSINDATABASE_BRIEF,
+              "Verifies if this object exists in the database.");
+REGISTER_HELP(DATABASEOBJECT_EXISTSINDATABASE_RETURNS,
+              "@returns A boolean indicating if the object still exists on the "
+              "database.");
+/**
+ * $(DATABASEOBJECT_EXISTSINDATABASE_BRIEF)
+ * $(DATABASEOBJECT_EXISTSINDATABASE_RETURNS)
+ */
 #if DOXYGEN_JS
 Bool DatabaseObject::existsInDatabase() {}
 #elif DOXYGEN_PY

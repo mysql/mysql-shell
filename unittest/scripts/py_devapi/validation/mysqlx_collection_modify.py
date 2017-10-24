@@ -59,7 +59,6 @@
 #@# CollectionModify: Error conditions on set
 ||Invalid number of arguments in CollectionModify.set, expected 2 but got 0
 ||CollectionModify.set: Argument #1 is expected to be a string
-||CollectionModify.set: Invalid document path
 
 #@# CollectionModify: Error conditions on unset
 ||Invalid number of arguments in CollectionModify.unset, expected at least 1 but got 0

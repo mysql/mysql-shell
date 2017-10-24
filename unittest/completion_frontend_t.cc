@@ -732,9 +732,10 @@ TEST_F(Completer_frontend, js_devapi_collection) {
   EXPECT_AFTER_TAB("db.people.", "db.people.");
   EXPECT_AFTER_TAB_TAB(
       "db.people.",
-      strv({"add()", "createIndex()", "dropIndex()", "existsInDatabase()",
-            "find()", "getName()", "getSchema()", "getSession()", "help()",
-            "modify()", "name", "remove()", "schema", "session"}));
+      strv({"add()", "addOrReplaceOne()", "createIndex()", "dropIndex()",
+            "existsInDatabase()", "find()", "getName()", "getOne()",
+            "getSchema()", "getSession()", "help()", "modify()", "name",
+            "remove()", "removeOne()", "replaceOne()", "schema", "session"}));
 
   EXPECT_TAB_DOES_NOTHING("db.people.x");
   EXPECT_TAB_DOES_NOTHING("db.people..");
@@ -768,9 +769,10 @@ TEST_F(Completer_frontend, js_devapi_collection) {
   EXPECT_AFTER_TAB("people.", "people.");
   EXPECT_AFTER_TAB_TAB(
       "people.",
-      strv({"add()", "createIndex()", "dropIndex()", "existsInDatabase()",
-            "find()", "getName()", "getSchema()", "getSession()", "help()",
-            "modify()", "name", "remove()", "schema", "session"}));
+      strv({"add()", "addOrReplaceOne()", "createIndex()", "dropIndex()",
+        "existsInDatabase()", "find()", "getName()", "getOne()", "getSchema()",
+        "getSession()", "help()", "modify()", "name", "remove()", "removeOne()",
+        "replaceOne()", "schema", "session"}));
   EXPECT_AFTER_TAB("people.f", "people.find()");
   EXPECT_AFTER_TAB("people.find().e", "people.find().execute()");
   EXPECT_AFTER_TAB("var f = people.find().b", "var f = people.find().bind()");
@@ -982,9 +984,10 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
   CHECK_OBJECT_MEMBER_COMPLETIONS("db", db_calls);
 
   std::vector<std::pair<std::string, std::string>> collection_calls{
-      {"add", "({})"},   {"modify", "('0')"},      {"remove", "('0')"},
-      {"find", "('0')"}, {"createIndex", "('x')"}, {"dropIndex", "('x')"},
-      {"help", ""}};
+      {"add", "({})"}, {"addOrReplaceOne", "('0', {})"},  {"modify", "('0')"},
+      {"remove", "('0')"}, {"removeOne", "('0')"}, {"replaceOne", "('0', {})"},
+      {"getOne", "('0')"}, {"find", "('0')"}, {"createIndex", "('x')"},
+      {"dropIndex", "('x')"}, {"help", ""}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("db.getCollection('people')",
                                   collection_calls);  // collection
 
@@ -1205,9 +1208,10 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   EXPECT_AFTER_TAB("db.people.", "db.people.");
   EXPECT_AFTER_TAB_TAB(
       "db.people.",
-      strv({"add()", "create_index()", "drop_index()", "exists_in_database()",
-            "find()", "get_name()", "get_schema()", "get_session()", "help()",
-            "modify()", "name", "remove()", "schema", "session"}));
+      strv({"add()", "add_or_replace_one()", "create_index()", "drop_index()",
+            "exists_in_database()", "find()", "get_name()", "get_one()",
+            "get_schema()", "get_session()", "help()", "modify()", "name",
+            "remove()", "remove_one()", "replace_one()", "schema", "session"}));
 
   EXPECT_TAB_DOES_NOTHING("db.people.x");
   EXPECT_TAB_DOES_NOTHING("db.people..");
@@ -1241,9 +1245,10 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   EXPECT_AFTER_TAB("people.", "people.");
   EXPECT_AFTER_TAB_TAB(
       "people.",
-      strv({"add()", "create_index()", "drop_index()", "exists_in_database()",
-            "find()", "get_name()", "get_schema()", "get_session()", "help()",
-            "modify()", "name", "remove()", "schema", "session"}));
+      strv({"add()", "add_or_replace_one()", "create_index()", "drop_index()", 
+        "exists_in_database()", "find()", "get_name()", "get_one()",
+        "get_schema()", "get_session()", "help()", "modify()", "name",
+        "remove()", "remove_one()", "replace_one()", "schema", "session"}));
   EXPECT_AFTER_TAB("people.f", "people.find()");
   EXPECT_AFTER_TAB("people.find().e", "people.find().execute()");
   EXPECT_AFTER_TAB("f = people.find().b", "f = people.find().bind()");

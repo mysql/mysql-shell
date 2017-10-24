@@ -53,6 +53,7 @@ class CollectionAdd : public Collection_crud_definition,
 
   shcore::Value add(const shcore::Argument_list &args);
   virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute(bool upsert);
 
 #if DOXYGEN_JS
   CollectionAdd add(DocDefinition document[, DocDefinition document, ...]);
@@ -65,6 +66,7 @@ class CollectionAdd : public Collection_crud_definition,
 #endif
 
  private:
+   friend class Collection;
   void add_one_document(shcore::Value doc, const std::string &error_context);
 
   std::vector<std::string> last_document_ids_;

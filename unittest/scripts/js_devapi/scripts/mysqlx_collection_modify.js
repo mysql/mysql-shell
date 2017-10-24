@@ -104,7 +104,6 @@ crud = collection.modify('test = "2');
 //@# CollectionModify: Error conditions on set
 crud = collection.modify('some_filter').set();
 crud = collection.modify('some_filter').set(45, 'whatever');
-crud = collection.modify('some_filter').set('', 5);
 
 //@# CollectionModify: Error conditions on unset
 crud = collection.modify('some_filter').unset();

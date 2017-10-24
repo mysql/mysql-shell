@@ -31,7 +31,7 @@
 namespace mysqlsh {
 namespace mysqlx {
 class Collection;
-
+class Result;
 /**
 * \ingroup XDevAPI
 * $(COLLECTIONMODIFY_BRIEF)
@@ -80,6 +80,7 @@ class CollectionModify : public Collection_crud_definition,
   virtual std::string class_name() const { return "CollectionModify"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
+private:
   shcore::Value modify(const shcore::Argument_list &args);
   shcore::Value set(const shcore::Argument_list &args);
   shcore::Value unset(const shcore::Argument_list &args);
@@ -89,11 +90,14 @@ class CollectionModify : public Collection_crud_definition,
   shcore::Value array_delete(const shcore::Argument_list &args);
   shcore::Value sort(const shcore::Argument_list &args);
   shcore::Value limit(const shcore::Argument_list &args);
-  shcore::Value bind(const shcore::Argument_list &args);
+  shcore::Value bind_(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);
-private:
+  shcore::Value execute();
+  friend class Collection;
   Mysqlx::Crud::Update message_;
+  CollectionModify &set_filter(const std::string& filter);
+  CollectionModify &bind(const std::string &name, shcore::Value value);
   void set_operation(int type, const std::string &path,
                      const shcore::Value &value, bool validate_array = false);
 };

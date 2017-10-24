@@ -152,7 +152,8 @@ public:
   ClassicSchema setCurrentSchema(String name);
   List getSchemas();
   String getUri();
-  ClassicResult runSql(String query);
+  ClassicResult runSql(String query, Array args = []);
+  ClassicResult query(String query, Array args = []);
   Undefined close();
   ClassicResult startTransaction();
   ClassicResult commit();
@@ -172,7 +173,8 @@ public:
   ClassicSchema set_current_schema(str name);
   list get_schemas();
   str get_uri();
-  ClassicResult run_sql(str query);
+  ClassicResult run_sql(str query, list args = []);
+  ClassicResult query(str query, list args = []);
   None close();
   ClassicResult start_transaction();
   ClassicResult commit();

@@ -39,7 +39,7 @@ class ShellBaseSession;
 class CoreSchema;
 /**
 * \ingroup ShellAPI
-* Provides base functionality for database objects.
+* $(DATABASEOBJECT_BRIEF)
 */
 class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
  public:
@@ -74,18 +74,18 @@ class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
   }
 
 #if DOXYGEN_JS
-  String name;     //!< Same as getName()
-  Object session;  //!< Same as getSession()
-  Object schema;   //!< Same as getSchema()
+  String name;     //!< $(DATABASEOBJECT_NAME_BRIEF)
+  Object session;  //!< $(DATABASEOBJECT_SESSION_BRIEF)
+  Object schema;   //!< $(DATABASEOBJECT_SCHEMA_BRIEF)
 
   String getName();
   Object getSession();
   Object getSchema();
   Bool existsInDatabase();
 #elif DOXYGEN_PY
-  str name;        //!< Same as get_name()
-  object session;  //!< Same as get_session()
-  object schema;   //!< Same as get_schema()
+  str name;        //!< $(DATABASEOBJECT_NAME_BRIEF)
+  object session;  //!< $(DATABASEOBJECT_SESSION_BRIEF)
+  object schema;   //!< $(DATABASEOBJECT_SCHEMA_BRIEF)
 
   str get_name();
   object get_session();
