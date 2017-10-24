@@ -169,7 +169,7 @@ Style::operator std::string() const {
         s += vt100::color_fg_rgb(fg.color_rgb);
         fg_set = true;
       }
-    // fallthrough to 256
+      // fallthrough
     case Color_256:
       if ((field_mask & Style::Color_256_bg_set) && !bg_set) {
         s += vt100::color_bg_256(bg.color_256);
@@ -179,6 +179,7 @@ Style::operator std::string() const {
         s += vt100::color_fg_256(fg.color_256);
         fg_set = true;
       }
+      break;
     case Color_16:
       if (((field_mask & Style::Color_16_fg_set) && !fg_set) ||
           ((field_mask & Style::Color_16_bg_set) && !bg_set) ||

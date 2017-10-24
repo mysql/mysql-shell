@@ -166,20 +166,28 @@ std::string bits_to_string(uint64_t bits, int nbits) {
   switch (length.quot) {
     case 8:
       r.append(k_bits[(bits >> 56) & 0xff]);
+      // fallthrough
     case 7:
       r.append(k_bits[(bits >> 48) & 0xff]);
+      // fallthrough
     case 6:
       r.append(k_bits[(bits >> 40) & 0xff]);
+      // fallthrough
     case 5:
       r.append(k_bits[(bits >> 32) & 0xff]);
+      // fallthrough
     case 4:
       r.append(k_bits[(bits >> 24) & 0xff]);
+      // fallthrough
     case 3:
       r.append(k_bits[(bits >> 16) & 0xff]);
+      // fallthrough
     case 2:
       r.append(k_bits[(bits >> 16) & 0xff]);
+      // fallthrough
     case 1:
       r.append(k_bits[(bits >> 8) & 0xff]);
+      // fallthrough
     case 0:
       r.append(k_bits[bits & 0xff]);
       break;
