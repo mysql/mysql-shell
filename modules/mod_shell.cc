@@ -579,15 +579,17 @@ REGISTER_HELP(SHELL_LOG_DETAIL, "Only messages that have a level value equal "
  *
  * $(SHELL_LOG_DETAIL)
  */
+#if DOXYGEN_JS
+Undefined Shell::log(String level, String message) {}
+#elif DOXYGEN_PY
+None Shell::log(str level, str message) {}
+#endif
 shcore::Value Shell::log(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("log").c_str());
 
   try {
     ngcommon::Logger::LOG_LEVEL level = ngcommon::Logger::LOG_INFO;
-    if (args[0].type == shcore::Integer)
-      level = static_cast<ngcommon::Logger::LOG_LEVEL>(args.int_at(0));
-    else
-      level = ngcommon::Logger::get_log_level(args.string_at(0));
+    level = ngcommon::Logger::get_log_level(args.string_at(0));
     if (level == ngcommon::Logger::LOG_NONE)
       throw shcore::Exception::argument_error("Invalid log level '" +
                                                 args[0].descr() + "'");

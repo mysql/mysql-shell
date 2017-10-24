@@ -38,9 +38,10 @@ namespace mysqlsh {
 namespace mysqlx {
 class Schema;
 /**
- * Represents a Collection on an Schema, retrieved with session created using
- * the mysqlx module.
  * \ingroup XDevAPI
+ * $(COLLECTION_BRIEF)
+ *
+ * $(COLLECTION_DETAIL)
  */
 class Collection : public DatabaseObject,
                    public std::enable_shared_from_this<Collection> {
@@ -58,6 +59,10 @@ class Collection : public DatabaseObject,
   CollectionCreateIndex createIndex(String name);
   CollectionCreateIndex createIndex(String name, IndexType type);
   Undefined dropIndex(String name);
+  Result replaceOne(String id, Document doc);
+  Result addOrReplaceOne(String id, Document doc);
+  Document getOne(String id);
+  Result removeOne(String id);
 #elif DOXYGEN_PY
   CollectionAdd add(...);
   CollectionFind find(...);
@@ -66,6 +71,10 @@ class Collection : public DatabaseObject,
   CollectionCreateIndex create_index(str name);
   CollectionCreateIndex create_index(str name, IndexType type);
   None drop_index(str name);
+  Result replace_one(str id, document doc);
+  Result add_or_replace_one(str id, document doc);
+  Document get_one(str id);
+  Result remove_one(str id);
 #endif
   shcore::Value add_(const shcore::Argument_list &args);
   shcore::Value find_(const shcore::Argument_list &args);
@@ -73,6 +82,10 @@ class Collection : public DatabaseObject,
   shcore::Value remove_(const shcore::Argument_list &args);
   shcore::Value create_index_(const shcore::Argument_list &args);
   shcore::Value drop_index_(const shcore::Argument_list &args);
+  shcore::Value replace_one_(const shcore::Argument_list &args);
+  shcore::Value add_or_replace_one(const shcore::Argument_list &args);
+  shcore::Value get_one(const shcore::Argument_list &args);
+  shcore::Value remove_one(const shcore::Argument_list &args);
 
  private:
   void init();

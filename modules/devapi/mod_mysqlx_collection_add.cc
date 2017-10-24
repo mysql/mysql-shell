@@ -289,25 +289,36 @@ Result CollectionAdd::execute() {}
 #endif
 //@}
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());
+  shcore::Value ret_val;
   try {
-    MySQL_timer timer;
-    insert_bound_values(message_.mutable_args());
-    timer.start();
-    if (message_.mutable_row()->size()) {
-      result.reset(new mysqlx::Result(safe_exec([this]() {
-        return session()->session()->execute_crud(message_);
-      })));
-      result->set_last_document_ids(last_document_ids_);
-    } else {
-      result.reset(new mysqlsh::mysqlx::Result({}));
-      result->set_last_document_ids({});
-    }
-    timer.end();
-    result->set_execution_time(timer.raw_duration());
+    ret_val = execute(false);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute").c_str());
+
+  return ret_val;
+}
+
+shcore::Value CollectionAdd::execute(bool upsert) {
+  std::unique_ptr<mysqlsh::mysqlx::Result> result;
+
+  MySQL_timer timer;
+  insert_bound_values(message_.mutable_args());
+  timer.start();
+  if (upsert)
+    message_.set_upsert(upsert);
+  if (message_.mutable_row()->size()) {
+    result.reset(new mysqlx::Result(safe_exec([this]() {
+      return session()->session()->execute_crud(message_);
+    })));
+    result->set_last_document_ids(last_document_ids_);
+  } else {
+    result.reset(new mysqlsh::mysqlx::Result({}));
+    result->set_last_document_ids({});
+  }
+  timer.end();
+  result->set_execution_time(timer.raw_duration());
+
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }
 

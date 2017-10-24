@@ -1,44 +1,24 @@
-#@<OUT> Testing collection help
-
-The following properties are currently supported.
-
- - name
- - session
- - schema
-
-
-The following functions are currently supported.
-
- - add                Inserts one or more documents into a collection.
- - create_index       Creates a non unique/unique index on a collection.
- - drop_index         Drops an index from a collection.
- - exists_in_database
- - find               Retrieves documents from a collection, matching a
-                      specified criteria.
- - get_name
- - get_schema
- - get_session
- - help               Provides help about this class and it's members
- - modify             Creates a collection update handler.
- - remove             Creates a document deletion handler.
-
 #@ Validating members
-|Member Count: 14|
+|Member Count: 18|
 
 |name: OK|
-|schema: OK|
 |session: OK|
-|exists_in_database: OK|
-|get_name: OK|
-|get_schema: OK|
-|get_session: OK|
+|schema: OK|
 |add: OK|
+|add_or_replace_one: OK|
 |create_index: OK|
 |drop_index: OK|
+|exists_in_database: OK|
+|find: OK|
+|get_name: OK|
+|get_one: OK|
+|get_schema: OK|
+|get_session: OK|
+|help: OK|
 |modify: OK|
 |remove: OK|
-|find: OK|
-|help: OK|
+|remove_one: OK|
+|replace_one: OK|
 
 
 #@ Testing collection name retrieving
@@ -50,8 +30,8 @@ The following functions are currently supported.
 |session: <Session:|
 
 #@ Testing collection schema retrieving
-|get_schema(): <Schema:js_shell_test>|
-|schema: <Schema:js_shell_test>|
+|get_schema(): <Schema:py_shell_test>|
+|schema: <Schema:py_shell_test>|
 
 #@<OUT> Testing help of drop_index
 Drops an index from a collection.
@@ -74,3 +54,201 @@ SYNTAX
 |Valid: True|
 |Invalid: False|
 
+#================= add_or_replace_one ======================
+#@ add_or_replace_one parameter error conditions
+||Invalid number of arguments in Collection.add_or_replace_one, expected 2 but got 0
+||Collection.add_or_replace_one: Argument #1 is expected to be a string
+||Collection.add_or_replace_one: Argument #2 is expected to be a map
+
+#@ add_or_replace_one: adding new document 1
+|Query OK, 1 item affected|
+
+#@ add_or_replace_one: adding new document 2
+|Query OK, 1 item affected|
+
+#@<OUT> Verify added documents
+[
+    {
+        "_id": "document_001",
+        "name": "basic"
+    },
+    {
+        "_id": "document_002",
+        "name": "basic"
+    }
+]
+
+#@ add_or_replace_one: replacing an existing document
+|Query OK, 2 items affected|
+
+#@<OUT> add_or_replace_one: Verify replaced document
+[
+    {
+        "_id": "document_001",
+        "name": "complex",
+        "state": "updated"
+    },
+    {
+        "_id": "document_002",
+        "name": "basic"
+    }
+]
+
+#@ add_or_replace_one: replacing an existing document, ignoring new _id
+|Query OK, 2 items affected|
+
+#@<OUT> add_or_replace_one: Verify replaced document with ignored _id
+[
+    {
+        "_id": "document_001",
+        "name": "medium"
+    },
+    {
+        "_id": "document_002",
+        "name": "basic"
+    }
+]
+
+#@ add_or_replace_one: adding with key
+|Query OK, 1 item affected|
+
+#@ add_or_replace_one: error adding with key (BUG#27013165)
+|Query OK, 0 items affected|
+
+#@ add_or_replace_one: error replacing with key
+||Document contains a field value that is not unique but required to be
+
+#@ add_or_replace_one: replacing document matching id and key
+|Query OK, 2 items affected|
+
+#@ add_or_replace_one: attempt on dropped collection
+||Table 'py_shell_test.add_or_replace_one' doesn't exist
+
+
+#================= get_one ======================
+#@ get_one: parameter error conditions
+||Invalid number of arguments in Collection.get_one, expected 1 but got 0
+||Collection.get_one: Argument #1 is expected to be a string
+
+#@<OUT> get_one: returns expected document
+{
+    "_id": "document_001",
+    "name": "test"
+}
+
+#@ get_one: returns NULL if no match found
+|None|
+
+#@ get_one: attempt on dropped collection
+||Table 'py_shell_test.get_one' doesn't exist
+
+#================= remove_one ======================
+#@<OUT> remove_one: initialization
+[
+    {
+        "_id": "document_001",
+        "name": "test"
+    },
+    {
+        "_id": "document_002",
+        "name": "test"
+    }
+]
+
+
+#@ remove_one: parameter error conditions
+||Invalid number of arguments in Collection.remove_one, expected 1 but got 0
+||Collection.remove_one: Argument #1 is expected to be a string
+
+#@ remove_one: removes the expected document
+|Query OK, 1 item affected|
+
+#@ remove_one: suceeds with 0 affected rows
+|Query OK, 0 items affected|
+
+#@<OUT> remove_one: final verification
+[
+    {
+        "_id": "document_002",
+        "name": "test"
+    }
+]
+
+
+#@ remove_one: attempt on dropped collection
+||Table 'py_shell_test.remove_one' doesn't exist
+
+#================= replace_one ======================
+#@<OUT> replace_one: initialization
+[
+    {
+        "_id": "document_001",
+        "name": "simple"
+    },
+    {
+        "_id": "document_002",
+        "name": "simple"
+    }
+]
+
+#@ replace_one parameter error conditions
+||Invalid number of arguments in Collection.replace_one, expected 2 but got 0
+||Collection.replace_one: Argument #1 is expected to be a string
+||Collection.replace_one: Argument #2 is expected to be a map
+
+#@ replace_one: replacing an existing document
+|Query OK, 1 item affected|
+
+#@<OUT> replace_one: Verify replaced document
+[
+    {
+        "_id": "document_001",
+        "name": "complex",
+        "state": "updated"
+    },
+    {
+        "_id": "document_002",
+        "name": "simple"
+    }
+]
+
+#@ replace_one: replacing unexisting document
+|Query OK, 0 items affected|
+
+#@ replace_one: replacing an existing document, ignoring new _id
+|Query OK, 1 item affected|
+
+#@<OUT> replace_one: Verify replaced document with ignored _id
+[
+    {
+        "_id": "document_001",
+        "name": "medium"
+    },
+    {
+        "_id": "document_002",
+        "name": "simple"
+    }
+]
+
+
+#@ replace_one: error replacing with key
+||Duplicate entry 'simple' for key '_name'
+
+#@ replace_one: replacing document matching id and key
+|Query OK, 1 item affected|
+
+#@<OUT> Verify replaced document with id and key
+[
+    {
+        "_id": "document_001",
+        "name": "medium",
+        "sample": true
+    },
+    {
+        "_id": "document_002",
+        "name": "simple"
+    }
+]
+
+#@ replace_one: attempt on dropped collection
+||Table 'py_shell_test.replace_one' doesn't exist

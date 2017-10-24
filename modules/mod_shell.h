@@ -65,13 +65,13 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Dictionary parseUri(String uri);
   String prompt(String message, Dictionary options);
   Undefined connect(ConnectionData connectionData, String password);
-  Undefined log(int level, String message);
+  Undefined log(String level, String message);
 #elif DOXYGEN_PY
   dict options;
   dict parse_uri(str uri);
   str prompt(str message, dict options);
   None connect(ConnectionData connectionData, str password);
-  None log(int level, str message);
+  None log(str level, str message);
 #endif
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_session_global(

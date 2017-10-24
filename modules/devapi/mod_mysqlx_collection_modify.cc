@@ -65,7 +65,7 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
              std::bind(&CollectionModify::array_delete, this, _1), "data");
   add_method("sort", std::bind(&CollectionModify::sort, this, _1), "data");
   add_method("limit", std::bind(&CollectionModify::limit, this, _1), "data");
-  add_method("bind", std::bind(&CollectionModify::bind, this, _1), "data");
+  add_method("bind", std::bind(&CollectionModify::bind_, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("modify", "");
@@ -106,7 +106,8 @@ void CollectionModify::set_operation(int type, const std::string &path,
           Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX)
         throw std::logic_error("An array document path must be specified");
     }
-  } else if (type != Mysqlx::Crud::UpdateOperation::ITEM_MERGE) {
+  } else if (type != Mysqlx::Crud::UpdateOperation::ITEM_MERGE &&
+             type != Mysqlx::Crud::UpdateOperation::ITEM_SET) {
     throw std::logic_error("Invalid document path");
   }
   // Sets the source
@@ -206,9 +207,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
       if (search_condition.empty())
         throw shcore::Exception::argument_error("Requires a search condition.");
 
-      message_.set_allocated_criteria(
-          ::mysqlx::parser::parse_collection_filter(search_condition,
-                                                    &_placeholders));
+      set_filter(search_condition);
 
       // Updates the exposed functions
       update_functions("modify");
@@ -217,6 +216,13 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
   }
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+CollectionModify &CollectionModify::set_filter(const std::string& filter) {
+  message_.set_allocated_criteria(
+      ::mysqlx::parser::parse_collection_filter(filter, &_placeholders));
+
+  return *this;
 }
 
 // Documentation of set function
@@ -996,7 +1002,7 @@ CollectionFind CollectionModify::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 CollectionFind CollectionModify::bind(str name, Value value) {}
 #endif
-shcore::Value CollectionModify::bind(const shcore::Argument_list &args) {
+shcore::Value CollectionModify::bind_(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
   try {
@@ -1007,6 +1013,12 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+CollectionModify &CollectionModify::bind(const std::string &name,
+                                         shcore::Value value) {
+  bind_value(name, value);
+  return *this;
 }
 
 // Documentation of execute function
@@ -1051,19 +1063,27 @@ Result CollectionModify::execute() {}
 Result CollectionModify::execute() {}
 #endif
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());
+  shcore::Value ret_val;
   try {
-    MySQL_timer timer;
-    insert_bound_values(message_.mutable_args());
-    timer.start();
-    result.reset(new mysqlx::Result(safe_exec([this]() {
-      return session()->session()->execute_crud(message_);
-    })));
-    timer.end();
-    result->set_execution_time(timer.raw_duration());
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
+    ret_val = execute();
+  }CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
+
+  return ret_val;
+}
+
+shcore::Value CollectionModify::execute() {
+  std::unique_ptr<mysqlsh::mysqlx::Result> result;
+  MySQL_timer timer;
+  insert_bound_values(message_.mutable_args());
+  timer.start();
+
+  result.reset(new mysqlx::Result(safe_exec([this]() {
+    return session()->session()->execute_crud(message_);
+  })));
+
+  timer.end();
+  result->set_execution_time(timer.raw_duration());
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }

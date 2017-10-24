@@ -31,6 +31,7 @@
 namespace mysqlsh {
 namespace mysqlx {
 class Collection;
+class DocResult;
 
 /**
 * \ingroup XDevAPI
@@ -93,9 +94,12 @@ class CollectionFind : public Collection_crud_definition,
   shcore::Value skip(const shcore::Argument_list &args);
   shcore::Value lock_shared(const shcore::Argument_list &args);
   shcore::Value lock_exclusive(const shcore::Argument_list &args);
-  shcore::Value bind(const shcore::Argument_list &args);
+  shcore::Value bind_(const shcore::Argument_list &args);
 
   virtual shcore::Value execute(const shcore::Argument_list &args);
+  CollectionFind &set_filter(const std::string& filter);
+  CollectionFind &bind(const std::string &name, shcore::Value value);
+  std::unique_ptr<DocResult> execute();
 
  private:
   Mysqlx::Crud::Find message_;

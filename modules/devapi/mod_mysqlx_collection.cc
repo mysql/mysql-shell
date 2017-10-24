@@ -28,19 +28,32 @@
 #include "modules/devapi/mod_mysqlx_collection_find.h"
 #include "modules/devapi/mod_mysqlx_collection_modify.h"
 #include "modules/devapi/mod_mysqlx_collection_remove.h"
+#include "modules/devapi/mod_mysqlx_resultset.h"
 #include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
-using namespace mysqlsh;
-using namespace mysqlsh::mysqlx;
+namespace mysqlsh {
+namespace mysqlx {
 using namespace shcore;
 
+REGISTER_HELP(COLLECTION_BRIEF,
+              "A Collection is a container that may be used to store Documents "
+              "in a MySQL database.");
+REGISTER_HELP(COLLECTION_DETAIL,
+              "A Document is a set of key and value pairs, as represented by a "
+              "JSON object.");
+REGISTER_HELP(COLLECTION_DETAIL1,
+              "A Document is represented internally using the MySQL binary "
+              "JSON object, through the JSON MySQL datatype.");
+REGISTER_HELP(COLLECTION_DETAIL2,
+              "The values of fields can contain other documents, arrays, and "
+              "lists of documents.");
+REGISTER_HELP(COLLECTION_PARENTS, "DatabaseObject");
 Collection::Collection(std::shared_ptr<Schema> owner, const std::string &name)
     : DatabaseObject(owner->_session.lock(),
                      std::static_pointer_cast<DatabaseObject>(owner), name) {
   init();
 }
-
 void Collection::init() {
   add_method("add", std::bind(&Collection::add_, this, _1), "searchCriteria",
              shcore::String, NULL);
@@ -54,6 +67,15 @@ void Collection::init() {
              "searchCriteria", shcore::String, NULL);
   add_method("dropIndex", std::bind(&Collection::drop_index_, this, _1),
              "searchCriteria", shcore::String, NULL);
+  add_method("replaceOne", std::bind(&Collection::replace_one_, this, _1),
+              "id", shcore::String, "doc", shcore::Map, NULL);
+  add_method("addOrReplaceOne",
+             std::bind(&Collection::add_or_replace_one, this, _1), "id",
+             shcore::String, "doc", shcore::Map, NULL);
+  add_method("getOne", std::bind(&Collection::get_one, this, _1), "id",
+             shcore::String, NULL);
+  add_method("removeOne", std::bind(&Collection::remove_one, this, _1),
+              "id", shcore::String, NULL);
 }
 
 Collection::~Collection() {}
@@ -668,17 +690,7 @@ REGISTER_HELP(COLLECTION_DROPINDEX_BRIEF, "Drops an index from a collection.");
 
 /**
 * $(COLLECTION_DROPINDEX_BRIEF)
-*
 */
-#if DOXYGEN_JS
-/**
-* #### .dropIndex(...)
-*/
-#elif DOXYGEN_PY
-/**
-* #### .drop_index(...)
-*/
-#endif
 #if DOXYGEN_JS
 Undefined Collection::dropIndex(String name) {}
 #elif DOXYGEN_PY
@@ -712,3 +724,212 @@ shcore::Value Collection::drop_index_(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP(COLLECTION_REPLACEONE_BRIEF,
+  "Replaces an existing document with a new document.");
+REGISTER_HELP(COLLECTION_REPLACEONE_PARAM,
+  "@param id identifier of the document to be replaced.");
+REGISTER_HELP(COLLECTION_REPLACEONE_PARAM1,
+  "@param doc the new document.");
+REGISTER_HELP(COLLECTION_REPLACEONE_RETURNS,
+  "@returns A Result object containing the number of affected rows.");
+REGISTER_HELP(COLLECTION_REPLACEONE_DETAIL,
+  "Replaces the document identified with the given id. If no document is found "
+  "matching the given id the returned Result will indicate 0 affected items.");
+REGISTER_HELP(COLLECTION_REPLACEONE_DETAIL1,
+  "Only one document will be affected by this operation.");
+REGISTER_HELP(COLLECTION_REPLACEONE_DETAIL2,
+  "The id of the document remain inmutable, if the new document contains a "
+  "different id, it will be ignored.");
+REGISTER_HELP(COLLECTION_REPLACEONE_DETAIL3,
+  "Any constraint (unique key) defined on the collection is applicable:");
+REGISTER_HELP(COLLECTION_REPLACEONE_DETAIL4,
+  "The operation will fail if the new document contains a unique key which is "
+  "already defined for any document in the collection except the one being "
+  "replaced.");
+
+/**
+* $(COLLECTION_REPLACEONE_BRIEF)
+*
+* $(COLLECTION_REPLACEONE_PARAM)
+* $(COLLECTION_REPLACEONE_PARAM1)
+*
+* $(COLLECTION_REPLACEONE_RETURNS)
+*
+* $(COLLECTION_REPLACEONE_DETAIL)
+*
+* $(COLLECTION_REPLACEONE_DETAIL1)
+*
+* $(COLLECTION_REPLACEONE_DETAIL2)
+*
+* $(COLLECTION_REPLACEONE_DETAIL3)
+*
+* $(COLLECTION_REPLACEONE_DETAIL4)
+*/
+#if DOXYGEN_JS
+Result Collection::replaceOne(String id, Document doc) {}
+#elif DOXYGEN_PY
+Result Collection::replace_one(str id, document doc) {}
+#endif
+shcore::Value Collection::replace_one_(const Argument_list &args) {
+  shcore::Value ret_val;
+  args.ensure_count(2, get_function_name("replaceOne").c_str());
+  try {
+    auto id = args.string_at(0);
+    auto document = args.map_at(1);
+
+    CollectionModify modify_op(shared_from_this());
+    modify_op.set_filter("_id = :id").bind("id", args[0]);
+    modify_op.set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, "",
+                  args[1]);
+    ret_val = modify_op.execute();
+  }CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("replaceOne"));
+
+  return ret_val;
+}
+
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_BRIEF,
+              "Replaces or adds a document in a collection.");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_PARAM,
+              "@param id the identifier of the document to be replaced.");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_PARAM1,
+              "@param doc the new document.");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_RETURNS,
+    "@returns A Result object containing the number of affected rows.");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL,
+              "Replaces the document identified with the given id. If no "
+              "document is found matching the given id the given document will "
+              "be added to the collection.");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL1,
+              "Only one document will be affected by this operation.");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL2,
+              "The id of the document remains inmutable, if the new document "
+              "contains a different id, it will be ignored.");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL3,
+              "Any constraint (unique key) defined on the collection is "
+              "applicable on both the replace and add operations:");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL4,
+              "@li The replace operation will fail if the new document "
+              "contains a unique key which is already defined for any document "
+              "in the collection except the one being replaced.");
+REGISTER_HELP(COLLECTION_ADDORREPLACEONE_DETAIL5,
+              "@li The add operation will fail if the new document contains a "
+              "unique key which is already defined for any document in the "
+              "collection.");
+/**
+* $(COLLECTION_ADDORREPLACEONE_BRIEF)
+*
+* $(COLLECTION_ADDORREPLACEONE_PARAM)
+* $(COLLECTION_ADDORREPLACEONE_PARAM1)
+*
+* $(COLLECTION_ADDORREPLACEONE_RETURNS)
+*
+* $(COLLECTION_ADDORREPLACEONE_DETAIL)
+*
+* $(COLLECTION_ADDORREPLACEONE_DETAIL1)
+*
+* $(COLLECTION_ADDORREPLACEONE_DETAIL2)
+*
+* $(COLLECTION_ADDORREPLACEONE_DETAIL3)
+*
+* $(COLLECTION_ADDORREPLACEONE_DETAIL4)
+*
+* $(COLLECTION_ADDORREPLACEONE_DETAIL5)
+*/
+#if DOXYGEN_JS
+Result Collection::addOrReplaceOne(String id, Document doc) {}
+#elif DOXYGEN_PY
+Result Collection::add_or_replace_one(str id, document doc) {}
+#endif
+shcore::Value Collection::add_or_replace_one(
+    const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  args.ensure_count(2, get_function_name("addOrReplaceOne").c_str());
+  try {
+    auto id = args.string_at(0);
+    auto document = args.map_at(1);
+
+    // The document gets updated with given id
+    (*document)["_id"] = shcore::Value(id);
+
+    CollectionAdd add_op(shared_from_this());
+    add_op.add_one_document(shcore::Value(document), "Parameter #1");
+    ret_val = add_op.execute(true);
+  }CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addOrReplaceOne"));
+
+  return ret_val;
+}
+
+REGISTER_HELP(COLLECTION_GETONE_BRIEF,
+              "Fetches the document with the given _id from the collection.");
+REGISTER_HELP(COLLECTION_GETONE_PARAM,
+              "@param id The identifier of the document to be retrieved.");
+REGISTER_HELP(COLLECTION_GETONE_RETURNS,
+              "@returns The Document object matching the given id or NULL if "
+              "no match is found.");
+/**
+* $(COLLECTION_GETONE_BRIEF)
+*
+* $(COLLECTION_GETONE_PARAM)
+*
+* $(COLLECTION_GETONE_RETURNS)
+*/
+#if DOXYGEN_JS
+Document Collection::getOne(String id) {}
+#elif DOXYGEN_PY
+document Collection::get_one(str id) {}
+#endif
+shcore::Value Collection::get_one(const shcore::Argument_list &args) {
+  args.ensure_count(1, get_function_name("getOne").c_str());
+  shcore::Value ret_val = shcore::Value::Null();
+  try {
+    auto id = args.string_at(0);
+
+    CollectionFind find_op(shared_from_this());
+    find_op.set_filter("_id = :id").bind("id", args[0]);
+    auto result = find_op.execute();
+    if (result)
+      ret_val = result->fetch_one({});
+  }CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getOne"));
+
+  return ret_val;
+}
+
+REGISTER_HELP(COLLECTION_REMOVEONE_BRIEF,
+              "Removes document with the given _id value.");
+REGISTER_HELP(COLLECTION_REMOVEONE_PARAM,
+              "@param id The id of the document to be removed.");
+REGISTER_HELP(COLLECTION_REMOVEONE_RETURNS,
+    "@returns A Result object containing the number of affected rows.");
+REGISTER_HELP(COLLECTION_REMOVEONE_DETAIL,
+              "If no document is found matching the given id, the Result "
+              "object will indicate 0 as the number of affected rows.");
+/**
+* $(COLLECTION_REMOVEONE_BRIEF)
+*
+* $(COLLECTION_REMOVEONE_PARAM)
+*
+* $(COLLECTION_REMOVEONE_RETURNS)
+*
+* $(COLLECTION_REMOVEONE_DETAIL)
+*/
+#if DOXYGEN_JS
+Result Collection::removeOne(String id) {}
+#elif DOXYGEN_PY
+Result Collection::remove_one(str id) {}
+#endif
+shcore::Value Collection::remove_one(const shcore::Argument_list &args) {
+  args.ensure_count(1, get_function_name("removeOne").c_str());
+  shcore::Value ret_val;
+  try {
+    auto id = args.string_at(0);
+
+    CollectionRemove remove_op(shared_from_this());
+    remove_op.set_filter("_id = :id").bind("id", args[0]);
+    ret_val = remove_op.execute();
+  }CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeOne"));
+
+  return ret_val;
+}
+
+}  // namespace mysqlx
+}  // namespace mysqlsh

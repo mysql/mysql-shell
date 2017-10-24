@@ -190,15 +190,15 @@ shcore::Value ClassicSession::_is_open(const shcore::Argument_list &args) {
 
 
 // Documentation of runSql function
-REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query and returns the "\
+REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query and returns the "
 "corresponding ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM1, "@param query the SQL query to "\
+REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM1, "@param query the SQL query to "
 "execute against the database.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM2, "@param list of literals to use "\
-"when replacing ? placeholders in the query string.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS, "@returns A ClassicResult "\
+REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM2, "@param args list of literals to "
+"use when replacing ? placeholders in the query string.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS, "@returns A ClassicResult "
 "object.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is "\
+REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is "
 "thrown if an error occurs on the SQL execution.");
 
 //! $(CLASSICSESSION_RUNSQL_BRIEF)
@@ -214,9 +214,9 @@ REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is "\
 * $(CLASSICSESSION_RUNSQL_EXCEPTION)
 */
 #if DOXYGEN_JS
-ClassicResult ClassicSession::runSql(String query) {}
+ClassicResult ClassicSession::runSql(String query, Array args) {}
 #elif DOXYGEN_PY
-ClassicResult ClassicSession::run_sql(str query) {}
+ClassicResult ClassicSession::run_sql(str query, list args) {}
 #endif
 Value ClassicSession::run_sql(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("runSql").c_str());
@@ -255,15 +255,15 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) {
 }
 
 
-REGISTER_HELP(CLASSICSESSION_QUERY_BRIEF, "Executes a query and returns the "\
+REGISTER_HELP(CLASSICSESSION_QUERY_BRIEF, "Executes a query and returns the "
   "corresponding ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_QUERY_PARAM1, "@param query the SQL query string "\
+REGISTER_HELP(CLASSICSESSION_QUERY_PARAM1, "@param query the SQL query string "
   "to execute, with optional ? placeholders");
-REGISTER_HELP(CLASSICSESSION_QUERY_PARAM2, "@param list of literals to use "\
-"when replacing ? placeholders in the query string.");
-REGISTER_HELP(CLASSICSESSION_QUERY_RETURNS, "@returns A ClassicResult "\
+REGISTER_HELP(CLASSICSESSION_QUERY_PARAM2, "@param args list of literals to "
+"use when replacing ? placeholders in the query string.");
+REGISTER_HELP(CLASSICSESSION_QUERY_RETURNS, "@returns A ClassicResult "
   "object.");
-REGISTER_HELP(CLASSICSESSION_QUERY_EXCEPTION, "@exception An exception is "\
+REGISTER_HELP(CLASSICSESSION_QUERY_EXCEPTION, "@exception An exception is "
   "thrown if an error occurs on the SQL execution.");
 
 //! $(CLASSICSESSION_QUERY_BRIEF)

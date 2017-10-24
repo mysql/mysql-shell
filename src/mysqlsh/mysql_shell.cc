@@ -1148,9 +1148,12 @@ void Mysql_shell::add_devapi_completions() {
 
   registry->add_completable_type("Collection",
                                  {{"add", "CollectionAdd", true},
+                                  {"addOrReplaceOne", "Result", true},
                                   {"modify", "CollectionModify", true},
                                   {"find", "CollectionFind", true},
                                   {"remove", "CollectionRemove", true},
+                                  {"removeOne", "Result", true},
+                                  {"replaceOne", "Result", true},
                                   {"createIndex", "CollectionIndex*", true},
                                   {"dropIndex", "", true},
                                   {"existsInDatabase", "", true},
@@ -1159,6 +1162,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getSchema", "Schema", true},
                                   {"getSession", "Session", true},
                                   {"getName", "", true},
+                                  {"getOne", "", true},
                                   {"name", "", false},
                                   {"help", "", true}});
 

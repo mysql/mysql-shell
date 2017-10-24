@@ -109,6 +109,10 @@ TEST_F(Shell_py_mysqlx_tests, mysqlx_collection) {
   validate_interactive("mysqlx_collection.py");
 }
 
+TEST_F(Shell_py_mysqlx_tests, mysqlx_collection_help) {
+  validate_interactive("mysqlx_collection_help.py");
+}
+
 TEST_F(Shell_py_mysqlx_tests, mysqlx_collection_add) {
   validate_interactive("mysqlx_collection_add.py");
 }

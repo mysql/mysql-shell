@@ -30,8 +30,9 @@
 #include "utils/utils_time.h"
 
 using namespace std::placeholders;
-using namespace mysqlsh::mysqlx;
 using namespace shcore;
+namespace mysqlsh {
+namespace mysqlx {
 
 CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
     : Collection_crud_definition(
@@ -51,7 +52,7 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
              NULL);
   add_method("lockExclusive",
              std::bind(&CollectionFind::lock_exclusive, this, _1), NULL);
-  add_method("bind", std::bind(&CollectionFind::bind, this, _1), "data");
+  add_method("bind", std::bind(&CollectionFind::bind_, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("find", "");
@@ -142,11 +143,8 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
       if (args.size()) {
         search_condition = args.string_at(0);
 
-        if (!search_condition.empty()) {
-          message_.set_allocated_criteria(
-              ::mysqlx::parser::parse_collection_filter(search_condition,
-                                                        &_placeholders));
-        }
+        if (!search_condition.empty())
+          set_filter(search_condition);
       }
       // Updates the exposed functions
       update_functions("find");
@@ -156,6 +154,15 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
+
+CollectionFind &CollectionFind::set_filter(const std::string& filter) {
+  message_.set_allocated_criteria(
+      ::mysqlx::parser::parse_collection_filter(filter,
+                                                &_placeholders));
+
+  return *this;
+}
+
 
 REGISTER_HELP(COLLECTIONFIND_FIELDS_BRIEF,
               "Sets the fields to be retrieved from each document matching the "
@@ -811,7 +818,7 @@ CollectionFind CollectionFind::bind(str name, Value value) {
 }
 #endif
 //@}
-shcore::Value CollectionFind::bind(const shcore::Argument_list &args) {
+shcore::Value CollectionFind::bind_(const shcore::Argument_list &args) {
   args.ensure_count(2, "CollectionFind.bind");
 
   try {
@@ -823,6 +830,13 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args) {
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
+
+CollectionFind &CollectionFind::bind(const std::string &name,
+                                     shcore::Value value) {
+  bind_value(name, value);
+  return *this;
+}
+
 
 REGISTER_HELP(COLLECTIONFIND_EXECUTE_BRIEF,
               "Executes the find operation with all the configured options.");
@@ -904,18 +918,28 @@ DocResult CollectionFind::execute() {
 #endif
 //@}
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlx::DocResult> result;
   args.ensure_count(0, get_function_name("execute").c_str());
+  std::unique_ptr<DocResult> result;
   try {
-    MySQL_timer timer;
-    insert_bound_values(message_.mutable_args());
-    timer.start();
-    result.reset(new mysqlx::DocResult(safe_exec(
-        [this]() { return session()->session()->execute_crud(message_); })));
-    timer.end();
-    result->set_execution_time(timer.raw_duration());
+    result = execute();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }
+
+std::unique_ptr<DocResult> CollectionFind::execute() {
+  std::unique_ptr<DocResult> result;
+
+  MySQL_timer timer;
+  insert_bound_values(message_.mutable_args());
+  timer.start();
+  result.reset(new DocResult(safe_exec(
+      [this]() { return session()->session()->execute_crud(message_); })));
+  timer.end();
+  result->set_execution_time(timer.raw_duration());
+
+  return result;
+}
+}  // namespace mysqlx
+}  // namespace mysqlsh
