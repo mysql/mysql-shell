@@ -168,8 +168,8 @@ std::vector<Statement_range> determineStatementRanges(
           if (context.size() == 2 && !have_content)
             head = tail + 1; // Skip over the comment.
 
-          break;
         }
+        break;
 
       case '-': // Possible single line comment.
       {

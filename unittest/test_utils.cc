@@ -387,11 +387,13 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& co
   output_handler.std_out = str_strip(output_handler.std_out, " ");
   output_handler.std_err = str_strip(output_handler.std_err, " ");
 
-  if (expected_output != "*")
+  if (expected_output != "*") {
     EXPECT_EQ(expected_output, output_handler.std_out);
+  }
 
-  if (expected_error != "*")
+  if (expected_error != "*") {
     EXPECT_EQ(expected_error, output_handler.std_err);
+  }
 
   output_handler.wipe_all();
 
