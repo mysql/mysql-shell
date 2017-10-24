@@ -179,7 +179,7 @@ Style::operator std::string() const {
         s += vt100::color_fg_256(fg.color_256);
         fg_set = true;
       }
-      break;
+      // fallthrough
     case Color_16:
       if (((field_mask & Style::Color_16_fg_set) && !fg_set) ||
           ((field_mask & Style::Color_16_bg_set) && !bg_set) ||
