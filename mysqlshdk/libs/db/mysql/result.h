@@ -48,6 +48,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual const IRow* fetch_one();
   virtual bool next_resultset();
   virtual std::unique_ptr<Warning> fetch_one_warning();
+  void rewind();  // Not part of IResult
 
   // Metadata retrieval
   virtual int64_t get_auto_increment_value() const { return _last_insert_id; }
@@ -58,7 +59,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual std::string get_info() const { return _info; }
   virtual const std::vector<Column>& get_metadata() const { return _metadata; }
 
- private:
+ protected:
   Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
          uint64_t affected_rows, unsigned int warning_count,
          uint64_t last_insert_id, const char* info);
@@ -70,13 +71,13 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   std::vector<Column> _metadata;
   std::unique_ptr<IRow> _row;
   std::weak_ptr<MYSQL_RES> _result;
-  uint64_t _affected_rows;
-  uint64_t _last_insert_id;
-  unsigned int _warning_count;
-  uint64_t _fetched_row_count;
+  uint64_t _affected_rows = 0;
+  uint64_t _last_insert_id = 0;
+  unsigned int _warning_count = 0;
+  uint64_t _fetched_row_count = 0;
   std::string _info;
   std::list<std::unique_ptr<Warning>> _warnings;
-  bool _has_resultset;
+  bool _has_resultset = false;
   bool _fetched_warnings = false;
 };
 }  // namespace mysql

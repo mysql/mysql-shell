@@ -32,11 +32,11 @@ import sys
 
 import subprocess
 
-import mysql.connector
-from mysql.connector.constants import ClientFlag
+import mysqlsh
 
-from mysql.connector.errorcode import (CR_SERVER_LOST,
-                                       ER_OPTION_PREVENTS_STATEMENT)
+CR_SERVER_LOST = 2013
+ER_OPTION_PREVENTS_STATEMENT = 1290
+
 from mysql_gadgets import MIN_MYSQL_VERSION, MAX_MYSQL_VERSION
 from mysql_gadgets.exceptions import (GadgetCnxInfoError, GadgetCnxError,
                                       GadgetQueryError, GadgetServerError,
@@ -44,7 +44,7 @@ from mysql_gadgets.exceptions import (GadgetCnxInfoError, GadgetCnxError,
 from mysql_gadgets.common.connection_parser import (parse_connection,
                                                     hostname_is_ip,
                                                     clean_IPv6,)
-from mysql_gadgets.common.tools import (create_option_file, get_abs_path,
+from mysql_gadgets.common.tools import (get_abs_path,
                                         is_executable, run_subprocess,
                                         shell_quote)
 
@@ -126,55 +126,29 @@ def is_valid_mysqld(mysqld_path):
                   mysqld_path)
     return False
 
-
-class MySQLUtilsCursorRaw(mysql.connector.cursor.MySQLCursorRaw):
-    """
-    Raw cursor for Connector/Python v2.0, returning a string instead of
-    bytearray.
-    """
+class MySQLUtilsCursorResult(object):
+    def __init__(self, result):
+        self._result = result
+        self.with_rows = result.has_data()
+        self.column_names = result.column_names
 
     def fetchone(self):
-        row = self._fetch_row()
+        row = self._result.fetch_one()
         if row:
-            return tuple([_to_str(v, self._connection.charset)
-                          for v in row])
+            return tuple(str(row[i]) if row[i] is not None else 'NULL'
+                         for i in range(row.length))
         return None
 
     def fetchall(self):
         rows = []
-        all_rows = super(MySQLUtilsCursorRaw, self).fetchall()
-        for row in all_rows:
-            rows.append(tuple([_to_str(v, self._connection.charset)
-                               for v in row]))
+        row = self.fetchone()
+        while row:
+            rows.append(row)
+            row = self.fetchone()
         return rows
 
-
-class MySQLUtilsCursorBufferedRaw(
-        mysql.connector.cursor.MySQLCursorBufferedRaw):
-    """
-    Buffered Raw Cursor for Connector/Python v2.0, returning a string instead
-    of bytearray.
-    """
-
-    def fetchone(self):
-        row = self._fetch_row()
-        if row:
-            return tuple([_to_str(v, self._connection.charset) for v in row])
-        return None
-
-    def fetchall(self):
-        if self._rows is None:
-            raise mysql.connector.InterfaceError(
-                "No result set to fetch from."
-            )
-
-        rows = []
-        all_rows = [r for r in self._rows[self._next_row:]]
-        for row in all_rows:
-            rows.append(tuple([_to_str(v, self._connection.charset)
-                               for v in row]))
-
-        return rows
+    def close(self):
+        pass
 
 
 def get_connection_dictionary(conn_info, ssl_dict=None):
@@ -447,58 +421,6 @@ class Server(object):
         self._version = None
         self._version_full = None
 
-    @staticmethod
-    def to_config_file(server, section_name="client", prefix_dir=None):
-        """ Create a MySQL randomly named config file from an existing server
-        instance under prefix dir.
-        :param server:    instance object that must be instance of the Server
-                          class or a subclass.
-        :type  server:    Server or server subclass
-        :param section_name: name of the section on the config file under which
-                             we are going to add the key, value information
-                             of the server
-        :type section_name: str
-        :param prefix_dir: full path to a directory where we want the temporary
-                           file to be created. By default it uses the $HOME of
-                           the user.
-        :type prefix_dir: str
-        :return: string with full path to the created config file.
-        :rtype: str
-        :raises TypeError: if the server is neither a Server nor a subclass
-                           of a Server.
-        """
-        if isinstance(server, Server):
-            param_dict = server.get_connection_values()
-            # rename passwd key if exists to password
-            password = param_dict.get("passwd", None)
-            if password:
-                param_dict["password"] = password
-                param_dict.pop("passwd", None)
-            # Add --protocol=tcp if we are using a port
-            if "port" in param_dict:
-                param_dict["protocol"] = "tcp"
-
-            # On windows scape the \
-            if os.name == 'nt':
-                if "ssl_ca" in param_dict:
-                    param_dict["ssl_ca"] = param_dict["ssl_ca"].replace(
-                        "\\", "\\\\")
-                if "ssl_cert" in param_dict:
-                    param_dict["ssl_cert"] = param_dict["ssl_cert"].replace(
-                        "\\", "\\\\")
-                if "ssl_key" in param_dict:
-                    param_dict["ssl_key"] = param_dict["ssl_key"].replace(
-                        "\\", "\\\\")
-            # This ssl parameter is used internally on the server class
-            # and is not required in a configuration file.
-            if "ssl" in param_dict:
-                param_dict.pop("ssl")
-            return create_option_file({section_name: param_dict},
-                                      prefix_dir=prefix_dir)
-        else:
-            raise TypeError("The server argument's type is neither Server nor "
-                            "a subclass of Server")
-
     @classmethod
     def from_server(cls, server, conn_info=None):
         """ Create a new server instance from an existing one.
@@ -547,9 +469,9 @@ class Server(object):
             else:
                 # ping and is_connected only work partially, try exec_query
                 # to make sure connection is really alive
-                retval = self.db_conn.is_connected()
+                retval = self.db_conn.is_open()
                 if retval:
-                    self.exec_query("SHOW DATABASES")
+                    self.exec_query("SELECT 1")
                 else:
                     res = False
         except Exception:  # pylint: disable=W0703
@@ -821,12 +743,6 @@ class Server(object):
         """
         try:
             self.db_conn = self.get_connection()
-            # If no charset provided, get it from the "character_set_client"
-            # server variable.
-            if not self.charset:
-                res = self.show_server_variable('character_set_client')
-                self.db_conn.set_charset_collation(charset=res[0][1])
-                self.charset = res[0][1]
             if self.ssl:
                 res = self.exec_query("SHOW STATUS LIKE 'Ssl_cipher'")
                 if res[0][1] == '':
@@ -859,51 +775,33 @@ class Server(object):
                 'port': self.port,
             }
             if self.socket and os.name == "posix":
-                parameters['unix_socket'] = self.socket
+                parameters['socket'] = self.socket
             if self.passwd and self.passwd != "":
-                parameters['passwd'] = self.passwd
-            if self.charset:
-                parameters['charset'] = self.charset
+                parameters['password'] = self.passwd
             parameters['host'] = parameters['host'].replace("[", "")
             parameters['host'] = parameters['host'].replace("]", "")
 
-            # Set autocommit value if defined (otherwise use C/Py default).
-            if self.autocommit is not None:
-                parameters['autocommit'] = self.autocommit
-
             # Add SSL parameters ONLY if they are not None
             if self.ssl_ca is not None:
-                parameters['ssl_ca'] = self.ssl_ca
+                parameters['ssl-ca'] = self.ssl_ca
             if self.ssl_cert is not None:
-                parameters['ssl_cert'] = self.ssl_cert
+                parameters['ssl-cert'] = self.ssl_cert
             if self.ssl_key is not None:
-                parameters['ssl_key'] = self.ssl_key
-
-            # When at least one of cert, key or ssl options are specified,
-            # the ca option is not required for establishing the encrypted
-            # connection, but C/py will not allow the None value for the ca
-            # option, so we use an empty string i.e '' to avoid an error from
-            # C/py about ca option being the None value.
-            if ('ssl_cert' in parameters.keys() or
-                    'ssl_key' in parameters.keys() or
-                    self.ssl) and \
-               'ssl_ca' not in parameters:
-                parameters['ssl_ca'] = ''
+                parameters['ssl-key'] = self.ssl_key
 
             # The ca certificate is verified only if the ssl option is also
             # specified.
-            if self.ssl and parameters['ssl_ca']:
-                parameters['ssl_verify_cert'] = True
+            if self.ssl and parameters['ssl-ca']:
+                parameters['ssl-mode'] = "VERIFY_CA"
 
-            if self.has_ssl:
-                cpy_flags = [ClientFlag.SSL, ClientFlag.SSL_VERIFY_SERVER_CERT]
-                parameters['client_flags'] = cpy_flags
-            db_conn = mysql.connector.connect(**parameters)
+            if not parameters.has_key("ssl-mode"):
+                parameters['ssl-mode'] = "PREFERRED"
+            db_conn = mysqlsh.mysql.get_classic_session(parameters)
             # Return MySQL connection object.
             return db_conn
-        except mysql.connector.Error as err:
+        except mysqlsh.DBError as err:
             _LOGGER.debug("Connector Error: %s", err)
-            raise GadgetCnxError(err.msg, err.errno, cause=err, server=self)
+            raise GadgetCnxError(err.args[1], err.args[0], cause=err, server=self)
         except AttributeError as err:
             # Might be raised by mysql.connector.connect()
             raise GadgetCnxError(str(err), cause=err, server=self)
@@ -915,8 +813,8 @@ class Server(object):
             raise GadgetCnxError("Cannot disconnect from a not connected"
                                  "server. You must use connect() first.")
         try:
-            self.db_conn.disconnect()
-        except mysql.connector.Error:
+            self.db_conn.close()
+        except mysqlsh.DBError:
             # No error expected even if already disconnected, anyway ignore it.
             pass
 
@@ -1044,31 +942,12 @@ class Server(object):
         raw = options.get('raw', True)
         do_commit = options.get('commit', True)
 
+        query_str = query_str.replace("%s", "?")
+
         # Guard for connect() prerequisite
         if not self.db_conn:
             raise GadgetCnxError(
                 "You must call connect before executing a query.", server=self)
-
-        # If we are fetching all, we need to use a buffered
-        try:
-            if fetch:
-                if raw:
-                    if mysql.connector.__version_info__ < (2, 0):
-                        cur = self.db_conn.cursor(buffered=True, raw=True)
-                    else:
-                        cur = self.db_conn.cursor(
-                            cursor_class=MySQLUtilsCursorBufferedRaw)
-                else:
-                    cur = self.db_conn.cursor(buffered=True)
-            else:
-                if mysql.connector.__version_info__ < (2, 0):
-                    cur = self.db_conn.cursor(raw=True)
-                else:
-                    cur = self.db_conn.cursor(cursor_class=MySQLUtilsCursorRaw)
-        except mysql.connector.Error as err:
-            raise GadgetCnxError(
-                "Could not create cursor: {0}".format(err),
-                errno=err.errno, cause=err, server=self)
 
         # Execute query, handling parameters.
         q_killer = None
@@ -1080,12 +959,13 @@ class Server(object):
                 q_killer.daemon = True
                 q_killer.start()
             # Execute query.
+            cur = None
             if params == ():
                 if query_to_log:
                     _LOGGER.debug("MySQL query: %s", query_to_log)
                 else:
                     _LOGGER.debug("MySQL query: %s", query_str)
-                cur.execute(query_str)
+                cur = MySQLUtilsCursorResult(self.db_conn.query(query_str))
             else:
                 if query_to_log:
                     _LOGGER.debug("MySQL query: %s, params %s", query_to_log,
@@ -1093,33 +973,35 @@ class Server(object):
                 else:
                     _LOGGER.debug("MySQL query: %s, params %s", query_str,
                                   params)
-                cur.execute(query_str, params)
-        except mysql.connector.Error as err:
+                cur = MySQLUtilsCursorResult(self.db_conn.query(query_str, params))
+        except mysqlsh.DBError as err:
             # if any exception happened, mask  the query_str that will be
             # shown in the exception messages
             if query_to_log:
                 query_str = query_to_log
-            cur.close()
-            if err.errno == CR_SERVER_LOST and exec_timeout > 0:
+            if cur:
+                cur.close()
+            if err.args[0] == CR_SERVER_LOST and exec_timeout > 0:
                 # If the connection is killed (because the execution timeout is
                 # reached), then it attempts to re-establish it (to execute
                 # further queries) and raise a specific exception to track this
                 # event.
                 # CR_SERVER_LOST = Errno 2013 Lost connection to MySQL server
                 # during query.
-                self.db_conn.reconnect()
+                self.connect()
                 raise GadgetQueryError("Timeout executing query", query_str,
-                                       errno=err.errno, cause=err, server=self)
+                                       errno=err.args[0], cause=err, server=self)
             else:
                 raise GadgetQueryError("Query failed. {0}".format(err),
-                                       query_str, errno=err.errno, cause=err,
+                                       query_str, errno=err.args[0], cause=err,
                                        server=self)
         except Exception as err:
-            cur.close()
+            if cur:
+                cur.close()
             if query_to_log:
                 query_str = query_to_log
             raise GadgetQueryError("Unknown error: {0}".format(err),
-                                   query_str, errno=err.errno, cause=err,
+                                   query_str, errno=0, cause=err,
                                    server=self)
         finally:
             # Stop query killer thread if alive.
@@ -1137,12 +1019,12 @@ class Server(object):
                         for col in col_headings:
                             col_names.append(col)
                         results = col_names, results
-                except mysql.connector.Error as err:
+                except mysqlsh.DBError as err:
                     if query_to_log:
                         query_str = query_to_log
                     raise GadgetQueryError(
                         "Error fetching all query data: {0}".format(err),
-                        query_str, errno=err.errno, cause=err, server=self)
+                        query_str, errno=err.args[0], cause=err, server=self)
                 finally:
                     cur.close()
                 return results
@@ -1153,13 +1035,13 @@ class Server(object):
             # No results (not a SELECT)
             try:
                 if do_commit:
-                    self.db_conn.commit()
-            except mysql.connector.Error as err:
+                    self.db_conn.query("commit")
+            except mysqlsh.DBError as err:
                 if query_to_log:
                     query_str = query_to_log
                 raise GadgetQueryError(
                     "Error performing commit: {0}".format(err), query_str,
-                    errno=err.errno, cause=err, server=self)
+                    errno=err.args[0], cause=err, server=self)
             finally:
                 cur.close()
             return cur
@@ -1174,7 +1056,7 @@ class Server(object):
             raise GadgetCnxError(
                 "You must call connect before commit.", server=self)
 
-        self.db_conn.commit()
+        self.db_conn.query("commit")
 
     def rollback(self):
         """Perform a ROLLBACK.
@@ -1186,7 +1068,7 @@ class Server(object):
             raise GadgetCnxError(
                 "You must call connect before rollback.", server=self)
 
-        self.db_conn.rollback()
+        self.db_conn.query("rollback")
 
     def show_server_variable(self, variable):
         """Get the variable information using SHOW VARIABLES statement.
@@ -1600,7 +1482,7 @@ class Server(object):
                 self.exec_query("SHOW GRANTS FOR 'snuffles'@'host'")
                 self.grants_enabled = True
             except (GadgetCnxError, GadgetQueryError) as err:
-                if (err.errno == ER_OPTION_PREVENTS_STATEMENT and
+                if (err.args[0] == ER_OPTION_PREVENTS_STATEMENT and
                         "--skip-grant-tables" in err.errmsg):
                     self.grants_enabled = False
                 # Ignore other errors as they are not pertinent to the check
@@ -1792,26 +1674,15 @@ class QueryKillerThread(threading.Thread):
             # kill the query.
             if not self._stop_event.is_set():
                 try:
-                    if mysql.connector.__version_info__ < (2, 0):
-                        cur = self._connection.cursor(raw=True)
-                    else:
-                        cur = self._connection.cursor(
-                            cursor_class=MySQLUtilsCursorRaw)
-
+                    cur = None
                     # Get process information from threads table when available
                     # (for versions > 5.6.1), since it does not require a mutex
                     # and has minimal impact on server performance.
-                    if self._server.check_version_compat(5, 6, 1):
-                        cur.execute(
-                            "SELECT processlist_id "
-                            "FROM performance_schema.threads"
-                            " WHERE processlist_command='Query'"
-                            " AND processlist_info='{0}'".format(self._query))
-                    else:
-                        cur.execute(
-                            "SELECT id FROM information_schema.processlist"
-                            " WHERE command='Query'"
-                            " AND info='{0}'".format(self._query))
+                    cur = MySQLUtilsCursorResult(self._connection.query(
+                        "SELECT processlist_id "
+                        "FROM performance_schema.threads"
+                        " WHERE processlist_command='Query'"
+                        " AND processlist_info='{0}'".format(self._query)))
                     result = cur.fetchall()
 
                     try:
@@ -1826,8 +1697,8 @@ class QueryKillerThread(threading.Thread):
                     # connector-python,since it will hang waiting for the
                     #  query to return.
                     if process_id:
-                        cur.execute("KILL {0}".format(process_id))
-                except mysql.connector.Error as err:
+                        self._connection.query("KILL {0}".format(process_id))
+                except mysqlsh.DBError as err:
                     # Hold error to raise at the end.
                     connector_error = err
                 finally:
@@ -1840,7 +1711,7 @@ class QueryKillerThread(threading.Thread):
         # Close connection.
         try:
             self._connection.disconnect()
-        except mysql.connector.Error:
+        except mysqlsh.DBError:
             # Only raise error if no previous error has occurred.
             if not connector_error:
                 raise

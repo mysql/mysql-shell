@@ -61,13 +61,16 @@ namespace mysql {
 
 #if DOXYGEN_JS
 ClassicSession getClassicSession(ConnectionData connectionData, String password);
+ClassicSession getSession(ConnectionData connectionData, String password);
 #elif DOXYGEN_PY
 ClassicSession get_classic_session(ConnectionData connectionData, str password);
+ClassicSession get_session(ConnectionData connectionData, str password);
 #endif
 
 DECLARE_MODULE(Mysql, mysql);
 
 DECLARE_FUNCTION(get_classic_session);
+DECLARE_FUNCTION(get_session);
 
 // We need to hide this from doxygen to avoif warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY

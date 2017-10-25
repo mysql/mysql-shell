@@ -27,15 +27,9 @@ import unittest
 from mysql_gadgets.common import server
 
 from mysql_gadgets.common import tools
+from mysql_gadgets.common.config_parser import MySQLOptionsParser
 from mysql_gadgets.exceptions import GadgetError
 from unit_tests.utils import GadgetsTestCase, SERVER_CNX_OPT
-
-if sys.version_info > (3, 0):
-    # Python 3
-    import configparser  # pylint: disable=E0401,C0411
-else:
-    # Python 2
-    import ConfigParser as configparser  # pylint: disable=E0401,C0411
 
 
 class TestTools(GadgetsTestCase):
@@ -165,139 +159,6 @@ class TestTools(GadgetsTestCase):
         self.assertEqual(res, expected)
         res = tools.get_abs_path("../..", __file__)
         self.assertEqual(res, expected)
-
-    def test_create_option_file(self):
-        """test the create_option_file function"""
-        # using an invalid prefix dir must raise an error
-        with self.assertRaises(GadgetError):
-            tools.create_option_file({}, prefix_dir="NOT_A_VALID_PREFIX_DIR")
-
-        # Check that config file by default is created in the home folder.
-        f_path = tools.create_option_file({})
-        try:
-            f_dir, _ = os.path.split(f_path)
-            home_path = os.path.normpath(os.path.expanduser("~"))
-            self.assertEqual(home_path, f_dir)
-            self.assertTrue(os.path.isfile(f_path))
-            mode = os.stat(f_path).st_mode
-            # Check that owner can read it.
-            self.assertTrue(mode & stat.S_IRUSR)
-            # Check that owner can write to it.
-            self.assertTrue(mode & stat.S_IWUSR)
-            # Check that owner cannot execute it.
-            if not sys.platform.startswith("win"):
-                # On windows mkstemp (used by create_option_file) creates
-                # a file with 666 permission bits instead of 600 as expected.
-                self.assertFalse(mode & stat.S_IXUSR)
-                # Check that group users cannot read it.
-                self.assertFalse(mode & stat.S_IRGRP)
-                # Check that group users cannot write to it.
-                self.assertFalse(mode & stat.S_IWGRP)
-                # Check that it is not executable for group users.
-                self.assertFalse(mode & stat.S_IXGRP)
-                # Check that other users cannot read it.
-                self.assertFalse(mode & stat.S_IROTH)
-                # Check that other users cannot write to it.
-                self.assertFalse(mode & stat.S_IWOTH)
-                # Check that it is not executable for other users.
-                self.assertFalse(mode & stat.S_IXOTH)
-        finally:
-            os.remove(f_path)
-        # Check that config file is created on a provided dir with the
-        # correct permissions.
-        test_dir, _ = os.path.split(__file__)
-        f_path = tools.create_option_file({}, prefix_dir=test_dir)
-        try:
-            f_dir, _ = os.path.split(f_path)
-            self.assertEqual(test_dir, f_dir)
-            self.assertTrue(os.path.isfile(f_path))
-            mode = os.stat(f_path).st_mode
-            # Check that owner can read it.
-            self.assertTrue(mode & stat.S_IRUSR)
-            # Check that owner can write to it.
-            self.assertTrue(mode & stat.S_IWUSR)
-            # Check that owner cannot execute it.
-            self.assertFalse(mode & stat.S_IXUSR)
-            if not sys.platform.startswith("win"):
-                # On windows mkstemp (used by create_option_file) creates
-                # a file with 666 permission bits instead of 600 as expected.
-                # Check that group users cannot read it.
-                self.assertFalse(mode & stat.S_IRGRP)
-                # Check that group users cannot write to it.
-                self.assertFalse(mode & stat.S_IWGRP)
-                # Check that it is not executable for group users.
-                self.assertFalse(mode & stat.S_IXGRP)
-                # Check that other users cannot read it.
-                self.assertFalse(mode & stat.S_IROTH)
-                # Check that other users cannot write to it.
-                self.assertFalse(mode & stat.S_IWOTH)
-                # Check that it is not executable for other users.
-                self.assertFalse(mode & stat.S_IXOTH)
-        finally:
-            os.remove(f_path)
-
-        # Check that config file is created on a provided dir with a provided
-        # name and correct permissions.
-        test_dir, _ = os.path.split(__file__)
-        f_path = tools.create_option_file({}, name="opt_file_test",
-                                          prefix_dir=test_dir)
-        try:
-            f_dir, f_name = os.path.split(f_path)
-            self.assertEqual(test_dir, f_dir)
-            self.assertEqual("opt_file_test", f_name)
-            self.assertTrue(os.path.isfile(f_path))
-            mode = os.stat(f_path).st_mode
-            # Check that owner can read it.
-            self.assertTrue(mode & stat.S_IRUSR)
-            # Check that owner can write to it.
-            self.assertTrue(mode & stat.S_IWUSR)
-            # Check that owner cannot execute it.
-            self.assertFalse(mode & stat.S_IXUSR)
-            # trying to create a file in the same directory with the same name
-            # should return an error
-            with self.assertRaises(GadgetError):
-                tools.create_option_file({}, name="opt_file_test",
-                                         prefix_dir=test_dir)
-
-            if not sys.platform.startswith("win"):
-                # On windows mkstemp (used by create_option_file) creates
-                # a file with 666 permission bits instead of 600 as expected.
-                # Check that group users cannot read it.
-                self.assertFalse(mode & stat.S_IRGRP)
-                # Check that group users cannot write to it.
-                self.assertFalse(mode & stat.S_IWGRP)
-                # Check that it is not executable for group users.
-                self.assertFalse(mode & stat.S_IXGRP)
-                # Check that other users cannot read it.
-                self.assertFalse(mode & stat.S_IROTH)
-                # Check that other users cannot write to it.
-                self.assertFalse(mode & stat.S_IWOTH)
-                # Check that it is not executable for other users.
-                self.assertFalse(mode & stat.S_IXOTH)
-        finally:
-            os.remove(f_path)
-
-        # Check that its contents are correct
-        conf_dict = ({"section1": {"option1": "val1", "option12": None},
-                      "section2": {"option2": None, "option21": "val21"}})
-        f_path = tools.create_option_file(conf_dict, prefix_dir=test_dir)
-        try:
-            c = configparser.RawConfigParser(allow_no_value=True)
-            c.read(f_path)
-            # Check they have the same sections
-            self.assertEqual(set(conf_dict.keys()), set(c.sections()))
-            # Check that they have the same options
-            for section in conf_dict:
-                self.assertEqual(set(conf_dict[section].keys()),
-                                 set(c.options(section)))
-            # Check they have the same values
-            for section in conf_dict:
-                for option in conf_dict[section].keys():
-                    self.assertEqual(conf_dict[section][option],
-                                     c.get(section, option))
-
-        finally:
-            os.remove(f_path)
 
     def test_get_subclass_dict(self):
         """test get_subclass_dict function"""

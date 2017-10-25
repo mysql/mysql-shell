@@ -81,13 +81,23 @@ class Api_connections : public Shell_js_script_tester {
                   ", "
                   "{sandboxDir: '" +
                   get_scripting_path(sandbox_path) +
-                  "',"
+                  "', "
                   "password: 'root'});");
+
+    shell.execute("dba.killSandboxInstance(" + get_sandbox_classic_port() +
+                  ", "
+                  "{sandboxDir: '" +
+                  get_scripting_path(sandbox_path) +
+                  "'});");
 
     shell.execute("dba.deleteSandboxInstance(" + get_sandbox_classic_port() +
                   ", "
                   "{sandboxDir: '" +
-                  get_scripting_path(sandbox_path) + "'});");   }
+                  get_scripting_path(sandbox_path) + "'});");
+
+    // After sandboxes are down, they take a while until ports are released
+    shcore::sleep_ms(5000);
+  }
 
   static std::string get_scripting_path(const std::string& path) {
     std::string ret_val = path;
@@ -141,7 +151,6 @@ class Api_connections : public Shell_js_script_tester {
 
     auto path_components =
         shcore::split_string(get_sandbox_path(), _path_splitter);
-
     if (path_components.back().empty())
       path_components.pop_back();
     path_components.push_back(get_sandbox_classic_port());

@@ -205,24 +205,11 @@ std::pair<uint64_t, int> string_to_bits(const std::string &s) {
   return {bits.to_ullong(), nbits};
 }
 
-std::vector<std::string> SHCORE_PUBLIC str_split(const std::string &str,
-                                                 const std::string &sep) {
-  auto p = std::find_first_of(begin(str), end(str), begin(sep), end(sep));
-  std::vector<std::string> chunks = {std::string(begin(str), p)};
-
-  while (p != str.end()) {
-    auto first = ++p;
-    p = std::find_first_of(first, end(str), begin(sep), end(sep));
-    chunks.push_back(std::string(first, p));
-  }
-
-  return chunks;
-}
-
 std::string quote_string(const std::string &s, char quote) {
   const std::string q{quote};
   const std::string backslash = str_replace(s, "\\", "\\\\");
   const std::string esc = str_replace(backslash, q, "\\" + q);
   return std::string(q + esc + q);
 }
+
 }  // namespace shcore

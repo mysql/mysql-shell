@@ -15,6 +15,7 @@ validateMember(sessionMembers, 'getSchema');
 validateMember(sessionMembers, 'getSchemas');
 validateMember(sessionMembers, 'getUri');
 validateMember(sessionMembers, 'setCurrentSchema');
+validateMember(sessionMembers, 'query');
 validateMember(sessionMembers, 'runSql');
 validateMember(sessionMembers, 'defaultSchema');
 validateMember(sessionMembers, 'uri');
@@ -125,6 +126,9 @@ print(cschema);
 
 //$ ClassicSession: date handling
 classicSession.runSql("select cast('9999-12-31 23:59:59.999999' as datetime(6))");
+
+//$ ClassicSession: placeholders handling
+classicSession.runSql("select ?, ?", ['hello', 1234]);
 
 //@# ClassicSession: bad params
 mysql.getClassicSession()

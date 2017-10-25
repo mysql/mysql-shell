@@ -381,6 +381,8 @@ public:
   Value &operator [](const std::string &key) { return _map[key]; }
   void clear() { _map.clear(); }
   bool has_key(const std::string& key) { return _map.has_key(key); }
+
+  const Value::Map_type &as_map() const { return _map; }
  private:
   Value::Map_type _map;
   static bool comp(const std::string& lhs, const std::string& rhs);

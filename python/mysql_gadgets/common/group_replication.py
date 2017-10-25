@@ -17,9 +17,14 @@
 """
 This module contains common operation to manage Group Replication
 """
-import collections
+# Use backported OrderedDict if not available (for Python 2.6)
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordered_dict_backport import OrderedDict
+
 import datetime
-import logging
+from mysql_gadgets.common import logging
 import os
 import re
 import socket
@@ -62,10 +67,10 @@ _C1, _C2, _C3, _C4 = (_OP_C1_WIDTH, int(_MAX_TABLE_WIDTH * 0.22),
                       int(_MAX_TABLE_WIDTH * 0.22),
                       int(_MAX_TABLE_WIDTH * 0.08))
 
-_FOUR_COLS = "{{0:<{}}}  {{1:<{}}}  {{2:<{}}}  {{3:<{}}}".format(_C1, _C2,
-                                                                 _C3, _C4)
+_FOUR_COLS = "{{0:<{0}}}  {{1:<{1}}}  {{2:<{2}}}  {{3:<{3}}}".format(_C1, _C2,
+                                                                     _C3, _C4)
 
-_TWO_COLS = "{{0:<{}}}  {{1:<{}}}".format(_C1, _C2)
+_TWO_COLS = "{{0:<{0}}}  {{1:<{1}}}".format(_C1, _C2)
 DISABLED_STORAGE_ENGINES = "disabled_storage_engines"
 
 AUTO_INCREMENT_INCREMENT = "auto_increment_increment"
@@ -172,18 +177,17 @@ LOOSE_PREFIX = "loose_{0}"
 APPEND_VALUE_OPTIONS = [GR_GROUP_SEEDS]
 
 # a set of GR options to read from the defaults file and setup in the server.
-DEFAULTS_FILE_OPTIONS = frozenset({GR_IP_WHITELIST,
+DEFAULTS_FILE_OPTIONS = frozenset((GR_IP_WHITELIST,
                                    GR_GROUP_NAME,
                                    GR_GROUP_SEEDS,
                                    GR_LOCAL_ADDRESS,
-                                   GR_SINGLE_PRIMARY_MODE})
+                                   GR_SINGLE_PRIMARY_MODE))
 
 EQUIVALENT_OPTION_VALUES = {
-    "ON": {"ON", "1"},
-    "1": {"ON", "1"},
-    "0": {"OFF", "0"},
-    "OFF": {"OFF", "0"},
-
+    "ON": ("ON", "1"),
+    "1": ("ON", "1"),
+    "0": ("OFF", "0"),
+    "OFF": ("OFF", "0"),
 }
 
 # Required configuration on MySQL server (variables)
@@ -221,12 +225,12 @@ GR_REQUIRED_CONFIG = {
 # NOTE: master_info_repository and relay_log_info_repository are also dynamic
 # variables but they cannot be changed online if any replication threads are
 # running.
-DYNAMIC_SERVER_VARS = frozenset({"binlog_format",
+DYNAMIC_SERVER_VARS = frozenset(("binlog_format",
                                  # "gtid_mode",
                                  # "enforce_gtid_consistency",
                                  # "master_info_repository",
                                  # "relay_log_info_repository",
-                                 "binlog_checksum"})
+                                 "binlog_checksum"))
 
 # Required configuration on MySQL option file
 GR_REQUIRED_OPTIONS = {
@@ -474,7 +478,7 @@ def get_gr_name_from_peer(peer_server):
         res = peer_server.exec_query("SELECT GROUP_NAME FROM {0} WHERE "
                                      "CHANNEL_NAME='group_replication_applier'"
                                      "".format(REP_CONN_STATUS_TABLE))
-        return "'{0}'".format(res[0][0]) if res else "''"
+        return "{0}".format(res[0][0]) if res else ""
     else:
         raise GadgetError(
             _ERROR_GR_NOT_LOAD_ON_PEER.format(var_name="group name",
@@ -496,7 +500,7 @@ def get_gr_local_address_from(peer_server):
     """
     if peer_server.is_plugin_installed(GR_PLUGIN_NAME):
         var_value = peer_server.select_variable(GR_LOCAL_ADDRESS, "global")
-        local_address = "'{0}'".format(var_value).replace("localhost",
+        local_address = "{0}".format(var_value).replace("localhost",
                                                           peer_server.host)
         return local_address.replace("127.0.0.1", peer_server.host)
     else:
@@ -531,7 +535,7 @@ def get_gr_variable_from_peer(peer_server, var_name, use_synonym=True):
                       "value: '%s'.", var_name, peer_server, var_value)
         if use_synonym and var_value in ['0', '1']:
             var_value = 'ON' if var_value == '1' else 'OFF'
-        return "'{0}'".format(var_value)
+        return "{0}".format(var_value)
     else:
         raise GadgetError(
             _ERROR_GR_NOT_LOAD_ON_PEER.format(var_name=var_name,
@@ -567,8 +571,14 @@ def setup_gr_config(server, gr_config_vars, disable_binlog=True,
             try:
                 if disable_binlog:
                     server.exec_query("SET SQL_LOG_BIN=0")
-                server.exec_query("SET GLOBAL {0} = {1}"
-                                  "".format(var, gr_config_vars[var]))
+                # NOTE: all quoting should really be happening here, not the caller
+                if gr_config_vars[var] and type(gr_config_vars[var]) is str \
+                    and gr_config_vars[var][0] in "'\"":
+                    server.exec_query("SET GLOBAL {0} = {1}"
+                                      "".format(var, gr_config_vars[var]))
+                else:
+                    server.exec_query("SET GLOBAL {0} = ?"
+                      "".format(var), options={"params":(gr_config_vars[var],)})
 
             except GadgetQueryError as db_err:
                 raise GadgetError("An error occurred while setting variable "
@@ -586,7 +596,7 @@ def get_group_uuid_name(server):
     :rtype: string
     """
     res = server.exec_query("SELECT UUID()")
-    return "'{0}'".format(res[0][0])
+    return "{0}".format(res[0][0])
 
 
 def validate_group_name(group_name):
@@ -737,8 +747,8 @@ def do_change_master(server, rpl_user_settings, disable_binlog=True,
             if disable_binlog:
                 server.toggle_binlog(action="disable")
 
-            query = ("CHANGE MASTER TO MASTER_USER = '{0}', "
-                     "MASTER_PASSWORD = '{1}' FOR CHANNEL "
+            query = ("CHANGE MASTER TO MASTER_USER = /*(*/ '{0}' /*)*/, "
+                     "MASTER_PASSWORD = /*(*/ '{1}' /*)*/ FOR CHANNEL "
                      "'group_replication_recovery';")
             server.exec_query(query.format(recovery_user, rep_user_passwd),
                               query_to_log=query.format(recovery_user,
@@ -1754,7 +1764,7 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                 # ON, OFF, 0 or 1, then by default it will return a set with
                 # the cur_val.
                 eq_val_set = EQUIVALENT_OPTION_VALUES.get(
-                    options_results[var_name][2], {cur_val, })
+                    options_results[var_name][2], (cur_val, ))
                 if var_name in options_results.keys() and \
                    cur_val != "<no value>" and cur_val not in eq_val_set:
                     _LOGGER.warning("The value %s of the option %s in the "
@@ -1854,7 +1864,9 @@ def get_gr_members(server, exclude_server=None):
                 member = get_server(server_info=conn_val)
                 members.append(member)
             except GadgetError as err:
-                _LOGGER.debug(err.errmsg)
+                # TODO - if there are errors checking one or more instances,
+                # the whole thing should fail at the end
+                _LOGGER.warning(err.errmsg)
                 if member is not None:
                     _LOGGER.warning("Unable to verify server_id of %s",
                                     member)
@@ -1901,8 +1913,8 @@ def get_req_dict(server, replication_user, peer_server=None, option_file=None):
 
     if replication_user is not None:
         req_dict[USER_PRIVILEGES] = {
-            replication_user: {"REPLICATION SLAVE"},
-            super_user: {"CREATE USER", "SUPER", "REPLICATION SLAVE"},
+            replication_user: ("REPLICATION SLAVE",),
+            super_user: ("CREATE USER", "SUPER", "REPLICATION SLAVE"),
         }
 
     # add the peer list used to verify server_id uniqueness
@@ -1937,8 +1949,8 @@ def get_req_dict_user_check(server, replication_user):
     # The requirement checker instance will be used to run the tests.
     super_user = "{0}@'{1}'".format(server.user, server.host)
     req_dict[USER_PRIVILEGES] = {
-        replication_user: {"REPLICATION SLAVE"},
-        super_user: {"CREATE USER", "REPLICATION SLAVE"},
+        replication_user: ("REPLICATION SLAVE", ),
+        super_user: ("CREATE USER", "REPLICATION SLAVE"),
     }
     return req_dict
 
@@ -2228,7 +2240,7 @@ def persist_gr_config(defaults_path, config_values=None, set_on=True,
         # Remove quotes
         for option_name, value in config_values.items():
             if (len(value) > 0 and value[0] == value[-1] and
-                    value[0] in {'"', "'"}):
+                    value[0] in ('"', "'")):
                 config_values[option_name] = \
                     config_values[option_name][1:-1]
 
@@ -2322,7 +2334,7 @@ def get_gr_configs_from_instance(server):
     :return: Dictionary with the GR variable values
     :rtype: OrderedDict
     """
-    gr_configs = collections.OrderedDict()
+    gr_configs = OrderedDict()
     gr_vars = server.exec_query("show variables like 'group_replication_%'")
     for variable_name, value in gr_vars:
         gr_configs[variable_name] = value

@@ -44,6 +44,8 @@ The following functions are currently supported.
  - getUri           Retrieves the URI for the current session.
  - help             Provides help about this class and it's members
  - isOpen           Returns true if session is known to be open.
+ - query            Executes a query and returns the corresponding
+                    ClassicResult object.
  - rollback         Discards all the operations executed after a call to
                     startTransaction().
  - runSql           Executes a query and returns the corresponding
@@ -108,6 +110,9 @@ The following functions are currently supported.
 
 //$ ClassicSession: date handling
 |9999-12-31 23:59:59.999999|
+
+//$ ClassicSession: placeholders handling
+| hello | 1234 |
 
 //@# ClassicSession: bad params
 ||Invalid connection options, expected either a URI or a Dictionary.

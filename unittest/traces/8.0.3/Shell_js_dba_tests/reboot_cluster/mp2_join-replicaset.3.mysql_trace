@@ -1,0 +1,16 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "root:root@Alfredos-MacBook-Pro.local:3316?ssl-mode=PREFERRED"
+},
+{
+    "type": "response",
+    "subtype": "ERROR",
+    "index": 2,
+    "code": "1045",
+    "msg": "Access denied for user 'root'@'192.168.1.2' (using password: YES)",
+    "sqlstate": "28000"
+},
+null]

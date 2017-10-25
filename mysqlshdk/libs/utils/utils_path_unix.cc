@@ -28,6 +28,8 @@
 namespace shcore {
 namespace path {
 
+const char *k_valid_path_separators = "/";
+
 /*
  * Join two or more pathname components, inserting '/' as needed.
  * If any component is an absolute path, all previous path components
@@ -150,6 +152,12 @@ std::string SHCORE_PUBLIC normalize(const std::string &path) {
 
   return norm;
 }
+
+
+bool exists(const std::string &path) {
+  return access(path.c_str(), F_OK) == 0;
+}
+
 
 }  // namespace path
 }  // namespace shcore

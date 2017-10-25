@@ -81,6 +81,10 @@ class Mysql_shell : public mysqlsh::Base_shell {
   void refresh_schema_completion(bool force = false);
   void add_devapi_completions();
 
+  void print_connection_message(mysqlsh::SessionType type,
+                                const std::string& uri,
+                                const std::string& sessionid);
+
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;

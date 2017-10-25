@@ -63,11 +63,15 @@ class Shell_test_env : public ::testing::Test {
 
   virtual void SetUpOnce() {}
 
+  std::string setup_recorder();
+
  protected:
   std::string _host;
   std::string _port;
   std::string _user;
   int _port_number;
+  std::string _hostname;
+  std::string _hostname_ip;
   std::string _uri;
   std::string _uri_nopasswd;
   std::string _pwd;
@@ -78,10 +82,13 @@ class Shell_test_env : public ::testing::Test {
   std::string _socket;
   std::string _mysql_socket;
 
+  bool _recording_enabled = false;
+
   std::map<std::string, std::string> _output_tokens;
   std::string resolve_string(const std::string& source);
 
   void SetUp() override;
+  void TearDown() override;
   static void SetUpTestCase();
 
  public:

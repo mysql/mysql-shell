@@ -20,6 +20,7 @@ include_directories(
 
 set(utils_SOURCE
     utils_mysql_parsing.cc
+    utils_net.cc
     utils_time.cc
     utils_file.cc
     utils_path.cc
@@ -29,6 +30,7 @@ set(utils_SOURCE
     utils_sqlstring.cc
     utils_string.cc
     utils_uuid.cc
+    trandom.cc
     nullable_options.cc
     base_tokenizer.cc
     logger.cc

@@ -1,7 +1,12 @@
 // Assumptions: smart deployment functions available
 
 //@ Initialization
-var deployed_here = reset_or_deploy_sandboxes();
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 function print_gr_local_address() {
   var result = session.runSql('SELECT @@GLOBAL.group_replication_local_address');
@@ -38,13 +43,10 @@ function print_gr_group_name() {
 }
 
 function stop_sandbox(port) {
-    if (__sandbox_dir)
-        dba.stopSandboxInstance(port, {password: 'root', sandboxDir:__sandbox_dir});
-    else
-        dba.stopSandboxInstance(port, {password: 'root'});
+    testutil.stopSandbox(port, 'root');
 }
 
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ Create cluster errors using localAddress option
 // FR1-TS-1-5 (GR issues an error if the hostname or IP address is invalid)
@@ -56,7 +58,9 @@ var c = dba.createCluster('test', {localAddress: ""});
 // FR1-TS-1-8
 var c = dba.createCluster('test', {localAddress: ":123456"});
 // FR1-TS-1-1
-var __local_address_1 = localhost + ":" + __mysql_sandbox_port1;
+// Note: this test will try to connect to the port in localAddress to see if
+// its free. Thus, the port must be busy even in replayed test runs.
+var __local_address_1 = localhost + ":" + __port;
 var c = dba.createCluster('test', {localAddress: __local_address_1});
 
 //@ Create cluster errors using groupSeeds option
@@ -203,7 +207,7 @@ session.close();
 print_other_gr_local_address(add_instance_options);
 
 //@ Remove instance (FR1-TS-2-2)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
@@ -218,7 +222,7 @@ session.close();
 print_other_gr_local_address(add_instance_options);
 
 //@ Remove instance (FR1-TS-2-3)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
@@ -232,7 +236,7 @@ session.close();
 print_other_gr_local_address(add_instance_options);
 
 //@ Remove instance (FR1-TS-2-4)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
@@ -246,7 +250,7 @@ session.close();
 print_other_gr_local_address(add_instance_options);
 
 //@ Remove instance (FR1-TS-2-9)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
@@ -260,7 +264,7 @@ session.close();
 print_other_gr_local_address(add_instance_options);
 
 //@ Remove instance (FR1-TS-2-10)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
@@ -272,7 +276,7 @@ session.close();
 print_other_gr_group_seeds(add_instance_options);
 
 //@ Remove instance (FR2-TS-2-1)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
@@ -284,7 +288,7 @@ session.close();
 print_other_gr_group_seeds(add_instance_options);
 
 //@ Remove instance (FR2-TS-2-2)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
@@ -331,7 +335,7 @@ stop_sandbox(__mysql_sandbox_port2);
 stop_sandbox(__mysql_sandbox_port1);
 
 //@ Restart added instance (FR1-TS-4)
-try_restart_sandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port2);
 
 //@<OUT> Confirm localAddress, groupSeeds, and groupName values were persisted for added instance (FR1-TS-4)
 shell.connect(add_instance_options);
@@ -340,20 +344,21 @@ print_gr_group_seeds();
 print_gr_group_name();
 
 //@ Restart seed instance (FR1-TS-4)
-try_restart_sandbox(__mysql_sandbox_port1);
+testutil.startSandbox(__mysql_sandbox_port1);
 
 //@<OUT> Confirm localAddress, groupSeeds, and groupName values were persisted for seed instance (FR1-TS-4)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 print_gr_local_address();
 print_gr_group_seeds();
 print_gr_group_name();
 
 //@ Dissolve cluster (FR1-TS-4)
-shell.connect({host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 c = dba.getCluster();
 c.dissolve({force: true});
 
 //@ Finalization
 session.close();
-if (deployed_here)
-    cleanup_sandboxes(deployed_here);
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

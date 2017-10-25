@@ -25,10 +25,12 @@
 #include <iostream>
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
+#include "utils/utils_path.h"
 
 #ifdef WIN32
-#  include <ShlObj.h>
-#  include <comdef.h>
+#include <direct.h>
+#include <ShlObj.h>
+#include <comdef.h>
 #define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else
 #  include <sys/file.h>
@@ -258,6 +260,7 @@ std::string get_mysqlx_home_path() {
   return ret_val;
 }
 
+
 /*
  * Returns whether if a file exists (true) or doesn't (false);
  */
@@ -282,23 +285,17 @@ bool file_exists(const std::string& filename) {
 * Returns true when the specified path is a folder
 */
 bool is_folder(const std::string& path) {
-  bool ret_val = false;
 #ifdef WIN32
   DWORD dwAttrib = GetFileAttributesA(path.c_str());
 
-  ret_val = (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+          (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 #else
-  const char *dir_path = path.c_str();
-  DIR* dir = opendir(dir_path);
-  if (dir) {
-    /* Directory exists. */
-    closedir(dir);
-
-    ret_val = true;
-  }
+  struct stat stbuf;
+  if (stat(path.c_str(), &stbuf) < 0)
+    return false;
+  return (stbuf.st_mode & S_IFDIR) != 0;
 #endif
-
-  return ret_val;
 }
 
 /*
@@ -329,6 +326,99 @@ void ensure_dir_exists(const std::string& path) {
   }
 #endif
 }
+
+
+/*
+ * Recursively create a directory and its parents if they don't exist.
+ */
+void SHCORE_PUBLIC create_directory(const std::string& path, bool recursive) {
+  assert(!path.empty());
+  for (;;) {
+#ifdef WIN32
+    if (_mkdir(path.c_str()) == 0 || errno == EEXIST) {
+      break;
+    }
+#else
+    if (mkdir(path.c_str(), 0700) == 0 || errno == EEXIST) {
+      break;
+    }
+#endif
+    if (errno == ENOENT && recursive) {
+      create_directory(path::dirname(path), recursive);
+    } else {
+      throw std::runtime_error(str_format("Could not create directory %s: %s",
+                                          path.c_str(), strerror(errno)));
+    }
+  }
+}
+
+std::vector<std::string> listdir(const std::string &path) {
+  std::vector<std::string> files;
+  iterdir(path, [&files](const std::string &name) -> bool {
+    files.push_back(name);
+    return true;
+  });
+  return files;
+}
+
+/**
+ * Iterate contents of given directory, calling the given function on each entry.
+ */
+bool iterdir(const std::string& path,
+             const std::function<bool(const std::string&)>& fun) {
+  bool stopped = false;
+#ifdef WIN32
+  WIN32_FIND_DATA ffd;
+  HANDLE hFind = INVALID_HANDLE_VALUE;
+
+  // Add wildcard to search for all contents in path.
+  std::string search_path = path + "\\*";
+  hFind = FindFirstFile(search_path.c_str(), &ffd);
+  if (hFind == INVALID_HANDLE_VALUE)
+    throw std::runtime_error(
+      str_format("%s: %s", path.c_str(), shcore::get_last_error().c_str()));
+
+  // Remove all elements in directory (recursively)
+  do {
+    // Skip directories "." and ".."
+    if (!strcmp(ffd.cFileName, ".") ||
+        !strcmp(ffd.cFileName, "..")) {
+      continue;
+    }
+
+    if (!fun(ffd.cFileName)) {
+      stopped = true;
+      break;
+    }
+  } while (FindNextFile(hFind, &ffd) != 0);
+  FindClose(hFind);
+#else
+  DIR *dir = opendir(path.c_str());
+  if (dir) {
+    // Remove all elements in directory (recursively)
+    struct dirent *p_dir_entry;
+    while ((p_dir_entry = readdir(dir))) {
+      // Skip directories "." and ".."
+      if (!strcmp(p_dir_entry->d_name, ".") ||
+          !strcmp(p_dir_entry->d_name, "..")) {
+        continue;
+      }
+
+      if (!fun(p_dir_entry->d_name)) {
+        stopped = true;
+        break;
+      }
+    }
+    closedir(dir);
+  } else {
+    throw std::runtime_error(str_format("%s: %s",
+                                        path.c_str(),
+                                        get_last_error().c_str()));
+  }
+#endif
+  return !stopped;
+}
+
 
 /*
  * Remove the specified directory and all its contents.

@@ -1,9 +1,9 @@
 // Assumptions: smart deployment functions available
 
 // Smart deployment
-var deployed_here = reset_or_deploy_sandbox(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
 
-shell.connect({scheme: 'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
+shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
 
 // Assumptions: reset_or_deploy_sandboxes available
 if (__have_ssl)
@@ -28,9 +28,13 @@ dba.dropMetadataSchema({force:true});
 
 session.close();
 
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+
 //@# drop metadata: user response yes
-reset_or_deploy_sandbox(__mysql_sandbox_port1);
-shell.connect({scheme: 'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
 if (__have_ssl)
   dba.createCluster("tempCluster", {memberSslMode: "REQUIRED", clearReadOnly: true});
 else
@@ -41,5 +45,4 @@ dba.dropMetadataSchema()
 session.close();
 
 // Smart deployment cleanup
-if (deployed_here)
-  cleanup_sandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port1);

@@ -11,6 +11,7 @@ The following functions are currently supported.
  - connect          Establishes the shell global session.
  - getSession
  - help             Provides help about this class and it's members
+ - log              Logs an entry to the shell's log file.
  - parseUri         Utility function to parse a URI string.
  - prompt           Utility function to prompt data from the user.
  - reconnect

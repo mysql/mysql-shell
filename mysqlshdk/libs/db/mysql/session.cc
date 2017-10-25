@@ -245,6 +245,20 @@ Session_impl::~Session_impl() {
   close();
 }
 
+
+std::function<std::shared_ptr<Session>()> g_session_factory;
+
+void Session::set_factory_function(
+    std::function<std::shared_ptr<Session>()> factory) {
+  g_session_factory = factory;
+}
+
+std::shared_ptr<Session> Session::create() {
+  if (g_session_factory)
+    return g_session_factory();
+  return std::shared_ptr<Session>(new Session());
+}
+
 }  // namespace mysql
 }  // namespace db
 }  // namespace mysqlshdk

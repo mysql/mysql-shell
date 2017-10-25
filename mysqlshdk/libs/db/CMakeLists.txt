@@ -36,7 +36,12 @@ set(db_SOURCE
     mysqlx/tokenizer.cc
     mysqlx/expr_parser.cc
     mysqlx/proj_parser.cc
+    replay/setup.cc
+    replay/recorder.cc
+    replay/replayer.cc
+    replay/trace.cc
 )
+
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
   SET(mysqlsh_tests_SRC

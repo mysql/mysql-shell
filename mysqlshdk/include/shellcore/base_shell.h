@@ -65,7 +65,6 @@ class SHCORE_PUBLIC Base_shell {
 
   void print_error(const std::string &error);
 
-  void print_connection_message(mysqlsh::SessionType type, const std::string& uri, const std::string& sessionid);
   shcore::IShell_core::Mode interactive_mode() const { return _shell->interactive_mode(); }
 
   virtual void process_line(const std::string &line);

@@ -64,7 +64,6 @@ public:
   Shell_script_tester();
 
   virtual void SetUp();
-  virtual void TearDown();
 
   void validate_batch(const std::string& name);
   void validate_interactive(const std::string& name);

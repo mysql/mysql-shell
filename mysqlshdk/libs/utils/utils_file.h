@@ -20,7 +20,9 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_UTILS_FILE_H_
 #define MYSQLSHDK_LIBS_UTILS_UTILS_FILE_H_
 
+#include <functional>
 #include <string>
+#include <vector>
 #include "scripting/common.h"
 
 namespace shcore {
@@ -31,7 +33,9 @@ std::string SHCORE_PUBLIC get_mysqlx_home_path();
 std::string SHCORE_PUBLIC get_binary_folder();
 bool SHCORE_PUBLIC is_folder(const std::string& filename);
 bool SHCORE_PUBLIC file_exists(const std::string& filename);
-void SHCORE_PUBLIC ensure_dir_exists(const std::string& path);
+void SHCORE_PUBLIC ensure_dir_exists(const std::string& path);  // delme
+void SHCORE_PUBLIC create_directory(const std::string &path,
+                                    bool recursive = true);
 void SHCORE_PUBLIC remove_directory(const std::string& path,
                                     bool recursive = true);
 std::string SHCORE_PUBLIC get_last_error();
@@ -42,6 +46,10 @@ bool SHCORE_PUBLIC create_file(const std::string& name,
                                const std::string& content);
 void SHCORE_PUBLIC copy_file(const std::string& from, const std::string& to);
 std::string SHCORE_PUBLIC get_home_dir();
+std::vector<std::string> SHCORE_PUBLIC listdir(const std::string &path);
+
+bool SHCORE_PUBLIC iterdir(const std::string& path,
+                           const std::function<bool(const std::string&)>& fun);
 
 }  // namespace shcore
 

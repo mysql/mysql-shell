@@ -113,6 +113,12 @@ bool Result::next_resultset() {
   return ret_val;
 }
 
+void Result::rewind() {
+  _fetched_row_count = 0;
+  if (std::shared_ptr<MYSQL_RES> res = _result.lock())
+    mysql_data_seek(res.get(), 0);
+}
+
 std::unique_ptr<Warning> Result::fetch_one_warning() {
   if (_warning_count && !_fetched_warnings) {
     _fetched_warnings = true;

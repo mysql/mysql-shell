@@ -1,6 +1,13 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMember and validateNotMember are defined on the setup script
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+// ensure my.cnf file is saved/restored for replay in recording mode
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+
+shell.connect("mysql://root:root@localhost:" + __mysql_sandbox_port1);
 
 //@ Session: validating members
 var members = dir(dba);
@@ -233,4 +240,5 @@ var c2 = dba.getCluster('devCluster');
 //@ Dba: getCluster
 print(c2);
 
-session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

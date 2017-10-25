@@ -29,50 +29,71 @@ TEST(utils_path, join_path) {
   std::vector<std::string> vec{"//host/computer/dir", "user1"};
   std::string res = join_path(vec);
   EXPECT_EQ("//host/computer/dir\\user1", res);
+  EXPECT_EQ("//host/computer/dir\\user1",
+            join_path("//host/computer/dir", "user1"));
 
   vec = {"//host/computer/dir", "user1", "subdir"};
   res = join_path(vec);
+  EXPECT_EQ("//host/computer/dir\\user1\\subdir",
+            join_path("//host/computer/dir", "user1", "subdir"));
   EXPECT_EQ("//host/computer/dir\\user1\\subdir", res);
   // UNC path + another UNC path
   vec = {"//host/computer/dir", "stuff", "//host2/computer", "subdir"};
   res = join_path(vec);
+  EXPECT_EQ(
+      "//host2/computer\\subdir",
+      join_path("//host/computer/dir", "stuff", "//host2/computer", "subdir"));
   EXPECT_EQ("//host2/computer\\subdir", res);
 
   // UNC path + absolute path
   vec = {"//host/computer/dir", "computer/user1", "C:\\Users"};
   res = join_path(vec);
+  EXPECT_EQ("C:\\Users",
+            join_path("//host/computer/dir", "computer/user1", "C:\\Users"));
   EXPECT_EQ("C:\\Users", res);
 
   // UNC path + absolute path
   vec = {"//host/computer/dir", "computer/user1", "//host2/computer"};
   res = join_path(vec);
+  EXPECT_EQ(
+      "//host2/computer",
+      join_path("//host/computer/dir", "computer/user1", "//host2/computer"));
   EXPECT_EQ("//host2/computer", res);
 
   // UNC path + relative path
   vec = {"//host/computer/dir", "computer\\user1"};
   res = join_path(vec);
+  EXPECT_EQ("//host/computer/dir\\computer\\user1",
+            join_path("//host/computer/dir", "computer\\user1"));
   EXPECT_EQ("//host/computer/dir\\computer\\user1", res);
 
   // same drive, different case (lower/upper)
   vec = {"C:\\Users", "c:"};
   res = join_path(vec);
+  EXPECT_EQ("c:\\Users\\", join_path("C:\\Users", "c:"));
   EXPECT_EQ("c:\\Users\\", res);
 
   vec = {"C:\\Users", "c:", "User1"};
   res = join_path(vec);
+  EXPECT_EQ("c:\\Users\\User1", join_path("C:\\Users", "c:", "User1"));
   EXPECT_EQ("c:\\Users\\User1", res);
 
   // Path separator is only added if needed
   vec = {"C:\\Users", "folder", "subfolder"};
   res = join_path(vec);
+  EXPECT_EQ("C:\\Users\\folder\\subfolder",
+            join_path("C:\\Users", "folder", "subfolder"));
   EXPECT_EQ("C:\\Users\\folder\\subfolder", res);
 
   vec = {"C:\\Users", "folder\\", "subfolder"};
   res = join_path(vec);
+  EXPECT_EQ("C:\\Users\\folder\\subfolder",
+            join_path("C:\\Users", "folder\\", "subfolder"));
   EXPECT_EQ("C:\\Users\\folder\\subfolder", res);
 
   vec = {"C:\\Users", "user1"};
   res = join_path(vec);
+  EXPECT_EQ("C:\\Users\\user1", join_path("C:\\Users", "user1"));
   EXPECT_EQ("C:\\Users\\user1", res);
 
   vec = {};
@@ -89,10 +110,12 @@ TEST(utils_path, join_path) {
 
   vec = {"", "what"};
   res = join_path(vec);
+  EXPECT_EQ("what", join_path("", "what"));
   EXPECT_EQ("what", res);
 
   vec = {"", "what", ""};
   res = join_path(vec);
+  EXPECT_EQ("what\\", join_path("", "what", ""));
   EXPECT_EQ("what\\", res);
 }
 
@@ -156,23 +179,29 @@ TEST(utils_path, join_path) {
 
   vec = {"", "what"};
   res = join_path(vec);
+  EXPECT_EQ("what", join_path("", "what"));
   EXPECT_EQ("what", res);
 
   vec = {"/root", "dir", ""};
   res = join_path(vec);
+  EXPECT_EQ("/root/dir/", join_path("/root", "dir", ""));
   EXPECT_EQ("/root/dir/", res);
 
   // path separator is only added if needed
   vec = {"/root", "dir", "subdir"};
   res = join_path(vec);
+  EXPECT_EQ("/root/dir/subdir", join_path("/root", "dir", "subdir"));
   EXPECT_EQ("/root/dir/subdir", res);
 
   vec = {"/root", "dir/", "subdir"};
   res = join_path(vec);
+  EXPECT_EQ("/root/dir/subdir", join_path("/root", "dir/", "subdir"));
   EXPECT_EQ("/root/dir/subdir", res);
 
   vec = {"/root", "dir", "/another/absolute", "path"};
   res = join_path(vec);
+  EXPECT_EQ("/another/absolute/path",
+            join_path("/root", "dir", "/another/absolute", "path"));
   EXPECT_EQ("/another/absolute/path", res);
 }
 
@@ -226,5 +255,100 @@ TEST(utils_path, normalize) {
   EXPECT_EQ(normalize("//a/b/c"), "//a/b/c");
 }
 #endif
+
+// both basename and dirname are supposed to behave the same as
+// /usr/bin/basename and /usr/bin/dirname
+TEST(utils_path, basename) {
+  EXPECT_EQ("", basename(""));
+  EXPECT_EQ("/", basename("/"));
+  EXPECT_EQ("/", basename("////"));
+  EXPECT_EQ("foo", basename("foo"));
+  EXPECT_EQ("foo.txt", basename("foo.txt"));
+  EXPECT_EQ("foo.txt", basename("/foo.txt"));
+  EXPECT_EQ("foo.txt", basename("/bla/foo.txt"));
+  EXPECT_EQ("foo", basename("/bla/foo/"));
+  EXPECT_EQ("foo", basename("./foo"));
+  EXPECT_EQ("foo", basename("/../foo"));
+  EXPECT_EQ("foo.", basename("/../foo."));
+  EXPECT_EQ(".foo", basename("/../.foo"));
+  EXPECT_EQ(".", basename("/../."));
+  EXPECT_EQ(".", basename("."));
+  EXPECT_EQ(".", basename("./"));
+  EXPECT_EQ("..", basename(".."));
+  EXPECT_EQ("..", basename("/.."));
+#ifdef _WIN32
+  EXPECT_EQ("foo.txt", basename("\\foo.txt"));
+  EXPECT_EQ("foo.txt", basename("bla\\foo.txt"));
+  EXPECT_EQ("foo.txt", basename("\\bla\\foo.txt"));
+  EXPECT_EQ("foo.txt", basename("\\foo.txt"));
+  EXPECT_EQ("foo.txt", basename("bla\\foo.txt"));
+  EXPECT_EQ("foo.txt", basename("\\bla/foo.txt"));
+  EXPECT_EQ("foo.txt", basename("/bla\\foo.txt"));
+  EXPECT_EQ("foo.txt", basename("c:foo.txt"));
+  EXPECT_EQ("foo.txt", basename("c:\\foo.txt"));
+  EXPECT_EQ("foo.txt", basename("c:\\bla\\foo.txt"));
+#endif
+}
+
+TEST(utils_path, dirname) {
+  EXPECT_EQ("/", dirname("/"));
+  EXPECT_EQ("/", dirname("//"));
+  EXPECT_EQ("/", dirname("/foo"));
+  EXPECT_EQ("/", dirname("/foo/"));
+  EXPECT_EQ("/", dirname("/foo//"));
+  EXPECT_EQ("/", dirname("//foo/"));
+  EXPECT_EQ("/", dirname("//foo//"));
+  EXPECT_EQ("//foo", dirname("//foo//bar"));
+  EXPECT_EQ("//foo", dirname("//foo//bar//"));
+  EXPECT_EQ("//foo//bar", dirname("//foo//bar//."));
+
+  EXPECT_EQ(".", dirname(""));
+  EXPECT_EQ(".", dirname("."));
+  EXPECT_EQ(".", dirname(".."));
+  EXPECT_EQ(".", dirname(".."));
+  EXPECT_EQ(".", dirname("./"));
+  EXPECT_EQ(".", dirname(".////"));
+
+  EXPECT_EQ("/..", dirname("/../.."));
+  EXPECT_EQ("/..", dirname("/../../"));
+
+  EXPECT_EQ("foo", dirname("foo/bar"));
+  EXPECT_EQ("foo", dirname("foo/bar/"));
+  EXPECT_EQ("foo/bar", dirname("foo/bar/bla"));
+  EXPECT_EQ("foo//bar", dirname("foo//bar/bla"));
+  EXPECT_EQ("../bla", dirname("../bla/ble"));
+  EXPECT_EQ("./bla", dirname("./bla/ble"));
+
+#ifdef _WIN32
+  // EXPECT_EQ("c:\\", dirname("c:\\foo"));
+  EXPECT_EQ("\\", dirname("\\foo"));
+  EXPECT_EQ("\\", dirname("\\"));
+  EXPECT_EQ("\\", dirname("\\\\"));
+  EXPECT_EQ("\\", dirname("\\foo"));
+  EXPECT_EQ("\\", dirname("\\foo\\"));
+  EXPECT_EQ("\\", dirname("\\foo\\\\"));
+  EXPECT_EQ("\\", dirname("\\\\foo\\"));
+  EXPECT_EQ("\\", dirname("\\\\foo\\\\"));
+
+  EXPECT_EQ("\\..", dirname("\\..\\.."));
+  EXPECT_EQ("\\..", dirname("\\..\\..\\"));
+
+  EXPECT_EQ("foo", dirname("foo\\bar"));
+  EXPECT_EQ("foo", dirname("foo\\bar\\"));
+  EXPECT_EQ("foo\\bar", dirname("foo\\bar\\bla"));
+  EXPECT_EQ("foo\\\\bar", dirname("foo\\\\bar\\bla"));
+  EXPECT_EQ("..\\bla", dirname("..\\bla\\ble"));
+  EXPECT_EQ(".\\bla", dirname(".\\bla\\ble"));
+
+  EXPECT_EQ("bla/foo", dirname("bla/foo\\bar"));
+  EXPECT_EQ("foo\\bar", dirname("foo\\bar\\bla/"));
+  EXPECT_EQ("f/oo\\bar", dirname("f/oo\\bar\\bla"));
+  EXPECT_EQ("foo\\\\bar/ble", dirname("foo\\\\bar\\bla/ble/bli"));
+  EXPECT_EQ("..\\bla/..", dirname("..\\bla/..\\ble"));
+  EXPECT_EQ(".\\bla", dirname(".\\bla/ble"));
+  EXPECT_EQ(".\\bla", dirname(".\\bla/"));
+#endif
+}
+
 }  // namespace path
 }  // namespace shcore

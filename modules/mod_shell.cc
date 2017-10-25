@@ -56,6 +56,7 @@ void Shell::init() {
   add_method("setSession", std::bind(&Shell::set_session, this, _1), "session", shcore::Object, NULL);
   add_method("getSession", std::bind(&Shell::get_session, this, _1), NULL);
   add_method("reconnect", std::bind(&Shell::reconnect, this, _1), NULL);
+  add_method("log", std::bind(&Shell::log, this, _1), NULL);
 }
 
 Shell::~Shell() {}
@@ -560,6 +561,41 @@ shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
   }
 
   return shcore::Value(ret_val);
+}
+
+
+REGISTER_HELP(SHELL_LOG_BRIEF, "Logs an entry to the shell's log file.");
+REGISTER_HELP(SHELL_LOG_PARAM, "@param level one of ERROR, WARNING, INFO, "
+          "DEBUG, DEBUG2 as a string");
+REGISTER_HELP(SHELL_LOG_PARAM1, "@param message the text to be logged");
+REGISTER_HELP(SHELL_LOG_DETAIL, "Only messages that have a level value equal "
+          "to or lower than the active one (set via --log-level) are logged.");
+
+/**
+ * $(SHELL_LOG_BRIEF)
+ *
+ * $(SHELL_LOG_PARAM)
+ * $(SHELL_LOG_PARAM1)
+ *
+ * $(SHELL_LOG_DETAIL)
+ */
+shcore::Value Shell::log(const shcore::Argument_list &args) {
+  args.ensure_count(2, get_function_name("log").c_str());
+
+  try {
+    ngcommon::Logger::LOG_LEVEL level = ngcommon::Logger::LOG_INFO;
+    if (args[0].type == shcore::Integer)
+      level = static_cast<ngcommon::Logger::LOG_LEVEL>(args.int_at(0));
+    else
+      level = ngcommon::Logger::get_log_level(args.string_at(0));
+    if (level == ngcommon::Logger::LOG_NONE)
+      throw shcore::Exception::argument_error("Invalid log level '" +
+                                                args[0].descr() + "'");
+    ngcommon::Logger::log(level, nullptr, "%s", args.string_at(1).c_str());
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("log"));
+
+  return shcore::Value();
 }
 
 }  // namespace mysqlsh

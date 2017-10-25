@@ -609,14 +609,14 @@ TEST_F(Completer_frontend, js_shell) {
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.con", "shell.connect()");
   EXPECT_AFTER_TAB_TAB(
-      "shell.",
-      strv({"connect()", "getSession()", "help()", "options", "parseUri()",
-            "prompt()", "reconnect()", "setCurrentSchema()", "setSession()"}));
+      "shell.", strv({"connect()", "getSession()", "help()", "log()", "options",
+                      "parseUri()", "prompt()", "reconnect()",
+                      "setCurrentSchema()", "setSession()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
   EXPECT_AFTER_TAB_TAB("mysql", strv({"mysql", "mysqlx"}));
-  EXPECT_AFTER_TAB("mysql.get", "mysql.getClassicSession()");
+  EXPECT_AFTER_TAB("mysql.getC", "mysql.getClassicSession()");
   EXPECT_AFTER_TAB("mysqlx.get", "mysqlx.getSession()");
 
   // a dynamically created global var
@@ -1002,7 +1002,8 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
   execute("\\use actest");
 
   std::vector<std::pair<std::string, std::string>> mysql_calls{
-      {"help", ""}, {"getClassicSession", "('" + _mysql_uri + "')"}};
+      {"help", ""}, {"getClassicSession", "('" + _mysql_uri + "')"},
+      {"getSession", "('" + _mysql_uri + "')"}};
 
   CHECK_OBJECT_MEMBER_COMPLETIONS("mysql", mysql_calls);
 
@@ -1016,7 +1017,8 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"dropTable", ""},
       {"dropView", ""},
       {"getSchema", ""},
-      {"runSql", "('select 1')"}};
+      {"runSql", "('select 1')"},
+      {"query", "('select 1')"}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 }
 
@@ -1071,15 +1073,15 @@ TEST_F(Completer_frontend, py_shell) {
 
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.con", "shell.connect()");
-  EXPECT_AFTER_TAB_TAB("shell.",
-                       strv({"connect()", "get_session()", "help()", "options",
-                             "parse_uri()", "prompt()", "reconnect()",
-                             "set_current_schema()", "set_session()"}));
+  EXPECT_AFTER_TAB_TAB(
+      "shell.", strv({"connect()", "get_session()", "help()", "log()",
+                      "options", "parse_uri()", "prompt()", "reconnect()",
+                      "set_current_schema()", "set_session()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
   EXPECT_AFTER_TAB_TAB("mysql", strv({"mysql", "mysqlx"}));
-  EXPECT_AFTER_TAB("mysql.get", "mysql.get_classic_session()");
+  EXPECT_AFTER_TAB("mysql.get_c", "mysql.get_classic_session()");
   EXPECT_AFTER_TAB("mysqlx.get", "mysqlx.get_session()");
 
   // a dynamically created global var

@@ -79,9 +79,6 @@ cmake .. \
     -DWITH_TESTS=ON \
     -DWITH_GTEST=%{with_gtest} \
 %endif
-%if 0%{?with_connector_python:1}
-    -DWITH_CONNECTOR_PYTHON="%{with_connector_python}" \
-%endif
 %if 0%{?with_mysql_source:1}
     -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
     -DMYSQL_BUILD_DIR="%{with_mysql_source}/bld" \
@@ -118,6 +115,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %{_datadir}/mysqlsh/prompt/*
 
 %changelog
+* Wed Nov 01 2017 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 8.0.4-1
+- Remove Connector/Python dependency
+
 * Thu May 04 2017 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.8-1
 - Remove libedit dependency, add sample prompt files
 

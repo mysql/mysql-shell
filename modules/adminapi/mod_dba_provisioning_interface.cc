@@ -24,19 +24,59 @@
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#include "modules/mod_utils.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/db/replay/setup.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 
-static const char *kRequiredMySQLProvisionInterfaceVersion = "2.1";
+extern const char *g_mysqlsh_argv0;
+
 
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
 using namespace shcore;
 using mysqlshdk::db::uri::formats::user_transport;
+
+namespace {
+void setup_recorder_environment(const std::string &cmd) {
+  static char mode[512];
+  static char prefix[512];
+
+  snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=");
+  snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=");
+
+  // If session recording is wanted, we need to append a mysqlprovision specific
+  // suffix to the output path, which also has to be different for each call
+  if (mysqlshdk::db::replay::g_replay_mode !=
+      mysqlshdk::db::replay::Mode::Direct) {
+    if (cmd != "sandbox") {  // don't record sandbox ops
+      if (mysqlshdk::db::replay::g_replay_mode ==
+          mysqlshdk::db::replay::Mode::Record) {
+        snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=record");
+      } else {
+        snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=replay");
+      }
+      snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=%s_%s",
+               mysqlshdk::db::replay::mysqlprovision_recording_path().c_str(),
+               cmd.c_str());
+    }
+  }
+  putenv(mode);
+  putenv(prefix);
+}
+
+shcore::Value value_from_argmap(const shcore::Argument_map &argmap) {
+  shcore::Value map(shcore::Value::new_map());
+  *map.as_map() = argmap.as_map();
+  return map;
+}
+
+}  // namespace
+
 ProvisioningInterface::ProvisioningInterface(
     shcore::Interpreter_delegate *deleg)
     : _verbose(0), _delegate(deleg) {}
@@ -44,8 +84,9 @@ ProvisioningInterface::ProvisioningInterface(
 ProvisioningInterface::~ProvisioningInterface() {}
 
 int ProvisioningInterface::execute_mysqlprovision(
-    const std::string &cmd, const std::vector<const char *> &args,
-    const std::vector<std::string> &passwords,
+    const std::string &cmd,
+    const shcore::Argument_list &args,
+    const shcore::Argument_map &kwargs,
     shcore::Value::Array_type_ref *errors, int verbose) {
   std::vector<const char *> args_script;
   std::string buf;
@@ -71,33 +112,25 @@ int ProvisioningInterface::execute_mysqlprovision(
     if (_local_mysqlprovision_path.empty()) {
       std::string tmp(get_binary_folder());
 #ifdef _WIN32
-      tmp.append("\\mysqlprovision.cmd");
+      tmp.append("\\mysqlprovision.zip");
 #else
-      tmp.append("/mysqlprovision");
+      tmp.append("/mysqlprovision.zip");
 #endif
       if (file_exists(tmp))
         _local_mysqlprovision_path = tmp;
     }
-
-    // If is not set, we have to assume that it's located on the PATH
-    if (_local_mysqlprovision_path.empty())
-      _local_mysqlprovision_path = "mysqlprovision";
+    assert(!_local_mysqlprovision_path.empty());
   }
+
+  args_script.push_back(g_mysqlsh_argv0);
+  args_script.push_back("--py");
+  args_script.push_back("-f");
 
   args_script.push_back(_local_mysqlprovision_path.c_str());
   args_script.push_back(cmd.c_str());
-
-  args_script.insert(args_script.end(), args.begin(), args.end());
-  // API version check for mysqlprovision
-  args_script.push_back("--log-format=json");
-  args_script.push_back("-xV");
-
-  args_script.push_back(kRequiredMySQLProvisionInterfaceVersion);
-
-  if (verbose > 1)
-    args_script.push_back("--verbose");
-
   args_script.push_back(NULL);
+
+  setup_recorder_environment(cmd);
 
   std::string message =
       "DBA: mysqlprovision: Executing " +
@@ -105,7 +138,8 @@ int ProvisioningInterface::execute_mysqlprovision(
                        " ");
   log_info("%s", message.c_str());
 
-  if (verbose > 1) {
+  if (verbose > 1 ||
+      (getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") == 0)) {
     message += "\n";
     _delegate->print(_delegate->user_data, message.c_str());
   }
@@ -125,11 +159,18 @@ int ProvisioningInterface::execute_mysqlprovision(
     stage_action = "starting";
     p.start();
 
-    if (!passwords.empty()) {
+    shcore::Value wrapped_args(shcore::Value::new_array());
+    Argument_map kwargs_(kwargs);
+    kwargs_["verbose"] = shcore::Value(verbose);
+    wrapped_args.as_array()->push_back(value_from_argmap(kwargs_));
+    for (int i = 0; i < args.size(); i++)
+      wrapped_args.as_array()->push_back(args[i]);
+
+    {
       stage_action = "executing";
-      for (size_t i = 0; i < passwords.size(); i++) {
-        p.write(passwords[i].c_str(), passwords[i].length());
-      }
+      std::string json = wrapped_args.json();
+      json += "\n.\n";
+      p.write(json.c_str(), json.size());
     }
 
     stage_action = "reading from";
@@ -242,6 +283,14 @@ int ProvisioningInterface::execute_mysqlprovision(
     _delegate->print(_delegate->user_data, footer.c_str());
   }
 
+  if ((getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") == 0)) {
+    _delegate->print(
+        _delegate->user_data,
+        shcore::str_format("mysqlprovision exited with code %i\n", exit_code)
+            .c_str());
+    _delegate->print(_delegate->user_data, full_output.c_str());
+  }
+
   /*
    * process launcher returns 128 if an ENOENT happened.
    */
@@ -308,137 +357,107 @@ int ProvisioningInterface::check(
     const mysqlshdk::db::Connection_options &connection_options,
     const std::string &cnfpath, bool update,
     shcore::Value::Array_type_ref *errors) {
-  std::string instance_param =
-      "--instance=" + connection_options.as_uri(user_transport());
+  shcore::Argument_map kwargs;
 
-  std::vector<std::string> passwords;
-  std::string pwd = connection_options.get_password();
-
-  pwd += "\n";
-  passwords.push_back(pwd);
-
-  std::vector<const char *> args;
-  args.push_back(instance_param.c_str());
-  set_ssl_args("instance", connection_options, &args);
-
-  std::string path(cnfpath);
-
-  if (!path.empty()) {
-    args.push_back("--defaults-file");
-
-    // quoting handled internally
-    args.push_back(path.c_str());
+  {
+    auto map = get_connection_map(connection_options);
+    if (map->has_key("password"))
+      (*map)["passwd"] = (*map)["password"];
+    kwargs["server"] = shcore::Value(map);
+  }
+  if (!cnfpath.empty()) {
+    kwargs["option_file"] = shcore::Value(cnfpath);
+  }
+  if (update) {
+    kwargs["update"] = shcore::Value::True();
   }
 
-  if (update)
-    args.push_back("--update");
-
-  args.push_back("--stdin");
-
-  return execute_mysqlprovision("check", args, passwords, errors, _verbose);
+  return execute_mysqlprovision("check", shcore::Argument_list(), kwargs,
+                                errors, _verbose);
 }
 
 int ProvisioningInterface::exec_sandbox_op(
     const std::string &op, int port, int portx, const std::string &sandbox_dir,
-    const std::string &password, const std::vector<std::string> &extra_args,
+    const shcore::Argument_map &extra_kwargs,
     shcore::Value::Array_type_ref *errors) {
-  std::vector<std::string> sandbox_args, passwords;
-  std::string arg, pwd = password;
+  shcore::Argument_map kwargs(extra_kwargs);
 
-  if (port != 0) {
-    arg = "--port=" + std::to_string(port);
-    sandbox_args.push_back(arg);
-  }
-
+  kwargs["sandbox_cmd"] = shcore::Value(op);
+  kwargs["port"] = shcore::Value(std::to_string(port));
   if (portx != 0) {
-    arg = "--mysqlx-port=" + std::to_string(portx);
-    sandbox_args.push_back(arg);
+    kwargs["mysqlx_port"] = shcore::Value(std::to_string(portx));
   }
 
   if (!sandbox_dir.empty()) {
-    sandbox_args.push_back("--sandboxdir");
-
-    sandbox_args.push_back(sandbox_dir);
+    kwargs["sandbox_base_dir"] = shcore::Value(sandbox_dir);
   } else {
     std::string dir = mysqlsh::Base_shell::options().sandbox_directory;
 
     try {
       shcore::ensure_dir_exists(dir);
 
-      sandbox_args.push_back("--sandboxdir");
-      sandbox_args.push_back(dir);
+      kwargs["sandbox_base_dir"] = shcore::Value(dir);
     } catch (std::runtime_error &error) {
       log_warning("DBA: Unable to create default sandbox directory at %s.",
                   dir.c_str());
     }
   }
 
-  // Inserts the indicated password
-  if (op == "create" || op == "stop") {
-    pwd += "\n";
-    passwords.push_back(pwd);
-  }
-
-  std::vector<const char *> args;
-  args.push_back(op.c_str());
-  for (size_t i = 0; i < sandbox_args.size(); i++)
-    args.push_back(sandbox_args[i].c_str());
-  for (size_t i = 0; i < extra_args.size(); i++)
-    args.push_back(extra_args[i].c_str());
-  if (!pwd.empty())
-    args.push_back("--stdin");
-
-  return execute_mysqlprovision("sandbox", args, passwords, errors, _verbose);
+  return execute_mysqlprovision("sandbox", shcore::Argument_list(), kwargs,
+                                errors, _verbose);
 }
 
 int ProvisioningInterface::create_sandbox(
     int port, int portx, const std::string &sandbox_dir,
     const std::string &password, const shcore::Value &mycnf_options, bool start,
     bool ignore_ssl_error, shcore::Value::Array_type_ref *errors) {
-  std::vector<std::string> extra_args;
+  shcore::Argument_map kwargs;
   if (mycnf_options) {
-    for (auto s : *mycnf_options.as_array()) {
-      extra_args.push_back("--opt=" + s.as_string());
-    }
+    kwargs["opt"] = mycnf_options;
   }
 
   if (ignore_ssl_error)
-    extra_args.push_back("--ignore-ssl-error");
+    kwargs["ignore_ssl_error"] = shcore::Value::True();
 
   if (start)
-    extra_args.push_back("--start");
+    kwargs["start"] = shcore::Value::True();
 
-  return exec_sandbox_op("create", port, portx, sandbox_dir, password,
-                         extra_args, errors);
+  if (!password.empty())
+    kwargs["passwd"] = shcore::Value(password);
+
+  return exec_sandbox_op("create", port, portx, sandbox_dir, kwargs,
+                         errors);
 }
 
 int ProvisioningInterface::delete_sandbox(
     int port, const std::string &sandbox_dir,
     shcore::Value::Array_type_ref *errors) {
-  return exec_sandbox_op("delete", port, 0, sandbox_dir, "",
-                         std::vector<std::string>(), errors);
+  return exec_sandbox_op("delete", port, 0, sandbox_dir,
+                         shcore::Argument_map(), errors);
 }
 
 int ProvisioningInterface::kill_sandbox(int port,
                                         const std::string &sandbox_dir,
                                         shcore::Value::Array_type_ref *errors) {
-  return exec_sandbox_op("kill", port, 0, sandbox_dir, "",
-                         std::vector<std::string>(), errors);
+  return exec_sandbox_op("kill", port, 0, sandbox_dir,
+                         shcore::Argument_map(), errors);
 }
 
 int ProvisioningInterface::stop_sandbox(int port,
                                         const std::string &sandbox_dir,
                                         const std::string &password,
                                         shcore::Value::Array_type_ref *errors) {
-  return exec_sandbox_op("stop", port, 0, sandbox_dir, password,
-                         std::vector<std::string>(), errors);
+  shcore::Argument_map kwargs;
+  if (!password.empty())
+    kwargs["passwd"] = shcore::Value(password);
+  return exec_sandbox_op("stop", port, 0, sandbox_dir, kwargs, errors);
 }
 
 int ProvisioningInterface::start_sandbox(
     int port, const std::string &sandbox_dir,
     shcore::Value::Array_type_ref *errors) {
-  return exec_sandbox_op("start", port, 0, sandbox_dir, "",
-                         std::vector<std::string>(), errors);
+  return exec_sandbox_op("start", port, 0, sandbox_dir,
+                         shcore::Argument_map(), errors);
 }
 
 int ProvisioningInterface::start_replicaset(
@@ -446,59 +465,42 @@ int ProvisioningInterface::start_replicaset(
     const std::string &repl_user, const std::string &super_user_password,
     const std::string &repl_user_password, bool multi_master,
     const std::string &ssl_mode, const std::string &ip_whitelist,
-    const std::string &group_name, const std::string &gr_local_address,
-const std::string &gr_group_seeds, shcore::Value::Array_type_ref *errors) {
-  std::vector<std::string> passwords;
-  std::string instance_args, repl_user_args;
-  std::string super_user_pwd = super_user_password;
-  std::string repl_user_pwd = repl_user_password;
-  std::string ssl_mode_opt;
-  std::string ip_whitelist_opt;
-  std::string group_name_opt;
-  std::string gr_bind_address_opt;
-  std::string gr_group_seeds_opt;
+    const std::string &group_name,
+    const std::string &gr_local_address,
+    const std::string &gr_group_seeds,
+    shcore::Value::Array_type_ref *errors) {
+  shcore::Argument_map kwargs;
+  shcore::Argument_list args;
 
-  instance_args =
-      "--instance=" + instance.as_uri(user_transport());
-  repl_user_args = "--replication-user=" + repl_user;
+  {
+    auto map = get_connection_map(instance);
+    (*map)["passwd"] = shcore::Value(super_user_password);
+    args.push_back(shcore::Value(map));
+  }
 
-  super_user_pwd += "\n";
-  passwords.push_back(super_user_pwd);
+  kwargs["rep_user_passwd"] = shcore::Value(repl_user_password);
+  kwargs["replication_user"] = shcore::Value(repl_user);
 
-  repl_user_pwd += "\n";
-  passwords.push_back(repl_user_pwd);
-
-  std::vector<const char *> args;
-  args.push_back(instance_args.c_str());
-  set_ssl_args("instance", instance, &args);
-  if (!repl_user.empty())
-    args.push_back(repl_user_args.c_str());
-  if (multi_master)
-    args.push_back("--single-primary=OFF");
+  if (multi_master) {
+    kwargs["single_primary"] = shcore::Value("OFF");
+  }
   if (!ssl_mode.empty()) {
-    ssl_mode_opt = "--ssl-mode=" + ssl_mode;
-    args.push_back(ssl_mode_opt.c_str());
+    kwargs["ssl_mode"] = shcore::Value(ssl_mode);
   }
   if (!ip_whitelist.empty()) {
-    ip_whitelist_opt = "--ip-whitelist=" + ip_whitelist;
-    args.push_back(ip_whitelist_opt.c_str());
+    kwargs["ip_whitelist"] = shcore::Value(ip_whitelist);
   }
   if (!group_name.empty()) {
-    group_name_opt = "--group-name=" + group_name;
-    args.push_back(group_name_opt.c_str());
+    kwargs["group_name"] = shcore::Value(group_name);
   }
   if (!gr_local_address.empty()) {
-    gr_bind_address_opt = "--gr-bind-address=" + gr_local_address;
-    args.push_back(gr_bind_address_opt.c_str());
+    kwargs["gr_address"] = shcore::Value(gr_local_address);
   }
   if (!gr_group_seeds.empty()) {
-    gr_group_seeds_opt = "--group-seeds=" + gr_group_seeds;
-    args.push_back(gr_group_seeds_opt.c_str());
+    kwargs["group_seeds"] = shcore::Value(gr_group_seeds);
   }
 
-  args.push_back("--stdin");
-
-  return execute_mysqlprovision("start-replicaset", args, passwords, errors,
+  return execute_mysqlprovision("start-replicaset", args, kwargs, errors,
                                 _verbose);
 }
 
@@ -507,89 +509,62 @@ int ProvisioningInterface::join_replicaset(
     const mysqlshdk::db::Connection_options &peer, const std::string &repl_user,
     const std::string &super_user_password,
     const std::string &repl_user_password, const std::string &ssl_mode,
-    const std::string &ip_whitelist, const std::string &gr_local_address,
-    const std::string &gr_group_seeds, bool skip_rpl_user,
-    shcore::Value::Array_type_ref *errors) {
-  std::vector<std::string> passwords;
-  std::string instance_args, peer_instance_args, repl_user_args;
-  std::string super_user_pwd = super_user_password;
-  std::string repl_user_pwd = repl_user_password;
-  std::string ssl_mode_opt;
-  std::string ip_whitelist_opt;
-  std::string gr_group_seeds_opt;
-  std::string gr_bind_address_opt;
+    const std::string &ip_whitelist,
+    const std::string &gr_local_address,
+    const std::string &gr_group_seeds,
+    bool skip_rpl_user, shcore::Value::Array_type_ref *errors) {
+  shcore::Argument_map kwargs;
+  shcore::Argument_list args;
 
-  instance_args =
-      "--instance=" + instance.as_uri(user_transport());
-  repl_user_args = "--replication-user=" + repl_user;
-
-  super_user_pwd += "\n";
-  // password for instance being joined
-  passwords.push_back(super_user_pwd);
-  if (!repl_user.empty()) {
-    // password for the replication user
-    repl_user_pwd += "\n";
-    passwords.push_back(repl_user_pwd);
+  {
+    auto map = get_connection_map(instance);
+    (*map)["passwd"] = shcore::Value(super_user_password);
+    args.push_back(shcore::Value(map));
   }
-  // we need to enter the super-user password again for the peer instance
-  passwords.push_back(super_user_pwd);
+  {
+    auto map = get_connection_map(peer);
+    (*map)["passwd"] = shcore::Value(super_user_password);
+    args.push_back(shcore::Value(map));
+  }
 
-  peer_instance_args =
-      "--peer-instance=" + peer.as_uri(user_transport());
-
-  std::vector<const char *> args;
-  args.push_back(instance_args.c_str());
-  set_ssl_args("instance", instance, &args);
-  if (!repl_user.empty())
-    args.push_back(repl_user_args.c_str());
-  args.push_back(peer_instance_args.c_str());
-  set_ssl_args("peer-instance", peer, &args);
+  if (!repl_user.empty()) {
+    kwargs["rep_user_passwd"] = shcore::Value(repl_user_password);
+    kwargs["replication_user"] = shcore::Value(repl_user);
+  }
   if (!ssl_mode.empty()) {
-    ssl_mode_opt = "--ssl-mode=" + ssl_mode;
-    args.push_back(ssl_mode_opt.c_str());
+    kwargs["ssl_mode"] = shcore::Value(ssl_mode);
   }
   if (!ip_whitelist.empty()) {
-    ip_whitelist_opt = "--ip-whitelist=" + ip_whitelist;
-    args.push_back(ip_whitelist_opt.c_str());
+    kwargs["ip_whitelist"] = shcore::Value(ip_whitelist);
   }
 
   if (!gr_local_address.empty()) {
-    gr_bind_address_opt = "--gr-bind-address=" + gr_local_address;
-    args.push_back(gr_bind_address_opt.c_str());
+    kwargs["gr_address"] = shcore::Value(gr_local_address);
   }
   if (!gr_group_seeds.empty()) {
-    gr_group_seeds_opt = "--group-seeds=" + gr_group_seeds;
-    args.push_back(gr_group_seeds_opt.c_str());
+    kwargs["group_seeds"] = shcore::Value(gr_group_seeds);
+  }
+  if (skip_rpl_user) {
+    kwargs["skip_rpl_user"] = shcore::Value::True();
   }
 
-  if (skip_rpl_user)
-    args.push_back("--skip-replication-user");
-
-  args.push_back("--stdin");
-
-  return execute_mysqlprovision("join-replicaset", args, passwords, errors,
+  return execute_mysqlprovision("join-replicaset", args, kwargs, errors,
                                 _verbose);
 }
 
 int ProvisioningInterface::leave_replicaset(
     const mysqlshdk::db::Connection_options &connection_options,
     shcore::Value::Array_type_ref *errors) {
-  std::vector<std::string> passwords;
-  std::string instance_args;
-  std::string super_user_pwd = connection_options.get_password();
+  shcore::Argument_map kwargs;
+  shcore::Argument_list args;
 
-  instance_args =
-      "--instance=" + connection_options.as_uri(user_transport());
+  {
+    auto map = get_connection_map(connection_options);
+    if (map->has_key("password"))
+      (*map)["passwd"] = (*map)["password"];
+    args.push_back(shcore::Value(map));
+  }
 
-  super_user_pwd += "\n";
-  passwords.push_back(super_user_pwd);
-
-  std::vector<const char *> args;
-  args.push_back(instance_args.c_str());
-  set_ssl_args("instance", connection_options, &args);
-
-  args.push_back("--stdin");
-
-  return execute_mysqlprovision("leave-replicaset", args, passwords, errors,
+  return execute_mysqlprovision("leave-replicaset", args, kwargs, errors,
                                 _verbose);
 }

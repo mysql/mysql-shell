@@ -1,0 +1,100 @@
+#!/bin/bash
+
+# Run this script to run all js_dba tests and re-record
+# everything that fails
+
+# Usage:
+# To run all dba tests and rebuild traces for failing ones:
+# rebuild_traces
+# To do the same only for specified tests:
+# rebuild_traces <filter>
+# Set TARGET_MYSQL to change the traced server version.
+
+if test "$TARGET_MYSQL" = ""; then
+  version=8.0.3
+else
+  version="$TARGET_MYSQL"
+fi
+
+rut=unittest/run_unit_tests
+
+if ! [ -f $rut ]; then
+  echo "Script must be ran on build directory"
+  exit 1
+fi
+
+echo "Will start checking and rebuilding traces for MySQL $version..."
+sleep 3
+
+tracedir=../unittest/traces/$version/
+
+export TEST_SKIP_ZOMBIE_CHECK=1
+
+fixed_tests=""
+failed_tests=""
+passed_tests=""
+
+filter=$1
+if test "$filter" = ""; then
+  filter="Shell_js_dba*"
+fi
+group=
+ok=0
+for t in $($rut --gtest_list_tests --gtest_filter=$filter|tail +5|grep -v DISABLED); do
+    if test "$t" = "-=-"; then
+      ok=1
+      continue
+    fi
+    if [ $ok -eq 1 ]; then
+      if echo "$t" | fgrep . >/dev/null; then
+        group="$t"
+      else
+        all_tests="$group$t $all_tests"
+      fi
+    fi
+done
+
+echo "Retesting $all_tests..."
+
+# Run all tests one by one in replay mode, then if something fails, try to
+# re-record it. If the re-recording or the replay of the re-recorded fails,
+# we mark that test as failed and the list is shown at the end.
+for tname in $all_tests; do
+    tcase=$(echo $tname | cut -d. -f2)
+    if ! [ -f $tracedir/Shell_js_dba_tests/$tcase/FAILED ]; then
+      $rut --reset-sandboxes --gtest_filter=$tname --replay=$version
+      if [ $? -eq 0 ]; then
+          passed_tests="$tname $passed_tests"
+          continue
+      fi
+      echo "$tcase traces are broken"
+      touch $tracedir/Shell_js_dba_tests/$tcase/FAILED
+    fi
+    echo "Re-recording $tcase traces..."
+    $rut --gtest_filter=$tname --reset-sandboxes --record=$version --reset-sandboxes
+    if [ $? -eq 0 ]; then
+        $rut --gtest_filter=$tname --reset-sandboxes --replay=$version
+        if [ $? -eq 0 ]; then
+            fixed_tests="$tname $fixed_tests"
+        else
+            echo "$tcase seems to be actually broken"
+            failed_tests="$tname $failed_tests"
+        fi
+    else
+        failed_tests="$tname $failed_tests"
+    fi
+done
+
+echo "FAILED"
+echo "======"
+echo $failed_tests
+echo
+
+echo "FIXED"
+echo "====="
+echo $fixed_tests
+echo
+
+echo "PASSED"
+echo "======"
+echo $passed_tests

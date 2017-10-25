@@ -778,8 +778,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     try {
       if (!replication_user.empty()) {
         log_debug("Removing replication user '%s'", replication_user.c_str());
-        _metadata_storage->execute_sql("DROP USER IF EXISTS " +
-                                       replication_user);
+        _metadata_storage->execute_sql("DROP USER IF EXISTS /*(*/" +
+                                       replication_user + "/*)*/");
       }
 
       throw;

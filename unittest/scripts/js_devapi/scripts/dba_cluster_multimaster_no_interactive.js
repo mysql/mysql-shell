@@ -1,5 +1,21 @@
 // Assumptions: wait_slave_state is defined
 
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+
+shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port3);
+create_root_from_anywhere(session);
+
+shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port2);
+create_root_from_anywhere(session);
+
+shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port1);
+create_root_from_anywhere(session);
+
 //@ Dba: createCluster multiMaster, ok
 if (__have_ssl)
   dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
@@ -68,15 +84,17 @@ Cluster.status();
 
 //@# Dba: stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
-if (__sandbox_dir)
-  dba.stopSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir, password: 'root'});
-else
-  dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root'});
+// if (__sandbox_dir)
+//   dba.stopSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir, password: 'root'});
+// else
+//   dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root'});
+testutil.stopSandbox(__mysql_sandbox_port3, 'root')
 
 wait_slave_state(Cluster, uri3, ["(MISSING)"]);
 
 // start instance 3
-try_restart_sandbox(__mysql_sandbox_port3);
+//try_restart_sandbox(__mysql_sandbox_port3);
+testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Cluster: rejoinInstance errors
 Cluster.rejoinInstance();
@@ -100,3 +118,10 @@ wait_slave_state(Cluster, uri3, "ONLINE");
 Cluster.status();
 
 Cluster.dissolve({'force': true})
+
+// Close session
+session.close();
+
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

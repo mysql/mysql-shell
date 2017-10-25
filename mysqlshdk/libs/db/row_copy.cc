@@ -145,9 +145,13 @@ uint32_t Row_copy::num_fields() const {
 
 std::string Row_copy::get_as_string(uint32_t index) const {
   VALIDATE_INDEX(index);
+
+  if (is_null(index))
+    return "NULL";
+
   switch (get_type(index)) {
     case Type::Null:
-      throw std::invalid_argument("row field is NULL");
+      return "NULL";
 
     case Type::String:
       return get<std::string>(index);
@@ -254,7 +258,7 @@ double Row_copy::get_double(uint32_t index) const {
     case Type::Decimal:
       try {
         return std::stod(get<std::string>(index));
-      } catch (...) {
+      } catch (std::exception &e) {
         throw FIELD_ERROR(index, "double value out of the allowed range");
       }
     case Type::Float:
