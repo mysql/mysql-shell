@@ -63,7 +63,10 @@ class Shell_sql_test : public ::testing::Test {
 
   virtual void TearDown() {
     shcore::Argument_list args;
-    env.shell_core->get_dev_session()->close();
+    auto session = env.shell_core->get_dev_session();
+    if (session) {
+      session->close();
+    }
   }
 
   void process_result(shcore::Value result) {
