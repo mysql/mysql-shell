@@ -27,6 +27,7 @@
 
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 
 // How many times to retry a query if it fails because it's SUPER_READ_ONLY
@@ -38,7 +39,8 @@ using namespace shcore;
 
 MetadataStorage::MetadataStorage(
     std::shared_ptr<mysqlshdk::db::ISession> session) :
-  _session(session), _tx_deep(0) {}
+  _session(session), _tx_deep(0) {
+}
 
 MetadataStorage::~MetadataStorage() {}
 
@@ -956,8 +958,9 @@ void MetadataStorage::create_account(const std::string &username,
   query_log = query_to_escape;
 
   query_to_escape.append(" IDENTIFIED ");
-  query_to_escape.append((password_hashed ?
-                          "WITH mysql_native_password AS ?" : "BY ?"));
+  query_to_escape.append(
+      (password_hashed ? "WITH mysql_native_password AS /*(*/ ? /*)*/"
+                       : "BY /*(*/ ? /*)*/ "));
 
   query_log + std::string(password.length(), '*');
   query_log.append("'");
@@ -981,8 +984,7 @@ void MetadataStorage::create_repl_account(std::string &username,
   // Generate a password
   password = generate_password(password_length);
 
-  MySQL_timer timer;
-  std::string tstamp = std::to_string(timer.get_time());
+  std::string tstamp = mysqlshdk::utils::Random::get()->get_time_string();
   std::string base_user = "mysql_innodb_cluster_rplusr";
   username = base_user.substr(0, 32 - tstamp.size()) + tstamp;
 
@@ -1050,14 +1052,16 @@ void MetadataStorage::create_repl_account(std::string &username,
   }
 
   // Grant REPLICATION SLAVE grants to the created accounts
-  query = shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to ?@?", 0);
+  query =
+      shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to /*(*/ ?@? /*)*/", 0);
   query << username;
   query << hostname;
   query.done();
 
   execute_sql(query);
 
-  query = shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to ?@?", 0);
+  query =
+      shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to /*(*/ ?@? /*(*/", 0);
   query << username;
   query << localhost;
   query.done();

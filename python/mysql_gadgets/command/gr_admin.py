@@ -19,17 +19,20 @@
 This module contains the Group Replication Admin operation methods
 """
 
-import logging
 import random
 import textwrap
 import time
-from collections import OrderedDict
+# Use backported OrderedDict if not available (for Python 2.6)
+try:
+    from collections import OrderedDict
+except ImportError:
+    from mysql_gadgets.common.ordered_dict_backport import OrderedDict
 
 from mysql_gadgets.exceptions import GadgetError
 
 from mysql_gadgets.common.format import get_max_display_width
-from mysql_gadgets.common.logger import (CustomLevelLogger,
-                                         STEP_LOG_LEVEL_VALUE)
+from mysql_gadgets.common import logging
+from mysql_gadgets.common.logging import STEP_LOG_LEVEL_VALUE
 from mysql_gadgets.common.server import get_server, LocalErrorLog
 from mysql_gadgets.common.group_replication import (
     check_gr_plugin_is_installed,
@@ -60,7 +63,6 @@ from mysql_gadgets.common.group_replication import (
     stop_gr_plugin, unset_bootstrap, validate_group_name)
 from mysql_gadgets.common.tools import is_listening
 
-logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 # Operations
@@ -301,7 +303,7 @@ def check(**kwargs):
         msg = "Running {0} command for file '{1}'.".format(CHECK, option_file)
     else:
         msg = "Running {0} command.".format(CHECK)
-    _LOGGER.log(STEP_LOG_LEVEL_VALUE, msg)
+    _LOGGER.step(msg)
 
     try:
         # if server already belongs to a group and the update option
@@ -337,7 +339,7 @@ def check(**kwargs):
                 req_dict = get_req_dict_for_opt_file(option_file)
                 skip_schema_checks = True
 
-            _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Checking Group Replication "
+            _LOGGER.step("Checking Group Replication "
                         "prerequisites.")
 
             # set dry_run to avoid changes on server as replication user
@@ -393,7 +395,7 @@ def start(server_info, **kwargs):
         raise GadgetError(_ERROR_NO_SERVER)
     msg = _RUNNING_COMMAND.format(START, server)
     _LOGGER.info("")
-    _LOGGER.log(STEP_LOG_LEVEL_VALUE, msg)
+    _LOGGER.step(msg)
 
     verbose = kwargs.get("verbose", False)
     dry_run = kwargs.get("dry_run", False)
@@ -402,7 +404,7 @@ def start(server_info, **kwargs):
     option_file = kwargs.get("option_file", None)
     skip_backup = kwargs.get("skip_backup", False)
 
-    _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Checking Group Replication "
+    _LOGGER.step("Checking Group Replication "
                                       "prerequisites.")
     try:
         # Throw an error in case server doesn't support SSL and the ssl_mode
@@ -458,9 +460,8 @@ def start(server_info, **kwargs):
         if gr_config_vars[GR_SINGLE_PRIMARY_MODE] is None:
             gr_config_vars[GR_SINGLE_PRIMARY_MODE] = '"ON"'
 
-        _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Group Replication group name: %s",
+        _LOGGER.step("Group Replication group name: %s",
                     gr_config_vars[GR_GROUP_NAME])
-
         setup_gr_config(server, gr_config_vars, dry_run=dry_run)
 
         # Run the change master to store MySQL replication user name or
@@ -469,8 +470,7 @@ def start(server_info, **kwargs):
 
         set_bootstrap(server, dry_run)
 
-        _LOGGER.log(STEP_LOG_LEVEL_VALUE,
-                    "Attempting to start the Group Replication group...")
+        _LOGGER.step("Attempting to start the Group Replication group...")
 
         # Attempt to start the Group Replication plugin
         start_gr_plugin(server, dry_run)
@@ -498,7 +498,7 @@ def start(server_info, **kwargs):
                               "unset after call to start Group Replication "
                               "plugin.")
 
-        _LOGGER.log(STEP_LOG_LEVEL_VALUE,
+        _LOGGER.step(
                     "Group Replication started for group: %s.",
                     gr_config_vars[GR_GROUP_NAME])
 
@@ -552,7 +552,7 @@ def health(server_info, **kwargs):
 
     _LOGGER.info("")
     msg = _RUNNING_COMMAND.format((STATUS if detailed else HEALTH), server)
-    _LOGGER.log(STEP_LOG_LEVEL_VALUE, msg)
+    _LOGGER.step(msg)
 
     try:
         # SELECT privilege is required for check for membership
@@ -755,9 +755,9 @@ def join(server_info, peer_server_info, **kwargs):
 
     msg = _RUNNING_COMMAND.format(JOIN, server)
     _LOGGER.info("")
-    _LOGGER.log(STEP_LOG_LEVEL_VALUE, msg)
+    _LOGGER.step(msg)
 
-    _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Checking Group Replication "
+    _LOGGER.step("Checking Group Replication "
                                       "prerequisites.")
 
     peer_server = get_server(server_info=peer_server_info)
@@ -897,7 +897,7 @@ def join(server_info, peer_server_info, **kwargs):
                 _ERROR_UNABLE_TO_GET.format("Group Replication group name",
                                             peer_server))
 
-        _LOGGER.log(STEP_LOG_LEVEL_VALUE,
+        _LOGGER.step(
                     "Joining Group Replication group: %s",
                     gr_config_vars[GR_GROUP_NAME])
 
@@ -918,12 +918,12 @@ def join(server_info, peer_server_info, **kwargs):
             # password information in the master info repository
             do_change_master(server, rpl_user_dict, dry_run=dry_run)
 
-        _LOGGER.log(STEP_LOG_LEVEL_VALUE,
+        _LOGGER.step(
                     "Attempting to join to Group Replication group...")
 
         try:
             start_gr_plugin(server, dry_run)
-            _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Server %s joined "
+            _LOGGER.step("Server %s joined "
                         "Group Replication group %s.", server,
                         gr_config_vars[GR_GROUP_NAME])
 
@@ -990,17 +990,17 @@ def leave(server_info, **kwargs):
 
     msg = _RUNNING_COMMAND.format(LEAVE, server)
     _LOGGER.info("")
-    _LOGGER.log(STEP_LOG_LEVEL_VALUE, msg)
+    _LOGGER.step(msg)
 
     try:
         # verify server status (is in a group?)
         if is_member_of_group(server) and is_active_member(server):
-            _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Attempting to leave from the "
+            _LOGGER.step("Attempting to leave from the "
                         "Group Replication group...")
             if not dry_run:
                 stop_gr_plugin(server)
             _LOGGER.info("Server state: %s", get_member_state(server))
-            _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Server %s has left the group.",
+            _LOGGER.step("Server %s has left the group.",
                         server)
 
             # Update the Group Replication options on defaults file.
@@ -1016,7 +1016,7 @@ def leave(server_info, **kwargs):
             _LOGGER.warning("The server %s is not actively replicating.",
                             server)
             _LOGGER.info("Server state: %s", get_member_state(server))
-            _LOGGER.log(STEP_LOG_LEVEL_VALUE, "Server %s is "
+            _LOGGER.step("Server %s is "
                         "not active in the group.", server)
 
             # Update the group_replication_start_on_boot option on defaults

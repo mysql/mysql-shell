@@ -64,6 +64,12 @@ void translate_python_exception(const std::string &context = "") {
     PyTuple_SET_ITEM(err, 1, PyString_FromString(e.what()));
     PyErr_SetObject(Python_context::get()->db_error(), err);
     Py_DECREF(err);
+  } catch (database_error &e) {
+    PyObject *err = PyTuple_New(2);
+    PyTuple_SET_ITEM(err, 0, PyInt_FromLong(e.code()));
+    PyTuple_SET_ITEM(err, 1, PyString_FromString(e.what()));
+    PyErr_SetObject(Python_context::get()->db_error(), err);
+    Py_DECREF(err);
   } catch (Exception &e) {
     Python_context::set_python_error(e, context);
   } catch (const std::exception &exc) {

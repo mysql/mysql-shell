@@ -42,7 +42,7 @@ LICENSE = "GPLv2"
 VERSION_FRM = "{program} version %s" % VERSION_STRING
 
 LICENSE_FRM = (VERSION_FRM + "\n" + COPYRIGHT_FULL)
-PYTHON_MIN_VERSION = (2, 7, 0)
+PYTHON_MIN_VERSION = (2, 6, 0)
 PYTHON_MAX_VERSION = (4, 0, 0)
 # Minimum connector-python version that supports secure connection by default.
 CONNECTOR_MIN_VERSION = (2, 1, 7)
@@ -226,57 +226,3 @@ def check_python_version(min_version=PYTHON_MIN_VERSION,
             return is_compat, error_msg
 
     return is_compat
-
-
-def check_connector_python(min_version=CONNECTOR_MIN_VERSION, json_msg=False):
-    """Check connector/python version.
-
-    Check to see if Connector/Python is installed, accessible and
-    meets the minimum required version.
-
-    By default this method uses constants to define the minimum
-    C/Python version required. It's possible to override this by passing a new
-    value to ``min_version`` parameter.
-
-    This method terminates the execution of the application 'sys.exit()' if
-    connector/python is not found or it does not meet the minimum version
-    requirement.
-
-    :param min_version: Tuple with the minimum C/Python version required
-        (inclusive).
-    :type min_version:  tuple
-    :param json_msg:    If true return the error message in JSON format
-                        '{"type": "ERROR", "msg": "..."}'.
-                        By default: False, JSON format not used.
-    :type json_msg:     boolean
-    """
-    is_compatible = True
-    try:
-        import mysql.connector  # pylint: disable=W0612
-    except ImportError:
-        error_msg = (
-            "The MySQL Connector/Python module was not found and "
-            "it is required to be installed. Please check your paths or "
-            "download and install the Connector/Python from "
-            "http://dev.mysql.com.")
-        if json_msg:
-            sys.exit('{"type": "ERROR", "msg": "%s"}\n' % error_msg)
-        else:
-            sys.exit("ERROR: %s\n" % error_msg)
-    else:
-        try:
-            sys_version = mysql.connector.version.VERSION[:3]
-        except AttributeError:
-            is_compatible = False
-
-    if not is_compatible or sys_version < min_version:
-        error_msg = (
-            "The MySQL Connector/Python module was found "
-            "but it is either not properly installed or it is "
-            "an old version. Connector/Python version > '{0}' is "
-            "required. Download and install Connector/Python from "
-            "http://dev.mysql.com.").format(min_version)
-        if json_msg:
-            sys.exit('{"type": "ERROR", "msg": "%s"}\n' % error_msg)
-        else:
-            sys.exit("ERROR: %s\n" % error_msg)

@@ -22,6 +22,7 @@ validateMember(sessionMembers, 'get_schema')
 validateMember(sessionMembers, 'get_schemas')
 validateMember(sessionMembers, 'get_uri')
 validateMember(sessionMembers, 'set_current_schema')
+validateMember(sessionMembers, 'query')
 validateMember(sessionMembers, 'run_sql')
 validateMember(sessionMembers, 'default_schema')
 validateMember(sessionMembers, 'uri')
@@ -131,6 +132,11 @@ print cschema
 
 #@ ClassicSession: date handling
 classicSession.run_sql("select cast('9999-12-31 23:59:59.999999' as datetime(6))")
+
+
+#$ ClassicSession: placeholders handling
+classicSession.run_sql("select ?, ?", ['hello', 1234])
+classicSession.run_sql("select ?, ?", ('hello', 1234))
 
 #@# ClassicSession: bad params
 mysql.get_classic_session()

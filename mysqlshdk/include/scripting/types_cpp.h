@@ -339,8 +339,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     if (md.name[0].empty()) {
       set_metadata(md, name, Type_info<R>::vtype(),
                    {{a1doc, Type_info<A1>::vtype()}});
-    } else {
-      throw std::logic_error("redefinition of " + name);
     }
 
     _funcs.emplace(std::make_pair(
@@ -366,8 +364,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     Cpp_function::Metadata &md = get_metadata(class_name() + "::" + name + ":");
     if (md.name[0].empty()) {
       set_metadata(md, name, Type_info<R>::vtype(), {});
-    } else {
-      throw std::logic_error("redefinition of " + name);
     }
 
     _funcs.emplace(std::make_pair(
@@ -406,8 +402,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
       set_metadata(
           md, name, Type_info<R>::vtype(),
           {{a1doc, Type_info<A1>::vtype()}, {a2doc, Type_info<A2>::vtype()}});
-    } else {
-      throw std::logic_error("redefinition of " + name);
     }
 
     _funcs.emplace(std::make_pair(
@@ -458,8 +452,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                    {{a1doc, Type_info<A1>::vtype()},
                     {a2doc, Type_info<A2>::vtype()},
                     {a3doc, Type_info<A3>::vtype()}});
-    } else {
-      throw std::logic_error("redefinition of " + name);
     }
 
     _funcs.emplace(std::make_pair(
@@ -475,6 +467,69 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                                    : Type_info<A2>::to_native(args.at(1)),
                   args.size() <= 2 ? a3def
                                    : Type_info<A3>::to_native(args.at(2))));
+            }))));
+  }
+
+  /** Expose method with 4 arguments, with automatic bridging.
+      See above for details.
+  */
+  template <typename R, typename A1, typename A2, typename A3, typename A4,
+            typename C>
+  void expose(const std::string &name, R (C::*func)(A1, A2, A3, A4),
+              const std::string &a1doc, const std::string &a2doc,
+              const std::string &a3doc, const std::string &a4doc,
+              const typename std::remove_const<A4>::type &a4def =
+                  Type_info<A4>::default_value(),
+              const typename std::remove_const<A3>::type &a3def =
+                  Type_info<A3>::default_value(),
+              const typename std::remove_const<A2>::type &a2def =
+                  Type_info<A2>::default_value(),
+              const typename std::remove_const<A1>::type &a1def =
+                  Type_info<A1>::default_value()) {
+    assert(func != nullptr);
+    assert(!name.empty());
+    assert(!a1doc.empty());
+    assert(!a2doc.empty());
+    assert(!a3doc.empty());
+    assert(!a4doc.empty());
+
+    if (!((a1doc[0] != '?' && a2doc[0] != '?' && a3doc[0] != '?' &&
+           a4doc[0] != '?') ||
+          (a1doc[0] != '?' && a2doc[0] != '?' && a3doc[0] == '?' &&
+           a4doc[0] == '?') ||
+          (a1doc[0] != '?' && a2doc[0] == '?' && a3doc[0] == '?' &&
+           a4doc[0] == '?') ||
+          (a1doc[0] == '?' && a2doc[0] == '?' && a3doc[0] == '?' &&
+           a4doc[0] == '?')))
+      throw std::logic_error(
+          "optional parameters have to be at the end of param list");
+
+    Cpp_function::Metadata &md = get_metadata(
+        class_name() + "::" + name + ":" + Type_info<A2>::code() +
+        Type_info<A2>::code() + Type_info<A3>::code() + Type_info<A4>::code());
+    if (md.name[0].empty()) {
+      set_metadata(md, name, Type_info<R>::vtype(),
+                   {{a1doc, Type_info<A1>::vtype()},
+                    {a2doc, Type_info<A2>::vtype()},
+                    {a3doc, Type_info<A3>::vtype()},
+                    {a4doc, Type_info<A4>::vtype()}});
+    }
+
+    _funcs.emplace(std::make_pair(
+        name.substr(0, name.find("|")),
+        std::shared_ptr<Cpp_function>(new Cpp_function(
+            &md,
+            [this, func, a1def, a2def, a3def,
+             a4def](const shcore::Argument_list &args) -> shcore::Value {
+              return shcore::Value((static_cast<C *>(this)->*func)(
+                  args.size() == 0 ? a1def
+                                   : Type_info<A1>::to_native(args.at(0)),
+                  args.size() <= 1 ? a2def
+                                   : Type_info<A2>::to_native(args.at(1)),
+                  args.size() <= 2 ? a3def
+                                   : Type_info<A3>::to_native(args.at(2)),
+                  args.size() <= 3 ? a4def
+                                   : Type_info<A4>::to_native(args.at(3))));
             }))));
   }
 

@@ -1,5 +1,11 @@
 // Assumptions: wait_slave_state is defined
 
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
 //@<OUT> Dba: createCluster multiMaster with interaction, cancel
 dba.createCluster('devCluster', {multiMaster: true, clearReadOnly: true});
 
@@ -74,15 +80,12 @@ Cluster.status()
 
 //@# Dba: stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
-if (__sandbox_dir)
-  dba.stopSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir, password: 'root'});
-else
-  dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root'});
+testutil.stopSandbox(__mysql_sandbox_port3, 'root');
 
 wait_slave_state(Cluster, uri3, ["(MISSING)"]);
 
 // start instance 3
-try_restart_sandbox(__mysql_sandbox_port3);
+testutil.startSandbox(__mysql_sandbox_port3);
 
 //@: Cluster: rejoinInstance errors
 Cluster.rejoinInstance();
@@ -108,6 +111,10 @@ Cluster.status();
 Cluster.dissolve({force: true})
 
 // Disable super-read-only (BUG#26422638)
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 session.runSql("SET GLOBAL SUPER_READ_ONLY = 0;");
 session.close();
+
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

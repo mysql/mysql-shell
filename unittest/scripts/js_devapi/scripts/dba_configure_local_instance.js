@@ -5,7 +5,7 @@ var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root', clusterAdmin: "gr_user", clusterAdminPassword: "root"});
 
 //@ Error: user has no privileges to run the configure command (BUG#26609909)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 // Remove select privilege to make sure an error is thrown
 session.runSql("SET sql_log_bin = 0");
 session.runSql("REVOKE SELECT on *.* FROM 'gr_user'@'%'");
@@ -24,7 +24,7 @@ session.runSql("SET sql_log_bin = 1");
 session.close();
 
 //@ create cluster using cluster admin account (BUG#26523629)
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'gr_user', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'gr_user', password: 'root'});
 if (__have_ssl)
   var cluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED', clearReadOnly: true});
 else
@@ -81,6 +81,6 @@ wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 session.close();
 
 //@<OUT> Check saved auto_inc settings are restored
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 session.runSql("show global variables like 'auto_increment_%'").fetchAll();
 session.close();

@@ -28,6 +28,7 @@ Shell_base_test::Shell_base_test() {
 
 void Shell_base_test::TearDown() {
   _servers.clear();
+  Shell_test_env::TearDown();
 }
 
 void Shell_base_test::create_file(const std::string& name,

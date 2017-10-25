@@ -99,7 +99,8 @@ void ClassicSchema::update_cache() {
     std::vector<std::string> views;
     std::vector<std::string> others;
 
-    auto val_result = sess->execute_sql(sqlstring("show full tables in !", 0) << _name, shcore::Argument_list());
+    auto val_result = sess->execute_sql(
+        sqlstring("show full tables in !", 0) << _name, shcore::Array_t());
     auto result = val_result.as_object<ClassicResult>();
     auto val_row = result->fetch_one(shcore::Argument_list());
 

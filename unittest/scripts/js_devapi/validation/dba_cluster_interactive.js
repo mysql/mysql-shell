@@ -1,5 +1,8 @@
 //@<OUT> Cluster: getCluster with interaction
 
+//@ Initialization
+||
+
 //@ Cluster: validating members
 |Cluster Members: 12|
 |name: OK|

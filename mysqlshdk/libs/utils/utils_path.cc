@@ -48,6 +48,97 @@ std::string expand_user(const std::string &path, const std::string &sep) {
   }
   return path;
 }
+
+size_t span_dirname(const std::string &path) {
+  if (path.empty())
+    return std::string::npos;
+
+  // trailing / is ignored
+  size_t end = path.size();
+  end = path.find_last_not_of(k_valid_path_separators, end);
+  if (end == 0 || end == std::string::npos)
+    return 1;  // path has no text other than separator
+
+  // TODO(anyone) - add support for windows drive letters
+
+  size_t start = path.find_first_of(k_valid_path_separators, 0, end);
+  if (start == std::string::npos)
+    return std::string::npos;
+
+  // absolute path
+  if (start == 0) {
+    // ignore multiple leading /
+    start = path.find_first_not_of(k_valid_path_separators, start) - 1;
+
+    size_t p = path.find_last_of(k_valid_path_separators, end);
+    if (p == start)
+      return 1;
+    p = path.find_last_not_of(k_valid_path_separators, p);  // merge repeated /
+    if (p == start)
+      return 1;
+
+    // /foo/bar -> /foo or /foo/bar/ -> /foo
+    return p + 1;
+  } else {
+    // relative path
+    return path.find_last_of(k_valid_path_separators, end);
+  }
+}
+
 }  // namespace detail
+
+std::string SHCORE_PUBLIC dirname(const std::string &path) {
+  size_t xx = detail::span_dirname(path);
+  if (xx == std::string::npos)
+    return ".";
+  return path.substr(0, xx);
+
+  if (path.empty())
+    return ".";
+
+  // trailing / is ignored
+  size_t end = path.size();
+  end = path.find_last_not_of(k_valid_path_separators, end);
+  if (end == 0 || end == std::string::npos)
+    return path.substr(0, 1);  // path has no text other than separator
+
+  size_t start = path.find_first_of(k_valid_path_separators, 0, end);
+  if (start == std::string::npos)
+    return ".";
+
+  // absolute path
+  if (start == 0) {
+    // ignore multiple leading /
+    start = path.find_first_not_of(k_valid_path_separators, start) - 1;
+
+    size_t p = path.find_last_of(k_valid_path_separators, end);
+    if (p == start)
+      return path.substr(0, 1);
+    p = path.find_last_not_of(k_valid_path_separators, p);  // merge repeated /
+    if (p == start)
+      return path.substr(0, 1);
+
+    // /foo/bar -> /foo or /foo/bar/ -> /foo
+    return path.substr(0, p + 1);
+  } else {
+    // relative path
+    return path.substr(0, path.find_last_of(k_valid_path_separators, end));
+  }
+}
+
+std::string SHCORE_PUBLIC basename(const std::string &path) {
+  size_t end = path.find_last_not_of(k_valid_path_separators);
+  if (end == std::string::npos)  // only separators
+    return path.substr(0, 1);
+  end++;  // go to after the last char
+  size_t p = detail::span_dirname(path);
+  if (p == std::string::npos || p == path.size() || p == 0 || p == end)
+    return path.substr(0, end);
+  size_t pp = path.find_first_not_of(k_valid_path_separators, p);
+  if (pp != std::string::npos)
+    p = pp;
+  return path.substr(p, end - p);
+}
+
 }  // namespace path
 }  // namespace shcore

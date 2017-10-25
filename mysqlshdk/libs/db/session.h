@@ -41,13 +41,16 @@ namespace db {
 
 class Error : public std::runtime_error {
  public:
-  Error(const char* what, int code) : std::runtime_error(what), code_(code) {
+  Error(const char* what, int code, const std::string& sql_state = "")
+      : std::runtime_error(what), code_(code), sqlstate_(sql_state) {
   }
 
   int code() const { return code_; }
+  const std::string &sqlstate() const { return sqlstate_; }
 
  private:
   int code_;
+  std::string sqlstate_;
 };
 
 class SHCORE_PUBLIC ISession {

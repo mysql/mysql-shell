@@ -15,6 +15,7 @@
 
 #include <fstream>
 #include <list>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -31,6 +32,7 @@
 #include "src/mysqlsh/mysql_shell.h"
 #include "unittest/test_utils/shell_base_test.h"
 #include "shellcore/base_session.h"
+#include "unittest/test_utils/mod_testutils.h"
 
 #ifndef UNITTEST_TEST_UTILS_H_
 #define UNITTEST_TEST_UTILS_H_
@@ -264,6 +266,9 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   virtual void set_options() {
   }
 
+  void enable_testutil();
+  void enable_replay();
+
   virtual void reset_shell() {
     _interactive_shell.reset(
         new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
@@ -279,6 +284,11 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
   std::shared_ptr<mysqlsh::Shell_options> _opts;
   mysqlsh::Shell_options::Storage* _options;
+
+  // set to true in a subclass if reset_shell() should not be called
+  // during SetUp()
+  bool _delay_reset_shell = false;
+
   void wipe_out() {
     output_handler.wipe_out();
   }
@@ -291,6 +301,8 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   void wipe_all() {
     output_handler.wipe_all();
   }
+
+  std::shared_ptr<tests::Testutils> testutil;
 
  private:
   std::map<shcore::Object_bridge_ref, std::string> _open_sessions;

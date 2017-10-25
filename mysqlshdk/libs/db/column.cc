@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#include <stdexcept>
 #include "mysqlshdk/libs/db/column.h"
+#include <stdexcept>
 #include "mysqlshdk/libs/db/charset.h"
 
 namespace mysqlshdk {
@@ -60,6 +60,43 @@ std::string to_string(Type type) {
       return "Set";
   }
   throw std::logic_error("Unknown type");
+}
+
+Type string_to_type(const std::string& type) {
+  if (type == "Null")
+    return Type::Null;
+  else if (type == "String")
+    return Type::String;
+  else if (type == "Integer")
+    return Type::Integer;
+  else if (type == "UInteger")
+    return Type::UInteger;
+  else if (type == "Float")
+    return Type::Float;
+  else if (type == "Double")
+    return Type::Double;
+  else if (type == "Decimal")
+    return Type::Decimal;
+  else if (type == "Bytes")
+    return Type::Bytes;
+  else if (type == "Geometry")
+    return Type::Geometry;
+  else if (type == "Json")
+    return Type::Json;
+  else if (type == "DateTime")
+    return Type::DateTime;
+  else if (type == "Date")
+    return Type::Date;
+  else if (type == "Time")
+    return Type::Time;
+  else if (type == "Bit")
+    return Type::Bit;
+  else if (type == "Enum")
+    return Type::Enum;
+  else if (type == "Set")
+    return Type::Set;
+  else
+    throw std::logic_error("Unknown type " + type);
 }
 
 Column::Column(const std::string& schema, const std::string& table_name,

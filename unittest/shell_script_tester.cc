@@ -14,12 +14,14 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "shell_script_tester.h"
+#include <memory>
 #include <string>
 #include "shellcore/ishell_core.h"
 #include "utils/process_launcher.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
+#include "shellcore/ishell_core.h"
 
 using namespace shcore;
 
@@ -33,11 +35,7 @@ void Shell_script_tester::SetUp() {
   Crud_test_wrapper::SetUp();
 }
 
-void Shell_script_tester::TearDown() {
-  Crud_test_wrapper::TearDown();
-}
-
-void Shell_script_tester::set_config_folder(const std::string& name) {
+void Shell_script_tester::set_config_folder(const std::string &name) {
   _shell_scripts_home += "/" + name;
 
   // Currently hardcoded since scripts are on the shell repo

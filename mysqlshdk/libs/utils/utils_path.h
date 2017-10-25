@@ -33,8 +33,30 @@ std::string expand_user(const std::string &path, const std::string &sep);
 
 std::string SHCORE_PUBLIC join_path(const std::vector<std::string> &components);
 
-std::pair<std::string, std::string> SHCORE_PUBLIC
-splitdrive(const std::string &path);
+inline std::string SHCORE_PUBLIC join_path(const std::string &a,
+                                           const std::string &b) {
+  return join_path({a, b});
+}
+
+template <typename... Args>
+std::string join_path(const std::string &a, const std::string &b,
+                      Args... args) {
+  return join_path(a, join_path(b, args...));
+}
+
+std::pair<std::string, std::string> SHCORE_PUBLIC splitdrive(
+    const std::string &path);
+
+std::string SHCORE_PUBLIC dirname(const std::string &path);
+std::string SHCORE_PUBLIC basename(const std::string &path);
+
+#ifdef WIN32
+const char path_separator = '\\';
+#else
+const char path_separator = '/';
+#endif
+
+extern const char *k_valid_path_separators;
 
 /**
  * Get home directory path of the user executing the shell.
@@ -98,6 +120,11 @@ std::string SHCORE_PUBLIC expand_user(const std::string &path);
  * @return Normalized string path.
  */
 std::string SHCORE_PUBLIC normalize(const std::string &path);
+
+/*
+ * Returns true if the path exists.
+ */
+bool SHCORE_PUBLIC exists(const std::string &path);
 
 }  // namespace path
 }  // namespace shcore

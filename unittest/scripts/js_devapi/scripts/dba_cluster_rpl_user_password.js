@@ -1,9 +1,12 @@
 // Assumptions: smart deployment routines available
 
 //@ Initialization
-var deployed_here = reset_or_deploy_sandboxes();
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 // Install validate_password plugin and configure it for the medium policy
 var installed = false;
@@ -40,5 +43,6 @@ if (installed)
 session.close();
 
 //@ Finalization
-if (deployed_here)
-  cleanup_sandboxes(deployed_here);
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

@@ -25,6 +25,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <vector>
 #include <utility>
 #include <vector>
 
@@ -149,6 +150,44 @@ inline std::pair<std::string, std::string> str_partition(
     return std::make_pair(s.substr(0, p), s.substr(p + sep.length()));
 }
 
+/**
+ * Splits string based on each of the individual characters of the separator
+ * string
+ *
+ * @param input The string to be split
+ * @param separator_chars String containing characters wherein the input string
+ *   is split on any of the characters
+ * @param maxsplit max number of parts to break into or -1 for no limit
+ * @param compress Boolean value which when true ensures consecutive separators
+ * do not generate new elements in the split
+ *
+ * @returns vector of splitted strings
+ */
+inline std::vector<std::string> str_split(
+    const std::string &input, const std::string &separator_chars = " \r\n\t",
+    int maxsplit = -1, bool compress = false) {
+  std::vector<std::string> ret_val;
+  size_t index = 0, new_find = 0;
+
+  while (new_find != std::string::npos) {
+    if (maxsplit < 0 || maxsplit-- > 0)
+      new_find = input.find_first_of(separator_chars, index);
+    else
+      new_find = std::string::npos;
+    if (new_find != std::string::npos) {
+      // When compress is enabled, consecutive separators
+      // do not generate new elements
+      if (new_find > index || !compress || new_find == 0)
+        ret_val.push_back(input.substr(index, new_find - index));
+
+      index = new_find + 1;
+    } else {
+      ret_val.push_back(input.substr(index));
+    }
+  }
+  return ret_val;
+}
+
 /** Strip a string out of blank chars */
 std::string SHCORE_PUBLIC str_strip(const std::string &s,
                                     const std::string &chars = " \r\n\t");
@@ -197,16 +236,6 @@ std::string SHCORE_PUBLIC str_replace(const std::string &s,
 
 std::string SHCORE_PUBLIC bits_to_string(uint64_t bits, int nbits);
 std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);
-
-/**
- * Split string using any character in `sep` as delimiter.
- *
- * @param str String to split into tokens
- * @param sep List of characters as string used as delimiters.
- * @return Return string vector of tokens.
- */
-std::vector<std::string> SHCORE_PUBLIC str_split(const std::string &str,
-                                                 const std::string &sep);
 
 /**
  * Escape `quote` and `\` chars.

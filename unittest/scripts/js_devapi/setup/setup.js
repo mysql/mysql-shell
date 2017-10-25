@@ -543,3 +543,11 @@ function update_have_ssl(port) {
         __ssl_mode = 'DISABLED';
     }
 }
+
+
+function create_root_from_anywhere(session) {
+  session.runSql("SET SQL_LOG_BIN=0");
+  session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
+  session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
+  session.runSql("SET SQL_LOG_BIN=1");
+}

@@ -18,9 +18,12 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_process.h"
+#include <cstdio>
+#include <cstring>
 #ifndef _WIN32
 #include <signal.h>
 #endif
+#include <errno.h>
 #include "mysqlshdk/libs/utils/utils_file.h"
 
 namespace mysqlshdk {
@@ -28,7 +31,12 @@ namespace utils {
 
 #ifndef _WIN32
 bool check_lock_file(const std::string &path) {
-  std::string data = shcore::get_text_file(path);
+  std::string data;
+  if (!shcore::load_text_file(path, data)) {
+    if (errno == ENOENT)
+      return false;
+    throw std::runtime_error(path + ": " + strerror(errno));
+  }
   int64_t pid = std::stoi(data);
   if (kill(pid, 0) < 0) {
     if (errno == ESRCH) {

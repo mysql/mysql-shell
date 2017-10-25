@@ -1,10 +1,10 @@
 //@ mysql module: exports
-|Exported Items: 2|
+|Exported Items: 3|
 |getClassicSession: object|
 |help: object|
 
 //@<OUT> Help on getClassicSession
-Creates a ClassicSession instance using the provided connection data.
+Opens a classic MySQL protocol session to a MySQL server.
 
 SYNTAX
 

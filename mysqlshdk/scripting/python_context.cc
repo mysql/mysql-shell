@@ -418,6 +418,17 @@ void Python_context::set_python_error(const shcore::Exception &exc,
   int64_t code = exc.error()->get_int("code", -1);
   std::string error_location = exc.error()->get_string("location", "");
 
+  if (exc.is_mysql()) {
+    PyObject *args = PyTuple_New(2);
+    if (args) {
+      PyTuple_SET_ITEM(args, 0, PyInt_FromLong(code));
+      PyTuple_SET_ITEM(args, 1, PyString_FromString(message.c_str()));
+      PyErr_SetObject(get()->_db_error, args);
+      Py_DECREF(args);
+      return;
+    }
+  }
+
   if (error_location.empty())
     error_location = location;
 
@@ -826,8 +837,26 @@ void Python_context::register_mysqlsh_module() {
     PyDict_SetItemString(py_mysqlsh_dict, name.c_str(), py_module_ref);
   }
 
-  // Create custom exception objects
-  _db_error = PyErr_NewException((char*)"mysqlsh.DBError", NULL, NULL);
+
+  PyObject *r = Py_CompileString("class DBError(Exception):\n"
+    "  def __init__(self, code, msg, sqlstate=None):\n"
+    "    self.code = code\n"
+    "    self.msg = msg\n"
+    "    self.args = (code, msg)\n"
+    "\n"
+    "  def __str__(self):\n"
+    "    return 'MySQL Error (%s): %s' % (self.code, self.msg)\n"
+    "\n", "", Py_file_input);
+
+  if (!r) {
+    PyErr_Print();
+  } else {
+    PyImport_ExecCodeModule(const_cast<char *>("mysqlsh"), r);
+    Py_DECREF(r);
+  }
+  _db_error = PyDict_GetItemString(py_mysqlsh_dict, "DBError");
+  if (!_db_error)
+    PyErr_Print();
 
   // Finally inserts the globals
   PyDict_SetItemString(py_mysqlsh_dict, "globals", _global_namespace);

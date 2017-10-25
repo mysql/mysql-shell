@@ -1048,7 +1048,7 @@ shcore::Value Global_dba::check_instance_configuration(
 bool Global_dba::resolve_cnf_path(
     const mysqlshdk::db::Connection_options &connection_args,
     const shcore::Value::Map_type_ref &extra_options) {
-  // Path is not given, let's try to autodetect it
+  // Path is not given, let's try to autodetect itg
   int port = 0;
   std::string datadir;
 
@@ -1059,7 +1059,6 @@ bool Global_dba::resolve_cnf_path(
   // If the instance is a sandbox, we can obtain directly the path from
   // the datadir
   mysqlsh::dba::get_port_and_datadir(session, port, datadir);
-
   std::string path_separator = datadir.substr(datadir.size() - 1);
   auto path_elements = shcore::split_string(datadir, path_separator);
 
@@ -1083,6 +1082,10 @@ bool Global_dba::resolve_cnf_path(
       println();
       println("Validating MySQL configuration file at: " + tmpPath);
       cnfPath = tmpPath;
+    } else {
+      log_warning(
+          "Sandbox configuration file not found at expected location: %s",
+          tmpPath.c_str());
     }
   } else {
     // It's not a sandbox, so let's try to locate the .cnf file path

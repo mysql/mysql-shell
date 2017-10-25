@@ -24,6 +24,7 @@
 #define MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SESSION_H_
 
 #include <functional>
+#include <string>
 
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -130,6 +131,9 @@ protected:
 
   mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
   std::function<void(const std::string&, bool exists)> update_schema_cache;
+
+  std::string sub_query_placeholders(const std::string &query,
+                                     const shcore::Array_t &args);
 
   int _tx_deep;
 

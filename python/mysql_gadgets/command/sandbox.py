@@ -21,22 +21,19 @@
 from __future__ import print_function
 import errno
 import getpass
-import logging
 import os
 import time
 import shutil
 import subprocess
 import sys
 
-from mysql_gadgets.common import tools, server
+from mysql_gadgets.common import tools, server, logging
 from mysql_gadgets.common.constants import PATH_ENV_VAR
 from mysql_gadgets.common.config_parser import (MySQLOptionsParser,
                                                 option_list_to_dictionary)
-from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets import exceptions, MIN_MYSQL_VERSION, MAX_MYSQL_VERSION
 
 # get module logger
-logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 _CREATE_SANDBOX_CMD = ("{mysqld_path} --defaults-file={config_file} "
@@ -558,6 +555,7 @@ def create_sandbox(**kwargs):
         # override mysqld dict with options received from cmd line
         opt_dict["mysqld"].update(opt_override_dict)
     # Create option file
+    #optf_path = create_option_file(opt_dict, "my.cnf", sandbox_dir)
     optf_path = tools.create_option_file(opt_dict, "my.cnf", sandbox_dir)
 
     # If on Linux, create a temporary copy of the mysqld binary to avoid

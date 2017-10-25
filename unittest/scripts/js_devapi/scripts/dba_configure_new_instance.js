@@ -1,6 +1,27 @@
 // Assumptions: New sandboxes deployed with no server id in the config file.
 // Regression for BUG#26818744 : MYSQL SHELL DOESN'T ADD THE SERVER_ID ANYMORE
 
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+
+// Remove the server id information from the configuration files.
+testutil.removeFromSandboxConf(__mysql_sandbox_port1, "server_id");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "server_id");
+testutil.removeFromSandboxConf(__mysql_sandbox_port3, "server_id");
+
+// Restart sandbox instances.
+testutil.stopSandbox(__mysql_sandbox_port1, "root");
+testutil.stopSandbox(__mysql_sandbox_port2, "root");
+testutil.stopSandbox(__mysql_sandbox_port3, "root");
+
+testutil.startSandbox(__mysql_sandbox_port1);
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+
 //@ Configure instance on port 1.
 var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root'});
@@ -13,20 +34,21 @@ dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {mycnfPath: 
 var cnfPath3 = __sandbox_dir + __mysql_sandbox_port3 + "/my.cnf";
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port3, {mycnfPath: cnfPath3, dbPassword:'root'});
 
+testutil.stopSandbox(__mysql_sandbox_port1, 'root');
+testutil.stopSandbox(__mysql_sandbox_port2, 'root');
+testutil.stopSandbox(__mysql_sandbox_port3, 'root');
+
 //@ Restart instance on port 1 to apply new server id settings.
-dba.stopSandboxInstance(__mysql_sandbox_port1, {password: 'root', sandboxDir: __sandbox_dir});
-try_restart_sandbox(__mysql_sandbox_port1);
+testutil.startSandbox(__mysql_sandbox_port1);
 
 //@ Restart instance on port 2 to apply new server id settings.
-dba.stopSandboxInstance(__mysql_sandbox_port2, {password: 'root', sandboxDir: __sandbox_dir});
-try_restart_sandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port2);
 
 //@ Restart instance on port 3 to apply new server id settings.
-dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root', sandboxDir: __sandbox_dir});
-try_restart_sandbox(__mysql_sandbox_port3);
+testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Connect to instance on port 1.
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ Create cluster with success.
 if (__have_ssl)
@@ -36,11 +58,11 @@ else
 
 //@ Add instance on port 2 to cluster with success.
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port1, 'root', __mysql_sandbox_port2, "ONLINE");
 
 //@ Add instance on port 3 to cluster with success.
 add_instance_to_cluster(cluster, __mysql_sandbox_port3);
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port1, 'root', __mysql_sandbox_port3, "ONLINE");
 
 //@ Remove instance on port 2 from cluster with success.
 cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port2);
@@ -51,4 +73,9 @@ cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port3);
 //@ Dissolve cluster with success
 cluster.dissolve({force: true});
 
+// Close session
 session.close();
+
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

@@ -26,6 +26,7 @@ using namespace std::placeholders;
 namespace mysqlsh {
 namespace mysql {
 
+// clang-format off
 REGISTER_HELP(MYSQL_INTERACTIVE_BRIEF, "Used to work with classic MySQL sessions using SQL.");
 REGISTER_HELP(MYSQL_BRIEF, "Encloses the functions and classes available to interact with a MySQL Server using the traditional "\
                            "MySQL Protocol.");
@@ -37,10 +38,11 @@ REGISTER_HELP(MYSQL_DETAIL1,"Note that the API interface on this module is very 
 REGISTER_HELP(MYSQL_DETAIL2,"The purpose of this module is to allow SQL Execution on MySQL Servers where the X Protocol is not enabled.");
 REGISTER_HELP(MYSQL_DETAIL3,"To use the properties and functions available on this module you first need to import it.");
 REGISTER_HELP(MYSQL_DETAIL4,"When running the shell in interactive mode, this module is automatically imported.");
-
+// clang-format on
 
 REGISTER_MODULE(Mysql, mysql) {
   REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getClassicSession);
+  REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getSession);
 
   _type.reset(new Type());
 }
@@ -59,18 +61,19 @@ shcore::Value Mysql::get_member(const std::string &prop) const {
 }
 #endif
 
-
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_BRIEF, "Creates a ClassicSession instance using the provided connection data.");
+// clang-format off
+REGISTER_HELP(MYSQL_GETCLASSICSESSION_BRIEF, "Opens a classic MySQL protocol session to a MySQL server.");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM,  "@param connectionData The connection data for the session");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM1, "@param password Optional password for the session");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_RETURNS, "@returns A ClassicSession");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL, "A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the "\
                                               "connected MySQL Server.");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
+// clang-format on
 
 /**
  * \ingroup mysql
- * $(MYSQL_GETCLASSICSESSION)
+ * $(MYSQL_GETCLASSICSESSION_BRIEF)
  *
  * $(MYSQL_GETCLASSICSESSION_PARAM)
  * $(MYSQL_GETCLASSICSESSION_PARAM1)
@@ -92,6 +95,32 @@ ClassicSession get_classic_session(ConnectionData connectionData, str password){
 #endif
 
 DEFINE_FUNCTION(Mysql, get_classic_session) {
+  return shcore::Value(ClassicSession::create(args));
+}
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_GETCLASSICSESSION_BRIEF)
+ *
+ * $(MYSQL_GETCLASSICSESSION_PARAM)
+ * $(MYSQL_GETCLASSICSESSION_PARAM1)
+ *
+ * $(MYSQL_GETCLASSICSESSION_RETURNS)
+ *
+ * $(MYSQL_GETCLASSICSESSION_DETAIL)
+ *
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref connection_data
+ *
+ */
+#if DOXYGEN_JS
+ClassicSession getSession(ConnectionData connectionData, String password) {}
+#elif DOXYGEN_PY
+ClassicSession get_session(ConnectionData connectionData, str password) {}
+#endif
+
+DEFINE_FUNCTION(Mysql, get_session) {
   return shcore::Value(ClassicSession::create(args));
 }
 

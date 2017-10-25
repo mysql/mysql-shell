@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,11 @@ over the ip address or hostnames and parsing of connection strings.
 import re
 import os
 import logging
-from collections import OrderedDict
+# Use backported OrderedDict if not available (for Python 2.6)
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordered_dict_backport import OrderedDict
 
 from mysql_gadgets.exceptions import GadgetCnxFormatError
 
@@ -261,7 +265,7 @@ def parse_connection(connection_str, options=None):
             raise GadgetCnxFormatError(
                 _BAD_CONN_FORMAT.format(connection_str))
 
-        if hostportsock[0] in {'"', "'"}:
+        if hostportsock[0] in ('"', "'"):
             # Need to strip the quotes
             res = _match(_CONN_QUOTEDHOST, hostportsock)
             if res and len(res) == 3:

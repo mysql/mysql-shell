@@ -20,20 +20,24 @@
 #include "mysh_config.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "shellcore/interrupt_handler.h"
+#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/textui/textui.h"
+#ifdef ENABLE_SESSION_RECORDING
+#include "mysqlshdk/libs/db/replay/setup.h"
+#endif
 
 #include <mysql_version.h>
 #include <sys/stat.h>
 #include <cstdio>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 
 #ifndef WIN32
 #include <unistd.h>
 #endif
 
+const char *g_mysqlsh_argv0;
 static mysqlsh::Command_line_shell *g_shell_ptr = NULL;
 
 #ifdef WIN32
@@ -69,9 +73,11 @@ class Interrupt_helper : public shcore::Interrupt_helper {
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
   }
 
-  virtual void block() {}
+  virtual void block() {
+  }
 
-  virtual void unblock(bool clear_pending) {}
+  virtual void unblock(bool clear_pending) {
+  }
 };
 
 #else  // !WIN32
@@ -114,7 +120,9 @@ static void install_signal_handler() {
 
 class Interrupt_helper : public shcore::Interrupt_helper {
  public:
-  virtual void setup() { install_signal_handler(); }
+  virtual void setup() {
+    install_signal_handler();
+  }
 
   virtual void block() {
     sigset_t sigset;
@@ -147,40 +155,47 @@ class Interrupt_helper : public shcore::Interrupt_helper {
 #endif  //! WIN32
 
 static int enable_x_protocol(mysqlsh::Command_line_shell &shell) {
-  static const char *script = "function enableXProtocol()\n"\
-"{\n"\
-"  try\n"\
-"  {\n"\
-"    var mysqlx_port = session.runSql('select @@mysqlx_port').fetchOne();\n"\
-"    print('enableXProtocol: X Protocol plugin is already enabled and listening for connections on port '+mysqlx_port[0]+'\\n');\n"\
-"    return 0;\n"\
-"  }\n"\
-"  catch (error)\n"\
-"  {\n"\
-"    if (error[\"code\"] != 1193) // unknown system variable\n"\
-"    {\n"\
-"      print('enableXProtocol: Error checking for X Protocol plugin: '+error[\"message\"]+'\\n');\n"\
-"      return 1;\n"\
-"    }\n"\
-"  }\n"\
-"  print('enableXProtocol: Installing plugin mysqlx...\\n');\n"\
-"  var os = session.runSql('select @@version_compile_os').fetchOne();\n"\
-"  try {\n"\
-"    if (os[0] == \"Win32\" || os[0] == \"Win64\")\n"\
-"    {\n"\
-"      var r = session.runSql(\"install plugin mysqlx soname 'mysqlx.dll';\");\n"\
-"    }\n"\
-"    else\n"\
-"    {\n"\
-"      var r = session.runSql(\"install plugin mysqlx soname 'mysqlx.so';\")\n"\
-"    }\n"\
-"    print(\"enableXProtocol: done\\n\");\n"\
-"  } catch (error) {\n"\
-"    print('enableXProtocol: Error installing the X Plugin: '+error['message']+'\\n');\n"\
-"  }\n"\
-"}\n"\
-"enableXProtocol(); print('');\n"\
-"\n";
+  static const char *script =
+      "function enableXProtocol()\n"
+      "{\n"
+      "  try\n"
+      "  {\n"
+      "    var mysqlx_port = session.runSql('select "
+      "@@mysqlx_port').fetchOne();\n"
+      "    print('enableXProtocol: X Protocol plugin is already enabled and "
+      "listening for connections on port '+mysqlx_port[0]+'\\n');\n"
+      "    return 0;\n"
+      "  }\n"
+      "  catch (error)\n"
+      "  {\n"
+      "    if (error[\"code\"] != 1193) // unknown system variable\n"
+      "    {\n"
+      "      print('enableXProtocol: Error checking for X Protocol plugin: "
+      "'+error[\"message\"]+'\\n');\n"
+      "      return 1;\n"
+      "    }\n"
+      "  }\n"
+      "  print('enableXProtocol: Installing plugin mysqlx...\\n');\n"
+      "  var os = session.runSql('select @@version_compile_os').fetchOne();\n"
+      "  try {\n"
+      "    if (os[0] == \"Win32\" || os[0] == \"Win64\")\n"
+      "    {\n"
+      "      var r = session.runSql(\"install plugin mysqlx soname "
+      "'mysqlx.dll';\");\n"
+      "    }\n"
+      "    else\n"
+      "    {\n"
+      "      var r = session.runSql(\"install plugin mysqlx soname "
+      "'mysqlx.so';\")\n"
+      "    }\n"
+      "    print(\"enableXProtocol: done\\n\");\n"
+      "  } catch (error) {\n"
+      "    print('enableXProtocol: Error installing the X Plugin: "
+      "'+error['message']+'\\n');\n"
+      "  }\n"
+      "}\n"
+      "enableXProtocol(); print('');\n"
+      "\n";
   std::stringstream stream(script);
   return shell.process_stream(stream, "(command line)", {});
 }
@@ -254,7 +269,6 @@ std::string detect_interactive(mysqlsh::Shell_options *options,
   return error;
 }
 
-
 static mysqlshdk::textui::Color_capability detect_color_capability() {
   mysqlshdk::textui::Color_capability color_mode = mysqlshdk::textui::Color_256;
 #ifdef _WIN32
@@ -313,8 +327,8 @@ std::string pick_prompt_theme(const char *argv0) {
   if (char *theme = getenv("MYSQLSH_PROMPT_THEME")) {
     if (*theme) {
       if (!shcore::file_exists(theme)) {
-        std::cout << "NOTE: MYSQLSH_PROMPT_THEME prompt theme file '"<< theme <<
-          "' does not exist.\n";
+        std::cout << "NOTE: MYSQLSH_PROMPT_THEME prompt theme file '" << theme
+                  << "' does not exist.\n";
         return "";
       }
       log_debug("Using prompt theme file %s", theme);
@@ -344,7 +358,7 @@ std::string pick_prompt_theme(const char *argv0) {
     case mysqlshdk::textui::Color_rgb:
     case mysqlshdk::textui::Color_256:
       path += "prompt_256.json";
-    break;
+      break;
     case mysqlshdk::textui::Color_16:
       path += "prompt_16.json";
       break;
@@ -359,7 +373,6 @@ std::string pick_prompt_theme(const char *argv0) {
   return path;
 }
 
-
 int main(int argc, char **argv) {
 #ifdef WIN32
   UINT origcp = GetConsoleCP();
@@ -371,6 +384,7 @@ int main(int argc, char **argv) {
 #endif
   int ret_val = 0;
   Interrupt_helper sighelper;
+  g_mysqlsh_argv0 = argv[0];
 
   shcore::Interrupts::init(&sighelper);
 
@@ -385,6 +399,9 @@ int main(int argc, char **argv) {
   extern void JScript_context_init();
 
   JScript_context_init();
+#endif
+#ifdef ENABLE_SESSION_RECORDING
+  mysqlshdk::db::replay::setup_from_env();
 #endif
 
   try {
@@ -432,7 +449,11 @@ int main(int argc, char **argv) {
                  MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE, LIBMYSQL_VERSION,
                  MYSQL_COMPILATION_COMMENT);
       }
+#ifdef ENABLE_SESSION_RECORDING
+      shell.println(std::string(version_msg) + " + session_recorder");
+#else
       shell.println(version_msg);
+#endif
       ret_val = options.exit_code;
     } else if (options.print_cmd_line_helper) {
       shell.print_cmd_line_helper();

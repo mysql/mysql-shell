@@ -19,11 +19,15 @@ Module to manage (read and write) MySQL option files.
 """
 
 from __future__ import print_function
-from collections import OrderedDict
 import os
 import re
 import sys
 import stat
+# Use backported OrderedDict if not available (for Python 2.6)
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordered_dict_backport import OrderedDict
 
 from mysql_gadgets.exceptions import GadgetConfigParserError
 from mysql_gadgets.common.tools import get_abs_path
@@ -276,8 +280,9 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                     comment_start = sys.maxsize
                     # strip inline comments
                     # pylint: disable=E1101
-                    inline_prefixes = {p: -1 for p in
-                                       self._inline_comment_prefixes}
+                    inline_prefixes = {}
+                    for p in self._inline_comment_prefixes:
+                        inline_prefixes[p] = -1
                     while comment_start == sys.maxsize and inline_prefixes:
                         next_prefixes = {}
                         for prefix, index in inline_prefixes.items():

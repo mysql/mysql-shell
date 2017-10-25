@@ -13,16 +13,17 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include "test_utils.h"
 #include <memory>
 #include <random>
 #include <string>
-#include "test_utils.h"
+#include "db/uri_encoder.h"
+#include "db/replay/setup.h"
+#include "shellcore/base_session.h"
 #include "shellcore/shell_resultset_dumper.h"
+#include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
-#include "utils/utils_file.h"
-#include "db/uri_encoder.h"
-#include "shellcore/base_session.h"
 
 using namespace shcore;
 
@@ -31,6 +32,8 @@ static bool g_test_debug = getenv("TEST_DEBUG") != nullptr;
 
 std::vector<std::string> Shell_test_output_handler::log;
 ngcommon::Logger *Shell_test_output_handler::_logger;
+
+extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 
 Shell_test_output_handler::Shell_test_output_handler() {
   deleg.user_data = this;
@@ -45,7 +48,7 @@ Shell_test_output_handler::Shell_test_output_handler() {
   // Initialize the logger and attach the hook for error verification
   std::string log_path = shcore::get_binary_folder();
   log_path += "/mysqlsh.log";
-  ngcommon::Logger::setup_instance(log_path.c_str(), false);
+  ngcommon::Logger::setup_instance(log_path.c_str(), g_test_debug);
   _logger = ngcommon::Logger::singleton();
   _logger->attach_log_hook(log_hook);
 }
@@ -54,7 +57,9 @@ Shell_test_output_handler::~Shell_test_output_handler() {
   _logger->detach_log_hook(log_hook);
 }
 
-void Shell_test_output_handler::log_hook(const char *message, ngcommon::Logger::LOG_LEVEL level, const char *domain) {
+void Shell_test_output_handler::log_hook(const char *message,
+                                         ngcommon::Logger::LOG_LEVEL level,
+                                         const char *domain) {
   ngcommon::Logger::LOG_LEVEL current_level = _logger->get_log_level();
 
   // If the level of the log is different than
@@ -66,7 +71,7 @@ void Shell_test_output_handler::log_hook(const char *message, ngcommon::Logger::
 }
 
 void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
-  Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
   target->full_output << text << std::endl;
 
@@ -77,8 +82,9 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   target->std_out.append(text);
 }
 
-void Shell_test_output_handler::deleg_print_error(void *user_data, const char *text) {
-  Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+void Shell_test_output_handler::deleg_print_error(void *user_data,
+                                                  const char *text) {
+  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
   target->full_output << makered(text) << std::endl;
 
@@ -90,7 +96,7 @@ void Shell_test_output_handler::deleg_print_error(void *user_data, const char *t
 
 shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
     void *user_data, const char *prompt, std::string *ret) {
-  Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
   std::string answer;
 
   target->full_output << prompt;
@@ -104,9 +110,12 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
     answer = target->prompts.front();
     target->prompts.pop_front();
 
+    target->debug_print(makegreen("\n--> prompt '" + answer + "'"));
     target->full_output << answer << std::endl;
 
     ret_val = shcore::Prompt_result::Ok;
+  } else {
+    target->debug_print(makegreen("\n--> prompt <nothing>"));
   }
 
   *ret = answer;
@@ -115,7 +124,7 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
 
 shcore::Prompt_result Shell_test_output_handler::deleg_password(
     void *user_data, const char *prompt, std::string *ret) {
-  Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
   std::string answer;
 
   target->full_output << prompt;
@@ -129,41 +138,47 @@ shcore::Prompt_result Shell_test_output_handler::deleg_password(
     answer = target->passwords.front();
     target->passwords.pop_front();
 
+    target->debug_print(makegreen("\n--> password '" + answer + "'"));
+
     target->full_output << answer << std::endl;
 
     ret_val = shcore::Prompt_result::Ok;
+  } else {
+    target->debug_print(makegreen("\n--> password <nothing>"));
   }
 
   *ret = answer;
   return ret_val;
 }
 
-void Shell_test_output_handler::validate_stdout_content(const std::string& content, bool expected) {
+void Shell_test_output_handler::validate_stdout_content(
+    const std::string &content, bool expected) {
   bool found = std_out.find(content) != std::string::npos;
 
   if (found != expected) {
     std::string error = expected ? "Missing" : "Unexpected";
     error += " Output: " + shcore::str_replace(content, "\n", "\n\t");
-    ADD_FAILURE()
-      << error << "\n"
-      << "STDOUT Actual: " +
-                 shcore::str_replace(std_out, "\n", "\n\t") << "\n"
-      << "STDERR Actual: " +
-                 shcore::str_replace(std_err, "\n", "\n\t");
+    ADD_FAILURE() << error << "\n"
+                  << "STDOUT Actual: " +
+                         shcore::str_replace(std_out, "\n", "\n\t")
+                  << "\n"
+                  << "STDERR Actual: " +
+                         shcore::str_replace(std_err, "\n", "\n\t");
   }
 }
 
-void Shell_test_output_handler::validate_stderr_content(const std::string& content, bool expected) {
+void Shell_test_output_handler::validate_stderr_content(
+    const std::string &content, bool expected) {
   if (content.empty()) {
     if (std_err.empty() != expected) {
       std::string error = std_err.empty() ? "Missing" : "Unexpected";
       error += " Error: " + shcore::str_replace(content, "\n", "\n\t");
-      ADD_FAILURE()
-        << error << "\n"
-        << "STDERR Actual: " +
-                   shcore::str_replace(std_err, "\n", "\n\t") << "\n"
-        << "STDOUT Actual: " +
-                   shcore::str_replace(std_out, "\n", "\n\t");
+      ADD_FAILURE() << error << "\n"
+                    << "STDERR Actual: " +
+                           shcore::str_replace(std_err, "\n", "\n\t")
+                    << "\n"
+                    << "STDOUT Actual: " +
+                           shcore::str_replace(std_out, "\n", "\n\t");
     }
   } else {
     bool found = std_err.find(content) != std::string::npos;
@@ -171,25 +186,24 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
     if (found != expected) {
       std::string error = expected ? "Missing" : "Unexpected";
       error += " Error: " + shcore::str_replace(content, "\n", "\n\t");
-      ADD_FAILURE()
-        << error << "\n"
-        << "STDERR Actual: " +
-                   shcore::str_replace(std_err, "\n", "\n\t") << "\n"
-        << "STDOUT Actual: " +
-                   shcore::str_replace(std_out, "\n", "\n\t");
+      ADD_FAILURE() << error << "\n"
+                    << "STDERR Actual: " +
+                           shcore::str_replace(std_err, "\n", "\n\t")
+                    << "\n"
+                    << "STDOUT Actual: " +
+                           shcore::str_replace(std_out, "\n", "\n\t");
     }
   }
 }
 
-void Shell_test_output_handler::validate_log_content(const std::vector<std::string> &content, bool expected, bool clear) {
+void Shell_test_output_handler::validate_log_content(
+    const std::vector<std::string> &content, bool expected, bool clear) {
   for (auto &value : content) {
     bool found = false;
 
-    if (std::find_if(log.begin(), log.end(),
-                     [&value](const std::string &str) {
-                        return str.find(value) != std::string::npos;
-                     })
-        != log.end()) {
+    if (std::find_if(log.begin(), log.end(), [&value](const std::string &str) {
+          return str.find(value) != std::string::npos;
+        }) != log.end()) {
       found = true;
     }
 
@@ -201,7 +215,7 @@ void Shell_test_output_handler::validate_log_content(const std::vector<std::stri
         s += piece;
 
       ADD_FAILURE() << error << "\n"
-        << "LOG Actual: " + s;
+                    << "LOG Actual: " + s;
     }
   }
 
@@ -210,14 +224,14 @@ void Shell_test_output_handler::validate_log_content(const std::vector<std::stri
     wipe_log();
 }
 
-void Shell_test_output_handler::validate_log_content(const std::string &content, bool expected, bool clear) {
+void Shell_test_output_handler::validate_log_content(const std::string &content,
+                                                     bool expected,
+                                                     bool clear) {
   bool found = false;
 
-  if (std::find_if(log.begin(), log.end(),
-                    [&content](const std::string &str) {
-                      return str.find(content) != std::string::npos;
-                    })
-                    != log.end()) {
+  if (std::find_if(log.begin(), log.end(), [&content](const std::string &str) {
+        return str.find(content) != std::string::npos;
+      }) != log.end()) {
     found = true;
   }
 
@@ -229,7 +243,7 @@ void Shell_test_output_handler::validate_log_content(const std::string &content,
       s += piece;
 
     ADD_FAILURE() << error << "\n"
-      << "LOG Actual: " + s;
+                  << "LOG Actual: " + s;
   }
 
   // Wipe the log here
@@ -237,11 +251,11 @@ void Shell_test_output_handler::validate_log_content(const std::string &content,
     wipe_log();
 }
 
-void Shell_test_output_handler::debug_print(const std::string& line) {
+void Shell_test_output_handler::debug_print(const std::string &line) {
   full_output << line.c_str() << std::endl;
 }
 
-void Shell_test_output_handler::debug_print_header(const std::string& line) {
+void Shell_test_output_handler::debug_print_header(const std::string &line) {
   std::string splitter(line.length(), '-');
 
   full_output << splitter.c_str() << std::endl;
@@ -251,11 +265,11 @@ void Shell_test_output_handler::debug_print_header(const std::string& line) {
 
 void Shell_test_output_handler::flush_debug_log() {
   full_output.flush();
-  std::cerr << full_output.str();;
+  std::cerr << full_output.str();
+  ;
   full_output.str(std::string());
   full_output.clear();
 }
-
 
 void Shell_core_test_wrapper::connect_classic() {
   execute("\\connect -mc " + _mysql_uri);
@@ -302,24 +316,56 @@ void Shell_core_test_wrapper::SetUp() {
 }
 
 void Shell_core_test_wrapper::TearDown() {
-  ignore_session_notifications();
-
-  if (!_open_sessions.empty()) {
-    for (auto entry : _open_sessions) {
-      // Prints the session warnings ONLY if TEST_SESSIONS is enabled
-      if (g_test_sessions)
-        std::cerr << "WARNING: Closing dangling session opened on " << entry.second << std::endl;
-
-      auto session =
-          std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
-      if (session) {
-        session->close();
-      }
-    }
-    _open_sessions.clear();
+  if (testutil) {
+    _interactive_shell->set_global_object("testutil", {});
+    testutil.reset();
   }
 
-  _interactive_shell.reset();
+  ignore_session_notifications();
+
+  try {
+    if (!_open_sessions.empty()) {
+      for (auto entry : _open_sessions) {
+        // Prints the session warnings ONLY if TEST_SESSIONS is enabled
+        if (g_test_sessions)
+          std::cerr << "WARNING: Closing dangling session opened on "
+                    << entry.second << std::endl;
+
+        auto session =
+            std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
+        if (session) {
+          session->close();
+        }
+      }
+      _open_sessions.clear();
+    }
+  } catch (std::exception &e) {
+    std::cerr << "Unhandled exception in TearDown().1: " << e.what() << "\n";
+  }
+
+  try {
+    tests::Shell_base_test::TearDown();
+  } catch (std::exception &e) {
+    std::cerr << "Unhandled exception in TearDown().2: " << e.what() << "\n";
+  }
+}
+
+void Shell_core_test_wrapper::enable_testutil() {
+  bool dummy_sandboxes =
+      g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay;
+
+  testutil.reset(new tests::Testutils(_sandbox_dir,
+                                      _recording_enabled && dummy_sandboxes));
+  if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)
+    testutil->set_sandbox_snapshot_dir(
+        mysqlshdk::db::replay::current_recording_dir());
+  _interactive_shell->set_global_object("testutil", testutil);
+}
+
+void Shell_core_test_wrapper::enable_replay() {
+  // Assumes reset_mysql() was already called
+  setup_recorder();
+  enable_testutil();
 }
 
 void Shell_core_test_wrapper::observe_session_notifications() {
@@ -336,8 +382,9 @@ void Shell_core_test_wrapper::ignore_session_notifications() {
   ignore_notification("SN_DEBUGGER");
 }
 
-
-void Shell_core_test_wrapper::handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
+void Shell_core_test_wrapper::handle_notification(
+    const std::string &name, const shcore::Object_bridge_ref &sender,
+    shcore::Value::Map_type_ref data) {
   std::string identifier = context_identifier();
 
   if (name == "SN_SESSION_CONNECTED") {
@@ -346,19 +393,22 @@ void Shell_core_test_wrapper::handle_notification(const std::string &name, const
       _open_sessions[sender] = identifier;
     // Prints the session warnings ONLY if TEST_SESSIONS is enabled
     else if (g_test_sessions) {
-      std::cerr << "WARNING: Reopening session from " << _open_sessions[sender] << " at " << identifier << std::endl;
+      std::cerr << "WARNING: Reopening session from " << _open_sessions[sender]
+                << " at " << identifier << std::endl;
     }
-  } else if (name == "SN_SESSION_CONNECTION_LOST" || name == "SN_SESSION_CLOSED") {
+  } else if (name == "SN_SESSION_CONNECTION_LOST" ||
+             name == "SN_SESSION_CLOSED") {
     auto position = _open_sessions.find(sender);
     if (position != _open_sessions.end())
       _open_sessions.erase(position);
     // Prints the session warnings ONLY if TEST_SESSIONS is enabled
     else if (g_test_sessions) {
-      std::cerr << "WARNING: Closing a session that was never opened at " << identifier << std::endl;
+      std::cerr << "WARNING: Closing a session that was never opened at "
+                << identifier << std::endl;
     }
-  }
-  else if (name == "SN_DEBUGGER") {
-    std::cout << "DEBUG NOTIFICATION: " << data->get_string("value").c_str() << std::endl;
+  } else if (name == "SN_DEBUGGER") {
+    std::cout << "DEBUG NOTIFICATION: " << data->get_string("value").c_str()
+              << std::endl;
   }
 }
 
@@ -386,10 +436,14 @@ void Shell_core_test_wrapper::exec_and_out_equals(const std::string &code,
   std::string expected_output(out);
   std::string expected_error(err);
 
-  if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode::Python && out.length())
+  if (_interactive_shell->interactive_mode() ==
+          shcore::Shell_core::Mode::Python &&
+      out.length())
     expected_output += "\n";
 
-  if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode::Python && err.length())
+  if (_interactive_shell->interactive_mode() ==
+          shcore::Shell_core::Mode::Python &&
+      err.length())
     expected_error += "\n";
 
   execute(code);
@@ -430,12 +484,14 @@ void Shell_core_test_wrapper::exec_and_out_contains(const std::string &code,
 
 void Crud_test_wrapper::set_functions(const std::string &functions) {
   std::vector<std::string> str_spl = split_string_chars(functions, ", ", true);
-  std::copy(str_spl.begin(), str_spl.end(), std::inserter(_functions, _functions.end()));
+  std::copy(str_spl.begin(), str_spl.end(),
+            std::inserter(_functions, _functions.end()));
 }
 
 // Validates only the specified functions are available
 // non listed functions are validated for unavailability
-void Crud_test_wrapper::ensure_available_functions(const std::string& functions) {
+void Crud_test_wrapper::ensure_available_functions(
+    const std::string &functions) {
   bool is_js = _interactive_shell->interactive_mode() ==
                shcore::Shell_core::Mode::JavaScript;
   std::vector<std::string> v = split_string_chars(functions, ", ", true);
@@ -466,7 +522,8 @@ void Crud_test_wrapper::ensure_available_functions(const std::string& functions)
     if (valid_functions.find(*index) != valid_functions.end()) {
       SCOPED_TRACE("Function " + *index + " should be available and is not.");
       if (is_js)
-        exec_and_out_equals("print(real_functions.indexOf('" + *index + "') != -1)", "true");
+        exec_and_out_equals(
+            "print(real_functions.indexOf('" + *index + "') != -1)", "true");
       else
         exec_and_out_equals("index=real_functions.index('" + *index + "')");
     }
@@ -475,11 +532,14 @@ void Crud_test_wrapper::ensure_available_functions(const std::string& functions)
     else {
       SCOPED_TRACE("Function " + *index + " should NOT be available.");
       if (is_js)
-        exec_and_out_equals("print(real_functions.indexOf('" + *index + "') == -1)", "true");
+        exec_and_out_equals(
+            "print(real_functions.indexOf('" + *index + "') == -1)", "true");
       else
-        exec_and_out_contains("print(real_functions.index('" + *index + "'))", "", "is not in list");
+        exec_and_out_contains("print(real_functions.index('" + *index + "'))",
+                              "", "is not in list");
 
-      exec_and_out_contains("crud." + *index + "('');", "", "Forbidden usage of " + *index);
+      exec_and_out_contains("crud." + *index + "('');", "",
+                            "Forbidden usage of " + *index);
     }
   }
 }

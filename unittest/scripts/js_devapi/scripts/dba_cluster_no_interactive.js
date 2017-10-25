@@ -1,12 +1,23 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+var singleSession = session;
+
+if (__have_ssl)
+  var devCluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED'});
+else
+  var devCluster = dba.createCluster('devCluster', {memberSslMode:'DISABLED'});
 
 //@ Cluster: validating members
 var Cluster = dba.getCluster('devCluster');
 
 // session is stored on the cluster object so changing the global session should not affect cluster operations
-shell.connect({scheme: 'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 session.close();
 
 // Sets the correct local host
@@ -133,20 +144,14 @@ Cluster.status();
 // Rejoin tests
 
 //@# Dba: kill instance 3
-if (__sandbox_dir)
-  dba.killSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir});
-else
-  dba.killSandboxInstance(__mysql_sandbox_port3);
+testutil.killSandbox(__mysql_sandbox_port3);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
 wait_slave_state(Cluster, 'third_sandbox', "(MISSING)");
 
 //@# Dba: start instance 3
-if (__sandbox_dir)
-  dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir});
-else
-  dba.startSandboxInstance(__mysql_sandbox_port3);
+testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Cluster: rejoinInstance errors
 Cluster.rejoinInstance();
@@ -198,3 +203,7 @@ Cluster.rescan();
 Cluster.status();
 
 customSession.close();
+
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

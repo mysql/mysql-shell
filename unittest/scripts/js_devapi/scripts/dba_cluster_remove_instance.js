@@ -1,9 +1,11 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-var deployed_here = reset_or_deploy_sandboxes();
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 //@ Connect
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ create cluster
 if (__have_ssl)
@@ -45,10 +47,7 @@ wait_slave_state(cluster, uri2, "ONLINE");
 
 //@ Stop instance on port2
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-if (__sandbox_dir != '')
-    dba.stopSandboxInstance(__mysql_sandbox_port2, {password: 'root', sandboxDir: __sandbox_dir});
-else
-    dba.stopSandboxInstance(__mysql_sandbox_port2, {password: 'root'});
+testutil.stopSandbox(__mysql_sandbox_port2, "root");
 
 // Waiting for the instance on port2 to be found missing
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
@@ -87,5 +86,6 @@ session.close();
 
 //@ Finalization
 // Will delete the sandboxes ONLY if this test was executed standalone
-if (deployed_here)
-  cleanup_sandboxes(true);
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

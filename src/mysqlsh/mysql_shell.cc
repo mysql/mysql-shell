@@ -380,6 +380,29 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::create_session(
   return ret_val;
 }
 
+void Mysql_shell::print_connection_message(mysqlsh::SessionType type,
+                                           const std::string &uri,
+                                           const std::string &sessionid) {
+  std::string stype;
+
+  switch (type) {
+    case mysqlsh::SessionType::X:
+      stype = "an X protocol";
+      break;
+    case mysqlsh::SessionType::Classic:
+      stype = "a Classic";
+      break;
+    case mysqlsh::SessionType::Auto:
+      stype = "a";
+      break;
+  }
+
+  std::string message;
+  message += "Creating " + stype + " session to '" + uri + "'";
+
+  println(message);
+}
+
 void Mysql_shell::connect(
     const mysqlshdk::db::Connection_options &connection_options_,
     bool recreate_schema) {
@@ -1069,8 +1092,9 @@ void Mysql_shell::add_devapi_completions() {
 
   registry->add_completable_type(
       "mysqlx", {{"getSession", "Session", true}});
-  registry->add_completable_type(
-      "mysql", {{"getClassicSession", "ClassicSession", true}});
+  registry->add_completable_type("mysql",
+                                 {{"getClassicSession", "ClassicSession", true},
+                                  {"getSession", "ClassicSession", true}});
 
   registry->add_completable_type("Operation*", {{"execute", "Result", true}});
   registry->add_completable_type(
@@ -1444,6 +1468,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"isOpen", "", true},
                                   {"rollback", "ClassicResult", true},
                                   {"runSql", "ClassicResult", true},
+                                  {"query", "ClassicResult", true},
                                   {"setCurrentSchema", "", true},
                                   {"startTransaction", "ClassicResult", true},
                                   {"uri", "", false}});

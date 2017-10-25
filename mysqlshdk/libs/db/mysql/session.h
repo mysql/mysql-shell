@@ -25,6 +25,7 @@
 
 #include <mysql.h>
 #include <mysqld_error.h>
+#include <functional>
 #include <memory>
 #include <set>
 #include <string>
@@ -137,9 +138,10 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 class SHCORE_PUBLIC Session : public ISession,
                               public std::enable_shared_from_this<Session> {
  public:
-  static std::shared_ptr<Session> create() {
-    return std::shared_ptr<Session>(new Session());
-  }
+  static void set_factory_function(
+      std::function<std::shared_ptr<Session>()> factory);
+
+  static std::shared_ptr<Session> create();
 
   virtual void connect(
       const mysqlshdk::db::Connection_options &connection_options) {
@@ -177,11 +179,12 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->get_stats();
   }
 
- private:
+ protected:
   Session() {
     _impl.reset(new Session_impl());
   }
 
+ private:
   std::shared_ptr<Session_impl> _impl;
 };
 }  // namespace mysql

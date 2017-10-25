@@ -3,8 +3,24 @@
 // validateMemer and validateNotMember are defined on the setup script
 
 //@ Initialization
-var deployed_here = reset_or_deploy_sandboxes();
-shell.connect({user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+// ensure my.cnf file is saved/restored for replay in recording mode
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+
+// Tests below are expecting root@% to already exit
+shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port2});
+session.runSql("SET SQL_LOG_BIN=0");
+session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
+session.runSql("SET SQL_LOG_BIN=1");
+
+shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
+session.runSql("SET SQL_LOG_BIN=0");
+session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
+session.runSql("SET SQL_LOG_BIN=1");
 
 //@ Session: validating members
 var members = dir(dba);
@@ -78,14 +94,14 @@ session.runSql("GRANT ALL PRIVILEGES ON *.* to 'test_user'@'%' WITH GRANT OPTION
 session.runSql("SET sql_log_bin = 1");
 session.close();
 
-shell.connect({host: "127.0.0.1", port: __mysql_sandbox_port1, user: 'test_user', password: ''});
+shell.connect({scheme:'mysql', host: "127.0.0.1", port: __mysql_sandbox_port1, user: 'test_user', password: ''});
 c1 = dba.createCluster("devCluster", {clearReadOnly: true});
 c1
 
 //@ Dba: dissolve cluster created using a non existing user that authenticates as another user (BUG#26979375)
 c1.dissolve({force:true});
 session.close()
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 // drop created test_user
 // Clear super read_only
@@ -247,5 +263,5 @@ c3;
 session.close();
 //@ Finalization
 // Will delete the sandboxes ONLY if this test was executed standalone
-if (deployed_here)
-  cleanup_sandboxes(true);
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

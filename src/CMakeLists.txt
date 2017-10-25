@@ -52,10 +52,23 @@ endif()
 add_executable(mysqlsh ${mysh_SRC})
 set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+add_executable(mysqlshrec ${mysh_SRC})
+set_target_properties(mysqlshrec PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+target_compile_definitions(mysqlshrec PRIVATE -DENABLE_SESSION_RECORDING)
+
 ADD_STAN_TARGET(mysqlsh ${mysh_SRC})
 
 # Last, to make -lrt -lpthread last, v8 needs it
 target_link_libraries(mysqlsh
+    api_modules
+    mysqlshdk-static
+    ${GCOV_LDFLAGS}
+    ${MYSQLX_LIBRARIES}
+    ${PROTOBUF_LIBRARIES}
+    ${MYSQL_EXTRA_LIBRARIES}
+)
+
+target_link_libraries(mysqlshrec
     api_modules
     mysqlshdk-static
     ${GCOV_LDFLAGS}

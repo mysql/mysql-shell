@@ -61,13 +61,13 @@ public:
 
   shcore::Value::Array_type_ref get_columns() const;
 
-  void set_execution_time(unsigned long execution_time) {
+  void set_execution_time(uint64_t execution_time) {
     _execution_time = execution_time;
   }
 
  private:
   std::shared_ptr<mysqlshdk::db::mysql::Result> _result;
-  unsigned long _execution_time;
+  uint64_t _execution_time;
   std::shared_ptr<std::vector<std::string>> _column_names;
   mutable shcore::Value::Array_type_ref _columns;
 

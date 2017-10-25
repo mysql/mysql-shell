@@ -680,7 +680,7 @@ TEST_F(Interrupt_mysqlx, db_python_sql) {
         execute("session.sql('select * from itst.data where sleep(42)')."
                 "execute()"));
     MY_EXPECT_STDOUT_NOT_CONTAINS("FAILED");
-    MY_EXPECT_STDERR_CONTAINS("interrupted");
+    MY_EXPECT_STDERR_CONTAINS("nterrupt");
     thd.join();
     session_wait(session->get_connection_id(), 3, "Sleep",
                  k_processlist_command_column);
@@ -933,6 +933,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
   execute("\\py");
   execute("\\use itst");
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
+  wipe_all();
 
   ASSERT_TRUE(_interactive_shell->shell_context()->get_dev_session().get());
 
@@ -956,7 +957,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
       shcore::Interrupts::interrupt();
     });
     execute("session.get_schema('itst').drop_table('data')");
-    MY_EXPECT_STDERR_CONTAINS("interrupted");
+    MY_EXPECT_STDERR_CONTAINS("nterrupt");
     thd.join();
     session_wait(session->get_connection_id(), 3, "Sleep",
                  k_processlist_command_column);
@@ -971,7 +972,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
       shcore::Interrupts::interrupt();
     });
     execute("session.get_schema('itst').drop_collection('cdata')");
-    MY_EXPECT_STDERR_CONTAINS("interrupted");
+    MY_EXPECT_STDERR_CONTAINS("nterrupt");
     thd.join();
     session_wait(session->get_connection_id(), 3, "Sleep",
                  k_processlist_command_column);
@@ -987,7 +988,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
       shcore::Interrupts::interrupt();
     });
     execute("session.drop_schema('itst')");
-    MY_EXPECT_STDERR_CONTAINS("interrupted");
+    MY_EXPECT_STDERR_CONTAINS("nterrupt");
     thd.join();
     session_wait(session->get_connection_id(), 3, "Sleep",
                  k_processlist_command_column);

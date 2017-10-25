@@ -53,6 +53,7 @@ enum class SHCORE_PUBLIC Type {
 };
 
 std::string to_string(Type type);
+Type string_to_type(const std::string &type);
 
 inline bool is_string_type(Type type) {
   return (type == Type::Bytes || type == Type::Geometry || type == Type::Json ||

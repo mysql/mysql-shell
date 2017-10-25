@@ -7455,8 +7455,9 @@ class XShell_TestCases(unittest.TestCase):
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              stdin=subprocess.PIPE)
         stdoutdata, stderrordata = p.communicate()
-        if stderrordata.find("Requested session assumes MySQL X Protocol but '") >= 0 and\
-                stderrordata.find("' seems to speak the classic MySQL protocol") >= 0:
+        if (stderrordata.find("Requested session assumes MySQL X Protocol but '") >= 0 and\
+                stderrordata.find("' seems to speak the classic MySQL protocol") >= 0) or\
+            stderrordata.find("MySQL server has gone away") >= 0:
             results = 'PASS'
         else:
             print stdoutdata

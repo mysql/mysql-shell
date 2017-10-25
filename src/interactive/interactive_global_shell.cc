@@ -44,27 +44,6 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
 
-  std::string stype;
-
-  if (instance_def.has_scheme()) {
-    if (instance_def.get_scheme() == "mysqlx")
-      stype = "an X protocol";
-    else
-      stype = "a Classic";
-  }
-  else
-    stype = "a";
-
-
-  // Messages prior to the connection
-  std::string message;
-  message += "Creating " + stype + " session to '" +
-             instance_def.as_uri(
-                 mysqlshdk::db::uri::formats::no_scheme_no_password()) +
-             "'";
-
-  println(message);
-
   auto instance_map = mysqlsh::get_connection_map(instance_def);
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(instance_map));

@@ -86,6 +86,14 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       array->push_back(pyobj_to_shcore_value(item));
     }
     return Value(array);
+  } else if (PyTuple_Check(py)) {
+    std::shared_ptr<Value::Array_type> array(new Value::Array_type);
+
+    for (Py_ssize_t c = PyTuple_Size(py), i = 0; i < c; i++) {
+      PyObject *item = PyTuple_GetItem(py, i);
+      array->push_back(pyobj_to_shcore_value(item));
+    }
+    return Value(array);
   } else if (PyDict_Check(py)) {
     std::shared_ptr<Value::Map_type> map(new Value::Map_type);
 
@@ -97,7 +105,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       // so we get the string representation of whatever it is
       PyObject* key_repr = PyObject_Str(key);
       (*map)[PyString_AsString(key_repr)] = pyobj_to_shcore_value(value);
-      
+
       Py_DECREF(key_repr);
     }
 
@@ -164,10 +172,10 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value) {
       r = PyString_FromString(value.value.s->c_str());
       break;
     case Integer:
-      r = PyInt_FromSsize_t(value.value.i);
+      r = PyLong_FromLongLong(value.value.i);
       break;
     case UInteger:
-      r = PyInt_FromSsize_t(value.value.ui);
+      r = PyLong_FromUnsignedLongLong(value.value.ui);
       break;
     case Float:
       r = PyFloat_FromDouble(value.value.d);

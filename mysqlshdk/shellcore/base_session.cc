@@ -28,6 +28,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
 #include "utils/utils_string.h"
+#include "utils/utils_sqlstring.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 
 using namespace mysqlsh;
@@ -131,6 +132,52 @@ shcore::Object_bridge_ref ShellBaseSession::get_schema(const std::string &name) 
   }
 
   return ret_val;
+}
+
+std::string ShellBaseSession::sub_query_placeholders(
+    const std::string &query, const shcore::Array_t &args) {
+  if (args) {
+    shcore::sqlstring squery(query.c_str(), 0);
+    int i = 0;
+    for (const shcore::Value &value : *args) {
+      try {
+        switch (value.type) {
+          case shcore::Integer:
+            squery << value.as_int();
+            break;
+          case shcore::Bool:
+            squery << value.as_bool();
+            break;
+          case shcore::Float:
+            squery << value.as_double();
+            break;
+          case shcore::String:
+            squery << value.as_string();
+            break;
+          case shcore::Null:
+            squery << nullptr;
+            break;
+          default:
+            throw Exception::argument_error(shcore::str_format(
+                "Invalid type for placeholder value at index #%i", i));
+        }
+      } catch (Exception &e) {
+        throw;
+      } catch (std::exception &e) {
+        throw Exception::argument_error(shcore::str_format(
+            "While substituting placeholder at index #%i: %s", i,
+            e.what()));
+      }
+      ++i;
+    }
+    try {
+      return squery.str();
+    } catch (std::exception &e) {
+      throw Exception::argument_error(
+          "Insufficient number of values for placeholders in query");
+    }
+  }
+  return query;
 }
 
 void ShellBaseSession::begin_query() {

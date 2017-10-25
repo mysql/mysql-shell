@@ -1,9 +1,11 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-var deployed_here = reset_or_deploy_sandboxes();
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 // Create a new administrative account on instance 1
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', password: 'root'});
+shell.connect({scheme:'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', password: 'root'});
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'');
@@ -12,7 +14,7 @@ session.runSql('SET sql_log_bin=1');
 session.close();
 
 // Create a new administrative account on instance 2
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', password: 'root'});
+shell.connect({scheme:'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', password: 'root'});
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'');
@@ -21,7 +23,7 @@ session.runSql('SET sql_log_bin=1');
 session.close();
 
 // Create a new administrative account on instance 3
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', password: 'root'});
+shell.connect({scheme:'mysql', 'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', password: 'root'});
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'');
@@ -30,7 +32,7 @@ session.runSql('SET sql_log_bin=1');
 session.close();
 
 //@ Connect to instance 1
-shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'foo', password: 'bar'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'foo', password: 'bar'});
 
 //@ create cluster
 if (__have_ssl)
@@ -52,16 +54,13 @@ wait_slave_state(cluster, uri3, "ONLINE");
 
 // stop instance 2
 // Use stop sandbox instance to make sure the instance is gone before restarting it
-if (__sandbox_dir)
-    dba.stopSandboxInstance(__mysql_sandbox_port2, {sandboxDir:__sandbox_dir, password: 'root'});
-else
-    dba.stopSandboxInstance(__mysql_sandbox_port2, {password: 'root'});
+testutil.stopSandbox(__mysql_sandbox_port2, 'root');
 
 // Waiting for instance 2 to become missing
 wait_slave_state(cluster, uri2, "(MISSING)");
 
 // Start instance 2
-try_restart_sandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port2);
 
 //@<OUT> Cluster status
 cluster.status()
@@ -87,7 +86,7 @@ cluster.dissolve({force: true})
 session.close();
 
 // Delete the account on instance 1
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', password: 'root'});
+shell.connect({scheme:'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', password: 'root'});
 session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
@@ -95,7 +94,7 @@ session.runSql('SET sql_log_bin=1');
 session.close();
 
 // Delete the account on instance 2
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', password: 'root'});
+shell.connect({scheme:'mysql', 'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', password: 'root'});
 session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
@@ -103,7 +102,7 @@ session.runSql('SET sql_log_bin=1');
 session.close();
 
 // Delete the account on instance 3
-shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', password: 'root'});
+shell.connect({scheme:'mysql', 'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', password: 'root'});
 session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
@@ -111,6 +110,6 @@ session.runSql('SET sql_log_bin=1');
 session.close();
 
 //@ Finalization
-// Will delete the sandboxes ONLY if this test was executed standalone
-if (deployed_here)
-  cleanup_sandboxes(true);
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

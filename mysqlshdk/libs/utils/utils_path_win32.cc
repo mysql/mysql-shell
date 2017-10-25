@@ -27,6 +27,9 @@
 
 namespace shcore {
 namespace path {
+
+const char *k_valid_path_separators = "/\\";
+
 namespace detail {
 class Known_folder_path {
  public:
@@ -227,6 +230,12 @@ std::string normalize(const std::string &path) {
   }
   norm.resize(len);
   return norm;
+}
+
+
+bool exists(const std::string& filename) {
+  DWORD dwAttrib = GetFileAttributesA(filename.c_str());
+  return dwAttrib != INVALID_FILE_ATTRIBUTES;
 }
 
 }  // namespace path

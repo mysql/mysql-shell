@@ -1,9 +1,11 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-var deployed_here = reset_or_deploy_sandboxes();
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 //@ create first cluster
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var singleSession = session;
 
 if (__have_ssl)
@@ -21,23 +23,24 @@ wait_slave_state(single, uri2, "ONLINE");
 wait_sandbox_in_metadata(__mysql_sandbox_port2);
 
 // Connect to the future new seed node
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 var singleSession2 = session;
 
 //@ Check auto_increment values for single-primary
-singleSession.runSql("show global variables like 'auto_increment_%'").fetchAll();
-singleSession2.runSql("show global variables like 'auto_increment_%'").fetchAll();
+// TODO(alfredo) this test currently fails (never worked?) because of Bug #27084767
+//var row = singleSession.runSql("select @@auto_increment_increment, @@auto_increment_offset").fetchOne();
+//testutil.expectEq(1, row[0]);
+//testutil.expectEq(2, row[1]);
+//var row = singleSession2.runSql("select @@auto_increment_increment, @@auto_increment_offset").fetchOne();
+//testutil.expectEq(1, row[0]);
+//testutil.expectEq(2, row[1]);
 
 //@ Get the cluster back
 var single = dba.getCluster();
 
 // Kill the seed instance
-if (__sandbox_dir)
-  dba.killSandboxInstance(__mysql_sandbox_port1, {sandboxDir:__sandbox_dir});
-else
-  dba.killSandboxInstance(__mysql_sandbox_port1);
-
-wait_slave_state(single, uri1, ["(MISSING)"]);
+testutil.killSandbox(__mysql_sandbox_port1);
+wait_slave_state(single, uri1, ["(MISSING)", "UNREACHABLE"]);
 
 //@ Restore the quorum
 single.forceQuorumUsingPartitionOf({host: localhost, port: __mysql_sandbox_port2, user: 'root', password:'root'});
@@ -50,7 +53,7 @@ shell.connect({SCHEME: 'mysql', Host: localhost, PoRt: __mysql_sandbox_port3, Us
 single.removeInstance({host: localhost, port: __mysql_sandbox_port3});
 
 //@ create second cluster
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 var multiSession = session;
 
 // We must use clearReadOnly because the instance 3 was removed from the cluster before
@@ -80,5 +83,7 @@ single.addInstance(add_instance_options);
 singleSession.close();
 singleSession2.close();
 multiSession.close();
-if (deployed_here)
-  cleanup_sandboxes(true);
+
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

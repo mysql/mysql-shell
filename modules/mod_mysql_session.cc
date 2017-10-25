@@ -37,6 +37,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_path.h"
+#include "utils/utils_time.h"
 #include "shellcore/utils_help.h"
 #include "modules/mod_utils.h"
 
@@ -81,6 +82,9 @@ void ClassicSession::init() {
 
   add_method("close", std::bind(&ClassicSession::_close, this, _1), "data");
   add_method("runSql", std::bind(&ClassicSession::run_sql, this, _1),
+    "stmt", shcore::String,
+    NULL);
+  add_method("query", std::bind(&ClassicSession::query, this, _1),
     "stmt", shcore::String,
     NULL);
 
@@ -185,11 +189,13 @@ shcore::Value ClassicSession::_is_open(const shcore::Argument_list &args) {
 }
 
 
-//Documentation of runSql function
+// Documentation of runSql function
 REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query and returns the "\
 "corresponding ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM, "@param query the SQL query to "\
+REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM1, "@param query the SQL query to "\
 "execute against the database.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM2, "@param list of literals to use "\
+"when replacing ? placeholders in the query string.");
 REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS, "@returns A ClassicResult "\
 "object.");
 REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is "\
@@ -199,7 +205,8 @@ REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is "\
 #if DOXYGEN_CPP
 //! \param args should contain the SQL query to execute against the database.
 #else
-//! $(CLASSICSESSION_RUNSQL_PARAM)
+//! $(CLASSICSESSION_RUNSQL_PARAM1)
+//! $(CLASSICSESSION_RUNSQL_PARAM2)
 #endif
 /**
 * $(CLASSICSESSION_RUNSQL_RETURNS)
@@ -212,7 +219,12 @@ ClassicResult ClassicSession::runSql(String query) {}
 ClassicResult ClassicSession::run_sql(str query) {}
 #endif
 Value ClassicSession::run_sql(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("runSql").c_str());
+  args.ensure_count(1, 2, get_function_name("runSql").c_str());
+
+  if (args.size() > 1 && args[1].type != shcore::Array) {
+    throw Exception::argument_error(
+        "Argument #2 to runSql() must be a list of values");
+  }
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
@@ -221,14 +233,18 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) {
   } else {
     try {
       Interruptible intr(this);
-      ret_val = execute_sql(args.string_at(0), shcore::Argument_list());
+      ret_val =
+          execute_sql(args.string_at(0),
+                      args.size() > 1 ? args.array_at(1) : shcore::Array_t());
     } catch (shcore::Exception & e) {
       // Connection lost, sends a notification
-      //if (CR_SERVER_GONE_ERROR == e.code() || ER_X_BAD_PIPE == e.code())
-      std::shared_ptr<ClassicSession> myself = std::const_pointer_cast<ClassicSession>(shared_from_this());
+      std::shared_ptr<ClassicSession> myself =
+          std::const_pointer_cast<ClassicSession>(shared_from_this());
 
-      if (e.code() == 2006 || e.code() == 5166 || e.code() == 2013)
-        ShellNotifications::get()->notify("SN_SESSION_CONNECTION_LOST", std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
+      if (e.code() == CR_SERVER_GONE_ERROR || e.code() == CR_SERVER_LOST)
+        ShellNotifications::get()->notify(
+            "SN_SESSION_CONNECTION_LOST",
+            std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
 
       // Rethrows the exception for normal flow
       throw;
@@ -237,12 +253,82 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) {
 
   return ret_val;
 }
-shcore::Object_bridge_ref ClassicSession::raw_execute_sql(const std::string& query) {
-  return execute_sql(query, shcore::Argument_list()).as_object();
+
+
+REGISTER_HELP(CLASSICSESSION_QUERY_BRIEF, "Executes a query and returns the "\
+  "corresponding ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_QUERY_PARAM1, "@param query the SQL query string "\
+  "to execute, with optional ? placeholders");
+REGISTER_HELP(CLASSICSESSION_QUERY_PARAM2, "@param list of literals to use "\
+"when replacing ? placeholders in the query string.");
+REGISTER_HELP(CLASSICSESSION_QUERY_RETURNS, "@returns A ClassicResult "\
+  "object.");
+REGISTER_HELP(CLASSICSESSION_QUERY_EXCEPTION, "@exception An exception is "\
+  "thrown if an error occurs on the SQL execution.");
+
+//! $(CLASSICSESSION_QUERY_BRIEF)
+#if DOXYGEN_CPP
+//! \param args should contain the SQL query to execute against the database.
+#else
+//! $(CLASSICSESSION_QUERY_PARAM1)
+//! $(CLASSICSESSION_QUERY_PARAM2)
+#endif
+/**
+* $(CLASSICSESSION_QUERY_RETURNS)
+*
+* $(CLASSICSESSION_QUERY_EXCEPTION)
+*/
+#if DOXYGEN_JS
+ClassicResult ClassicSession::query(String query, Array args = []) {}
+#elif DOXYGEN_PY
+ClassicResult ClassicSession::query(str query, list args = []) {}
+#endif
+Value ClassicSession::query(const shcore::Argument_list &args) {
+  args.ensure_count(1, 2, get_function_name("query").c_str());
+
+  if (args.size() > 1 && args[1].type != shcore::Array) {
+    throw Exception::argument_error(
+        "Argument #2 to query() must be a list of values");
+  }
+
+  // Will return the result of the SQL execution
+  // In case of error will be Undefined
+  Value ret_val;
+  if (!_session || !_session->is_open()) {
+    throw Exception::logic_error("Not connected.");
+  } else {
+    try {
+      Interruptible intr(this);
+      ret_val =
+          execute_sql(args.string_at(0),
+                      args.size() > 1 ? args.array_at(1) : shcore::Array_t());
+    } catch (shcore::Exception & e) {
+      // Connection lost, sends a notification
+      std::shared_ptr<ClassicSession> myself =
+          std::const_pointer_cast<ClassicSession>(shared_from_this());
+
+      // TODO(alfredo) this notification isn't really needed, the
+      // REPL loop should check the state of the global session and reconnect
+      // if needed
+      if (e.code() == CR_SERVER_GONE_ERROR || e.code() == CR_SERVER_LOST)
+        ShellNotifications::get()->notify(
+            "SN_SESSION_CONNECTION_LOST",
+            std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
+
+      // Rethrows the exception for normal flow
+      throw;
+    }
+  }
+  return ret_val;
+}
+
+shcore::Object_bridge_ref ClassicSession::raw_execute_sql(
+    const std::string &query) {
+  return execute_sql(query, {}).as_object();
 }
 
 shcore::Value ClassicSession::execute_sql(
-    const std::string &query, const shcore::Argument_list &UNUSED(args)) {
+    const std::string &query, const shcore::Array_t &args) {
   Value ret_val;
   if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
@@ -252,9 +338,14 @@ shcore::Value ClassicSession::execute_sql(
     } else {
       Interruptible intr(this);
       try {
-        ret_val = Value::wrap(new ClassicResult(
+        MySQL_timer timer;
+        timer.start();
+        ClassicResult *result;
+        ret_val = Value::wrap(result = new ClassicResult(
             std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
-                _session->query(query))));
+                _session->query(sub_query_placeholders(query, args)))));
+        timer.end();
+        result->set_execution_time(timer.raw_duration());
       } catch (const shcore::database_error &error) {
         throw shcore::Exception::mysql_error_with_code_and_state(
             error.error(), error.code(), error.sqlstate().c_str());
@@ -266,14 +357,22 @@ shcore::Value ClassicSession::execute_sql(
 
 // We need to hide this from doxygen to avoif warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
-std::shared_ptr<ClassicResult> ClassicSession::execute_sql(const std::string& query) {
+std::shared_ptr<ClassicResult> ClassicSession::execute_sql(
+    const std::string &query) {
   if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
   } else {
     if (query.empty()) {
       throw Exception::argument_error("No query specified.");
     } else {
-      return std::shared_ptr<ClassicResult>(new ClassicResult(std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(_session->query(query))));
+      MySQL_timer timer;
+      timer.start();
+      auto result = std::shared_ptr<ClassicResult>(new ClassicResult(
+          std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
+              _session->query(query))));
+      timer.end();
+      result->set_execution_time(timer.raw_duration());
+      return result;
     }
   }
 }
@@ -324,7 +423,7 @@ void ClassicSession::create_schema(const std::string &name) {
       throw Exception::argument_error("The schema name can not be empty.");
     } else {
       std::string statement = sqlstring("create schema !", 0) << name;
-      execute_sql(statement, shcore::Argument_list());
+      execute_sql(statement, shcore::Array_t());
 
       (*_schemas)[name] = shcore::Value::wrap<ClassicSchema>(new ClassicSchema(shared_from_this(), name));
     }
@@ -625,7 +724,7 @@ ClassicResult ClassicSession::dropSchema(String name) {}
 ClassicResult ClassicSession::drop_schema(str name) {}
 #endif
 void ClassicSession::drop_schema(const std::string &name) {
-  execute_sql(sqlstring("drop schema !", 0) << name, shcore::Argument_list());
+  execute_sql(sqlstring("drop schema !", 0) << name, shcore::Array_t());
 
   _remove_schema(name);
 }
@@ -713,7 +812,7 @@ shcore::Value ClassicSession::drop_schema_object(const shcore::Argument_list &ar
 
   statement = sqlstring(statement.c_str(), 0) << schema << name;
 
-  Value ret_val = execute_sql(statement, shcore::Argument_list());
+  Value ret_val = execute_sql(statement, shcore::Array_t());
 
   if (_schemas->count(schema)) {
     std::shared_ptr<ClassicSchema> schema_obj = std::static_pointer_cast<ClassicSchema>((*_schemas)[schema].as_object());
@@ -736,7 +835,7 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
 
   if (type == "Schema") {
     statement = sqlstring("show databases like ?", 0) << name;
-    auto val_result = execute_sql(statement, shcore::Argument_list());
+    auto val_result = execute_sql(statement, shcore::Array_t());
     auto result = val_result.as_object<ClassicResult>();
     auto val_row = result->fetch_one(shcore::Argument_list());
 
@@ -747,7 +846,7 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
     }
   } else {
     statement = sqlstring("show full tables from ! like ?", 0) << owner << name;
-    auto val_result = execute_sql(statement, shcore::Argument_list());
+    auto val_result = execute_sql(statement, shcore::Array_t());
     auto result = val_result.as_object<ClassicResult>();
     auto val_row = result->fetch_one(shcore::Argument_list());
 
@@ -801,7 +900,7 @@ ClassicResult ClassicSession::start_transaction() {}
 shcore::Value ClassicSession::_start_transaction(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("startTransaction").c_str());
 
-  return execute_sql("start transaction", shcore::Argument_list());
+  return execute_sql("start transaction", shcore::Array_t());
 }
 
 // Documentation of commit function
@@ -827,7 +926,7 @@ ClassicResult ClassicSession::commit() {}
 shcore::Value ClassicSession::_commit(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("commit").c_str());
 
-  return execute_sql("commit", shcore::Argument_list());
+  return execute_sql("commit", shcore::Array_t());
 }
 
 // Documentation of rollback function
@@ -853,7 +952,7 @@ ClassicResult ClassicSession::rollback() {}
 shcore::Value ClassicSession::_rollback(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("rollback").c_str());
 
-  return execute_sql("rollback", shcore::Argument_list());
+  return execute_sql("rollback", shcore::Array_t());
 }
 
 shcore::Value::Map_type_ref ClassicSession::get_status() {
@@ -960,7 +1059,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 
 void ClassicSession::start_transaction() {
   if (_tx_deep == 0)
-    execute_sql("start transaction", shcore::Argument_list());
+    execute_sql("start transaction", shcore::Array_t());
 
   _tx_deep++;
 }
@@ -971,7 +1070,7 @@ void ClassicSession::commit() {
   assert(_tx_deep >= 0);
 
   if (_tx_deep == 0)
-    execute_sql("commit", shcore::Argument_list());
+    execute_sql("commit", shcore::Array_t());
 }
 
 void ClassicSession::rollback() {
@@ -980,7 +1079,7 @@ void ClassicSession::rollback() {
   assert(_tx_deep >= 0);
 
   if (_tx_deep == 0)
-    execute_sql("rollback", shcore::Argument_list());
+    execute_sql("rollback", shcore::Array_t());
 }
 
 uint64_t ClassicSession::get_connection_id() const {
@@ -993,7 +1092,7 @@ bool ClassicSession::is_open() const {
 
 std::string ClassicSession::query_one_string(const std::string &query,
                                              int field) {
-  shcore::Value val_result = execute_sql(query, shcore::Argument_list());
+  shcore::Value val_result = execute_sql(query, shcore::Array_t());
   auto result = val_result.as_object<mysql::ClassicResult>();
   shcore::Value val_row = result->fetch_one(shcore::Argument_list());
   if (val_row) {

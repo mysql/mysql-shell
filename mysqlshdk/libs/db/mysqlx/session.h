@@ -113,9 +113,10 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 class SHCORE_PUBLIC Session : public ISession,
                               public std::enable_shared_from_this<Session> {
  public:
-  static std::shared_ptr<Session> create() {
-    return std::shared_ptr<Session>(new Session());
-  }
+  static void set_factory_function(
+      std::function<std::shared_ptr<Session>()> factory);
+
+  static std::shared_ptr<Session> create();
 
   void connect(const mysqlshdk::db::Connection_options& data) override {
     _impl->connect(data);
@@ -186,11 +187,12 @@ class SHCORE_PUBLIC Session : public ISession,
     return valid();
   };
 
- private:
+ protected:
   Session() {
     _impl.reset(new XSession_impl());
   }
 
+ private:
   std::shared_ptr<XSession_impl> _impl;
 };
 

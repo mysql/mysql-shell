@@ -96,14 +96,13 @@ class ProvisioningInterface {
   std::string _local_mysqlprovision_path;
 
   int execute_mysqlprovision(const std::string &cmd,
-                             const std::vector<const char *> &args,
-                             const std::vector<std::string> &passwords,
+                             const shcore::Argument_list &args,
+                             const shcore::Argument_map &kwargs,
                              shcore::Value::Array_type_ref *errors,
                              int verbose);
   int exec_sandbox_op(const std::string &op, int port, int portx,
                       const std::string &sandbox_dir,
-                      const std::string &password,
-                      const std::vector<std::string> &extra_args,
+                      const shcore::Argument_map &extra_kwargs,
                       shcore::Value::Array_type_ref *errors);
   void set_ssl_args(const std::string &prefix,
                     const mysqlshdk::db::Connection_options &instance,

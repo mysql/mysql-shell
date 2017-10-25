@@ -13,16 +13,16 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <string>
 #include <random>
-#include <algorithm>
+#include <string>
 
-#include "unittest/gtest_clean.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
+#include "unittest/test_utils.h"
 
 using namespace ::testing;
 
@@ -772,7 +772,7 @@ TEST(Types_repr, encode_decode_random) {
 
   for (int tc = 0; tc < 1000; tc++) {
     char text[1 << 6];
-    std::generate_n(text, sizeof(text), [&dist, &gen](){ return dist(gen); });
+    std::generate_n(text, sizeof(text), [&dist, &gen]() { return dist(gen); });
     const Value s(text, sizeof(text));
 
     {

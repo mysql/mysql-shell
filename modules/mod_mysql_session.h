@@ -95,6 +95,8 @@ public:
     return _retrieve_current_schema();
   }
 
+  virtual shcore::Value query(const shcore::Argument_list &args);
+
   shcore::Value _close(const shcore::Argument_list &args);
   virtual shcore::Value run_sql(const shcore::Argument_list &args);
   shcore::Value _create_schema(const shcore::Argument_list &args);
@@ -130,7 +132,7 @@ public:
 
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query);
   shcore::Value execute_sql(const std::string &query,
-                            const shcore::Argument_list &args);
+                            const shcore::Array_t &args);
 
   virtual SessionType session_type() const {
     return SessionType::Classic;
