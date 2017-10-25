@@ -84,7 +84,7 @@ TEST_F(Mysql_connection_test, connect_named_pipe) {
   connection_options.set_password(_pwd);
 
   auto connection = mysqlshdk::db::mysql::Session::create();
-  pipe_conn->connect(connection_options);
+  connection->connect(connection_options);
 
   auto result = connection->query("show variables like 'named_pipe'");
   auto row = result->fetch_one();
