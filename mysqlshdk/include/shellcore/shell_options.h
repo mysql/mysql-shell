@@ -63,10 +63,12 @@ public:
   bool passwords_from_stdin;
   bool prompt_password;
   bool recreate_database;
+  bool show_warnings;
   bool trace_protocol;
   bool log_to_stderr;
   std::string execute_statement;
   std::string execute_dba_statement;
+  std::string sandbox_directory;
   ngcommon::Logger::LOG_LEVEL log_level;
   bool wizards;
   bool admin_mode;
