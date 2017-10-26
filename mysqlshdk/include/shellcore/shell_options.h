@@ -17,18 +17,20 @@
  * 02110-1301  USA
  */
 
-#ifndef _SHELL_OPTIONS_H_
-#define _SHELL_OPTIONS_H_
+#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_
+#define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_
 
 #include <stdlib.h>
 #include <iostream>
-#include "shellcore/ishell_core.h"
-#include "mysqlshdk/libs/db/ssl_options.h"
+#include <vector>
+#include <string>
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/ssl_options.h"
+#include "shellcore/ishell_core.h"
 
 namespace mysqlsh {
 struct SHCORE_PUBLIC Shell_options {
-public:
+ public:
   Shell_options();
 
   shcore::IShell_core::Mode initial_mode;
@@ -41,7 +43,7 @@ public:
   std::string host;
   int port;
   std::string schema;
-  std::string sock;
+  std::string sock;  //< Unix socket or Windows pipe name
   std::string auth_method;
 
   std::string protocol;
@@ -83,5 +85,5 @@ public:
 
   mysqlshdk::db::Connection_options connection_options();
 };
-}
-#endif
+}  // namespace mysqlsh
+#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_

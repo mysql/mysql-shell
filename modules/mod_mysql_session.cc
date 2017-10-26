@@ -22,6 +22,7 @@
 #include <set>
 #include <thread>
 #include <string>
+#include <vector>
 
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
@@ -35,6 +36,7 @@
 #include "modules/mod_mysql_schema.h"
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
+#include "utils/utils_path.h"
 #include "shellcore/utils_help.h"
 #include "modules/mod_utils.h"
 
@@ -903,7 +905,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
         "select @@character_set_client, @@character_set_connection, "
         "@@character_set_server, @@character_set_database, "
         "concat(@@version, \" \", @@version_comment) as version, "
-        "@@socket, @@port "
+        "@@socket, @@port, @@datadir "
         "limit 1");
 
     row = result->fetch_one();
@@ -917,11 +919,17 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 
       if (!_connection_options.has_transport_type() ||
           _connection_options.get_transport_type() ==
-              mysqlshdk::db::Transport_type::Tcp)
+              mysqlshdk::db::Transport_type::Tcp) {
         (*status)["TCP_PORT"] = shcore::Value(row->get_int(6));
-      else if (_connection_options.get_transport_type() ==
-                mysqlshdk::db::Transport_type::Socket)
-        (*status)["UNIX_SOCKET"] = shcore::Value(row->get_string(5));
+      } else if (_connection_options.get_transport_type() ==
+                 mysqlshdk::db::Transport_type::Socket) {
+          const std::string datadir = row->get_string(7);
+          const std::string socket = row->get_string(5);
+          const std::string socket_abs_path =
+              shcore::path::normalize(shcore::path::join_path(
+                  std::vector<std::string>{datadir, socket}));
+          (*status)["UNIX_SOCKET"] = shcore::Value(socket_abs_path);
+      }
 
       unsigned long ver = mysql_get_client_version();
       std::stringstream sv;

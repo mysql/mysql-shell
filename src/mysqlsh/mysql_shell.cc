@@ -558,23 +558,26 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
     std::string arg = args[1];
     arg = shcore::str_strip(arg);
 
-    if (arg.empty())
+    if (arg.empty()) {
       error = true;
-    else if (!arg.compare("-n") || !arg.compare("-N")) {
+    } else if (!arg.compare("-n") || !arg.compare("-N")) {
       options.session_type = mysqlsh::SessionType::X;
-      print_error("The -n option is deprecated, please use --mysqlx or -mx instead\n");
+      print_error(
+          "The -n option is deprecated, please use --mysqlx or -mx instead\n");
     } else if (!arg.compare("-c") || !arg.compare("-C")) {
       options.session_type = mysqlsh::SessionType::Classic;
-      print_error("The -c option is deprecated, please use --mysql or -mc instead\n");
+      print_error(
+          "The -c option is deprecated, please use --mysql or -mc instead\n");
     } else if (!arg.compare("-mx") || !arg.compare("--mysqlx")) {
       options.session_type = mysqlsh::SessionType::X;
     } else if (!arg.compare("-mc") || !arg.compare("--mysql")) {
       options.session_type = mysqlsh::SessionType::Classic;
     } else {
-      if (args.size() == 3 && arg.compare("-ma"))
+      if (args.size() == 3 && arg.compare("-ma")) {
         error = true;
-      else
+      } else {
         options.uri = args[target_index];
+      }
     }
 
     if (!error && !options.uri.empty()) {
@@ -619,7 +622,7 @@ bool Mysql_shell::cmd_nowarnings(const std::vector<std::string> &UNUSED(args)) {
   return true;
 }
 
-bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
+bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
   std::string version_msg("MySQL Shell version ");
   version_msg += MYSH_VERSION;
   version_msg += "\n";
@@ -632,13 +635,15 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
     std::string output_format =
         (*shcore::Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
-    if (output_format.find("json") == 0)
+    if (output_format.find("json") == 0) {
       println(shcore::Value(status).json(output_format == "json"));
-    else {
-      std::string format = "%-30s%s";
+    } else {
+      const std::string format = "%-30s%s";
 
       if (status->has_key("STATUS_ERROR")) {
-        println(shcore::str_format(format.c_str(), "Error Retrieving Status: ", (*status)["STATUS_ERROR"].descr(true).c_str()));
+        println(
+            shcore::str_format(format.c_str(), "Error Retrieving Status: ",
+                               (*status)["STATUS_ERROR"].descr(true).c_str()));
       } else {
         if (status->has_key("SESSION_TYPE"))
           println(shcore::str_format(
@@ -676,7 +681,9 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
           println(shcore::str_format(format.c_str(), "SSL: ", "Not in use."));
 
         if (status->has_key("DELIMITER"))
-          println(shcore::str_format(format.c_str(), "Using delimiter: ", (*status)["DELIMITER"].descr(true).c_str()));
+          println(shcore::str_format(
+              format.c_str(),
+              "Using delimiter: ", (*status)["DELIMITER"].descr(true).c_str()));
         if (status->has_key("SERVER_VERSION"))
           println(shcore::str_format(
               format.c_str(), "Server version: ",
@@ -688,7 +695,9 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
               (*status)["PROTOCOL_VERSION"].descr(true).c_str()));
 
         if (status->has_key("CLIENT_LIBRARY"))
-          println(shcore::str_format(format.c_str(), "Client library: ", (*status)["CLIENT_LIBRARY"].descr(true).c_str()));
+          println(shcore::str_format(
+              format.c_str(), "Client library: ",
+              (*status)["CLIENT_LIBRARY"].descr(true).c_str()));
 
         if (status->has_key("CONNECTION"))
           println(shcore::str_format(
@@ -716,13 +725,18 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
               (*status)["CONNECTION_CHARSET"].descr(true).c_str()));
 
         if (status->has_key("TCP_PORT"))
-          println(shcore::str_format(format.c_str(), "TCP port: ", (*status)["TCP_PORT"].descr(true).c_str()));
+          println(shcore::str_format(
+              format.c_str(),
+              "TCP port: ", (*status)["TCP_PORT"].descr(true).c_str()));
 
         if (status->has_key("UNIX_SOCKET"))
-          println(shcore::str_format(format.c_str(), "Unix socket: ", (*status)["UNIX_SOCKET"].descr(true).c_str()));
+          println(shcore::str_format(
+              format.c_str(),
+              "Unix socket: ", (*status)["UNIX_SOCKET"].descr(true).c_str()));
 
         if (status->has_key("UPTIME"))
-          println(shcore::str_format(format.c_str(), "Uptime: ", (*status)["UPTIME"].descr(true).c_str()));
+          println(shcore::str_format(format.c_str(), "Uptime: ",
+                                     (*status)["UPTIME"].descr(true).c_str()));
 
         if (status->has_key("SERVER_STATS")) {
           std::string stats = (*status)["SERVER_STATS"].descr(true);
@@ -734,7 +748,8 @@ bool Mysql_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
           unsigned long ltime = std::stoul(time);
           std::string str_time = MySQL_timer::format_legacy(ltime, false, true);
 
-          println(shcore::str_format(format.c_str(), "Uptime: ", str_time.c_str()));
+          println(
+              shcore::str_format(format.c_str(), "Uptime: ", str_time.c_str()));
           println("");
           println(stats.substr(end + 2));
         }

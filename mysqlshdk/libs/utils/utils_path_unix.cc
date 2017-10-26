@@ -18,9 +18,10 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
-#include <unistd.h>
 #include <pwd.h>
+#include <unistd.h>
 #include <cstdlib>
 #include <string>
 
@@ -38,8 +39,8 @@ namespace path {
  *         following each non-empty part except the last, meaning that the
  *         result will only end in a separator if the last part is empty.
  */
-std::string SHCORE_PUBLIC join_path(const std::vector <std::string>
-                                    &components) {
+std::string SHCORE_PUBLIC
+join_path(const std::vector<std::string> &components) {
   std::string path, s;
   if (!components.empty())
     path = components.at(0);
@@ -73,8 +74,8 @@ std::string SHCORE_PUBLIC join_path(const std::vector <std::string>
  *         or empty string. On Unix systems drive will always be empty string.
  *
  */
-std::pair <std::string, std::string> SHCORE_PUBLIC splitdrive(
-    const std::string &path) {
+std::pair<std::string, std::string> SHCORE_PUBLIC
+splitdrive(const std::string &path) {
   return std::make_pair("", path);
 }
 
@@ -105,6 +106,49 @@ std::string SHCORE_PUBLIC home(const std::string &username) {
 std::string SHCORE_PUBLIC expand_user(const std::string &path) {
   const char sep[] = "/";
   return detail::expand_user(path, sep);
+}
+
+std::string SHCORE_PUBLIC normalize(const std::string &path) {
+  if (path.size() == 0) {
+    return ".";
+  }
+
+  const std::string sep = "/";
+  auto chunks = str_split(path, sep);
+  std::vector<std::string> p;
+
+  std::string norm;
+
+  // Prepend initial slashes
+  if (str_beginswith(path, "/")) {
+    norm = "/";
+  }
+
+  if (str_beginswith(path, "//") && !str_beginswith(path, "///")) {
+    norm = "//";
+  }
+
+  for (decltype(chunks)::size_type i = 0; i < chunks.size(); i++) {
+    // skip "/" and "."
+    if (chunks[i] == "" || chunks[i] == ".") {
+      continue;
+    }
+
+    if (chunks[i] != ".." || (norm.empty() && p.empty()) ||
+        (!p.empty() && p.back() == "..")) {
+      p.push_back(chunks[i]);
+    } else if (!p.empty()) {
+      p.pop_back();
+    }
+  }
+
+  norm += join_path(p);
+
+  if (norm.empty()) {
+    norm = ".";
+  }
+
+  return norm;
 }
 
 }  // namespace path
