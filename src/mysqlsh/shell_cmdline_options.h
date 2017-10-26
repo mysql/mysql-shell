@@ -17,25 +17,41 @@
  * 02110-1301  USA
  */
 
-#ifndef _SHELL_CMDLINE_OPTIONS_H_
-#define _SHELL_CMDLINE_OPTIONS_H_
+#ifndef SRC_MYSQLSH_SHELL_CMDLINE_OPTIONS_H_
+#define SRC_MYSQLSH_SHELL_CMDLINE_OPTIONS_H_
 
 #include <stdlib.h>
 #include <iostream>
-#include "cmdline_options.h"
-#include "shellcore/shell_options.h"
+#include <string>
+#include <vector>
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/utils/options.h"
+#include "shellcore/shell_options.h"
 
-class Shell_command_line_options : public Command_line_options {
-public:
-  // Takes the URI and the individual connection parameters and overrides
-  Shell_command_line_options(int argc, const char **argv);
+class Shell_command_line_options : protected shcore::Options {
+ public:
+  Shell_command_line_options(int argc, const char** argv);
 
-  mysqlsh::Shell_options& get_options() { return _options; }
-  static std::vector<std::string> get_details();
-private:
-  void override_session_type(mysqlsh::SessionType new_type, const std::string& option, char* value = NULL);
-  std::string get_session_type_name(mysqlsh::SessionType type);
+  const mysqlsh::Shell_options* operator->() {
+    return &shell_options;
+  }
+  const mysqlsh::Shell_options* operator*() {
+    return &shell_options;
+  }
+
+  mysqlsh::Shell_options& get_options() {
+    return shell_options;
+  }
+
+  std::vector<std::string> get_details() {
+    return get_cmdline_help(28, 50);
+  }
+
+ protected:
+  bool custom_cmdline_handler(const char** argv, int* argi);
+
+  void override_session_type(const std::string& option, const char* value);
+
   void check_session_type_conflicts();
   void check_user_conflicts();
   void check_password_conflicts();
@@ -45,8 +61,9 @@ private:
   void check_socket_conflicts();
   void check_port_socket_conflicts();
 
-  mysqlshdk::db::Connection_options _uri_data;
-  mysqlsh::Shell_options _options;
-  std::string _session_type_arg;
+  mysqlsh::Shell_options shell_options;
+  mysqlshdk::db::Connection_options uri_data;
+  std::string session_type_arg;
 };
-#endif
+
+#endif  // SRC_MYSQLSH_SHELL_CMDLINE_OPTIONS_H_

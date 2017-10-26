@@ -183,7 +183,7 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
            "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "The given URI conflicts with the --mysqlx session type option.");
+      "The given URI conflicts with the -mx session type option.");
 
   // FR_EXTRA_5 : mysqlsh --uri mysql://user@host:3306/db --mysqlx
   execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "--mysqlx",
@@ -197,7 +197,7 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
            "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "The given URI conflicts with the --mysqlx session type option.");
+      "The given URI conflicts with the -mx session type option.");
 
   // FR_EXTRA_11 : mysqlsh --uri mysqlx://user@host:3306/db --mysqlx
   execute({_mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "--mysqlx",

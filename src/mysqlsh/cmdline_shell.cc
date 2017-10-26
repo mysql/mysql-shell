@@ -466,9 +466,10 @@ void Command_line_shell::print_cmd_line_helper() {
   println("");
   println("Usage: mysqlsh [OPTIONS] [URI]");
   println("Usage: mysqlsh [OPTIONS] [URI] -f <path> [script args...]");
-  std::vector<std::string> details = Shell_command_line_options::get_details();
+  std::vector<std::string> details =
+      Shell_command_line_options(0, nullptr).get_details();
   for (std::string line : details)
-    println(line);
+    println("  "+line);
 
   println("");
   println("Usage examples:");

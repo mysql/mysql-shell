@@ -35,6 +35,7 @@ set(utils_SOURCE
     process_launcher.cc
     debug.cc
     dtoa.cc
+    options.cc
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 

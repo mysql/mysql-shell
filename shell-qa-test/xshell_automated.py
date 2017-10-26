@@ -6844,7 +6844,7 @@ class XShell_TestCases(unittest.TestCase):
     def test_MYS_303_00(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-303 with --help """
         results = 'FAIL'
-        expectedValue = '--help               Display this help and exit.'
+        expectedValue = '-?, --help                  Display this help and exit.'
         init_command = [MYSQL_SHELL, '--interactive=full', '--help']
         # init_command_str = MYSQL_SHELL + ' --help'
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
