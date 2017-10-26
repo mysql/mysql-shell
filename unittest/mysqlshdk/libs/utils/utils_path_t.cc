@@ -1,24 +1,24 @@
 /*
-* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License as
-* published by the Free Software Foundation; version 2 of the
-* License.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-* 02110-1301  USA
-*/
+ * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; version 2 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301  USA
+ */
 
-#include "utils/utils_path.h"
 #include <gtest/gtest.h>
+#include "utils/utils_path.h"
 
 namespace shcore {
 namespace path {
@@ -26,7 +26,7 @@ namespace path {
 #ifdef WIN32
 TEST(utils_path, join_path) {
   // UNC path
-  std::vector<std::string> vec {"//host/computer/dir", "user1"};
+  std::vector<std::string> vec{"//host/computer/dir", "user1"};
   std::string res = join_path(vec);
   EXPECT_EQ("//host/computer/dir\\user1", res);
 
@@ -135,9 +135,14 @@ TEST(utils_path, splitdrive) {
   EXPECT_EQ("//not/unc", res.first);
   EXPECT_EQ("", res.second);
 }
+
+TEST(utils_path, normalize) {
+}
+
 #else
+
 TEST(utils_path, join_path) {
-  std::vector<std::string> vec {"/root/is/not/", "what/", "4/"};
+  std::vector<std::string> vec{"/root/is/not/", "what/", "4/"};
   std::string res = join_path(vec);
   EXPECT_EQ("/root/is/not/what/4/", res);
 
@@ -181,7 +186,45 @@ TEST(utils_path, splitdrive) {
   EXPECT_EQ("", res.first);
   EXPECT_EQ("/root/drive/folder", res.second);
 }
-#endif
 
+TEST(utils_path, normalize) {
+  EXPECT_EQ(normalize(""), ".");
+  EXPECT_EQ(normalize("/"), "/");
+  EXPECT_EQ(normalize("./"), ".");
+  EXPECT_EQ(normalize("./../"), "..");
+  EXPECT_EQ(normalize("./../a"), "../a");
+  EXPECT_EQ(normalize("/a/b/c/../../../../../"), "/");
+  EXPECT_EQ(normalize("/a/b/c/../../../../../d/e/"), "/d/e");
+  EXPECT_EQ(normalize("/a/b/c/../../"), "/a");
+  EXPECT_EQ(normalize("a/"), "a");
+  EXPECT_EQ(normalize("a"), "a");
+  EXPECT_EQ(normalize("a/b"), "a/b");
+  EXPECT_EQ(normalize("a/b/c"), "a/b/c");
+  EXPECT_EQ(normalize("a/b/./c"), "a/b/c");
+  EXPECT_EQ(normalize("a/b/../c"), "a/c");
+  EXPECT_EQ(normalize("a//b/../c"), "a/c");
+
+  EXPECT_EQ(normalize("./a/b"), "a/b");
+  EXPECT_EQ(normalize(".././a/b"), "../a/b");
+  EXPECT_EQ(normalize("../.././a/b"), "../../a/b");
+  EXPECT_EQ(normalize(".././.././a/b"), "../../a/b");
+  EXPECT_EQ(normalize(".././.././a/b/../"), "../../a");
+  EXPECT_EQ(normalize(".././.././a/b/../../"), "../..");
+  EXPECT_EQ(normalize(".././.././a/b/../../../"), "../../..");
+  EXPECT_EQ(normalize(".././.././a/b/../../../../"), "../../../..");
+  EXPECT_EQ(normalize("a/../"), ".");
+  EXPECT_EQ(normalize("a/../.."), "..");
+  EXPECT_EQ(normalize("a/../../../"), "../..");
+
+  EXPECT_EQ(normalize("///a/b/c"), "/a/b/c");
+  EXPECT_EQ(normalize("////a/b/c"), "/a/b/c");
+  EXPECT_EQ(normalize("/../a/b/c"), "/a/b/c");
+
+  EXPECT_EQ(normalize("//"), "//");
+  EXPECT_EQ(normalize("//a"), "//a");
+  EXPECT_EQ(normalize("//a/"), "//a");
+  EXPECT_EQ(normalize("//a/b/c"), "//a/b/c");
+}
+#endif
 }  // namespace path
 }  // namespace shcore

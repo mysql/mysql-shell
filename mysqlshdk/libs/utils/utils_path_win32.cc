@@ -58,6 +58,7 @@ class Known_folder_path {
 };
 }  // namespace detail
 
+
 /*
  * Join two or more pathname components, inserting '\\' as needed.
  * If any component is an absolute path, all previous path components
@@ -212,6 +213,20 @@ std::string SHCORE_PUBLIC home(const std::string & /* username */) {
 std::string SHCORE_PUBLIC expand_user(const std::string &path) {
   const char sep[] = "\\/";
   return detail::expand_user(path, sep);
+}
+
+std::string normalize(const std::string &path) {
+  std::string norm(MAX_PATH, '\0');
+  auto len = GetFullPathName(path.c_str(), path.size(), &norm[0], nullptr);
+  if (len > norm.size()) {
+    norm.resize(len);
+    len = GetFullPathName(path.c_str(), path.size(), &norm[0], nullptr);
+  }
+  if (len == 0) {
+    return path;
+  }
+  norm.resize(len);
+  return norm;
 }
 
 }  // namespace path

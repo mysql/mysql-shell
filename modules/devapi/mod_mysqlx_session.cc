@@ -25,6 +25,7 @@
 #include <memory>
 #include <string>
 #include <algorithm>
+#include <vector>
 #include "modules/devapi/mod_mysqlx_session.h"
 
 #include "modules/devapi/mod_mysqlx_constants.h"
@@ -43,6 +44,7 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
+#include "utils/utils_path.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
 #include "mysqlshdk/libs/utils/utils_uuid.h"
@@ -787,40 +789,46 @@ shcore::Value::Map_type_ref Session::get_status() {
         "select @@character_set_client, @@character_set_connection, "
         "@@character_set_server, @@character_set_database, "
         "concat(@@version, \" \", @@version_comment) as version, "
-        "@@mysqlx_socket, @@mysqlx_port "
+        "@@mysqlx_socket, @@mysqlx_port, @@datadir "
         "limit 1");
     row = result->fetch_one();
-    (*status)["CLIENT_CHARSET"] =
-        shcore::Value(row->is_null(0) ? "" : row->get_string(0));
-    (*status)["CONNECTION_CHARSET"] =
-        shcore::Value(row->is_null(1) ? "" : row->get_string(1));
-    (*status)["SERVER_CHARSET"] =
-        shcore::Value(row->is_null(2) ? "" : row->get_string(2));
-    (*status)["SCHEMA_CHARSET"] =
-        shcore::Value(row->is_null(3) ? "" : row->get_string(3));
-    (*status)["SERVER_VERSION"] =
-        shcore::Value(row->is_null(4) ? "" : row->get_string(4));
+    if (row) {
+      (*status)["CLIENT_CHARSET"] =
+          shcore::Value(row->is_null(0) ? "" : row->get_string(0));
+      (*status)["CONNECTION_CHARSET"] =
+          shcore::Value(row->is_null(1) ? "" : row->get_string(1));
+      (*status)["SERVER_CHARSET"] =
+          shcore::Value(row->is_null(2) ? "" : row->get_string(2));
+      (*status)["SCHEMA_CHARSET"] =
+          shcore::Value(row->is_null(3) ? "" : row->get_string(3));
+      (*status)["SERVER_VERSION"] =
+          shcore::Value(row->is_null(4) ? "" : row->get_string(4));
 
-    mysqlshdk::db::Transport_type transport_type =
-        mysqlshdk::db::Transport_type::Tcp;
-    if (_connection_options.has_transport_type()) {
-      transport_type = _connection_options.get_transport_type();
-      std::stringstream ss;
-      if (_connection_options.has_host())
-        ss << _connection_options.get_host() << " via ";
-      else
-        ss << "localhost via ";
-      ss << to_string(transport_type);
-      (*status)["CONNECTION"] = shcore::Value(ss.str());
-    } else {
-      (*status)["CONNECTION"] = shcore::Value("localhost via TCP/IP");
+      mysqlshdk::db::Transport_type transport_type =
+          mysqlshdk::db::Transport_type::Tcp;
+      if (_connection_options.has_transport_type()) {
+        transport_type = _connection_options.get_transport_type();
+        std::stringstream ss;
+        if (_connection_options.has_host())
+          ss << _connection_options.get_host() << " via ";
+        else
+          ss << "localhost via ";
+        ss << to_string(transport_type);
+        (*status)["CONNECTION"] = shcore::Value(ss.str());
+      } else {
+        (*status)["CONNECTION"] = shcore::Value("localhost via TCP/IP");
+      }
+      if (transport_type == mysqlshdk::db::Transport_type::Tcp) {
+        (*status)["TCP_PORT"] =
+            shcore::Value(row->is_null(6) ? "" : row->get_as_string(6));
+      } else if (transport_type == mysqlshdk::db::Transport_type::Socket) {
+        const std::string datadir = (row->is_null(5) ? "" : row->get_string(7));
+        const std::string socket = (row->is_null(5) ? "" : row->get_string(5));
+        const std::string socket_abs_path = shcore::path::normalize(
+            shcore::path::join_path(std::vector<std::string>{datadir, socket}));
+        (*status)["UNIX_SOCKET"] = shcore::Value(socket_abs_path);
+      }
     }
-    if (transport_type == mysqlshdk::db::Transport_type::Tcp)
-      (*status)["TCP_PORT"] = shcore::Value(
-          row->is_null(6) ? "" : row->get_as_string(6));
-    else if (transport_type == mysqlshdk::db::Transport_type::Socket)
-      (*status)["UNIX_SOCKET"] =
-          shcore::Value(row->is_null(5) ? "" : row->get_string(5));
 
     result = execute_sql("SHOW GLOBAL STATUS LIKE 'Uptime';");
     row = result->fetch_one();

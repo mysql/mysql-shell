@@ -17,7 +17,8 @@
  * 02110-1301  USA
  */
 
-#include "utils_string.h"
+#include "utils/utils_string.h"
+#include <algorithm>
 #include <bitset>
 #include <cstdarg>
 #include <cstdio>
@@ -202,6 +203,20 @@ std::pair<uint64_t, int> string_to_bits(const std::string &s) {
     throw std::invalid_argument("bit string length must be <= 64");
   std::bitset<64> bits(s);
   return {bits.to_ullong(), nbits};
+}
+
+std::vector<std::string> SHCORE_PUBLIC str_split(const std::string &str,
+                                                 const std::string &sep) {
+  auto p = std::find_first_of(begin(str), end(str), begin(sep), end(sep));
+  std::vector<std::string> chunks = {std::string(begin(str), p)};
+
+  while (p != str.end()) {
+    auto first = ++p;
+    p = std::find_first_of(first, end(str), begin(sep), end(sep));
+    chunks.push_back(std::string(first, p));
+  }
+
+  return chunks;
 }
 
 }  // namespace shcore

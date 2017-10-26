@@ -21,6 +21,7 @@
 #define MYSQLSHDK_LIBS_UTILS_UTILS_PATH_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 #include "scripting/common.h"
 
@@ -30,16 +31,10 @@ namespace detail {
 std::string expand_user(const std::string &path, const std::string &sep);
 }  // namespace detail
 
-std::string SHCORE_PUBLIC join_path(const std::vector<std::string>& components);
+std::string SHCORE_PUBLIC join_path(const std::vector<std::string> &components);
 
-std::pair<std::string, std::string> SHCORE_PUBLIC splitdrive(
-    const std::string &path);
-
-#ifdef WIN32
-const char path_separator = '\\';
-#else
-const char path_separator = '/';
-#endif
+std::pair<std::string, std::string> SHCORE_PUBLIC
+splitdrive(const std::string &path);
 
 /**
  * Get home directory path of the user executing the shell.
@@ -88,6 +83,21 @@ std::string SHCORE_PUBLIC home(const std::string &loginname);
  *         path is returned unchanged.
  */
 std::string SHCORE_PUBLIC expand_user(const std::string &path);
+
+/**
+ * Unix:
+ *   Normalize a path collapsing redundant separators and relative references
+ *   (`.`, `..`). This string path manipulation, might affect paths containing
+ *   symbolic links.
+ *
+ * Windows:
+ *   Retrieves the full path and file name of the specified file. If error
+ *   occur path isn't altered.
+ *
+ * @param path Input path string to normalize.
+ * @return Normalized string path.
+ */
+std::string SHCORE_PUBLIC normalize(const std::string &path);
 
 }  // namespace path
 }  // namespace shcore
