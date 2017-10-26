@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "shellcore/ishell_core.h"
-#include "shell_cmdline_options.h"
+#include "src/shell_cmdline_options.h"
 #include "utils/utils_general.h"
 #include "utils/utils_connection.h"
 #include "utils/uri_parser.h"
@@ -28,9 +28,9 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
-  : Command_line_options(argc, argv) {
-
+Shell_command_line_options::Shell_command_line_options(int argc,
+                                                       char **argv)
+    : Command_line_options(argc, argv) {
   int arg_format = 0;
   for (int i = 1; i < argc && exit_code == 0; i++) {
     char *value;
@@ -61,7 +61,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
           if (arg_format == 3)
             nopwd_uri = "--uri=" + nopwd_uri;
 
-          strcpy(argv[i], nopwd_uri.substr(0, nopwd_uri.length()).c_str());
+          strncpy(argv[i], nopwd_uri.c_str(), strlen(argv[i]) + 1);
         }
       } else {
         std::cerr << "Invalid value specified in --uri parameter.\n";
@@ -118,7 +118,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         std::string pwd = arg_format == 2 ? "-p" : "--dbpassword=";
         pwd.append(stars);
 
-        strcpy(argv[i], pwd.c_str());
+        strncpy(argv[i], pwd.c_str(), strlen(argv[i]) + 1);
       }
 
       // --password value (value is ignored)
@@ -155,7 +155,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         std::string pwd = arg_format == 2 ? "-p" : "--password=";
         pwd.append(stars);
 
-        strcpy(argv[i], pwd.c_str());
+        strncpy(argv[i], pwd.c_str(), strlen(argv[i]) + 1);
       }
 
       // --password value (value is ignored)
@@ -306,8 +306,10 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
             (*data)["dbPassword"] = shcore::Value(pwd);
 
             // Hide password being used.
-            auto nopwd_uri = shcore::build_connection_string(data, true);
-            strcpy(argv[i], nopwd_uri.substr(0, _options.uri.length()).c_str());
+            std::string nopwd_uri = shcore::build_connection_string(data, true);
+            std::string nopwd_stripped =
+              nopwd_uri.substr(0, _options.uri.length());
+            strncpy(argv[i], nopwd_stripped.c_str(), strlen(argv[i]) + 1);
           }
         } else {
           std::cerr << "Invalid uri parameter.\n";
