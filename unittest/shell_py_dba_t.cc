@@ -30,8 +30,13 @@ namespace shcore {
 class Shell_py_dba_tests : public Shell_py_script_tester {
 protected:
   bool _have_ssl;
+  static bool have_sandboxes;
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
+    if (!have_sandboxes) {
+      FAIL();
+    }
+
     Shell_py_script_tester::SetUp();
 
     // All of the test cases share the same config folder
@@ -183,6 +188,8 @@ protected:
 
 };
 
+bool Shell_py_dba_tests::have_sandboxes = true;
+
 TEST_F(Shell_py_dba_tests, no_active_session_error) {
   _options->wizards = false;
   reset_shell();
@@ -247,6 +254,9 @@ TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
   execute("dba.verbose = True");
 
   validate_interactive("dba_reset_or_deploy.py");
+
+  if (::testing::Test::HasFailure())
+    have_sandboxes = false;
 }
 
 TEST_F(Shell_py_dba_tests, no_interactive_classic_global_dba) {
