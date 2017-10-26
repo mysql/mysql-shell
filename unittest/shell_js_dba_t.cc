@@ -38,9 +38,14 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
 protected:
   bool _have_ssl;
   std::string _sandbox_share;
+  static bool have_sandboxes;
 
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
+    if (!have_sandboxes) {
+      FAIL();
+    }
+
     Shell_js_script_tester::SetUp();
 
     // All of the test cases share the same config folder
@@ -221,6 +226,8 @@ protected:
 
 };
 
+bool Shell_js_dba_tests::have_sandboxes = true;
+
 TEST_F(Shell_js_dba_tests, no_active_session_error) {
   _options->wizards = false;
   reset_shell();
@@ -288,6 +295,10 @@ TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
 
   backup_sandbox_configurations();
   shcore::create_file(_sandbox_share, "");
+
+  if (::testing::Test::HasFailure())
+    have_sandboxes = false;
+
 }
 
 TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
