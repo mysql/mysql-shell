@@ -172,7 +172,7 @@ Proxy_option::Handler deprecated(const char *replacement = nullptr);
 
 template <class T, class S>
 Proxy_option::Handler assign_value(T *landing_spot, S value) {
-  return [landing_spot, value](const std::string &opt, const char *) {
+  return [landing_spot, value](const std::string &, const char *) {
     *landing_spot = value;
   };
 }
