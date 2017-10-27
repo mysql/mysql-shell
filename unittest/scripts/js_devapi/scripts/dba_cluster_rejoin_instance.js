@@ -75,7 +75,8 @@ wait_slave_state(cluster, uri2, "ONLINE");
 //@<OUT> Cluster status after rejoin
 cluster.status();
 
-// Dissolve the cluser and remove the created accounts
+//@<ERR> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
+cluster.rejoinInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'bar'});
 
 //@ Dissolve cluster
 cluster.dissolve({force: true})

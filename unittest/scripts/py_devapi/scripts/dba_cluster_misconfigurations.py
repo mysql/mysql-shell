@@ -46,7 +46,7 @@ cluster = dba.create_cluster('dev')
 # Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
 dba.verbose = 1
 
-#@<ERR> Create cluster fails (one table is not compatible) - verbose mode
+#@ Create cluster fails (one table is not compatible) - verbose mode
 # Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
 cluster = dba.create_cluster('dev')
 

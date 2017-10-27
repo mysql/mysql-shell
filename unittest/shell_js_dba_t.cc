@@ -368,8 +368,6 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   _options->interactive = true;
   reset_shell();
 
-  execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
-
   //@# Dba: checkInstanceConfiguration error
   output_handler.passwords.push_back("root");
 
@@ -623,6 +621,9 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
     "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
 
   MY_EXPECT_LOG_CONTAINS(log);
+  // Validate output for chunk: Create cluster fails (one table is not compatible) - verbose mode
+  // Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
+  MY_EXPECT_STDOUT_NOT_CONTAINS("the --allow-non-compatible-tables option");
 }
 
 TEST_F(Shell_js_dba_tests, cluster_misconfigurations_interactive) {

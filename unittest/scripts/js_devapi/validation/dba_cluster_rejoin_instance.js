@@ -86,6 +86,9 @@
     }
 }
 
+//@<ERR> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
+Cluster.rejoinInstance: Cannot rejoin instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' to the ReplicaSet 'default' since it is an active ({{ONLINE|RECOVERING}}) member of the ReplicaSet. (RuntimeError)
+
 //@ Dissolve cluster
 ||
 

@@ -48,6 +48,7 @@
 
 #include <netdb.h>
 #include <unistd.h>
+#include <gr/group_replication.h>
 #endif
 
 using namespace std::placeholders;
@@ -757,6 +758,25 @@ shcore::Value ReplicaSet::rejoin_instance(
       throw shcore::Exception::runtime_error(
           "Cannot rejoin instance. The seed instance doesn't have "
           "group-replication active.");
+    }
+  }
+
+  // Verify if the instance being added is MISSING, otherwise throw an error
+  // Bug#26870329
+  {
+    // get server_uuid from the instance that we're trying to rejoin
+    if (!validate_instance_rejoinable(session, _metadata_storage, _id)) {
+      // instance not missing, so throw an error
+      auto instance = mysqlshdk::mysql::Instance(session);
+      auto member_state = mysqlshdk::gr::to_string(
+          mysqlshdk::gr::get_member_state(instance));
+      std::string nice_error_msg = "Cannot rejoin instance '" +
+                                   instance_address + "' to the ReplicaSet '" +
+                                   get_member("name").as_string() +
+                                   "' since it is an active (" + member_state +
+                                   ") member of the ReplicaSet.";
+      session->close();
+      throw shcore::Exception::runtime_error(nice_error_msg);
     }
   }
 
