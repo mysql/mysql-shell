@@ -206,6 +206,9 @@ bool SHCORE_PUBLIC validate_replicaset_group_name(
     std::shared_ptr<mysqlshdk::db::ISession> session, uint64_t rs_id);
 bool validate_super_read_only(
     std::shared_ptr<mysqlshdk::db::ISession> session, bool clear_read_only);
+bool validate_instance_rejoinable(
+    std::shared_ptr<mysqlshdk::db::ISession> instance_session,
+    const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 }  // namespace dba
 }  // namespace mysqlsh
 

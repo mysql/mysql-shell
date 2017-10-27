@@ -97,6 +97,7 @@ bool Shell_base_test::multi_value_compare(const std::string& expected,
   size_t start;
   size_t end;
 
+  // ignoring spaces
   start = expected.find("{{");
 
   if (start != std::string::npos) {
@@ -126,7 +127,7 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
   bool ret_val = true;
   auto expected_lines = shcore::split_string(expected, "\n");
   auto actual_lines = shcore::split_string(actual, "\n");
-
+  std::string r_trimmed_actual, r_trimmed_expected;
   // Does expected line resolution using the pre-defined tokens
   for (decltype(expected_lines)::size_type index = 0;
        index < expected_lines.size(); index++)
@@ -134,8 +135,11 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
 
   // Identifies the index of the actual line containing the first expected line
   size_t actual_index = 0;
+  r_trimmed_expected = shcore::str_rstrip(expected_lines.at(0));
   while (actual_index < actual_lines.size()) {
-    if (actual_lines[actual_index].find(expected_lines[0]) != std::string::npos)
+    // Ignore whitespace at the end of the actual and expected lines
+    r_trimmed_actual = shcore::str_rstrip(actual_lines[actual_index]);
+    if (multi_value_compare(r_trimmed_expected, r_trimmed_actual))
       break;
     else
       actual_index++;
