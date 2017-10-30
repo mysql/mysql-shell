@@ -188,7 +188,7 @@ REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
 
-# This prompt_theme is expected for shell 8.0.x version only
+# This theme is expected for shell 8.0.x version only
 # os.environ['MYSQLSH_PROMPT_THEME'] = str(config["general"]["MYSQLSH_PROMPT_THEME"])
 
 
@@ -243,7 +243,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+            ('\\connect -n {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use world_x;\n", "mysql-sql>"),
             ("show tables ;\n", "4 rows in set"),
@@ -6686,7 +6686,7 @@ class XShell_TestCases(unittest.TestCase):
                   ("session.sql(\'create table world_x.mys286 (date datetime);\')\n", "Query OK"),
                   ("Table = session.getSchema(\'world_x\').getTable(\'mys286\')\n", "<Table:mys286>"),
                   ("Table.insert().values('2016-03-14 12:36:37')\n", "Query OK, 1 item affected"),
-                  ("Table.select()\n", "2016-04-14 12:36:37"),
+                  ("Table.select()\n", "2016-03-14 12:36:37"),
                   ("session.sql(\'DROP TABLE world_x.mys286;\')\n", "Query OK")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -7043,7 +7043,7 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [(";\n", "mysql-js>"),
                   ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
-                  ("db.name\n", "The db variable is not set, establish a global session first."),
+                  ("db.name\n", "The db variable is not set"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -8100,7 +8100,7 @@ class XShell_TestCases(unittest.TestCase):
               "\\warnings   (\\W)       Show warnings after every statement." + os.linesep + \
               "\\nowarnings (\\w)       Don't show warnings after every statement." + os.linesep + \
               "\\status     (\\s)       Print information about the current global connection." + os.linesep + \
-              "\\use        (\\u)       Set the current schema for the global session." + os.linesep
+              "\\use        (\\u)       Set the current schema for the active session." + os.linesep
               # "\\saveconn   (\\savec)   Store a session configuration." + os.linesep + \
               # "\\rmconn     (\\rmc)     Remove the stored session configuration." + os.linesep + \
               # "\\lsconn     (\\lsc)     List stored session configurations."
@@ -8487,7 +8487,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[MYS-542]:Session.uri display wrong menu data to the user'''
         results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-        x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
+        x_cmds = [("session.uri\n", "There is no active session, do you want to establish one?"),
                   ("2\n", "specify the MySQL server URI"),
                   ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port), "Enter password"),
                   ("{0}\n".format(LOCALHOST.password), "{0}@{1}:{2}".format(LOCALHOST.user, LOCALHOST.host,
@@ -8524,7 +8524,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[MYS-542]:Session.uri display wrong menu data to the user'''
         results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--passwords-from-stdin']
-        x_cmds = [("session.uri\n", "The global session is not set, do you want to establish a session?"),
+        x_cmds = [("session.uri\n", "There is no active session, do you want to establish one?"),
                   ("1\n", "specify the MySQL server URI"),
                   ("{0}@{1}:{2}\n".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port),
                    "Enter password"),
@@ -8573,7 +8573,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_MYS_583(self):
-        '''[MYS-583]: https://jira.oraclecorp.com/jira/browse/MYS-583
+        '''[MYS-583]: https://clustra.no.oracle.com/orabugs/bug.php?id=26422790
       URI parsing does not decode PCT before passing to other systems'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--classic', '--sqlc', '--uri={0}:{1}@{2}:{3}'.
@@ -8703,7 +8703,7 @@ class XShell_TestCases(unittest.TestCase):
                    "\\warnings   (\\W)       Show warnings after every statement." + os.linesep +
                    "\\nowarnings (\\w)       Don't show warnings after every statement." + os.linesep +
                    "\\status     (\\s)       Print information about the current global connection." + os.linesep +
-                   "\\use        (\\u)       Set the current schema for the global session."+ os.linesep +
+                   "\\use        (\\u)       Set the current schema for the active session."+ os.linesep +
                    ""+ os.linesep +
                    "For help on a specific command use the command as \? <command>"+ os.linesep +
                    "" + os.linesep +
@@ -8761,7 +8761,7 @@ class XShell_TestCases(unittest.TestCase):
         stdoutsplitted = stdoutdata.splitlines()
         for line in stdoutsplitted:
             count += 1
-            found = line.find("Node Session successfully established", 0, len(line))
+            found = line.find("(X protocol)", 0, len(line))
             if found == -1 and count > len(stdoutsplitted):
                 results = "FAIL"
                 break
