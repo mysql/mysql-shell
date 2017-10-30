@@ -188,7 +188,8 @@ REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
 
-os.environ['MYSQLSH_PROMPT_THEME'] = str(config["general"]["MYSQLSH_PROMPT_THEME"])
+# This prompt_theme is expected for shell 8.0.x version only
+# os.environ['MYSQLSH_PROMPT_THEME'] = str(config["general"]["MYSQLSH_PROMPT_THEME"])
 
 
 class globalvar:
