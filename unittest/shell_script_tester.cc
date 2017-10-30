@@ -186,7 +186,8 @@ bool Shell_script_tester::validate(const std::string& context, const std::string
               ADD_FAILURE();
             }
           } else {
-            ret_val = validate_line_by_line(context, chunk_id, "STDERR", error, original_std_out);
+            ret_val = validate_line_by_line(context, chunk_id, "STDERR", error,
+                                            original_std_err);
           }
         }
       }

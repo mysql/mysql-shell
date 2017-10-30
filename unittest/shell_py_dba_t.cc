@@ -492,6 +492,11 @@ TEST_F(Shell_py_dba_tests, cluster_misconfigurations) {
     "DBA: root@localhost:" + _mysql_sandbox_port1 + " : Server variable binlog_checksum was changed from 'CRC32' to 'NONE'"};
 
   MY_EXPECT_LOG_CONTAINS(log);
+  // Validate output for chunk: Create cluster fails
+  // (one table is not compatible) - verbose mode
+  // Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES
+  // NOT EXIST
+  MY_EXPECT_STDOUT_NOT_CONTAINS("the --allow-non-compatible-tables option");
 }
 
 TEST_F(Shell_py_dba_tests, cluster_misconfigurations_interactive) {

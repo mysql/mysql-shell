@@ -742,11 +742,10 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       auto row = result->fetch_one();
       std::string member_state = row->get_value(0).as_string();
       std::string nice_error_msg = "Cannot rejoin instance '" +
-                                   instance_address + "' with state '" +
-                                   member_state +
-                                   "' since it "
-                                   "is an active member of the ReplicaSet '" +
-                                   get_member("name").as_string() + "'.";
+                                   instance_address + "' to the ReplicaSet '" +
+                                   get_member("name").as_string() +
+                                   "' since it is an active (" + member_state +
+                                   ") member of the ReplicaSet.";
       session->close(shcore::Argument_list());
       throw std::runtime_error(nice_error_msg);
     }

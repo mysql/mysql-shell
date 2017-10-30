@@ -1248,14 +1248,14 @@ TEST_F(Dba_common_test, validate_replicaset_group_name_002) {
 
 TEST_F(Dba_common_test, validate_instance_rejoinable_01) {
   // There are missing instances and the instance we are checking belongs to
-  // that list
+  // the metadata list but does not belong to the GR list.
 
   // get_instances_gr():
   //
   // member_id
   // ------------------------------------
+  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
   // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
 
   std::vector<tests::Fake_result_data> queries;
 
@@ -1316,15 +1316,15 @@ TEST_F(Dba_common_test, validate_instance_rejoinable_01) {
 }
 
 TEST_F(Dba_common_test, validate_instance_rejoinable_02) {
-  // There are missing instances but the instance we are checking does not
-  // belong to that list.
+  // There are missing instances and the instance we are checking belongs
+  // to neither the metadata nor GR lists.
 
   // get_instances_gr():
   //
   // member_id
   // ------------------------------------
+  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
   // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
 
   std::vector<tests::Fake_result_data> queries;
 
@@ -1362,9 +1362,11 @@ TEST_F(Dba_common_test, validate_instance_rejoinable_02) {
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
 
   std::vector<tests::Fake_result_data> instance_queries;
+  // Checking an instance that doesn't belong  to the metadata nor the GR
+  // list.
   add_get_server_variable_query(&instance_queries, "server_uuid",
                                 tests::Type::String,
-                                "8a8ae9ce-5730-11e7-a437-b86b230042b1");
+                                "aaaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa");
   START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
   auto instance_session = create_session(_mysql_sandbox_nport2);
   try {
@@ -1385,7 +1387,8 @@ TEST_F(Dba_common_test, validate_instance_rejoinable_02) {
 }
 
 TEST_F(Dba_common_test, validate_instance_rejoinable_03) {
-  // There are no missing instances
+  // There are no missing instances and the instance we are checking belongs
+  // to both the metadata and GR lists.
 
   // get_instances_gr():
   //
