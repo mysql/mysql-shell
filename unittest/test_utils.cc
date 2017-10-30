@@ -309,8 +309,11 @@ void Shell_core_test_wrapper::TearDown() {
       if (g_test_sessions)
         std::cerr << "WARNING: Closing dangling session opened on " << entry.second << std::endl;
 
-      auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
-      session->close();
+      auto session =
+          std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
+      if (session) {
+        session->close();
+      }
     }
     _open_sessions.clear();
   }
