@@ -149,7 +149,9 @@ class Shell_cmdline_options : public ::testing::Test {
     std::string arg;
     arg.append("--").append(option).append("=").append(value);
     SCOPED_TRACE("TESTING: " + arg);
-    const char *argv[] = {"ut", arg.c_str(), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(arg.c_str()),
+                    NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
@@ -184,7 +186,10 @@ class Shell_cmdline_options : public ::testing::Test {
     std::string arg;
     arg.append("--").append(option);
     SCOPED_TRACE("TESTING: " + arg + " " + value);
-    const char *argv[] = {"ut", arg.c_str(), value.c_str(), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(arg.c_str()),
+                    const_cast<char *>(value.c_str()),
+                    NULL};
     Shell_command_line_options cmd_options(3, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
@@ -220,7 +225,9 @@ class Shell_cmdline_options : public ::testing::Test {
     std::string arg;
     arg.append("-").append(soption).append(value);
     SCOPED_TRACE("TESTING: " + arg);
-    const char *argv[] = {"ut", arg.c_str(), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(arg.c_str()),
+                    NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
@@ -256,7 +263,10 @@ class Shell_cmdline_options : public ::testing::Test {
     std::string arg;
     arg.append("-").append(soption);
     SCOPED_TRACE("TESTING: " + arg + " " + value);
-    const char *argv[] = {"ut", arg.c_str(), value.c_str(), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(arg.c_str()),
+                    const_cast<char *>(value.c_str()),
+                    NULL};
     Shell_command_line_options cmd_options(3, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
@@ -290,7 +300,9 @@ class Shell_cmdline_options : public ::testing::Test {
     std::string arg;
     arg.append("--").append(option);
     SCOPED_TRACE("TESTING: " + arg);
-    const char *argv[] = {"ut", arg.c_str(), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(arg.c_str()),
+                    NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
 
@@ -328,7 +340,9 @@ class Shell_cmdline_options : public ::testing::Test {
     std::string arg;
     arg.append("--").append(option).append("=");
     SCOPED_TRACE("TESTING: " + arg);
-    const char *argv[] = {("ut"), (arg.c_str()), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(arg.c_str()),
+                    NULL};
     Shell_command_line_options options(2, argv);
 
     if (valid) {
@@ -346,8 +360,9 @@ class Shell_cmdline_options : public ::testing::Test {
   }
 
   void test_deprecated_ssl(const std::string &scope,
-                           std::vector<const char *> *args,
-                           const std::string &error, int expected_exit_code,
+                           std::vector<char *> *args,
+                           const std::string &error,
+                           int expected_exit_code,
                            mysqlshdk::db::Ssl_mode mode) {
     // Redirect cerr.
     std::streambuf *backup = std::cerr.rdbuf();
@@ -411,7 +426,9 @@ class Shell_cmdline_options : public ::testing::Test {
     // Tests --option or -o
 
     SCOPED_TRACE("TESTING: " + option);
-    const char *argv[] = {("ut"), (option.c_str()), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(option.c_str()),
+                    NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
 
@@ -434,8 +451,10 @@ class Shell_cmdline_options : public ::testing::Test {
 
     {
       SCOPED_TRACE("TESTING: " + firstArg + " " + secondArg);
-      const char *argv[] = {("ut"), (firstArg.c_str()), (secondArg.c_str()),
-                            NULL};
+      char *argv[] = {const_cast<char *>("ut"),
+                      const_cast<char *>(firstArg.c_str()),
+                      const_cast<char *>(secondArg.c_str()),
+                      NULL};
       Shell_command_line_options options(3, argv);
 
       EXPECT_EQ(ret_code, options->exit_code);
@@ -460,7 +479,7 @@ class Shell_cmdline_options : public ::testing::Test {
   }
 
   void test_conflicting_options(std::string context, size_t argc,
-                                const char *argv[], std::string error) {
+                                char *argv[], std::string error) {
     std::streambuf *backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
@@ -480,7 +499,7 @@ class Shell_cmdline_options : public ::testing::Test {
 
 TEST_F(Shell_cmdline_options, default_values) {
   int argc = 0;
-  const char **argv = NULL;
+  char **argv = nullptr;
 
   Shell_command_line_options cmd_options(argc, argv);
   mysqlsh::Shell_options options = cmd_options.get_options();
@@ -662,7 +681,6 @@ TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
 }
 
 TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
-
   // Redirect cerr.
   std::streambuf* backup = std::cerr.rdbuf();
   std::ostringstream cerr;
@@ -673,8 +691,9 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
   firstArg = "root@localhost:3301";
   secondArg = "--node";
 
-  const char *argv[] {("ut"),
-                (firstArg.c_str()), (secondArg.c_str()), NULL};
+  char *argv[] = {const_cast<char *>("ut"),
+                  const_cast<char *>(firstArg.c_str()),
+                  const_cast<char *>(secondArg.c_str()), NULL};
   Shell_command_line_options cmd_options(3, argv);
   mysqlsh::Shell_options options = cmd_options.get_options();
 
@@ -690,8 +709,10 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
   cerr.str("");
   cerr.clear();
 
-  const char *argv2[] {("ut"),
-                (firstArg.c_str()), (secondArg.c_str()), NULL};
+  char *argv2[] = {const_cast<char *>("ut"),
+                   const_cast<char *>(firstArg.c_str()),
+                   const_cast<char *>(secondArg.c_str()),
+                   NULL};
   Shell_command_line_options cmd_options2(3, argv2);
   options = cmd_options2.get_options();
 
@@ -716,7 +737,9 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
     SCOPED_TRACE("TESTING: uri as positional argument.");
     firstArg = "root@localhost:3301";
 
-    const char *argv[]{("ut"), (firstArg.c_str()), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(firstArg.c_str()),
+                    NULL};
     Shell_command_line_options cmd_options(2, argv);
     mysqlsh::Shell_options options = cmd_options.get_options();
 
@@ -732,7 +755,10 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
     firstArg = "root@localhost:3301";
     secondArg = "--uri=user2:pass@localhost";
 
-    const char *argv2[]{("ut"), (firstArg.c_str()), (secondArg.c_str()), NULL};
+    char *argv2[] = {const_cast<char *>("ut"),
+                     const_cast<char *>(firstArg.c_str()),
+                     const_cast<char *>(secondArg.c_str()),
+                     NULL};
     Shell_command_line_options cmd_options(3, argv2);
     mysqlsh::Shell_options options = cmd_options.get_options();
 
@@ -747,7 +773,9 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
     firstArg = "--uri=user2@localhost";
     secondArg = "root:pass@localhost:3301";
 
-    const char *argv3[]{("ut"), (firstArg.c_str()), (secondArg.c_str()), NULL};
+    char *argv3[] = {const_cast<char *>("ut"),
+                     const_cast<char *>(firstArg.c_str()),
+                     const_cast<char *>(secondArg.c_str()), NULL};
 
     Shell_command_line_options cmd_options(3, argv3);
     mysqlsh::Shell_options options = cmd_options.get_options();
@@ -762,7 +790,9 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
     SCOPED_TRACE("TESTING: invalid uri as positional argument");
     firstArg = "not:valid_uri";
 
-    const char *argv4[]{("ut"), (firstArg.c_str()), NULL};
+    char *argv4[] = {const_cast<char *>("ut"),
+                     const_cast<char *>(firstArg.c_str()),
+                     NULL};
 
     Shell_command_line_options cmd_options(2, argv4);
     mysqlsh::Shell_options options = cmd_options.get_options();
@@ -851,10 +881,10 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
     auto error =
         "The given URI conflicts with the --mysql session type option.\n";
 
-    const char *argv0[] = {
-        "ut",
-        "--mysql",
-        "--uri=mysqlx://root@localhost",
+    char *argv0[] = {
+        const_cast<char *>("ut"),
+        const_cast<char *>("--mysql"),
+        const_cast<char *>("--uri=mysqlx://root@localhost"),
         NULL
       };
 
@@ -864,9 +894,12 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
   {
     auto error =
         "The given URI conflicts with the --sqlc session type option.\n";
-
-    const char *argv0[] = {"ut", "--sqlc", "--uri=mysqlx://root@localhost",
-                           NULL};
+    char *argv0[] = {
+        const_cast<char *>("ut"),
+        const_cast<char *>("--sqlc"),
+        const_cast<char *>("--uri=mysqlx://root@localhost"),
+        NULL
+      };
 
     test_conflicting_options("--mysql --uri", 3, argv0, error);
   }
@@ -875,10 +908,10 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
     auto error =
         "The given URI conflicts with the --mysqlx session type option.\n";
 
-    const char *argv1[] = {
-        "ut",
-        "--mysqlx",
-        "--uri=mysql://root@localhost",
+    char *argv1[] = {
+        const_cast<char *>("ut"),
+        const_cast<char *>("--mysqlx"),
+        const_cast<char *>("--uri=mysql://root@localhost"),
         NULL
       };
 
@@ -889,10 +922,10 @@ TEST_F(Shell_cmdline_options, conflicts_session_type) {
     auto error =
         "The given URI conflicts with the --sqlx session type option.\n";
 
-    const char *argv1[] = {
-        "ut",
-        "--sqlx",
-        "--uri=mysql://root@localhost",
+    char *argv1[] = {
+        const_cast<char *>("ut"),
+        const_cast<char *>("--sqlx"),
+        const_cast<char *>("--uri=mysql://root@localhost"),
         NULL
       };
 
@@ -905,8 +938,12 @@ TEST_F(Shell_cmdline_options, conflicts_user) {
       "Conflicting options: provided user name differs from the "
       "user in the URI.\n";
 
-  const char *argv0[] = {"ut", "--user=guest", "--uri=mysqlx://root@localhost",
-                         NULL};
+  char *argv0[] = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--user=guest"),
+      const_cast<char *>("--uri=mysqlx://root@localhost"),
+      NULL
+    };
 
   test_conflicting_options("--user --uri", 3, argv0, error);
 }
@@ -918,7 +955,12 @@ TEST_F(Shell_cmdline_options, conflicts_password) {
 
   char pwd[] = {"--password=example"};
   char uri[] = {"--uri=mysqlx://root:password@localhost"};
-  const char *argv0[] = {"ut", pwd, uri, NULL};
+  char *argv0[] = {
+      const_cast<char *>("ut"),
+      pwd,
+      uri,
+      NULL
+    };
 
   test_conflicting_options("--password --uri", 3, argv0, error);
 }
@@ -929,7 +971,12 @@ TEST_F(Shell_cmdline_options, conflicts_host) {
       "host in the URI.\n";
 
   char uri[] = "--uri=mysqlx://root:password@localhost";
-  const char *argv0[] = {"ut", "--host=127.0.0.1", uri, NULL};
+  char *argv0[] = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--host=127.0.0.1"),
+      uri,
+      NULL
+    };
 
   test_conflicting_options("--host --uri", 3, argv0, error);
 }
@@ -939,12 +986,20 @@ TEST_F(Shell_cmdline_options, conflicts_host_socket) {
       "Conflicting options: socket can not be used if host is "
       "not 'localhost'.\n";
 
-  const char *argv0[] = {"ut", "--uri=root@127.0.0.1",
-                         "--socket=/some/socket/path", NULL};
+  char *argv0[] = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--uri=root@127.0.0.1"),
+      const_cast<char *>("--socket=/some/socket/path"),
+      NULL
+    };
   test_conflicting_options("--uri --socket", 3, argv0, error);
 
-  const char *argv1[] = {"ut", "--host=127.0.0.1", "--socket=/some/socket/path",
-                         NULL};
+  char *argv1[] = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--host=127.0.0.1"),
+      const_cast<char *>("--socket=/some/socket/path"),
+      NULL
+    };
   test_conflicting_options("--host --socket", 3, argv1, error);
 }
 
@@ -954,8 +1009,12 @@ TEST_F(Shell_cmdline_options, conflicts_port) {
       "port in the URI.\n";
 
   char uri[] = {"--uri=mysqlx://root:password@localhost:3307"};
-  const char *argv0[] = {"ut", "--port=3306", uri, NULL};
-
+  char *argv0[] = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--port=3306"),
+      uri,
+      NULL
+    };
   test_conflicting_options("--port --uri", 3, argv0, error);
 }
 
@@ -964,8 +1023,12 @@ TEST_F(Shell_cmdline_options, conflicts_socket) {
       "Conflicting options: provided socket differs from the "
       "socket in the URI.\n";
 
-  const char *argv0[] = {"ut", "--socket=/path/to/socket",
-                         "--uri=mysqlx://root@/socket", NULL};
+  char *argv0[] = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--socket=/path/to/socket"),
+      const_cast<char *>("--uri=mysqlx://root@/socket"),
+      NULL
+    };
 
   test_conflicting_options("--socket --uri", 3, argv0, error);
 }
@@ -975,8 +1038,12 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
       "Conflicting options: port and socket can not be used "
       "together.\n";
 
-  const char *argv0[] = {"ut", "--port=3307", "--socket=/some/weird/path",
-                         NULL};
+  char *argv0[] = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--port=3307"),
+      const_cast<char *>("--socket=/some/weird/path"),
+      NULL
+    };
 
   test_conflicting_options("--port --socket", 3, argv0, error0);
 
@@ -984,7 +1051,12 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
       "Conflicting options: port can not be used if the URI "
       "contains a socket.\n";
 
-  const char *argv1[] = {"ut", "--uri=root@/socket", "--port=3306", NULL};
+  char *argv1[] = {
+    const_cast<char *>("ut"),
+    const_cast<char *>("--uri=root@/socket"),
+    const_cast<char *>("--port=3306"),
+    NULL
+  };
 
   test_conflicting_options("--uri --port", 3, argv1, error1);
 
@@ -992,8 +1064,12 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
       "Conflicting options: socket can not be used if the URI "
       "contains a port.\n";
 
-  const char *argv2[] = {"ut", "--uri=root@localhost:3306",
-                         "--socket=/some/socket/path", NULL};
+  char *argv2[] = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--uri=root@localhost:3306"),
+      const_cast<char *>("--socket=/some/socket/path"),
+      NULL
+    };
 
   test_conflicting_options("--uri --socket", 3, argv2, error2);
 }
@@ -1008,9 +1084,9 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   SCOPED_TRACE("TESTING: user with password in uri");
   firstArg = "--uri=root:pass@localhost:3301";
 
-  char *argv[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
+  char *argv[] {const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                NULL};
-  Shell_command_line_options cmd_options(2, const_cast<const char **>(argv));
+  Shell_command_line_options cmd_options(2, argv);
   mysqlsh::Shell_options options = cmd_options.get_options();
 
   EXPECT_EQ(0, options.exit_code);
@@ -1022,7 +1098,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv1[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, const_cast<const char **>(argv1)).get_options();
+  options = Shell_command_line_options(2, argv1).get_options();
 
   EXPECT_EQ(0, options.exit_code);
   EXPECT_STREQ(argv1[1], "--uri=r:@localhost:3301");
@@ -1033,7 +1109,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv2[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, const_cast<const char **>(argv2)).get_options();
+  options = Shell_command_line_options(2, argv2).get_options();
 
   EXPECT_EQ(0, options.exit_code);
   EXPECT_STREQ(argv2[1], "--uri=r:****@localhost:3301");
@@ -1044,7 +1120,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv3[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, const_cast<const char **>(argv3)).get_options();
+  options = Shell_command_line_options(2, argv3).get_options();
 
   EXPECT_EQ(0, options.exit_code);
   EXPECT_STREQ(argv3[1], "--uri=r:*@localhost:3301");
@@ -1055,7 +1131,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv4[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, const_cast<const char **>(argv4)).get_options();
+  options = Shell_command_line_options(2, argv4).get_options();
 
   EXPECT_EQ(0, options.exit_code);
   EXPECT_STREQ(argv4[1], "--uri=root:******@localhost:3301");
@@ -1066,7 +1142,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv5[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, const_cast<const char **>(argv5)).get_options();
+  options = Shell_command_line_options(2, argv5).get_options();
 
   EXPECT_EQ(0, options.exit_code);
   EXPECT_STREQ(argv5[1], "root:******@localhost:3301");
@@ -1080,37 +1156,56 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
   std::string error =
       "The --ssl option has been deprecated, please use --ssl-mode instead.\n";
   {
-    std::vector<const char *> options = {"ut", "--ssl", "something", NULL};
+    std::vector<char *> options = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--ssl"),
+      const_cast<char *>("something"),
+      NULL};
     test_deprecated_ssl("--ssl=something", &options, error, 1,
                         mysqlshdk::db::Ssl_mode::Preferred);
     // This last param is
     // ignored on this case
   }
   {
-    std::vector<const char *> options = {"ut", "--ssl", NULL};
-    test_deprecated_ssl("--ssl", &options, error, 1,
+    std::vector<char *> options = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--ssl"),
+      NULL};
+    test_deprecated_ssl("--ssl", &options, error, 0,
                         mysqlshdk::db::Ssl_mode::Required);
   }
   {
-    std::vector<const char *> options = {"ut", "--ssl=1", NULL};
-    test_deprecated_ssl("--ssl=1", &options, error, 1,
+    std::vector<char *> options = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--ssl=1"),
+      NULL};
+    test_deprecated_ssl("--ssl=1", &options, error, 0,
                         mysqlshdk::db::Ssl_mode::Required);
   }
   {
-    std::vector<const char *> options = {"ut", "--ssl=yes", NULL};
-    test_deprecated_ssl("--ssl=yes", &options, error, 1,
+    std::vector<char *> options = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--ssl=yes"),
+      NULL};
+    test_deprecated_ssl("--ssl=yes", &options, error, 0,
                         mysqlshdk::db::Ssl_mode::Required);
   }
 
   {
-    std::vector<const char *> options = {"ut", "--ssl=0", NULL};
-    test_deprecated_ssl("--ssl=0", &options, error, 1,
+    std::vector<char *> options = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--ssl=0"),
+      NULL};
+    test_deprecated_ssl("--ssl=0", &options, error, 0,
                         mysqlshdk::db::Ssl_mode::Disabled);
   }
   {
-    std::vector<const char *> options = {"ut", "--ssl=no", NULL};
-    test_deprecated_ssl("--ssl=no", &options, error, 1,
+    std::vector<char *> options = {
+      const_cast<char *>("ut"),
+      const_cast<char *>("--ssl=no"),
+      NULL};
+    test_deprecated_ssl("--ssl=no", &options, error, 0,
                         mysqlshdk::db::Ssl_mode::Disabled);
   }
 }
-}
+}  // namespace shcore

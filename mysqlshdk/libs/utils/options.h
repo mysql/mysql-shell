@@ -321,11 +321,11 @@ class Options {
 
  public:
   using Custom_cmdline_handler =
-      std::function<bool(const char **argv, int *argi)>;
+      std::function<bool(char **argv, int *argi)>;
 
-  static int cmdline_arg_with_value(const char **argv, int *argi,
+  static int cmdline_arg_with_value(char **argv, int *argi,
                                     const char *arg, const char *larg,
-                                    const char **value,
+                                    char **value,
                                     bool accept_null = false) noexcept;
 
   Options(bool allow_unregistered_options = true,
@@ -367,7 +367,7 @@ class Options {
   void handle_environment_options();
 
   /// Parses command line and stores values in options.
-  void handle_cmdline_options(int argc, const char **argv);
+  void handle_cmdline_options(int argc, char **argv);
 
   /** Returns formatted help for all defined command line options.
    *

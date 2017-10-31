@@ -379,8 +379,7 @@ int main(int argc, char **argv) {
 
   shcore::Interrupts::init(&sighelper);
 
-  Shell_command_line_options cmd_line_options(argc,
-                                              const_cast<const char **>(argv));
+  Shell_command_line_options cmd_line_options(argc, argv);
   mysqlsh::Shell_options options = cmd_line_options.get_options();
 
   if (options.exit_code != 0)

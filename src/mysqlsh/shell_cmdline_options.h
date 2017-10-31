@@ -30,7 +30,7 @@
 
 class Shell_command_line_options : protected shcore::Options {
  public:
-  Shell_command_line_options(int argc, const char** argv);
+  Shell_command_line_options(int argc, char **argv);
 
   const mysqlsh::Shell_options* operator->() {
     return &shell_options;
@@ -48,7 +48,7 @@ class Shell_command_line_options : protected shcore::Options {
   }
 
  protected:
-  bool custom_cmdline_handler(const char** argv, int* argi);
+  bool custom_cmdline_handler(char **argv, int* argi);
 
   void override_session_type(const std::string& option, const char* value);
 

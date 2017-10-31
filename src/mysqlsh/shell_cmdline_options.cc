@@ -72,7 +72,7 @@ using shcore::opts::cmdline;
 using shcore::opts::assign_value;
 
 Shell_command_line_options::Shell_command_line_options(int argc,
-                                                       const char** argv)
+                                                       char **argv)
     : Options(false,
               std::bind(&Shell_command_line_options::custom_cmdline_handler,
                         this, _1, _2)) {
@@ -287,10 +287,10 @@ Shell_command_line_options::Shell_command_line_options(int argc,
   }
 }
 
-bool Shell_command_line_options::custom_cmdline_handler(const char** argv,
-                                                        int* argi) {
+bool Shell_command_line_options::custom_cmdline_handler(char **argv,
+                                                        int *argi) {
   int arg_format = 0;
-  const char* value = nullptr;
+  char *value = nullptr;
 
   if (strcmp(argv[*argi], "-VV") == 0) {
     shell_options.print_version = true;
@@ -317,8 +317,7 @@ bool Shell_command_line_options::custom_cmdline_handler(const char** argv,
       if (arg_format == 3)
         nopwd_uri = "--uri=" + nopwd_uri;
 
-      snprintf(const_cast<char*>(argv[*argi]), nopwd_uri.length() + 1, "%s",
-               nopwd_uri.c_str());
+      strncpy(argv[*argi], nopwd_uri.c_str(), strlen(argv[*argi]) + 1);
     }
   } else if ((arg_format = cmdline_arg_with_value(argv, argi, "--dbpassword",
                                                   NULL, &value, true))) {
@@ -351,7 +350,7 @@ bool Shell_command_line_options::custom_cmdline_handler(const char** argv,
       std::string pwd = arg_format == 2 ? "-p" : "--dbpassword=";
       pwd.append(stars);
 
-      snprintf(const_cast<char*>(argv[*argi]), pwd.length(), "%s", pwd.c_str());
+      strncpy(argv[*argi], pwd.c_str(), strlen(argv[*argi]) + 1);
     } else {  // --password value (value is ignored)
       shell_options.prompt_password = true;
       (*argi)--;
@@ -387,7 +386,7 @@ bool Shell_command_line_options::custom_cmdline_handler(const char** argv,
       std::string pwd = arg_format == 2 ? "-p" : "--password=";
       pwd.append(stars);
 
-      snprintf(const_cast<char*>(argv[*argi]), pwd.length(), "%s", pwd.c_str());
+      strncpy(argv[*argi], pwd.c_str(), strlen(argv[*argi]) + 1);
     } else {  // --password value (value is ignored)
       shell_options.prompt_password = true;
       (*argi)--;
