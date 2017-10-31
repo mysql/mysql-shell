@@ -7,9 +7,9 @@ shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, us
 var singleSession = session;
 
 if (__have_ssl)
-  var single = dba.createCluster('single', {memberSslMode:'REQUIRED'});
+  var single = dba.createCluster('single', {memberSslMode: 'REQUIRED'});
 else
-  var single = dba.createCluster('single');
+  var single = dba.createCluster('single', {memberSslMode: 'DISABLED'});
 
 //@ Success adding instance 2
 add_instance_to_cluster(single, __mysql_sandbox_port2);
@@ -43,9 +43,9 @@ var multiSession = session;
 
 //@ Create multi-primary cluster
 if (__have_ssl)
-  var multi = dba.createCluster('multi', {multiMaster: true, memberSslMode:'REQUIRED', clearReadOnly: true, force: true});
+  var multi = dba.createCluster('multi', {multiMaster: true, memberSslMode: 'REQUIRED', clearReadOnly: true, force: true});
 else
-  var multi = dba.createCluster('multi', {multiMaster: true, clearReadOnly: true, force: true});
+  var multi = dba.createCluster('multi', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true, force: true});
 
 //@ Success adding instance 2 mp
 add_instance_to_cluster(multi, __mysql_sandbox_port2);
@@ -73,9 +73,9 @@ shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, us
 var singleSession2 = session;
 
 if (__have_ssl)
-  var single2 = dba.createCluster('single2', {memberSslMode:'REQUIRED', clearReadOnly: true});
+  var single2 = dba.createCluster('single2', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-  var single2 = dba.createCluster('single2', {clearReadOnly: true});
+  var single2 = dba.createCluster('single2', {memberSslMode: 'DISABLED', clearReadOnly: true});
 
 //@ Success adding instance 2 2
 add_instance_to_cluster(single2, __mysql_sandbox_port2);
@@ -116,9 +116,9 @@ shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, us
 var multiSession2 = session;
 
 if (__have_ssl)
-  var multi2 = dba.createCluster('multi2', {memberSslMode:'REQUIRED', clearReadOnly: true, multiMaster: true, force: true});
+  var multi2 = dba.createCluster('multi2', {memberSslMode: 'REQUIRED', clearReadOnly: true, multiMaster: true, force: true});
 else
-  var multi2 = dba.createCluster('multi2', {clearReadOnly: true, multiMaster: true, force: true});
+  var multi2 = dba.createCluster('multi2', {memberSslMode: 'DISABLED', clearReadOnly: true, multiMaster: true, force: true});
 
 //@ Success adding instance 2 mp 2
 add_instance_to_cluster(multi2, __mysql_sandbox_port2);

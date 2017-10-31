@@ -7,9 +7,9 @@ shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, us
 var singleSession = session;
 
 if (__have_ssl)
-  var single = dba.createCluster('single', {memberSslMode:'REQUIRED'});
+  var single = dba.createCluster('single', {memberSslMode: 'REQUIRED'});
 else
-  var single = dba.createCluster('single', {memberSslMode:'DISABLED'});
+  var single = dba.createCluster('single', {memberSslMode: 'DISABLED'});
 
 //@ Success adding instance
 add_instance_to_cluster(single, __mysql_sandbox_port2);
