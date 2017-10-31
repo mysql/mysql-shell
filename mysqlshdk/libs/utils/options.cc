@@ -177,9 +177,9 @@ std::string convert(const std::string &data) {
 //
 // ReturnValue: Returns the # of format found based on the list above, or 0 if
 // no valid value was found
-int Options::cmdline_arg_with_value(const char **argv, int *argi,
+int Options::cmdline_arg_with_value(char **argv, int *argi,
                                     const char *arg, const char *larg,
-                                    const char **value,
+                                    char **value,
                                     bool accept_null) noexcept {
   int ret_val = 0;
   *value = nullptr;
@@ -235,7 +235,7 @@ void Options::handle_environment_options() {
     opt->handle_environment_variable();
 }
 
-void Options::handle_cmdline_options(int argc, const char **argv) {
+void Options::handle_cmdline_options(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     if (custom_cmdline_handler && custom_cmdline_handler(argv, &i))
       continue;
@@ -252,7 +252,7 @@ void Options::handle_cmdline_options(int argc, const char **argv) {
         it->second->handle_command_line_input(opt, nullptr);
       } else {
         const std::string &cmd = it->first;
-        const char *value = nullptr;
+        char *value = nullptr;
         if (it->second->accepts_no_cmdline_value() ||
             cmdline_arg_with_value(argv, &i, cmd.c_str(),
                                    cmd[1] == '-' ? nullptr : cmd.c_str(),
