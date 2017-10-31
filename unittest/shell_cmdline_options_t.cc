@@ -1171,7 +1171,7 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl"),
       NULL};
-    test_deprecated_ssl("--ssl", &options, error, 0,
+    test_deprecated_ssl("--ssl", &options, error, 1,
                         mysqlshdk::db::Ssl_mode::Required);
   }
   {
@@ -1179,7 +1179,7 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl=1"),
       NULL};
-    test_deprecated_ssl("--ssl=1", &options, error, 0,
+    test_deprecated_ssl("--ssl=1", &options, error, 1,
                         mysqlshdk::db::Ssl_mode::Required);
   }
   {
@@ -1187,7 +1187,7 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl=yes"),
       NULL};
-    test_deprecated_ssl("--ssl=yes", &options, error, 0,
+    test_deprecated_ssl("--ssl=yes", &options, error, 1,
                         mysqlshdk::db::Ssl_mode::Required);
   }
 
@@ -1196,7 +1196,7 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl=0"),
       NULL};
-    test_deprecated_ssl("--ssl=0", &options, error, 0,
+    test_deprecated_ssl("--ssl=0", &options, error, 1,
                         mysqlshdk::db::Ssl_mode::Disabled);
   }
   {
@@ -1204,7 +1204,7 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl=no"),
       NULL};
-    test_deprecated_ssl("--ssl=no", &options, error, 0,
+    test_deprecated_ssl("--ssl=no", &options, error, 1,
                         mysqlshdk::db::Ssl_mode::Disabled);
   }
 }
