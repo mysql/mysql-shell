@@ -929,6 +929,13 @@ TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
   validate_interactive("dba_adopt_from_gr_interactive.js");
 }
 
+TEST_F(Shell_js_dba_tests, dba_cluster_dissolve) {
+  _options->wizards = false;
+  reset_shell();
+
+  validate_interactive("dba_cluster_dissolve.js");
+}
+
 TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
   _options->wizards = false;
   reset_shell();

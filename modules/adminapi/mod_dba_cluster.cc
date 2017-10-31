@@ -1054,6 +1054,10 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   // Point the metadata session to the cluster session
   _metadata_storage->set_session(_session);
 
+  // We need to check if the group has quorum and if not we must abort the
+  // operation otherwise GR blocks the writes to preserve the consistency
+  // of the group and we end up with a hang.
+  // This check is done at check_preconditions()
   check_preconditions("dissolve");
 
   try {
@@ -1076,10 +1080,6 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     MetadataStorage::Transaction tx(_metadata_storage);
     std::string cluster_name = get_name();
 
-    // We need to check if the group has quorum and if not we must abort the
-    // operation otherwise we GR blocks the writes to preserve the consistency
-    // of the group and we end up with a hang.
-
     // check if the Cluster is empty
     if (_metadata_storage->is_cluster_empty(get_id())) {
       _metadata_storage->drop_cluster(cluster_name);
@@ -1088,26 +1088,30 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
       _dissolved = true;
     } else {
       if (force) {
-        // Gets the instances on the only available replica set
-        auto instances = _metadata_storage->get_replicaset_instances(
+        // We must stop GR on the online instances only, otherwise we'll
+        // get connection failures to the (MISSING) instances
+        // BUG#26001653.
+        // Get the online instances on the only available replica set
+        auto online_instances =
+          _metadata_storage->get_replicaset_online_instances(
             _default_replica_set->get_id());
 
         _metadata_storage->drop_replicaset(_default_replica_set->get_id());
 
-        // TODO(miguel): we only have the Default ReplicaSet, but will have more
-        // in the future
+        // TODO(miguel): we only have the Default ReplicaSet
+        // but will have more in the future
         _metadata_storage->drop_cluster(cluster_name);
 
         tx.commit();
 
         // once the data changes are done, we proceed doing the remove from GR
-        _default_replica_set->remove_instances_from_gr(instances);
+        _default_replica_set->remove_instances_from_gr(online_instances);
 
         // Set the flag, marking this cluster instance as invalid.
         _dissolved = true;
       } else {
-        throw shcore::Exception::logic_error(
-            "Cannot drop cluster: The cluster is not empty.");
+        throw Exception::logic_error(
+          "Cannot drop cluster: The cluster is not empty.");
       }
     }
   }
