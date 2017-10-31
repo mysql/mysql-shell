@@ -1033,7 +1033,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
         // Set the flag, marking this cluster instance as invalid.
         _dissolved = true;
       } else {
-        throw Exception::logic_error(
+        throw shcore::Exception::logic_error(
           "Cannot drop cluster: The cluster is not empty.");
       }
     }
