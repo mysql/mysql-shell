@@ -50,3 +50,5 @@ cluster.remove_instance('root:root@localhost:' + str(__mysql_sandbox_port3))
 
 #@ Dissolve cluster with success
 cluster.dissolve({'force': True})
+
+session.close()

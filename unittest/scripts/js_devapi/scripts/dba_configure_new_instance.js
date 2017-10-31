@@ -50,3 +50,5 @@ cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port3);
 
 //@ Dissolve cluster with success
 cluster.dissolve({force: true});
+
+session.close();
