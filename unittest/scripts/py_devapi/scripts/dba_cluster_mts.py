@@ -56,6 +56,8 @@ dba.check_instance_configuration({'host': localhost, 'port': __mysql_sandbox_por
 add_instance_to_cluster(cluster, __mysql_sandbox_port3)
 wait_slave_state(cluster, uri3, "ONLINE")
 
+session.close()
+
 #@ Finalization
 if deployed_here:
     cleanup_sandboxes(deployed_here)
