@@ -29,7 +29,7 @@ from mysql_gadgets.exceptions import (GadgetError,
 from mysql_gadgets.common.connection_parser import (clean_IPv6,
                                                     parse_user_host,)
 from mysql_gadgets.common.sql_utils import (is_quoted_with_backticks,
-                                            quote_with_backticks,)
+                                            quote_with_backticks, escape)
 
 
 ERROR_USER_WITHOUT_PRIVILEGES = ("User '{user}' on '{host}@{port}' does not "
@@ -273,8 +273,9 @@ class User(object):
             user, host = parse_user_host(user_name)
 
         res = self.server1.exec_query("SELECT * FROM mysql.user "
-                                      "WHERE user = %s and host = %s",
-                                      {'params': (user, host)})
+                                      "WHERE user = '{0}' and host = "
+                                      "'{1}'".format(escape(user),
+                                                     escape(host)))
 
         return res is not None and len(res) >= 1
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,6 +35,8 @@
 #include "shellcore/types_python.h"
 
 using namespace shcore;
+
+void translate_python_exception(const std::string &context = "");
 
 static void method_dealloc(PyShFuncObject *self) {
   delete self->func;
@@ -72,8 +74,8 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
       try {
         Value v = ctx->pyobj_to_shcore_value(argval);
         r.push_back(v);
-      } catch (std::exception &exc) {
-        Python_context::set_python_error(exc);
+      } catch (...) {
+        translate_python_exception();
         return NULL;
       }
     }
@@ -93,8 +95,8 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
       }
     }
     return ctx->shcore_value_to_pyobj(result);
-  } catch (std::exception &exc) {
-    Python_context::set_python_error(exc);
+  } catch (...) {
+    translate_python_exception();
     return NULL;
   }
 

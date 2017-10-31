@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <sstream>
 
+const char *g_mysqlsh_argv0;
 mysqlsh::Command_line_shell* shell_ptr = NULL;
 
 #ifdef WIN32
@@ -191,6 +192,7 @@ int main(int argc, char **argv) {
 #endif
 
   int ret_val = 0;
+  g_mysqlsh_argv0 = argv[0];
 
   Shell_command_line_options cmd_line_options(argc, argv);
   mysqlsh::Shell_options options = cmd_line_options.get_options();

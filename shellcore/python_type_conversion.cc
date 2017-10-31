@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -83,6 +83,14 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
 
     for (Py_ssize_t c = PyList_Size(py), i = 0; i < c; i++) {
       PyObject *item = PyList_GetItem(py, i);
+      array->push_back(pyobj_to_shcore_value(item));
+    }
+    return Value(array);
+  } else if (PyTuple_Check(py)) {
+    std::shared_ptr<Value::Array_type> array(new Value::Array_type);
+
+    for (Py_ssize_t c = PyTuple_Size(py), i = 0; i < c; i++) {
+      PyObject *item = PyTuple_GetItem(py, i);
       array->push_back(pyobj_to_shcore_value(item));
     }
     return Value(array);

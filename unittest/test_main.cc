@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 extern "C" {
 const char *g_argv0 = nullptr;
 }
+const char *g_mysqlsh_argv0;
 
 std::string g_mppath;
 
@@ -130,11 +131,17 @@ int main(int argc, char **argv) {
     p = strrchr(argv[0], '\\');
     g_mppath = std::string(argv[0], p - argv[0]);
   }
+  std::string mysqlsh_path;
 #ifndef _WIN32
+  mysqlsh_path = g_mppath + "/../mysqlsh";
   // On linux, we need to tell the UTs where the mysqlprovision executable is
   g_mppath.append("/../mysqlprovision");
   (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] = shcore::Value(g_mppath);
+#else
+  mysqlsh_path = g_mppath + "\\mysqlsh.exe";
+  g_mppath.append("\\mysqlprovision.zip");
 #endif
+  g_mysqlsh_argv0 = mysqlsh_path.c_str();
 
   int ret_val = RUN_ALL_TESTS();
 

@@ -24,14 +24,11 @@ displaying the health status of the members of the GR group. It also allows
 the creation of MySQL sandbox instances.
 """
 
-from mysql_gadgets import check_connector_python, check_expected_version,\
+from mysql_gadgets import check_expected_version,\
     check_python_version
 
 # Check Python version requirement
 check_python_version(json_msg=True)
-
-# Check Connector/Python requirement
-check_connector_python(json_msg=True)
 
 # pylint: disable=wrong-import-position,wrong-import-order
 import argparse

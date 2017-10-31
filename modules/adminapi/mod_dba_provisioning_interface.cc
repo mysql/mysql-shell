@@ -28,6 +28,7 @@
 #include "utils/utils_file.h"
 
 static const char *kRequiredMySQLProvisionInterfaceVersion = "2.1";
+extern const char *g_mysqlsh_argv0;
 
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
@@ -59,7 +60,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     if (_local_mysqlprovision_path.empty()) {
       std::string tmp(get_binary_folder());
 #ifdef _WIN32
-      tmp.append("\\mysqlprovision.cmd");
+      tmp.append("\\mysqlprovision.zip");
 #else
       tmp.append("/mysqlprovision");
 #endif
@@ -71,6 +72,10 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     if (_local_mysqlprovision_path.empty())
       _local_mysqlprovision_path = "mysqlprovision";
   }
+
+  args_script.push_back(g_mysqlsh_argv0);
+  args_script.push_back("--py");
+  args_script.push_back("-f");
 
   args_script.push_back(_local_mysqlprovision_path.c_str());
   args_script.push_back(cmd.c_str());

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -100,3 +100,24 @@ def is_quoted_with_backticks(identifier, sql_mode=''):
             (identifier[0] == '"' and identifier[-1] == '"')
     else:
         return identifier[0] == "`" and identifier[-1] == "`"
+
+
+def escape(value):
+    """
+    Method taken from connector/python to escape characters in string
+    parameters passed to queries.
+
+    :param value: parameter value to be escaped.
+    :type value: string
+
+    Returns the value if None, or the escaped string.
+    """
+    if value is None:
+        return value
+    value = value.replace('\\', '\\\\')
+    value = value.replace('\n', '\\n')
+    value = value.replace('\r', '\\r')
+    value = value.replace('\047', '\134\047')  # single quotes
+    value = value.replace('\042', '\134\042')  # double quotes
+    value = value.replace('\032', '\134\032')  # for Win32
+    return value

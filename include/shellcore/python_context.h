@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -191,6 +191,8 @@ public:
 
   Interpreter_delegate *_delegate;
 
+  PyObject *db_error() { return _db_error; }
+
 private:
   static PyObject *shell_print(PyObject *self, PyObject *args, const std::string& stream);
   static PyObject *shell_flush(PyObject *self, PyObject *args);
@@ -210,6 +212,8 @@ private:
   PyObject *_globals;
   PyObject *_locals;
   PyThreadState *_main_thread_state;
+
+  PyObject *_db_error;
 
   Python_type_bridger _types;
 
