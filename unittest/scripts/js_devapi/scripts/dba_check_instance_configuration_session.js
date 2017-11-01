@@ -23,6 +23,8 @@ session.runSql("SET sql_log_bin = 0");
 session.runSql("DROP user 'test_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
 
+session.close();
+
 // Remove the sandbox
 if (deployed_here)
 	cleanup_sandbox(__mysql_sandbox_port1);
