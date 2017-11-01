@@ -68,6 +68,8 @@ cluster = dba.create_cluster('dev')
 # Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 cluster.dissolve({"force": True})
 
+session.close()
+
 #@ Finalization
 # Will delete the sandboxes ONLY if this test was executed standalone
 if (deployed_here):

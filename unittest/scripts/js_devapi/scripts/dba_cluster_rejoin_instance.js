@@ -9,6 +9,7 @@ session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'');
 session.runSql('GRANT ALL PRIVILEGES ON *.* TO \'foo\'@\'%\' WITH GRANT OPTION');
 session.runSql('SET sql_log_bin=1');
+session.close();
 
 // Create a new administrative account on instance 2
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', password: 'root'});
@@ -17,6 +18,7 @@ session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'');
 session.runSql('GRANT ALL PRIVILEGES ON *.* TO \'foo\'@\'%\' WITH GRANT OPTION');
 session.runSql('SET sql_log_bin=1');
+session.close();
 
 // Create a new administrative account on instance 3
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', password: 'root'});
@@ -25,6 +27,7 @@ session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'');
 session.runSql('GRANT ALL PRIVILEGES ON *.* TO \'foo\'@\'%\' WITH GRANT OPTION');
 session.runSql('SET sql_log_bin=1');
+session.close();
 
 //@ Connect to instance 1
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'foo', password: 'bar'});
@@ -89,6 +92,7 @@ session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('SET sql_log_bin=1');
+session.close();
 
 // Delete the account on instance 2
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', password: 'root'});
@@ -96,6 +100,7 @@ session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('SET sql_log_bin=1');
+session.close();
 
 // Delete the account on instance 3
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', password: 'root'});
@@ -103,7 +108,6 @@ session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('SET sql_log_bin=1');
-
 session.close();
 
 //@ Finalization

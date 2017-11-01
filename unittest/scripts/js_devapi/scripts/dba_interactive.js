@@ -101,6 +101,8 @@ dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
 //@<OUT> Dba: configureLocalInstance error 3
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
 
+session.close();
+
 //@ Dba: Create user without all necessary privileges
 // create user that has all permissions to admin a cluster but doesn't have
 // the grant privileges for them, so it cannot be used to create viable accounts

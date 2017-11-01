@@ -63,7 +63,10 @@ wait_slave_state(cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"])
 dba.start_sandbox_instance(__mysql_sandbox_port3, {'sandboxDir': __sandbox_dir})
 wait_slave_state(cluster, 'third_sandbox', "ONLINE")
 
+session.close()
+
 #@ Finalization
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 session.run_sql("DROP USER 'gr_user'@'%'")
 cleanup_sandboxes(deployed_here)
+session.close()
