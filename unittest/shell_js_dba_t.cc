@@ -528,6 +528,7 @@ TEST_F(Shell_js_dba_tests, configure_local_instance_errors) {
 #endif
   // Cleans up the used sandbox
   execute("cleanup_sandbox(__mysql_sandbox_port1)");
+  execute("session.close();");
 }
 
 

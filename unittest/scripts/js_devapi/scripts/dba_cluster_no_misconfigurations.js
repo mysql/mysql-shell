@@ -35,6 +35,8 @@ if (__have_ssl) {
   session.runSql("SET @@global.require_secure_transport = '" + req_sec_trans + "'");
 }
 
+session.close();
+
 //@ Finalization
 // Will delete the sandboxes ONLY if this test was executed standalone
 if (deployed_here)

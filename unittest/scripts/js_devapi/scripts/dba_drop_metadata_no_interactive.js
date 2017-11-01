@@ -27,6 +27,8 @@ dba.dropMetadataSchema({force:true});
 
 ensure_schema_does_not_exist(session, 'mysql_innodb_cluster_metadata')
 
+session.close();
+
 // Smart deployment cleanup
 if (deployed_here)
   cleanup_sandbox(__mysql_sandbox_port1);

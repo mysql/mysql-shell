@@ -9,6 +9,7 @@ session.run_sql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.run_sql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'')
 session.run_sql('GRANT ALL PRIVILEGES ON *.* TO \'foo\'@\'%\' WITH GRANT OPTION')
 session.run_sql('SET sql_log_bin=1')
+session.close()
 
 # Create a new administrative account on instance 2
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
@@ -17,6 +18,7 @@ session.run_sql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.run_sql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'')
 session.run_sql('GRANT ALL PRIVILEGES ON *.* TO \'foo\'@\'%\' WITH GRANT OPTION')
 session.run_sql('SET sql_log_bin=1')
+session.close()
 
 # Create a new administrative account on instance 3
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
@@ -25,6 +27,7 @@ session.run_sql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.run_sql('CREATE USER \'foo\'@\'%\' IDENTIFIED BY \'bar\'')
 session.run_sql('GRANT ALL PRIVILEGES ON *.* TO \'foo\'@\'%\' WITH GRANT OPTION')
 session.run_sql('SET sql_log_bin=1')
+session.close()
 
 #@ Connect to instance 1
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'foo', 'password': 'bar'})
@@ -91,6 +94,7 @@ session.run_sql('DROP USER \'foo\'@\'%\'')
 session.run_sql('SET GLOBAL super_read_only = @sro')
 session.run_sql('SET GLOBAL read_only = @ro')
 session.run_sql('SET sql_log_bin=1')
+session.close()
 
 # Delete the account on instance 2
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port2, 'user': 'root', 'password': 'root'})
@@ -102,6 +106,7 @@ session.run_sql('DROP USER \'foo\'@\'%\'')
 session.run_sql('SET GLOBAL super_read_only = @sro')
 session.run_sql('SET GLOBAL read_only = @ro')
 session.run_sql('SET sql_log_bin=1')
+session.close()
 
 # Delete the account on instance 3
 shell.connect({'host': localhost, 'port': __mysql_sandbox_port3, 'user': 'root', 'password': 'root'})
@@ -113,6 +118,7 @@ session.run_sql('DROP USER \'foo\'@\'%\'')
 session.run_sql('SET GLOBAL super_read_only = @sro')
 session.run_sql('SET GLOBAL read_only = @ro')
 session.run_sql('SET sql_log_bin=1')
+session.close()
 
 #@ Finalization
 # Will delete the sandboxes ONLY if this test was executed standalone

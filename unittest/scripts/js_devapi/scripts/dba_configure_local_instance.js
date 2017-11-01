@@ -15,6 +15,7 @@ dba.configureLocalInstance("gr_user@localhost:"+__mysql_sandbox_port1, {mycnfPat
 session.runSql("SET sql_log_bin = 0");
 session.runSql("GRANT SELECT on *.* TO 'gr_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
+session.close();
 
 //@ create cluster using cluster admin account (BUG#26523629)
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'gr_user', password: 'root'});
@@ -74,3 +75,4 @@ wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 //@<OUT> Check saved auto_inc settings are restored
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 session.runSql("show global variables like 'auto_increment_%'").fetchAll();
+session.close();

@@ -94,5 +94,7 @@ var cluster = dba.rebootClusterFromCompleteOutage("sample");
 wait_slave_state(cluster, uri2, "ONLINE");
 wait_slave_state(cluster, uri3, "ONLINE");
 
+session.close();
+
 if (deployed_here)
   cleanup_sandboxes(true);

@@ -19,6 +19,8 @@ if (__have_ssl)
 else
   var cluster = dba.createCluster('dev');
 
+session.close();
+
 //@ Finalization
 // Will delete the sandboxes ONLY if this test was executed standalone
 if (deployed_here)
