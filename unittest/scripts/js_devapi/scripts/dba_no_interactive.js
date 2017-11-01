@@ -230,3 +230,5 @@ var c2 = dba.getCluster('devCluster');
 
 //@ Dba: getCluster
 print(c2);
+
+session.close();
