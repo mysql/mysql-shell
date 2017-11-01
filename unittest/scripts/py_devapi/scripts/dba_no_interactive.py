@@ -240,3 +240,5 @@ c2 = dba.get_cluster('devCluster')
 
 #@ Dba: get_cluster
 print c2
+
+session.close()

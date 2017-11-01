@@ -72,6 +72,8 @@ wait_slave_state(cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"]);
 dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir});
 wait_slave_state(cluster, 'third_sandbox', "ONLINE");
 
+session.close();
+
 //@<OUT> Check saved auto_inc settings are restored
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 session.runSql("show global variables like 'auto_increment_%'").fetchAll();
