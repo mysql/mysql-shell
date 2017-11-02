@@ -59,16 +59,10 @@ else:
 wait_slave_state(cluster, uri3, "UNREACHABLE")
 
 # Start instance 2
-if __sandbox_dir:
-  dba.start_sandbox_instance(__mysql_sandbox_port2, {'sandboxDir':__sandbox_dir})
-else:
-  dba.start_sandbox_instance(__mysql_sandbox_port2)
+try_restart_sandbox(__mysql_sandbox_port2)
 
 # Start instance 3
-if __sandbox_dir:
-  dba.start_sandbox_instance(__mysql_sandbox_port3, {'sandboxDir':__sandbox_dir})
-else:
-  dba.start_sandbox_instance(__mysql_sandbox_port3)
+try_restart_sandbox(__mysql_sandbox_port3)
 
 #@<OUT> Cluster status
 cluster.status()
