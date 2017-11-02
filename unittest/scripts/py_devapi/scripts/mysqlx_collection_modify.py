@@ -11,64 +11,70 @@ schema = mySession.create_schema('js_shell_test')
 # Creates a test collection and inserts data into it
 collection = schema.create_collection('collection1')
 
-result = collection.add({"name": 'jack', "age": 17, "gender": 'male'}).execute()
-result = collection.add({"name": 'adam', "age": 15, "gender": 'male'}).execute()
-result = collection.add({"name": 'brian', "age": 14, "gender": 'male'}).execute()
-result = collection.add({"name": 'alma', "age": 13, "gender": 'female'}).execute()
-result = collection.add({"name": 'carol', "age": 14, "gender": 'female'}).execute()
-result = collection.add({"name": 'donna', "age": 16, "gender": 'female'}).execute()
-result = collection.add({"name": 'angel', "age": 14, "gender": 'male'}).execute()
+result = collection.add({"_id": '5C514FF38144957BE71111C04E0D1246',  "name": 'jack', "age": 17, "gender": 'male'}).execute()
+result = collection.add({"_id": '5C514FF38144957BE71111C04E0D1247',  "name": 'adam', "age": 15, "gender": 'male'}).execute()
+result = collection.add({"_id": '5C514FF38144957BE71111C04E0D1248',  "name": 'brian', "age": 14, "gender": 'male'}).execute()
+result = collection.add({"_id": '5C514FF38144957BE71111C04E0D1249',  "name": 'alma', "age": 13, "gender": 'female'}).execute()
+result = collection.add({"_id": '5C514FF38144957BE71111C04E0D1250',  "name": 'carol', "age": 14, "gender": 'female'}).execute()
+result = collection.add({"_id": '5C514FF38144957BE71111C04E0D1251',  "name": 'donna', "age": 16, "gender": 'female'}).execute()
+result = collection.add({"_id": '5C514FF38144957BE71111C04E0D1252',  "name": 'angel', "age": 14, "gender": 'male'}).execute()
 
 # ------------------------------------------------
 # Collection.Modify Unit Testing: Dynamic Behavior
 # ------------------------------------------------
 #@ CollectionModify: valid operations after modify and set
 crud = collection.modify('some_filter')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.set('name', 'dummy')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and unset empty
 crud = collection.modify('some_filter')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 crud.unset([])
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 
 #@ CollectionModify: valid operations after modify and unset list
 crud = collection.modify('some_filter')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.unset(['name', 'type'])
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and unset multiple params
 crud = collection.modify('some_filter')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.unset('name', 'type')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and merge
 crud = collection.modify('some_filter')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.merge({'att':'value','second':'final'})
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
+
+#@ CollectionModify: valid operations after modify and patch
+crud = collection.modify('some_filter')
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
+crud = crud.merge({'att':'value','second':'final'})
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and array_insert
 crud = collection.modify('some_filter')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.array_insert('hobbies[3]', 'run')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and array_append
 crud = collection.modify('some_filter')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.array_append('hobbies','skate')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after modify and array_delete
 crud = collection.modify('some_filter')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.array_delete('hobbies[5]')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute'])
 
 #@ CollectionModify: valid operations after sort
 crud = crud.sort(['name'])
@@ -117,6 +123,10 @@ crud = collection.modify('some_filter').unset('')
 #@# CollectionModify: Error conditions on merge
 crud = collection.modify('some_filter').merge()
 crud = collection.modify('some_filter').merge('')
+
+#@# CollectionModify: Error conditions on patch
+crud = collection.modify('some_filter').patch()
+crud = collection.modify('some_filter').patch('')
 
 #@# CollectionModify: Error conditions on array_insert
 crud = collection.modify('some_filter').array_insert()
@@ -277,8 +287,80 @@ print dir(doc)
 doc = result.fetch_one()
 print dir(doc)
 
-#@<OUT> CollectionModify: help
-collection.help('modify')
+#@<OUT> CollectionModify: Patch initial documents
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch adding fields to multiple documents (WL10856-FR1_1)
+collection.modify('gender="female"').patch({"hobbies":[], "address":"TBD"})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch updating field on multiple documents (WL10856-FR1_4)
+collection.modify('gender="female"').patch({"address":{"street":"TBD"}})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch updating field on multiple nested documents (WL10856-FR1_5)
+collection.modify('gender="female"').patch({"address":{"street":"Main"}})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch adding field on multiple nested documents (WL10856-FR1_2)
+collection.modify('gender="female"').patch({"address":{"number":0}})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch removing field on multiple nested documents (WL10856-FR1_8)
+collection.modify('gender="female"').patch({"address":{"number":None}})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch removing field on multiple documents (WL10856-FR1_7)
+collection.modify('gender="female"').patch({"address":None})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch adding field with multiple calls to patch (WL10856-FR2.1_1)
+collection.modify('gender="female"').patch({"last_name":'doe'}).patch({"address":{}})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch adding field with multiple calls to patch on nested documents (WL10856-FR2.1_2)
+collection.modify('gender="female"').patch({"address":{"street":'main'}}).patch({"address":{"number":0}})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch updating fields with multiple calls to patch (WL10856-FR2.1_3, WL10856-FR2.1_4)
+collection.modify('gender="female"').patch({"address":{"street":'riverside'}}).patch({"last_name":'houston'})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch removing fields with multiple calls to patch (WL10856-FR2.1_5, WL10856-FR2.1_6)
+collection.modify('gender="female"').patch({"address":{"number":None}}).patch({"hobbies":None})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch adding field to multiple documents using expression (WL10856-ET_13)
+collection.modify('gender="female"').patch({"last_update": mysqlx.expr("curdate()")})
+records = collection.find('gender="female"').execute().fetch_all()
+last_update = records[0].last_update
+records
+
+#@<OUT> CollectionModify: Patch adding field to multiple nested documents using expression (WL10856-ET_14)
+collection.modify('gender="female"').patch({"address": {"street_short": mysqlx.expr("right(address.street, 3)")}})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch updating field to multiple documents using expression (WL10856-ET_15)
+collection.modify('gender="female"').patch({"name":mysqlx.expr("concat(ucase(left(name,1)), right(name, length(name)-1))")})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch updating field to multiple nested documents using expression (WL10856-ET_16)
+collection.modify('gender="female"').patch({"address": {"street_short": mysqlx.expr("left(address.street, 3)")}})
+collection.find('gender="female"')
+
+#@<OUT> CollectionModify: Patch including _id, ignores _id applies the rest (WL10856-ET_17)
+collection.modify('gender="female"').patch({"_id":'new_id', "city":'Washington'})
+collection.find('gender="female"')
+
+#@ CollectionModify: Patch adding field with null value coming from an expression (WL10856-ET_19)
+collection.modify('gender="female"').patch({"another":mysqlx.expr("null")})
+
+#@<OUT> CollectionModify: Patch updating field with null value coming from an expression (WL10856-ET_20)
+collection.modify('gender="female"').patch({"last_update":mysqlx.expr("null")})
+collection.find('gender="female"')
+
+#@ CollectionModify: Patch removing the _id field (WL10856-ET_25)
+collection.modify('gender="female"').patch({"_id":None})
 
 # Cleanup
 mySession.drop_schema('js_shell_test')

@@ -18,6 +18,10 @@
 |All expected functions are available|
 |No additional functions are available|
 
+#@ CollectionModify: valid operations after modify and patch
+|All expected functions are available|
+|No additional functions are available|
+
 #@ CollectionModify: valid operations after modify and array_insert
 |All expected functions are available|
 |No additional functions are available|
@@ -70,6 +74,10 @@
 #@# CollectionModify: Error conditions on merge
 ||Invalid number of arguments in CollectionModify.merge, expected 1 but got 0
 ||CollectionModify.merge: Argument expected to be a JSON object
+
+#@# CollectionModify: Error conditions on patch
+||Invalid number of arguments in CollectionModify.patch, expected 1 but got 0
+||CollectionModify.patch: Argument expected to be a JSON object
 
 #@# CollectionModify: Error conditions on array_insert
 ||Invalid number of arguments in CollectionModify.array_insert, expected 2 but got 0
@@ -197,128 +205,610 @@
 |gender|
 |~sample|
 
-#@<OUT> CollectionModify: help
-Creates a collection update handler.
-
-SYNTAX
-
-  <Collection>.modify(...)
-              [.set(...)]
-              [.unset(...)]
-              [.merge(...)]
-              [.array_insert(...)]
-              [.array_append(...)]
-              [.array_delete(...)]
-              [.sort(...)]
-              [.limit(...)]
-              [.bind(...)]
-              [.execute(...)]
-
-DESCRIPTION
-
-Creates a collection update handler.
-
-  .modify(...)
-
-    Creates a handler to update documents in the collection.
-
-    A condition must be provided to this function, all the documents matching
-    the condition will be updated.
-
-    To update all the documents, set a condition that always evaluates to true,
-    for example '1'.
-
-  .set(...)
-
-    Adds an opertion into the modify handler to set an attribute on the
-    documents that were included on the selection filter and limit.
-
-     - If the attribute is not present on the document, it will be added with
-       the given value.
-     - If the attribute already exists on the document, it will be updated with
-       the given value.
+#@<OUT> CollectionModify: Patch initial documents
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "gender": "female",
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "gender": "female",
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "gender": "female",
+        "name": "donna"
+    }
+]
 
 
-    **  Using Expressions for Values  **
+#@<OUT> CollectionModify: Patch adding fields to multiple documents (WL10856-FR1_1)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": "TBD",
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": "TBD",
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": "TBD",
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "name": "donna"
+    }
+]
 
-    The received values are set into the document in a literal way unless an
-    expression is used.
+#@<OUT> CollectionModify: Patch updating field on multiple documents (WL10856-FR1_4)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "TBD"
+        },
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "TBD"
+        },
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "TBD"
+        },
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "name": "donna"
+    }
+]
 
-    When an expression is used, it is evaluated on the server and the resulting
-    value is set into the document.
 
-  .unset(...)
+#@<OUT> CollectionModify: Patch updating field on multiple nested documents (WL10856-FR1_5)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "Main"
+        },
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "Main"
+        },
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "Main"
+        },
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "name": "donna"
+    }
+]
 
-    Variations
+#@<OUT> CollectionModify: Patch adding field on multiple nested documents (WL10856-FR1_2)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "number": 0,
+            "street": "Main"
+        },
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "number": 0,
+            "street": "Main"
+        },
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "number": 0,
+            "street": "Main"
+        },
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "name": "donna"
+    }
+]
 
-      unset(String attribute)
-      unset(List attributes)
 
-    The attribute removal will be done on the collection's documents once the
-    execute method is called.
+#@<OUT> CollectionModify: Patch removing field on multiple nested documents (WL10856-FR1_8)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "Main"
+        },
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "Main"
+        },
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "Main"
+        },
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "name": "donna"
+    }
+]
 
-    For each attribute on the attributes list, adds an opertion into the modify
-    handler
+#@<OUT> CollectionModify: Patch removing field on multiple documents (WL10856-FR1_7)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "name": "donna"
+    }
+]
 
-    to remove the attribute on the documents that were included on the
-    selection filter and limit.
+#@<OUT> CollectionModify: Patch adding field with multiple calls to patch (WL10856-FR2.1_1)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {},
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "doe",
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {},
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "doe",
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {},
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "doe",
+        "name": "donna"
+    }
+]
 
-  .merge(...)
+#@<OUT> CollectionModify: Patch adding field with multiple calls to patch on nested documents (WL10856-FR2.1_2)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "number": 0,
+            "street": "main"
+        },
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "doe",
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "number": 0,
+            "street": "main"
+        },
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "doe",
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "number": 0,
+            "street": "main"
+        },
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "doe",
+        "name": "donna"
+    }
+]
 
-    This function adds an operation to add into the documents of a collection,
-    all the attribues defined in document that do not exist on the collection's
-    documents.
+#@<OUT> CollectionModify: Patch updating fields with multiple calls to patch (WL10856-FR2.1_3, WL10856-FR2.1_4)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "number": 0,
+            "street": "riverside"
+        },
+        "age": 13,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "houston",
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "number": 0,
+            "street": "riverside"
+        },
+        "age": 15,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "houston",
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "number": 0,
+            "street": "riverside"
+        },
+        "age": 16,
+        "gender": "female",
+        "hobbies": [],
+        "last_name": "houston",
+        "name": "donna"
+    }
+]
 
-    The attribute addition will be done on the collection's documents once the
-    execute method is called.
+#@<OUT> CollectionModify: Patch removing fields with multiple calls to patch (WL10856-FR2.1_5, WL10856-FR2.1_6)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "riverside"
+        },
+        "age": 13,
+        "gender": "female",
+        "last_name": "houston",
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "riverside"
+        },
+        "age": 15,
+        "gender": "female",
+        "last_name": "houston",
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "riverside"
+        },
+        "age": 16,
+        "gender": "female",
+        "last_name": "houston",
+        "name": "donna"
+    }
+]
 
-  .array_insert(...)
+#@<OUT> CollectionModify: Patch adding field to multiple documents using expression (WL10856-ET_13)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "riverside"
+        },
+        "age": 13,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "riverside"
+        },
+        "age": 15,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "riverside"
+        },
+        "age": 16,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "donna"
+    }
+]
 
-    Adds an opertion into the modify handler to insert a value into an array
-    attribute on the documents that were included on the selection filter and
-    limit.
+#@<OUT> CollectionModify: Patch adding field to multiple nested documents using expression (WL10856-ET_14)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "riverside",
+            "street_short": "ide"
+        },
+        "age": 13,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "riverside",
+            "street_short": "ide"
+        },
+        "age": 15,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "riverside",
+            "street_short": "ide"
+        },
+        "age": 16,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "donna"
+    }
+]
 
-    The insertion of the value will be done on the collection's documents once
-    the execute method is called.
+#@<OUT> CollectionModify: Patch updating field to multiple documents using expression (WL10856-ET_15)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "riverside",
+            "street_short": "ide"
+        },
+        "age": 13,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "riverside",
+            "street_short": "ide"
+        },
+        "age": 15,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "riverside",
+            "street_short": "ide"
+        },
+        "age": 16,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Donna"
+    }
+]
 
-  .array_append(...)
+#@<OUT> CollectionModify: Patch updating field to multiple nested documents using expression (WL10856-ET_16)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 13,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 15,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 16,
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Donna"
+    }
+]
 
-    Adds an opertion into the modify handler to append a value into an array
-    attribute on the documents that were included on the selection filter and
-    limit.
+#@<OUT> CollectionModify: Patch including _id, ignores _id applies the rest (WL10856-ET_17)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 13,
+        "city": "Washington",
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 15,
+        "city": "Washington",
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 16,
+        "city": "Washington",
+        "gender": "female",
+        "last_name": "houston",
+        "last_update": "<<<last_update>>>",
+        "name": "Donna"
+    }
+]
 
-  .array_delete(...)
+#@ CollectionModify: Patch adding field with null value coming from an expression (WL10856-ET_19)
+|Query OK, 0 items affected|
 
-    Adds an opertion into the modify handler to delete a value from an array
-    attribute on the documents that were included on the selection filter and
-    limit.
+#@<OUT> CollectionModify: Patch updating field with null value coming from an expression (WL10856-ET_20)
+[
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1249",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 13,
+        "city": "Washington",
+        "gender": "female",
+        "last_name": "houston",
+        "name": "Alma"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1250",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 15,
+        "city": "Washington",
+        "gender": "female",
+        "last_name": "houston",
+        "name": "Carol"
+    },
+    {
+        "_id": "5C514FF38144957BE71111C04E0D1251",
+        "address": {
+            "street": "riverside",
+            "street_short": "riv"
+        },
+        "age": 16,
+        "city": "Washington",
+        "gender": "female",
+        "last_name": "houston",
+        "name": "Donna"
+    }
+]
 
-    The attribute deletion will be done on the collection's documents once the
-    execute method is called.
-
-  .sort(...)
-
-    The elements of sortExprStr list are usually strings defining the attribute
-    name on which the collection sorting will be based. Each criterion could be
-    followed by asc or desc to indicate ascending
-
-    or descending order respectivelly. If no order is specified, ascending will
-    be used by default.
-
-    This method is usually used in combination with limit to fix the amount of
-    documents to be updated.
-
-  .limit(...)
-
-    This method is usually used in combination with sort to fix the amount of
-    documents to be updated.
-
-  .bind(...)
-
-    Binds a value to a specific placeholder used on this CollectionModify
-    object.
-
-  .execute(...)
-
-    Executes the update operations added to the handler with the configured
-    filter and limit.
+#@ CollectionModify: Patch removing the _id field (WL10856-ET_25)
+|Query OK, 0 items affected|

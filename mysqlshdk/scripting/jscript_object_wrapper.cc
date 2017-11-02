@@ -43,7 +43,7 @@ v8::Handle<v8::Value> translate_exception(JScript_context *context) {
 
 
 JScript_object_wrapper::JScript_object_wrapper(JScript_context *context, bool indexed)
-  : _context(context) {
+  : _context(context), _method_wrapper(context) {
   v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
 
@@ -149,8 +149,13 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   }
   {
     try {
-      Value member = object->get_member(*prop);
-      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
+      if (object->has_method(*prop)) {
+        info.GetReturnValue().Set(self->_method_wrapper.wrap(object, *prop));
+      } else {
+        Value member = object->get_member(*prop);
+        info.GetReturnValue().Set(
+            self->_context->shcore_value_to_v8_value(member));
+      }
     } catch (...) {
       info.GetIsolate()->ThrowException(translate_exception(self->_context));
     }
@@ -303,4 +308,94 @@ bool JScript_object_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_pt
     return true;
   }
   return false;
+}
+
+bool JScript_object_wrapper::is_object(v8::Handle<v8::Object> value) {
+  return (value->InternalFieldCount() == 3 &&
+          value->GetAlignedPointerFromInternalField(0) ==
+              static_cast<void *>(&magic_pointer));
+}
+
+static int magic_method_pointer = 0;
+
+
+bool JScript_object_wrapper::is_method(v8::Handle<v8::Object> value) {
+  return (value->InternalFieldCount() == 3 &&
+      value->GetAlignedPointerFromInternalField(0) ==
+          static_cast<void *>(&magic_method_pointer));
+}
+
+JScript_method_wrapper::JScript_method_wrapper(JScript_context *context)
+    : _context(context) {
+  v8::Handle<v8::ObjectTemplate> templ =
+      v8::ObjectTemplate::New(_context->isolate());
+  _object_template.Reset(_context->isolate(), templ);
+  templ->SetInternalFieldCount(3);
+  templ->SetCallAsFunctionHandler(call);
+}
+
+JScript_method_wrapper::~JScript_method_wrapper() {
+  _object_template.Reset();
+}
+
+struct shcore::JScript_method_wrapper::Collectable {
+  std::shared_ptr<Object_bridge> object;
+  std::string method;
+  v8::Persistent<v8::Object> handle;
+};
+
+v8::Handle<v8::Object> JScript_method_wrapper::wrap(
+    std::shared_ptr<Object_bridge> object, const std::string &method) {
+  v8::Handle<v8::Object> obj(
+      v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)
+          ->NewInstance());
+  if (!obj.IsEmpty()) {
+    obj->SetAlignedPointerInInternalField(0, &magic_method_pointer);
+    Collectable *tmp = new Collectable();
+    tmp->object = object;
+    tmp->method = method;
+    obj->SetAlignedPointerInInternalField(1, tmp);
+    obj->SetAlignedPointerInInternalField(2, this);
+
+    // marks the persistent instance to be garbage collectable, with a callback
+    // called on deletion
+    tmp->handle.Reset(_context->isolate(),
+                      v8::Persistent<v8::Object>(_context->isolate(), obj));
+    tmp->handle.SetWeak(tmp, wrapper_deleted);
+    tmp->handle.MarkIndependent();
+  }
+  return obj;
+}
+
+void JScript_method_wrapper::wrapper_deleted(
+    const v8::WeakCallbackData<v8::Object, Collectable> &data) {
+  // the JS wrapper object was deleted, so we also free the shared-ref to the
+  // object
+  v8::HandleScope hscope(data.GetIsolate());
+  data.GetParameter()->object.reset();
+  data.GetParameter()->handle.Reset();
+  delete data.GetParameter();
+}
+
+void JScript_method_wrapper::call(
+    const v8::FunctionCallbackInfo<v8::Value> &args) {
+  v8::Handle<v8::Object> obj(args.Holder());
+  JScript_method_wrapper *self = static_cast<JScript_method_wrapper *>(
+      obj->GetAlignedPointerFromInternalField(2));
+  auto mdata =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1));
+  std::shared_ptr<Object_bridge> hold_object(mdata->object);
+  try {
+    Value r =
+        hold_object->call(mdata->method, self->_context->convert_args(args));
+    args.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(r));
+  } catch (Exception &exc) {
+    auto jsexc = self->_context->shcore_value_to_v8_value(Value(exc.error()));
+    if (jsexc.IsEmpty())
+      jsexc = self->_context->shcore_value_to_v8_value(Value(exc.format()));
+    args.GetIsolate()->ThrowException(jsexc);
+  } catch (std::exception &exc) {
+    args.GetIsolate()->ThrowException(
+        v8::String::NewFromUtf8(args.GetIsolate(), exc.what()));
+  }
 }

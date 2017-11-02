@@ -57,6 +57,7 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   add_method("set", std::bind(&CollectionModify::set, this, _1), "data");
   add_method("unset", std::bind(&CollectionModify::unset, this, _1), "data");
   add_method("merge", std::bind(&CollectionModify::merge, this, _1), "data");
+  add_method("patch", std::bind(&CollectionModify::patch, this, _1), "data");
   add_method("arrayInsert",
              std::bind(&CollectionModify::array_insert, this, _1), "data");
   add_method("arrayAppend",
@@ -72,6 +73,7 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   register_dynamic_function("set", "modify, operation");
   register_dynamic_function("unset", "modify, operation");
   register_dynamic_function("merge", "modify, operation");
+  register_dynamic_function("patch", "modify, operation");
   register_dynamic_function("arrayInsert", "modify, operation");
   register_dynamic_function("arrayAppend", "modify, operation");
   register_dynamic_function("arrayDelete", "modify, operation");
@@ -107,32 +109,25 @@ void CollectionModify::set_operation(int type, const std::string &path,
         throw std::logic_error("An array document path must be specified");
     }
   } else if (type != Mysqlx::Crud::UpdateOperation::ITEM_MERGE &&
-             type != Mysqlx::Crud::UpdateOperation::ITEM_SET) {
+             type != Mysqlx::Crud::UpdateOperation::ITEM_SET &&
+             type != Mysqlx::Crud::UpdateOperation::MERGE_PATCH) {
     throw std::logic_error("Invalid document path");
   }
+
   // Sets the source
   operation->mutable_source()->CopyFrom(identifier);
 
-  // Sets the value if applicable
-  if (value.type == shcore::Object &&
-      value.as_object()->class_name() == "Expression") {
-    auto expr = std::dynamic_pointer_cast<mysqlsh::mysqlx::Expression>(
-        value.as_object());
-    if (expr) {
-      ::mysqlx::Expr_parser parser(expr->get_data(), true, false,
-                                   &_placeholders);
-      operation->set_allocated_value(parser.expr().release());
-    }
-  } else if (value) {
-    if (type == Mysqlx::Crud::UpdateOperation::ITEM_MERGE) {
-      if (value.type != shcore::Map) {
-        throw std::invalid_argument("Argument expected to be a JSON object");
-      }
-    }
-    operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
-    operation->mutable_value()->set_allocated_literal(
-        convert_value(value).release());
+  Mysqlx::Expr::Expr* expr_value = nullptr;
+  if (value) {
+    expr_value = operation->mutable_value();
+    encode_expression_value(expr_value, value);
   }
+
+  if ((type == Mysqlx::Crud::UpdateOperation::ITEM_MERGE ||
+      type == Mysqlx::Crud::UpdateOperation::MERGE_PATCH) &&
+     (!expr_value || expr_value->type() != Mysqlx::Expr::Expr::Expr::OBJECT)) {
+       throw std::invalid_argument("Argument expected to be a JSON object");
+    }
 }
 
 // Documentation of modify function
@@ -294,6 +289,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -304,6 +300,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -375,6 +372,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -385,6 +383,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -424,6 +423,7 @@ CollectionModify CollectionModify::unset(str attribute) {}
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -434,6 +434,7 @@ CollectionModify CollectionModify::unset(str attribute) {}
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -544,6 +545,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -554,6 +556,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -580,6 +583,113 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
     update_functions("operation");
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("merge"));
+
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+// Documentation of merge function
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_BRIEF,
+    "Performs modifications on a document based on a patch JSON object.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_PARAM,
+    "@param document The JSON object to be used on the patch process.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_RETURNS,
+              "@returns This CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL,
+    "This function adds an operation to update the documents of a collection, "
+    "the patch operation follows the algorithm described on the JSON Merge "
+    "Patch RFC7386.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL1,
+    "The patch JSON object will be used to either add, update or remove fields "
+    "from documents in the collection that match the filter specified on the "
+    "call to the modify() function.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL2, "The operation to be performed "
+"depends on the attributes defined at the patch JSON object:");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL3,
+    "@li Any attribute with value equal to null will be removed if exists.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL4,
+    "@li Any attribute with value different than null will be updated if "
+    "exists.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL5,
+    "@li Any attribute with value different than null will be added if "
+    "does not exists.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL6, "Special considerations:");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL7,
+    "@li The _id of the documents is inmutable, so it will not be affected by "
+    "the patch operation even if it is included on the patch JSON object.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL8,
+    "@li The patch JSON object accepts expression objects as values. If used "
+    "they will be evaluated at the server side.");
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL9,
+    "The patch operations will be done on the collection's documents once the "
+    "execute method is called.");
+/**
+* $(COLLECTIONMODIFY_PATCH_BRIEF)
+*
+* $(COLLECTIONMODIFY_PATCH_PARAM)
+*
+* $(COLLECTIONMODIFY_PATCH_RETURNS)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL1)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL2)
+* $(COLLECTIONMODIFY_PATCH_DETAIL3)
+* $(COLLECTIONMODIFY_PATCH_DETAIL4)
+* $(COLLECTIONMODIFY_PATCH_DETAIL5)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL6)
+* $(COLLECTIONMODIFY_PATCH_DETAIL7)
+* $(COLLECTIONMODIFY_PATCH_DETAIL8)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL9)
+*
+* #### Method Chaining
+*
+* This function can be invoked multiple times after:
+*
+* - modify(String searchCondition)
+* - set(String attribute, Value value)
+* - unset(String attribute)
+* - unset(List attributes)
+* - merge(Document document)
+* - patch(Document document)
+* - arrayAppend(String path, Value value)
+* - arrayInsert(String path, Value value)
+* - arrayDelete(String path)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - set(String attribute, Value value)
+* - unset(String attribute)
+* - unset(List attributes)
+* - merge(Document document)
+* - patch(Document document)
+* - arrayAppend(String path, Value value)
+* - arrayInsert(String path, Value value)
+* - arrayDelete(String path)
+* - sort(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - bind(String name, Value value)
+* - execute(ExecuteOptions opt)
+*
+* \sa Usage examples at execute().
+*/
+#if DOXYGEN_JS
+CollectionModify CollectionModify::patch(Document document) {}
+#elif DOXYGEN_PY
+CollectionModify CollectionModify::patch(Document document) {}
+#endif
+shcore::Value CollectionModify::patch(const shcore::Argument_list &args) {
+  // Each method validates the received parameters
+  args.ensure_count(1, get_function_name("patch").c_str());
+
+  try {
+    set_operation(Mysqlx::Crud::UpdateOperation::MERGE_PATCH, "", args[0]);
+
+    update_functions("operation");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("patch"));
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -623,6 +733,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -633,6 +744,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -699,6 +811,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -712,6 +825,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -779,6 +893,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -789,6 +904,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -860,6 +976,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
@@ -929,6 +1046,7 @@ REGISTER_HELP(
 * - unset(String attribute)
 * - unset(List attributes)
 * - merge(Document document)
+* - patch(Document document)
 * - arrayAppend(String path, Value value)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)

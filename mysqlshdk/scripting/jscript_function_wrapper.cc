@@ -70,11 +70,14 @@ void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Ob
 
 void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Handle<v8::Object> obj(args.Holder());
-  JScript_function_wrapper *self = static_cast<JScript_function_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-  std::shared_ptr<Function_base> *shared_ptr_data = static_cast<std::shared_ptr<Function_base>*>(obj->GetAlignedPointerFromInternalField(1));
-  std::string name =(*shared_ptr_data)->name();
+  JScript_function_wrapper *self = static_cast<JScript_function_wrapper *>(
+      obj->GetAlignedPointerFromInternalField(2));
+  std::shared_ptr<Function_base> shared_ptr_data =
+      *static_cast<std::shared_ptr<Function_base> *>(
+          obj->GetAlignedPointerFromInternalField(1));
+  std::string name = shared_ptr_data->name();
   try {
-    Value r = (*shared_ptr_data)->invoke(self->_context->convert_args(args));
+    Value r = shared_ptr_data->invoke(self->_context->convert_args(args));
     args.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(r));
   } catch (Exception &exc) {
     auto jsexc = self->_context->shcore_value_to_v8_value(Value(exc.error()));

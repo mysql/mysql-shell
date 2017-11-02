@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,11 +25,33 @@
 #ifndef _JSCRIPT_OBJECT_WRAPPER_H_
 #define _JSCRIPT_OBJECT_WRAPPER_H_
 
+#include <memory>
+#include <string>
 #include "scripting/types.h"
 #include "scripting/include_v8.h"
 
 namespace shcore {
 class JScript_context;
+
+class JScript_method_wrapper {
+ public:
+  explicit JScript_method_wrapper(JScript_context* context);
+  ~JScript_method_wrapper();
+
+  v8::Handle<v8::Object> wrap(std::shared_ptr<Object_bridge> object,
+                              const std::string& method);
+
+ private:
+  struct Collectable;
+  static void call(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+  static void wrapper_deleted(
+      const v8::WeakCallbackData<v8::Object, Collectable>& data);
+
+ private:
+  JScript_context* _context;
+  v8::Persistent<v8::ObjectTemplate> _object_template;
+};
 
 class JScript_object_wrapper {
 public:
@@ -39,6 +61,9 @@ public:
   v8::Handle<v8::Object> wrap(std::shared_ptr<Object_bridge> object);
 
   static bool unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Object_bridge> &ret_object);
+
+  static bool is_object(v8::Handle<v8::Object> value);
+  static bool is_method(v8::Handle<v8::Object> value);
 
 private:
   struct Collectable;
@@ -56,7 +81,8 @@ private:
 private:
   JScript_context *_context;
   v8::Persistent<v8::ObjectTemplate> _object_template;
+  JScript_method_wrapper _method_wrapper;
 };
-};
+}  // namespace shcore
 
 #endif
