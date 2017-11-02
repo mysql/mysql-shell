@@ -122,13 +122,13 @@ Validating instance...
 |Number of accounts: 1|
 
 #@ Dba: configure_local_instance not enough privileges 1
-||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configure_local_instance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: configure_local_instance not enough privileges 2
-||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configure_local_instance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: configure_local_instance not enough privileges 3
-||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configure_local_instance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|
@@ -192,30 +192,8 @@ You can now use it in an InnoDB Cluster.
 #@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
 ||
 
-#@<OUT> Dba: configureLocalInstance create existing invalid admin user
-Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>':
-Detected as sandbox instance.
-
-Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port2>>><<<__path_splitter>>>my.cnf
-MySQL user 'mydba' cannot be verified to have access to other hosts in the network.
-
-1) Create mydba@% with necessary grants
-2) Create account with different name
-3) Continue without creating account
-4) Cancel
-Please select an option [1]: Please provide an account name (e.g: icroot@%) to have it created with the necessary
-privileges or leave empty and press Enter to cancel.
-Account Name: Password for new account: Confirm password: Validating instance...
-
-The issues above can be fixed dynamically to get the server ready for InnoDB Cluster.
-
-{
-    "errors": [
-        "User 'dba_test'@'%' already exists but it does not have all the privileges for managing an InnoDB cluster. Please provide a non-existing user to be created or a different one with all the required privileges."
-    ],
-    "restart_required": false,
-    "status": "error"
-}
+#@ Dba: configureLocalInstance create existing invalid admin user
+||Dba.configure_local_instance: Cluster Admin account 'dba_test'@'%' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: Delete previously create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 0|

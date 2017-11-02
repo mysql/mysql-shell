@@ -31,8 +31,6 @@
 #include "mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
 
-#define ER_CANNOT_USER 1396
-
 namespace mysqlsh {
 namespace dba {
 /**

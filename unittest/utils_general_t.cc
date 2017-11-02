@@ -86,6 +86,7 @@ TEST(utils_general, split_account) {
     {"`foo`@```1234`", "foo", "`1234"},
     {"```foo`@```1234`", "`foo", "`1234"},
     {"foo@` .::1lol\\t\\n\\r\\b\\0'\"&$%`", "foo", " .::1lol\\t\\n\\r\\b\\0'\"&$%"},
+    {"root@leo06.no.oracle.com", "root", "leo06.no.oracle.com"}
   };
   for (auto &t : good_cases) {
     a.clear();

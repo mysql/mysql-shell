@@ -534,7 +534,7 @@ static const std::set<std::string> k_metadata_schema_privileges{
 // list of (schema, [privilege]) pairs, with the required privileges on each schema
 static const std::map<std::string, std::set<std::string>> k_schema_grants{
   {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
-  {"mysql", {"SELECT", "INSERT", "UPDATE", "DELETE"}} // need for mysql.plugin, mysql.user others
+  {"mysql", {"INSERT", "UPDATE", "DELETE"}} // need for mysql.plugin, mysql.user others
 };
 
 /** Check that the provided account has privileges to manage a cluster.
@@ -628,7 +628,7 @@ static const char *k_admin_user_grants[] = {
   "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.*",
   "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.*",
   "GRANT SELECT ON *.*",
-  "GRANT SELECT, INSERT, UPDATE, DELETE ON mysql.*"
+  "GRANT INSERT, UPDATE, DELETE ON mysql.*"
 };
 
 void create_cluster_admin_user(std::shared_ptr<mysqlsh::mysql::ClassicSession> session,

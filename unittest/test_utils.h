@@ -92,10 +92,12 @@ public:
     return _logger->get_log_level();
   }
 
-  void validate_stdout_content(const std::string& content, bool expected);
-  void validate_stderr_content(const std::string& content, bool expected);
-  void validate_log_content(const std::vector<std::string> &content, bool expected);
-  void validate_log_content(const std::string &content, bool expected);
+  void validate_stdout_content(const std::string &content, bool expected);
+  void validate_stderr_content(const std::string &content, bool expected);
+  void validate_log_content(const std::vector<std::string> &content,
+                            bool expected, bool clear = true);
+  void validate_log_content(const std::string &content, bool expected,
+                            bool clear = true);
 
   void debug_print(const std::string& line);
   void debug_print_header(const std::string& line);
@@ -113,12 +115,12 @@ protected:
   static void log_hook(const char *message, ngcommon::Logger::LOG_LEVEL level, const char *domain);
 };
 
-#define MY_EXPECT_STDOUT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stdout_content(x,true); } while (0)
-#define MY_EXPECT_STDERR_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,true); } while (0)
-#define MY_EXPECT_LOG_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,true); } while (0)
-#define MY_EXPECT_STDOUT_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stdout_content(x,false); } while (0)
-#define MY_EXPECT_STDERR_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,false); } while (0)
-#define MY_EXPECT_LOG_NOT_CONTAINS(x) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,false); } while (0)
+#define MY_EXPECT_STDOUT_CONTAINS(x, ...) do { SCOPED_TRACE(""); output_handler.validate_stdout_content(x,true, ##__VA_ARGS__); } while (0)
+#define MY_EXPECT_STDERR_CONTAINS(x, ...) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,true, ##__VA_ARGS__); } while (0)
+#define MY_EXPECT_LOG_CONTAINS(x, ...) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,true, ##__VA_ARGS__); } while (0)
+#define MY_EXPECT_STDOUT_NOT_CONTAINS(x, ...) do { SCOPED_TRACE(""); output_handler.validate_stdout_content(x,false, ##__VA_ARGS__); } while (0)
+#define MY_EXPECT_STDERR_NOT_CONTAINS(x, ...) do { SCOPED_TRACE(""); output_handler.validate_stderr_content(x,false, ##__VA_ARGS__); } while (0)
+#define MY_EXPECT_LOG_NOT_CONTAINS(x, ...) do { SCOPED_TRACE(""); output_handler.validate_log_content(x,false, ##__VA_ARGS__); } while (0)
 
 class Shell_core_test_wrapper : public tests::Shell_base_test,
                                 public shcore::NotificationObserver {

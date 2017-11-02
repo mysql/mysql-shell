@@ -207,7 +207,7 @@ session.run_sql("REVOKE REPLICATION SLAVE ON *.* FROM 'dba_test'@'%'")
 session.run_sql("SET SQL_LOG_BIN=1")
 session.close()
 
-#@<OUT> Dba: configureLocalInstance create existing invalid admin user
+#@ Dba: configureLocalInstance create existing invalid admin user
 # Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configure_local_instance('mydba:@localhost:' + str(__mysql_sandbox_port2),
     {"clusterAdmin": "dba_test", "clusterAdminPassword":"",

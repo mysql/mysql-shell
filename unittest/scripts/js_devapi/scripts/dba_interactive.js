@@ -67,6 +67,31 @@ var restored_sql_mode = row[0];
 var was_restored = restored_sql_mode == original_sql_mode;
 print("Original SQL_MODE has been restored: "+ was_restored + "\n");
 
+//@ Dba: create cluster using a non existing user that authenticates as another user (BUG#26979375)
+// Clear super read_only
+session.runSql("set GLOBAL super_read_only = 0");
+session.runSql("SET sql_log_bin = 0");
+session.runSql("CREATE USER 'test_user'@'%'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'test_user'@'%' WITH GRANT OPTION");
+session.runSql("SET sql_log_bin = 1");
+session.close()
+
+shell.connect({host: hostname, port: __mysql_sandbox_port1, user: 'test_user', password: ''});
+c1 = dba.createCluster("devCluster", {clearReadOnly: true});
+c1
+
+//@ Dba: dissolve cluster created using a non existing user that authenticates as another user (BUG#26979375)
+c1.dissolve({force:true});
+session.close()
+shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
+// drop created test_user
+// Clear super read_only
+session.runSql("set GLOBAL super_read_only = 0");
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP user 'test_user'@'%'");
+session.runSql("SET sql_log_bin = 1");
+
 //@<OUT> Dba: createCluster with interaction
 if (__have_ssl)
   var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
@@ -184,7 +209,7 @@ session.runSql("REVOKE REPLICATION SLAVE ON *.* FROM 'dba_test'@'%'");
 session.runSql("SET SQL_LOG_BIN=1");
 session.close();
 
-//@<OUT> Dba: configureLocalInstance create existing invalid admin user
+//@ Dba: configureLocalInstance create existing invalid admin user
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
 
