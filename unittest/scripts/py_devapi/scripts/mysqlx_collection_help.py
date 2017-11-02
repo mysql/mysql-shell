@@ -1,7 +1,5 @@
 # Assumptions: validate_crud_functions available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-#mysqlx = require('mysqlx');
-
 mySession = mysqlx.get_session(__uripwd);
 
 ensure_schema_does_not_exist(mySession, 'py_shell_test');

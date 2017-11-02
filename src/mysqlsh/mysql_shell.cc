@@ -1239,6 +1239,7 @@ void Mysql_shell::add_devapi_completions() {
                                  {{"set", "CollectionModify*", true},
                                   {"unset", "CollectionModify*", true},
                                   {"merge", "CollectionModify*", true},
+                                  {"patch", "CollectionModify*", true},
                                   {"arrayInsert", "CollectionModify*", true},
                                   {"arrayAppend", "CollectionModify*", true},
                                   {"arrayDelete", "CollectionModify*", true}});
@@ -1247,6 +1248,7 @@ void Mysql_shell::add_devapi_completions() {
                                  {{"set", "CollectionModify*", true},
                                   {"unset", "CollectionModify*", true},
                                   {"merge", "CollectionModify*", true},
+                                  {"patch", "CollectionModify*", true},
                                   {"arrayInsert", "CollectionModify*", true},
                                   {"arrayAppend", "CollectionModify*", true},
                                   {"arrayDelete", "CollectionModify*", true},

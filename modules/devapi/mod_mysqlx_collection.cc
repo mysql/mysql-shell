@@ -172,9 +172,10 @@ shcore::Value Collection::add_(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(COLLECTION_MODIFY_BRIEF, "Creates a collection update handler.");
-REGISTER_HELP(
-    COLLECTION_MODIFY_CHAINED,
-    "CollectionModify.modify.[set].[unset].[merge].[arrayInsert].[arrayAppend].[arrayDelete].[sort].[limit].[bind].[execute]");
+REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
+              "CollectionModify.modify.[set].[unset].[merge].[patch].["
+              "arrayInsert].[arrayAppend].[arrayDelete].[sort].[limit].[bind].["
+              "execute]");
 
 /**
 * $(COLLECTION_ADD_BRIEF)
@@ -187,6 +188,7 @@ REGISTER_HELP(
 *     <tr><td></td><td>[.set(...)]</td></tr>
 *     <tr><td></td><td>[.$(COLLECTIONMODIFY_UNSET_SYNTAX)]</td></tr>
 *     <tr><td></td><td>[.merge(...)]</td></tr>
+*     <tr><td></td><td>[.patch(...)]</td></tr>
 */
 #if DOXYGEN_JS
 /**
@@ -258,6 +260,29 @@ REGISTER_HELP(
 * $(COLLECTIONMODIFY_MERGE_DETAIL1)
 *
 * $(COLLECTIONMODIFY_MERGE_DETAIL2)
+*
+* #### .patch()
+*
+* $(COLLECTIONMODIFY_PATCH_BRIEF)
+*
+* $(COLLECTIONMODIFY_PATCH_PARAM)
+*
+* $(COLLECTIONMODIFY_PATCH_RETURNS)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL1)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL2)
+* $(COLLECTIONMODIFY_PATCH_DETAIL3)
+* $(COLLECTIONMODIFY_PATCH_DETAIL4)
+* $(COLLECTIONMODIFY_PATCH_DETAIL5)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL6)
+* $(COLLECTIONMODIFY_PATCH_DETAIL7)
+* $(COLLECTIONMODIFY_PATCH_DETAIL8)
+*
+* $(COLLECTIONMODIFY_PATCH_DETAIL9)
 *
 * #### .arrayInsert()
 *

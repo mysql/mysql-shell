@@ -54,6 +54,7 @@ class CollectionModify : public Collection_crud_definition,
   CollectionModify unset(String attribute);
   CollectionModify unset(List attributes);
   CollectionModify merge(Document document);
+  CollectionModify patch(Document document);
   CollectionModify arrayAppend(String path, Value value);
   CollectionModify arrayInsert(String path, Value value);
   CollectionModify arrayDelete(String path);
@@ -68,6 +69,7 @@ class CollectionModify : public Collection_crud_definition,
   CollectionModify unset(str attribute);
   CollectionModify unset(list attributes);
   CollectionModify merge(Document document);
+  CollectionModify patch(Document document);
   CollectionModify array_append(str path, Value value);
   CollectionModify array_insert(str path, Value value);
   CollectionModify array_delete(str path);
@@ -85,6 +87,7 @@ private:
   shcore::Value set(const shcore::Argument_list &args);
   shcore::Value unset(const shcore::Argument_list &args);
   shcore::Value merge(const shcore::Argument_list &args);
+  shcore::Value patch(const shcore::Argument_list &args);
   shcore::Value array_insert(const shcore::Argument_list &args);
   shcore::Value array_append(const shcore::Argument_list &args);
   shcore::Value array_delete(const shcore::Argument_list &args);

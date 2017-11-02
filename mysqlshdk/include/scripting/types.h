@@ -479,6 +479,9 @@ public:
   //! Sets the value of a member
   virtual void set_member(size_t index, Value value) = 0;
 
+  //! Returns true if a method with the given name exists.
+  virtual bool has_method(const std::string &name) const = 0;
+
   //! Calls the named method with the given args
   virtual Value call(const std::string &name, const Argument_list &args) = 0;
 };

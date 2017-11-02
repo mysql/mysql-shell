@@ -46,7 +46,7 @@ class Collection_crud_definition : public Crud_definition {
  protected:
   virtual void parse_string_expression(::Mysqlx::Expr::Expr *expr,
                                        const std::string &expr_str) {
-    ::mysqlx::Expr_parser parser(expr_str, true);
+    ::mysqlx::Expr_parser parser(expr_str, true, false, &_placeholders);
     // FIXME the parser should be changed to encode into the provided object
     expr->CopyFrom(*parser.expr());
   }

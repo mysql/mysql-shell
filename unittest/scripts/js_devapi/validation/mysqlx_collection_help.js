@@ -343,6 +343,7 @@ SYNTAX
               [.set(...)]
               [.unset(...)]
               [.merge(...)]
+              [.patch(...)]
               [.arrayInsert(...)]
               [.arrayAppend(...)]
               [.arrayDelete(...)]
@@ -407,6 +408,34 @@ Creates a collection update handler.
     documents.
 
     The attribute addition will be done on the collection's documents once the
+    execute method is called.
+
+  .patch(...)
+
+    This function adds an operation to update the documents of a collection,
+    the patch operation follows the algorithm described on the JSON Merge Patch
+    RFC7386.
+
+    The patch JSON object will be used to either add, update or remove fields
+    from documents in the collection that match the filter specified on the
+    call to the modify() function.
+
+    The operation to be performed depends on the attributes defined at the
+    patch JSON object:
+
+     - Any attribute with value equal to null will be removed if exists.
+     - Any attribute with value different than null will be updated if exists.
+     - Any attribute with value different than null will be added if does not
+       exists.
+
+    Special considerations:
+
+     - The _id of the documents is inmutable, so it will not be affected by the
+       patch operation even if it is included on the patch JSON object.
+     - The patch JSON object accepts expression objects as values. If used they
+       will be evaluated at the server side.
+
+    The patch operations will be done on the collection's documents once the
     execute method is called.
 
   .arrayInsert(...)

@@ -54,6 +54,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
                                     int quote_strings = 0) const;
   virtual bool operator == (const Object_bridge &other) const;
 
+  virtual shcore::Value call(const std::string &name,
+                             const shcore::Argument_list &args);
   virtual shcore::Value get_member(const std::string &prop) const;
 
   uint64_t get_id() const { return _id; }

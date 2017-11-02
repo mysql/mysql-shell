@@ -109,6 +109,13 @@ String Cluster::getName() {}
 str Cluster::get_name() {}
 #endif
 
+shcore::Value Cluster::call(const std::string &name,
+                            const shcore::Argument_list &args) {
+  // Throw an error if the cluster has already been dissolved
+  assert_not_dissolved(name);
+  return Cpp_object_bridge::call(name, args);
+}
+
 shcore::Value Cluster::get_member(const std::string &prop) const {
   shcore::Value ret_val;
   // Throw an error if the cluster has already been dissolved

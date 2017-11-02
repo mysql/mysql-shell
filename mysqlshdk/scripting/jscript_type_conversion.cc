@@ -265,15 +265,18 @@ v8::Handle<v8::String> JScript_type_bridger::type_info(v8::Handle<v8::Value> val
     std::shared_ptr<Value::Array_type> array;
     std::shared_ptr<Function_base> function;
 
-    if (JScript_array_wrapper::unwrap(jsobject, array))
+    if (JScript_array_wrapper::unwrap(jsobject, array)) {
       return v8::String::NewFromUtf8(owner->isolate(), "m.Array");
-    else if (JScript_map_wrapper::unwrap(jsobject, map))
+    } else if (JScript_map_wrapper::unwrap(jsobject, map)) {
       return v8::String::NewFromUtf8(owner->isolate(), "m.Map");
-    else if (JScript_object_wrapper::unwrap(jsobject, object))
-      return v8::String::NewFromUtf8(owner->isolate(), ("m." + object->class_name()).c_str());
-    else if (JScript_function_wrapper::unwrap(jsobject, function))
+    } else if (JScript_object_wrapper::unwrap(jsobject, object)) {
+      return v8::String::NewFromUtf8(owner->isolate(),
+        ("m." + object->class_name()).c_str());
+    } else if (JScript_function_wrapper::unwrap(jsobject, function)) {
       return v8::String::NewFromUtf8(owner->isolate(), "m.Function");
-    else {
+    } else if (JScript_object_wrapper::is_method(jsobject)) {
+      return v8::String::NewFromUtf8(owner->isolate(), "m.Function");
+    } else {
       if (!jsobject->GetConstructorName().IsEmpty())
         return jsobject->GetConstructorName();
       else
