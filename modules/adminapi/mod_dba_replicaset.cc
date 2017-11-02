@@ -23,6 +23,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <memory>
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_common.h"
@@ -48,8 +49,8 @@
 
 #include <netdb.h>
 #include <unistd.h>
-#include <gr/group_replication.h>
 #endif
+#include "gr/group_replication.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -1257,7 +1258,7 @@ std::string ReplicaSet::get_peer_instance() {
         master_instance = instance.endpoint;
       }
     }
-  } else if (!instances.empty()){
+  } else if (!instances.empty()) {
     // If in multi-master mode, any instance works
     // so we can get the first one that is online
     auto instance = instances[0];
