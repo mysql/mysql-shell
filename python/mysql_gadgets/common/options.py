@@ -588,7 +588,7 @@ def add_uuid_option(parser, option_name, dest, help_txt, required=False):
     """
 
     parser.add_argument(option_name, dest=dest, help=help_txt,
-                        action=_UUIDInfoStore, required=required)
+                        action="store", required=required)
 
 
 def add_port_option(parser, help_txt):

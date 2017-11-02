@@ -26,6 +26,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils/admin_api_test.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "scripting/types.h"
 
 namespace tests {
 class Dba_common_test : public Admin_api_test {
@@ -1649,4 +1650,71 @@ TEST(mod_dba_common, is_valid_identifier) {
   EXPECT_ANY_THROW(
       // Invalid identifier, contains invalid synbol
       t = "(*)%?"; mysqlsh::dba::validate_cluster_name(t););
+}
+
+TEST(mod_dba_common, validate_group_name_option) {
+  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
+
+  // Error if the groupName is empty.
+  (*options)["groupName"] = shcore::Value("");
+  EXPECT_THROW(mysqlsh::dba::validate_group_name_option(options),
+               shcore::Exception);
+
+  // Error if the groupName string is empty (only whitespace).
+  (*options)["groupName"] = shcore::Value("  ");
+  EXPECT_THROW(mysqlsh::dba::validate_group_name_option(options),
+               shcore::Exception);
+
+  // No error if the groupName is a non-empty string.
+  (*options)["groupName"] = shcore::Value("myname");
+  EXPECT_NO_THROW(mysqlsh::dba::validate_group_name_option(options));
+}
+
+TEST(mod_dba_common, validate_local_address_option) {
+  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
+
+  // Error if the localAddress is empty.
+  (*options)["localAddress"] = shcore::Value("");
+  EXPECT_THROW(mysqlsh::dba::validate_local_address_option(options),
+               shcore::Exception);
+
+  // Error if the localAddress string is empty (only whitespace).
+  (*options)["localAddress"] = shcore::Value("  ");
+  EXPECT_THROW(mysqlsh::dba::validate_local_address_option(options),
+               shcore::Exception);
+
+  // Error if the localAddress has ':' and no host nor port part is specified.
+  (*options)["localAddress"] = shcore::Value(" : ");
+  EXPECT_THROW(mysqlsh::dba::validate_local_address_option(options),
+               shcore::Exception);
+
+  // No error if the localAddress is a non-empty string.
+  (*options)["localAddress"] = shcore::Value("myhost:1234");
+  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
+  (*options)["localAddress"] = shcore::Value("myhost:");
+  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
+  (*options)["localAddress"] = shcore::Value(":1234");
+  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
+  (*options)["localAddress"] = shcore::Value("myhost");
+  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
+  (*options)["localAddress"] = shcore::Value("1234");
+  EXPECT_NO_THROW(mysqlsh::dba::validate_local_address_option(options));
+}
+
+TEST(mod_dba_common, validate_group_seeds_option) {
+  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
+
+  // Error if the groupSeeds is empty.
+  (*options)["groupSeeds"] = shcore::Value("");
+  EXPECT_THROW(mysqlsh::dba::validate_group_seeds_option(options),
+               shcore::Exception);
+
+  // Error if the groupSeeds string is empty (only whitespace).
+  (*options)["groupSeeds"] = shcore::Value("  ");
+  EXPECT_THROW(mysqlsh::dba::validate_group_seeds_option(options),
+               shcore::Exception);
+
+  // No error if the groupSeeds is a non-empty string.
+  (*options)["groupSeeds"] = shcore::Value("host1:1234,host2:4321");
+  EXPECT_NO_THROW(mysqlsh::dba::validate_group_seeds_option(options));
 }

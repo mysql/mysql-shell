@@ -21,6 +21,7 @@ import collections
 import datetime
 import logging
 import os
+import re
 import socket
 
 from mysql_gadgets import MIN_MYSQL_VERSION
@@ -586,6 +587,21 @@ def get_group_uuid_name(server):
     """
     res = server.exec_query("SELECT UUID()")
     return "'{0}'".format(res[0][0])
+
+
+def validate_group_name(group_name):
+    """Validates if the specified group name UUID is valid.
+
+    The group_name must be have a valid UUID format.
+
+    :param group_name: group name value to verify.
+    :type group_name: string
+
+    :raises GadgetError: if the specified group name is invalid (not a UUID).
+    """
+    if group_name and re.match(REX_UUID, group_name) is None:
+        raise GadgetError("Invalid value '{0}' for groupName, it must be a "
+                          "valid UUID.".format(group_name))
 
 
 def install_plugin(server, dry_run=False):
@@ -2055,6 +2071,9 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         GR_GROUP_SEEDS: options.get("group_seeds", None),
         GR_IP_WHITELIST: options.get("ip_whitelist", None)
     }
+
+    # Validate Group Name
+    validate_group_name(gr_config_vars[GR_GROUP_NAME])
 
     # Use the value passed as an argument and not the value from
     # the option file.

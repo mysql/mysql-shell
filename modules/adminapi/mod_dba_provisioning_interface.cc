@@ -448,7 +448,8 @@ int ProvisioningInterface::start_replicaset(
     const std::string &repl_user, const std::string &super_user_password,
     const std::string &repl_user_password, bool multi_master,
     const std::string &ssl_mode, const std::string &ip_whitelist,
-    const std::string &group_name, shcore::Value::Array_type_ref *errors) {
+    const std::string &group_name, const std::string &gr_local_address,
+const std::string &gr_group_seeds, shcore::Value::Array_type_ref *errors) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -456,6 +457,8 @@ int ProvisioningInterface::start_replicaset(
   std::string ssl_mode_opt;
   std::string ip_whitelist_opt;
   std::string group_name_opt;
+  std::string gr_bind_address_opt;
+  std::string gr_group_seeds_opt;
 
   instance_args =
       "--instance=" + instance.as_uri(user_transport());
@@ -486,19 +489,29 @@ int ProvisioningInterface::start_replicaset(
     group_name_opt = "--group-name=" + group_name;
     args.push_back(group_name_opt.c_str());
   }
+  if (!gr_local_address.empty()) {
+    gr_bind_address_opt = "--gr-bind-address=" + gr_local_address;
+    args.push_back(gr_bind_address_opt.c_str());
+  }
+  if (!gr_group_seeds.empty()) {
+    gr_group_seeds_opt = "--group-seeds=" + gr_group_seeds;
+    args.push_back(gr_group_seeds_opt.c_str());
+  }
 
   args.push_back("--stdin");
 
   return execute_mysqlprovision("start-replicaset", args, passwords, errors,
                                 _verbose);
 }
+
 int ProvisioningInterface::join_replicaset(
     const mysqlshdk::db::Connection_options &instance,
     const mysqlshdk::db::Connection_options &peer, const std::string &repl_user,
     const std::string &super_user_password,
     const std::string &repl_user_password, const std::string &ssl_mode,
-    const std::string &ip_whitelist, const std::string &gr_group_seeds,
-    bool skip_rpl_user, shcore::Value::Array_type_ref *errors) {
+    const std::string &ip_whitelist, const std::string &gr_local_address,
+    const std::string &gr_group_seeds, bool skip_rpl_user,
+    shcore::Value::Array_type_ref *errors) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -506,6 +519,7 @@ int ProvisioningInterface::join_replicaset(
   std::string ssl_mode_opt;
   std::string ip_whitelist_opt;
   std::string gr_group_seeds_opt;
+  std::string gr_bind_address_opt;
 
   instance_args =
       "--instance=" + instance.as_uri(user_transport());
@@ -541,6 +555,10 @@ int ProvisioningInterface::join_replicaset(
     args.push_back(ip_whitelist_opt.c_str());
   }
 
+  if (!gr_local_address.empty()) {
+    gr_bind_address_opt = "--gr-bind-address=" + gr_local_address;
+    args.push_back(gr_bind_address_opt.c_str());
+  }
   if (!gr_group_seeds.empty()) {
     gr_group_seeds_opt = "--group-seeds=" + gr_group_seeds;
     args.push_back(gr_group_seeds_opt.c_str());
