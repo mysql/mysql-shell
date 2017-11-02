@@ -170,7 +170,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
                           const std::string &repl_user_password,
                           const std::string &ssl_mode,
                           const std::string &ip_whitelist,
-                          const std::string &group_name = "");
+                          const std::string &group_name = "",
+                          const std::string &local_address = "",
+                          const std::string &group_seeds = "");
 
   std::string get_peer_instance();
 

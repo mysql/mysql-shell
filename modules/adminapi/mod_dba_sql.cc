@@ -23,6 +23,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <utils/utils_general.h>
 #include "utils/utils_sqlstring.h"
 
 namespace mysqlsh {
@@ -504,11 +505,25 @@ std::vector<std::string> get_peer_seeds(
   query.done();
 
   try {
-    auto result = connection->query(query);
+    // Get current GR group seeds value
+    auto result = connection->query(
+        "SELECT @@global.group_replication_group_seeds");
     auto row = result->fetch_one();
+    std::string group_seeds_str = row->get_string(0);
+    if (!group_seeds_str.empty())
+      ret_val = shcore::split_string(group_seeds_str, ",");
 
-    while(row) {
-      ret_val.push_back(row->get_string(0));
+    // Get the list of known seeds from the metadata.
+    result = connection->query(query);
+    row = result->fetch_one();
+    while (row) {
+      std::string seed = row->get_string(0);
+
+      if (std::find(ret_val.begin(), ret_val.end(), seed) ==
+          ret_val.end()) {
+        // Only add seed from metadata if not already in the GR group seeds.
+        ret_val.push_back(seed);
+      }
       row = result->fetch_one();
     }
   } catch (shcore::database_error &error) {

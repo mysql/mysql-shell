@@ -57,7 +57,7 @@ from mysql_gadgets.common.group_replication import (
     get_member_state, get_req_dict, get_req_dict_for_opt_file,
     get_req_dict_user_check, get_rpl_usr, get_group_uuid_name,
     is_active_member, is_member_of_group, set_bootstrap, start_gr_plugin,
-    stop_gr_plugin, unset_bootstrap,)
+    stop_gr_plugin, unset_bootstrap, validate_group_name)
 from mysql_gadgets.common.tools import is_listening
 
 logging.setLoggerClass(CustomLevelLogger)
@@ -99,6 +99,13 @@ _ERROR_NO_SERVER = "No server was given."
 
 _ERROR_UNABLE_TO_GET = "Unable to get the {0} from the peer server '{1}'."
 
+_ERROR_INVALID_LOCAL_ADDRESS_PORT = (
+    "Invalid port '{0}' for localAddress option. The port must be an integer "
+    "between 1 and 65535.")
+_ERROR_LOCAL_ADDRESS_PORT_IN_USE = (
+    "The port '{0}' for localAddress option is already in use. Specify an "
+    "available port to be used with localAddress option or free port '{0}'.")
+
 _RUNNING_COMMAND = "Running {0} command on {1}."
 
 _WARN_DRY_RUN_USED = ("None of the previous changes were made. Changes are "
@@ -135,6 +142,8 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
     :return: A tuple with host and port.
     :rtype:  tuple
     """
+    is_port_specified = False
+
     # No info provided, use the server to generate it.
     if gr_host is None or gr_host == "":
         gr_host = server_host
@@ -147,14 +156,23 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
             gr_host = server_host
         if not local_port:
             local_port = str(int(server_port) + 10000)
-        elif not local_port.isdigit():
-            gr_host = "{0}:{1}".format(gr_host, local_port)
-            local_port = str(int(server_port) + 10000)
+        elif (not local_port.isdigit()
+              or int(local_port) <= 0 or int(local_port) > 65535):
+            # Raise an error if the specified port part is invalid.
+            raise GadgetError(
+                _ERROR_INVALID_LOCAL_ADDRESS_PORT.format(local_port))
+        else:
+            is_port_specified = True
 
     # Try to get the port only
     elif gr_host.isdigit():
         local_port = gr_host
         gr_host = server_host
+        is_port_specified = True
+        # Raise an error if the specified port is invalid (out of range).
+        if int(local_port) <= 0 or int(local_port) > 65535:
+            raise GadgetError(
+                _ERROR_INVALID_LOCAL_ADDRESS_PORT.format(local_port))
 
     # Generate a local port based on the + 10000 rule.
     else:
@@ -164,7 +182,7 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
     gr_host = clean_IPv6(gr_host)
 
     # Generate a random port if out of range.
-    if int(local_port) < 0 or int(local_port) > 65535:
+    if int(local_port) <= 0 or int(local_port) > 65535:
         local_port = str(random.randint(10000, 65535))
         # gr_host is host address
 
@@ -176,14 +194,18 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
         if not is_listening(server_host, int(local_port)):
             port_found = True
         else:
-            local_port = str(random.randint(10000, 65535))
+            if is_port_specified:
+                raise GadgetError(
+                    _ERROR_LOCAL_ADDRESS_PORT_IN_USE.format(local_port))
+            else:
+                local_port = str(random.randint(10000, 65535))
 
     if not port_found:
         raise GadgetError("Unable to find an available port on which the "
                           "member will expose itself to be contacted by the "
-                          "other members of the group. Please try again to "
-                          "attempt to use another random port or free port "
-                          "{0}.".format(str(int(server_port) + 10000)))
+                          "other members of the group. Specify an available "
+                          "port to be used with localAddress option or free "
+                          "port {0}.".format(str(int(server_port) + 10000)))
 
     return gr_host, local_port
 
@@ -719,7 +741,7 @@ def join(server_info, peer_server_info, **kwargs):
 
     verbose = kwargs.get("verbose", False)
     dry_run = kwargs.get("dry_run", False)
-    gr_host = kwargs.get("gr_host", None)
+    gr_host = kwargs.get("gr_address", None)
     option_file = kwargs.get("option_file", None)
     skip_backup = kwargs.get("skip_backup", False)
     # Default is value for ssl_mode is REQUIRED
