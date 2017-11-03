@@ -38,7 +38,6 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
 #include "scripting/object_factory.h"
-#include "shellcore/shell_core_options.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 #include "modules/mod_utils.h"

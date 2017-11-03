@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 #include "unittest/test_utils/shell_test_wrapper.h"
+#include <memory>
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 #include "shellcore/interrupt_handler.h"
@@ -27,8 +28,9 @@ Shell_test_wrapper::Shell_test_wrapper() {
 }
 
 void Shell_test_wrapper::reset() {
+  _opts = std::make_shared<mysqlsh::Shell_options>();
   _interactive_shell.reset(
-      new mysqlsh::Mysql_shell(_options, &output_handler.deleg));
+      new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
 
   _interactive_shell->finish_init();
 }
@@ -48,8 +50,8 @@ void Shell_test_wrapper::execute(const std::string& line) {
   _interactive_shell->process_line(line);
 }
 
-mysqlsh::Shell_options& Shell_test_wrapper::get_options() {
-  return _options;
+mysqlsh::Shell_options::Storage& Shell_test_wrapper::get_options() {
+  return const_cast<mysqlsh::Shell_options::Storage&>(_opts->get());
 }
 
 void Shell_test_wrapper::trace_protocol() {

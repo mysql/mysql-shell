@@ -28,6 +28,7 @@
 #include "shellcore/shell_sql.h"
 #include "shellcore/base_session.h"
 #include "modules/devapi/base_resultset.h"
+#include "modules/mod_shell_options.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
@@ -75,7 +76,7 @@ TEST_F(Shell_core_test, test_process_stream) {
   const char *err_table_80 = "Unknown database 'unexisting'";
 
   // Successfully processed file
-  (*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
+  _options->force = false;
   process("sql/sql_ok.sql");
   EXPECT_EQ(0, _ret_val);
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
@@ -89,7 +90,7 @@ TEST_F(Shell_core_test, test_process_stream) {
   EXPECT_EQ(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
   // Failed without the force option
-  (*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::True();
+  _options->force = true;
   process("sql/sql_err.sql");
   EXPECT_EQ(1, _ret_val);
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
@@ -209,9 +210,11 @@ TEST_F(Shell_core_test, regression_prompt_on_override_session) {
   connect();
 
   EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
-  (*Shell_core_options::get())[SHCORE_USE_WIZARDS] = shcore::Value::False();
-  _interactive_shell->shell_context()->set_global("session", Value(std::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
-  (*Shell_core_options::get())[SHCORE_USE_WIZARDS] = shcore::Value::True();
+  _options->wizards = false;
+  _interactive_shell->shell_context()->set_global(
+      "session", Value(std::static_pointer_cast<Object_bridge>(
+                     std::make_shared<shcore::Mod_shell_options>(_opts))));
+  _options->wizards = true;
   EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
 
   // The session object has been overriden, even so we need to close th session
@@ -341,5 +344,5 @@ TEST_F(Shell_core_test, autocache_shell_connect_node) {
   wipe_all();
   execute("session.close();");
 }
-}
-}
+}  // namespace shell_core_tests
+}  // namespace shcore

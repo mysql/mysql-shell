@@ -26,10 +26,8 @@
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/mod_mysql_resultset.h"
 #include "shellcore/interrupt_handler.h"
-#include "shellcore/shell_core_options.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "utils/utils_string.h"
-
-using options = shcore::Shell_core_options;
 
 class Field_formatter {
  public:
@@ -167,9 +165,9 @@ ResultsetDumper::ResultsetDumper(
       _resultset(target),
       _buffer_data(buffer_data),
       _cancelled(false) {
-  _format = options::get()->get_string(SHCORE_OUTPUT_FORMAT);
-  _interactive = options::get()->get_bool(SHCORE_INTERACTIVE);
-  _show_warnings = options::get()->get_bool(SHCORE_SHOW_WARNINGS);
+  _format = mysqlsh::Base_shell::options().output_format;
+  _interactive = mysqlsh::Base_shell::options().interactive;
+  _show_warnings = mysqlsh::Base_shell::options().show_warnings;
 }
 
 void ResultsetDumper::dump() {

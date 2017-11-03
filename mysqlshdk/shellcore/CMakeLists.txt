@@ -26,7 +26,6 @@ set(SHELLCORE_SOURCES
   interrupt_handler.cc
   ishell_core.cc
   shell_core.cc
-  shell_core_options.cc
   shell_notifications.cc
   shell_options.cc
   shell_resultset_dumper.cc

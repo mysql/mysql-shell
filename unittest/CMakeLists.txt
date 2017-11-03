@@ -65,7 +65,6 @@ if(WITH_TESTS)
         # but is ont the application level. At some point we should put Mysql_shell available in a alibrary
         # to be integrable as Full Shell Functionality
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/get_password.cc"
-        "${CMAKE_SOURCE_DIR}/src/mysqlsh/shell_cmdline_options.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/mysql_shell.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/prompt_renderer.cc"
         "${CMAKE_SOURCE_DIR}/src/mysqlsh/prompt_manager.cc"

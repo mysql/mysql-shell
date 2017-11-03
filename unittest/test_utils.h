@@ -15,6 +15,7 @@
 
 #include <fstream>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
@@ -282,11 +283,9 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   // options First set the options on _options
   void reset_options() {
     extern char *g_mppath;
-    shcore::Shell_core_options::reset_instance();
-    (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] =
-        shcore::Value(g_mppath);
-
-    _options.reset(new mysqlsh::Shell_options());
+    _opts.reset(new mysqlsh::Shell_options());
+    _options = const_cast<mysqlsh::Shell_options::Storage*>(&_opts->get());
+    _options->gadgets_path = g_mppath;
   }
 
   bool debug;
@@ -299,7 +298,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
 
   virtual void reset_shell() {
     _interactive_shell.reset(
-        new mysqlsh::Mysql_shell(*_options.get(), &output_handler.deleg));
+        new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
 
     _interactive_shell->finish_init();
     set_defaults();
@@ -310,7 +309,8 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
 
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
-  std::shared_ptr<mysqlsh::Shell_options> _options;
+  std::shared_ptr<mysqlsh::Shell_options> _opts;
+  mysqlsh::Shell_options::Storage* _options;
   void wipe_out() {
     output_handler.wipe_out();
   }

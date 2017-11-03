@@ -22,11 +22,11 @@
 
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
-#include "shellcore/shell_core_options.h"
 #include "shellcore/utils_help.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "shellcore/base_session.h"
 #include "modules/mod_mysql_session.h"
+#include "modules/mod_shell_options.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/base_database_object.h"
 #include "shellcore/shell_notifications.h"
@@ -41,7 +41,9 @@ namespace mysqlsh {
 REGISTER_HELP(SHELL_BRIEF, "Gives access to general purpose functions and properties.");
 
 Shell::Shell(Mysql_shell *owner)
-    : _shell(owner), _shell_core(owner->shell_context().get()) {
+    : _shell(owner),
+      _shell_core(owner->shell_context().get()),
+      _core_options(new shcore::Mod_shell_options(owner->get_options())) {
   init();
 }
 
@@ -137,7 +139,8 @@ shcore::Value Shell::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
   if (prop == "options") {
-    ret_val = shcore::Value(std::static_pointer_cast<Object_bridge>(shcore::Shell_core_options::get_instance()));
+    ret_val =
+        shcore::Value(std::static_pointer_cast<Object_bridge>(_core_options));
   } else {
     ret_val = Cpp_object_bridge::get_member(prop);
   }

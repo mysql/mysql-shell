@@ -34,7 +34,7 @@
 #include "mysqlshdk/libs/utils/debug.h"
 #include "scripting/python_utils.h"
 #include "scripting/types_cpp.h"
-#include "shellcore/shell_core_options.h"  // TODO(alfredo) doesn't belong here
+#include "mysqlshdk/include/shellcore/base_shell.h"  // TODO(alfredo) doesn't belong here
 
 #ifndef WIN32
 #define PY_SIZE_T_FMT "%zi"
@@ -250,7 +250,7 @@ static PyObject *object_printable(PyShObjObject *self) {
   PyObject *ret_val;
 
   Value object((*self->object));
-  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format = mysqlsh::Base_shell::options().output_format;
 
   if (format.find("json") == 0)
      ret_val = PyString_FromString(object.json(format == "json").c_str());

@@ -25,7 +25,6 @@
 
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
-#include "shellcore/shell_core_options.h"
 #include "scripting/lang_base.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 

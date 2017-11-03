@@ -433,8 +433,7 @@ void Shell_script_tester::execute_script(const std::string& path,
 
     // Process the file
     if (in_chunks) {
-      (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] =
-          shcore::Value::True();
+      _options->interactive = true;
       load_source_chunks(stream);
       for (size_t index = 0; index < _chunk_order.size(); index++) {
         // Prints debugging information
@@ -476,8 +475,7 @@ void Shell_script_tester::execute_script(const std::string& path,
           output_handler.whipe_debug_log();
       }
     } else {
-      (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] =
-          shcore::Value::False();
+      _options->interactive = false;
 
       // Processes the script
       _interactive_shell->process_stream(stream, script, {}, true);
@@ -495,8 +493,7 @@ void Shell_script_tester::execute_script(const std::string& path,
         output_handler.wipe_all();
       } else {
         // If processing a tets script, performs the validations over it
-        (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] =
-            shcore::Value::True();
+        _options->interactive = true;
         if (!validate(script)) {
           std::cerr << makeredbg("----------vvvv Failure Log vvvv----------")
                     << std::endl;
@@ -555,8 +552,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
       load_validations(file_name, true);
 
       // Process the file
-      (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] =
-          shcore::Value::True();
+      _options->interactive = true;
       load_source_chunks(stream);
       for (size_t index = 0; index < _chunk_order.size(); index++) {
         // Prints debugging information

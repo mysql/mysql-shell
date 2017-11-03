@@ -20,6 +20,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_OPTIONS_H_
 #define MYSQLSHDK_LIBS_UTILS_OPTIONS_H_
 
+#include <cassert>
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -124,7 +125,7 @@ class Concrete_option : public Generic_option {
                                  const char *value) override {
     if (value == nullptr) {
       if (accept_null)
-        value = "1";
+        value = "";
       else
         throw std::invalid_argument("Option " + option + " needs value");
     }
@@ -179,6 +180,9 @@ Proxy_option::Handler assign_value(T *landing_spot, S value) {
 
 template <class T>
 T convert(const std::string &data) {
+  // assuming that option specification turns it on
+  if (data.empty())
+    return 1;
   T t;
   std::istringstream iss(data);
   iss >> t;
@@ -218,6 +222,7 @@ struct Read_only : public Basic_type<T> {
 template <class T>
 struct Range : public Basic_type<T> {
   Range(T min, T max) : min(min), max(max) {
+    assert(max >= min);
   }
 
   T operator()(const std::string &data, Source source) {

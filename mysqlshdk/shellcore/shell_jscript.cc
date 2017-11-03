@@ -22,6 +22,7 @@
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 
 using namespace shcore;
 
@@ -40,7 +41,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state,
     return true;
   });
 
-  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
+  if (mysqlsh::Base_shell::options().interactive)
     result = _js->execute_interactive(code, state);
   else {
     try {

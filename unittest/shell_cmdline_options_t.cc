@@ -20,8 +20,10 @@
 #include <string>
 
 #include "gtest_clean.h"
-#include "mysqlsh/shell_cmdline_options.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "utils/utils_general.h"
+
+using mysqlsh::Shell_options;
 
 namespace shcore {
 #define IS_CONNECTION_DATA true
@@ -71,7 +73,7 @@ class Shell_cmdline_options : public ::testing::Test {
  public:
   Shell_cmdline_options() {}
 
-  std::string get_string(mysqlsh::Shell_options *options,
+  std::string get_string(const Shell_options::Storage* options,
                          const std::string &option) {
     if (option == "host")
       return options->host;
@@ -152,8 +154,8 @@ class Shell_cmdline_options : public ::testing::Test {
     char *argv[] = {const_cast<char *>("ut"),
                     const_cast<char *>(arg.c_str()),
                     NULL};
-    Shell_command_line_options cmd_options(2, argv);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(2, argv);
+    const Shell_options::Storage& options = cmd_options.get();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_options, options.has_connection_data());
 
@@ -190,8 +192,8 @@ class Shell_cmdline_options : public ::testing::Test {
                     const_cast<char *>(arg.c_str()),
                     const_cast<char *>(value.c_str()),
                     NULL};
-    Shell_command_line_options cmd_options(3, argv);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(3, argv);
+    const Shell_options::Storage& options = cmd_options.get();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_options, options.has_connection_data());
 
@@ -228,8 +230,8 @@ class Shell_cmdline_options : public ::testing::Test {
     char *argv[] = {const_cast<char *>("ut"),
                     const_cast<char *>(arg.c_str()),
                     NULL};
-    Shell_command_line_options cmd_options(2, argv);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(2, argv);
+    const Shell_options::Storage& options = cmd_options.get();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_options, options.has_connection_data());
 
@@ -267,8 +269,8 @@ class Shell_cmdline_options : public ::testing::Test {
                     const_cast<char *>(arg.c_str()),
                     const_cast<char *>(value.c_str()),
                     NULL};
-    Shell_command_line_options cmd_options(3, argv);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(3, argv);
+    const Shell_options::Storage& options = cmd_options.get();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_options, options.has_connection_data());
 
@@ -303,8 +305,8 @@ class Shell_cmdline_options : public ::testing::Test {
     char *argv[] = {const_cast<char *>("ut"),
                     const_cast<char *>(arg.c_str()),
                     NULL};
-    Shell_command_line_options cmd_options(2, argv);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(2, argv);
+    const Shell_options::Storage& options = cmd_options.get();
 
     if (valid) {
       EXPECT_EQ(0, options.exit_code);
@@ -343,13 +345,13 @@ class Shell_cmdline_options : public ::testing::Test {
     char *argv[] = {const_cast<char *>("ut"),
                     const_cast<char *>(arg.c_str()),
                     NULL};
-    Shell_command_line_options options(2, argv);
+    Shell_options options(2, argv);
 
     if (valid) {
-      EXPECT_EQ(0, options->exit_code);
+      EXPECT_EQ(0, options.get().exit_code);
       EXPECT_STREQ("", cerr.str().c_str());
     } else {
-      EXPECT_EQ(1, options->exit_code);
+      EXPECT_EQ(1, options.get().exit_code);
       std::string message = "ut: option ";
       message.append("--").append(option).append("= requires an argument\n");
       EXPECT_STREQ(message.c_str(), cerr.str().c_str());
@@ -370,13 +372,13 @@ class Shell_cmdline_options : public ::testing::Test {
     std::cerr.rdbuf(cerr.rdbuf());
 
     SCOPED_TRACE("TESTING: " + scope);
-    Shell_command_line_options options(args->size() - 1, &(args->at(0)));
+    Shell_options options(args->size() - 1, &(args->at(0)));
 
     EXPECT_STREQ(error.c_str(), cerr.str().c_str());
 
-    EXPECT_EQ(expected_exit_code, options->exit_code);
+    EXPECT_EQ(expected_exit_code, options.get().exit_code);
     if (!expected_exit_code) {
-      EXPECT_EQ(mode, options.get_options().ssl_options.get_mode());
+      EXPECT_EQ(mode, options.get().ssl_options.get_mode());
     }
 
     // Restore old cerr.
@@ -430,8 +432,8 @@ class Shell_cmdline_options : public ::testing::Test {
     char *argv[] = {const_cast<char *>("ut"),
                     const_cast<char *>(option.c_str()),
                     NULL};
-    Shell_command_line_options cmd_options(2, argv);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(2, argv);
+    const Shell_options::Storage& options = cmd_options.get();
 
     EXPECT_EQ(0, options.exit_code);
     EXPECT_STREQ(target_value.c_str(),
@@ -456,12 +458,12 @@ class Shell_cmdline_options : public ::testing::Test {
                       const_cast<char *>(firstArg.c_str()),
                       const_cast<char *>(secondArg.c_str()),
                       NULL};
-      Shell_command_line_options options(3, argv);
+      Shell_options options(3, argv);
 
-      EXPECT_EQ(ret_code, options->exit_code);
+      EXPECT_EQ(ret_code, options.get().exit_code);
 
       std::string error = "";
-      if (options->exit_code) {
+      if (options.get().exit_code) {
         if (firstST.empty())
           error = "Automatic protocol detection is enabled, unable to change to "
                   + secondST + " with option " + secondArg + "\n";
@@ -487,9 +489,9 @@ class Shell_cmdline_options : public ::testing::Test {
 
     SCOPED_TRACE("TESTING: " + context);
 
-    Shell_command_line_options options(argc, argv);
+    Shell_options options(argc, argv);
 
-    EXPECT_EQ(1, options->exit_code);
+    EXPECT_EQ(1, options.get().exit_code);
 
     EXPECT_STREQ(error.c_str(), cerr.str().c_str());
 
@@ -502,8 +504,8 @@ TEST_F(Shell_cmdline_options, default_values) {
   int argc = 0;
   char **argv = nullptr;
 
-  Shell_command_line_options cmd_options(argc, argv);
-  mysqlsh::Shell_options options = cmd_options.get_options();
+  Shell_options cmd_options(argc, argv);
+  const Shell_options::Storage& options = cmd_options.get();
 
   EXPECT_TRUE(options.exit_code == 0);
   EXPECT_FALSE(options.force);
@@ -695,12 +697,10 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
   char *argv[] = {const_cast<char *>("ut"),
                   const_cast<char *>(firstArg.c_str()),
                   const_cast<char *>(secondArg.c_str()), NULL};
-  Shell_command_line_options cmd_options(3, argv);
-  mysqlsh::Shell_options options = cmd_options.get_options();
+  Shell_options cmd_options(3, argv);
 
-
-  EXPECT_EQ(1, options.exit_code);
-  EXPECT_STREQ(options.uri.c_str(), "root@localhost:3301");
+  EXPECT_EQ(1, cmd_options.get().exit_code);
+  EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
   EXPECT_STREQ("The --node option has been deprecated, "
                "please use --mysqlx or -mx instead.\n", cerr.str().c_str());
 
@@ -714,11 +714,10 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
                    const_cast<char *>(firstArg.c_str()),
                    const_cast<char *>(secondArg.c_str()),
                    NULL};
-  Shell_command_line_options cmd_options2(3, argv2);
-  options = cmd_options2.get_options();
+  Shell_options cmd_options2(3, argv2);
 
-  EXPECT_EQ(1, options.exit_code);
-  EXPECT_STREQ(options.uri.c_str(), "root@localhost:3301");
+  EXPECT_EQ(1, cmd_options2.get().exit_code);
+  EXPECT_STREQ(cmd_options2.get().uri.c_str(), "root@localhost:3301");
   EXPECT_STREQ("The --classic option has been deprecated, "
                "please use --mysql or -mc instead.\n", cerr.str().c_str());
 
@@ -741,8 +740,8 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
     char *argv[] = {const_cast<char *>("ut"),
                     const_cast<char *>(firstArg.c_str()),
                     NULL};
-    Shell_command_line_options cmd_options(2, argv);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(2, argv);
+    const Shell_options::Storage& options = cmd_options.get();
 
     EXPECT_EQ(0, options.exit_code);
     EXPECT_STREQ(options.uri.c_str(), "root@localhost:3301");
@@ -760,8 +759,8 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
                      const_cast<char *>(firstArg.c_str()),
                      const_cast<char *>(secondArg.c_str()),
                      NULL};
-    Shell_command_line_options cmd_options(3, argv2);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(3, argv2);
+    const Shell_options::Storage& options = cmd_options.get();
 
     EXPECT_EQ(0, options.exit_code);
     EXPECT_STREQ(options.uri.c_str(), "user2:pass@localhost");
@@ -778,8 +777,8 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
                      const_cast<char *>(firstArg.c_str()),
                      const_cast<char *>(secondArg.c_str()), NULL};
 
-    Shell_command_line_options cmd_options(3, argv3);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(3, argv3);
+    const Shell_options::Storage& options = cmd_options.get();
 
     EXPECT_EQ(0, options.exit_code);
     EXPECT_STREQ(options.uri.c_str(), "root:pass@localhost:3301");
@@ -795,8 +794,8 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
                      const_cast<char *>(firstArg.c_str()),
                      NULL};
 
-    Shell_command_line_options cmd_options(2, argv4);
-    mysqlsh::Shell_options options = cmd_options.get_options();
+    Shell_options cmd_options(2, argv4);
+    const Shell_options::Storage& options = cmd_options.get();
     EXPECT_EQ(1, options.exit_code);
     EXPECT_STREQ("Invalid URI: Illegal character [v] found at position 4\n", cerr.str().c_str());
   }
@@ -1087,10 +1086,10 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv[] {const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                NULL};
-  Shell_command_line_options cmd_options(2, argv);
-  mysqlsh::Shell_options options = cmd_options.get_options();
+  std::shared_ptr<Shell_options> options =
+      std::make_shared<Shell_options>(2, argv);
 
-  EXPECT_EQ(0, options.exit_code);
+  EXPECT_EQ(0, options->get().exit_code);
   EXPECT_STREQ(argv[1], "--uri=root:****@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
@@ -1099,9 +1098,9 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv1[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, argv1).get_options();
+  options = std::make_shared<Shell_options>(2, argv1);
 
-  EXPECT_EQ(0, options.exit_code);
+  EXPECT_EQ(0, options->get().exit_code);
   EXPECT_STREQ(argv1[1], "--uri=r:@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
@@ -1110,9 +1109,9 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv2[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, argv2).get_options();
+  options = std::make_shared<Shell_options>(2, argv2);
 
-  EXPECT_EQ(0, options.exit_code);
+  EXPECT_EQ(0, options->get().exit_code);
   EXPECT_STREQ(argv2[1], "--uri=r:****@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
@@ -1121,9 +1120,9 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv3[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, argv3).get_options();
+  options = std::make_shared<Shell_options>(2, argv3);
 
-  EXPECT_EQ(0, options.exit_code);
+  EXPECT_EQ(0, options->get().exit_code);
   EXPECT_STREQ(argv3[1], "--uri=r:*@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
@@ -1132,9 +1131,9 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv4[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, argv4).get_options();
+  options = std::make_shared<Shell_options>(2, argv4);
 
-  EXPECT_EQ(0, options.exit_code);
+  EXPECT_EQ(0, options->get().exit_code);
   EXPECT_STREQ(argv4[1], "--uri=root:******@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
@@ -1143,9 +1142,9 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   char *argv5[]{const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()),
                 NULL};
-  options = Shell_command_line_options(2, argv5).get_options();
+  options = std::make_shared<Shell_options>(2, argv5);
 
-  EXPECT_EQ(0, options.exit_code);
+  EXPECT_EQ(0, options->get().exit_code);
   EXPECT_STREQ(argv5[1], "root:******@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
@@ -1207,6 +1206,15 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       NULL};
     test_deprecated_ssl("--ssl=no", &options, error, 1,
                         mysqlshdk::db::Ssl_mode::Disabled);
+  }
+}
+
+TEST_F(Shell_cmdline_options, dict_access_for_named_options) {
+  Shell_options options(0, nullptr);
+
+  for (const std::string &optname : options.get_named_options()) {
+    std::cout << optname << std::endl;
+    EXPECT_NO_THROW(options.get(optname));
   }
 }
 }  // namespace shcore

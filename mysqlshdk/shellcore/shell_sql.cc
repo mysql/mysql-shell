@@ -22,6 +22,7 @@
 #include "shellcore/base_session.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include <fstream>
 #include "utils/utils_string.h"
 
@@ -77,15 +78,14 @@ Value Shell_sql::process_sql(const std::string &query_str,
             session->class_name() + ") can't be used for SQL execution.");
       }
       // If reached this point, processes the returned result object
-      auto shcore_options = Shell_core_options::get();
-      auto old_format = (*shcore_options)[SHCORE_OUTPUT_FORMAT];
+      auto old_format = mysqlsh::Base_shell::get_options()->get(SHCORE_OUTPUT_FORMAT);
       if (delimiter == "\\G")
-        (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value("vertical");
+        mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT, Value("vertical"));
       // FIXME eventually remove the result_processor and the shcore::Value
       // FIXME result wrapper and call the dumper directly on db::IResult,
       // FIXME since we do only print query results here
       result_processor(ret_val);
-      (*shcore_options)[SHCORE_OUTPUT_FORMAT] = old_format;
+      mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT, old_format);
     } catch (shcore::Exception &exc) {
       print_exception(exc);
       ret_val = Value();

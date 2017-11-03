@@ -34,7 +34,6 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mysqlxtest_utils.h"
-#include "shellcore/shell_core_options.h"
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_string.h"

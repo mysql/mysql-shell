@@ -28,6 +28,7 @@
 #include "shellcore/shell_sql.h"
 #include "shellcore/base_session.h"
 #include "modules/devapi/base_resultset.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
@@ -50,14 +51,14 @@ protected:
       FAIL();
     }
     wipe_all();
-    options = Shell_core_options::get_instance();
+    options = const_cast<mysqlsh::Shell_options::Storage*>(&mysqlsh::Base_shell::options());
   }
   virtual void TearDown() {
     _interactive_shell->process_line("\\js");
     _interactive_shell->process_line("session.close();");
   }
 
-  std::shared_ptr<Shell_core_options> options;
+  mysqlsh::Shell_options::Storage* options;
 };
 
 TEST_F(Shell_output_test, table_output) {
@@ -130,7 +131,7 @@ st)";
 }
 
 TEST_F(Shell_output_test, output_format_option) {
-  options->set_member(SHCORE_OUTPUT_FORMAT, Value("vertical"));
+  options->output_format = "vertical";
 
   std::stringstream stream("select 11 as a;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
@@ -141,7 +142,7 @@ a: 11)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   wipe_all();
-  options->set_member(SHCORE_OUTPUT_FORMAT, Value("table"));
+  options->output_format = "table";
   stream.clear();
   stream.str("select 12 as a;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
@@ -155,7 +156,7 @@ R"(+----+
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   wipe_all();
-  options->set_member(SHCORE_OUTPUT_FORMAT, Value("table"));
+  options->output_format = "table";
   stream.clear();
   stream.str("select 13 as a\\G");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});

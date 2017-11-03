@@ -28,7 +28,7 @@
 #include "scripting/common.h"
 #include "scripting/obj_date.h"
 #include "shellcore/interrupt_handler.h"
-#include "shellcore/shell_core_options.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_time.h"
 
@@ -205,7 +205,7 @@ void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
 
   dumper.append_value("executionTime", get_member("executionTime"));
 
-  if (shcore::Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS)) {
+  if (mysqlsh::Base_shell::options().show_warnings) {
     dumper.append_value("warningCount", get_member("warningCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }
