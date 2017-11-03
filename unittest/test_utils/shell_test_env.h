@@ -79,8 +79,8 @@ class Shell_test_env : public ::testing::Test {
   int _mysql_port_number;
   std::string _mysql_uri;
   std::string _mysql_uri_nopasswd;
-  std::string _socket;
-  std::string _mysql_socket;
+  std::string _socket;  //< env:MYSQLX_SOCKET
+  std::string _mysql_socket;  //< env:MYSQL_SOCKET
 
   bool _recording_enabled = false;
 

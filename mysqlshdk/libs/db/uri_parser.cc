@@ -222,7 +222,7 @@ std::string Uri_parser::parse_ipv4(size_t *offset) {
       }
       if (value < 0 || value > 255) {
         throw std::invalid_argument(
-            "Octect value out of bounds [" + octet +
+            "Octet value out of bounds [" + octet +
             "], valid range for IPv4 is 0 to 255 at position " +
             std::to_string(*offset));
       } else {

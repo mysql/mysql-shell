@@ -326,7 +326,7 @@ REGISTER_HELP(TOPIC_CONNECTION_DATA6, "TOPIC_CONNECTION_MORE_INFO");
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO, "For additional information on connection data use \\? connection.");
 
 REGISTER_HELP(TOPIC_URI, "A basic URI string has the following format:");
-REGISTER_HELP(TOPIC_URI1, "[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]");
+REGISTER_HELP(TOPIC_URI1, "[scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]");
 
 // These lines group the description of ALL the available connection options
 REGISTER_HELP(TOPIC_CONNECTION_OPTIONS, "The following options are valid for use either in a URI or in a dictionary:");
@@ -377,7 +377,20 @@ REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME3, "@li mysqlx: for connections usin
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET, "<b>Socket Connections</b>");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET1, "To define a socket connection, replace the host and port by the socket path.");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET2, "When using a connection dictionary, the path is set as the value for the socket option.");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET3, "When using a URI, the socket path must be URL encoded.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET3, "When using a URI, the socket path must be URL encoded. A socket path may be specified in a URI in one of the following ways:");
+
+#ifdef _WIN32
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET4,
+              "@li \\.d%3A%5Cpath%5Cto%5Csocket.sock");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET5,
+              "@li \\.(d:%5Cpath%5Cto%5Csocket.sock)");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET6,
+              "@li \\.(d:/path/to/socket.sock)");
+#else
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET4, "@li /path%2Fto%2Fsocket.sock");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET5, "@li (/path/to/socket.sock)");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET6, "");
+#endif
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE, "<b>SSL Mode</b>");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE1, "The ssl-mode option accepts the following values:");
