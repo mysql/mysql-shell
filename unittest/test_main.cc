@@ -30,6 +30,7 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mod_testutils.h"
+#include "utils/utils_path.h"
 
 // Begin test configuration block
 
@@ -56,8 +57,17 @@ char *g_mppath = nullptr;
 std::vector<std::pair<std::string, std::string> > g_skipped_tests;
 std::vector<std::pair<std::string, std::string> > g_pending_fixes;
 
+static std::string make_socket_absolute_path(const std::string &datadir,
+                                             const std::string &socket) {
+  if (socket.empty()) {
+    return std::string{};
+  }
+  return shcore::path::normalize(
+      shcore::path::join_path(std::vector<std::string>{datadir, socket}));
+}
+
 static void detect_mysql_environment(int port, const char *pwd) {
-  std::string socket, xsocket;
+  std::string socket, xsocket, datadir;
   std::string hostname;
   std::string version;
   int xport = 0;
@@ -70,40 +80,58 @@ static void detect_mysql_environment(int port, const char *pwd) {
   // if connect succeeds or error is a server error, then there's a server
   if (mysql_real_connect(&mysql, "localhost", "root", pwd, NULL, port, NULL,
                          0)) {
-    const char *query = "show variables like '%socket'";
-    if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
-      MYSQL_RES *res = mysql_store_result(&mysql);
-      while (MYSQL_ROW row = mysql_fetch_row(res)) {
-        if (strcmp(row[0], "socket") == 0 && row[1])
-          socket = row[1];
-        if (strcmp(row[0], "mysqlx_socket") == 0 && row[1])
-          xsocket = row[1];
+    {
+      const char *query = "show variables like '%socket'";
+      if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(&mysql);
+        while (MYSQL_ROW row = mysql_fetch_row(res)) {
+          if (strcmp(row[0], "socket") == 0 && row[1])
+            socket = row[1];
+          if (strcmp(row[0], "mysqlx_socket") == 0 && row[1])
+            xsocket = row[1];
+        }
+        mysql_free_result(res);
       }
-      mysql_free_result(res);
     }
 
-    query = "show variables like 'hostname'";
-    if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
-      MYSQL_RES *res = mysql_store_result(&mysql);
-      if (MYSQL_ROW row = mysql_fetch_row(res)) {
-        hostname = row[1];
+    {
+      const char *query = "show variables like 'datadir'";
+      if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(&mysql);
+        if (MYSQL_ROW row = mysql_fetch_row(res)) {
+          datadir = row[1];
+        }
+        mysql_free_result(res);
       }
-      mysql_free_result(res);
     }
 
-    query = "select @@version, (@@have_ssl = 'YES' or @have_openssl = 'YES'), "
-            " @@mysqlx_port, @@server_id";
-    if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
-      MYSQL_RES *res = mysql_store_result(&mysql);
-      if (MYSQL_ROW row = mysql_fetch_row(res)) {
-        version = row[0];
-        if (row[1] && strcmp(row[1], "1") == 0)
-          have_ssl = true;
-        if (row[2])
-          xport = atoi(row[2]);
-        server_id = atoi(row[3]);
+    {
+      const char *query = "show variables like 'hostname'";
+      if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(&mysql);
+        if (MYSQL_ROW row = mysql_fetch_row(res)) {
+          hostname = row[1];
+        }
+        mysql_free_result(res);
       }
-      mysql_free_result(res);
+    }
+
+    {
+      const char *query =
+          "select @@version, (@@have_ssl = 'YES' or @have_openssl = 'YES'), "
+          "@@mysqlx_port, @@server_id";
+      if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(&mysql);
+        if (MYSQL_ROW row = mysql_fetch_row(res)) {
+          version = row[0];
+          if (row[1] && strcmp(row[1], "1") == 0)
+            have_ssl = true;
+          if (row[2])
+            xport = atoi(row[2]);
+          server_id = atoi(row[3]);
+        }
+        mysql_free_result(res);
+      }
     }
   }
   mysql_close(&mysql);
@@ -113,18 +141,33 @@ static void detect_mysql_environment(int port, const char *pwd) {
     exit(1);
   }
 
+  const std::string socket_absolute =
+      make_socket_absolute_path(datadir, socket);
+  const std::string xsocket_absolute =
+      make_socket_absolute_path(datadir, xsocket);
+
   std::string hostname_ip = mysqlshdk::utils::resolve_hostname_ipv4(hostname);
 
   std::cout << "Target MySQL server:\n";
   std::cout << "version=" << version << "\n";
   std::cout << "hostname=" << hostname << ", ip=" << hostname_ip << "\n";
   std::cout << "server_id=" << server_id << ", ssl=" << have_ssl << "\n";
-  std::cout << "port=" << port << ", socket=" << socket << "\n";
-  std::cout << "xport=" << xport << ", xsocket=" << xsocket << "\n";
+
+  std::cout << "Classic protocol:\n";
+  std::cout << "  port=" << port << '\n';
+  std::cout << "  socket=" << socket;
+  std::cout << ((socket != socket_absolute) ? " (" + socket_absolute + ")\n"
+                                            : "\n");
+
+  std::cout << "X protocol:\n";
+  std::cout << "  xport=" << xport << '\n';
+  std::cout << "  xsocket=" << xsocket;
+  std::cout << ((xsocket != xsocket_absolute) ? " (" + xsocket_absolute + ")\n"
+                                              : "\n");
 
   if (!getenv("MYSQL_SOCKET")) {
     static char path[1024];
-    snprintf(path, sizeof(path), "MYSQL_SOCKET=%s", socket.c_str());
+    snprintf(path, sizeof(path), "MYSQL_SOCKET=%s", socket_absolute.c_str());
     if (putenv(path) != 0) {
       std::cerr << "MYSQL_SOCKET was not set and putenv failed to set it\n";
       exit(1);
@@ -132,7 +175,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
   }
   if (!getenv("MYSQLX_SOCKET")) {
     static char path[1024];
-    snprintf(path, sizeof(path), "MYSQLX_SOCKET=%s", xsocket.c_str());
+    snprintf(path, sizeof(path), "MYSQLX_SOCKET=%s", xsocket_absolute.c_str());
     if (putenv(path) != 0) {
       std::cerr << "MYSQLX_SOCKET was not set and putenv failed to set it\n";
       exit(1);

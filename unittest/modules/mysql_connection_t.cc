@@ -123,39 +123,21 @@ TEST_F(Mysql_connection_test, connect_named_pipe) {
 
 #else
 TEST_F(Mysql_connection_test, connect_socket) {
-  mysqlshdk::db::Ssl_options info;
-  mysqlshdk::db::Connection_options connection_options;
-
-  connection_options.set_host(_host);
-  connection_options.set_port(_mysql_port_number);
-  connection_options.set_user(_user);
-  connection_options.set_password(_pwd);
-  auto connection = mysqlshdk::db::mysql::Session::create();
-
-  connection->connect(connection_options);
-
-  auto result = connection->query("show variables like 'socket'");
-
-  auto row = result->fetch_one();
-
-  std::string socket = row->get_as_string(1);
-
-  connection->close();
-
-  if (socket.empty()) {
+  if (_mysql_socket.empty()) {
     SCOPED_TRACE("Socket Connections are Disabled, they must be enabled.");
     FAIL();
   } else {
     try {
-      connection_options.clear_host();
-      connection_options.clear_port();
-      connection_options.set_socket(socket);
+      mysqlshdk::db::Connection_options connection_options;
+      connection_options.set_user(_user);
+      connection_options.set_password(_pwd);
+      connection_options.set_socket(_mysql_socket);
       auto socket_conn = mysqlshdk::db::mysql::Session::create();
       socket_conn->connect(connection_options);
       socket_conn->close();
     } catch (const std::exception& e) {
       std::string error = "Failed creating a socket connection using: '";
-      error.append(socket);
+      error.append(_mysql_socket);
       error.append("' error: ");
       error.append(e.what());
       SCOPED_TRACE(error);

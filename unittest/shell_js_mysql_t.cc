@@ -51,6 +51,10 @@ class Shell_js_mysql_tests : public Shell_js_script_tester {
     exec_and_out_equals(code);
     code = "var __port = " + _mysql_port + ";";
     exec_and_out_equals(code);
+    code = "var __socket = '" + _mysql_socket + "';";
+    exec_and_out_equals(code);
+    code = "var __xsocket = '" + _socket + "';";
+    exec_and_out_equals(code);
     code = "var __schema = 'mysql';";
     exec_and_out_equals(code);
     code = "var __uri = '" + user + "@" + host + ":" + _mysql_port + "';";
@@ -63,6 +67,8 @@ class Shell_js_mysql_tests : public Shell_js_script_tester {
     exec_and_out_equals(code);
     code = "var __displayuridb = '" + user + "@" + host + ":" + _mysql_port +
            "/mysql';";
+    exec_and_out_equals(code);
+    code = "var __system_user = '" + get_system_user() + "';";
     exec_and_out_equals(code);
 
     // All of the test cases share the same config folder
@@ -99,4 +105,12 @@ TEST_F(Shell_js_mysql_tests, mysql_view) {
 TEST_F(Shell_js_mysql_tests, mysql_resultset) {
   validate_interactive("mysql_resultset.js");
 }
+
+#if !(_WIN32 || __APPLE__)
+// Windows and MacOS doesn't support auth_socket plugin.
+// SO_PEERCRED socket option is required.
+TEST_F(Shell_js_mysql_tests, mysql_auth_socket) {
+  validate_interactive("mysql_auth_socket.js");
+}
+#endif
 }  // namespace shcore

@@ -551,3 +551,32 @@ function create_root_from_anywhere(session) {
   session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
   session.runSql("SET SQL_LOG_BIN=1");
 }
+
+function ensure_plugin_enabled(plugin_name) {
+  // For function signature simplicity I use `plugin_name` also as shared library name.
+  var sess = mysql.getClassicSession(__uripwd);
+  var rs = sess.runSql("SELECT COUNT(1) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME like '" + plugin_name + "';");
+  var is_installed = rs.fetchOne()[0];
+
+  if (!is_installed) {
+    var os = sess.runSql('select @@version_compile_os').fetchOne()[0];
+    if (os == "Win32" || os == "Win64") {
+      sess.runSql("INSTALL PLUGIN " + plugin_name + " SONAME '" + plugin_name + ".dll';");
+    }
+    else {
+      sess.runSql("INSTALL PLUGIN " + plugin_name + " SONAME '" + plugin_name + ".so';");
+    }
+  }
+  sess.close();
+}
+
+function ensure_plugin_disabled(plugin_name) {
+  var sess = mysql.getClassicSession(__uripwd);
+  var rs = sess.runSql("SELECT COUNT(1) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME like '" + plugin_name + "';");
+  var is_installed = rs.fetchOne()[0];
+
+  if (is_installed) {
+    sess.runSql("UNINSTALL PLUGIN " + plugin_name + ";");
+  }
+  sess.close();
+}

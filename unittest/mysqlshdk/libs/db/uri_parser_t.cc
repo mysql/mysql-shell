@@ -354,16 +354,16 @@ TEST(Uri_parser, parse_host_ipv4) {
   //                0    0    1    1    2    2    3    3    4    4    5    5
   //                0    5    0    5    0    5    0    5    0    5    0    5
   validate_bad_uri("mysqlx://user@256.255.255.255",
-                   "Octect value out of bounds [256], valid range for IPv4 is "
+                   "Octet value out of bounds [256], valid range for IPv4 is "
                    "0 to 255 at position 14");
   validate_bad_uri("mysqlx://user@255.256.255.255",
-                   "Octect value out of bounds [256], valid range for IPv4 is "
+                   "Octet value out of bounds [256], valid range for IPv4 is "
                    "0 to 255 at position 18");
   validate_bad_uri("mysqlx://user@255.255.256.255",
-                   "Octect value out of bounds [256], valid range for IPv4 is "
+                   "Octet value out of bounds [256], valid range for IPv4 is "
                    "0 to 255 at position 22");
   validate_bad_uri("mysqlx://user@255.255.255.256",
-                   "Octect value out of bounds [256], valid range for IPv4 is "
+                   "Octet value out of bounds [256], valid range for IPv4 is "
                    "0 to 255 at position 26");
   validate_bad_uri("mysqlx://user@10.150.123.45:68000",
                    "Port is out of the valid range: 0 - 65535");

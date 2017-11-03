@@ -429,7 +429,7 @@ The connection data may be specified in the following formats:
 
 A basic URI string has the following format:
 
-[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
+[scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
 
 The following options are valid for use either in a URI or in a dictionary:
 
@@ -582,7 +582,7 @@ The connection data may be specified in the following formats:
 
 A basic URI string has the following format:
 
-[scheme://][user[:password]@]host[:port][/schema][?option=value&option=value...]
+[scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
 
 The following options are valid for use either in a URI or in a dictionary:
 

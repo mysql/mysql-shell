@@ -27,7 +27,7 @@
 #include <WinSock2.h>
 #include <windows.h>
 #include <Lmcons.h>
-#define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
+#define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else
 #include <unistd.h>
 #include <ifaddrs.h>
@@ -84,14 +84,10 @@ std::string strip_password(const std::string &connstring) {
 
   if (p == std::string::npos) {
     // by default, connect using the current OS username
-#ifdef _WIN32
-    // TODO(anyone) find out current username here
-#else
-    const char *tmp = getenv("USER");
-    user_part = tmp ? tmp : "";
-#endif
-  } else
-  user_part = s.substr(0, p);
+    user_part = get_system_user();
+  } else {
+    user_part = s.substr(0, p);
+  }
 
   if ((p = user_part.find(':')) != std::string::npos) {
     password = user_part.substr(p + 1);
@@ -156,7 +152,10 @@ mysqlshdk::db::Connection_options get_connection_options(const std::string &uri,
   return connection_options;
 }
 
-// Overrides connection data parameters with specific values, also adds parameters with default values if missing
+/**
+ * Overrides connection data parameters with specific values, also adds
+ * parameters with default values if missing
+ */
 void update_connection_data
   (mysqlshdk::db::Connection_options *connection_options,
    const std::string &user, const char *password,
@@ -382,7 +381,9 @@ split_string(const std::string &input, std::vector<size_t> max_lengths) {
 *
 * @returns vector of splitted strings
 */
-std::vector<std::string> split_string_chars(const std::string& input, const std::string& separator_chars, bool compress) {
+std::vector<std::string> split_string_chars(const std::string &input,
+                                            const std::string &separator_chars,
+                                            bool compress) {
   std::vector<std::string> ret_val;
 
   size_t index = 0, new_find = 0;
@@ -409,14 +410,14 @@ std::vector<std::string> split_string_chars(const std::string& input, const std:
 // NOTE: Assumption is given that everything is created using a lowerUpperCase
 // naming style
 //       Which is the default to be used on C++ and JS
-std::string get_member_name(const std::string& name, shcore::NamingStyle style) {
+std::string get_member_name(const std::string &name,
+                            shcore::NamingStyle style) {
   std::string new_name;
   switch (style) {
     // This is the default style, input is returned without modifications
     case shcore::LowerCamelCase:
       return new_name = name;
-    case shcore::LowerCaseUnderscores:
-    {
+    case shcore::LowerCaseUnderscores: {
       // Uppercase letters will be converted to underscore+lowercase letter
       // except in two situations:
       // - When it is the first letter
@@ -439,8 +440,7 @@ std::string get_member_name(const std::string& name, shcore::NamingStyle style) 
       }
       break;
     }
-    case Constants:
-    {
+    case Constants: {
       for (auto character : name) {
         if (character >= 97 && character <= 122)
           new_name.append(1, character - 32);
@@ -515,7 +515,8 @@ std::string from_camel_case(const std::string& name) {
   return new_name;
 }
 
-std::string format_text(const std::vector<std::string>& lines, size_t width, size_t left_padding, bool paragraph_per_line) {
+std::string format_text(const std::vector<std::string> &lines, size_t width,
+                        size_t left_padding, bool paragraph_per_line) {
   std::string ret_val;
 
   // Considers the new line character being added
@@ -559,9 +560,10 @@ std::string format_text(const std::vector<std::string>& lines, size_t width, siz
   }
 
   return ret_val;
-};
+}
 
-std::string format_markup_text(const std::vector<std::string>& lines, size_t width, size_t left_padding) {
+std::string format_markup_text(const std::vector<std::string> &lines,
+                               size_t width, size_t left_padding) {
   std::string ret_val;
 
   ret_val.reserve(lines.size() * width);
@@ -581,24 +583,27 @@ std::string format_markup_text(const std::vector<std::string>& lines, size_t wid
     if (0 == pos) {
       current_is_item = true;
 
-      // Adds an extra new line to separate the first item from the previous paragraph
+      // Adds an extra new line to separate the first item from the previous
+      // paragraph
       if (previous_was_item != current_is_item)
         ret_val += new_line;
 
       ret_val += strpadding + " - ";
-      ret_val += shcore::format_text({line.substr(4)}, width, left_padding + 3, false);
+      ret_val +=
+          shcore::format_text({line.substr(4)}, width, left_padding + 3, false);
     } else {
       current_is_item = false;
 
       // May be a header
-      size_t  hstart = line.find("<b>");
-      size_t  hend = line.find("</b>");
+      size_t hstart = line.find("<b>");
+      size_t hend = line.find("</b>");
       if (hstart != std::string::npos && hend != std::string::npos) {
         ret_val += new_line;
         line = "** " + line.substr(hstart + 3, hend - hstart - 3) + " **";
       }
 
-      ret_val += new_line + strpadding + shcore::format_text({line}, width, left_padding, false);
+      ret_val += new_line + strpadding +
+                 shcore::format_text({line}, width, left_padding, false);
     }
 
     previous_was_item = current_is_item;
@@ -608,9 +613,10 @@ std::string format_markup_text(const std::vector<std::string>& lines, size_t wid
   }
 
   return ret_val;
-};
+}
 
-std::string replace_text(const std::string& source, const std::string& from, const std::string& to) {
+std::string replace_text(const std::string &source, const std::string &from,
+                         const std::string &to) {
   std::string ret_val;
   size_t start = 0, index = 0;
 
@@ -629,7 +635,7 @@ std::string replace_text(const std::string& source, const std::string& from, con
 }
 
 std::string get_my_hostname() {
-  char hostname[1024]  {'\0'};
+  char hostname[1024] = {'\0'};
 
 #if defined(_WIN32) || defined(__APPLE__)
   if (gethostname(hostname, sizeof(hostname)) < 0) {
@@ -643,10 +649,13 @@ std::string get_my_hostname() {
   int ret = EAI_NONAME, family, addrlen;
 
   if (getifaddrs(&ifa) != 0)
-    throw std::runtime_error("Could not get local host address: " + std::string(strerror(errno)));
+    throw std::runtime_error("Could not get local host address: " +
+                             std::string(strerror(errno)));
   for (ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
-    /* Skip interfaces that are not UP, do not have configured addresses, and loopback interface */
-    if ((ifap->ifa_addr == NULL) || (ifap->ifa_flags & IFF_LOOPBACK) || (!(ifap->ifa_flags & IFF_UP)))
+    /* Skip interfaces that are not UP, do not have configured addresses, and
+     * loopback interface */
+    if ((ifap->ifa_addr == NULL) || (ifap->ifa_flags & IFF_LOOPBACK) ||
+        (!(ifap->ifa_flags & IFF_UP)))
       continue;
 
     /* Only handle IPv4 and IPv6 addresses */
@@ -654,18 +663,21 @@ std::string get_my_hostname() {
     if (family != AF_INET && family != AF_INET6)
       continue;
 
-    addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+    addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in)
+                                  : sizeof(struct sockaddr_in6);
 
     /* Skip IPv6 link-local addresses */
     if (family == AF_INET6) {
       struct sockaddr_in6 *sin6;
 
       sin6 = (struct sockaddr_in6 *)ifap->ifa_addr;
-      if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) || IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
+      if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) ||
+          IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
         continue;
     }
 
-    ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname), NULL, 0, NI_NAMEREQD);
+    ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname), NULL,
+                      0, NI_NAMEREQD);
 
     if (ret == 0)
       break;
@@ -682,15 +694,16 @@ std::string get_my_hostname() {
 
   if (ret != 0) {
     if (ret != EAI_NONAME)
-      throw std::runtime_error("Could not get local host address: " + std::string(gai_strerror(ret)));
+      throw std::runtime_error("Could not get local host address: " +
+                               std::string(gai_strerror(ret)));
   }
 #endif
 
   return hostname;
-}
+}  // namespace shcore
 
 bool is_local_host(const std::string &host, bool check_hostname) {
-  // TODO: Simple implementation for now, we may improve this to analyze
+  // TODO(any): Simple implementation for now, we may improve this to analyze
   // a given IP address or hostname against the local interfaces
   return (host == "127.0.0.1" ||
           host == "localhost" ||
@@ -765,9 +778,9 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
       }
       ++p;
     }
-    if (!done && esc == quote)
+    if (!done && esc == quote) {
       done = true;
-    else if (!done) {
+    } else if (!done) {
       throw std::runtime_error("Invalid syntax in identifier");
     }
   }
@@ -922,9 +935,9 @@ static std::size_t span_quotable_string_literal(const std::string &s,
       }
       ++p;
     }
-    if (!done && esc == quote)
+    if (!done && esc == quote) {
       done = true;
-    else if (!done) {
+    } else if (!done) {
       throw std::runtime_error("Invalid syntax in string literal");
     }
   }
@@ -949,9 +962,9 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
   }
   // Check if hostname starts with string literal or identifier depending on the
   // first character being a backtick or not.
-  if (s[p] == '`')
+  if (s[p] == '`') {
     res = span_quotable_identifier(s, p, out_string);
-  else {
+  } else {
     // Do not allow quote characters unless they are surrounded by quotes
     if (s[p] == s[s.size() - 1] && (s[p] == '\'' || s[p] == '"')) {
       // hostname surrounded by quotes.
@@ -1114,4 +1127,4 @@ std::string fmttime(const char *fmt) {
 
   return buf;
 }
-} // namespace
+}  // namespace shcore
