@@ -392,9 +392,9 @@ TEST_F(JavaScript, function_to_js) {
   v8::TryCatch try_catch;
   v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                env.js->context()));
-
   std::shared_ptr<Function_base> func(Cpp_function::create("do_test",
-                                                     std::bind(do_test, _1), "bla", String, NULL));
+                                                     std::bind(do_test, _1),
+                                                     {{"bla", String}}));
 
   shcore::Value v(func);
   shcore::Value v2(func);

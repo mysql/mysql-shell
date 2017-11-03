@@ -301,7 +301,7 @@ shcore::Value do_tests(const Argument_list &args) {
 TEST_F(Python, function_to_py) {
   std::error_code error;
   std::shared_ptr<Function_base> func(Cpp_function::create("do_tests",
-  std::bind(do_tests, _1), "bla", String, NULL));
+  std::bind(do_tests, _1), {{"bla", String}}));
 
   shcore::Value v(func);
   shcore::Value v2(func);

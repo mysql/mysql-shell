@@ -185,7 +185,15 @@ class Completer_frontend : public Shell_core_test_wrapper {
     _interactive_shell.reset(new mysqlsh::Command_line_shell(
         _opts, std::unique_ptr<shcore::Interpreter_delegate>(
                    new shcore::Interpreter_delegate(output_handler.deleg))));
+
+    execute("\\py");
+    execute("import sys");
+    wipe_all();
+    execute("sys.version.split(' ')[0]");
+    if (output_handler.std_out.find("2.6") != std::string::npos)
+      _python26 = true;
   }
+  bool _python26 = false;
 
  public:
   std::pair<std::string, std::vector<std::string>> complete(
@@ -1077,12 +1085,19 @@ TEST_F(Completer_frontend, py_shell) {
   // a dynamically created global var
   execute("testobj = {'key_one':1, 'another_key': 2}");
   EXPECT_AFTER_TAB("testo", "testobj");
-  EXPECT_AFTER_TAB_TAB(
-      "testobj.",
-      strv({"clear()", "copy()", "fromkeys()", "get()", "has_key()", "items()",
-            "iteritems()", "iterkeys()", "itervalues()", "keys()", "pop()",
-            "popitem()", "setdefault()", "update()", "values()", "viewitems()",
-            "viewkeys()", "viewvalues()"}));
+  strv dict_options;
+  if (_python26)
+    dict_options = {"clear()",      "copy()",   "fromkeys()",  "get()",
+                    "has_key()",    "items()",  "iteritems()", "iterkeys()",
+                    "itervalues()", "keys()",   "pop()",       "popitem()",
+                    "setdefault()", "update()", "values()"};
+  else
+    dict_options = {"clear()",      "copy()",      "fromkeys()",  "get()",
+                    "has_key()",    "items()",     "iteritems()", "iterkeys()",
+                    "itervalues()", "keys()",      "pop()",       "popitem()",
+                    "setdefault()", "update()",    "values()",    "viewitems()",
+                    "viewkeys()",   "viewvalues()"};
+  EXPECT_AFTER_TAB_TAB("testobj.", strv(dict_options));
   EXPECT_AFTER_TAB("testobj.k", "testobj.keys()");
   EXPECT_TAB_DOES_NOTHING("testobj.key_one");
 
