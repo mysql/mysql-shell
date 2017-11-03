@@ -335,7 +335,7 @@ void validate_local_address_option(const shcore::Value::Map_type_ref &options) {
   shcore::Argument_map opt_map(*options);
   if (opt_map.has_key("localAddress")) {
     std::string local_address = opt_map.string_at("localAddress");
-    shcore::str_strip(local_address);
+    local_address = shcore::str_strip(local_address);
     if (local_address.empty())
       throw shcore::Exception::argument_error(
           "Invalid value for localAddress, string value cannot be empty.");
@@ -360,7 +360,7 @@ void validate_group_seeds_option(const shcore::Value::Map_type_ref &options) {
   shcore::Argument_map opt_map(*options);
   if (opt_map.has_key("groupSeeds")) {
     std::string group_seeds = opt_map.string_at("groupSeeds");
-    shcore::str_strip(group_seeds);
+    group_seeds = shcore::str_strip(group_seeds);
     if (group_seeds.empty())
       throw shcore::Exception::argument_error(
           "Invalid value for groupSeeds, string value cannot be empty.");
@@ -380,7 +380,7 @@ void validate_group_name_option(const shcore::Value::Map_type_ref &options) {
   shcore::Argument_map opt_map(*options);
   if (opt_map.has_key("groupName")) {
     std::string group_name = opt_map.string_at("groupName");
-    shcore::str_strip(group_name);
+    group_name = shcore::str_strip(group_name);
     if (group_name.empty())
       throw shcore::Exception::argument_error(
           "Invalid value for groupName, string value cannot be empty.");
