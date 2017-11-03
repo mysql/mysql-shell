@@ -157,6 +157,13 @@ def wait_sandbox(timeout, wait_interval, condition, sandbox_port):
     res = condition([sandbox_port])
   return res
 
+def check_sandbox_has_metadata():
+  sandbox_has_metadata = session.run_sql("SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = 'mysql_innodb_cluster_metadata') AND (TABLE_NAME = 'instances')").fetch_one()[0]
+
+  print "---> count(*) sandbox has metadata = %s" % sandbox_has_metadata
+
+  return sandbox_has_metadata == "1"
+
 def check_sandbox_in_metadata(instance_port):
   sandbox_count_metadata = session.run_sql("select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:{0}'".format(instance_port)).fetch_one()[0]
 
@@ -167,7 +174,8 @@ def check_sandbox_in_metadata(instance_port):
 def wait_sandbox_in_metadata(instance_port):
   connected = connect_to_sandbox([instance_port]);
   if (connected):
-    wait_sandbox(60, 1, check_sandbox_in_metadata, instance_port)
+    wait(120, 1, check_sandbox_has_metadata)
+    wait_sandbox(120, 1, check_sandbox_in_metadata, instance_port)
     session.close()
 
 # Smart deployment routines

@@ -181,8 +181,8 @@ function check_sandbox_in_metadata(instance_port) {
 function wait_sandbox_in_metadata(instance_port) {
   var connected = connect_to_sandbox([instance_port]);
   if (connected) {
-    wait(60, 1, check_sandbox_has_metadata);
-    wait_sandbox(60, 1, check_sandbox_in_metadata, instance_port);
+    wait(120, 1, check_sandbox_has_metadata);
+    wait_sandbox(120, 1, check_sandbox_in_metadata, instance_port);
     session.close();
   }
 }
