@@ -6390,13 +6390,13 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_CHLOG_0_0_2_ALPHA_11(self):
-        '''[CHLOG 1.0.2.5_2] Different password command line args'''
+        '''[CHLOG_0_0_2_ALPHA_11] --version displayed as expected'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--version']
         p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         p.stdin.flush()
         stdin, stdout = p.communicate()
-        if stdin.find(bytearray("MySQL Shell Version", "ascii"), 0, len(stdin)) >= 0:
+        if stdin.find(bytearray("Ver 1", "ascii"), 0, len(stdin)) >= 0:
             results = "PASS"
         else:
             results = "FAIL"
