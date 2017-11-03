@@ -21,11 +21,12 @@
 #include <iomanip>
 #include "mod_mysql_resultset.h"
 #include "modules/devapi/base_constants.h"
-#include "shellcore/shell_core_options.h"
 #include "shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
+#include "modules/mod_shell_options.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -628,7 +629,7 @@ void ClassicResult::append_json(shcore::JSON_dumper& dumper) const {
   dumper.append_value("info", get_member("info"));
   dumper.append_value("rows", fetch_all(shcore::Argument_list()));
 
-  if (Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS)) {
+  if (mysqlsh::Base_shell::options().show_warnings) {
     dumper.append_value("warningCount", get_member("warningCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }

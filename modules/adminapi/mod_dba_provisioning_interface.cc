@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -64,9 +65,8 @@ int ProvisioningInterface::execute_mysqlprovision(
     // 2nd check if the binary is in the same dir as ourselves
     // 3rd set it to mysqlprovision and hope that it will be in $PATH
 
-    if ((*shcore::Shell_core_options::get()).has_key(SHCORE_GADGETS_PATH))
-      _local_mysqlprovision_path =
-          (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+    if (!mysqlsh::Base_shell::options().gadgets_path.empty())
+      _local_mysqlprovision_path = mysqlsh::Base_shell::options().gadgets_path;
 
     if (_local_mysqlprovision_path.empty()) {
       std::string tmp(get_binary_folder());
@@ -117,8 +117,7 @@ int ProvisioningInterface::execute_mysqlprovision(
     _delegate->print(_delegate->user_data, header.c_str());
   }
 
-  std::string format =
-      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format = mysqlsh::Base_shell::options().output_format;
   std::string stage_action;
 
   shcore::Process_launcher p(&args_script[0]);
@@ -360,9 +359,8 @@ int ProvisioningInterface::exec_sandbox_op(
     sandbox_args.push_back("--sandboxdir");
 
     sandbox_args.push_back(sandbox_dir);
-  } else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
-    std::string dir =
-        (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+  } else {
+    std::string dir = mysqlsh::Base_shell::options().sandbox_directory;
 
     try {
       shcore::ensure_dir_exists(dir);

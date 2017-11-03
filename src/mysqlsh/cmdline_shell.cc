@@ -33,16 +33,15 @@
 
 #include "ext/linenoise-ng/include/linenoise.h"
 #include "modules/devapi/base_resultset.h"
+#include "modules/mod_shell_options.h"  // <---
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
-#include "shell_cmdline_options.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
-#include "shellcore/shell_core_options.h"  // <---
 #include "shellcore/utils_help.h"
 
 #ifdef WIN32
@@ -56,8 +55,8 @@ extern char *mysh_get_tty_password(const char *opt_message);
 
 namespace mysqlsh {
 
-Command_line_shell::Command_line_shell(const Shell_options &options)
-    : mysqlsh::Mysql_shell(options, &_delegate) {
+Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> cmdline_options)
+    : mysqlsh::Mysql_shell(cmdline_options, &_delegate) {
   _delegate.user_data = this;
   _delegate.print = &Command_line_shell::deleg_print;
   _delegate.print_error = &Command_line_shell::deleg_print_error;
@@ -74,8 +73,7 @@ Command_line_shell::Command_line_shell(const Shell_options &options)
   finish_init();
   observe_notification("SN_SESSION_CONNECTED");
 
-  _history.set_limit(std::min<int64_t>(
-      shcore::Shell_core_options::get()->at(SHCORE_HISTORY_MAX_SIZE).as_int(),
+  _history.set_limit(std::min<int64_t>(options().history_max_size,
       std::numeric_limits<int>::max()));
 
   observe_notification(SN_SHELL_OPTION_CHANGED);
@@ -129,9 +127,7 @@ void Command_line_shell::load_state(const std::string &statedir) {
 }
 
 void Command_line_shell::save_state(const std::string &statedir) {
-  if (shcore::Shell_core_options::get()
-          ->at(SHCORE_HISTORY_AUTOSAVE)
-          .as_bool()) {
+  if (options().history_autosave) {
     std::string path = statedir + "/history";
     if (linenoiseHistorySave(path.c_str()) < 0) {
       print_error(
@@ -196,7 +192,7 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
             last = _history.last_entry();
           _history.del(first, last);
         }
-      } catch (std::invalid_argument) {
+      } catch (std::invalid_argument&) {
         println("\\history delete requires entry number to be deleted");
       }
     }
@@ -317,7 +313,7 @@ shcore::Prompt_result Command_line_shell::deleg_password(void *cdata,
       self->handle_interrupt();
       return true;
     });
-  char *tmp = self->_options.passwords_from_stdin
+  char *tmp = self->options().passwords_from_stdin
                   ? shcore::mysh_get_stdin_password(prompt)
                   : mysh_get_tty_password(prompt);
   if (tmp && strcmp(tmp, CTRL_C_STR) == 0)
@@ -348,7 +344,7 @@ void Command_line_shell::command_loop() {
   using_tty = isatty(STDIN_FILENO);
 #endif
 
-  if (_options.full_interactive && using_tty) {
+  if (options().full_interactive && using_tty) {
     std::string message;
     auto session = _shell->get_dev_session();
 
@@ -379,7 +375,7 @@ void Command_line_shell::command_loop() {
     println(message);
   }
 
-  while (_options.interactive) {
+  while (options().interactive) {
     std::string cmd;
     {
       shcore::Interrupt_handler handler([this]() {
@@ -412,7 +408,7 @@ void Command_line_shell::command_loop() {
           break;
         }
       } else {
-        if (_options.full_interactive)
+        if (options().full_interactive)
           std::cout << prompt() << std::flush;
         if (!std::getline(std::cin, cmd)) {
           if (_interrupted || !std::cin.eof()) {
@@ -422,7 +418,7 @@ void Command_line_shell::command_loop() {
           break;
         }
       }
-      if (_options.full_interactive)
+      if (options().full_interactive)
         std::cout << cmd << "\n";
     }
     process_line(cmd);
@@ -467,7 +463,7 @@ void Command_line_shell::print_cmd_line_helper() {
   println("Usage: mysqlsh [OPTIONS] [URI]");
   println("Usage: mysqlsh [OPTIONS] [URI] -f <path> [script args...]");
   std::vector<std::string> details =
-      Shell_command_line_options(0, nullptr).get_details();
+      Shell_options(0, nullptr).get_details();
   for (std::string line : details)
     println("  "+line);
 

@@ -29,7 +29,7 @@
 #include "scripting/object_factory.h"
 #include "scripting/python_type_conversion.h"
 
-#include "shellcore/shell_core_options.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "modules/mod_utils.h"
 
 #ifdef _WINDOWS
@@ -88,8 +88,7 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw(Exception)
   PySys_SetObject(const_cast<char *>("stderr"), get_shell_stderr_module());
 
   // set stdin to the shell console when on interactive mode
-  if ((*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] ==
-      shcore::Value::True()) {
+  if (mysqlsh::Base_shell::options().interactive) {
     register_shell_stdin_module();
     PySys_SetObject(const_cast<char *>("stdin"), get_shell_stdin_module());
 

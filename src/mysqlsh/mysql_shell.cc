@@ -48,9 +48,9 @@ DEBUG_OBJ_ENABLE(Mysql_shell);
 
 namespace mysqlsh {
 
-Mysql_shell::Mysql_shell(const Shell_options &options,
+Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
-    : mysqlsh::Base_shell(options, custom_delegate) {
+    : mysqlsh::Base_shell(cmdline_options, custom_delegate) {
   DEBUG_OBJ_ALLOC(Mysql_shell);
 
   // Registers the interactive objects if required
@@ -61,7 +61,7 @@ Mysql_shell::Mysql_shell(const Shell_options &options,
   _global_dba =
       std::shared_ptr<mysqlsh::dba::Dba>(new mysqlsh::dba::Dba(_shell.get()));
 
-  if (options.wizards) {
+  if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
         new shcore::Global_shell(*_shell.get()));
     auto interactive_dba = std::shared_ptr<shcore::Global_dba>(
@@ -100,9 +100,7 @@ Mysql_shell::Mysql_shell(const Shell_options &options,
   INIT_MODULE(mysqlsh::mysql::Mysql);
   INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
 
-  shcore::Value::Map_type_ref shcore_options =
-      shcore::Shell_core_options::get();
-  set_sql_safe_for_logging((*shcore_options)[SHCORE_HISTIGNORE].descr());
+  set_sql_safe_for_logging(shell_options->get(SHCORE_HISTIGNORE).descr());
 
   // clang-format off
   std::string cmd_help_connect =
@@ -314,7 +312,7 @@ void Mysql_shell::connect(
   std::string pass;
   std::string schema_name;
 
-  if (_options.interactive)
+  if (options().interactive)
     print_connection_message(
         get_session_type(connection_options),
         connection_options.as_uri(
@@ -361,7 +359,7 @@ void Mysql_shell::connect(
 
   _target_server = connection_options;
 
-  new_session->set_option("trace_protocol", _options.trace_protocol);
+  new_session->set_option("trace_protocol", options().trace_protocol);
 
   if (recreate_schema) {
     println("Recreating schema " + schema_name + "...");
@@ -378,9 +376,9 @@ void Mysql_shell::connect(
 
     new_session->call("setCurrentSchema", schema_arg);
   }
-  if (_options.interactive) {
+  if (options().interactive) {
     if (old_session && old_session.unique() && old_session->is_open()) {
-      if (_options.interactive)
+      if (options().interactive)
         println("Closing old connection...");
 
       old_session->close();
@@ -538,7 +536,7 @@ bool Mysql_shell::cmd_start_multiline(const std::vector<std::string> &args) {
 
 bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
   bool error = false;
-  Shell_options options;
+  Shell_options::Storage options;
 
   // Holds the argument index for the target to which the session will be
   // established
@@ -599,14 +597,13 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
 }
 
 bool Mysql_shell::cmd_quit(const std::vector<std::string> &UNUSED(args)) {
-  _options.interactive = false;
+  shell_options->set_interactive(false);
 
   return true;
 }
 
 bool Mysql_shell::cmd_warnings(const std::vector<std::string> &UNUSED(args)) {
-  (*shcore::Shell_core_options::get())[SHCORE_SHOW_WARNINGS] =
-      shcore::Value::True();
+  shell_options->set(SHCORE_SHOW_WARNINGS, shcore::Value::True());
 
   println("Show warnings enabled.");
 
@@ -614,8 +611,7 @@ bool Mysql_shell::cmd_warnings(const std::vector<std::string> &UNUSED(args)) {
 }
 
 bool Mysql_shell::cmd_nowarnings(const std::vector<std::string> &UNUSED(args)) {
-  (*shcore::Shell_core_options::get())[SHCORE_SHOW_WARNINGS] =
-      shcore::Value::False();
+  shell_options->set(SHCORE_SHOW_WARNINGS, shcore::Value::False());
 
   println("Show warnings disabled.");
 
@@ -632,8 +628,7 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
   if (session && session->is_open()) {
     auto status = session->get_status();
     (*status)["DELIMITER"] = shcore::Value(_shell->get_main_delimiter());
-    std::string output_format =
-        (*shcore::Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+    std::string output_format = options().output_format;
 
     if (output_format.find("json") == 0) {
       println(shcore::Value(status).json(output_format == "json"));
@@ -857,7 +852,7 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
 bool Mysql_shell::do_shell_command(const std::string &line) {
   // Special handling for use <db>, which in the classic client was overriden
   // as a built-in command and thus didn't need ; at the end
-  if (_options.interactive &&
+  if (options().interactive &&
      _shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
     std::string tmp = shcore::str_rstrip(shcore::str_strip(line), ";");
     if (shcore::str_ibeginswith(tmp, "use ")) {

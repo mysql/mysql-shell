@@ -17,7 +17,6 @@
 #include <random>
 #include <string>
 #include "test_utils.h"
-#include "shellcore/shell_core_options.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"

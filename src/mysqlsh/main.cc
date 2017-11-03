@@ -19,7 +19,6 @@
 
 #include "mysh_config.h"
 #include "mysqlsh/cmdline_shell.h"
-#include "mysqlsh/shell_cmdline_options.h"
 #include "shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -247,18 +246,18 @@ std::string detect_interactive(mysqlsh::Shell_options *options,
   if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
     is_interactive = false;
   else
-    is_interactive =
-        options->run_file.empty() && options->execute_statement.empty();
+    is_interactive = options->get().run_file.empty() &&
+                     options->get().execute_statement.empty();
 
   // The --interactive option forces the shell to work emulating the
   // interactive mode no matter if:
   // - Input is being redirected from file
   // - Input is being redirected from STDIN
   // - It is not running on a terminal
-  if (options->interactive)
+  if (options->get().interactive)
     is_interactive = true;
 
-  options->interactive = is_interactive;
+  options->set_interactive(is_interactive);
   return error;
 }
 
@@ -379,8 +378,9 @@ int main(int argc, char **argv) {
 
   shcore::Interrupts::init(&sighelper);
 
-  Shell_command_line_options cmd_line_options(argc, argv);
-  mysqlsh::Shell_options options = cmd_line_options.get_options();
+  std::shared_ptr<mysqlsh::Shell_options> shell_options =
+      std::make_shared<mysqlsh::Shell_options>(argc, argv);
+  const mysqlsh::Shell_options::Storage& options = shell_options->get();
 
   if (options.exit_code != 0)
     return options.exit_code;
@@ -395,14 +395,14 @@ int main(int argc, char **argv) {
     bool from_stdin = false;
     bool stdout_is_tty = false;
     std::string error =
-        detect_interactive(&options, &from_stdin, &stdout_is_tty);
+        detect_interactive(shell_options.get(), &from_stdin, &stdout_is_tty);
 
     // Usage of wizards will be disabled if running in non interactive mode
     if (!options.interactive)
-      options.wizards = false;
+      shell_options->set_wizards(false);
     // Switch default output format to tab separated instead of table
     if (!options.interactive && options.output_format.empty() && !stdout_is_tty)
-      options.output_format = "tabbed";
+      shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("tabbed"));
 
     bool interrupted = false;
     if (!options.interactive) {
@@ -412,7 +412,7 @@ int main(int argc, char **argv) {
       });
     }
 
-    mysqlsh::Command_line_shell shell(options);
+    mysqlsh::Command_line_shell shell(shell_options);
 
     if (!error.empty()) {
       shell.print_error(error);

@@ -27,7 +27,6 @@
 
 #include "scripting/common.h"
 #include "shellcore/ishell_core.h"
-#include "shellcore/shell_core_options.h"
 #include "shellcore/shell_notifications.h"
 
 using namespace std::placeholders;

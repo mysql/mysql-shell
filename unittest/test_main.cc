@@ -25,7 +25,6 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "shellcore/interrupt_handler.h"
-#include "shellcore/shell_core_options.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
@@ -395,9 +394,6 @@ int main(int argc, char **argv) {
 #else
   mppath.append("\\mysqlprovision.cmd");
 #endif
-
-  (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH] =
-    shcore::Value(mppath);
 
   g_mppath = strdup(mppath.c_str());
 

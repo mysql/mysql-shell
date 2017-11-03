@@ -22,6 +22,7 @@
 #include "scripting/python_utils.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 
 #include "pythread.h"
 
@@ -69,7 +70,7 @@ void Shell_python::handle_input(std::string &code, Input_state &state,
     _aborted = false;
   }
 
-  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()) {
+  if (mysqlsh::Base_shell::options().interactive) {
     WillEnterPython lock;
     result = _py->execute_interactive(code, state);
   } else {

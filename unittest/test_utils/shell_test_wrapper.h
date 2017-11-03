@@ -41,13 +41,13 @@ class Shell_test_wrapper {
   void reset();
   Shell_test_output_handler& get_output_handler();
   void execute(const std::string& line);
-  mysqlsh::Shell_options& get_options();
+  mysqlsh::Shell_options::Storage& get_options();
   void trace_protocol();
   void enable_debug();
 
  private:
   Shell_test_output_handler output_handler;
-  mysqlsh::Shell_options _options;
+  std::shared_ptr<mysqlsh::Shell_options> _opts;
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
 };
 

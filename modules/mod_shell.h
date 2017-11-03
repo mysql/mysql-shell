@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <string>
+#include "modules/mod_shell_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "scripting/types_cpp.h"
@@ -79,6 +80,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 
   mysqlsh::Mysql_shell *_shell;
   shcore::IShell_core *_shell_core;
+  std::shared_ptr<shcore::Mod_shell_options> _core_options;
 };
 }  // namespace mysqlsh
 

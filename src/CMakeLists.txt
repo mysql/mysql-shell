@@ -24,7 +24,6 @@ include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
 set(mysh_SRC
     mysqlsh/main.cc
     mysqlsh/get_password.cc
-    mysqlsh/shell_cmdline_options.cc
     mysqlsh/cmdline_shell.cc
     mysqlsh/history.cc
     mysqlsh/mysql_shell.cc

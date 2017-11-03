@@ -26,7 +26,7 @@ namespace testing {
 
 class Mock_mysql_shell : public mysqlsh::Mysql_shell {
  public:
-  Mock_mysql_shell(const mysqlsh::Shell_options& options,
+  Mock_mysql_shell(std::shared_ptr<mysqlsh::Shell_options> options,
                    shcore::Interpreter_delegate* custom_delegate)
       : mysqlsh::Mysql_shell(options, custom_delegate) {
   }
@@ -38,7 +38,7 @@ class mod_shell_test : public Shell_core_test_wrapper {
   void SetUp() override {
     Shell_core_test_wrapper::SetUp();
 
-    _backend.reset(new Mock_mysql_shell(*_options, &output_handler.deleg));
+    _backend.reset(new Mock_mysql_shell(_opts, &output_handler.deleg));
     _shell.reset(new mysqlsh::Shell(_backend.get()));
   }
 

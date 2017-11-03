@@ -29,7 +29,6 @@
 
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "shellcore/shell_core_options.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"

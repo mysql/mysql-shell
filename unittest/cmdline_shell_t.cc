@@ -32,8 +32,7 @@
 namespace mysqlsh {
 
 TEST(Cmdline_shell, query_variable_classic) {
-  Shell_options options;
-  Command_line_shell shell(options);
+  Command_line_shell shell(std::make_shared<Shell_options>());
   shell.finish_init();
 
   EXPECT_EQ("", shell.query_variable(
@@ -63,8 +62,7 @@ TEST(Cmdline_shell, query_variable_classic) {
 }
 
 TEST(Cmdline_shell, query_variable_x) {
-  Shell_options options;
-  Command_line_shell shell(options);
+  Command_line_shell shell(std::make_shared<Shell_options>());
   shell.finish_init();
 
   const char *pwd = getenv("MYSQL_PWD");
@@ -92,10 +90,9 @@ TEST(Cmdline_shell, query_variable_x) {
 }
 
 TEST(Cmdline_shell, prompt) {
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  options.interactive = true;
-  mysqlsh::Command_line_shell shell(options);
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  const_cast<char *>("--interactive"), nullptr};
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(3, args));
   shell.finish_init();
 
   EXPECT_EQ("mysql-js> ", shell.prompt());
@@ -134,8 +131,7 @@ static void print_capture(void *cdata, const char *text) {
 
 
 TEST(Cmdline_shell, help) {
-  Shell_options options;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
   shell._delegate.print = print_capture;

@@ -29,6 +29,7 @@
 #include "modules/adminapi/mod_dba_sql.h"
 // #include "modules/adminapi/mod_dba_instance.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -101,8 +102,7 @@ shcore::Argument_list Global_dba::check_instance_op_params(
   shcore::Value::Map_type_ref options;  // Map with the connection data
 
   // Initialize sandboxDir with the default sandboxValue
-  std::string sandboxDir =
-      (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+  std::string sandboxDir = mysqlsh::Base_shell::options().sandbox_directory;
 
   new_args.push_back(args[0]);
 
@@ -980,8 +980,7 @@ void Global_dba::print_validation_results(
 shcore::Value Global_dba::check_instance_configuration(
     const shcore::Argument_list &args) {
   shcore::Value ret_val;
-  std::string format =
-      (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  std::string format = mysqlsh::Base_shell::options().output_format;
 
   args.ensure_count(1, 2,
                     get_function_name("checkInstanceConfiguration").c_str());

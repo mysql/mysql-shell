@@ -44,7 +44,7 @@
 #include "scripting/jscript_type_conversion.h"
 #include "scripting/jscript_core_definitions.h"
 
-#include "shellcore/shell_core_options.h"  // FIXME
+#include "mysqlshdk/include/shellcore/base_shell.h"  // FIXME
 
 #include <cerrno>
 #ifdef HAVE_UNISTD_H
@@ -327,8 +327,7 @@ struct JScript_context::JScript_context_impl {
     JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
     std::string text;
     // FIXME this doesn't belong here?
-    std::string format =
-        (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+    std::string format = mysqlsh::Base_shell::options().output_format;
 
     for (int i = 0; i < args.Length(); i++) {
       v8::HandleScope handle_scope(args.GetIsolate());

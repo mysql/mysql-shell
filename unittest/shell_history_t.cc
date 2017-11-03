@@ -25,6 +25,7 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "modules/mod_shell_options.h"
 #include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils.h"
 
@@ -34,7 +35,6 @@ class Shell_history : public ::testing::Test {
  public:
   virtual void SetUp() {
     linenoiseHistoryFree();
-    shcore::Shell_core_options::reset_instance();
   }
 };
 
@@ -42,9 +42,9 @@ TEST_F(Shell_history, check_history_sql_not_connected) {
   // Start in SQL mode, do not connect to MySQL. This will ensure no statement
   // gets executed. However, we promise that all user input will be recorded
   // in the history - no matther what all user input shall be recorded.
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::SQL;
-  mysqlsh::Command_line_shell shell(options);
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
+                  nullptr};
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(2, args));
 
   EXPECT_EQ(0, linenoiseHistorySize());
 
@@ -69,10 +69,9 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   // TS_CV#5 shell.options["history.sql.ignorePattern"]=string skip string from
   // history.
 
-  Shell_options options;
-  options.uri = shell_test_server_uri();
-  options.initial_mode = shcore::IShell_core::Mode::SQL;
-  mysqlsh::Command_line_shell shell(options);
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
+                  const_cast<char *>(shell_test_server_uri().c_str()), nullptr};
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(3, args));
   shell._history.set_limit(100);
 
   const char *pwd = getenv("MYSQL_PWD");
@@ -87,9 +86,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
 
   // TS_CV#9
   EXPECT_EQ("*IDENTIFIED*:*PASSWORD*",
-            shcore::Shell_core_options::get_instance()
-                ->get_member("history.sql.ignorePattern")
-                .descr());
+      shell.get_options()->get("history.sql.ignorePattern").descr());
 
   EXPECT_EQ(0, linenoiseHistorySize());
 
@@ -144,8 +141,8 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_STREQ("print 'secret'", linenoiseHistoryLine(5));
 
   // unset filter via shell options
-  auto opts = shcore::Shell_core_options::get_instance();
-  opts->set_member("history.sql.ignorePattern", shcore::Value(""));
+  shcore::Mod_shell_options opts(shell.get_options());
+  opts.set_member("history.sql.ignorePattern", shcore::Value(""));
 
   shell.process_line("top secret;");
   EXPECT_EQ(7, linenoiseHistorySize());
@@ -273,9 +270,8 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
   // because we do not call the approriate API
   linenoiseHistorySetMaxLen(100);
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::SQL;
-  mysqlsh::Command_line_shell shell(options);
+  char *args[] = {const_cast<char*>("ut"), const_cast<char*>("--sql"), nullptr};
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(2, args));
 
   // ? = match exactly one
   EXPECT_EQ(0, linenoiseHistorySize());
@@ -317,9 +313,7 @@ TEST_F(Shell_history, history_set_option) {
 
   linenoiseHistoryFree();
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   // SN_SHELL_OPTION_CHANGED
   shell.process_line(
@@ -335,9 +329,7 @@ TEST_F(Shell_history, history_set_option) {
 }
 
 TEST_F(Shell_history, history_ignore_pattern_js) {
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   shell.process_line("shell.options['history.sql.ignorePattern'] = '*SELECT*'");
   shell.process_line("// SELECT");
@@ -346,9 +338,9 @@ TEST_F(Shell_history, history_ignore_pattern_js) {
 }
 
 TEST_F(Shell_history, history_ignore_pattern_py) {
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::Python;
-  mysqlsh::Command_line_shell shell(options);
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--py"),
+                  nullptr};
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(2, args));
 
   shell.process_line(
       "setattr(shell.options, 'history.sql.ignorePattern', "
@@ -381,10 +373,8 @@ TEST_F(Shell_history, history_linenoise) {
 
   shcore::delete_file(shcore::get_user_config_path() + "/history");
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
   {
-    mysqlsh::Command_line_shell shell(options);
+    mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
     EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
 
@@ -399,18 +389,18 @@ TEST_F(Shell_history, history_linenoise) {
     EXPECT_STREQ("print(2);", linenoiseHistoryLine(1));
     EXPECT_STREQ("print(3);", linenoiseHistoryLine(2));
 
-    auto opt = shcore::Shell_core_options::get_instance();
+    shcore::Mod_shell_options opt(shell.get_options());
 
     // TS_CV#10
     // autosave off by default
-    EXPECT_FALSE(opt->get_member("history.autoSave").as_bool());
+    EXPECT_FALSE(opt.get_member("history.autoSave").as_bool());
 
     // check history autosave
     shell.save_state(shcore::get_user_config_path());
     EXPECT_FALSE(
         shcore::file_exists(shcore::get_user_config_path() + "/history"));
 
-    opt->set_member("history.autoSave", shcore::Value::True());
+    opt.set_member("history.autoSave", shcore::Value::True());
 
     shell.save_state(shcore::get_user_config_path());
     EXPECT_TRUE(
@@ -419,7 +409,7 @@ TEST_F(Shell_history, history_linenoise) {
     // TS_CV#1 shell.options["history.maxSize"]=number sets the max number of
     // entries to store in the shell history file
     // TS_CV#2 (is not a requirement)
-    opt->set_member("history.maxSize", shcore::Value(1));
+    opt.set_member("history.maxSize", shcore::Value(1));
     EXPECT_EQ(1, shell._history.size());
     EXPECT_STREQ("print(3);", linenoiseHistoryLine(0));
 
@@ -564,9 +554,7 @@ TEST_F(Shell_history, check_help_shows_history) {
   // My preference is a global one but I'm not the one to maintain the UTs so
   // I'll just do something and let the owners of the UTs decide.
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   {
     // Expecting the Shell mention \history in \help
@@ -586,16 +574,14 @@ TEST_F(Shell_history, check_help_shows_history) {
 TEST_F(Shell_history, history_autosave_int) {
   shcore::delete_file(shcore::get_user_config_path() + "/history");
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   {
-    auto opt = shcore::Shell_core_options::get_instance();
+    shcore::Mod_shell_options opt(shell.get_options());
 
-    // Expecting the Shell to cast to boolean true
-    opt->set_member("history.autoSave", shcore::Value(101));
-    EXPECT_TRUE(opt->get_member("history.autoSave").as_bool());
+    // Expecting the Shell to cast to boolean true if value is 1 or 0
+    opt.set_member("history.autoSave", shcore::Value(1));
+    EXPECT_TRUE(opt.get_member("history.autoSave").as_bool());
 
     // Expecting the Shell to print history.autoSave = true not 101
     std::string capture;
@@ -614,10 +600,9 @@ TEST_F(Shell_history, check_history_source) {
   // WL#10446 says \source shall no add entries to the history
   // Only history entry shall the \source itself
 
-  Shell_options options;
-  options.uri = shell_test_server_uri();
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  const_cast<char *>(shell_test_server_uri().c_str()), nullptr};
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(3, args));
   shell._history.set_limit(10);
 
   std::ofstream of;
@@ -647,10 +632,8 @@ TEST_F(Shell_history, check_history_overflow_del) {
   // See if the history numbering still works for users when the history
   // overflows, entries are dropped and renumbering might take place.
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
   {
-    mysqlsh::Command_line_shell shell(options);
+    mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
     shell._history.set_limit(3);
 
     EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
@@ -710,9 +693,7 @@ TEST_F(Shell_history, check_history_overflow_del) {
 }
 
 TEST_F(Shell_history, history_management) {
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
   shell._delegate.print = print_capture;
@@ -831,8 +812,7 @@ TEST_F(Shell_history, history_sizes) {
   // This test shall cover internal list management (grow, shrink, overflow).
   // No crash is good enough.
   // See also src/mysqlsh/history.cc|h
-  Shell_options options;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
   shell._delegate.print = print_capture;
@@ -910,9 +890,7 @@ TEST_F(Shell_history, history_sizes) {
 TEST_F(Shell_history, history_del_invisible_entry) {
   // See also TEST_F(Shell_history, history_sizes)
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
   shell._delegate.print = print_capture;
@@ -935,9 +913,7 @@ TEST_F(Shell_history, history_source_history) {
   // using \source. \source shall not add any executed commands to history
   // but preserve the history state from after save.
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
   shell._delegate.print = print_capture;
@@ -965,9 +941,7 @@ TEST_F(Shell_history, history_source_history) {
 }
 
 TEST_F(Shell_history, history_del_range) {
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
   shell._delegate.print = print_capture;
@@ -1020,9 +994,7 @@ TEST_F(Shell_history, history_entry_number_reset) {
   // Numbering shall only be reset when Shell is restarted
   // or when \\history clear is called
 
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
   shell._delegate.print = print_capture;
@@ -1049,9 +1021,7 @@ TEST_F(Shell_history, history_entry_number_reset) {
 }
 
 TEST_F(Shell_history, shell_options_help_history) {
-  Shell_options options;
-  options.initial_mode = shcore::IShell_core::Mode::JavaScript;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
 
   std::string capture;
   shell._delegate.print = print_capture;
@@ -1090,8 +1060,7 @@ TEST_F(Shell_history, history_delete_range) {
     EXPECT_EQ(expected.size(), dump.size());                                   \
   }
 
-  Shell_options options;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
   std::string capture;
   shell._delegate.print = print_capture;
   shell._delegate.print_error = print_capture;
@@ -1255,8 +1224,7 @@ TEST_F(Shell_history, history_delete_range) {
 }
 
 TEST_F(Shell_history, history_numbering) {
-  Shell_options options;
-  mysqlsh::Command_line_shell shell(options);
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());
   std::string capture;
   shell._delegate.print = print_capture;
   shell._delegate.print_error = print_capture;

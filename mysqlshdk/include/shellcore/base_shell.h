@@ -21,15 +21,26 @@
 
 #include "shellcore/shell_options.h"
 #include "scripting/types.h"
+#include "scripting/types_cpp.h"
 #include "shellcore/shell_core.h"
 
 #include <map>
+#include <memory>
 #include <string>
 
 namespace mysqlsh {
 class SHCORE_PUBLIC Base_shell {
  public:
-  Base_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate);
+  static std::shared_ptr<Shell_options> get_options() {
+    return shell_options;
+  }
+
+  static const Shell_options::Storage &options() {
+    return shell_options->get();
+  }
+
+  Base_shell(std::shared_ptr<Shell_options> cmdline_options,
+             shcore::Interpreter_delegate *custom_delegate);
 
   virtual ~Base_shell() {}
 
@@ -67,7 +78,7 @@ class SHCORE_PUBLIC Base_shell {
   bool switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &args);
 
  protected:
-  mysqlsh::Shell_options _options;
+  static std::shared_ptr<mysqlsh::Shell_options> shell_options;
   std::shared_ptr<shcore::Shell_core> _shell;
   std::map<std::string, std::string> _prompt_variables;
   shcore::Input_state _input_mode;

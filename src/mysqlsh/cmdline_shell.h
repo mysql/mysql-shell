@@ -20,6 +20,7 @@
 #ifndef _CMDLINE_SHELL_
 #define _CMDLINE_SHELL_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -39,7 +40,7 @@ namespace mysqlsh {
 class Command_line_shell : public Mysql_shell,
                            public shcore::NotificationObserver {
  public:
-  Command_line_shell(const Shell_options &options);
+  explicit Command_line_shell(std::shared_ptr<Shell_options> cmdline_options);
   void print_banner();
   void command_loop();
 

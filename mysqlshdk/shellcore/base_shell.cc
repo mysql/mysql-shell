@@ -25,7 +25,6 @@
 #include "utils/utils_string.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/ishell_core.h"
-#include "shellcore/shell_core_options.h"
 #include "shellcore/shell_notifications.h"
 #include "modules/devapi/base_resultset.h"
 #include "shellcore/shell_resultset_dumper.h"
@@ -33,36 +32,30 @@
 #include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlsh {
-Base_shell::Base_shell(const Shell_options &options,
-                       shcore::Interpreter_delegate *custom_delegate)
-    : _options(options) {
+
+std::shared_ptr<mysqlsh::Shell_options> Base_shell::shell_options =
+    std::make_shared<mysqlsh::Shell_options>();
+
+Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
+                       shcore::Interpreter_delegate *custom_delegate) {
+  Base_shell::shell_options =  cmdline_options;
   shcore::Interrupts::setup();
 
   std::string log_path = shcore::get_user_config_path();
   log_path += "mysqlsh.log";
 
-  ngcommon::Logger::setup_instance(log_path.c_str(), _options.log_to_stderr,
-                                   _options.log_level);
+  ngcommon::Logger::setup_instance(log_path.c_str(), options().log_to_stderr,
+                                   options().log_level);
 
   _input_mode = shcore::Input_state::Ok;
 
-  // Sets the global options
-  shcore::Value::Map_type_ref shcore_options = shcore::Shell_core_options::get();
-
-  // Updates shell core options that changed upon initialization
-  (*shcore_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = shcore::Value(_options.force);
-  (*shcore_options)[SHCORE_INTERACTIVE] = shcore::Value(_options.interactive);
-  (*shcore_options)[SHCORE_USE_WIZARDS] = shcore::Value(_options.wizards);
-  if (!_options.output_format.empty())
-    (*shcore_options)[SHCORE_OUTPUT_FORMAT] =
-        shcore::Value(_options.output_format);
-  if (!_options.histignore.empty())
-    (*shcore_options)[SHCORE_HISTIGNORE] = shcore::Value(_options.histignore);
+  if (options().output_format.empty())
+    shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("table"));
 
   _shell.reset(new shcore::Shell_core(custom_delegate));
 
   bool lang_initialized;
-  _shell->switch_mode(_options.initial_mode, lang_initialized);
+  _shell->switch_mode(shell_options->get().initial_mode, lang_initialized);
   _update_variables_pending = 1;
 
   _result_processor = std::bind(&Base_shell::process_result, this, _1);
@@ -390,8 +383,8 @@ void Base_shell::notify_executed_statement(const std::string& line) {
 }
 
 void Base_shell::process_result(shcore::Value result) {
-  if ((*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()
-      || _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
+  if (options().interactive ||
+      _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
     if (result) {
       shcore::Value shell_hook;
       std::shared_ptr<shcore::Object_bridge> object;
@@ -461,7 +454,7 @@ int Base_shell::process_file(const std::string &path, const std::vector<std::str
 
       // When force is used, we do not care of the processing
       // errors
-      if (_options.force)
+      if (options().force)
         ret_val = 0;
 
       s.close();
@@ -479,8 +472,8 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
     const std::vector<std::string> &argv, bool force_batch) {
   // If interactive is set, it means that the shell was started with the option to
   // Emulate interactive mode while processing the stream
-  if (!force_batch && _options.interactive) {
-    if (_options.full_interactive)
+  if (!force_batch && options().interactive) {
+    if (options().full_interactive)
       _shell->print(prompt());
 
     bool comment_first_js_line =
@@ -497,12 +490,12 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
 
       comment_first_js_line = false;
 
-      if (_options.full_interactive)
+      if (options().full_interactive)
         println(line);
 
       process_line(line);
 
-      if (_options.full_interactive)
+      if (options().full_interactive)
         _shell->print(prompt());
     }
 
