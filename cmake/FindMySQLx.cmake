@@ -72,10 +72,12 @@ else()
   set(MYSQLX_LIBRARY_PATHS
     "${MYSQL_BUILD_DIR}/rapid/plugin/x/client"
     "${MYSQL_BUILD_DIR}/rapid/plugin/x/protocol"
+    "${MYSQL_BUILD_DIR}/archive_output_directory"
   )
   set(MYSQL_LIBRARY_PATHS
     "${MYSQL_BUILD_DIR}/libmysql"
     "${MYSQL_BUILD_DIR}/libmysql/${CMAKE_BUILD_TYPE}"
+    "${MYSQL_BUILD_DIR}/archive_output_directory"
   )
 endif()
 
