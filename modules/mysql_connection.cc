@@ -209,7 +209,7 @@ void Connection::throw_on_connection_fail() {
 }
 
 Connection::Connection(const std::string &uri_, const char *password)
-  : _mysql(NULL) {
+  : _mysql(NULL), _tcp(false) {
   std::string protocol;
   std::string user;
   std::string pass;
@@ -258,11 +258,14 @@ Connection::Connection(const std::string &uri_, const char *password)
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags)) {
     throw_on_connection_fail();
   }
+
+  std::string connection_info(get_connection_info());
+  _tcp = (connection_info.find("via TCP/IP") != std::string::npos);
 }
 
 Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
   const struct shcore::SslInfo& ssl_info)
-: _mysql(NULL) {
+: _mysql(NULL), _tcp(false) {
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
 
   // No option should be silently ignored, on conflicts an error is raised
@@ -292,6 +295,9 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags)) {
     throw_on_connection_fail();
   }
+
+  std::string connection_info(get_connection_info());
+  _tcp = (connection_info.find("via TCP/IP") != std::string::npos);
 }
 
 bool Connection::setup_ssl(const struct shcore::SslInfo& ssl_info) {

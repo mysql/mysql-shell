@@ -90,6 +90,7 @@ protected:
   struct shcore::SslInfo _ssl_info;
 
   void load_connection_data(const shcore::Argument_list &args);
+  void set_uri();
 private:
   void init();
 

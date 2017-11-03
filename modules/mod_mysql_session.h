@@ -164,6 +164,8 @@ public:
 #endif
   virtual bool is_connected() const { return _conn ? true : false; }
 
+  bool is_tcp() { return _conn->is_tcp(); }
+
   virtual int get_default_port();
 
 private:

@@ -161,6 +161,7 @@ public:
   const char* get_server_info() { _prev_result.reset(); return mysql_get_server_info(_mysql); }
   const char* get_stats() { _prev_result.reset(); return mysql_stat(_mysql); }
   const char* get_ssl_cipher() { _prev_result.reset(); return mysql_get_ssl_cipher(_mysql); }
+  bool is_tcp() { return _tcp; }
 
 private:
   bool setup_ssl(const struct shcore::SslInfo& ssl_info);
@@ -168,6 +169,7 @@ private:
   std::string _uri;
   MYSQL *_mysql;
   MySQL_timer _timer;
+  bool _tcp;
 
   std::shared_ptr<MYSQL_RES> _prev_result;
 };

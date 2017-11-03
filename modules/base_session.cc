@@ -293,15 +293,9 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
   // Anything found on any of the indicated sources: URI, options map and stored session
   if (2 == args.size())
     _password = args.string_at(1).c_str();
+}
 
-  // Default port will be != 0 only when applicable
-  if (_port==0) {
-      int default_port = get_default_port();
-
-    if (default_port != 0)
-      _port = default_port;
-  }
-
+void ShellBaseSession::set_uri() {
   std::string sock_port = (_port == 0) ? _sock : boost::lexical_cast<std::string>(_port);
 
   if (_schema.empty())

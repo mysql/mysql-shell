@@ -158,6 +158,12 @@ Value BaseSession::connect(const Argument_list &args) {
 
     _connection_id = _session.get_connection_id();
 
+    // TODO(rennox): Implement is_tcp() for X protocol
+    if (_port == 0 && _sock.empty())
+      _port = 33060;
+
+    set_uri();
+
     _default_schema = _schema;
     if (!_default_schema.empty())
       update_schema_cache(_default_schema, true);

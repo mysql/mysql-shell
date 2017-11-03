@@ -233,6 +233,8 @@ ReplicationGroupState check_function_preconditions(const std::string &class_name
     error = "a Classic Session is required to perform this operation";
   else if (!session->is_connected())
       error = "The session was closed. An open session is required to perform this operation";
+  else if (!session->is_tcp())
+    error = "a Classic Session through TCP/IP is required to perform this operation";
   else{
     // Retrieves the instance configuration type from the perspective of the active session
     auto instance_type = get_gr_instance_type(session->connection());

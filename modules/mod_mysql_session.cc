@@ -113,6 +113,12 @@ Value ClassicSession::connect(const Argument_list &args) {
 
     _default_schema = _schema;
 
+    // Sets the default port when required
+    if (is_tcp() && _port == 0)
+      _port = 3306;
+
+    set_uri();
+
     if (!_default_schema.empty())
       update_schema_cache(_default_schema, true);
   }
