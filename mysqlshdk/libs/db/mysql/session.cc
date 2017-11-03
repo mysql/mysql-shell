@@ -81,6 +81,30 @@ void Session_impl::connect(
   }
 
   _connection_options = connection_options;
+
+  if (!_connection_options.has_port() && !_connection_options.has_socket()) {
+    std::string connection_info(get_connection_info());
+    if (connection_info.find("via TCP/IP") != std::string::npos) {
+      _connection_options.set_port(3306);
+    } else {
+      std::string variable;
+#ifdef _WIN32
+      variable = "named_pipe";
+#else
+      variable = "socket";
+#endif
+      auto result = query("show variables like '" + variable + "'", true);
+      auto row = result->fetch_one();
+      std::string value = row->get_as_string(1);
+      if (!value.empty()) {
+#ifdef _WIN32
+        _connection_options.set_pipe(value);
+#else
+        _connection_options.set_socket(value);
+#endif
+      }
+    }
+  }
 }
 
 bool Session_impl::setup_ssl(

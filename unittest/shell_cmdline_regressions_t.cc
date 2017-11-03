@@ -17,6 +17,7 @@
 #include "mysh_config.h"
 #include "unittest/test_utils/command_line_test.h"
 #include "utils/utils_file.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 
 namespace tests {
 
@@ -159,6 +160,57 @@ TEST_F(Command_line_test, bug24967838) {
                   _mysqlsh, _uri.c_str());
 
     EXPECT_EQ(system(cmd), 0);
+  }
+}
+
+TEST_F(Command_line_test, bug26970629) {
+  std::string variable;
+  std::string host;
+  std::string pwd = "--password=";
+
+  if (!_pwd.empty())
+    pwd += _pwd;
+#ifdef _WIN32
+  variable = "named_pipe";
+  host = "--host=.";
+#else
+  variable = "socket";
+  host = "--host=localhost";
+#endif
+  auto session = mysqlshdk::db::mysql::Session::create();
+  mysqlshdk::db::Connection_options options;
+  options.set_host(_host);
+  options.set_port(_mysql_port_number);
+  options.set_user(_user);
+  options.set_password(_pwd);
+
+  session->connect(options);
+
+  auto result = session->query("show variables like '" + variable + "'");
+
+  auto row = result->fetch_one();
+
+  std::string socket = "--socket=" + row->get_as_string(1);
+
+  session->close();
+
+  if (socket.empty()) {
+    SCOPED_TRACE("Socket/Pipe Connections are Disabled, they must be enabled.");
+    FAIL();
+  } else {
+    std::string usr = "--user=" + _user;
+    execute({_mysqlsh, usr.c_str(), pwd.c_str(), host.c_str(), socket.c_str(),
+             "-e", "dba.getCluster()", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Dba.getCluster: a Classic Session through TCP/IP is required to "
+        "perform this operation");
+    _output.clear();
+
+    execute({_mysqlsh, usr.c_str(), pwd.c_str(), host.c_str(), socket.c_str(),
+             "-e", "dba.createCluster('sample')", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Dba.createCluster: a Classic Session through TCP/IP is required to "
+        "perform this operation");
   }
 }
 }
