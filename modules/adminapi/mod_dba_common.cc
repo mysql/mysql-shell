@@ -192,6 +192,8 @@ ReplicationGroupState check_function_preconditions(
   } else if (!session->is_open()) {
       error = "The session was closed. An open session is required to perform "
               "this operation";
+  } else if (session->get_connection_options().get_transport_type() != mysqlshdk::db::Tcp) {
+    error = "a Classic Session through TCP/IP is required to perform this operation";
   } else {
     // Retrieves the instance configuration type from the perspective of the
     // active session
