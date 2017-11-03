@@ -74,10 +74,24 @@ protected:
       }
     }
   }
+
+  // Some tests will define global vars, which will affect other tests because
+  // of the global Python interpreter context. So we clean them up.
+  void snapshot_globals() {
+    execute("__global_names = globals().keys()");
+  }
+
+  void cleanup_globals() {
+    execute("for k in globals().keys():\n"
+            "    if k not in global_names:\n"
+            "        del globals()[k]\n"
+            "del global_names\n");
+  }
 };
 
 //==================>>> building_expressions
 TEST_F(Shell_py_dev_api_sample_tester, Expression_Strings) {
+  snapshot_globals();
   validate_interactive("building_expressions/Expression_Strings");
 }
 
@@ -242,5 +256,6 @@ TEST_F(Shell_py_dev_api_sample_tester, Working_with_Relational_Tables) {
 //==================>>> working_with_tables_documents
 TEST_F(Shell_py_dev_api_sample_tester, Collections_as_Relational_Tables) {
   validate_interactive("working_with_tables_documents/Collections_as_Relational_Tables");
+  cleanup_globals();
 }
 }

@@ -196,12 +196,6 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   // TODO(alfredo) delme
   bool has_var_args() override { return _meta->var_args; }
 
-  static std::shared_ptr<Function_base> create(const std::string &name,
-                                               const Function &func,
-                                               const char *arg1_name,
-                                               Value_type arg1_type = Undefined,
-                                               ...);
-
   static std::shared_ptr<Function_base> create(
       const std::string &name, const Function &func,
       const std::vector<std::pair<std::string, Value_type>> &signature);

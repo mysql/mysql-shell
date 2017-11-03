@@ -30,6 +30,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace mysqlsh {
 class SHCORE_PUBLIC Base_shell {

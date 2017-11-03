@@ -56,7 +56,7 @@ class Api_connections : public Shell_js_script_tester {
     execute("var __my_x_port = " + _my_x_port + ";");
     execute("var __my_ca_file = '" + get_scripting_path(_my_ca_file) + "';");
     execute("var __my_ca_file_uri = '" + _my_ca_file_uri + "';");
-    execute("var __sandbox_dir = '" + get_scripting_path (sandbox_path) + "';");
+    execute("var __sandbox_dir = '" + get_scripting_path(sandbox_path) + "';");
   }
 
   static void SetUpTestCase() {

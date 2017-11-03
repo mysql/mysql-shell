@@ -18,14 +18,15 @@
  */
 
 #include "modules/devapi/mod_mysqlx_schema.h"
+#include <mysqld_error.h>
 #include <memory>
 #include <string>
 #include <vector>
-#include <mysqld_error.h>
 
 #include "scripting/lang_base.h"
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
+#include "shellcore/base_shell.h"
 
 #include "scripting/proxy_object.h"
 

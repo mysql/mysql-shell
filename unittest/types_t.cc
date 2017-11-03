@@ -279,7 +279,7 @@ static Value do_test(const Argument_list &args) {
 
 TEST(Functions, function_wrappers) {
   std::shared_ptr<Function_base> f(Cpp_function::create(
-      "test", do_test, "test_index", Integer, "test_arg", String, NULL));
+      "test", do_test, {{"test_index", Integer}, {"test_arg", String}}));
 
   {
     Argument_list args;

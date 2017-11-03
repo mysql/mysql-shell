@@ -342,6 +342,7 @@ void Cpp_object_bridge::add_method(const std::string &name,
     // overloading not supported in old API, erase the previous one
     _funcs.erase(f);
   }
+
   std::vector<std::pair<std::string, Value_type>> signature;
   va_list l;
   if (arg1_name && arg1_type != Undefined) {
@@ -822,32 +823,6 @@ Value Cpp_function::invoke(const Argument_list &args) {
     throw Exception::logic_error(std::string("Uncaught exception: ") +
                                  e.what());
   }
-}
-
-std::shared_ptr<Function_base> Cpp_function::create(const std::string &name,
-                                                    const Function &func,
-                                                    const char *arg1_name,
-                                                    Value_type arg1_type, ...) {
-  va_list l;
-  std::vector<std::pair<std::string, Value_type>> args;
-
-  if (arg1_name && arg1_type != Undefined) {
-    const char *n;
-    Value_type t;
-
-    va_start(l, arg1_type);
-    args.push_back(std::make_pair(arg1_name, arg1_type));
-    do {
-      n = va_arg(l, const char *);
-      if (n) {
-        t = (Value_type)va_arg(l, int);
-        if (t != Undefined)
-          args.push_back(std::make_pair(n, t));
-      }
-    } while (n && t != Undefined);
-    va_end(l);
-  }
-  return std::shared_ptr<Function_base>(new Cpp_function(name, func, args));
 }
 
 std::shared_ptr<Function_base> Cpp_function::create(
