@@ -25,30 +25,32 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <memory>
 
 namespace shcore {
 namespace debug {
 
 #ifndef NDEBUG
 
-static std::vector<Debug_object_info *> g_debug_object_list;
+static std::vector<std::unique_ptr<Debug_object_info> > g_debug_object_list;
 // static Debug_object_info *g_debug_object_dummy = nullptr;
 
 Debug_object_info *debug_object_enable(const char *name) {
-  for (auto c : g_debug_object_list) {
+  for (const auto &c : g_debug_object_list) {
     if (c->name.compare(name) == 0)
-      return c;
+      return c.get();
   }
 
-  g_debug_object_list.push_back(new Debug_object_info(name));
-  return g_debug_object_list[g_debug_object_list.size() - 1];
+  g_debug_object_list.push_back(
+      std::unique_ptr<Debug_object_info>(new Debug_object_info(name)));
+  return g_debug_object_list[g_debug_object_list.size() - 1].get();
 }
 
 bool debug_object_dump_report(bool verbose) {
   std::cout << "Instrumented mysqlsh object allocation report:\n";
   int count = 0;
   int fatal_found = 0;
-  for (auto c : g_debug_object_list) {
+  for (const auto &c : g_debug_object_list) {
     if (verbose || c->allocs != c->deallocs) {
       std::cout << c->name << "\t" << (c->allocs - c->deallocs) << " leaks ("
                 << c->allocs << " allocations vs " << c->deallocs
