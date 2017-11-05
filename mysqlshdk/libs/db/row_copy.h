@@ -71,12 +71,12 @@ class SHCORE_PUBLIC Row_copy : public IRow {
 
   template <typename T>
   const T &get(int field) const {
-    return static_cast<Field_data<T> *>(_data->fields[field])->value;
+    return static_cast<Field_data<T> *>(_data->fields[field].get())->value;
   }
 
   struct Data {
     std::vector<Type> types;
-    std::vector<Field_data_ *> fields;
+    std::vector<std::unique_ptr<Field_data_>> fields;
   };
   std::shared_ptr<Data> _data;
 };
