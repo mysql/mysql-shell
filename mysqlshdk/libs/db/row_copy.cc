@@ -68,18 +68,18 @@ Row_copy::Row_copy(const IRow &row) {
     _data->types.push_back(row.get_type(i));
 
     if (row.is_null(i)) {
-      _data->fields.push_back(nullptr);
+      _data->fields.emplace_back(nullptr);
       continue;
     }
 
     switch (row.get_type(i)) {
       case Type::Null:
-        _data->fields.push_back(nullptr);
+        _data->fields.emplace_back(nullptr);
         break;
 
       case Type::Decimal:
-        _data->fields.push_back(
-            new Field_data<std::string>(row.get_as_string(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
+            new Field_data<std::string>(row.get_as_string(i))));
         break;
 
       case Type::Date:
@@ -89,36 +89,43 @@ Row_copy::Row_copy(const IRow &row) {
       case Type::Json:
       case Type::Enum:
       case Type::Set:
-        _data->fields.push_back(new Field_data<std::string>(row.get_string(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
+            new Field_data<std::string>(row.get_string(i))));
         break;
 
       case Type::String:
-        _data->fields.push_back(new Field_data<std::string>(row.get_string(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
+            new Field_data<std::string>(row.get_string(i))));
         break;
 
       case Type::Bytes:
-        _data->fields.push_back(new Field_data<std::string>(row.get_string(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
+            new Field_data<std::string>(row.get_string(i))));
         break;
 
       case Type::Integer:
-        _data->fields.push_back(new Field_data<int64_t>(row.get_int(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<int64_t>>(
+            new Field_data<int64_t>(row.get_int(i))));
         break;
 
       case Type::UInteger:
-        _data->fields.push_back(new Field_data<uint64_t>(row.get_uint(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<uint64_t>>(
+            new Field_data<uint64_t>(row.get_uint(i))));
         break;
 
       case Type::Float:
-        _data->fields.push_back(new Field_data<float>(row.get_float(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<float>>(
+            new Field_data<float>(row.get_float(i))));
         break;
 
       case Type::Double:
-        _data->fields.push_back(new Field_data<double>(row.get_double(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<double>>(
+            new Field_data<double>(row.get_double(i))));
         break;
 
       case Type::Bit:
-        _data->fields.push_back(
-            new Field_data<std::string>(row.get_as_string(i)));
+        _data->fields.emplace_back(std::unique_ptr<Field_data<std::string>>(
+            new Field_data<std::string>(row.get_as_string(i))));
         break;
     }
   }
@@ -230,7 +237,7 @@ std::pair<const char *, size_t> Row_copy::get_string_data(
   Type ftype;
   GET_VALIDATE_TYPE(index, (ftype == Type::String || ftype == Type::Bytes));
   const auto &s =
-      static_cast<Field_data<std::string> *>(_data->fields[index])->value;
+      static_cast<Field_data<std::string> *>(_data->fields[index].get())->value;
   return {s.data(), s.size()};
 }
 
