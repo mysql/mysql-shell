@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,7 +40,7 @@ class SHCORE_PUBLIC Mod_shell_options : public shcore::Cpp_object_bridge {
   static void reset_instance();
 
   std::string class_name() const override {
-    return "Shell Object";
+    return "ShellOptions";
   }
 
   bool operator==(const Object_bridge &other) const override;
