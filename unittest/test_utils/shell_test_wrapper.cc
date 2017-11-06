@@ -22,6 +22,8 @@
 #include "mysqlshdk/libs/utils/utils_time.h"
 #include "shellcore/interrupt_handler.h"
 
+extern char* g_mppath;
+
 namespace tests {
 Shell_test_wrapper::Shell_test_wrapper() {
   reset();
@@ -29,6 +31,8 @@ Shell_test_wrapper::Shell_test_wrapper() {
 
 void Shell_test_wrapper::reset() {
   _opts = std::make_shared<mysqlsh::Shell_options>();
+  const_cast<mysqlsh::Shell_options::Storage&>(_opts->get()).gadgets_path =
+      g_mppath;
   _interactive_shell.reset(
       new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
 

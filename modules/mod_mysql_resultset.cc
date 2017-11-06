@@ -23,7 +23,6 @@
 #include "modules/devapi/base_constants.h"
 #include "shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
-#include "modules/mod_shell_options.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"

@@ -26,7 +26,6 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "shellcore/base_session.h"
 #include "modules/mod_mysql_session.h"
-#include "modules/mod_shell_options.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/base_database_object.h"
 #include "shellcore/shell_notifications.h"
