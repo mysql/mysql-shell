@@ -234,7 +234,8 @@ struct SHCORE_PUBLIC Value {
   //! returns a JSON representation of the object
   std::string json(bool pprint = false) const;
 
-  std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
+  std::string &append_descr(std::string &s_out, int indent = -1,
+                            char quote_strings = '\0') const;
   std::string &append_repr(std::string &s_out) const;
 
   void check_type(Value_type t) const;

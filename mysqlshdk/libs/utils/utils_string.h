@@ -208,6 +208,15 @@ std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);
 std::vector<std::string> SHCORE_PUBLIC str_split(const std::string &str,
                                                  const std::string &sep);
 
+/**
+ * Escape `quote` and `\` chars.
+ *
+ * @param s String to escape.
+ * @param quote `'` `"`
+ * @return Quote escaped string.
+ */
+std::string quote_string(const std::string &s, char quote);
+
 // Macro to turn a symbol into a string
 #define STRINGIFY(s) STRINGIFY_(s)
 #define STRINGIFY_(s) #s

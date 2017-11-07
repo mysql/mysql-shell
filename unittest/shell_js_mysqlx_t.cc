@@ -153,4 +153,8 @@ TEST_F(Shell_js_mysqlx_tests, mysqlx_column_metadata) {
 TEST_F(Shell_js_mysqlx_tests, mysqlx_bool_expression) {
   validate_interactive("mysqlx_bool_expression.js");
 }
+
+TEST_F(Shell_js_mysqlx_tests, bug25789575_escape_quotes) {
+  validate_interactive("bug25789575_escape_quotes.js");
+}
 }  // namespace shcore

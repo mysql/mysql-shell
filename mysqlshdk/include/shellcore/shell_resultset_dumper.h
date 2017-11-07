@@ -17,11 +17,13 @@
  * 02110-1301  USA
  */
 
-#ifndef _SHELL_RESULTSET_DUMPER_H_
-#define _SHELL_RESULTSET_DUMPER_H_
+#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_RESULTSET_DUMPER_H_
+#define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_RESULTSET_DUMPER_H_
 
 #include <stdlib.h>
 #include <iostream>
+#include <memory>
+#include <string>
 #include "modules/devapi/base_resultset.h"
 #include "scripting/lang_base.h"
 
@@ -31,20 +33,23 @@ class SqlResult;
 class RowResult;
 class Result;
 class DocResult;
-};
+};  // namespace mysqlx
 
 namespace mysql {
 class ClassicResult;
 };
-}
+}  // namespace mysqlsh
 class ResultsetDumper {
-public:
-  ResultsetDumper(std::shared_ptr<mysqlsh::ShellBaseResult>target, shcore::Interpreter_delegate *output_handler, bool buffer_data);
+ public:
+  ResultsetDumper(std::shared_ptr<mysqlsh::ShellBaseResult> target,
+                  shcore::Interpreter_delegate* output_handler,
+                  bool buffer_data);
+  virtual ~ResultsetDumper() = default;
   virtual void dump();
 
-protected:
-  shcore::Interpreter_delegate *_output_handler;
-  std::shared_ptr<mysqlsh::ShellBaseResult>_resultset;
+ protected:
+  shcore::Interpreter_delegate* _output_handler;
+  std::shared_ptr<mysqlsh::ShellBaseResult> _resultset;
   std::string _format;
   bool _show_warnings;
   bool _interactive;
@@ -59,7 +64,8 @@ protected:
   void dump_normal(std::shared_ptr<mysqlsh::mysqlx::DocResult> result);
   void dump_normal(std::shared_ptr<mysqlsh::mysqlx::Result> result);
 
-  std::string get_affected_stats(const std::string& member, const std::string &legend);
+  std::string get_affected_stats(const std::string& member,
+                                 const std::string& legend);
   int get_warning_and_execution_time_stats(std::string& output_stats);
   void dump_records(std::string& output_stats);
   size_t dump_tabbed(shcore::Value::Array_type_ref records);
@@ -67,4 +73,4 @@ protected:
   size_t dump_vertical(shcore::Value::Array_type_ref records);
   void dump_warnings(bool classic = false);
 };
-#endif
+#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_RESULTSET_DUMPER_H_

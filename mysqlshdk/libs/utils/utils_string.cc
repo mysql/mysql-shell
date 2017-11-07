@@ -219,4 +219,10 @@ std::vector<std::string> SHCORE_PUBLIC str_split(const std::string &str,
   return chunks;
 }
 
+std::string quote_string(const std::string &s, char quote) {
+  const std::string q{quote};
+  const std::string backslash = str_replace(s, "\\", "\\\\");
+  const std::string esc = str_replace(backslash, q, "\\" + q);
+  return std::string(q + esc + q);
+}
 }  // namespace shcore
