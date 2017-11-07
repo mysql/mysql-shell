@@ -8572,6 +8572,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("This bugfix has not been completed in 1.0")
     def test_MYS_583(self):
         '''[MYS-583]: https://clustra.no.oracle.com/orabugs/bug.php?id=26422790
       URI parsing does not decode PCT before passing to other systems'''

@@ -152,15 +152,14 @@ Value BaseSession::connect(const Argument_list &args) {
     else
       ssl_mode = static_cast<int>(shcore::SslMode::Preferred);
 
+    if (_port == 0 && _sock.empty())
+      _port = 33060;
+
     _session.open(_host, _port, _schema, _user, _password, _ssl_info.ca,
       _ssl_info.cert, _ssl_info.key, _ssl_info.capath, _ssl_info.crl, _ssl_info.crlpath,
       _ssl_info.tls_version, _ssl_info.ciphers, ssl_mode, 60000, _auth_method, true);
 
     _connection_id = _session.get_connection_id();
-
-    // TODO(rennox): Implement is_tcp() for X protocol
-    if (_port == 0 && _sock.empty())
-      _port = 33060;
 
     set_uri();
 
