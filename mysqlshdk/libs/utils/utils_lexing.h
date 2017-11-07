@@ -74,6 +74,7 @@ inline size_t span_quoted_string_dq(const std::string &s, size_t offset) {
   assert(!s.empty());
   assert(offset < s.length());
   assert(s[offset] == '"');
+  assert(s[s.size()] == '\0');
 
   // skip opening quote
   ++offset;
@@ -105,6 +106,7 @@ inline size_t span_quoted_string_sq(const std::string &s, size_t offset) {
   assert(!s.empty());
   assert(offset < s.length());
   assert(s[offset] == '\'');
+  assert(s[s.size()] == '\0');
 
   // skip opening quote
   ++offset;

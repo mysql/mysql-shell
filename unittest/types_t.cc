@@ -17,8 +17,10 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
+#include <random>
+#include <algorithm>
 
-#include "gtest_clean.h"
+#include "unittest/gtest_clean.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
@@ -656,5 +658,131 @@ TEST(Argument_map, all) {
         Exception);
   }
 }
+
+TEST(Types_descr, double_single_quote) {
+  const char text[] =
+      "There are two common quote characters: \" and ' and we \xe2\x9d\xa4"
+      " Unicode. Backslash \\! \xc3\x98\x00 \x00 \x00."
+      "\x00"
+      "Text after null char with \" and '.";
+  const Value s(text, sizeof(text) - 1);
+
+  {
+    std::string stdout_string;
+    s.append_descr(stdout_string, -1, '\'');
+    const char expect_text[] =
+        "'There are two common quote characters: \" and \\' and we \xe2\x9d\xa4"
+        " Unicode. Backslash \\\\! \xc3\x98\x00 \x00 \x00."
+        "\x00"
+        "Text after null char with \" and \\'.'";
+    EXPECT_EQ(stdout_string, std::string(expect_text, sizeof(expect_text) - 1));
+  }
+
+  {
+    std::string stdout_string;
+    s.append_descr(stdout_string, -1, '"');
+    const char expect_text[] =
+        "\"There are two common quote characters: \\\" and ' and we "
+        "\xe2\x9d\xa4"
+        " Unicode. Backslash \\\\! \xc3\x98\x00 \x00 \x00."
+        "\x00"
+        "Text after null char with \\\" and '.\"";
+    EXPECT_EQ(stdout_string, std::string(expect_text, sizeof(expect_text) - 1));
+  }
 }
+
+TEST(Types_repr, encode_decode_simple) {
+  const char text[] =
+      "There are two common quote characters: \" and ' and we \xe2\x9d\xa4 "
+      "Unicode. Backslash \\! \xc3\x98\x00 \x00 \x00."
+      "\x00"
+      "Text after null char with \" and '.";
+  const Value s(text, sizeof(text) - 1);
+
+  {
+    const std::string serialized = s.repr();
+    const char expect_serialized[] =
+        "\"There are two common quote characters: \\\" and \\' and we "
+        "\\xe2\\x9d\\xa4 Unicode. Backslash \\\\! \\xc3\\x98\\x00 \\x00 \\x00."
+        "\\x00"
+        "Text after null char with \\\" and \\'.\"";
+    EXPECT_EQ(serialized, expect_serialized);
+    Value to_original = Value::parse(serialized);
+    EXPECT_EQ(s, to_original);
+    EXPECT_STREQ(text, to_original.as_string().c_str());
+    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.as_string());
+  }
 }
+
+TEST(Types_repr, encode_decode_nontrivial) {
+  {
+    const char text[] = "";
+    const Value s(text, sizeof(text) - 1);
+    const std::string serialized = s.repr();
+    const char expect_serialized[] = "\"\"";
+    EXPECT_EQ(serialized, expect_serialized);
+    Value to_original = Value::parse(serialized);
+    EXPECT_EQ(s, to_original);
+    EXPECT_STREQ(text, to_original.as_string().c_str());
+    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.as_string());
+  }
+
+  {
+    const char text[] = "\"";
+    const Value s(text, sizeof(text) - 1);
+    const std::string serialized = s.repr();
+    const char expect_serialized[] = R"_("\"")_";
+    EXPECT_EQ(serialized, expect_serialized);
+    Value to_original = Value::parse(serialized);
+    EXPECT_EQ(s, to_original);
+    EXPECT_STREQ(text, to_original.as_string().c_str());
+    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.as_string());
+  }
+
+  {
+    const char text[] = "\\";
+    const Value s(text, sizeof(text) - 1);
+    const std::string serialized = s.repr();
+    const char expect_serialized[] = R"_("\\")_";
+    EXPECT_EQ(serialized, expect_serialized);
+    Value to_original = Value::parse(serialized);
+    EXPECT_EQ(s, to_original);
+    EXPECT_STREQ(text, to_original.as_string().c_str());
+    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.as_string());
+  }
+}
+
+TEST(Types_repr, encode_decode_one_char) {
+  for (int tc = 0; tc <= 0xff; tc++) {
+    const char text[1] = {static_cast<char>(tc)};
+    const Value s(text, sizeof(text));
+
+    {
+      const std::string serialized = s.repr();
+      Value to_original = Value::parse(serialized);
+      EXPECT_EQ(s, to_original);
+      EXPECT_EQ(std::string(text, sizeof(text)), to_original.as_string());
+    }
+  }
+}
+
+TEST(Types_repr, encode_decode_random) {
+  std::mt19937 gen(2017);
+  std::uniform_int_distribution<> dist(0, 0xff);
+
+  for (int tc = 0; tc < 1000; tc++) {
+    char text[1 << 6];
+    std::generate_n(text, sizeof(text), [&dist, &gen](){ return dist(gen); });
+    const Value s(text, sizeof(text));
+
+    {
+      const std::string serialized = s.repr();
+      Value to_original = Value::parse(serialized);
+      EXPECT_EQ(s, to_original);
+      EXPECT_EQ(std::string(text, sizeof(text)), to_original.as_string());
+    }
+  }
+}
+
+}  // namespace tests
+}  // namespace shcore

@@ -67,6 +67,28 @@ const bool shcore::kTypeConvertible[12][12] = {
 // Note: Null can be cast to Object/Array/Map, but a valid Object/Array/Map
 // pointer is not NULL, so they can't be cast to it.
 
+/**
+ * Translate hex value from printable ascii character ([0-9a-zA-Z]) to decimal
+ * value
+ */
+static const uint32_t ascii_to_hex[256] = {
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  1,  2,
+    3,  4,  5,  6, 7, 8, 9, 0, 0, 0, 0, 0, 0,  0,  10, 11, 12,
+    13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14,
+    15, 0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
+    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0
+};
+
 namespace shcore {
 
 // --
@@ -684,13 +706,15 @@ inline std::string unicode_codepoint_to_utf8(uint32_t uni) {
 
 Value Value::parse_string(char **pc, char quote) {
   int32_t len;
-  char *p = *pc;
+  const char *p = *pc;
 
   // calculate length
   do {
-    while (*p && *++p != quote)
-      ;
-  } while (*p && *(p - 1) == '\\');
+    while (*p && *++p != quote) {
+    }
+    len = p - *pc;
+  } while (*p && (len > 0 && *(p - 1) == '\\') &&
+           (len > 1 && *(p - 2) != '\\'));
 
   if (*p != quote) {
     std::string msg = "missing closing ";
@@ -736,26 +760,21 @@ Value Value::parse_string(char **pc, char quote) {
         case '\\':
           s.append("\\");
           break;
+        case 'x': {
+          if (*pc - (pc_i + 1 + 2) < len && isxdigit(pc_i[2]) &&
+              isxdigit(pc_i[3])) {
+            const char c =
+                (ascii_to_hex[static_cast<unsigned char>(pc_i[2])] << 4) |
+                ascii_to_hex[static_cast<unsigned char>(pc_i[3])];
+            s.append(std::string{c});
+            pc_i += 2;
+          } else {
+            throw Exception::parser_error("Invalid \\xXX hex escape");
+          }
+        } break;
         case 'u':
           if (*pc - (pc_i + 1 + 4) < len && isxdigit(pc_i[2]) &&
               isxdigit(pc_i[3]) && isxdigit(pc_i[4]) && isxdigit(pc_i[5])) {
-            static const uint32_t ascii_to_hex[256] = {
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  1,  2,
-                3,  4,  5,  6, 7, 8, 9, 0, 0, 0, 0, 0, 0,  0,  10, 11, 12,
-                13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14,
-                15, 0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-                0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0
-            };
             uint32_t unich =
                 (ascii_to_hex[static_cast<unsigned>(pc_i[2])] << 12) |
                 (ascii_to_hex[static_cast<unsigned>(pc_i[3])] << 8) |
@@ -764,7 +783,7 @@ Value Value::parse_string(char **pc, char quote) {
             s.append(unicode_codepoint_to_utf8(unich));
             pc_i += 4;
           } else {
-            throw Exception::parser_error("Invalid \\uXXXX escape");
+            throw Exception::parser_error("Invalid \\uXXXX unicode escape");
           }
           break;
         case '\0':
@@ -1027,7 +1046,8 @@ std::string Value::repr() const {
   return s;
 }
 
-std::string &Value::append_descr(std::string &s_out, int indent, int quote_strings) const {
+std::string &Value::append_descr(std::string &s_out, int indent,
+                                 char quote_strings) const {
   std::string nl = (indent >= 0) ? "\n" : "";
   switch (type) {
     case Undefined:
@@ -1057,10 +1077,11 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       break;
     }
     case String:
-      if (quote_strings)
-        s_out += (char)quote_strings + *value.s + (char)quote_strings;
-      else
+      if (quote_strings) {
+        s_out += quote_string(*value.s, quote_strings);
+      } else {
         s_out += *value.s;
+      }
       break;
     case Object:
       if (!value.o || !*value.o)
@@ -1108,9 +1129,7 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
           s_out += ", " + nl;
         if (indent >= 0)
           s_out.append((indent + 1) * 4, ' ');
-        s_out += "\"";
-        s_out += iter->first;
-        s_out += "\": ";
+        s_out += quote_string(iter->first, '"') + ": ";
         iter->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
       }
 
@@ -1172,12 +1191,21 @@ std::string &Value::append_repr(std::string &s_out) const {
       std::string &s = *value.s;
       s_out += "\"";
       for (size_t i = 0; i < s.length(); i++) {
-        char c = s[i];
+        unsigned char c = s[i];
+
+        // non-printable ascii char
+        if (!(0x20 <= c && c < 0x7f)) {
+          s_out += "\\x";
+          s_out += "0123456789abcdef"[c >> 4];
+          s_out += "0123456789abcdef"[c & 0xf];
+          continue;
+        }
+
         switch (c) {
           case '\n':
             s_out += "\\n";
             break;
-          case '\"':
+          case '"':
             s_out += "\\\"";
             break;
           case '\'':
@@ -1204,8 +1232,6 @@ std::string &Value::append_repr(std::string &s_out) const {
           case '\\':
             s_out += "\\\\";
             break;
-          case '\0':
-            s_out += "\\\0";
           default:
             s_out += c;
         }
@@ -1237,9 +1263,9 @@ std::string &Value::append_repr(std::string &s_out) const {
       for (Map_type::iterator iter = mybegin; iter != myend; ++iter) {
         if (iter != mybegin)
           s_out += ", ";
-        s_out += "\"";
-        s_out += iter->first;
-        s_out += "\": ";
+        Value key(iter->first);
+        key.append_repr(s_out);
+        s_out += ": ";
         iter->second.append_repr(s_out);
       }
       s_out += "}";
