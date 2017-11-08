@@ -104,6 +104,7 @@ int main(int argc, char **argv) {
     else if (flags == "ALLBUTDBA")
       new_flags = "*:-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
 
+    new_flags = "*:-Shell_py_dba_tests.*";
     if (!new_flags.empty())
       ::testing::GTEST_FLAG(filter) = new_flags.c_str();
   }
