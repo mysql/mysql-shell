@@ -502,7 +502,7 @@ const std::set<std::string> k_metadata_schema_privileges{
 
 // Schema privileges needed on the mysql schema
 const std::set<std::string> k_mysql_schema_privileges{
-  "SELECT", "INSERT", "UPDATE", "DELETE"
+  "INSERT", "UPDATE", "DELETE"
 };
 
 // list of (schema, [privilege]) pairs, with the required privileges on each
@@ -510,7 +510,7 @@ const std::set<std::string> k_mysql_schema_privileges{
 const std::map<std::string, std::set<std::string>> k_schema_grants {
   {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
   {"mysql", k_mysql_schema_privileges }  // need for mysql.plugin,
-                                                       // mysql.user others
+                                         // mysql.user others
 };
 
 /** Check that the provided account has privileges to manage a cluster.
@@ -609,7 +609,7 @@ static const char *k_admin_user_grants[] = {
   "REPLICATION CLIENT, CREATE USER ON *.*",
   "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.*",
   "GRANT SELECT ON *.*",
-  "GRANT SELECT, INSERT, UPDATE, DELETE ON mysql.*"
+  "GRANT INSERT, UPDATE, DELETE ON mysql.*"
 };
 
 void create_cluster_admin_user(

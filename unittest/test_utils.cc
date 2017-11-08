@@ -181,7 +181,7 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
   }
 }
 
-void Shell_test_output_handler::validate_log_content(const std::vector<std::string> &content, bool expected) {
+void Shell_test_output_handler::validate_log_content(const std::vector<std::string> &content, bool expected, bool clear) {
   for (auto &value : content) {
     bool found = false;
 
@@ -206,10 +206,11 @@ void Shell_test_output_handler::validate_log_content(const std::vector<std::stri
   }
 
   // Wipe the log here
-  wipe_log();
+  if (clear)
+    wipe_log();
 }
 
-void Shell_test_output_handler::validate_log_content(const std::string &content, bool expected) {
+void Shell_test_output_handler::validate_log_content(const std::string &content, bool expected, bool clear) {
   bool found = false;
 
   if (std::find_if(log.begin(), log.end(),
@@ -232,7 +233,8 @@ void Shell_test_output_handler::validate_log_content(const std::string &content,
   }
 
   // Wipe the log here
-  wipe_log();
+  if (clear)
+    wipe_log();
 }
 
 void Shell_test_output_handler::debug_print(const std::string& line) {

@@ -21,6 +21,8 @@
 #include <memory>
 #include <random>
 #include <string>
+#include <mysqld_error.h>
+
 #ifndef WIN32
 #include <sys/un.h>
 #endif
@@ -1882,6 +1884,11 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   shcore::Value::Map_type_ref validate_options;
 
   std::string cnfpath, cluster_admin, cluster_admin_password;
+  std::string admin_user, admin_user_host, validate_user, validate_host;
+  std::string current_user, current_host, account_type, error_msg_extra;
+  std::string uri_user = instance_def.get_user();
+  std::string uri_host = instance_def.get_host();
+  bool cluster_admin_user_exists = false;
   bool clear_read_only = false;
 
   if (options) {
@@ -1928,22 +1935,80 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   // Now validates the instance GR status itself
   auto session = Dba::get_session(instance_def);
 
-  std::string user, host;
-  if (instance_def.has_user())
-    user = instance_def.get_user();
-  if (instance_def.has_host())
-    host = instance_def.get_host();
+  // get the current user
+  auto result = session->query("SELECT CURRENT_USER()");
+  auto row = result->fetch_one();
+  std::string current_account = row->get_string(0);
+  split_account(current_account, &current_user, &current_host);
 
+  // if this is a configureLocalInstance operation and the clusterAdmin
+  // option was used and that user exists, validate its privileges, otherwise
+  // validate the privileges of the current user
+  if (allow_update && !cluster_admin.empty()) {
+    shcore::split_account(cluster_admin, &admin_user, &admin_user_host);
+    // Host '%' is used by default if not provided in the user account.
+    if (admin_user_host.empty())
+      admin_user_host = "%";
+    // Check if the cluster_admin user exists
+    shcore::sqlstring query = shcore::sqlstring(
+        "SELECT COUNT(*) from mysql.user WHERE "
+        "User = ? AND Host = ?", 0);
+    query << admin_user << admin_user_host;
+    query.done();
+    try {
+      result = session->query(query);
+      cluster_admin_user_exists =
+          result->fetch_one()->get_int(0) != 0;
+    } catch (shcore::database_error &err) {
+      if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
+        // the current_account doesn't have enough privileges to execute
+        // the query
+        std::string error_msg;
+        if (uri_host != current_host || uri_user != current_user)
+          error_msg =
+              "Session account '" + current_user + "'@'" + current_host +
+              "'(used to authenticate '" + uri_user + "'@'" + uri_host +
+              "') does not have all the required privileges to execute this "
+              "operation. For more information, see the online documentation.";
+        else
+          error_msg =
+              "Session account '" + current_user + "'@'" + current_host +
+              "' does not have all the required privileges to execute this "
+              "operation. For more information, see the online documentation.";
+        log_error("%s", error_msg.c_str());
+        throw std::runtime_error(error_msg);
+      } else {
+        throw;
+      }
+    }
+  }
+  if (cluster_admin_user_exists) {
+    // cluster admin account exists, so we will validate its privileges
+    validate_user = admin_user;
+    validate_host = admin_user_host;
+    account_type = "Cluster Admin";
+  } else {
+    // cluster admin doesn't exist, so we validate the privileges of the
+    // current user
+    validate_user = current_user;
+    validate_host = current_host;
+    account_type = "Session";
+    if (uri_host != current_host || uri_user != current_user)
+      error_msg_extra =
+          " (used to authenticate '" + uri_user + "'@'" + uri_host + "')";
+  }
   // Validate the permissions of the user running the operation.
-  if (!validate_cluster_admin_user_privileges(session, user, host)) {
+  if (!validate_cluster_admin_user_privileges(session, validate_user,
+                                              validate_host)) {
     std::string error_msg =
-        "Account '" + user + "'@'" + host +
-        "' does not have all the required privileges to execute this "
-        "operation. For more information, see the online documentation.";
+        account_type + " account '" + validate_user + "'@'" + validate_host +
+        "'" + error_msg_extra +
+        " does not have all the required privileges to "
+        "execute this operation. For more information, see the online "
+        "documentation.";
     log_error("%s", error_msg.c_str());
     throw std::runtime_error(error_msg);
   }
-
   // Now validates the instance GR status itself
   std::string uri = session->uri();
 
@@ -1967,39 +2032,16 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
       bool super_read_only = validate_super_read_only(session, clear_read_only);
-
-      try {
-        create_cluster_admin_user(session, cluster_admin,
-                                  cluster_admin_password);
-      } catch (shcore::database_error &err) {
-        // Catch ER_CANNOT_USER (1396) if the user already exists, and skip it
-        // if the user has the needed privileges.
-        if (err.code() == ER_CANNOT_USER) {
-          std::string admin_user, admin_user_host;
-          shcore::split_account(cluster_admin, &admin_user, &admin_user_host);
-          // Host '%' is used by default if not provided in the user account.
-          if (admin_user_host.empty())
-            admin_user_host = "%";
-          if (!validate_cluster_admin_user_privileges(session, admin_user,
-                                                      admin_user_host)) {
-            std::string error_msg =
-                "User " + cluster_admin +
-                " already exists but it does not "
-                "have all the privileges for managing an InnoDB cluster. "
-                "Please provide a non-existing user to be created or a "
-                "different one with all the required privileges.";
-            errors->push_back(shcore::Value(error_msg));
-            log_error("%s", error_msg.c_str());
-          } else {
-            log_warning("User %s already exists.", cluster_admin.c_str());
-          }
-        } else {
+      if (!cluster_admin_user_exists) {
+        try {
+          create_cluster_admin_user(session, cluster_admin,
+                                    cluster_admin_password);
+        } catch (shcore::Exception &err) {
           std::string error_msg = "Unexpected error creating " + cluster_admin +
                                   " user: " + err.what();
           errors->push_back(shcore::Value(error_msg));
           log_error("%s", error_msg.c_str());
         }
-
         // If we disabled super_read_only we must enable it back
         // also confirm that the initial status was 1/ON
         if (clear_read_only && super_read_only) {
@@ -2009,6 +2051,8 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
                   session_address.c_str());
           set_global_variable(session, "super_read_only", "ON");
         }
+      } else {
+        log_warning("User %s already exists.", cluster_admin.c_str());
       }
     }
 
@@ -2022,11 +2066,28 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
                           "group_replication_group_seeds", peer_seeds);
     }
 
+    std::string user;
+    std::string password;
+    // If a clusterAdmin account was specified, use it, otherwise user the
+    // user of the instance.
+    if (!cluster_admin.empty()) {
+      user = admin_user;
+      password = cluster_admin_password;
+    } else {
+      user = uri_user;
+      password = instance_def.get_value(
+          instance_def.has("password") ? "password" : "dbPassword");
+    }
+
     // Verbose is mandatory for checkInstanceConfiguration
     shcore::Value::Array_type_ref mp_errors;
-
-    if ((_provisioning_interface->check(instance_def, cnfpath, allow_update,
-                                        &mp_errors) == 0)) {
+    auto check_options = instance_def;
+    check_options.clear_user();
+    check_options.clear_password();
+    check_options.set_user(user);
+    check_options.set_password(password);
+    if ((_provisioning_interface->check(check_options, cnfpath,
+                                        allow_update, &mp_errors) == 0)) {
       // Only return status "ok" if no previous errors were found.
       if (errors->size() == 0) {
         (*ret_val)["status"] = shcore::Value("ok");
