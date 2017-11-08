@@ -163,7 +163,7 @@
 |Number of accounts: 1|
 
 #@ Dba: configure_local_instance not enough privileges
-||Dba.configure_local_instance: Account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configure_local_instance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|
@@ -187,14 +187,8 @@
 #@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
 ||
 
-#@<OUT> Dba: configureLocalInstance create existing invalid admin user
-{
-    "errors": [
-        "User dba_test already exists but it does not have all the privileges for managing an InnoDB cluster. Please provide a non-existing user to be created or a different one with all the required privileges."
-    ],
-    "restart_required": false,
-    "status": "error"
-}
+#@ Dba: configureLocalInstance create existing invalid admin user
+||Dba.configure_local_instance: Cluster Admin account 'dba_test'@'%' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 #@ Dba: Delete previously create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 0|

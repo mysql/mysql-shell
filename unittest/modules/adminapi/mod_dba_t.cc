@@ -279,7 +279,8 @@ TEST_F(Dba_configure_local_instance, clear_read_only_invalid) {
 }
 
 TEST_F(Dba_configure_local_instance, clear_read_only_unset) {
-  add_validate_cluster_admin_user_privileges_queries(&_queries, "user", "localhost");
+  add_validate_cluster_admin_user_privileges_queries(&_queries, "root",
+                                                     "localhost");
 
   add_instance_type_queries(&_queries, mysqlsh::dba::Standalone);
 
@@ -314,7 +315,8 @@ TEST_F(Dba_configure_local_instance, clear_read_only_unset) {
 }
 
 TEST_F(Dba_configure_local_instance, clear_read_only_false) {
-  add_validate_cluster_admin_user_privileges_queries(&_queries, "user", "localhost");
+  add_validate_cluster_admin_user_privileges_queries(&_queries, "root",
+                                                     "localhost");
 
   add_instance_type_queries(&_queries, mysqlsh::dba::Standalone);
 

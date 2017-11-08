@@ -792,7 +792,7 @@ static std::size_t span_quotable_string_literal(const std::string &s,
 
   if (quote == 0) {
     while (p < s.size()) {
-      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$')
+      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$' && s[p] != '.')
         break;
       if (out_string)
         out_string->push_back(s[p]);

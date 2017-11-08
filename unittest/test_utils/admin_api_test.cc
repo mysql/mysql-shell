@@ -397,6 +397,19 @@ void Admin_api_test::add_validate_cluster_admin_user_privileges_queries(
 
   // Creates the expected query as passing the records to be returned
   shcore::sqlstring query;
+  data->push_back({"SELECT CURRENT_USER()",
+                  {"CURRENT_USER()"},
+                  {mysqlshdk::db::Type::String},
+                  {{shcore::make_account(user, host)}}});
+
+  query = shcore::sqlstring(
+            "SELECT COUNT(*) from mysql.user WHERE User = ? AND Host = '%'", 0)
+          << user;
+  data->push_back({query.str(),
+                  {"COUNT(*)"},
+                  {mysqlshdk::db::Type::Integer},
+                  {{"0"}}});
+
   query = shcore::sqlstring(
               "SELECT privilege_type, is_grantable"
               " FROM information_schema.user_privileges"

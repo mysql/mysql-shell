@@ -157,8 +157,9 @@ class Shell_test_output_handler {
   void validate_stdout_content(const std::string &content, bool expected);
   void validate_stderr_content(const std::string &content, bool expected);
   void validate_log_content(const std::vector<std::string> &content,
-                            bool expected);
-  void validate_log_content(const std::string &content, bool expected);
+                            bool expected, bool clear = true);
+  void validate_log_content(const std::string &content, bool expected,
+                            bool clear = true);
 
   void debug_print(const std::string &line);
   void debug_print_header(const std::string &line);
@@ -183,35 +184,35 @@ class Shell_test_output_handler {
                        const char *domain);
 };
 
-#define MY_EXPECT_STDOUT_CONTAINS(x)                 \
-  do {                                               \
-    SCOPED_TRACE("...in stdout check\n");            \
-    output_handler.validate_stdout_content(x, true); \
+#define MY_EXPECT_STDOUT_CONTAINS(x, ...)                               \
+  do {                                                                  \
+    SCOPED_TRACE("...in stdout check\n");                               \
+    output_handler.validate_stdout_content(x, true, ##__VA_ARGS__);     \
   } while (0)
-#define MY_EXPECT_STDERR_CONTAINS(x)                 \
-  do {                                               \
-    SCOPED_TRACE("...in stderr check\n");            \
-    output_handler.validate_stderr_content(x, true); \
+#define MY_EXPECT_STDERR_CONTAINS(x, ...)                               \
+  do {                                                                  \
+    SCOPED_TRACE("...in stderr check\n");                               \
+    output_handler.validate_stderr_content(x, true, ##__VA_ARGS__);     \
   } while (0)
-#define MY_EXPECT_LOG_CONTAINS(x)                 \
-  do {                                            \
-    SCOPED_TRACE("...in log check\n");            \
-    output_handler.validate_log_content(x, true); \
+#define MY_EXPECT_LOG_CONTAINS(x, ...)                                  \
+  do {                                                                  \
+    SCOPED_TRACE("...in log check\n");                                  \
+    output_handler.validate_log_content(x, true, ##__VA_ARGS__);        \
   } while (0)
-#define MY_EXPECT_STDOUT_NOT_CONTAINS(x)              \
-  do {                                                \
-    SCOPED_TRACE("...in stdout check\n");             \
-    output_handler.validate_stdout_content(x, false); \
+#define MY_EXPECT_STDOUT_NOT_CONTAINS(x, ...)                           \
+  do {                                                                  \
+    SCOPED_TRACE("...in stdout check\n");                               \
+    output_handler.validate_stdout_content(x, false, ##__VA_ARGS__);    \
   } while (0)
-#define MY_EXPECT_STDERR_NOT_CONTAINS(x)              \
-  do {                                                \
-    SCOPED_TRACE("...in stderr check\n");             \
-    output_handler.validate_stderr_content(x, false); \
+#define MY_EXPECT_STDERR_NOT_CONTAINS(x, ...)                           \
+  do {                                                                  \
+    SCOPED_TRACE("...in stderr check\n");                               \
+    output_handler.validate_stderr_content(x, false, ##__VA_ARGS__);    \
   } while (0)
-#define MY_EXPECT_LOG_NOT_CONTAINS(x)              \
-  do {                                             \
-    SCOPED_TRACE("...in log check\n");             \
-    output_handler.validate_log_content(x, false); \
+#define MY_EXPECT_LOG_NOT_CONTAINS(x, ...)                              \
+  do {                                                                  \
+    SCOPED_TRACE("...in log check\n");                                  \
+    output_handler.validate_log_content(x, false, ##__VA_ARGS__);       \
   } while (0)
 
 class Shell_core_test_wrapper : public tests::Shell_base_test,

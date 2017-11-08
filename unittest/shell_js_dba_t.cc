@@ -496,6 +496,7 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster_multimaster) {
 TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
   _options->wizards = false;
   reset_shell();
+  output_handler.set_log_level(ngcommon::Logger::LOG_INFO);
 
   // Execute setup script to be able to use smart deployment functions.
   execute_setup();
@@ -527,6 +528,12 @@ TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
 
   // Run the tests
   validate_interactive("dba_configure_local_instance.js");
+  // MP should have been called with the cluster admin account that was created
+  // (BUG#26979375)
+  MY_EXPECT_LOG_CONTAINS("mysqlprovision check --instance=gr_user2@", false);
+  // MP should have been called with the cluster admin account that already
+  // existed (BUG#26979375)
+  MY_EXPECT_LOG_CONTAINS("mysqlprovision check --instance=gr_user@", true);
   // Clean up sandboxes.
   execute("cleanup_sandboxes(true)");
 }
