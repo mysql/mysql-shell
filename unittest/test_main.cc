@@ -103,8 +103,9 @@ int main(int argc, char **argv) {
       new_flags = "Shell_py_dba_tests.no_interactive_deploy*:Shell_py_dba_tests.interactive_classic_*";
     else if (flags == "ALLBUTDBA")
       new_flags = "*:-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
+    else if (flags == "*")
+      new_flags = "*:-Shell_py_dba_tests.*";  // Exclude DBAPY tests by default
 
-    new_flags = "*:-Shell_py_dba_tests.*";
     if (!new_flags.empty())
       ::testing::GTEST_FLAG(filter) = new_flags.c_str();
   }

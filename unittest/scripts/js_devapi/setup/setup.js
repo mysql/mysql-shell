@@ -226,7 +226,6 @@ function start_sandbox(params) {
 }
 
 function cleanup_sandbox(port) {
-
     println ('Stopping the sandbox at ' + port + ' to delete it...');
     try {
       stop_options = {}
@@ -239,17 +238,30 @@ function cleanup_sandbox(port) {
       println(err.message);
     }
 
-    println ('Deleting the sandbox at ' + port);
-    try {
-      options = {}
-      if (__sandbox_dir != '')
-        options['sandboxDir'] = __sandbox_dir;
+    options = {}
+    if (__sandbox_dir != '')
+      options['sandboxDir'] = __sandbox_dir;
 
-      dba.deleteSandboxInstance(port, options);
-    } catch (err) {
-      println(err.message);
+    var deleted = false;
 
+    print('Try deleting sandbox at: ' + port);
+    deleted = wait(10, 1, function() {
+      try {
+        dba.deleteSandboxInstance(port, options);
+
+        println(' succeeded');
+        return true;
+      } catch (err) {
+        println(' failed: ' + err.message);
+        return false;
+      }
+    });
+    if (deleted) {
+      println('Delete succeeded at: ' + port);
+    } else {
+      println('Delete failed at: ' + port);
     }
+
 }
 
 // Smart deployment routines
