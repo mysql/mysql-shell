@@ -585,7 +585,7 @@ Value &Value::operator= (const Value &other) {
   return *this;
 }
 
-Value Value::parse_map(char **pc) {
+Value Value::parse_map(const char **pc) {
   Map_type_ref map(new Map_type());
 
   // Skips the opening {
@@ -644,7 +644,7 @@ Value Value::parse_map(char **pc) {
   return Value(map);
 }
 
-Value Value::parse_array(char **pc) {
+Value Value::parse_array(const char **pc) {
   Array_type_ref array(new Array_type());
 
   // Skips the opening [
@@ -704,30 +704,29 @@ inline std::string unicode_codepoint_to_utf8(uint32_t uni) {
   return s;
 }
 
-Value Value::parse_string(char **pc, char quote) {
-  int32_t len;
+Value Value::parse_string(const char **pc, char quote) {
   const char *p = *pc;
 
   // calculate length
-  do {
-    while (*p && *++p != quote) {
-    }
-    len = p - *pc;
-  } while (*p && (len > 0 && *(p - 1) == '\\') &&
-           (len > 1 && *(p - 2) != '\\'));
+  while (*p && *++p != quote) {
+      // escaped char
+      if (*p == '\\') ++p;
+  }
+
+  int32_t len = p - *pc;
 
   if (*p != quote) {
     std::string msg = "missing closing ";
-    msg.append(&quote);
+    msg.push_back(quote);
     throw Exception::parser_error(msg);
   }
-  len = p - *pc;
+
   std::string s;
 
   p = *pc;
   ++*pc;
   while (**pc != '\0' && (*pc - p < len)) {
-    char *pc_i = *pc;
+    const char *pc_i = *pc;
     if (*pc_i == '\\') {
       switch (*(pc_i + 1)) {
         case 'n':
@@ -803,24 +802,24 @@ Value Value::parse_string(char **pc, char quote) {
   return Value(s);
 }
 
-Value Value::parse_single_quoted_string(char **pc) {
+Value Value::parse_single_quoted_string(const char **pc) {
   return parse_string(pc, '\'');
 }
 
-Value Value::parse_double_quoted_string(char **pc) {
+Value Value::parse_double_quoted_string(const char **pc) {
   return parse_string(pc, '"');
 }
 
-Value Value::parse_number(char **pcc) {
+Value Value::parse_number(const char **pcc) {
   Value ret_val;
-  char *pc = *pcc;
+  const char *pc = *pcc;
 
   // Sign can appear at the beggining
   if (*pc == '-' || *pc == '+')
     ++pc;
 
   // Continues while there are digits
-  while (*pc && IS_DIGIT(*++pc));
+  while (*pc && IS_DIGIT(*++pc)) {}
 
   bool is_integer = true;
   if (tolower(*pc) == '.') {
@@ -830,7 +829,7 @@ Value Value::parse_number(char **pcc) {
     ++pc;
 
     // Continues while there are digits
-    while (*pc && IS_DIGIT(*++pc));
+    while (*pc && IS_DIGIT(*++pc)) {}
   }
 
   if (tolower(*pc) == 'e') // exponential
@@ -880,13 +879,17 @@ Value Value::parse_number(char **pcc) {
 }
 
 Value Value::parse(const std::string &s) {
-  char *pc = const_cast<char *>(s.c_str());
+  const char *begin = s.c_str();
+  const char *pc = begin;
   Value tmp(parse(&pc));
-  if (pc != &s[s.size() - 1]) {
+  size_t parsed_length = pc - begin;
+
+  if (parsed_length < s.size()) {
     // ensure any leftover chars are just whitespaces
     while (isspace(*pc))
       ++pc;
-    if (pc - 1 != &s[s.size() - 1])
+    parsed_length = pc - begin;
+    if (parsed_length < s.size())
       throw Exception::parser_error(
           "Unexpected characters left at the end of document: ..." +
           std::string(pc));
@@ -894,7 +897,7 @@ Value Value::parse(const std::string &s) {
   return tmp;
 }
 
-Value Value::parse(char **pc) {
+Value Value::parse(const char **pc) {
   if (**pc == '{') {
     return parse_map(pc);
   } else if (**pc == '[') {
