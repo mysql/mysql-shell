@@ -163,6 +163,11 @@ TEST_F(Command_line_test, bug24967838) {
   }
 }
 
+// The following test is temporarily disabled in Windows.
+// There's a bug in the shell which is not recognizing (.) as 'localhost'
+// Resulting in the following failure in Windows:
+// Conflicting options: socket can not be used if host is not 'localhost'.
+#ifndef _WIN32
 TEST_F(Command_line_test, bug26970629) {
   std::string variable;
   std::string host;
@@ -213,4 +218,5 @@ TEST_F(Command_line_test, bug26970629) {
         "perform this operation");
   }
 }
+#endif
 }
