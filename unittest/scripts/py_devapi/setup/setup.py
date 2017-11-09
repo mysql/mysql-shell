@@ -229,16 +229,24 @@ def cleanup_sandbox(port):
       print err.args[0]
       pass
 
-    print 'Deleting the sandbox at %s' % port
-    try:
       options = {}
       if __sandbox_dir != '':
         options['sandboxDir'] = __sandbox_dir
 
-      dba.delete_sandbox_instance(port, options)
-    except Exception, err:
-      print err.args[0]
-      pass
+      print 'Try deleting sandbox at: %s' % port
+      def try_delete():
+        try:
+          dba.delete_sandbox_instance(port, options)
+          print "succeeded"
+          return True
+        except Exception, err:
+          print "failed: %s" % str(err)
+          return False
+
+      if wait(10, 1, try_delete):
+        print 'Delete succeeded at: %s' % port
+      else:
+        print 'Delete failed at: %s' % port
 
 def reset_or_deploy_sandbox(port):
   deployed_here = False
