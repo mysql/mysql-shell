@@ -27,6 +27,7 @@
 #include "modules/mod_mysql_session.h"
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
+#include "utils/utils_path.h"
 #include "utils/utils_connection.h"
 #include "utils/utils_file.h"
 
@@ -490,10 +491,19 @@ TEST_F(Shell_js_dba_tests, configure_local_instance) {
   validate_interactive("dba_configure_local_instance.js");
   // MP should have been called with the cluster admin account that was created
   // (BUG#26979375)
+#ifndef _WIN32
   MY_EXPECT_LOG_CONTAINS("mysqlprovision check --instance=gr_user2@", false);
+#else
+  MY_EXPECT_LOG_CONTAINS("mysqlprovision.zip check --instance=gr_user2@",
+                         false);
+#endif
   // MP should have been called with the cluster admin account that already
   // existed (BUG#26979375)
+#ifndef _WIN32
   MY_EXPECT_LOG_CONTAINS("mysqlprovision check --instance=gr_user@", true);
+#else
+  MY_EXPECT_LOG_CONTAINS("mysqlprovision.zip check --instance=gr_user@", true);
+#endif
   // Clean up sandboxes.
   execute("cleanup_sandboxes(true)");
 }
@@ -675,10 +685,10 @@ TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
 
   validate_interactive("dba_cluster_add_instance.js");
   // BUG#26393614
+  std::string sandbox_path =
+      shcore::join_path({_sandbox_dir, _mysql_sandbox_port2, "sandboxdata"});
   std::vector<std::string> log{
-      "'localhost' (" + _sandbox_dir + _path_splitter + _mysql_sandbox_port2 +
-      _path_splitter +
-      "sandboxdata) detected as local sandbox. "
+      "'localhost' (" +sandbox_path + ") detected as local sandbox. "
       "Sandbox instances are only suitable for deploying and "
       "running on your local machine for testing purposes and are not "
       "accessible from external networks."};
