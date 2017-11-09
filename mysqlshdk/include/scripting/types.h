@@ -274,13 +274,13 @@ struct SHCORE_PUBLIC Value {
   }
 
  private:
-  static Value parse(char **pc);
-  static Value parse_map(char **pc);
-  static Value parse_array(char **pc);
-  static Value parse_string(char **pc, char quote);
-  static Value parse_single_quoted_string(char **pc);
-  static Value parse_double_quoted_string(char **pc);
-  static Value parse_number(char **pc);
+  static Value parse(const char **pc);
+  static Value parse_map(const char **pc);
+  static Value parse_array(const char **pc);
+  static Value parse_string(const char **pc, char quote);
+  static Value parse_single_quoted_string(const char **pc);
+  static Value parse_double_quoted_string(const char **pc);
+  static Value parse_number(const char **pc);
 };
 typedef Value::Map_type_ref Dictionary_t;
 typedef Value::Array_type_ref Array_t;

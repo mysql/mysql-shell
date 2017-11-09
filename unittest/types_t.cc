@@ -784,5 +784,60 @@ TEST(Types_repr, encode_decode_random) {
   }
 }
 
+/**
+ * Check for proper backtracking for backslashes when compute length in parse
+ * function.
+ *
+ * `text` const char array must be a string returned by `repr()` function.
+ */
+TEST(Types_repr, backslash_backtracking) {
+  {
+    const char text[] = {'"', 'p', 's', '\\', '"', 'W', '}', 'q', 't', '"', 0};
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).as_string()).repr());
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).repr()));
+  }
+  {
+    const char text[] = {'"', 'p', 's', '\\', '\\', '\\', '"',
+                         'W', '}', 'q', 't',  '"',  0};
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).as_string()).repr());
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).repr()));
+  }
+  {
+    const char text[] = {'"', 'p', 's', '\\', '\\', '\\', '\\', '\\',
+                         '"', 'W', '}', 'q',  't',  '"',  0};
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).as_string()).repr());
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).repr()));
+  }
+}
+
+TEST(Types_repr, wrong_repr) {
+  {
+    // good.
+    char text[] = {'"', 'p', 's',  '\\', '\\', '\\', '\\', '\\', '"', 'W', '}',
+                   'q', 't', '\\', '"',  '\\', '"',  '\\', '"',  '"', 0};
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).as_string()).repr());
+  }
+  {
+    // non-escaped `"`.
+    char text[] = {'"', 'p', 's', '\\', '\\', '\\', '\\', '\\', '"', 'W',
+                   '}', 'q', 't', '\\', '"',  '\\', '"',  '"',  '"', 0};
+    EXPECT_THROW(Value::parse(Value(text).as_string()).repr(),
+                 shcore::Exception);
+  }
+  {
+    // non-escaped `""`.
+    char text[] = {'"', 'p', 's', '\\', '\\', '\\', '\\', '\\', '"', 'W',
+                   '}', 'q', 't', '\\', '"',  '"',  '"',  '"',  0};
+    EXPECT_THROW(Value::parse(Value(text).as_string()).repr(),
+                 shcore::Exception);
+  }
+  {
+    // non-escaped `"""`.
+    char text[] = {'"', 'p', 's', '\\', '\\', '\\', '\\', '\\', '"',
+                   'W', '}', 'q', 't',  '"',  '"',  '"',  '"',  0};
+    EXPECT_THROW(Value::parse(Value(text).as_string()).repr(),
+                 shcore::Exception);
+  }
+}
 }  // namespace tests
 }  // namespace shcore
