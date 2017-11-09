@@ -74,9 +74,9 @@ session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'test_user'@'%'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'test_user'@'%' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
-session.close()
+session.close();
 
-shell.connect({host: hostname, port: __mysql_sandbox_port1, user: 'test_user', password: ''});
+shell.connect({host: "127.0.0.1", port: __mysql_sandbox_port1, user: 'test_user', password: ''});
 c1 = dba.createCluster("devCluster", {clearReadOnly: true});
 c1
 
