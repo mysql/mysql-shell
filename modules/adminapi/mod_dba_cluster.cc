@@ -331,21 +331,21 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL29,
               "The value for localAddress is used to set the Group "\
               "Replication system variable 'group_replication_local_address'. "\
               "The localAddress option accepts values in the format: "\
-              "'<host>:<port>' or '<host>:' or ':<port>'. If the specified "\
+              "'host:port' or 'host:' or ':port'. If the specified "\
               "value does not include a colon (:) and it is numeric, then it "\
-              "is assumed to be the <port>, otherwise it is considered to be "\
-              "the <host>. When <host> is not specified, the default value is "\
+              "is assumed to be the port, otherwise it is considered to be "\
+              "the host. When the host is not specified, the default value is "\
               "the host of the target instance specified as argument. When "\
-              "<port> is not specified, the default value is the port of the "\
-              "target instance + 10000. In case the automatically determined "\
-              "default port value is invalid (> 65535) then a random value "\
-              "in the range [1000, 65535] is used.");
+              "the port is not specified, the default value is the port of "\
+              "the target instance + 10000. In case the automatically "\
+              "determined default port value is invalid (> 65535) then a "\
+              "random value in the range [1000, 65535] is used.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL30,
               "The value for groupSeeds is used to set the Group Replication "\
               "system variable 'group_replication_group_seeds'. The "\
               "groupSeeds option accepts a comma-separated list of addresses "
-              "in the format: '<host1>:<port1>,...,<hostN>:<portN>'.");
+              "in the format: 'host1:port1,...,hostN:portN'.");
 /**
 * $(CLUSTER_ADDINSTANCE_BRIEF)
 *

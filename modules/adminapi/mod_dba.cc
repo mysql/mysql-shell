@@ -373,12 +373,12 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL23,
               "The value for localAddress is used to set the Group "\
               "Replication system variable 'group_replication_local_address'. "\
               "The localAddress option accepts values in the format: "\
-              "'<host>:<port>' or '<host>:' or ':<port>'. If the specified "\
+              "'host:port' or 'host:' or ':port'. If the specified "\
               "value does not include a colon (:) and it is numeric, then it "\
-              "is assumed to be the <port>, otherwise it is considered to be "\
-              "the <host>. When <host> is not specified, the default value is "\
-              "the host of the current active connection (session). When "\
-              "<port> is not specified, the default value is the port of the "\
+              "is assumed to be the port, otherwise it is considered to be "\
+              "the host. When the host is not specified, the default value is "\
+              "the host of the current active connection (session). When the "\
+              "port is not specified, the default value is the port of the "\
               "current active connection (session) + 10000. In case the "\
               "automatically determined default port value is invalid "\
               "(> 65535) then a random value in the range [1000, 65535] is "\
@@ -388,7 +388,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
               "The value for groupSeeds is used to set the Group Replication "\
               "system variable 'group_replication_group_seeds'. The "\
               "groupSeeds option accepts a comma-separated list of addresses "\
-              "in the format: '<host1>:<port1>,...,<hostN>:<portN>'.");
+              "in the format: 'host1:port1,...,hostN:portN'.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
