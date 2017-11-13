@@ -933,7 +933,8 @@ static std::size_t span_quotable_string_literal(const std::string &s,
 
 static std::size_t span_account_hostname_relaxed(const std::string &s,
                                                  std::size_t p,
-                                                 std::string *out_string) {
+                                                 std::string *out_string,
+                                                 bool auto_quote_hosts) {
   if (s.size() <= p)
     return p;
 
@@ -962,9 +963,24 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
             "characters on the hostname without quotes");
       }
     }
+    bool try_quoting = false;
     try {
       res = span_quotable_string_literal(s, p, out_string);
+
+      // If the complete string was not consumed could be a hostname that
+      // requires quotes, they should be enabled only if not quoted already
+      if (res < s.size() && auto_quote_hosts) {
+        bool quoted = ((s[p] == '\'' && s.at(s.size()-1) == '\'') ||
+                       (s[p] == '"' && s.at(s.size()-1) == '"'));
+
+        try_quoting = !quoted;
+      }
     } catch (std::runtime_error e) {
+      // In case of error parsing, tries quoting
+      try_quoting = auto_quote_hosts;
+    }
+
+    if (try_quoting) {
       std::string quoted_s =
           s.substr(0, old_p) + quote_identifier(s.substr(old_p), '\'');
       // reset out_string
@@ -982,7 +998,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
  *  This means it supports both identifiers and string literals for username and hostname.
  */
 void split_account(const std::string &account, std::string *out_user,
-                   std::string *out_host) {
+                   std::string *out_host, bool auto_quote_hosts) {
   std::size_t pos = 0;
   if (out_user)
     *out_user = "";
@@ -996,7 +1012,8 @@ void split_account(const std::string &account, std::string *out_user,
   else
     pos = span_quotable_string_literal(account, 0, out_user);
   if (account[pos] == '@') {
-    pos = span_account_hostname_relaxed(account, pos + 1, out_host);
+    pos = span_account_hostname_relaxed(account, pos + 1, out_host,
+                                        auto_quote_hosts);
   }
   if (pos < account.size())
     throw std::runtime_error("Invalid syntax in account name '" + account +

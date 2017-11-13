@@ -60,7 +60,10 @@ namespace testing {
 
 class Mock_dba : public mysqlsh::dba::Dba {
  public:
-  Mock_dba() {}
+  Mock_dba() {
+    ON_CALL(*this, _check_instance_configuration(_, _, _))
+      .WillByDefault(Invoke(this, &Mock_dba::__check_instance_configuration));
+  }
   void initialize(shcore::IShell_core *owner, bool chain_dba);
 
   MOCK_METHOD2(call, shcore::Value(const std::string &,
@@ -79,6 +82,22 @@ class Mock_dba : public mysqlsh::dba::Dba {
                std::vector<std::pair<std::string, std::string>>(
                    std::string *out_cluster_name,
                    const shcore::Value::Map_type_ref &options));
+
+  MOCK_METHOD3(_check_instance_configuration,
+      shcore::Value::Map_type_ref(
+      const mysqlshdk::db::Connection_options &instance_def,
+      const shcore::Value::Map_type_ref &options,
+      bool allow_update));
+
+  // Default action to propagate the call to the parent class
+  shcore::Value::Map_type_ref __check_instance_configuration(
+      const mysqlshdk::db::Connection_options &instance_def,
+      const shcore::Value::Map_type_ref &options,
+      bool allow_update) {
+    return mysqlsh::dba::Dba::_check_instance_configuration(instance_def,
+                                                            options,
+                                                            allow_update);
+  }
 
   shcore::Value create_mock_cluster(const std::string &name) {
     return shcore::Value::wrap<mysqlsh::dba::Cluster>(

@@ -73,7 +73,9 @@ std::string SHCORE_PUBLIC to_camel_case(const std::string &name);
 std::string SHCORE_PUBLIC from_camel_case(const std::string &name);
 
 void SHCORE_PUBLIC split_account(const std::string &account,
-                                 std::string *out_user, std::string *out_host);
+                                 std::string *out_user,
+                                 std::string *out_host,
+                                 bool auto_quote_hosts = false);
 std::string SHCORE_PUBLIC make_account(const std::string &user,
                                        const std::string &host);
 

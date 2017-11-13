@@ -451,7 +451,7 @@ std::pair<int, int> find_cluster_admin_accounts(
     while (row) {
       std::string account = row->get_string(0);
       std::string user, host;
-      shcore::split_account(account, &user, &host);
+      shcore::split_account(account, &user, &host, true);
       assert(user == admin_user);
 
       if (out_hosts)

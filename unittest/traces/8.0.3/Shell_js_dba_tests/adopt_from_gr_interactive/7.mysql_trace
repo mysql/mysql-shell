@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326"
+    "uri": "mysql://root:root@localhost:3327"
 },
 {
     "type": "response",
@@ -32,12 +32,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@server_uuid",
-            "length": 144,
+            "length": 36,
             "fractional": 31,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -45,7 +45,7 @@
     ],
     "rows": [
         [
-            "2427ed5a-c58b-11e7-b3bd-87bb1639dda9"
+            "4ecfde86-c8ca-11e7-8985-2bcd81201b28"
         ]
     ]
 },
@@ -83,7 +83,7 @@
     ],
     "rows": [
         [
-            33260
+            33270
         ]
     ]
 },
@@ -108,12 +108,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@group_replication_local_address",
-            "length": 60,
+            "length": 15,
             "fractional": 31,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -121,7 +121,7 @@
     ],
     "rows": [
         [
-            "localhost:13326"
+            "localhost:13327"
         ]
     ]
 },
