@@ -302,6 +302,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
   mysqlsh::dba::ReplicationGroupState state;
+  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
 
   try {
     state = check_preconditions("createCluster");
@@ -318,7 +319,6 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
        */
 
       // Get current active session
-      auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
       auto session = dba->get_active_session();
 
       std::string nice_error = get_function_name("createCluster") +
@@ -399,7 +399,6 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
             "adoptFromGR option to be true");
     }
 
-    auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
     session = dba->get_active_session();
     println("A new InnoDB cluster will be created on instance '" +
             session->uri(mysqlshdk::db::uri::formats::no_scheme_no_password()) +
@@ -407,18 +406,12 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
     // Use check_instance_configuration() in order to verify if we need
     // to prompt the user to allow the configuration changes
-    shcore::Argument_list args;
-    auto instance_def = session->get_connection_options();
-    auto instance_map = mysqlsh::get_connection_map(instance_def);
-    args.push_back(shcore::Value(instance_map));
-
-    Value::Map_type_ref options_check_instance(new shcore::Value::Map_type);
-    args.push_back(shcore::Value(options_check_instance));
-
     try {
-      shcore::Value check_report =
-        call_target("checkInstanceConfiguration", args);
-      auto result = check_report.as_map();
+      auto instance_def = session->get_connection_options();
+      // Resolves user and validates password
+      mysqlsh::resolve_connection_credentials(&instance_def);
+      auto result = dba->_check_instance_configuration(instance_def, {}, false);
+
       std::string status = result->get_string("status");
 
       if (status == "error") {
@@ -1381,7 +1374,7 @@ bool Global_dba::ensure_admin_account_usable(
                                          create_user.substr(p + 1));
           }
           // validate
-          shcore::split_account(create_user, nullptr, nullptr);
+          shcore::split_account(create_user, nullptr, nullptr, false);
 
           if (out_create_account)
             *out_create_account = create_user;
@@ -1547,7 +1540,7 @@ shcore::Value Global_dba::configure_local_instance(
         account = extra_options->get_string("clusterAdmin");
 
         try {
-          shcore::split_account(account, &admin_user, &admin_user_host);
+          shcore::split_account(account, &admin_user, &admin_user_host, false);
         } catch (...) {
           throw shcore::Exception::runtime_error(
               "Invalid account name syntax in " + account);

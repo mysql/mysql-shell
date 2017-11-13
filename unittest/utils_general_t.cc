@@ -41,7 +41,7 @@ TEST(utils_general, split_account) {
     const char *user;
     const char *host;
   };
-  static std::vector<Case> good_cases{
+  static std::vector<Case> good_cases_no_auto_quote{
     {"foo@bar", "foo", "bar"},
     {"'foo'@bar", "foo", "bar"},
     {"'foo'@'bar'", "foo", "bar"},
@@ -65,8 +65,6 @@ TEST(utils_general, split_account) {
     {"''''''''", "'''", ""},
     {"foo@", "foo", ""},
     {"foo@''", "foo", ""},
-    {"foo@%", "foo", "%"},
-    {"ic@192.168.%", "ic", "192.168.%"},     // Regression test for BUG#25528695
     {"foo@'::1'", "foo", "::1"},
     {"foo@'ho\\'\\'st'", "foo", "ho\'\'st"},
     {"foo@'\\'host'", "foo", "\'host"},
@@ -75,8 +73,6 @@ TEST(utils_general, split_account) {
     {"foo@'host\\''", "foo", "host\'"},
     {"foo@'192.167.1.___'", "foo", "192.167.1.___"},
     {"foo@'192.168.1.%'", "foo", "192.168.1.%"},
-    {"foo@192.168.1.%", "foo", "192.168.1.%"},
-    {"foo@192.58.197.0/255.255.255.0", "foo", "192.58.197.0/255.255.255.0"},
     {"foo@'192.58.197.0/255.255.255.0'", "foo", "192.58.197.0/255.255.255.0"},
     {"foo@' .::1lol\\t\\n\\r\\b\\'\"&$%'", "foo", " .::1lol\t\n\r\b'\"&$%"},
     {"`foo@`@`nope`", "foo@", "nope"},
@@ -87,13 +83,27 @@ TEST(utils_general, split_account) {
     {"```foo`@```1234`", "`foo", "`1234"},
     {"foo@` .::1lol\\t\\n\\r\\b\\0'\"&$%`", "foo", " .::1lol\\t\\n\\r\\b\\0'\"&$%"},
     {"root@foo.bar.warblegarble.com", "root", "foo.bar.warblegarble.com"},
-    {"root@foo-bar.com", "root", "foo-bar.com"}
   };
-  for (auto &t : good_cases) {
+  for (auto &t : good_cases_no_auto_quote) {
     a.clear();
     b.clear();
     SCOPED_TRACE(t.account);
     EXPECT_NO_THROW(split_account(t.account, &a, &b));
+    EXPECT_EQ(t.user, a);
+    EXPECT_EQ(t.host, b);
+  }
+  static std::vector<Case> good_cases_auto_quote{
+    {"foo@%", "foo", "%"},
+    {"ic@192.168.%", "ic", "192.168.%"},     // Regression test for BUG#25528695
+    {"foo@192.168.1.%", "foo", "192.168.1.%"},
+    {"foo@192.58.197.0/255.255.255.0", "foo", "192.58.197.0/255.255.255.0"},
+    {"root@foo-bar.com", "root", "foo-bar.com"}
+  };
+  for (auto &t : good_cases_auto_quote) {
+    a.clear();
+    b.clear();
+    SCOPED_TRACE(t.account);
+    EXPECT_NO_THROW(split_account(t.account, &a, &b, true));
     EXPECT_EQ(t.user, a);
     EXPECT_EQ(t.host, b);
   }
@@ -130,6 +140,7 @@ TEST(utils_general, split_account) {
   for (auto &t : bad_cases) {
     SCOPED_TRACE(t);
     EXPECT_THROW(split_account(t, nullptr, nullptr), std::runtime_error);
+    EXPECT_THROW(split_account(t, nullptr, nullptr, true), std::runtime_error);
   }
 }
 

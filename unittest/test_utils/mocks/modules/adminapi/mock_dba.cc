@@ -38,15 +38,10 @@ void Mock_dba::initialize(shcore::IShell_core *owner, bool chain_dba) {
 
 void Mock_dba::expect_check_instance_configuration(const std::string &uri,
                                                    const std::string &status) {
-  shcore::Argument_list args;
   auto data = shcore::get_connection_options(uri);
-  auto instance_map = mysqlsh::get_connection_map(data);
-  args.push_back(shcore::Value(instance_map));
-  args.push_back(shcore::Value::new_map());
-  auto ret_val = shcore::Value::new_map();
-  auto map = ret_val.as_map();
-  (*map)["status"] = shcore::Value(status);
-  EXPECT_CALL(*this, call("checkInstanceConfiguration", args))
+  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type);
+  (*ret_val)["status"] = shcore::Value(status);
+  EXPECT_CALL(*this, _check_instance_configuration(data, _, false))
       .WillOnce(Return(ret_val));
 }
 

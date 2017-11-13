@@ -462,7 +462,7 @@ int main(int argc, char **argv) {
   std::string new_filter = filter;
 
   if (!got_filter) {
-    new_filter = "*:-Shell_py_dba_tests.*";
+    new_filter = "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
   } else {
     std::cout << "Executing defined filter "
       ": " << new_filter.c_str() << "." << std::endl;

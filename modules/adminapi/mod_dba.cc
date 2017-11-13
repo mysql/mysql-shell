@@ -1939,13 +1939,13 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
   auto result = session->query("SELECT CURRENT_USER()");
   auto row = result->fetch_one();
   std::string current_account = row->get_string(0);
-  split_account(current_account, &current_user, &current_host);
+  split_account(current_account, &current_user, &current_host, true);
 
   // if this is a configureLocalInstance operation and the clusterAdmin
   // option was used and that user exists, validate its privileges, otherwise
   // validate the privileges of the current user
   if (allow_update && !cluster_admin.empty()) {
-    shcore::split_account(cluster_admin, &admin_user, &admin_user_host);
+    shcore::split_account(cluster_admin, &admin_user, &admin_user_host, false);
     // Host '%' is used by default if not provided in the user account.
     if (admin_user_host.empty())
       admin_user_host = "%";

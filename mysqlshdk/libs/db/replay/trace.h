@@ -69,9 +69,7 @@ std::map<std::string, std::string> load_info(const std::string& path);
 
 class sequence_error : public shcore::database_error {
  public:
-  explicit sequence_error(const char* what)
-      : shcore::database_error(what, 9999, what) {
-  }
+  explicit sequence_error(const char* what);
 };
 
 class Row_hook : public db::IRow {

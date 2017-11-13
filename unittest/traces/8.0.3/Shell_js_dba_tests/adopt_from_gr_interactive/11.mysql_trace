@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3317"
+    "uri": "mysql://root:root@dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317"
 },
 {
     "type": "response",

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@dhcp-whq-twvpn-3-vpnpool-10-159-224-161.vpn.oracle.com:3316?ssl-mode=PREFERRED"
+    "uri": "root:root@dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317?ssl-mode=PREFERRED"
 },
 {
     "type": "response",
@@ -32,12 +32,12 @@
             "table_label": "session_variables",
             "column_name": "Variable_name",
             "column_label": "Variable_name",
-            "length": 256,
+            "length": 64,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -48,12 +48,12 @@
             "table_label": "session_variables",
             "column_name": "Value",
             "column_label": "Value",
-            "length": 4096,
+            "length": 1024,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -100,7 +100,7 @@
     ],
     "rows": [
         [
-            840489539
+            3535141651
         ]
     ]
 },

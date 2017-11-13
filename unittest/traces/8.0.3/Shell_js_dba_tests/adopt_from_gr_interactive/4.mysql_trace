@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316"
+    "uri": "mysql://root:root@localhost:3317"
 },
 {
     "type": "response",
@@ -32,12 +32,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 66,
             "fractional": 31,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -45,7 +45,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gn/T/3316/sandboxdata/"
+            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/"
         ]
     ]
 },
@@ -70,12 +70,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "File",
-            "length": 2048,
+            "length": 512,
             "fractional": 31,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -102,12 +102,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Binlog_Do_DB",
-            "length": 1020,
+            "length": 255,
             "fractional": 31,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -118,12 +118,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Binlog_Ignore_DB",
-            "length": 1020,
+            "length": 255,
             "fractional": 31,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -134,12 +134,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Executed_Gtid_Set",
-            "length": 164,
+            "length": 41,
             "fractional": 31,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -147,11 +147,11 @@
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-3-vpnpool-10-159-224-161-bin.000002",
-            10691,
+            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157-bin.000002",
+            10406,
             "",
             "",
-            "1d47eb98-c58b-11e7-96a5-dc7ddedec026:1-14"
+            "37a6d386-c8ca-11e7-b835-8e58114a4064:1-14"
         ]
     ]
 },
@@ -176,12 +176,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@global.have_ssl",
-            "length": 12,
+            "length": 3,
             "fractional": 31,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
             "binary": false

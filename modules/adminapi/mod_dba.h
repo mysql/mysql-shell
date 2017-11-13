@@ -136,6 +136,10 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   static std::shared_ptr<mysqlshdk::db::ISession> get_session(
       const mysqlshdk::db::Connection_options &args);
 
+  virtual shcore::Value::Map_type_ref _check_instance_configuration(
+      const mysqlshdk::db::Connection_options &instance_def,
+      const shcore::Value::Map_type_ref &options, bool allow_update);
+
  protected:
   std::shared_ptr<mysqlshdk::db::ISession> _custom_session;
   shcore::IShell_core *_shell_core;
@@ -156,9 +160,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args);
-  shcore::Value::Map_type_ref _check_instance_configuration(
-      const mysqlshdk::db::Connection_options &instance_def,
-      const shcore::Value::Map_type_ref &options, bool allow_update);
   static std::map <std::string, std::shared_ptr<
                   mysqlshdk::db::ISession> > _session_cache;
 };

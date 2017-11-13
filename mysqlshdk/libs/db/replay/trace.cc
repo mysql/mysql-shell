@@ -36,6 +36,13 @@ namespace mysqlshdk {
 namespace db {
 namespace replay {
 
+sequence_error::sequence_error(const char* what)
+    : shcore::database_error(what, 9999, what) {
+  std::cerr << "SESSION REPLAY ERROR: " << what << "\n";
+  if (getenv("TEST_DEBUG"))
+    assert(0);
+}
+
 template <typename T>
 void set(rapidjson::Document* doc, const char* key, T value) {
   rapidjson::Value v(value);
