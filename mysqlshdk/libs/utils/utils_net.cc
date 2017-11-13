@@ -20,6 +20,7 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 #ifdef WIN32
 #include <windows.h>
+#include <WinSock2.h>
 #else
 #include <netdb.h>
 #include <arpa/inet.h>
