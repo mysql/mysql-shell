@@ -18,7 +18,7 @@
 
 namespace shcore {
 class Shell_py_dev_api_sample_tester : public Shell_py_script_tester {
-protected:
+ protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
     Shell_py_script_tester::SetUp();
@@ -38,7 +38,8 @@ protected:
     if (_port.empty())
       _port = "33060";
 
-    std::string code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
+    std::string code = "__uripwd = '" + user + ":" + password + "@" + host +
+                       ":" + _port + "';";
     exec_and_out_equals(code);
 
     set_config_folder("py_dev_api_examples");
@@ -46,6 +47,19 @@ protected:
 
     _extension = "py";
     _new_format = true;
+
+    // Some tests will define global vars, which will affect other tests because
+    // of the global Python interpreter context. So we clean them up.
+    // snapshot globals
+    execute("__global_names = set(globals().keys())");
+  }
+
+  void TearDown() {
+    Shell_py_script_tester::TearDown();
+
+    // cleanup globals / restore snapshot
+    execute("for k in set(globals().keys()) - __global_names:\n"
+            "    del globals()[k]\n");
   }
 
   virtual void pre_process_line(const std::string &path, std::string & line) {
@@ -74,24 +88,10 @@ protected:
       }
     }
   }
-
-  // Some tests will define global vars, which will affect other tests because
-  // of the global Python interpreter context. So we clean them up.
-  void snapshot_globals() {
-    execute("__global_names = globals().keys()");
-  }
-
-  void cleanup_globals() {
-    execute("for k in globals().keys():\n"
-            "    if k not in global_names:\n"
-            "        del globals()[k]\n"
-            "del global_names\n");
-  }
 };
 
 //==================>>> building_expressions
 TEST_F(Shell_py_dev_api_sample_tester, Expression_Strings) {
-  snapshot_globals();
   validate_interactive("building_expressions/Expression_Strings");
 }
 
@@ -256,6 +256,5 @@ TEST_F(Shell_py_dev_api_sample_tester, Working_with_Relational_Tables) {
 //==================>>> working_with_tables_documents
 TEST_F(Shell_py_dev_api_sample_tester, Collections_as_Relational_Tables) {
   validate_interactive("working_with_tables_documents/Collections_as_Relational_Tables");
-  cleanup_globals();
 }
 }
