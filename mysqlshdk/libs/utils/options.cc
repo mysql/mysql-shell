@@ -63,7 +63,7 @@ std::vector<std::string> Generic_option::get_cmdline_names() {
 }
 
 std::vector<std::string> Generic_option::get_cmdline_help(
-    std::size_t options_width, std::size_t help_width) {
+    std::size_t options_width, std::size_t help_width) const {
   std::vector<std::string> result;
   if (command_line_names.empty() || help == nullptr)
     return result;
@@ -177,9 +177,8 @@ std::string convert(const std::string &data) {
 //
 // ReturnValue: Returns the # of format found based on the list above, or 0 if
 // no valid value was found
-int Options::cmdline_arg_with_value(char **argv, int *argi,
-                                    const char *arg, const char *larg,
-                                    char **value,
+int Options::cmdline_arg_with_value(char **argv, int *argi, const char *arg,
+                                    const char *larg, char **value,
                                     bool accept_null) noexcept {
   int ret_val = 0;
   *value = nullptr;
@@ -269,8 +268,8 @@ void Options::handle_cmdline_options(int argc, char **argv) {
   }
 }
 
-std::vector<std::string> Options::get_cmdline_help(std::size_t options_width,
-                                                   std::size_t help_width) {
+std::vector<std::string> Options::get_cmdline_help(
+    std::size_t options_width, std::size_t help_width) const {
   std::vector<std::string> result;
   for (auto &opt : options) {
     auto oh = opt->get_cmdline_help(options_width, help_width);

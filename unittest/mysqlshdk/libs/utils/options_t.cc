@@ -52,6 +52,7 @@ class Options_test : public Shell_core_test_wrapper, public Options {
     using std::placeholders::_1;
     using std::placeholders::_2;
 
+    // clang-format off
     ASSERT_NO_THROW(add_named_options()
      (&interactive, true, "interactive", "DUMMY_SHELL_INTERACTIVE",
        cmdline("-i", "--dummy-interactive[=bool]", "--long-dummy-interactive"),
@@ -77,6 +78,7 @@ class Options_test : public Shell_core_test_wrapper, public Options {
       (cmdline("--only-help"),
         "This option is handled outside, only help is being displayed.")
       (cmdline("--deprecated"), opts::deprecated()));
+    // clang-format on
   }
 
   bool interactive;
@@ -220,82 +222,67 @@ TEST_F(Options_test, cmd_line_handling) {
 
   EXPECT_TRUE(interactive);
   char *argv[] = {const_cast<char *>("ut"),
-                  const_cast<char *>("--dummy-interactive=0"),
-                  NULL};
+                  const_cast<char *>("--dummy-interactive=0"), NULL};
   ASSERT_NO_THROW(handle_cmdline_options(2, argv));
   EXPECT_FALSE(interactive);
 
   char *argv1[] = {const_cast<char *>("ut"),
-                         const_cast<char *>("--dummy-interactive"),
-                         NULL};
+                   const_cast<char *>("--dummy-interactive"), NULL};
   ASSERT_NO_THROW(handle_cmdline_options(2, argv1));
   EXPECT_TRUE(interactive);
 
   EXPECT_FALSE(wizards);
 
   char *argv2[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--use-wizards=1"),
-                   NULL};
+                   const_cast<char *>("--use-wizards=1"), NULL};
   ASSERT_NO_THROW(handle_cmdline_options(2, argv2));
   EXPECT_TRUE(wizards);
 
   char *argv3[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--use-wizards"),
-                   NULL};
+                   const_cast<char *>("--use-wizards"), NULL};
   ASSERT_THROW(handle_cmdline_options(2, argv3), std::invalid_argument);
   EXPECT_TRUE(wizards);
 
   char *argv4[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--history-size=777"),
-                   NULL};
+                   const_cast<char *>("--history-size=777"), NULL};
   ASSERT_NO_THROW(handle_cmdline_options(2, argv4));
   EXPECT_EQ(777, history_max_size);
 
   char *argv5[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--history-size=-777"),
-                   NULL};
+                   const_cast<char *>("--history-size=-777"), NULL};
   ASSERT_THROW(handle_cmdline_options(2, argv5), std::out_of_range);
   EXPECT_EQ(777, history_max_size);
 
   char *argv6[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--history-size"),
-                   NULL};
+                   const_cast<char *>("--history-size"), NULL};
   ASSERT_THROW(handle_cmdline_options(2, argv6), std::invalid_argument);
   EXPECT_EQ(777, history_max_size);
 
   char *argv7[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--sandbox-dir=/tmp/dummy"),
-                   NULL};
+                   const_cast<char *>("--sandbox-dir=/tmp/dummy"), NULL};
   ASSERT_NO_THROW(handle_cmdline_options(2, argv7));
   EXPECT_EQ("/tmp/dummy", sandbox_dir);
 
-  char *argv8[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("-s/tmp"),
+  char *argv8[] = {const_cast<char *>("ut"), const_cast<char *>("-s/tmp"),
                    NULL};
   ASSERT_NO_THROW(handle_cmdline_options(2, argv8));
   EXPECT_EQ("/tmp", sandbox_dir);
 
-  char *argv9[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("-s"),
-                   const_cast<char *>("/tmp/dummy"),
-                   NULL};
+  char *argv9[] = {const_cast<char *>("ut"), const_cast<char *>("-s"),
+                   const_cast<char *>("/tmp/dummy"), NULL};
   ASSERT_NO_THROW(handle_cmdline_options(3, argv9));
   EXPECT_EQ("/tmp/dummy", sandbox_dir);
 
-  char *argv10[] = {const_cast<char *>("ut"),
-                    const_cast<char *>("-s"),
-                    NULL};
+  char *argv10[] = {const_cast<char *>("ut"), const_cast<char *>("-s"), NULL};
   ASSERT_THROW(handle_cmdline_options(2, argv10), std::invalid_argument);
   EXPECT_EQ("/tmp/dummy", sandbox_dir);
 
   char *argv11[] = {const_cast<char *>("ut"),
-                    const_cast<char *>("--dummy-value=oops"),
-                    NULL};
+                    const_cast<char *>("--dummy-value=oops"), NULL};
   ASSERT_NO_THROW(handle_cmdline_options(2, argv11));
   EXPECT_EQ("oops", dummy_value);
 
-  char *argv12[] = {const_cast<char *>("ut"),
-                    const_cast<char *>("--some-mode"),
+  char *argv12[] = {const_cast<char *>("ut"), const_cast<char *>("--some-mode"),
                     NULL};
   ASSERT_NO_THROW(handle_cmdline_options(2, argv12));
   EXPECT_TRUE(some_mode);
@@ -314,8 +301,7 @@ TEST_F(Options_test, cmd_line_handling) {
   EXPECT_FALSE(interactive);
 
   char *argv14[] = {const_cast<char *>("ut"),
-                    const_cast<char *>("--deprecated"),
-                    NULL};
+                    const_cast<char *>("--deprecated"), NULL};
   ASSERT_THROW(handle_cmdline_options(2, argv14), std::invalid_argument);
 }
 

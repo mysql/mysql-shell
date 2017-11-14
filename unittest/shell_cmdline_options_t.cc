@@ -1213,7 +1213,6 @@ TEST_F(Shell_cmdline_options, dict_access_for_named_options) {
   Shell_options options(0, nullptr);
 
   for (const std::string &optname : options.get_named_options()) {
-    std::cout << optname << std::endl;
     EXPECT_NO_THROW(options.get(optname));
   }
 }

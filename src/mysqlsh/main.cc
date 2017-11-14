@@ -436,9 +436,9 @@ int main(int argc, char **argv) {
     if (!error.empty()) {
       shell.print_error(error);
       ret_val = 1;
-    } else if (options.print_version) {
+    } else if (shell_options->action_print_version()) {
       char version_msg[1024];
-      if (*MYSH_BUILD_ID && options.print_version_extra) {
+      if (*MYSH_BUILD_ID && shell_options->action_print_version_extra()) {
         snprintf(version_msg, sizeof(version_msg),
                  "%s   Ver %s for %s on %s - for MySQL %s (%s) - build %s",
                  argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
@@ -455,7 +455,7 @@ int main(int argc, char **argv) {
       shell.println(version_msg);
 #endif
       ret_val = options.exit_code;
-    } else if (options.print_cmd_line_helper) {
+    } else if (shell_options->action_print_help()) {
       shell.print_cmd_line_helper();
       ret_val = options.exit_code;
     } else {
