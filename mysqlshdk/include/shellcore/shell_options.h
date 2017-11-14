@@ -50,18 +50,24 @@ namespace mysqlsh {
 class Shell_options : protected shcore::Options {
  public:
   struct Storage {
-   public:
-    Storage();
-
-    shcore::IShell_core::Mode initial_mode;
+    shcore::IShell_core::Mode initial_mode =
+#ifdef HAVE_V8
+        shcore::IShell_core::Mode::JavaScript;
+#else
+#ifdef HAVE_PYTHON
+        shcore::IShell_core::Mode::Python;
+#else
+        shcore::IShell_core::Mode::SQL;
+#endif
+#endif
     std::string run_file;
 
     // Individual connection parameters
     std::string user;
     std::string pwd;
-    const char* password;
+    const char* password = nullptr;
     std::string host;
-    int port;
+    int port = 0;
     std::string schema;
     std::string sock;  //< Unix socket or Windows pipe name
     std::string auth_method;
@@ -74,38 +80,35 @@ class Shell_options : protected shcore::Options {
     std::string uri;
 
     std::string output_format;
-    mysqlsh::SessionType session_type;
-    bool default_session_type;
-    bool print_cmd_line_helper;
-    bool print_version;
-    bool print_version_extra;
-    bool force;
-    bool interactive;
-    bool full_interactive;
-    bool passwords_from_stdin;
-    bool prompt_password;
-    bool recreate_database;
-    bool show_warnings;
-    bool trace_protocol;
-    bool log_to_stderr;
-    bool devapi_schema_object_handles;
-    bool db_name_cache;
+    mysqlsh::SessionType session_type = mysqlsh::SessionType::Auto;
+    bool default_session_type = true;
+    bool force = false;
+    bool interactive = false;
+    bool full_interactive = false;
+    bool passwords_from_stdin = false;
+    bool prompt_password = false;
+    bool recreate_database = false;
+    bool show_warnings = true;
+    bool trace_protocol = false;
+    bool log_to_stderr = false;
+    bool devapi_schema_object_handles = true;
+    bool db_name_cache = true;
     bool db_name_cache_set = false;
     std::string execute_statement;
     std::string execute_dba_statement;
     std::string sandbox_directory;
     std::string gadgets_path;
-    ngcommon::Logger::LOG_LEVEL log_level;
-    bool wizards;
-    bool admin_mode;
+    ngcommon::Logger::LOG_LEVEL log_level = ngcommon::Logger::LOG_INFO;
+    bool wizards = true;
+    bool admin_mode = false;
     std::string histignore;
-    int history_max_size;
+    int history_max_size = 1000;
     bool history_autosave = false;
 
     // cmdline params to be passed to script
     std::vector<std::string> script_argv;
 
-    int exit_code;
+    int exit_code = 0;
 
     bool has_connection_data() const;
 
@@ -142,6 +145,18 @@ class Shell_options : protected shcore::Options {
     return get_cmdline_help(28, 50);
   }
 
+  bool action_print_help() const {
+    return print_cmd_line_helper;
+  }
+
+  bool action_print_version() const {
+    return print_cmd_line_version;
+  }
+
+  bool action_print_version_extra() const {
+    return print_cmd_line_version_extra;
+  }
+
   std::vector<std::string> get_named_options();
 
  protected:
@@ -161,6 +176,10 @@ class Shell_options : protected shcore::Options {
   Storage storage;
   mysqlshdk::db::Connection_options uri_data;
   std::string session_type_arg;
+
+  bool print_cmd_line_helper = false;
+  bool print_cmd_line_version = false;
+  bool print_cmd_line_version_extra = false;
 };
 }  // namespace mysqlsh
 

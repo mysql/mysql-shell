@@ -32,57 +32,14 @@ namespace mysqlsh {
 
 using mysqlshdk::db::Transport_type;
 
-Shell_options::Storage::Storage() {
-#ifdef HAVE_V8
-  initial_mode = shcore::IShell_core::Mode::JavaScript;
-#else
-#ifdef HAVE_PYTHON
-  initial_mode = shcore::IShell_core::Mode::Python;
-#else
-  initial_mode = shcore::IShell_core::Mode::SQL;
-#endif
-#endif
-
-  log_level = ngcommon::Logger::LOG_INFO;
-  password = nullptr;
-  session_type = mysqlsh::SessionType::Auto;
-
-  default_session_type = true;
-  print_cmd_line_helper = false;
-  print_version = false;
-  print_version_extra = false;
-  force = false;
-  interactive = false;
-  full_interactive = false;
-  passwords_from_stdin = false;
-  prompt_password = false;
-  recreate_database = false;
-  trace_protocol = false;
-  wizards = true;
-  admin_mode = false;
-  log_to_stderr = false;
-  db_name_cache = true;
-  devapi_schema_object_handles = true;
-
-  port = 0;
-
-  exit_code = 0;
-}
-
 bool Shell_options::Storage::has_connection_data() const {
-  return !uri.empty() ||
-    !user.empty() ||
-    !host.empty() ||
-    !schema.empty() ||
-    !sock.empty() ||
-    port != 0 ||
-    password != NULL ||
-    prompt_password ||
-    ssl_options.has_data();
+  return !uri.empty() || !user.empty() || !host.empty() || !schema.empty() ||
+         !sock.empty() || port != 0 || password != NULL || prompt_password ||
+         ssl_options.has_data();
 }
 
 static mysqlsh::SessionType get_session_type(
-    const mysqlshdk::db::Connection_options &opt) {
+    const mysqlshdk::db::Connection_options& opt) {
   if (!opt.has_scheme()) {
     return mysqlsh::SessionType::Auto;
   } else {
@@ -92,15 +49,15 @@ static mysqlsh::SessionType get_session_type(
     else if (scheme == "mysql")
       return mysqlsh::SessionType::Classic;
     else
-      throw std::invalid_argument("Unknown MySQL URI type "+scheme);
+      throw std::invalid_argument("Unknown MySQL URI type " + scheme);
   }
 }
 
 /**
  * Builds Connection_options from options given by user through command line
  */
-mysqlshdk::db::Connection_options
-Shell_options::Storage::connection_options() const {
+mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
+    const {
   mysqlshdk::db::Connection_options target_server;
   if (!uri.empty()) {
     target_server = shcore::get_connection_options(uri);
@@ -179,16 +136,16 @@ using shcore::opts::assign_value;
 
 Shell_options::Shell_options(int argc, char** argv)
     : Options(false,
-              std::bind(&Shell_options::custom_cmdline_handler,
-                        this, _1, _2)) {
+              std::bind(&Shell_options::custom_cmdline_handler, this, _1, _2)) {
   std::string home = shcore::get_home_dir();
 #ifdef WIN32
   home += ("MySQL\\mysql-sandboxes");
 #else
   home += ("mysql-sandboxes");
 #endif
+  // clang-format off
   add_startup_options()
-    (&storage.print_cmd_line_helper, false,
+    (&print_cmd_line_helper, false,
         cmdline("-?", "--help"), "Display this help and exit.")
     (&storage.execute_statement, "", cmdline("-e", "--execute=<cmd>"),
         "Execute command and quit.")
@@ -370,7 +327,7 @@ Shell_options::Shell_options(int argc, char** argv)
       })
     (cmdline("--nw", "--no-wizard"), "Disables wizard mode.",
         assign_value(&storage.wizards, false))
-    (&storage.print_version, false, cmdline("-V", "--version"),
+    (&print_cmd_line_version, false, cmdline("-V", "--version"),
         "Prints the version of MySQL Shell.")
     (cmdline("--ssl-key=name"), "X509 key in PEM format.",
         std::bind(&Ssl_options::set_key, &storage.ssl_options, _2))
@@ -411,6 +368,7 @@ Shell_options::Shell_options(int argc, char** argv)
     (cmdline("--node"), deprecated("--mysqlx or -mx"))
     (cmdline("--classic"), deprecated("--mysql or -mc"))
     (cmdline("--sqln"), deprecated("--sqlx"));
+  // clang-format on
 
   try {
     handle_environment_options();
@@ -436,7 +394,7 @@ void Shell_options::set(const std::string& option, const shcore::Value value) {
       shcore::Options::set(option, value.as_string());
     else
       shcore::Options::set(option, value.repr());
-  } catch(const std::exception& e) {
+  } catch (const std::exception& e) {
     throw shcore::Exception::argument_error(e.what());
   }
 }
@@ -477,8 +435,8 @@ bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
   char* value = nullptr;
 
   if (strcmp(argv[*argi], "-VV") == 0) {
-    storage.print_version = true;
-    storage.print_version_extra = true;
+    print_cmd_line_version = true;
+    print_cmd_line_version_extra = true;
   } else if (cmdline_arg_with_value(argv, argi, "--file", "-f", &value)) {
     storage.run_file = value;
     // the rest of the cmdline options, starting from here are all passed
@@ -581,8 +539,8 @@ bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
   return true;
 }
 
-void Shell_options::override_session_type(
-    const std::string& option, const char* value) {
+void Shell_options::override_session_type(const std::string& option,
+                                          const char* value) {
   if (value != nullptr)
     throw std::runtime_error("Option " + option + " does not support value");
 

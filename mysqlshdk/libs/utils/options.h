@@ -20,8 +20,8 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_OPTIONS_H_
 #define MYSQLSHDK_LIBS_UTILS_OPTIONS_H_
 
-#include <cassert>
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <map>
 #include <memory>
@@ -71,17 +71,17 @@ class Generic_option {
 
   virtual std::vector<std::string> get_cmdline_names();
 
-  bool accepts_null_argument() {
+  bool accepts_null_argument() const {
     return accept_null;
   }
-  bool accepts_no_cmdline_value() {
+  bool accepts_no_cmdline_value() const {
     return no_cmdline_value;
   }
 
   std::vector<std::string> get_cmdline_help(std::size_t options_width,
-                                            std::size_t help_width);
+                                            std::size_t help_width) const;
 
-  const std::string &get_name() {
+  const std::string &get_name() const {
     return name;
   }
 
@@ -325,12 +325,10 @@ class Options {
   };
 
  public:
-  using Custom_cmdline_handler =
-      std::function<bool(char **argv, int *argi)>;
+  using Custom_cmdline_handler = std::function<bool(char **argv, int *argi)>;
 
-  static int cmdline_arg_with_value(char **argv, int *argi,
-                                    const char *arg, const char *larg,
-                                    char **value,
+  static int cmdline_arg_with_value(char **argv, int *argi, const char *arg,
+                                    const char *larg, char **value,
                                     bool accept_null = false) noexcept;
 
   Options(bool allow_unregistered_options = true,
@@ -354,7 +352,7 @@ class Options {
   void set(const std::string &name, const std::string &new_value);
 
   template <class T>
-  const T &get(const std::string &option_name) {
+  const T &get(const std::string &option_name) const {
     auto it = named_options.find(option_name);
     if (it == named_options.end())
       throw std::invalid_argument("No option registered under name: " +
@@ -379,10 +377,11 @@ class Options {
    * @param options_width - max space allowed for option names on single line.
    * @param help_width - max space allowed for help message on single line.
    *
-   * Option's help will be broken into multiple lines if it exceeds those limits.
+   * Option's help will be broken into multiple lines if it exceeds those
+   * limits.
    */
   std::vector<std::string> get_cmdline_help(std::size_t options_width = 28,
-                                            std::size_t help_width = 50);
+                                            std::size_t help_width = 50) const;
 
  protected:
   struct Command_line_comparator {
