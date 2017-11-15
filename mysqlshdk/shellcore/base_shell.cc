@@ -41,8 +41,7 @@
 
 namespace mysqlsh {
 
-std::shared_ptr<mysqlsh::Shell_options> Base_shell::shell_options =
-    std::make_shared<mysqlsh::Shell_options>();
+std::shared_ptr<mysqlsh::Shell_options> Base_shell::shell_options;
 
 Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
                        shcore::Interpreter_delegate *custom_delegate) {
