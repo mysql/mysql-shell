@@ -81,28 +81,3 @@ std::shared_ptr<shcore::Object_bridge> Type::create(
 
   return ret_val;
 }
-
-REGISTER_HELP(MYSQLX_INDEXTYPE_BRIEF, "Index type constants");
-
-IndexType::IndexType() {
-  add_constant("UNIQUE");
-}
-
-shcore::Value IndexType::get_member(const std::string &prop) const {
-  shcore::Value ret_val = mysqlsh::Constant::get_constant(
-      "mysqlx", "IndexType", prop, shcore::Argument_list());
-
-  if (!ret_val)
-    ret_val = Cpp_object_bridge::get_member(prop);
-
-  return ret_val;
-}
-
-std::shared_ptr<shcore::Object_bridge> IndexType::create(
-    const shcore::Argument_list &args) {
-  args.ensure_count(0, "mysqlx.IndexType");
-
-  std::shared_ptr<IndexType> ret_val(new IndexType());
-
-  return ret_val;
-}

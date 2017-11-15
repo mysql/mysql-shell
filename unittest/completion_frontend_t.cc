@@ -1023,7 +1023,7 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
   std::vector<std::pair<std::string, std::string>> collection_calls{
       {"add", "({})"}, {"addOrReplaceOne", "('0', {})"},  {"modify", "('0')"},
       {"remove", "('0')"}, {"removeOne", "('0')"}, {"replaceOne", "('0', {})"},
-      {"getOne", "('0')"}, {"find", "('0')"}, {"createIndex", "('x')"},
+      {"getOne", "('0')"}, {"find", "('0')"}, {"createIndex", "('x', {fields:[{field:'$.field'}]})"},
       {"dropIndex", "('x')"}, {"help", ""}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("db.getCollection('people')",
                                   collection_calls);  // collection

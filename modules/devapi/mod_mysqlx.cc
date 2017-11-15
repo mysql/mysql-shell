@@ -62,13 +62,11 @@ REGISTER_HELP(
 
 REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
-  add_property("IndexType|IndexType");
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, date_value, dateValue);
   REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String, NULL);
 
   _type.reset(new Type());
-  _index_type.reset(new IndexType());
 }
 
 // We need to hide this from doxygen to avoif warnings
@@ -78,8 +76,6 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 
   if (prop == "Type")
     ret_val = shcore::Value(_type);
-  else if (prop == "IndexType")
-    ret_val = shcore::Value(_index_type);
   else
     ret_val = Cpp_object_bridge::get_member(prop);
 

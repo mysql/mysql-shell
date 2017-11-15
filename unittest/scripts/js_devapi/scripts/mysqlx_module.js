@@ -19,7 +19,6 @@ print('expr:', typeof mysqlx.expr, '\n');
 print('dateValue:', typeof mysqlx.dateValue, '\n');
 print('help:', typeof mysqlx.dateValue, '\n');
 print('Type:', mysqlx.Type, '\n');
-print('IndexType:', mysqlx.IndexType, '\n');
 
 //@# mysqlx module: expression errors
 var expr;

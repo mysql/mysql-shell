@@ -1,11 +1,10 @@
 //@ mysqlx module: exports
-|Exported Items: 6|
+|Exported Items: 5|
 |getSession: object|
 |expr: object|
 |dateValue: object|
 |help: object|
 |Type: <mysqlx.Type>|
-|IndexType: <mysqlx.IndexType>|
 
 //@# mysqlx module: expression errors
 ||Invalid number of arguments in mysqlx.expr, expected 1 but got 0

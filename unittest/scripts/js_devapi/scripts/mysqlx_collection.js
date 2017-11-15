@@ -48,7 +48,7 @@ print('schema:', collection.schema);
 collection.help("dropIndex")
 
 //@ Testing dropping index
-collection.createIndex('_name').field('name', "TEXT(50)", true).execute();
+collection.createIndex('_name', {fields: [{field: '$.myField', type: 'TEXT(10)'}]});
 print (collection.dropIndex('_name'));
 print (collection.dropIndex('_name'));
 print (collection.dropIndex('not_an_index'));
@@ -97,8 +97,8 @@ col.addOrReplaceOne('document_001', {_id:'ignored_id', name:'medium'});
 col.find();
 
 // WL10849-FR6.2.1
-//@ addOrReplaceOne: adding with key {VER(>=8.0.3)}
-var result = col.createIndex('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", true).execute();
+//@ addOrReplaceOne: adding with key
+col.createIndex('_name', {fields: [{field: '$.name', type: 'TEXT(50)'}], unique:true});
 col.addOrReplaceOne('document_003', {name:'high'});
 
 // WL10849-FR6.2.2
@@ -201,8 +201,8 @@ col.replaceOne('document_001', {_id:'ignored_id', name:'medium'});
 //@<OUT> replaceOne: Verify replaced document with ignored _id {VER(>=8.0.3)}
 col.find();
 
-//@ replaceOne: error replacing with key {VER(>=8.0.3)}
-var result = col.createIndex('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", true).execute();
+//@ replaceOne: error replacing with key
+col.createIndex('_name', {fields: [{field: '$.name', type: 'TEXT(50)'}], unique:true});
 col.replaceOne('document_001', {name:'simple'});
 
 //@ replaceOne: replacing document matching id and key {VER(>=8.0.3)}

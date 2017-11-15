@@ -21,6 +21,3 @@ print('Type.SET:', mysqlx.Type.SET);
 print('Type.ENUM:', mysqlx.Type.ENUM);
 print('Type.GEOMETRY:', mysqlx.Type.GEOMETRY);
 print('Type.SET:', mysqlx.Type.SET);
-
-//@ mysqlx index type constants
-print('IndexType.UNIQUE:', mysqlx.IndexType.UNIQUE);

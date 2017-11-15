@@ -202,13 +202,10 @@ Value Constant::get_constant_value(const std::string &module,
       } else if (id == "NULL" && module == "mysql") {
         ret_val = Value("NULL");
       }
-    } else if (group == "IndexType") {
-      if (id == "UNIQUE") {
-        ret_val = Value::True();
-      }
-    } else
+    } else {
       throw shcore::Exception::logic_error(
           "Invalid group on constant definition:" + group + "." + id);
+    }
   } else {
     throw shcore::Exception::logic_error(
         "Invalid module on constant definition:" + group + "." + id);

@@ -76,28 +76,6 @@ class SHCORE_PUBLIC Type : public shcore::Cpp_object_bridge {
       const shcore::Argument_list &args);
 };
 
-/**
-* \ingroup mysqlx
-* Constants to represent index types
-*
-* Supported Index Types
-*
-*  - UNIQUE
-*/
-class SHCORE_PUBLIC IndexType : public shcore::Cpp_object_bridge {
- public:
-  IndexType();
-  // Virtual methods from object bridge
-  virtual std::string class_name() const { return "mysqlx.IndexType"; }
-  virtual bool operator==(const Object_bridge &other) const {
-    return this == &other;
-  }
-
-  virtual shcore::Value get_member(const std::string &prop) const;
-
-  static std::shared_ptr<shcore::Object_bridge> create(
-      const shcore::Argument_list &args);
-};
 }  // namespace mysqlx
 }  // namespace mysqlsh
 

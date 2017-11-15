@@ -1366,7 +1366,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"remove", "CollectionRemove", true},
                                   {"removeOne", "Result", true},
                                   {"replaceOne", "Result", true},
-                                  {"createIndex", "CollectionIndex*", true},
+                                  {"createIndex", "SqlResult", true},
                                   {"dropIndex", "", true},
                                   {"existsInDatabase", "", true},
                                   {"session", "Session", false},
@@ -1377,8 +1377,6 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getOne", "", true},
                                   {"name", "", false},
                                   {"help", "", true}});
-
-  registry->add_completable_type("CollectionIndex*", {{"field", "", true}});
 
   registry->add_completable_type("CollectionFind",
                                  {{"fields", "CollectionFind*fields", true},

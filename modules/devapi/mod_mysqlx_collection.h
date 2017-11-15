@@ -60,8 +60,7 @@ class Collection : public DatabaseObject,
   CollectionFind find(...);
   CollectionRemove remove(String searchCondition);
   CollectionModify modify(String searchCondition);
-  CollectionCreateIndex createIndex(String name);
-  CollectionCreateIndex createIndex(String name, IndexType type);
+  Result createIndex(String name, JSON indexDefinition);
   Undefined dropIndex(String name);
   Result replaceOne(String id, Document doc);
   Result addOrReplaceOne(String id, Document doc);
@@ -72,8 +71,7 @@ class Collection : public DatabaseObject,
   CollectionFind find(...);
   CollectionRemove remove(str search_condition);
   CollectionModify modify(str search_condition);
-  CollectionCreateIndex create_index(str name);
-  CollectionCreateIndex create_index(str name, IndexType type);
+  Result create_index(str name, JSON indexDefinition);
   None drop_index(str name);
   Result replace_one(str id, document doc);
   Result add_or_replace_one(str id, document doc);
