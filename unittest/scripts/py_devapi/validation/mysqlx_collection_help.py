@@ -18,7 +18,7 @@ The following functions are currently supported.
 
  - add                Inserts one or more documents into a collection.
  - add_or_replace_one Replaces or adds a document in a collection.
- - create_index       Creates a non unique/unique index on a collection.
+ - create_index       Creates an index on a collection.
  - drop_index         Drops an index from a collection.
  - exists_in_database Verifies if this object exists in the database.
  - find               Retrieves documents from a collection, matching a
@@ -120,36 +120,62 @@ replace and add operations:
    is already defined for any document in the collection.
 
 #@<OUT> Collection.help('create_index')
-Creates a non unique/unique index on a collection.
+Creates an index on a collection.
 
 SYNTAX
 
-  <Collection>.create_index(...)
-              [.field(...)]
-              [.execute(...)]
+  <Collection>.create_index(name, indexDefinition)
+
+WHERE
+
+  name: the name of the index to be created.
+  indexDefinition: a JSON document with the index information.
+
+RETURNS
+
+ a Result object.
 
 DESCRIPTION
 
-Creates a non unique/unique index on a collection.
+This function will create an index on the collection using the information
+provided in indexDefinition.
 
-  .create_index(...)
+The indexDefinition is a JSON document with the next information:
+{
+  fields : [<index_field>, ...],
+  type   : <type>
+}
 
-    Variations
+ - fields array of index_field objects, each describing a single document
+   member to be included in the index.
+ - type string, (optional) the type of index. One of INDEX or SPATIAL. Default
+   is INDEX and may be omitted.
 
-      create_index(String indexName)
-      create_index(String indexName, IndexType type)
+A single index_field description consists of the following fields:
+{
+  field    : <field>,
+  type     : <type>,
+  required : <boolean>
+  options  : <uint>,
+  srid     : <uint>
+}
 
-    Sets the name for the creation of a non unique index on the collection.
+ - field: string, the full document path to the document member or field to be
+   indexed.
+ - type: string, one of the supported SQL column types to map the field into.
+   For numeric types, the optional UNSIGNED keyword may follow. For the TEXT
+   type, the length to consider for indexing may be added.
+ - required: bool, (optional) true if the field is required to exist in the
+   document. defaults to false, except for GEOJSON where it defaults to true.
+ - options: uint, (optional) special option flags for use when decoding GEOJSON
+   data
+ - srid: uint, (optional) srid value for use when decoding GEOJSON data.
 
-    Sets the name for the creation of a unique index on the collection.
+The 'options' and 'srid' fields in IndexField can and must be present only if
+'type' is set to 'GEOJSON'.
 
-  .field(...)
 
-    Adds column to be part of the collection index being created.
 
-  .execute(...)
-
-    Executes the document addition for the documents cached on this object.
 
 #@<OUT> Collection.help('drop_index')
 Drops an index from a collection.

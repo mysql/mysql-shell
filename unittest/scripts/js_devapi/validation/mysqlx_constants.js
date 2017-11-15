@@ -19,6 +19,3 @@
 |Type.ENUM: <Type.ENUM>|
 |Type.GEOMETRY: <Type.GEOMETRY>|
 |Type.SET: <Type.SET>|
-
-//@ mysqlx index type constants
-|IndexType.UNIQUE: <IndexType.UNIQUE>|

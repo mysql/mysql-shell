@@ -1065,6 +1065,14 @@ static ::xcl::Object convert_map(const shcore::Dictionary_t &args) {
   return object;
 }
 
+static ::xcl::Arguments convert_array(const shcore::Array_t &args) {
+  ::xcl::Arguments object;
+  for (const auto &iter : *args) {
+    object.push_back(convert(iter));
+  }
+  return object;
+}
+
 static ::xcl::Argument_value convert(const shcore::Value &value) {
   switch (value.type) {
     case shcore::Bool:
@@ -1079,8 +1087,9 @@ static ::xcl::Argument_value convert(const shcore::Value &value) {
       return xcl::Argument_value(value.as_double());
     case shcore::Map:
       return xcl::Argument_value(convert_map(value.as_map()));
-    case shcore::Null:
     case shcore::Array:
+      return xcl::Argument_value(convert_array(value.as_array()));
+    case shcore::Null:
     case shcore::Object:
     case shcore::MapRef:
     case shcore::Function:

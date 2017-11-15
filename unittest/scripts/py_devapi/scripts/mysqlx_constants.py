@@ -20,6 +20,3 @@ print 'Type.SET:', mysqlx.Type.SET, '\n'
 print 'Type.ENUM:', mysqlx.Type.ENUM, '\n'
 print 'Type.GEOMETRY:', mysqlx.Type.GEOMETRY, '\n'
 print 'Type.SET:', mysqlx.Type.SET, '\n'
-
-#@ mysqlx index type constants
-print 'IndexType.UNIQUE:', mysqlx.IndexType.UNIQUE, '\n'

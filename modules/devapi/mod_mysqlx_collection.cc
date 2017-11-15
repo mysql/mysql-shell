@@ -28,12 +28,12 @@
 #include "modules/devapi/mod_mysqlx_schema.h"
 
 #include "modules/devapi/mod_mysqlx_collection_add.h"
-#include "modules/devapi/mod_mysqlx_collection_create_index.h"
 #include "modules/devapi/mod_mysqlx_collection_find.h"
 #include "modules/devapi/mod_mysqlx_collection_modify.h"
 #include "modules/devapi/mod_mysqlx_collection_remove.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 using namespace std::placeholders;
 namespace mysqlsh {
@@ -640,77 +640,179 @@ shcore::Value Collection::find_(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(COLLECTION_CREATEINDEX_BRIEF,
-              "Creates a non unique/unique index on a collection.");
-REGISTER_HELP(COLLECTION_CREATEINDEX_CHAINED,
-              "CollectionCreateIndex.createIndex.[field].[execute]");
+  "Creates an index on a collection.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_PARAM,
+  "@param name the name of the index to be created.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_PARAM1,
+  "@param indexDefinition a JSON document with the index information.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_RETURNS,
+  "@returns a Result object.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL,
+  "This function will create an index on the collection using the information "
+  "provided in indexDefinition.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL1,
+  "The indexDefinition is a JSON document with the next information:");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL2,
+  "<code>{\n"
+  "&nbsp;&nbsp;fields : [@<index_field@>, ...],\n"
+  "&nbsp;&nbsp;type   : @<type@>\n"
+  "}</code>");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL3,
+  "@li fields array of index_field objects, each describing a single document "
+  "member to be included in the index.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL4,
+  "@li type string, (optional) the type of index. One of INDEX or SPATIAL. "
+  "Default is INDEX and may be omitted.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL5,
+  "A single index_field description consists of the following fields:");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL6, "<code>{\n"
+  "&nbsp;&nbsp;field    : @<field@>,\n"
+  "&nbsp;&nbsp;type     : @<type@>,\n"
+  "&nbsp;&nbsp;required : @<boolean@>\n"
+  "&nbsp;&nbsp;options  : @<uint@>,\n"
+  "&nbsp;&nbsp;srid     : @<uint@>\n"
+  "}</code>");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL7,
+  "@li field: string, the full document path to the document member or field "
+  "to be indexed.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL8,
+  "@li type: string, one of the supported SQL column types to map the field "
+  "into. For numeric types, the optional UNSIGNED keyword may follow. For the "
+  "TEXT type, the length to consider for indexing may be added.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL9,
+  "@li required: bool, (optional) true if the field is required to exist in "
+  "the document. defaults to false, except for GEOJSON where it defaults to "
+  "true.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL10,
+  "@li options: uint, (optional) special option flags for use when decoding "
+  "GEOJSON data");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL11,
+  "@li srid: uint, (optional) srid value for use when decoding GEOJSON data.");
+REGISTER_HELP(COLLECTION_CREATEINDEX_DETAIL12,
+  "The 'options' and 'srid' fields in IndexField can and must be present only "
+  "if 'type' is set to 'GEOJSON'.");
+
 
 /**
 * $(COLLECTION_CREATEINDEX_BRIEF)
 *
-* <code>
-*   <table border = "0">
-*/
-#if DOXYGEN_JS
-/**
-*     <tr><td>Collection</td><td>.createIndex(...)</td></tr>
-*/
-#elif DOXYGEN_PY
-/**
-*     <tr><td>Collection</td><td>.create_index(...)</td></tr>
-*/
-#endif
-/**
-*     <tr><td></td><td>[.field(...)]</td></tr>
-*     <tr><td></td><td>[.execute(...)]</td></tr>
-*   </table>
-* </code>
+* $(COLLECTION_CREATEINDEX_PARAM)
+* $(COLLECTION_CREATEINDEX_PARAM1)
 *
-*/
-#if DOXYGEN_JS
-/**
-* #### .createIndex(...)
-*/
-#elif DOXYGEN_PY
-/**
-* #### .create_index(...)
-*/
-#endif
-/**
-* ##### Alternatives
+* $(COLLECTION_CREATEINDEX_RETURNS)
 *
-* @li $(COLLECTIONCREATEINDEX_CREATEINDEX_SYNTAX)
-* @li $(COLLECTIONCREATEINDEX_CREATEINDEX_SYNTAX1)
+* $(COLLECTION_CREATEINDEX_DETAIL)
+* $(COLLECTION_CREATEINDEX_DETAIL1)
 *
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF)
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF1)
+* $(COLLECTION_CREATEINDEX_DETAIL2)
 *
-* #### .field(...)
+* $(COLLECTION_CREATEINDEX_DETAIL3)
+* $(COLLECTION_CREATEINDEX_DETAIL4)
 *
-* $(COLLECTIONCREATEINDEX_FIELD_BRIEF)
+* $(COLLECTION_CREATEINDEX_DETAIL5)
 *
-* #### .execute(...)
+* $(COLLECTION_CREATEINDEX_DETAIL6)
 *
-* $(COLLECTIONCREATEINDEX_EXECUTE_BRIEF)
+* $(COLLECTION_CREATEINDEX_DETAIL7)
+* $(COLLECTION_CREATEINDEX_DETAIL8)
+* $(COLLECTION_CREATEINDEX_DETAIL9)
+* $(COLLECTION_CREATEINDEX_DETAIL10)
+* $(COLLECTION_CREATEINDEX_DETAIL11)
 *
-* \sa CollectionCreateIndex
+* $(COLLECTION_CREATEINDEX_DETAIL12)
 */
 //@{
 #if DOXYGEN_JS
-CollectionCreateIndex Collection::createIndex(String name) {}
-CollectionCreateIndex Collection::createIndex(String name, IndexType type) {}
+Result Collection::createIndex(String name, JSON indexDefinition) {}
 #elif DOXYGEN_PY
-CollectionCreateIndex Collection::create_index(str name) {}
-CollectionCreateIndex Collection::create_index(str name, IndexType type) {}
+Result Collection::create_index(str name, JSON indexDefinition) {}
 #endif
 //@}
 
 shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
-  std::shared_ptr<CollectionCreateIndex> createIndex(
-      new CollectionCreateIndex(shared_from_this()));
+  args.ensure_count(2, get_function_name("createIndex").c_str());
+  shcore::Value ret_val;
+  try {
+    auto index_name = args.string_at(0);
+    auto index = args.map_at(1);
+    
+    std::shared_ptr<ShellBaseSession> session_obj = session();
+    std::shared_ptr<DatabaseObject> schema_obj = schema();
+    
+    if (session_obj && schema_obj) {
+      (*index)["schema"] = shcore::Value(schema_obj->name());
+      (*index)["collection"] = shcore::Value(_name);
+      (*index)["name"] = shcore::Value(index_name);
+      
+      // Moves "fields" to "constraint"
+      if (index->has_key("fields")) {
+        std::swap((*index)["constraint"], (*index)["fields"]);
+        index->erase("fields");
 
-  auto ss = createIndex->set_scoped_naming_style(naming_style);
+        if ((*index)["constraint"].type == shcore::Array) {
+          for(auto &field_val: *index->get_array("constraint")) {
+            if (field_val.type == shcore::Map ) {
+              auto field = field_val.as_map();
+              if (field->has_key("field")) {
+                // Moves "field" to "member"
+                std::swap((*field)["member"], (*field)["field"]);
+                field->erase("field");
 
-  return createIndex->create_index(args);
+                // The options and srid values must be converted to UINT
+                // or the plugin will fail with an invalid data type error
+                if (field->has_key("options")) {
+                  uint64_t options = (*field)["options"].as_uint();
+                  (*field)["options"] = shcore::Value(options);
+                }
+                if (field->has_key("srid")) {
+                  uint64_t srid = (*field)["srid"].as_uint();
+                  (*field)["srid"] = shcore::Value(srid);
+                }
+              }
+
+              bool is_geojson = false;
+              if (field->has_key("type") && (*field)["type"].type == shcore::String)
+                is_geojson = shcore::str_caseeq((*field)["type"].as_string().c_str(), "GEOJSON");
+
+
+              if (!field->has_key("required")) {
+                (*field)["required"] = shcore::Value(is_geojson);
+              }
+            }
+          }
+        }
+      }
+
+      // Sets the default for unique
+      if (!index->has_key("unique"))
+        (*index)["unique"] = shcore::Value::False();
+
+      // Default index type is INDEX
+      if (!index->has_key("type"))
+        (*index)["type"] = shcore::Value("index");
+
+      auto session = std::dynamic_pointer_cast<Session>(session_obj);
+    
+      if (session) {
+        // This inner try/catch is just to translate plugin errors to
+        // devapi errors
+        try {
+          auto x_result = session->execute_mysqlx_stmt("create_collection_index",
+                                                      index);
+          SqlResult *sql_result = new mysqlsh::mysqlx::SqlResult(x_result);
+          ret_val = shcore::Value::wrap(sql_result);
+        } catch (const mysqlshdk::db::Error &e) {
+          std::string error = e.what();
+          error = shcore::str_replace(error, "'constraint'", "'fields'");
+          error = shcore::str_replace(error, "'member'", "'field'");
+          error = shcore::str_replace(error, "constraint.required", "field.required");
+          throw mysqlshdk::db::Error(error.c_str(), e.code(), e.sqlstate());
+        }
+      }
+    }
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createIndex"));
+  
+  return ret_val;
 }
 
 REGISTER_HELP(COLLECTION_DROPINDEX_BRIEF, "Drops an index from a collection.");

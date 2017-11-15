@@ -148,10 +148,6 @@ TEST_F(Shell_js_mysqlx_tests, mysqlx_collection_remove) {
   validate_interactive("mysqlx_collection_remove.js");
 }
 
-TEST_F(Shell_js_mysqlx_tests, mysqlx_collection_create_index) {
-  validate_interactive("mysqlx_collection_create_index.js");
-}
-
 TEST_F(Shell_js_mysqlx_tests, mysqlx_view) {
   validate_interactive("mysqlx_view.js");
 }

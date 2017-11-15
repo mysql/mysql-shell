@@ -26,7 +26,6 @@ print 'expr:', type(mysqlx.expr), '\n'
 print 'dateValue:', type(mysqlx.date_value), '\n'
 print 'help:', type(mysqlx.date_value), '\n'
 print 'Type:', mysqlx.Type, '\n'
-print 'IndexType:', mysqlx.IndexType, '\n'
 
 #@# mysqlx module: expression errors
 expr = mysqlx.expr()

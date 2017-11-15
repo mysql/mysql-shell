@@ -66,12 +66,10 @@ namespace mysqlx {
 
 #if DOXYGEN_JS
 Types Types;          //!< $(MYSQLX_TYPE_BRIEF)
-IndexType IndexType;  //!< $(MYSQLX_INDEXTYPE_BRIEF)
 Session getSession(ConnectionData connectionData, String password);
 Expression expr(String expressionStr);
 #elif DOXYGEN_PY
 Types Types;          //!< $(MYSQLX_TYPE_BRIEF)
-IndexType IndexType;  //!< $(MYSQLX_INDEXTYPE_BRIEF)
 Session get_session(ConnectionData connectionData, str password);
 Expression expr(str expressionStr);
 #endif
@@ -90,7 +88,6 @@ virtual shcore::Value get_member(const std::string &prop) const;
 
 private:
 shcore::Object_bridge_ref _type;
-shcore::Object_bridge_ref _index_type;
 
 END_DECLARE_MODULE();
 }  // namespace mysqlx

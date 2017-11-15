@@ -57,7 +57,7 @@ print 'schema:', collection.schema
 collection.help("drop_index")
 
 #@ Testing dropping index
-collection.create_index('_name').field('name', "TEXT(50)", True).execute()
+collection.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}]});
 print collection.drop_index('_name')
 print collection.drop_index('_name')
 print collection.drop_index('not_an_index')
@@ -106,8 +106,8 @@ col.add_or_replace_one('document_001', {'_id':'ignored_id', 'name':'medium'});
 col.find();
 
 # WL10849-FR6.2.1
-#@ add_or_replace_one: adding with key {VER(>=8.0.3)}
-result = col.create_index('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", True).execute();
+#@ add_or_replace_one: adding with key
+result = col.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}], 'unique':True});
 col.add_or_replace_one('document_003', {'name':'high'});
 
 # WL10849-FR6.2.2
@@ -210,8 +210,8 @@ col.replace_one('document_001', {'_id':'ignored_id', 'name':'medium'});
 #@<OUT> replace_one: Verify replaced document with ignored _id {VER(>=8.0.3)}
 col.find();
 
-#@ replace_one: error replacing with key {VER(>=8.0.3)}
-result = col.create_index('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", True).execute();
+#@ replace_one: error replacing with key
+result = col.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}], 'unique':True});
 col.replace_one('document_001', {'name':'simple'});
 
 #@ replace_one: replacing document matching id and key {VER(>=8.0.3)}

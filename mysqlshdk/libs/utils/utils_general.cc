@@ -606,8 +606,14 @@ std::string format_markup_text(const std::vector<std::string> &lines,
     std::string space;
     std::vector<size_t> lengths;
     // handles list items
-    auto pos = line.find("@li");
-    if (0 == pos) {
+    // Text between <code> tags will skip line trimming and padding
+    // it is expected that such lines are formatted inline using
+    // &nbsp; @< and @>
+    if (0 == line.find("<code>")) {
+      auto pos = line.find("</code>", 6);
+      if (pos != std::string::npos)
+        ret_val += line.substr(6, pos - 6);
+    } else if (0 == line.find("@li")) {
       current_is_item = true;
 
       // Adds an extra new line to separate the first item from the previous
@@ -638,6 +644,16 @@ std::string format_markup_text(const std::vector<std::string> &lines,
     // The new line only makes sense after the first line
     new_line = "\n";
   }
+
+  // Some characters need to be specified using special doxygen format to
+  // to prevent generating doxygen warnings.
+  std::vector<std::pair<const char*, const char*>> replacements = {{"@<", "<"},
+    {"@>", ">"}, {"&nbsp;", " "}};
+
+  for(const auto& rpl : replacements) {
+    ret_val = shcore::str_replace(ret_val, rpl.first, rpl.second);
+  }
+
 
   return ret_val;
 }
