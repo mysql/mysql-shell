@@ -34,7 +34,9 @@ protected:
 
   class SStream {
   public:
-    void Put(char c) {
+    using Ch = std::string::value_type;
+
+    void Put(Ch c) {
       data += c;
     }
     void Flush() {}
