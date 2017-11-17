@@ -111,7 +111,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %doc @LICENSE_FILE@
 %doc README
 %{_bindir}/mysqlsh
-%{_libdir}/mysqlsh/mysqlprovision.zip
+%{_datadir}/mysqlsh/mysqlprovision.zip
 %{_datadir}/mysqlsh/prompt/*
 
 %changelog

@@ -112,9 +112,9 @@ int ProvisioningInterface::execute_mysqlprovision(
     if (_local_mysqlprovision_path.empty()) {
       std::string tmp(get_mysqlx_home_path());
 #ifdef _WIN32
-      tmp.append("\\lib\\mysqlsh\\mysqlprovision.zip");
+      tmp.append("\\share\\mysqlsh\\mysqlprovision.zip");
 #else
-      tmp.append("/lib/mysqlsh/mysqlprovision.zip");
+      tmp.append("/share/mysqlsh/mysqlprovision.zip");
 #endif
       if (file_exists(tmp))
         _local_mysqlprovision_path = tmp;
