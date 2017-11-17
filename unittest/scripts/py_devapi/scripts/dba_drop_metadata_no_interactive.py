@@ -25,7 +25,7 @@ dba.drop_metadata_schema({'force':False});
 #@# drop metadata: force true
 dba.drop_metadata_schema({'force':True, 'clearReadOnly': True});
 
-ensure_schema_does_not_exist(session, 'mysql_innodb_cluster_metadata')
+ensure_schema_does_not_exist('drop schema if exists mysql_innodb_cluster_metadata')
 
 session.close()
 

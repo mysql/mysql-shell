@@ -285,12 +285,14 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
    public:
     ScopedStyle(const Cpp_object_bridge *target, NamingStyle style)
         : _target(target) {
+      _old_style = _target->naming_style;
       _target->naming_style = style;
     }
-    ~ScopedStyle() { _target->naming_style = LowerCamelCase; }
+    ~ScopedStyle() { _target->naming_style = _old_style; }
 
    private:
-    const Cpp_object_bridge *_target;
+     NamingStyle _old_style;
+     const Cpp_object_bridge *_target;
   };
 
  protected:
@@ -343,6 +345,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
                                     int quote_strings = 0) const;
   virtual std::string &append_repr(std::string &s_out) const;
+  void set_naming_style(const NamingStyle &style);
   std::shared_ptr<ScopedStyle> set_scoped_naming_style(
       const NamingStyle &style);
 

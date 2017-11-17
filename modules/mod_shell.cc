@@ -476,12 +476,14 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
 
 void Shell::set_current_schema(const std::string& name) {
   auto session = _shell_core->get_dev_session();
-  shcore::Value new_schema;
+  shcore::Value new_schema = shcore::Value::Null();
 
   if (!name.empty()) {
     session->set_current_schema(name);
 
-    new_schema = shcore::Value(session->get_schema(name));
+    auto x_session = std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(session);
+    if (x_session)
+      new_schema = shcore::Value(x_session->get_schema(name));
   }
 
   _shell_core->set_global("db", new_schema,
@@ -516,9 +518,11 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::set_session_global(
         shcore::Value(std::static_pointer_cast<Object_bridge>(session)));
 
     std::string currentSchema = session->get_default_schema();
-    shcore::Value schema;
-    if (!currentSchema.empty())
-      schema = shcore::Value(session->get_schema(currentSchema));
+    shcore::Value schema = shcore::Value::Null();
+
+    auto x_session = std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(session);
+    if (x_session && !currentSchema.empty())
+      schema = shcore::Value(x_session->get_schema(currentSchema));
 
     _shell_core->set_global("db", schema);
   } else {

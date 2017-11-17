@@ -42,7 +42,7 @@
 }
 
 //@ Remove instance failure due to wrong credentials
-||Cluster.removeInstance: ERROR: Error leaving cluster: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' - Access denied for user 'foo'@'localhost' (using password: YES) (RuntimeError)
+||Cluster.removeInstance: ERROR: Error leaving cluster: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' - mysql.get_classic_session: Access denied for user 'foo'@'localhost' (using password: YES) (RuntimeError)
 
 //@<OUT> Cluster status after remove failed
 {

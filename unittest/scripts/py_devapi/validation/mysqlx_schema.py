@@ -26,8 +26,6 @@ The following functions are currently supported.
                            the specified name and retrieves an object
                            representing the new collection created.
  - drop_collection         Drops the specified collection.
- - drop_table              Drops the specified table.
- - drop_view               Drops the specified view
  - exists_in_database
  - get_collection          Returns the Collection of the given name for this
                            schema.
@@ -42,7 +40,7 @@ The following functions are currently supported.
  - help                    Provides help about this class and it's members
 
 #@ Schema: validating members
-|Member Count: 20|
+|Member Count: 18|
 
 |name: OK|
 |schema: OK|
@@ -121,51 +119,17 @@ RETURNS
 
  nothing.
 
-#@<OUT> Testing help for drop_view
-
-Drops the specified view
-
-SYNTAX
-
-  <Schema>.drop_view()
-
-RETURNS
-
- nothing.
-
-#@<OUT> Testing help for drop_table
-
-Drops the specified table.
-
-SYNTAX
-
-  <Schema>.drop_table()
-
-RETURNS
-
- nothing.
-
 #@ Testing dropping existing schema objects
-|<Table:table1>|
-|None|
-|<Table:view1>|
-|None|
 |<Collection:collection1>|
 |None|
 
 #@ Testing dropped objects are actually dropped
-||The table js_shell_test.table1 does not exist
-||The table js_shell_test.view1 does not exist
 ||The collection js_shell_test.collection1 does not exist
 
 #@ Testing dropping non-existing schema objects
 |None|
-|None|
-|None|
 
 #@ Testing drop functions using execute
-||AttributeError: 'NoneType' object has no attribute 'execute'
-||AttributeError: 'NoneType' object has no attribute 'execute'
 ||AttributeError: 'NoneType' object has no attribute 'execute'
 
 #@ Testing existence
@@ -225,4 +189,3 @@ RETURNS
 
 #@ Testing name shadowing: get_table('get_collection')
 |<Table:get_collection>|
-

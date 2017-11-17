@@ -974,8 +974,6 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
   std::vector<std::pair<std::string, std::string>> db_calls{
       {"createCollection", "('dropme')"},
       {"dropCollection", "('dropme')"},
-      {"dropTable", "('droptab')"},
-      {"dropView", "('dropview')"},
       {"getCollection", "('testcol')"},
       {"getTable", "('testtab')"},
       {"getCollectionAsTable", "('testcol')"},
@@ -1013,13 +1011,6 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
   std::vector<std::pair<std::string, std::string>> session_calls{
       {"help", ""},
       {"close", ""},
-      {"createSchema", ""},
-      {"getCurrentSchema", ""},
-      {"setCurrentSchema", ""},
-      {"dropSchema", ""},
-      {"dropTable", ""},
-      {"dropView", ""},
-      {"getSchema", ""},
       {"runSql", "('select 1')"},
       {"query", "('select 1')"}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);

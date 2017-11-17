@@ -58,7 +58,6 @@ public:
   virtual void create_schema(const std::string& name) = 0;
   virtual void drop_schema(const std::string &name) = 0;
   virtual void set_current_schema(const std::string &name) = 0;
-  virtual shcore::Object_bridge_ref get_schema(const std::string &name);
 
   // This function should be execute_sql, but BaseSession and ClassicSession
   // Have another function with the same signature except the return value
@@ -129,8 +128,8 @@ protected:
     ShellBaseSession *_owner;
   };
 
-  mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
-  std::function<void(const std::string&, bool exists)> update_schema_cache;
+  //mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
+  //std::function<void(const std::string&, bool exists)> update_schema_cache;
 
   std::string sub_query_placeholders(const std::string &query,
                                      const shcore::Array_t &args);

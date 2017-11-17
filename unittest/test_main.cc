@@ -328,9 +328,11 @@ int main(int argc, char **argv) {
 
   if (!getenv("TMPDIR")) {  // for windows
     const char *tmpdir = getenv("TEMP");
-    static std::string temp;
-    temp.append("TMPDIR=").append(tmpdir);
-    putenv(&temp[0]);
+    if (tmpdir) {
+      static std::string temp;
+      temp.append("TMPDIR=").append(tmpdir);
+      putenv(&temp[0]);
+    }
   }
 
   bool show_help = false;

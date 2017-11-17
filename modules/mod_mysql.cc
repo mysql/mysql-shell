@@ -21,6 +21,7 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_constants.h"
 #include "shellcore/utils_help.h"
+#include "modules/mysqlxtest_utils.h"
 
 using namespace std::placeholders;
 namespace mysqlsh {
@@ -42,7 +43,7 @@ REGISTER_HELP(MYSQL_DETAIL4,"When running the shell in interactive mode, this mo
 
 REGISTER_MODULE(Mysql, mysql) {
   REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getClassicSession);
-  REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getSession);
+  REGISTER_VARARGS_FUNCTION(Mysql, get_session, getSession);
 
   _type.reset(new Type());
 }
@@ -95,19 +96,35 @@ ClassicSession get_classic_session(ConnectionData connectionData, str password){
 #endif
 
 DEFINE_FUNCTION(Mysql, get_classic_session) {
-  return shcore::Value(ClassicSession::create(args));
+  args.ensure_count(1, 2, get_function_name("getClassicSession").c_str());
+
+  shcore::Value ret_val;
+  try {
+  ret_val = shcore::Value(ClassicSession::create(args));
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getClassicSession"));
+
+  return ret_val;
 }
+
+REGISTER_HELP(MYSQL_GETSESSION_BRIEF, "Opens a classic MySQL protocol session to a MySQL server.");
+REGISTER_HELP(MYSQL_GETSESSION_PARAM,  "@param connectionData The connection data for the session");
+REGISTER_HELP(MYSQL_GETSESSION_PARAM1, "@param password Optional password for the session");
+REGISTER_HELP(MYSQL_GETSESSION_RETURNS, "@returns A ClassicSession");
+REGISTER_HELP(MYSQL_GETSESSION_DETAIL, "A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the "\
+                                              "connected MySQL Server.");
+REGISTER_HELP(MYSQL_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
+// clang-format on
 
 /**
  * \ingroup mysql
- * $(MYSQL_GETCLASSICSESSION_BRIEF)
+ * $(MYSQL_GETSESSION_BRIEF)
  *
- * $(MYSQL_GETCLASSICSESSION_PARAM)
- * $(MYSQL_GETCLASSICSESSION_PARAM1)
+ * $(MYSQL_GETSESSION_PARAM)
+ * $(MYSQL_GETSESSION_PARAM1)
  *
- * $(MYSQL_GETCLASSICSESSION_RETURNS)
+ * $(MYSQL_GETSESSION_RETURNS)
  *
- * $(MYSQL_GETCLASSICSESSION_DETAIL)
+ * $(MYSQL_GETSESSION_DETAIL)
  *
  * \copydoc connection_options
  *
@@ -121,7 +138,14 @@ ClassicSession get_session(ConnectionData connectionData, str password) {}
 #endif
 
 DEFINE_FUNCTION(Mysql, get_session) {
-  return shcore::Value(ClassicSession::create(args));
+  args.ensure_count(1, 2, get_function_name("getSession").c_str());
+
+  shcore::Value ret_val;
+  try {
+  ret_val = shcore::Value(ClassicSession::create(args));
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getSession"));
+
+  return ret_val;
 }
 
 }

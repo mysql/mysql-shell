@@ -84,18 +84,6 @@ TEST_F(Shell_py_mysql_tests, mysql_session) {
   validate_interactive("mysql_session.py");
 }
 
-TEST_F(Shell_py_mysql_tests, mysql_schema) {
-  validate_interactive("mysql_schema.py");
-}
-
-TEST_F(Shell_py_mysql_tests, mysql_table) {
-  validate_interactive("mysql_table.py");
-}
-
-TEST_F(Shell_py_mysql_tests, mysql_view) {
-  validate_interactive("mysql_view.py");
-}
-
 TEST_F(Shell_py_mysql_tests, mysql_resultset) {
   validate_interactive("mysql_resultset.py");
 }

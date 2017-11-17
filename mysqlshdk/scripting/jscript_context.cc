@@ -255,7 +255,7 @@ struct JScript_context::JScript_context_impl {
     std::string factory = *(v8::String::Utf8Value)client_data->Get(v8::String::NewFromUtf8(self->isolate, "function"));
 
     try {
-      Value result(Object_factory::call_constructor(package, factory, self->convert_args(args)));
+      Value result(Object_factory::call_constructor(package, factory, self->convert_args(args), NamingStyle::LowerCamelCase));
       if (result)
         args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(result));
     } catch (std::exception &e) {
@@ -379,7 +379,7 @@ struct JScript_context::JScript_context_impl {
 
         auto core_modules = Object_factory::package_contents("__modules__");
         if (std::find(core_modules.begin(), core_modules.end(), *s) != core_modules.end()) {
-          auto module = Object_factory::call_constructor("__modules__", *s, shcore::Argument_list());
+          auto module = Object_factory::call_constructor("__modules__", *s, shcore::Argument_list(), NamingStyle::LowerCamelCase);
           args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(shcore::Value(std::dynamic_pointer_cast<Object_bridge>(module))));
         }
       } catch (std::exception &e) {

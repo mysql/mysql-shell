@@ -24,54 +24,33 @@ validateMember(sessionMembers, 'currentSchema');
 //@<OUT> Session: help
 classicSession.help()
 
-//@ ClassicSession: validate dynamic members for system schemas
-var sessionMembers = dir(classicSession)
-validateNotMember(sessionMembers, 'mysql');
-validateNotMember(sessionMembers, 'information_schema');
-
-
 //@ ClassicSession: accessing Schemas
 var schemas = classicSession.getSchemas();
-print(getSchemaFromList(schemas, 'mysql'));
-print(getSchemaFromList(schemas, 'information_schema'));
 
 //@ ClassicSession: accessing individual schema
 var schema = classicSession.getSchema('mysql');
-print(schema.name);
-var schema = classicSession.getSchema('information_schema');
-print(schema.name);
 
-//@ ClassicSession: accessing unexisting schema
-var schema = classicSession.getSchema('unexisting_schema');
-
-//@ ClassicSession: current schema validations: nodefault
+//@ ClassicSession: accessing default schema
 var dschema = classicSession.getDefaultSchema();
+
+//@ ClassicSession: accessing current schema
 var cschema = classicSession.getCurrentSchema();
-print(dschema);
-print(cschema);
 
-//@ ClassicSession: create schema success
-ensure_schema_does_not_exist(classicSession, 'node_session_schema');
+//@ ClassicSession: create schema
+var sf = classicSession.createSchema('classic_session_schema');
 
-var ss = classicSession.createSchema('node_session_schema');
-print(ss)
+//@ ClassicSession: set current schema
+classicSession.setCurrentSchema('classic_session_schema');
 
-//@ ClassicSession: create schema failure
-var sf = classicSession.createSchema('node_session_schema');
+//@ ClassicSession: drop schema
+classicSession.dropSchema('node_session_schema');
 
-//@ Session: create quoted schema
-ensure_schema_does_not_exist(classicSession, 'quoted schema');
-var qs = classicSession.createSchema('quoted schema');
-print(qs);
-
-//@ Session: validate dynamic members for created schemas
-var sessionMembers = dir(classicSession)
-validateNotMember(sessionMembers, 'node_session_schema');
-validateNotMember(sessionMembers, 'quoted schema');
+//@Preparation for transaction tests
+var result = classicSession.runSql('drop schema if exists classic_session_schema');
+var result = classicSession.runSql('create schema classic_session_schema');
+var result = classicSession.runSql('use classic_session_schema');
 
 //@ ClassicSession: Transaction handling: rollback
-classicSession.setCurrentSchema('node_session_schema');
-
 var result = classicSession.runSql('create table sample (name varchar(50) primary key)');
 classicSession.startTransaction();
 var res1 = classicSession.runSql('insert into sample values ("john")');
@@ -92,49 +71,30 @@ classicSession.commit();
 var result = classicSession.runSql('select * from sample');
 print('Inserted Documents:', result.fetchAll().length);
 
-classicSession.dropSchema('node_session_schema');
-classicSession.dropSchema('quoted schema');
-
-//@ ClassicSession: current schema validations: nodefault, mysql
-classicSession.setCurrentSchema('mysql');
-var dschema = classicSession.getDefaultSchema();
-var cschema = classicSession.getCurrentSchema();
-print(dschema);
-print(cschema);
-
-//@ ClassicSession: current schema validations: nodefault, information_schema
-classicSession.setCurrentSchema('information_schema');
-var dschema = classicSession.getDefaultSchema();
-var cschema = classicSession.getCurrentSchema();
-print(dschema);
-print(cschema);
-
-//@ ClassicSession: current schema validations: default
-classicSession.close()
-classicSession = mysql.getClassicSession(__uripwd + '/mysql');
-var dschema = classicSession.getDefaultSchema();
-var cschema = classicSession.getCurrentSchema();
-print(dschema);
-print(cschema);
-
-//@ ClassicSession: current schema validations: default, information_schema
-classicSession.setCurrentSchema('information_schema');
-var dschema = classicSession.getDefaultSchema();
-var cschema = classicSession.getCurrentSchema();
-print(dschema);
-print(cschema);
-
-//$ ClassicSession: date handling
+//@ ClassicSession: date handling
 classicSession.runSql("select cast('9999-12-31 23:59:59.999999' as datetime(6))");
 
-//$ ClassicSession: placeholders handling
+//@# ClassicSession: runSql errors
+classicSession.runSql();
+classicSession.runSql(1, 2, 3);
+classicSession.runSql(1);
+classicSession.runSql('select ?', 5);
+classicSession.runSql('select ?, ?', [1, 2, 3]);
+classicSession.runSql('select ?, ?', [1]);
+
+//@<OUT> ClassicSession: runSql placeholders
 classicSession.runSql("select ?, ?", ['hello', 1234]);
 
-//@# ClassicSession: bad params
-mysql.getClassicSession()
-mysql.getClassicSession(42)
-mysql.getClassicSession(["bla"])
-mysql.getClassicSession(null)
+//@# ClassicSession: query errors
+classicSession.query();
+classicSession.query(1, 2, 3);
+classicSession.query(1);
+classicSession.query('select ?', 5);
+classicSession.query('select ?, ?', [1, 2, 3]);
+classicSession.query('select ?, ?', [1]);
+
+//@<OUT> ClassicSession: query placeholders
+classicSession.query("select ?, ?", ['hello', 1234]);
 
 // Cleanup
 classicSession.close();

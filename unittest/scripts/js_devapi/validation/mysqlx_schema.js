@@ -26,8 +26,6 @@ The following functions are currently supported.
                         specified name and retrieves an object representing the
                         new collection created.
  - dropCollection       Drops the specified collection.
- - dropTable            Drops the specified table.
- - dropView             Drops the specified view
  - existsInDatabase
  - getCollection        Returns the Collection of the given name for this
                         schema.
@@ -42,7 +40,7 @@ The following functions are currently supported.
  - help                 Provides help about this class and it's members
 
 //@ Schema: validating members
-|Member Count: 20|
+|Member Count: 18|
 
 |name: OK|
 |schema: OK|
@@ -121,51 +119,17 @@ RETURNS
  nothing.
 
 
-//@<OUT> Testing help for dropView
-Drops the specified view
-
-SYNTAX
-
-  <Schema>.dropView()
-
-RETURNS
-
- nothing.
-
-
-//@<OUT> Testing help for dropTable
-Drops the specified table.
-
-SYNTAX
-
-  <Schema>.dropTable()
-
-RETURNS
-
- nothing.
-
-
 //@ Testing dropping existing schema objects
-|<Table:table1>|
-|undefined|
-|<Table:view1>|
-|undefined|
 |<Collection:collection1>|
 |undefined|
 
 //@ Testing dropped objects are actually dropped
-||The table js_shell_test.table1 does not exist
-||The table js_shell_test.view1 does not exist
 ||The collection js_shell_test.collection1 does not exist
 
 //@ Testing dropping non-existing schema objects
 |undefined|
-|undefined|
-|undefined|
 
 //@ Testing drop functions using execute
-||TypeError: Cannot read property 'execute' of undefined
-||TypeError: Cannot read property 'execute' of undefined
 ||TypeError: Cannot read property 'execute' of undefined
 
 //@ Testing existence

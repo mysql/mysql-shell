@@ -86,34 +86,22 @@ public:
   virtual void create_schema(const std::string& name);
   virtual void drop_schema(const std::string &name);
   virtual void set_current_schema(const std::string &name);
-  virtual shcore::Object_bridge_ref get_schema(const std::string &name);
   virtual void start_transaction();
   virtual void commit();
   virtual void rollback();
 
-  virtual std::string get_current_schema() {
-    return _retrieve_current_schema();
-  }
+  virtual std::string get_current_schema();
 
   virtual shcore::Value query(const shcore::Argument_list &args);
 
   shcore::Value _close(const shcore::Argument_list &args);
   virtual shcore::Value run_sql(const shcore::Argument_list &args);
-  shcore::Value _create_schema(const shcore::Argument_list &args);
   virtual shcore::Value _start_transaction(const shcore::Argument_list &args);
   virtual shcore::Value _commit(const shcore::Argument_list &args);
   virtual shcore::Value _rollback(const shcore::Argument_list &args);
-  shcore::Value _drop_schema(const shcore::Argument_list &args);
-  shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
   shcore::Value _is_open(const shcore::Argument_list &args);
 
   virtual shcore::Value::Map_type_ref get_status();
-
-  shcore::Value _get_schema(const shcore::Argument_list &args);
-
-  shcore::Value get_schemas(const shcore::Argument_list &args);
-
-  shcore::Value _set_current_schema(const shcore::Argument_list &args);
 
   virtual std::string db_object_exists(std::string &type,
                                        const std::string &name,
@@ -129,11 +117,11 @@ public:
   virtual uint64_t get_connection_id() const;
   virtual std::string query_one_string(const std::string &query, int field = 0);
   virtual std::string get_ssl_cipher() const;
-
-  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query);
+private:
   shcore::Value execute_sql(const std::string &query,
                             const shcore::Array_t &args);
-
+  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query);
+public:
   virtual SessionType session_type() const {
     return SessionType::Classic;
   }
@@ -142,15 +130,6 @@ public:
 
 #if DOXYGEN_JS
   String uri; //!< Same as getUri()
-  ClassicSchema defaultSchema; //!< Same as getDefaultSchema()
-  ClassicSchema currentSchema; //!< Same as getCurrentSchema()
-
-  ClassicSchema createSchema(String name);
-  ClassicSchema getSchema(String name);
-  ClassicSchema getDefaultSchema();
-  ClassicSchema getCurrentSchema();
-  ClassicSchema setCurrentSchema(String name);
-  List getSchemas();
   String getUri();
   ClassicResult runSql(String query, Array args = []);
   ClassicResult query(String query, Array args = []);
@@ -158,20 +137,8 @@ public:
   ClassicResult startTransaction();
   ClassicResult commit();
   ClassicResult rollback();
-  ClassicResult dropSchema(String name);
-  ClassicResult dropTable(String schema, String name);
-  ClassicResult dropView(String schema, String name);
 #elif DOXYGEN_PY
   str uri; //!< Same as get_uri()
-  ClassicSchema default_schema; //!< Same as get_default_schema()
-  ClassicSchema current_schema; //!< Same as get_current_schema()
-
-  ClassicSchema create_schema(str name);
-  ClassicSchema get_schema(str name);
-  ClassicSchema get_default_schema();
-  ClassicSchema get_current_schema();
-  ClassicSchema set_current_schema(str name);
-  list get_schemas();
   str get_uri();
   ClassicResult run_sql(str query, list args = []);
   ClassicResult query(str query, list args = []);
@@ -179,9 +146,6 @@ public:
   ClassicResult start_transaction();
   ClassicResult commit();
   ClassicResult rollback();
-  ClassicResult drop_schema(str name);
-  ClassicResult drop_table(str schema, str name);
-  ClassicResult drop_view(str schema, str name);
 #endif
 
   /**
@@ -200,9 +164,9 @@ public:
 
 private:
   void init();
-  std::string _retrieve_current_schema();
-  void _remove_schema(const std::string& name);
   std::shared_ptr<mysqlshdk::db::mysql::Session> _session;
+  shcore::Value _run_sql(const std::string& function,
+                         const shcore::Argument_list &args);
 };
 };
 };

@@ -1,26 +1,22 @@
 //@ Session: validating members
 |close: OK|
-|createSchema: OK|
-|getCurrentSchema: OK|
-|getDefaultSchema: OK|
-|getSchema: OK|
-|getSchemas: OK|
+|createSchema: Missing|
+|getCurrentSchema: Missing|
+|getDefaultSchema: Missing|
+|getSchema: Missing|
+|getSchemas: Missing|
 |getUri: OK|
-|setCurrentSchema: OK|
-|defaultSchema: OK|
+|setCurrentSchema: Missing|
+|defaultSchema: Missing|
 |uri: OK|
-|currentSchema: OK|
+|currentSchema: Missing|
 
 //@<OUT> Session: help
 Provides facilities to execute queries and retrieve database objects.
 
 The following properties are currently supported.
 
- - uri           Retrieves the URI for the current session.
- - defaultSchema Retrieves the ClassicSchema configured as default for the
-                 session.
- - currentSchema Retrieves the ClassicSchema that is active as current on the
-                 session.
+ - uri Retrieves the URI for the current session.
 
 
 The following functions are currently supported.
@@ -29,18 +25,6 @@ The following functions are currently supported.
                     this session object.
  - commit           Commits all the operations executed after a call to
                     startTransaction().
- - createSchema     Creates a schema on the database and returns the
-                    corresponding object.
- - dropSchema       Drops the schema with the specified name.
- - dropTable        Drops a table from the specified schema.
- - dropView         Drops a view from the specified schema.
- - getCurrentSchema Retrieves the ClassicSchema that is active as current on
-                    the session.
- - getDefaultSchema Retrieves the ClassicSchema configured as default for the
-                    session.
- - getSchema        Retrieves a ClassicSchema object from the current session
-                    through it's name.
- - getSchemas       Retrieves the Schemas available on the session.
  - getUri           Retrieves the URI for the current session.
  - help             Provides help about this class and it's members
  - isOpen           Returns true if session is known to be open.
@@ -50,41 +34,33 @@ The following functions are currently supported.
                     startTransaction().
  - runSql           Executes a query and returns the corresponding
                     ClassicResult object.
- - setCurrentSchema Sets the selected schema for this session's connection.
  - startTransaction Starts a transaction context on the server.
 
 
-//@ ClassicSession: validate dynamic members for system schemas
-|mysql: OK|
-|information_schema: OK|
 
 //@ ClassicSession: accessing Schemas
-|<ClassicSchema:mysql>|
-|<ClassicSchema:information_schema>|
+||Invalid object member getSchemas
 
 //@ ClassicSession: accessing individual schema
-|mysql|
-|information_schema|
+||Invalid object member getSchema
 
-//@ ClassicSession: accessing unexisting schema
-||Unknown database 'unexisting_schema'
+//@ ClassicSession: accessing default schema
+||Invalid object member getDefaultSchema
 
-//@ ClassicSession: current schema validations: nodefault
-|null|
-|null|
+//@ ClassicSession: accessing current schema
+||Invalid object member getCurrentSchema
 
-//@ ClassicSession: create schema success
-|<ClassicSchema:node_session_schema>|
+//@ ClassicSession: create schema
+||Invalid object member createSchema
 
-//@ ClassicSession: create schema failure
-||Can't create database 'node_session_schema'; database exists
+//@ ClassicSession: set current schema
+||Invalid object member setCurrentSchema
 
-//@ Session: create quoted schema
-|<ClassicSchema:quoted schema>|
+//@ ClassicSession: drop schema
+||Invalid object member dropSchema
 
-//@ Session: validate dynamic members for created schemas
-|node_session_schema: OK|
-|quoted schema: OK|
+//@Preparation for transaction tests
+||
 
 //@ ClassicSession: Transaction handling: rollback
 |Inserted Documents: 0|
@@ -92,30 +68,29 @@ The following functions are currently supported.
 //@ ClassicSession: Transaction handling: commit
 |Inserted Documents: 3|
 
-//@ ClassicSession: current schema validations: nodefault, mysql
-|null|
-|<ClassicSchema:mysql>|
-
-//@ ClassicSession: current schema validations: nodefault, information_schema
-|null|
-|<ClassicSchema:information_schema>|
-
-//@ ClassicSession: current schema validations: default
-|<ClassicSchema:mysql>|
-|<ClassicSchema:mysql>|
-
-//@ ClassicSession: current schema validations: default, information_schema
-|<ClassicSchema:mysql>|
-|<ClassicSchema:information_schema>|
-
-//$ ClassicSession: date handling
+//@ ClassicSession: date handling
 |9999-12-31 23:59:59.999999|
 
-//$ ClassicSession: placeholders handling
+//@# ClassicSession: runSql errors
+||Invalid number of arguments in ClassicSession.runSql, expected 1 to 2 but got 0
+||Invalid number of arguments in ClassicSession.runSql, expected 1 to 2 but got 3
+||ClassicSession.runSql: Argument #1 is expected to be a string
+||ClassicSession.runSql: Argument #2 is expected to be an array
+||ClassicSession.runSql: Error formatting SQL query: more arguments than escapes while substituting placeholder value at index #2
+||ClassicSession.runSql: Insufficient number of values for placeholders in query
+
+
+//@<OUT> ClassicSession: runSql placeholders
 | hello | 1234 |
 
-//@# ClassicSession: bad params
-||Invalid connection options, expected either a URI or a Dictionary.
-||Invalid connection options, expected either a URI or a Dictionary.
-||Invalid connection options, expected either a URI or a Dictionary.
-||Invalid connection options, expected either a URI or a Dictionary.
+//@# ClassicSession: query errors
+||Invalid number of arguments in ClassicSession.query, expected 1 to 2 but got 0
+||Invalid number of arguments in ClassicSession.query, expected 1 to 2 but got 3
+||ClassicSession.query: Argument #1 is expected to be a string
+||ClassicSession.query: Argument #2 is expected to be an array
+||ClassicSession.query: Error formatting SQL query: more arguments than escapes while substituting placeholder value at index #2
+||ClassicSession.query: Insufficient number of values for placeholders in query
+
+
+//@<OUT> ClassicSession: query placeholders
+| hello | 1234 |

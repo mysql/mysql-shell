@@ -17,15 +17,13 @@ if (__have_ssl)
 else
   dba.createCluster("tempCluster", {memberSslMode: "DISABLED", clearReadOnly: true});
 
-session.getSchema('mysql_innodb_cluster_metadata');
-
 //@# drop metadata: force false
 dba.dropMetadataSchema({force:false});
 
 //@# drop metadata: force true
 dba.dropMetadataSchema({force:true});
 
-ensure_schema_does_not_exist(session, 'mysql_innodb_cluster_metadata')
+session.runSql('drop schema if exists mysql_innodb_cluster_metadata');
 
 session.close();
 

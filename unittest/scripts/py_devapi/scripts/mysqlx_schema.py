@@ -56,8 +56,8 @@ validateMember(members, 'create_collection')
 validateMember(members, 'get_collection_as_table')
 validateMember(members, 'help')
 validateMember(members, 'drop_collection')
-validateMember(members, 'drop_view')
-validateMember(members, 'drop_table')
+validateNotMember(members, 'drop_view')
+validateNotMember(members, 'drop_table')
 
 # Dynamic Properties
 validateMember(members, 'table1')
@@ -112,33 +112,17 @@ print 'create_collection():', collection
 #@<OUT> Testing help for drop_collection
 print mySchema.help("drop_collection")
 
-#@<OUT> Testing help for drop_view
-print mySchema.help("drop_view")
-
-#@<OUT> Testing help for drop_table
-print mySchema.help("drop_table")
-
 #@ Testing dropping existing schema objects
-print mySchema.get_table('table1')
-print mySchema.drop_table('table1')
-print mySchema.get_table('view1')
-print mySchema.drop_view('view1')
 print mySchema.get_collection('collection1')
 print mySchema.drop_collection('collection1')
 
 #@ Testing dropped objects are actually dropped
-mySchema.get_table('table1')
-mySchema.get_table('view1')
 mySchema.get_collection('collection1')
 
 #@ Testing dropping non-existing schema objects
-print mySchema.drop_table('non_existing_table')
-print mySchema.drop_view('non_existing_view')
 print mySchema.drop_collection('non_existing_collection')
 
 #@ Testing drop functions using execute
-mySchema.drop_table('table1').execute()
-mySchema.drop_view('view1').execute()
 mySchema.drop_collection('collection1').execute()
 
 #@ Testing existence

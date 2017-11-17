@@ -4,11 +4,10 @@ from mysqlsh import mysql
 
 mySession = mysql.get_classic_session(__uripwd)
 
-ensure_schema_does_not_exist(mySession, 'js_shell_test')
-
 #@ Result member validation
-schema = mySession.create_schema('js_shell_test')
-mySession.set_current_schema('js_shell_test')
+mySession.run_sql('drop schema if exists js_shell_test')
+mySession.run_sql('create schema js_shell_test')
+mySession.run_sql('use js_shell_test')
 result = mySession.run_sql('create table js_shell_test.buffer_table (name varchar(50) primary key, age integer, gender varchar(20))')
 
 members = dir(result)
@@ -36,8 +35,6 @@ validateMember(members, 'auto_increment_value')
 validateMember(members, 'get_affected_row_count')
 validateMember(members, 'get_auto_increment_value')
 
-table = schema.get_table('buffer_table')
-
 result = mySession.run_sql('insert into buffer_table values("jack", 17, "male")')
 result = mySession.run_sql('insert into buffer_table values("adam", 15, "male")')
 result = mySession.run_sql('insert into buffer_table values("brian", 14, "male")')
@@ -46,8 +43,6 @@ result = mySession.run_sql('insert into buffer_table values("carol", 14, "female
 result = mySession.run_sql('insert into buffer_table values("donna", 16, "female")')
 result = mySession.run_sql('insert into buffer_table values("angel", 14, "male")')
 
-
-table = schema.get_table('buffer_table')
 
 #@ Resultset has_data() False
 result = mySession.run_sql('use js_shell_test')

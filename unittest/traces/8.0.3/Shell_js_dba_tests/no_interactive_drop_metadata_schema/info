@@ -1,5 +1,6 @@
 {
-    "hostname": "Alfredos-MacBook-Pro.local",
+    "hostname": "juanram-T440p",
+    "hostname_ip": "127.0.1.1",
     "sandbox_port1": "3316",
     "sandbox_port2": "3326",
     "sandbox_port3": "3336"

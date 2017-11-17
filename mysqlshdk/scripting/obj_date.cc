@@ -29,8 +29,6 @@
 
 using namespace shcore;
 
-REGISTER_OBJECT(mysqlx, Date);
-
 Date::Date(int year, int month, int day, int hour, int min, double sec)
     : _year(year),
       _month(month),

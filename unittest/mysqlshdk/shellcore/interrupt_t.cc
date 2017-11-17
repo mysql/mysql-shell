@@ -880,21 +880,6 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
                    k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
-    execute("session.getSchema('itst').dropTable('data')");
-    MY_EXPECT_STDERR_CONTAINS("interrupted");
-    thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
-    // ensure next query runs ok
-    wipe_all();
-  }
-
-  {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "Waiting",
-                   k_processlist_state_column);
-      shcore::Interrupts::interrupt();
-    });
     execute("session.getSchema('itst').dropCollection('cdata')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
@@ -949,21 +934,6 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
   conn->raw_execute_sql("insert into itst.data values (DEFAULT,1)");
   conn->raw_execute_sql(
       "insert into itst.cdata (doc) values ('{\"_id\":\"dummyyy\"}')");
-
-  {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "Waiting",
-                   k_processlist_state_column);
-      shcore::Interrupts::interrupt();
-    });
-    execute("session.get_schema('itst').drop_table('data')");
-    MY_EXPECT_STDERR_CONTAINS("nterrupt");
-    thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
-    // ensure next query runs ok
-    wipe_all();
-  }
 
   {
     std::thread thd([this, session]() {
