@@ -61,11 +61,6 @@ using namespace mysqlsh;
 using namespace shcore;
 using namespace mysqlsh::mysqlx;
 
-REGISTER_OBJECT(mysqlx, Session);
-REGISTER_OBJECT(mysqlx, Expression);
-REGISTER_OBJECT(mysqlx, Type);
-REGISTER_OBJECT(mysqlx, IndexType);
-
 #ifdef WIN32
 #define strcasecmp _stricmp
 #endif
@@ -500,7 +495,7 @@ str Session::get_uri() {}
 #endif
 #endif
 
-std::string Session::_retrieve_current_schema() {
+std::string Session::get_current_schema() {
   try {
     if (is_open()) {
       auto result = execute_sql("select schema()");
@@ -542,7 +537,23 @@ Schema Session::getSchema(String name) {}
 Schema Session::get_schema(str name) {}
 #endif
 shcore::Object_bridge_ref Session::get_schema(const std::string &name) {
-  auto ret_val = ShellBaseSession::get_schema(name);
+  shcore::Object_bridge_ref ret_val;
+  std::string type = "Schema";
+
+  if (name.empty())
+    throw Exception::runtime_error("Schema name must be specified");
+
+  std::string found_name = db_object_exists(type, name, "");
+
+  if (!found_name.empty()) {
+    update_schema_cache(found_name, true);
+
+    ret_val = (*_schemas)[found_name].as_object();
+  } else {
+    update_schema_cache(name, false);
+
+    throw Exception::runtime_error("Unknown database '" + name + "'");
+  }
 
   auto dbobject = std::dynamic_pointer_cast<DatabaseObject>(ret_val);
   if (Base_shell::options().devapi_schema_object_handles)
@@ -1144,7 +1155,7 @@ Value Session::get_member(const std::string &prop) const {
       ret_val = Value::Null();
     }
   } else if (prop == "currentSchema") {
-    std::string name = session->_retrieve_current_schema();
+    std::string name = session->get_current_schema();
 
     if (!name.empty()) {
       ret_val = shcore::Value(session->get_schema(name));

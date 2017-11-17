@@ -865,7 +865,8 @@ void Python_context::register_mysqlsh_module() {
 
   for (auto name : modules) {
     auto module_obj = Object_factory::call_constructor("__modules__", name,
-                                                       shcore::Argument_list());
+                                                       shcore::Argument_list(),
+                                                       NamingStyle::LowerCaseUnderscores);
 
     std::shared_ptr<shcore::Module_base> module =
         std::dynamic_pointer_cast<shcore::Module_base>(module_obj);

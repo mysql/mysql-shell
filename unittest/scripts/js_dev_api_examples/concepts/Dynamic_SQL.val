@@ -1,7 +1,7 @@
 print(table1.name)|test1|
 print(table2.name)|test2|
-testSession.getSchema('test').dropTable('test1')||
-testSession.getSchema('test').dropTable('test2')||
+testSession.sql('drop table test.test1').execute()||
+testSession.sql('drop table test.test2').execute()||
 session.close();||
 testSession.close();||
 testSession = null;||

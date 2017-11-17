@@ -28,7 +28,7 @@ print 'schema:', table.schema
 
 #@ Testing existence
 print 'Valid:', table.exists_in_database()
-schema.drop_table('table1')
+mySession.sql('drop table table1').execute()
 print 'Invalid:', table.exists_in_database()
 
 #@ Testing view check

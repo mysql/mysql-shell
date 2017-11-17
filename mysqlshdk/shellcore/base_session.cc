@@ -112,28 +112,6 @@ void ShellBaseSession::reconnect() {
   connect(_connection_options);
 }
 
-shcore::Object_bridge_ref ShellBaseSession::get_schema(const std::string &name) {
-  shcore::Object_bridge_ref ret_val;
-  std::string type = "Schema";
-
-  if (name.empty())
-    throw Exception::runtime_error("Schema name must be specified");
-
-  std::string found_name = db_object_exists(type, name, "");
-
-  if (!found_name.empty()) {
-    update_schema_cache(found_name, true);
-
-    ret_val = (*_schemas)[found_name].as_object();
-  } else {
-    update_schema_cache(name, false);
-
-    throw Exception::runtime_error("Unknown database '" + name + "'");
-  }
-
-  return ret_val;
-}
-
 std::string ShellBaseSession::sub_query_placeholders(
     const std::string &query, const shcore::Array_t &args) {
   if (args) {
@@ -165,8 +143,7 @@ std::string ShellBaseSession::sub_query_placeholders(
         throw;
       } catch (std::exception &e) {
         throw Exception::argument_error(shcore::str_format(
-            "While substituting placeholder at index #%i: %s", i,
-            e.what()));
+          "%s while substituting placeholder value at index #%i", e.what(), i));
       }
       ++i;
     }

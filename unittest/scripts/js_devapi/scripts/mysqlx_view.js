@@ -28,7 +28,7 @@ print('schema:', view.schema);
 
 //@ Testing existence
 print('Valid:', view.existsInDatabase());
-schema.dropView('view1');
+mySession.sql('drop view view1').execute();
 print('Invalid:', view.existsInDatabase());
 
 //@ Testing view check

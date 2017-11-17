@@ -418,10 +418,8 @@ void Mysql_shell::connect(
         /*_options.app*/ "");
 
   // Retrieves the schema on which the session will work on
-  shcore::Argument_list schema_arg;
   if (connection_options.has_schema()) {
     schema_name = connection_options.get_schema();
-    schema_arg.push_back(shcore::Value(schema_name));
   }
 
   if (recreate_schema && schema_name.empty())
@@ -472,7 +470,7 @@ void Mysql_shell::connect(
     }
     new_session->create_schema(schema_name);
 
-    new_session->call("setCurrentSchema", schema_arg);
+    new_session->set_current_schema(schema_name);
   }
   if (options().interactive) {
     if (old_session && old_session.unique() && old_session->is_open()) {
@@ -513,18 +511,17 @@ void Mysql_shell::connect(
     // This will cause two things to happen
     // 1) Validation that the default schema is real
     // 2) Triggers the auto loading of the schema cache
-
     shcore::Object_bridge_ref default_schema;
+    auto x_session = std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(new_session);
 
-    if (!default_schema_name.empty())
-      default_schema = new_session->get_schema(default_schema_name);
-
-    if (default_schema) {
-      if (session_type == "ClassicSession")
-        message += "Default schema set to `" + default_schema_name + "`.";
-      else
+    if (!default_schema_name.empty()) {
+      if (x_session) {
+        default_schema = x_session->get_schema(default_schema_name);
         message += "Default schema `" + default_schema_name +
                    "` accessible through db.";
+      } else {
+        message += "Default schema set to `" + default_schema_name + "`.";
+      }
     } else {
       message += "No default schema selected; type \\use <schema> to set one.";
     }
@@ -1133,8 +1130,6 @@ void Mysql_shell::add_devapi_completions() {
                                   {"schema", "schema", false},
                                   {"createCollection", "Collection", true},
                                   {"dropCollection", "", true},
-                                  {"dropTable", "", true},
-                                  {"dropView", "", true},
                                   {"existsInDatabase", "", true},
                                   {"getCollection", "Collection", true},
                                   {"getCollectionAsTable", "Table", true},
@@ -1457,23 +1452,12 @@ void Mysql_shell::add_devapi_completions() {
   registry->add_completable_type("ClassicSession",
                                  {{"close", "", true},
                                   {"commit", "ClassicResult", true},
-                                  {"createSchema", "", true},
-                                  {"currentSchema", "", true},
-                                  {"defaultSchema", "", true},
-                                  {"dropSchema", "", true},
-                                  {"dropTable", "", true},
-                                  {"dropView", "", true},
-                                  {"getCurrentSchema", "", true},
-                                  {"getDefaultSchema", "", true},
-                                  {"getSchema", "", true},
-                                  {"getSchemas", "", true},
                                   {"getUri", "", true},
                                   {"help", "", true},
                                   {"isOpen", "", true},
                                   {"rollback", "ClassicResult", true},
                                   {"runSql", "ClassicResult", true},
                                   {"query", "ClassicResult", true},
-                                  {"setCurrentSchema", "", true},
                                   {"startTransaction", "ClassicResult", true},
                                   {"uri", "", false}});
 

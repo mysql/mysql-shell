@@ -41,12 +41,12 @@ void Object_factory::register_factory(const std::string &package, const std::str
 }
 
 std::shared_ptr<Object_bridge> Object_factory::call_constructor(const std::string &package, const std::string &name,
-                                                                  const Argument_list &args) {
+                                                                  const Argument_list &args, NamingStyle style) {
   std::map<std::string, Package>::iterator iter;
   Package::iterator piter;
   if ((iter = Object_Factories->find(package)) != Object_Factories->end()
       && (piter = iter->second.find(name)) != iter->second.end()) {
-    return piter->second(args);
+    return piter->second(args, style);
   }
   throw std::invalid_argument("Invalid factory constructor " + package + "." + name + " invoked");
 }

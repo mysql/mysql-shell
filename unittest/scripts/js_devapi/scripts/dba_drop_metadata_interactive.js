@@ -23,7 +23,6 @@ dba.dropMetadataSchema()
 
 //@# drop metadata: force option
 dba.dropMetadataSchema({force:false});
-session.getSchema('mysql_innodb_cluster_metadata');
 dba.dropMetadataSchema({force:true});
 
 session.close();

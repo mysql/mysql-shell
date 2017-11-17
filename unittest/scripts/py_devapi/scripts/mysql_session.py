@@ -31,118 +31,77 @@ validateMember(sessionMembers, 'current_schema')
 #@<OUT> Session: help
 classicSession.help()
 
-#@ ClassicSession: validate dynamic members for system schemas
-sessionMembers = dir(classicSession)
-validateNotMember(sessionMembers, 'mysql')
-validateNotMember(sessionMembers, 'information_schema')
-
 #@ ClassicSession: accessing Schemas
-schemas = classicSession.get_schemas()
-print getSchemaFromList(schemas, 'mysql')
-print getSchemaFromList(schemas, 'information_schema')
+schemas = classicSession.get_schemas();
 
 #@ ClassicSession: accessing individual schema
-schema = classicSession.get_schema('mysql')
-print schema.name
-schema = classicSession.get_schema('information_schema')
-print schema.name
+schema = classicSession.get_schema('mysql');
 
-#@ ClassicSession: accessing unexisting schema
-schema = classicSession.get_schema('unexisting_schema')
+#@ ClassicSession: accessing default schema
+dschema = classicSession.get_default_schema();
 
-#@ ClassicSession: current schema validations: nodefault
-dschema = classicSession.get_default_schema()
-cschema = classicSession.get_current_schema()
-print dschema
-print cschema
+#@ ClassicSession: accessing current schema
+cschema = classicSession.get_current_schema();
 
-#@ ClassicSession: create schema success
-ensure_schema_does_not_exist(classicSession, 'node_session_schema')
+#@ ClassicSession: create schema
+sf = classicSession.create_schema('classic_session_schema');
 
-ss = classicSession.create_schema('node_session_schema')
-print ss
+#@ ClassicSession: set current schema
+classicSession.set_current_schema('classic_session_schema');
 
-#@ ClassicSession: create schema failure
-sf = classicSession.create_schema('node_session_schema')
+#@ ClassicSession: drop schema
+classicSession.drop_schema('node_session_schema');
 
-#@ Session: create quoted schema
-ensure_schema_does_not_exist(classicSession, 'quoted schema');
-qs = classicSession.create_schema('quoted schema');
-print(qs);
-
-#@ Session: validate dynamic members for created schemas
-sessionMembers = dir(classicSession)
-validateNotMember(sessionMembers, 'node_session_schema');
-validateNotMember(sessionMembers, 'quoted schema');
+#@Preparation for transaction tests
+result = classicSession.run_sql('drop schema if exists classic_session_schema');
+result = classicSession.run_sql('create schema classic_session_schema');
+result = classicSession.run_sql('use classic_session_schema');
 
 #@ ClassicSession: Transaction handling: rollback
-classicSession.set_current_schema('node_session_schema')
+result = classicSession.run_sql('create table sample (name varchar(50) primary key)');
+classicSession.start_transaction();
+res1 = classicSession.run_sql('insert into sample values ("john")');
+res2 = classicSession.run_sql('insert into sample values ("carol")');
+res3 = classicSession.run_sql('insert into sample values ("jack")');
+classicSession.rollback();
 
-result = classicSession.run_sql('create table sample (name varchar(50) primary key)')
-classicSession.start_transaction()
-res1 = classicSession.run_sql('insert into sample values ("john")')
-res2 = classicSession.run_sql('insert into sample values ("carol")')
-res3 = classicSession.run_sql('insert into sample values ("jack")')
-classicSession.rollback()
-
-result = classicSession.run_sql('select * from sample')
-print 'Inserted Documents:', len(result.fetch_all())
+result = classicSession.run_sql('select * from sample');
+print 'Inserted Documents:', len(result.fetch_all());
 
 #@ ClassicSession: Transaction handling: commit
-classicSession.start_transaction()
-res1 = classicSession.run_sql('insert into sample values ("john")')
-res2 = classicSession.run_sql('insert into sample values ("carol")')
-res3 = classicSession.run_sql('insert into sample values ("jack")')
-classicSession.commit()
+classicSession.start_transaction();
+res1 = classicSession.run_sql('insert into sample values ("john")');
+res2 = classicSession.run_sql('insert into sample values ("carol")');
+res3 = classicSession.run_sql('insert into sample values ("jack")');
+classicSession.commit();
 
-result = classicSession.run_sql('select * from sample')
-print 'Inserted Documents:', len(result.fetch_all())
-
-classicSession.drop_schema('node_session_schema')
-classicSession.drop_schema('quoted schema')
-
-#@ ClassicSession: current schema validations: nodefault, mysql
-classicSession.set_current_schema('mysql')
-dschema = classicSession.get_default_schema()
-cschema = classicSession.get_current_schema()
-print dschema
-print cschema
-
-#@ ClassicSession: current schema validations: nodefault, information_schema
-classicSession.set_current_schema('information_schema')
-dschema = classicSession.get_default_schema()
-cschema = classicSession.get_current_schema()
-print dschema
-print cschema
-
-#@ ClassicSession: current schema validations: default
-classicSession.close()
-classicSession = mysql.get_classic_session(__uripwd + '/mysql')
-dschema = classicSession.get_default_schema()
-cschema = classicSession.get_current_schema()
-print dschema
-print cschema
-
-#@ ClassicSession: current schema validations: default, information_schema
-classicSession.set_current_schema('information_schema')
-dschema = classicSession.get_default_schema()
-cschema = classicSession.get_current_schema()
-print dschema
-print cschema
+result = classicSession.run_sql('select * from sample');
+print 'Inserted Documents:', len(result.fetch_all());
 
 #@ ClassicSession: date handling
-classicSession.run_sql("select cast('9999-12-31 23:59:59.999999' as datetime(6))")
+classicSession.run_sql("select cast('9999-12-31 23:59:59.999999' as datetime(6))");
 
+#@# ClassicSession: run_sql errors
+classicSession.run_sql();
+classicSession.run_sql(1, 2, 3);
+classicSession.run_sql(1);
+classicSession.run_sql('select ?', 5);
+classicSession.run_sql('select ?, ?', [1, 2, 3]);
+classicSession.run_sql('select ?, ?', [1]);
 
-#$ ClassicSession: placeholders handling
-classicSession.run_sql("select ?, ?", ['hello', 1234])
-classicSession.run_sql("select ?, ?", ('hello', 1234))
+#@<OUT> ClassicSession: run_sql placeholders
+classicSession.run_sql("select ?, ?", ['hello', 1234]);
 
-#@# ClassicSession: bad params
-mysql.get_classic_session()
-mysql.get_classic_session(42)
-mysql.get_classic_session(["bla"])
-mysql.get_classic_session(None)
+#@# ClassicSession: query errors
+classicSession.query();
+classicSession.query(1, 2, 3);
+classicSession.query(1);
+classicSession.query('select ?', 5);
+classicSession.query('select ?, ?', [1, 2, 3]);
+classicSession.query('select ?, ?', [1]);
+
+#@<OUT> ClassicSession: query placeholders
+classicSession.query("select ?, ?", ['hello', 1234]);
 
 # Cleanup
-classicSession.close()
+classicSession.close();

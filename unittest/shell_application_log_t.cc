@@ -82,7 +82,7 @@ TEST_F(Shell_application_log_tests, test) {
       "line 1";
   execute("session.runSql('select * from sakila.actor1 limit');");
   // The hook was invoked
-  EXPECT_EQ(3, Shell_application_log_tests::i);
+  EXPECT_EQ(4, Shell_application_log_tests::i);
 
   execute("session.close();");
 }

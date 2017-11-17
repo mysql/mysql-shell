@@ -88,17 +88,10 @@ void Schema::init() {
   add_method("createCollection",
              std::bind(&Schema::create_collection, this, _1), "name",
              shcore::String, NULL);
-
-  add_method("dropTable",
-             std::bind(&Schema::drop_schema_object, this, _1, "Table"),
-             "name", shcore::String, NULL);
   add_method(
       "dropCollection",
       std::bind(&Schema::drop_schema_object, this, _1, "Collection"),
       "name", shcore::String, NULL);
-  add_method("dropView",
-             std::bind(&Schema::drop_schema_object, this, _1, "View"),
-             "name", shcore::String, NULL);
 
   // Note: If properties are added uncomment this
   // _base_property_count = _properties.size();
@@ -593,40 +586,6 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
 
   return ret_val;
 }
-
-// Documentation of dropTable function
-REGISTER_HELP(SCHEMA_DROPTABLE_BRIEF,
-              "Drops the specified table.");
-REGISTER_HELP(SCHEMA_DROPTABLE_RETURNS,
-              "@returns nothing.");
-
-/**
- * $(SCHEMA_DROPTABLE_BRIEF)
- *
- * $(SCHEMA_DROPTABLE_RETURNS)
- */
-#if DOXYGEN_JS
-Undefined Schema::dropTable(String name) {}
-#elif DOXYGEN_PY
-None Schema::drop_table(str name) {}
-#endif
-
-// Documentation of dropView function
-REGISTER_HELP(SCHEMA_DROPVIEW_BRIEF,
-              "Drops the specified view");
-REGISTER_HELP(SCHEMA_DROPVIEW_RETURNS,
-              "@returns nothing.");
-
-/**
- * $(SCHEMA_DROPVIEW_BRIEF)
- *
- * $(SCHEMA_DROPVIEW_RETURNS)
- */
-#if DOXYGEN_JS
-Undefined Schema::dropView(String name) {}
-#elif DOXYGEN_PY
-None Schema::drop_view(str name) {}
-#endif
 
 // Documentation of dropCollection function
 REGISTER_HELP(SCHEMA_DROPCOLLECTION_BRIEF,

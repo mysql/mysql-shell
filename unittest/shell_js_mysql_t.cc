@@ -90,18 +90,6 @@ TEST_F(Shell_js_mysql_tests, mysql_session) {
   validate_interactive("mysql_session.js");
 }
 
-TEST_F(Shell_js_mysql_tests, mysql_schema) {
-  validate_interactive("mysql_schema.js");
-}
-
-TEST_F(Shell_js_mysql_tests, mysql_table) {
-  validate_interactive("mysql_table.js");
-}
-
-TEST_F(Shell_js_mysql_tests, mysql_view) {
-  validate_interactive("mysql_view.js");
-}
-
 TEST_F(Shell_js_mysql_tests, mysql_resultset) {
   validate_interactive("mysql_resultset.js");
 }

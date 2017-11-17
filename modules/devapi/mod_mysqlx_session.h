@@ -137,14 +137,12 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   virtual void create_schema(const std::string &name);
   virtual void drop_schema(const std::string &name);
   virtual void set_current_schema(const std::string &name);
-  virtual shcore::Object_bridge_ref get_schema(const std::string &name);
+  shcore::Object_bridge_ref get_schema(const std::string &name);
   virtual void start_transaction();
   virtual void commit();
   virtual void rollback();
 
-  virtual std::string get_current_schema() {
-    return _retrieve_current_schema();
-  }
+  virtual std::string get_current_schema();
 
   shcore::Value _close(const shcore::Argument_list &args);
   virtual shcore::Value _create_schema(const shcore::Argument_list &args);
@@ -219,6 +217,10 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
  protected:
   friend class SqlExecute;
+
+  mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
+  std::function<void(const std::string&, bool exists)> update_schema_cache;
+
 
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> execute_stmt(
       const std::string &ns, const std::string &command,

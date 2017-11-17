@@ -688,6 +688,10 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   return shcore::Value(ret_val);
 }
 
+void Cpp_object_bridge::set_naming_style(const NamingStyle &style) {
+  naming_style = style;
+}
+
 std::shared_ptr<Cpp_object_bridge::ScopedStyle>
 Cpp_object_bridge::set_scoped_naming_style(const NamingStyle &style) {
   std::shared_ptr<Cpp_object_bridge::ScopedStyle> ss(
