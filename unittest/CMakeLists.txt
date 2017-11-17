@@ -137,7 +137,7 @@ if(WITH_TESTS)
                         $<TARGET_FILE_DIR:run_unit_tests>/)
 
     # Sets the test environment so it is ready for execution out of the box
-    # On windows mysqlprovision zip, cmd and mysqlsh.exe need to be together
+    # On windows mysqlprovision.zip, cmd and mysqlsh.exe need to be together
     IF(WIN32)
       # Copies the mysqlprovision.zip to the binary folder
       add_custom_command(TARGET run_unit_tests PRE_BUILD
