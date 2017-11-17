@@ -23,7 +23,7 @@ add_custom_command(OUTPUT mysqlprovision_zip
 )
 
 add_custom_target(mysqlprovision ALL DEPENDS mysqlprovision_zip)
-install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_LIBDIR})
+install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
 IF (WITH_DEV)
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_LIBDIR})
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
 ENDIF()
