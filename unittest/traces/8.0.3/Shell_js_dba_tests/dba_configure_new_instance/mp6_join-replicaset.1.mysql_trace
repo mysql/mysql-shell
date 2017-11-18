@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336?ssl-mode=PREFERRED"
+    "uri": "root:root@localhost:3336?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -611,7 +612,7 @@
     ],
     "rows": [
         [
-            1418917398
+            195340402
         ]
     ]
 },
@@ -1898,7 +1899,7 @@
     ],
     "rows": [
         [
-            1418917398
+            195340402
         ]
     ]
 },
@@ -2116,7 +2117,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "SET GLOBAL group_replication_group_name = '2236b092-c4f7-11e7-8c59-54d11e204600'"
+    "sql": "SET GLOBAL group_replication_group_name = 'f27cb8de-cf27-11e7-85de-f2c608d206a8'"
 },
 {
     "type": "response",
@@ -2656,7 +2657,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 163,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000003' /*)*/, MASTER_PASSWORD = /*(*/ '_>8y;,<O.F./+H]{d&#3<h<.}{/6%S>@' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000003' /*)*/, MASTER_PASSWORD = /*(*/ 'f^)A/4H:)|N,)r:^:f[0q;/?%:/%1W><' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

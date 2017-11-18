@@ -21,6 +21,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <typeinfo>
 #include <utility>
 #include <vector>
@@ -70,36 +71,6 @@ struct SharedDoNotDelete {
   void operator()(T *) {}
 };
 }  // namespace testing
-
-inline std::string makered(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\e[31m" + s + "\e[0m";
-}
-
-inline std::string makeredbg(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\e[41m" + s + "\e[0m";
-}
-
-inline std::string makeblue(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\e[36m" + s + "\e[0m";
-}
-
-inline std::string makegreen(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\e[32m" + s + "\e[0m";
-}
-
-inline std::string makeyellow(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\e[33m" + s + "\e[0m";
-}
 
 class Shell_test_output_handler {
  public:
@@ -173,11 +144,11 @@ class Shell_test_output_handler {
   bool debug;
 
   void feed_to_prompt(const std::string &line) {
-    prompts.push_back(line);
+    prompts.push_back({std::string("*"), line});
   }
 
-  std::list<std::string> prompts;
-  std::list<std::string> passwords;
+  std::list<std::pair<std::string, std::string>> prompts;
+  std::list<std::pair<std::string, std::string>> passwords;
 
  protected:
   static ngcommon::Logger *_logger;

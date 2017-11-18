@@ -130,6 +130,16 @@ struct Type_info<const std::string &> {
 };
 
 template <>
+struct Type_info<const shcore::Dictionary_t&> {
+  static shcore::Dictionary_t to_native(const shcore::Value &in) {
+    return in.as_map();
+  }
+  static Value_type vtype() { return shcore::Map; }
+  static const char *code() { return "D"; }
+  static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
+};
+
+template <>
 struct Type_info<shcore::Dictionary_t> {
   static shcore::Dictionary_t to_native(const shcore::Value &in) {
     return in.as_map();
@@ -137,6 +147,16 @@ struct Type_info<shcore::Dictionary_t> {
   static Value_type vtype() { return shcore::Map; }
   static const char *code() { return "D"; }
   static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
+};
+
+template <>
+struct Type_info<const shcore::Array_t&> {
+  static shcore::Array_t to_native(const shcore::Value &in) {
+    return in.as_array();
+  }
+  static Value_type vtype() { return shcore::Array; }
+  static const char *code() { return "A"; }
+  static shcore::Array_t default_value() { return shcore::Array_t(); }
 };
 
 template <>
@@ -238,6 +258,26 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   const Metadata *_meta;
   Metadata _meta_tmp;  // temporary memory for legacy versions of Cpp_function
 };
+
+
+namespace internal {
+template<typename R>
+struct Result_wrapper {
+  template<typename F>
+  static inline shcore::Value call(F f) {
+    return shcore::Value(f());
+  }
+};
+
+template<>
+struct Result_wrapper<void> {
+  template<typename F>
+  static inline shcore::Value call(F f) {
+    f();
+    return shcore::Value();
+  }
+};
+}  // namespace internal
 
 class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
  public:
@@ -347,9 +387,12 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func,
              a1def](const shcore::Argument_list &args) -> shcore::Value {
-              return shcore::Value((static_cast<C *>(this)->*func)(
-                  args.size() == 0 ? a1def
-                                   : Type_info<A1>::to_native(args.at(0))));
+              const A1 &&a1 = args.size() == 0
+                                  ? a1def
+                                  : Type_info<A1>::to_native(args.at(0));
+              return internal::Result_wrapper<R>::call([this, func, a1]() {
+                return (static_cast<C *>(this)->*func)(a1);
+              });
             }))));
   }
 
@@ -370,7 +413,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         name.substr(0, name.find("|")),
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md, [this, func](const shcore::Argument_list &) -> shcore::Value {
-              return shcore::Value((static_cast<C *>(this)->*func)());
+              return internal::Result_wrapper<R>::call([this, func]() {
+                return (static_cast<C *>(this)->*func)();
+              });
             }))));
   }
 
@@ -389,12 +434,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     assert(!a1doc.empty());
     assert(!a2doc.empty());
 
-    if (!((a1doc[0] != '?' && a2doc[0] != '?') ||
-          (a1doc[0] != '?' && a2doc[0] == '?') ||
-          (a1doc[0] == '?' && a2doc[0] == '?')))
-      throw std::logic_error(
-          "optional parameters have to be at the end of param list");
-
     Cpp_function::Metadata &md =
         get_metadata(class_name() + "::" + name + ":" + Type_info<A1>::code() +
                      Type_info<A2>::code());
@@ -410,11 +449,15 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func, a1def,
              a2def](const shcore::Argument_list &args) -> shcore::Value {
-              return shcore::Value((static_cast<C *>(this)->*func)(
-                  args.size() == 0 ? a1def
-                                   : Type_info<A1>::to_native(args.at(0)),
-                  args.size() <= 1 ? a2def
-                                   : Type_info<A2>::to_native(args.at(1))));
+              const A1 &&a1 = args.size() == 0
+                                  ? a1def
+                                  : Type_info<A1>::to_native(args.at(0));
+              const A2 &&a2 = args.size() <= 1
+                                  ? a2def
+                                  : Type_info<A2>::to_native(args.at(1));
+              return internal::Result_wrapper<R>::call([this, func, a1, a2]() {
+                return (static_cast<C *>(this)->*func)(a1, a2);
+              });
             }))));
   }
 
@@ -437,13 +480,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     assert(!a2doc.empty());
     assert(!a3doc.empty());
 
-    if (!((a1doc[0] != '?' && a2doc[0] != '?' && a3doc[0] != '?') ||
-          (a1doc[0] != '?' && a2doc[0] != '?' && a3doc[0] == '?') ||
-          (a1doc[0] != '?' && a2doc[0] == '?' && a3doc[0] == '?') ||
-          (a1doc[0] == '?' && a2doc[0] == '?' && a3doc[0] == '?')))
-      throw std::logic_error(
-          "optional parameters have to be at the end of param list");
-
     Cpp_function::Metadata &md =
         get_metadata(class_name() + "::" + name + ":" + Type_info<A2>::code() +
                      Type_info<A2>::code() + Type_info<A3>::code());
@@ -460,13 +496,19 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func, a1def, a2def,
              a3def](const shcore::Argument_list &args) -> shcore::Value {
-              return shcore::Value((static_cast<C *>(this)->*func)(
-                  args.size() == 0 ? a1def
-                                   : Type_info<A1>::to_native(args.at(0)),
-                  args.size() <= 1 ? a2def
-                                   : Type_info<A2>::to_native(args.at(1)),
-                  args.size() <= 2 ? a3def
-                                   : Type_info<A3>::to_native(args.at(2))));
+               const A1 &&a1 = args.size() == 0
+                                   ? a1def
+                                   : Type_info<A1>::to_native(args.at(0));
+               const A2 &&a2 = args.size() <= 1
+                                   ? a2def
+                                   : Type_info<A2>::to_native(args.at(1));
+               const A3 &&a3 = args.size() <= 2
+                                   ? a3def
+                                   : Type_info<A3>::to_native(args.at(2));
+               return internal::Result_wrapper<R>::call(
+                   [this, func, a1, a2, a3]() {
+                     return (static_cast<C *>(this)->*func)(a1, a2, a3);
+                   });
             }))));
   }
 
@@ -493,17 +535,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     assert(!a3doc.empty());
     assert(!a4doc.empty());
 
-    if (!((a1doc[0] != '?' && a2doc[0] != '?' && a3doc[0] != '?' &&
-           a4doc[0] != '?') ||
-          (a1doc[0] != '?' && a2doc[0] != '?' && a3doc[0] == '?' &&
-           a4doc[0] == '?') ||
-          (a1doc[0] != '?' && a2doc[0] == '?' && a3doc[0] == '?' &&
-           a4doc[0] == '?') ||
-          (a1doc[0] == '?' && a2doc[0] == '?' && a3doc[0] == '?' &&
-           a4doc[0] == '?')))
-      throw std::logic_error(
-          "optional parameters have to be at the end of param list");
-
     Cpp_function::Metadata &md = get_metadata(
         class_name() + "::" + name + ":" + Type_info<A2>::code() +
         Type_info<A2>::code() + Type_info<A3>::code() + Type_info<A4>::code());
@@ -521,15 +552,22 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func, a1def, a2def, a3def,
              a4def](const shcore::Argument_list &args) -> shcore::Value {
-              return shcore::Value((static_cast<C *>(this)->*func)(
-                  args.size() == 0 ? a1def
-                                   : Type_info<A1>::to_native(args.at(0)),
-                  args.size() <= 1 ? a2def
-                                   : Type_info<A2>::to_native(args.at(1)),
-                  args.size() <= 2 ? a3def
-                                   : Type_info<A3>::to_native(args.at(2)),
-                  args.size() <= 3 ? a4def
-                                   : Type_info<A4>::to_native(args.at(3))));
+               const A1 &&a1 = args.size() == 0
+                                   ? a1def
+                                   : Type_info<A1>::to_native(args.at(0));
+               const A2 &&a2 = args.size() <= 1
+                                   ? a2def
+                                   : Type_info<A2>::to_native(args.at(1));
+               const A3 &&a3 = args.size() <= 2
+                                   ? a3def
+                                   : Type_info<A3>::to_native(args.at(2));
+               const A4 &&a4 = args.size() <= 3
+                                   ? a4def
+                                   : Type_info<A4>::to_native(args.at(3));
+               return internal::Result_wrapper<R>::call(
+                   [this, func, a1, a2, a3, a4]() {
+                     return (static_cast<C *>(this)->*func)(a1, a2, a3, a4);
+                   });
             }))));
   }
 

@@ -55,11 +55,11 @@ class Shell_py_dev_api_sample_tester : public Shell_py_script_tester {
   }
 
   void TearDown() {
-    Shell_py_script_tester::TearDown();
-
     // cleanup globals / restore snapshot
     execute("for k in set(globals().keys()) - __global_names:\n"
             "    del globals()[k]\n");
+
+    Shell_py_script_tester::TearDown();
   }
 
   virtual void pre_process_line(const std::string &path, std::string & line) {
@@ -101,8 +101,8 @@ TEST_F(Shell_py_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server) {
 }
 
 TEST_F(Shell_py_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server_1) {
-  output_handler.prompts.push_back("mike");
-  output_handler.passwords.push_back("s3cr3t!");
+  output_handler.prompts.push_back({"*", "mike"});
+  output_handler.passwords.push_back({"*", "s3cr3t!"});
 
   validate_interactive("concepts/Connecting_to_a_Single_MySQL_Server_1");
 }

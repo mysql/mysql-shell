@@ -29,6 +29,7 @@ namespace shcore {
 namespace path {
 namespace detail {
 std::string expand_user(const std::string &path, const std::string &sep);
+size_t span_dirname(const std::string &path);
 }  // namespace detail
 
 std::string SHCORE_PUBLIC join_path(const std::vector<std::string> &components);

@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316"
+    "uri": "mysql://root:root@localhost:3316",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -147,9 +148,9 @@
     ],
     "rows": [
         [
-            "Alfredos-MacBook-Pro-bin.000003",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56-bin.000004",
             151,
-            "db1,mysql_innodb_cluster_metadata,db2,db1,mysql_innodb_cluster_metadata,db2",
+            "db1,mysql_innodb_cluster_metadata,db2",
             "",
             ""
         ]

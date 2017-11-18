@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED"
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -100,7 +101,7 @@
     ],
     "rows": [
         [
-            "2236b092-c4f7-11e7-8c59-54d11e204600"
+            "f27cb8de-cf27-11e7-85de-f2c608d206a8"
         ]
     ]
 },
@@ -268,11 +269,11 @@
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-130-27.vpn.oracle.com",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com",
             3316
         ],
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-130-27.vpn.oracle.com",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com",
             3326
         ]
     ]
@@ -1225,7 +1226,7 @@
     ],
     "rows": [
         [
-            "2236b092-c4f7-11e7-8c59-54d11e204600"
+            "f27cb8de-cf27-11e7-85de-f2c608d206a8"
         ]
     ]
 },

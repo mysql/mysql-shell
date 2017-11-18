@@ -134,9 +134,11 @@ std::string make_json(
 }
 
 void Trace_writer::serialize_connect(
-    const mysqlshdk::db::Connection_options& data) {
+    const mysqlshdk::db::Connection_options& data,
+    const std::string &protocol) {
   _stream << make_json("request", "CONNECT",
-                       {{"uri", data.as_uri(uri::formats::full())}}, ++_idx)
+                       {{"uri", data.as_uri(uri::formats::full())},
+                        {"protocol", protocol}}, ++_idx)
           << ",\n";
 }
 
@@ -334,6 +336,11 @@ Trace_writer::Trace_writer(const std::string& path) : _path(path) {
 
 Trace_writer::~Trace_writer() {
   _stream << "null]\n";
+
+  if (const char *debug = getenv("TEST_DEBUG")) {
+    if (atoi(debug) >= 2)
+      printf("Closed trace file '%s'\n", _path.c_str());
+  }
 }
 
 // ------------------------------------------------

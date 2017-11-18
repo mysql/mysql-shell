@@ -66,12 +66,19 @@ void set_replay_row_hook(Result_row_hook func);
 std::string current_recording_dir();
 
 std::string mysqlprovision_recording_path();
-std::string new_recording_path();
-std::string next_replay_path();
+std::string new_recording_path(const std::string &type);
+std::string next_replay_path(const std::string &type);
 
 void save_test_case_info(const std::map<std::string, std::string> &state);
 std::map<std::string, std::string> load_test_case_info();
 
+class No_replay {
+ public:
+  No_replay();
+  ~No_replay();
+ private:
+  Mode _old_mode;
+};
 
 extern char g_recording_path_prefix[1024];
 extern int g_session_create_index;

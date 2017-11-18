@@ -30,7 +30,8 @@ using namespace shcore;
 
 Shell_python::Shell_python(Shell_core *shcore)
     : Shell_language(shcore),
-      _py(new Python_context(shcore->get_delegate())) {
+      _py(new Python_context(shcore->get_delegate(),
+          mysqlsh::Base_shell::options().interactive)) {
 }
 
 std::string Shell_python::preprocess_input_line(const std::string &s) {
@@ -119,7 +120,8 @@ bool Shell_python::is_module(const std::string& file_name) {
 
     ret_val = _py->is_module(file_name);
   } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
+    _owner->print_error(std::string("Exception while loading ").
+        append(file_name).append(": ").append(exc.what()));
   }
 
   return ret_val;
@@ -134,8 +136,8 @@ void Shell_python::execute_module(const std::string& file_name, std::function<vo
 
     result_processor(ret_val);
   } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
-
+    _owner->print_error(std::string("Exception while loading ").
+        append(file_name).append(": ").append(exc.what()));
     // Should shcore::Exceptions bubble up??
   }
 }

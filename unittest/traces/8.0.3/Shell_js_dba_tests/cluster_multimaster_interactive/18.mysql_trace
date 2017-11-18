@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336"
+    "uri": "root:root@localhost:3336",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -83,7 +84,7 @@
     ],
     "rows": [
         [
-            "3b1e847a-c4f9-11e7-b450-f7f3d9677824"
+            "a8ca822e-cf28-11e7-b848-661c5760dd32"
         ]
     ]
 },
@@ -223,11 +224,11 @@
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-130-27-bin.000003",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56-bin.000004",
             271,
             "",
             "",
-            "2858a460-c4f9-11e7-9051-8cdfb904e675:1-20,\n43ab5ab4-c4f9-11e7-8ef2-b2ceef4589e0:1-21,\n6c08fb88-c4f9-11e7-8ef2-b2ceef4589e0:1-18"
+            "a69fcb3a-cf28-11e7-abb6-046903d52434:1-20,\na9fc60c2-cf28-11e7-abb6-046903d52434:1-21,\nd262288a-cf28-11e7-abb6-046903d52434:1-17"
         ]
     ]
 },

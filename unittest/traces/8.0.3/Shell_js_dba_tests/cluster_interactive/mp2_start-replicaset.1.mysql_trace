@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED"
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -573,7 +574,7 @@
     ],
     "rows": [
         [
-            3252224336
+            15661
         ]
     ]
 },
@@ -1495,9 +1496,9 @@
             0,
             0,
             "mysql_native_password",
-            "*3F6C35FC9A9B76A6CEF270829A9F93DDAD3B15D7",
+            "*B809F225969289AB5CCACEA0171E5E1DA869B6C0",
             "N",
-            "2017-11-08 18:58:42",
+            "2017-11-21 18:01:38",
             null,
             "N",
             "N",
@@ -2479,7 +2480,7 @@
             "mysql_native_password",
             "*81F5E21E35407D884A6CD4A731AEBFB6AF209E1B",
             "N",
-            "2017-11-08 18:58:17",
+            "2017-11-21 17:38:31",
             null,
             "N",
             "Y",
@@ -3946,7 +3947,7 @@
     ],
     "rows": [
         [
-            3252224336
+            15661
         ]
     ]
 },
@@ -3984,7 +3985,7 @@
     ],
     "rows": [
         [
-            "e507b81c-c4f9-11e7-a65e-9b88d6997ca3"
+            "140e952a-cf29-11e7-b91d-5961d91f0ee7"
         ]
     ]
 },
@@ -4112,7 +4113,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 107,
-    "sql": "SET GLOBAL group_replication_group_name = 'e507b81c-c4f9-11e7-a65e-9b88d6997ca3'"
+    "sql": "SET GLOBAL group_replication_group_name = '140e952a-cf29-11e7-b91d-5961d91f0ee7'"
 },
 {
     "type": "response",
@@ -4292,7 +4293,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 131,
-    "sql": "SET GLOBAL auto_increment_offset = 5"
+    "sql": "SET GLOBAL auto_increment_offset = 3"
 },
 {
     "type": "response",
@@ -4652,7 +4653,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 179,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '[;q;%)8v,E#<)3+6[,$-i]}+~U@;#}<l' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '~[h3#[0h+%:D$Y@*~>(B2q<@(<%V*+}j' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
@@ -4840,7 +4841,7 @@
     ],
     "rows": [
         [
-            0
+            1
         ]
     ]
 },
@@ -4848,22 +4849,45 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 199,
-    "sql": "SET GLOBAL group_replication_bootstrap_group = 0"
+    "sql": "SELECT @@global.super_read_only"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 200,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@global.super_read_only",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 201,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_bootstrap_group = 0"
 },
 {
     "type": "response",
@@ -4876,12 +4900,27 @@
 },
 {
     "type": "request",
+    "subtype": "QUERY",
+    "index": 203,
+    "sql": "commit"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 204,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
     "subtype": "CLOSE",
-    "index": 203
+    "index": 205
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 204
+    "index": 206
 },
 null]

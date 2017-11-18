@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@dhcp-whq-twvpn-1-vpnpool-10-159-130-27.vpn.oracle.com:3316?ssl-mode=PREFERRED"
+    "uri": "root:root@dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -100,7 +101,7 @@
     ],
     "rows": [
         [
-            1698447022
+            15661
         ]
     ]
 },

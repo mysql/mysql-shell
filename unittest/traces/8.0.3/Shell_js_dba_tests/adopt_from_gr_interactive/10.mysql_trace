@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317"
+    "uri": "mysql://root:root@dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -35,9 +36,9 @@
             "length": 0,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -48,12 +49,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@hostname",
-            "length": 54,
+            "length": 212,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -62,7 +63,7 @@
     "rows": [
         [
             null,
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com"
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com"
         ]
     ]
 },
@@ -87,12 +88,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "File",
-            "length": 512,
+            "length": 2048,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -119,12 +120,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Binlog_Do_DB",
-            "length": 255,
+            "length": 1020,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -135,12 +136,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Binlog_Ignore_DB",
-            "length": 255,
+            "length": 1020,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -151,12 +152,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Executed_Gtid_Set",
-            "length": 84,
+            "length": 336,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -164,11 +165,11 @@
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157-bin.000002",
-            25294,
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56-bin.000003",
+            26293,
             "",
             "",
-            "37a6d386-c8ca-11e7-b835-8e58114a4064:1-14,\n665a4848-c8ca-11e7-8319-a91d959321ea:1-25"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c:1-14,\n8514dc86-cf27-11e7-ae9b-8e88026f287c:1-25"
         ]
     ]
 },
@@ -193,12 +194,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@global.have_ssl",
-            "length": 3,
+            "length": 12,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -307,12 +308,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@server_uuid",
-            "length": 36,
+            "length": 144,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -320,7 +321,7 @@
     ],
     "rows": [
         [
-            "37a6d386-c8ca-11e7-b835-8e58114a4064"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c"
         ]
     ]
 },

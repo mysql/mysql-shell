@@ -55,6 +55,8 @@ const char *g_argv0 = nullptr;
 const char *g_mysqlsh_argv0;
 char *g_mppath = nullptr;
 
+std::string g_mysql_version;  // NOLINT
+
 std::vector<std::pair<std::string, std::string> > g_skipped_tests;
 std::vector<std::pair<std::string, std::string> > g_pending_fixes;
 
@@ -74,33 +76,33 @@ static void detect_mysql_environment(int port, const char *pwd) {
   int xport = 0;
   int server_id = 0;
   bool have_ssl = false;
-  MYSQL mysql;
-  mysql_init(&mysql);
+  MYSQL *mysql;
+  mysql = mysql_init(nullptr);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
-  mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  mysql_options(mysql, MYSQL_OPT_PROTOCOL, &tcp);
   // if connect succeeds or error is a server error, then there's a server
-  if (mysql_real_connect(&mysql, "localhost", "root", pwd, NULL, port, NULL,
+  if (mysql_real_connect(mysql, "localhost", "root", pwd, NULL, port, NULL,
                          0)) {
-    {
-      const char *query = "show variables like '%socket'";
-      if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
-        MYSQL_RES *res = mysql_store_result(&mysql);
-        while (MYSQL_ROW row = mysql_fetch_row(res)) {
-          if (strcmp(row[0], "socket") == 0 && row[1])
-            socket = row[1];
-          if (strcmp(row[0], "mysqlx_socket") == 0 && row[1])
-            xsocket = row[1];
-        }
-        mysql_free_result(res);
+    const char *query = "show variables like '%socket'";
+    if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+      MYSQL_RES *res = mysql_store_result(mysql);
+      while (MYSQL_ROW row = mysql_fetch_row(res)) {
+        unsigned long *lengths = mysql_fetch_lengths(res);
+        if (strcmp(row[0], "socket") == 0 && row[1])
+          socket = std::string(row[1], lengths[1]);
+        if (strcmp(row[0], "mysqlx_socket") == 0 && row[1])
+          xsocket = std::string(row[1], lengths[1]);
       }
+      mysql_free_result(res);
     }
 
     {
       const char *query = "show variables like 'datadir'";
-      if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
-        MYSQL_RES *res = mysql_store_result(&mysql);
+      if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
-          datadir = row[1];
+          unsigned long *lengths = mysql_fetch_lengths(res);
+          datadir = std::string(row[1], lengths[1]);
         }
         mysql_free_result(res);
       }
@@ -108,8 +110,8 @@ static void detect_mysql_environment(int port, const char *pwd) {
 
     {
       const char *query = "show variables like 'hostname'";
-      if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
-        MYSQL_RES *res = mysql_store_result(&mysql);
+      if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           hostname = row[1];
         }
@@ -121,8 +123,8 @@ static void detect_mysql_environment(int port, const char *pwd) {
       const char *query =
           "select @@version, (@@have_ssl = 'YES' or @have_openssl = 'YES'), "
           "@@mysqlx_port, @@server_id";
-      if (mysql_real_query(&mysql, query, strlen(query)) == 0) {
-        MYSQL_RES *res = mysql_store_result(&mysql);
+      if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           version = row[0];
           auto ver_split = shcore::str_split(version, "-");
@@ -137,7 +139,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
       }
     }
   }
-  mysql_close(&mysql);
+  mysql_close(mysql);
 
   if (!xport) {
     std::cerr << "Could not query mysqlx_port. X plugin not installed?\n";
@@ -168,6 +170,8 @@ static void detect_mysql_environment(int port, const char *pwd) {
   std::cout << ((xsocket != xsocket_absolute) ? " (" + xsocket_absolute + ")\n"
                                               : "\n");
 
+  g_mysql_version = version;
+
   if (!getenv("MYSQL_SOCKET")) {
     static char path[1024];
     snprintf(path, sizeof(path), "MYSQL_SOCKET=%s", socket_absolute.c_str());
@@ -196,48 +200,41 @@ static void detect_mysql_environment(int port, const char *pwd) {
   }
 }
 
+static bool delete_sandbox(int port) {
+  MYSQL *mysql;
+  mysql = mysql_init(nullptr);
 
-void reset_zombie_sandboxes() {
-  int port = 3306;
-  if (getenv("MYSQL_PORT")) {
-    port = atoi(getenv("MYSQL_PORT"));
+  unsigned int tcp = MYSQL_PROTOCOL_TCP;
+  mysql_options(mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  // if connect succeeds or error is a server error, then there's a server
+  if (mysql_real_connect(mysql, "localhost", "root", "root", NULL, port, NULL,
+                         0)) {
+    std::cout << "Sandbox server running at " << port
+              << ", shutting down and deleting\n";
+    mysql_real_query(mysql, "shutdown", strlen("shutdown"));
+  } else if (mysql_errno(mysql) < 2000 || mysql_errno(mysql) >= 3000) {
+    std::cout << mysql_error(mysql) << "  " << mysql_errno(mysql) << "\n";
+    std::cout << "Server already running on port " << port
+              << " but can't shut it down\n";
+    mysql_close(mysql);
+    return false;
   }
-  int sport1, sport2, sport3;
+  mysql_close(mysql);
 
-  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-  if (sandbox_port1) {
-    sport1 = atoi(getenv("MYSQL_SANDBOX_PORT1"));
-  } else {
-    sport1 = port + 10;
-  }
-  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-  if (sandbox_port2) {
-    sport2 = atoi(getenv("MYSQL_SANDBOX_PORT2"));
-  } else {
-    sport2 = port + 20;
-  }
-  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-  if (sandbox_port3) {
-    sport3 = atoi(getenv("MYSQL_SANDBOX_PORT3"));
-  } else {
-    sport3 = port + 30;
-  }
-
-  std::string sandbox_dir;
   const char *tmpdir = getenv("TMPDIR");
   if (tmpdir) {
-    sandbox_dir.assign(tmpdir);
-  } else {
-    // If not specified, the tests will create the sandboxes on the
-    // binary folder
-    sandbox_dir = shcore::get_binary_folder();
+    std::string d;
+    d = shcore::path::join_path(tmpdir, std::to_string(port));
+    if (shcore::is_folder(d)) {
+      try {
+        shcore::remove_directory(d, true);
+      } catch (std::exception &e) {
+        std::cerr << "Error deleting sandbox dir " << d << ": " << e.what() << "\n";
+        return false;
+      }
+    }
   }
-
-  tests::Testutils utils(sandbox_dir, false);
-
-  utils.destroy_sandbox(sport1);
-  utils.destroy_sandbox(sport2);
-  utils.destroy_sandbox(sport3);
+  return true;
 }
 
 
@@ -268,44 +265,9 @@ static void check_zombie_sandboxes(bool killall) {
   }
 
   bool have_zombies = false;
-
-  MYSQL mysql;
-  mysql_init(&mysql);
-  unsigned int tcp = MYSQL_PROTOCOL_TCP;
-  mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  // if connect succeeds or error is a server error, then there's a server
-  if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport1, NULL,
-                         0) ||
-      mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
-    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) << "\n";
-    std::cout << "Server already running on port " << sport1 << "\n";
-    have_zombies = true;
-  }
-  mysql_close(&mysql);
-  mysql_init(&mysql);
-  mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport2, NULL,
-                         0) ||
-      mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
-    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) << "\n";
-    std::cout << "Server already running on port " << sport2 << "\n";
-    have_zombies = true;
-  }
-  mysql_close(&mysql);
-  mysql_init(&mysql);
-  mysql_options(&mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  if (mysql_real_connect(&mysql, "localhost", "root", "", NULL, sport3, NULL,
-                         0) ||
-      mysql_errno(&mysql) < 2000 || mysql_errno(&mysql) >= 3000) {
-    std::cout << mysql_error(&mysql) << "  " << mysql_errno(&mysql) << "\n";
-    std::cout << "Server already running on port " << sport3 << "\n";
-    have_zombies = true;
-  }
-
-  if (have_zombies && killall) {
-    reset_zombie_sandboxes();
-    return;
-  }
+  have_zombies |= !delete_sandbox(sport1);
+  have_zombies |= !delete_sandbox(sport2);
+  have_zombies |= !delete_sandbox(sport3);
 
   if (have_zombies) {
     std::cout << "WARNING: mysqld running on port reserved for sandbox tests\n";
@@ -317,33 +279,6 @@ static void check_zombie_sandboxes(bool killall) {
                  "test sandboxes\n";
     exit(1);
   }
-
-  const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir) {
-    std::string zombies;
-    std::string d;
-    d = tmpdir;
-    d.append("/").append(std::to_string(sport1));
-    if (shcore::file_exists(d)) {
-      zombies.append(d).append("\n");
-    }
-    d = tmpdir;
-    d.append("/").append(std::to_string(sport2));
-    if (shcore::file_exists(d)) {
-      zombies.append(d).append("\n");
-    }
-    d = tmpdir;
-    d.append("/").append(std::to_string(sport3));
-    if (shcore::file_exists(d)) {
-      zombies.append(d).append("\n");
-    }
-    if (!zombies.empty()) {
-      std::cout << "The following sandbox directories seem to be leftover and "
-                   "must be deleted:\n";
-      std::cout << zombies;
-      exit(1);
-    }
-  }
 }
 
 
@@ -351,6 +286,18 @@ int main(int argc, char **argv) {
   // Ignore broken pipe signal from broken connections
 #ifndef _WIN32
   signal(SIGPIPE, SIG_IGN);
+#endif
+
+#ifdef _WIN32
+  // Try to enable VT100 escapes... if it doesn't work,
+  // then it disables the ansi escape sequences
+  // Supported in Windows 10 command window and some other terminals
+  HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+  DWORD mode;
+  GetConsoleMode(handle, &mode);
+
+  // ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+  SetConsoleMode(handle, mode | 0x004);
 #endif
 
 #ifdef __APPLE__
@@ -375,6 +322,13 @@ int main(int argc, char **argv) {
 #endif
   // init the ^C handler, so it knows what's the main thread
   shcore::Interrupts::init(nullptr);
+
+  if (!getenv("TMPDIR")) {  // for windows
+    const char *tmpdir = getenv("TEMP");
+    static std::string temp;
+    temp.append("TMPDIR=").append(tmpdir);
+    putenv(&temp[0]);
+  }
 
   bool show_help = false;
   if (const char *uri = getenv("MYSQL_URI")) {
@@ -464,7 +418,6 @@ int main(int argc, char **argv) {
   setenv("MYSQLSH_USER_CONFIG_HOME", ".", 1);
 #endif
   bool got_filter = false;
-  bool reset_sandboxes = false;
   const char *target = k_default_replay_target.c_str();
 
   for (int index = 0; index < argc; index++) {
@@ -488,8 +441,6 @@ int main(int argc, char **argv) {
       } else {
         target = k_default_replay_target.c_str();
       }
-    } else if (strcmp(argv[index], "--reset-sandboxes") == 0) {
-      reset_sandboxes = true;
     }
   }
 
@@ -524,7 +475,10 @@ int main(int argc, char **argv) {
     mppath = std::string(argv[0], p - argv[0]);
   } else {
     p = strrchr(argv[0], '\\');
-    mppath = std::string(argv[0], p - argv[0]);
+    if (p)
+      mppath = std::string(argv[0], p - argv[0]);
+    else
+      mppath = argv[0];
   }
   std::string mysqlsh_path;
 #ifndef _WIN32
@@ -542,7 +496,7 @@ int main(int argc, char **argv) {
 
   // Check for leftover sandbox servers
   if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
-    check_zombie_sandboxes(reset_sandboxes);
+    check_zombie_sandboxes(true);
   }
 
   switch (g_test_recording_mode) {
@@ -574,7 +528,8 @@ int main(int argc, char **argv) {
   if (!g_pending_fixes.empty()) {
     std::cout << makeyellow("Tests for unfixed bugs:") << "\n";
     for (auto &t : g_pending_fixes) {
-      std::cout << makeyellow("[  FIXME   ]") << " at " << t.first << "\n";
+      std::cout << makeyellow("[  FIXME   ]") << " at " << t.first
+                << "\n";
       std::cout << "\tNote: " << t.second << "\n";
     }
   }

@@ -98,7 +98,7 @@ namespace tests {
 class Python : public ::testing::Test {
 public:
   Python() {
-    py = new Python_context(&output_handler.deleg);
+    py = new Python_context(&output_handler.deleg, false);
   }
 
   static void print(void *, const char *text) {

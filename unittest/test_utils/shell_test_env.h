@@ -20,8 +20,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <vector>
 #include <string>
+#include <utility>
 #include <map>
+#include <memory>
 #include "unittest/gtest_clean.h"
+#include "mysqlshdk/libs/db/replay/setup.h"
 
 extern "C" const char* g_argv0;
 
@@ -57,13 +60,35 @@ extern "C" const char* g_argv0;
 
 namespace tests {
 
+
+class Override_row_string : public mysqlshdk::db::replay::Row_hook {
+ public:
+  Override_row_string(std::unique_ptr<mysqlshdk::db::IRow> source,
+                      uint32_t column, const std::string& value)
+    : mysqlshdk::db::replay::Row_hook(std::move(source)),
+    _column(column), _value(value) {
+  }
+
+  std::string get_string(uint32_t index) const override {
+    if (index == _column)
+      return _value;
+    return Row_hook::get_string(index);
+  }
+
+  uint32_t _column;
+  std::string _value;
+};
+
+
 class Shell_test_env : public ::testing::Test {
  public:
   Shell_test_env();
 
   virtual void SetUpOnce() {}
 
-  std::string setup_recorder();
+  static void SetUpTestCase();
+
+  std::string setup_recorder(const char *sub_test_name = nullptr);
 
  protected:
   std::string _host;
@@ -89,7 +114,6 @@ class Shell_test_env : public ::testing::Test {
 
   void SetUp() override;
   void TearDown() override;
-  static void SetUpTestCase();
 
  public:
   static std::string get_path_to_mysqlsh();

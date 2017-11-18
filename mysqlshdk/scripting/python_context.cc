@@ -29,7 +29,6 @@
 #include "scripting/object_factory.h"
 #include "scripting/python_type_conversion.h"
 
-#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "modules/mod_utils.h"
 
 #ifdef _WINDOWS
@@ -42,6 +41,65 @@ static const char *SHELLTypeSignature = "SHELLCONTEXT";
 namespace shcore {
 bool Python_context::exit_error = false;
 bool Python_context::module_processing = false;
+
+
+
+// The static member _instance needs to be in a class not exported (no TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
+class Python_init_singleton {
+public:
+
+  ~Python_init_singleton() {
+    if (_local_initialization)
+      Py_Finalize();
+  }
+
+  static std::string get_new_scope_name();
+
+  static void init_python();
+
+private:
+  static int cnt;
+  bool _local_initialization;
+  static std::unique_ptr<Python_init_singleton> _instance;
+
+  Python_init_singleton(const Python_init_singleton& py) {}
+
+  Python_init_singleton() : _local_initialization(false) {
+    if (!Py_IsInitialized()) {
+#ifdef _WIN32
+      Py_NoSiteFlag = 1;
+
+      char *env_value;
+
+      // If PYTHONHOME is available, honors it
+      env_value = getenv("PYTHONHOME");
+      if (env_value) {
+        log_info("Setting PythonHome to %s from PYTHONHOME", env_value);
+        Py_SetPythonHome(env_value);
+      } else {
+        // If not will associate what should be the right path in
+        // a standard distribution
+        std::string python_path;
+        python_path = shcore::get_mysqlx_home_path();
+        if (!python_path.empty()) {
+          python_path.append("\\lib\\Python2.7");
+        } else {
+          // Not a standard distribution
+          python_path = shcore::get_binary_folder();
+          python_path.append("\\Python2.7");
+        }
+        log_info("Setting PythonHome to %s", python_path.c_str());
+        Py_SetPythonHome(const_cast<char*>(python_path.c_str()));
+      }
+#endif
+      Py_InitializeEx(0);
+
+      _local_initialization = true;
+    }
+  }
+};
+
+
 std::unique_ptr<Python_init_singleton> Python_init_singleton::_instance;
 int Python_init_singleton::cnt = 0;
 
@@ -54,7 +112,8 @@ void Python_init_singleton::init_python() {
     _instance.reset(new Python_init_singleton());
 }
 
-Python_context::Python_context(Interpreter_delegate *deleg) throw(Exception)
+Python_context::Python_context(Interpreter_delegate *deleg,
+                               bool redirect_stdio)
     : _types(this) {
   _delegate = deleg;
 
@@ -88,7 +147,7 @@ Python_context::Python_context(Interpreter_delegate *deleg) throw(Exception)
   PySys_SetObject(const_cast<char *>("stderr"), get_shell_stderr_module());
 
   // set stdin to the shell console when on interactive mode
-  if (mysqlsh::Base_shell::options().interactive) {
+  if (redirect_stdio) {
     register_shell_stdin_module();
     PySys_SetObject(const_cast<char *>("stdin"), get_shell_stdin_module());
 
@@ -204,7 +263,7 @@ void Python_context::set_argv(const std::vector<std::string> &argv) {
 
 Value Python_context::execute(
     const std::string &code, const std::string &UNUSED(source),
-    const std::vector<std::string> &argv) throw(Exception) {
+    const std::vector<std::string> &argv) {
   PyObject *py_result;
   Value retvalue;
 

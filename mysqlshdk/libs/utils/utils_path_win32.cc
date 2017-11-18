@@ -25,6 +25,8 @@
 
 #include <ShlObj.h>
 
+#include "mysqlshdk/libs/utils/utils_string.h"
+
 namespace shcore {
 namespace path {
 
@@ -219,12 +221,13 @@ std::string SHCORE_PUBLIC expand_user(const std::string &path) {
 }
 
 std::string normalize(const std::string &path) {
-  std::string norm(MAX_PATH, '\0');
-  auto len = GetFullPathName(path.c_str(), path.size(), &norm[0], nullptr);
+  std::string norm = shcore::str_replace(path, "/", "\\");
+  // Pass null for the output buffer so we can get its length before using it
+  auto len = GetFullPathName(norm.c_str(), norm.size(), nullptr, nullptr);
   if (len > norm.size()) {
     norm.resize(len);
-    len = GetFullPathName(path.c_str(), path.size(), &norm[0], nullptr);
   }
+  len = GetFullPathName(path.c_str(), path.size(), &norm[0], nullptr);
   if (len == 0) {
     return path;
   }
@@ -232,6 +235,14 @@ std::string normalize(const std::string &path) {
   return norm;
 }
 
+std::string SHCORE_PUBLIC dirname(const std::string &path) {
+  std::string drive, dir;
+  std::tie(drive, dir) = splitdrive(path);
+  size_t xx = detail::span_dirname(dir);
+  if (xx == std::string::npos)
+    return drive.empty() ? "." : drive;
+  return drive + dir.substr(0, xx);
+}
 
 bool exists(const std::string& filename) {
   DWORD dwAttrib = GetFileAttributesA(filename.c_str());

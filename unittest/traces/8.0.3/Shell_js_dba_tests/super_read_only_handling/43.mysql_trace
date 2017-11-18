@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316"
+    "uri": "mysql://root:root@localhost:3316",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -147,11 +148,11 @@
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-130-27-bin.000003",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56-bin.000004",
             231,
             "",
             "",
-            "8caee580-c4f6-11e7-9925-b0f9cf203197:1-14,\na1b80268-c4f6-11e7-ae35-bf9fe085f84d:1-19"
+            "461d42c0-cf2c-11e7-8b5a-fcc7ef5af2b2:1-14,\n4a664692-cf2c-11e7-8b5a-fcc7ef5af2b2:1-19"
         ]
     ]
 },

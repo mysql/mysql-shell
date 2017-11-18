@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316"
+    "uri": "mysql://root:root@localhost:3316",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -45,7 +46,7 @@
     ],
     "rows": [
         [
-            "8caee580-c4f6-11e7-9925-b0f9cf203197"
+            "461d42c0-cf2c-11e7-8b5a-fcc7ef5af2b2"
         ]
     ]
 },

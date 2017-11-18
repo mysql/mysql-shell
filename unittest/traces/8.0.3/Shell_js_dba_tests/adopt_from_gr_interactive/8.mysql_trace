@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317"
+    "uri": "mysql://root:root@dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -32,12 +33,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 97,
+            "length": 164,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -45,7 +46,7 @@
     ],
     "rows": [
         [
-            "5.7.17-enterprise-commercial-advanced-log MySQL Enterprise Server - Advanced Edition (Commercial)"
+            "8.0.3-rc-log MySQL Community Server (GPL)"
         ]
     ]
 },
@@ -97,9 +98,9 @@
     "type": "response",
     "subtype": "ERROR",
     "index": 8,
-    "code": "1146",
-    "msg": "Table 'mysql_innodb_cluster_metadata.instances' doesn't exist",
-    "sqlstate": "42S02"
+    "code": "1049",
+    "msg": "Unknown database 'mysql_innodb_cluster_metadata'",
+    "sqlstate": "42000"
 },
 {
     "type": "request",
@@ -122,12 +123,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@server_uuid",
-            "length": 36,
+            "length": 144,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -138,12 +139,12 @@
             "table_label": "global_status",
             "column_name": "VARIABLE_VALUE",
             "column_label": "VARIABLE_VALUE",
-            "length": 1024,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -151,8 +152,8 @@
     ],
     "rows": [
         [
-            "37a6d386-c8ca-11e7-b835-8e58114a4064",
-            "37a6d386-c8ca-11e7-b835-8e58114a4064"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c",
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c"
         ]
     ]
 },
@@ -160,7 +161,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '37a6d386-c8ca-11e7-b835-8e58114a4064'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '82e8281e-cf27-11e7-ae9b-8e88026f287c'"
 },
 {
     "type": "response",
@@ -177,12 +178,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
-            "length": 64,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": true
@@ -335,9 +336,9 @@
     "type": "response",
     "subtype": "ERROR",
     "index": 20,
-    "code": "1146",
-    "msg": "Table 'mysql_innodb_cluster_metadata.instances' doesn't exist",
-    "sqlstate": "42S02"
+    "code": "1049",
+    "msg": "Unknown database 'mysql_innodb_cluster_metadata'",
+    "sqlstate": "42000"
 },
 {
     "type": "request",
@@ -360,12 +361,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@server_uuid",
-            "length": 36,
+            "length": 144,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -376,12 +377,12 @@
             "table_label": "global_status",
             "column_name": "VARIABLE_VALUE",
             "column_label": "VARIABLE_VALUE",
-            "length": 1024,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -389,8 +390,8 @@
     ],
     "rows": [
         [
-            "37a6d386-c8ca-11e7-b835-8e58114a4064",
-            "37a6d386-c8ca-11e7-b835-8e58114a4064"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c",
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c"
         ]
     ]
 },
@@ -398,7 +399,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '37a6d386-c8ca-11e7-b835-8e58114a4064'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '82e8281e-cf27-11e7-ae9b-8e88026f287c'"
 },
 {
     "type": "response",
@@ -415,12 +416,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
-            "length": 64,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": true
@@ -546,12 +547,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "File",
-            "length": 512,
+            "length": 2048,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -578,12 +579,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Binlog_Do_DB",
-            "length": 255,
+            "length": 1020,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -594,12 +595,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Binlog_Ignore_DB",
-            "length": 255,
+            "length": 1020,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -610,12 +611,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Executed_Gtid_Set",
-            "length": 84,
+            "length": 336,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -623,11 +624,11 @@
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157-bin.000002",
-            14858,
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56-bin.000003",
+            15475,
             "",
             "",
-            "37a6d386-c8ca-11e7-b835-8e58114a4064:1-14,\n665a4848-c8ca-11e7-8319-a91d959321ea:1-11"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c:1-14,\n8514dc86-cf27-11e7-ae9b-8e88026f287c:1-11"
         ]
     ]
 },
@@ -647,17 +648,17 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "SCHEMATA",
+            "schema": "",
+            "table_name": "",
             "table_label": "SCHEMATA",
-            "column_name": "SCHEMA_NAME",
+            "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
-            "length": 64,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -849,7 +850,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ ')h)6@,&0}/;3<&$V|w-)}:t~f>@*M&{,' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '.*0u|5~+-[B%0C(+;r=+v[.u?{.|:|C}' /*)*/ "
 },
 {
     "type": "response",
@@ -864,7 +865,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ ')h)6@,&0}/;3<&$V|w-)}:t~f>@*M&{,' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '.*0u|5~+-[B%0C(+;r=+v[.u?{.|:|C}' /*)*/ "
 },
 {
     "type": "response",
@@ -951,17 +952,17 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "SCHEMATA",
+            "schema": "",
+            "table_name": "",
             "table_label": "SCHEMATA",
-            "column_name": "SCHEMA_NAME",
+            "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
-            "length": 64,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -983,7 +984,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 72,
-    "auto_increment_value": 7,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -998,7 +999,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 74,
-    "auto_increment_value": 7,
+    "auto_increment_value": 3,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -1030,13 +1031,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 75,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (7, 'gr', 'pm', 'default', 1, IF('1', JSON_OBJECT('adopted', 'true'), '{}'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (3, 'gr', 'pm', 'default', 1, IF('1', JSON_OBJECT('adopted', 'true'), '{}'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 76,
-    "auto_increment_value": 7,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -1045,7 +1046,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 7 WHERE cluster_id = 7"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 3 WHERE cluster_id = 3"
 },
 {
     "type": "response",
@@ -1060,7 +1061,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 79,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 7"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -1098,7 +1099,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 7 AND addresses->'$.mysqlClassic' = 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3 AND addresses->'$.mysqlClassic' = 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316'"
 },
 {
     "type": "response",
@@ -1136,7 +1137,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 83,
-    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '37a6d386-c8ca-11e7-b835-8e58114a4064'"
+    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '82e8281e-cf27-11e7-ae9b-8e88026f287c'"
 },
 {
     "type": "response",
@@ -1174,7 +1175,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
@@ -1207,12 +1208,12 @@
             "table_label": "hosts",
             "column_name": "host_name",
             "column_label": "host_name",
-            "length": 256,
+            "length": 1024,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1223,12 +1224,12 @@
             "table_label": "hosts",
             "column_name": "ip_address",
             "column_label": "ip_address",
-            "length": 45,
+            "length": 180,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1240,13 +1241,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 87,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com', '', '')"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com', '', '')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 88,
-    "auto_increment_value": 7,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -1255,13 +1256,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 89,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (7, 7, '37a6d386-c8ca-11e7-b835-8e58114a4064', 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317', 'HA', json_object('mysqlClassic', 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317', 'mysqlX', 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:33170', 'grLocal', 'localhost:13317'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '82e8281e-cf27-11e7-ae9b-8e88026f287c', 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316', 'HA', json_object('mysqlClassic', 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316', 'mysqlX', 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:33160', 'grLocal', 'localhost:13316'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 90,
-    "auto_increment_value": 7,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -1276,7 +1277,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 92,
-    "auto_increment_value": 7,
+    "auto_increment_value": 3,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -1287,12 +1288,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@group_replication_group_name",
-            "length": 36,
+            "length": 144,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1300,7 +1301,7 @@
     ],
     "rows": [
         [
-            "665a4848-c8ca-11e7-8319-a91d959321ea"
+            "8514dc86-cf27-11e7-ae9b-8e88026f287c"
         ]
     ]
 },
@@ -1308,7 +1309,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 93,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '665a4848-c8ca-11e7-8319-a91d959321ea') WHERE replicaset_id = 7"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '8514dc86-cf27-11e7-ae9b-8e88026f287c') WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -1340,12 +1341,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_ID",
             "column_label": "member_id",
-            "length": 36,
+            "length": 144,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": true
@@ -1353,10 +1354,10 @@
     ],
     "rows": [
         [
-            "37a6d386-c8ca-11e7-b835-8e58114a4064"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c"
         ],
         [
-            "4ecfde86-c8ca-11e7-8985-2bcd81201b28"
+            "840c3ad2-cf27-11e7-9d1b-22ea32398902"
         ]
     ]
 },
@@ -1364,7 +1365,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 7"
+    "sql": "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -1381,12 +1382,12 @@
             "table_label": "instances",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
-            "length": 40,
+            "length": 160,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1394,7 +1395,7 @@
     ],
     "rows": [
         [
-            "37a6d386-c8ca-11e7-b835-8e58114a4064"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c"
         ]
     ]
 },
@@ -1402,7 +1403,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 99,
-    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4ecfde86-c8ca-11e7-8985-2bcd81201b28'"
+    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '840c3ad2-cf27-11e7-9d1b-22ea32398902'"
 },
 {
     "type": "response",
@@ -1419,12 +1420,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_ID",
             "column_label": "MEMBER_ID",
-            "length": 36,
+            "length": 144,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": true
@@ -1435,12 +1436,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_HOST",
             "column_label": "MEMBER_HOST",
-            "length": 60,
+            "length": 240,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": true
@@ -1464,9 +1465,9 @@
     ],
     "rows": [
         [
-            "4ecfde86-c8ca-11e7-8985-2bcd81201b28",
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com",
-            3327
+            "840c3ad2-cf27-11e7-9d1b-22ea32398902",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com",
+            3326
         ]
     ]
 },
@@ -1474,7 +1475,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 101,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
@@ -1507,12 +1508,12 @@
             "table_label": "hosts",
             "column_name": "host_name",
             "column_label": "host_name",
-            "length": 256,
+            "length": 1024,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1523,12 +1524,12 @@
             "table_label": "hosts",
             "column_name": "ip_address",
             "column_label": "ip_address",
-            "length": 45,
+            "length": 180,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1536,8 +1537,8 @@
     ],
     "rows": [
         [
-            7,
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com",
+            3,
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com",
             ""
         ]
     ]
@@ -1546,13 +1547,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 103,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (7, 7, '4ecfde86-c8ca-11e7-8985-2bcd81201b28', 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3327', 'HA', json_object('mysqlClassic', 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3327', 'mysqlX', 'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:33270', 'grLocal', 'localhost:13327'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '840c3ad2-cf27-11e7-9d1b-22ea32398902', 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3326', 'HA', json_object('mysqlClassic', 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3326', 'mysqlX', 'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:33260', 'grLocal', 'localhost:13326'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 104,
-    "auto_increment_value": 14,
+    "auto_increment_value": 10,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -1669,12 +1670,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@server_uuid",
-            "length": 36,
+            "length": 144,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1685,12 +1686,12 @@
             "table_label": "global_status",
             "column_name": "VARIABLE_VALUE",
             "column_label": "VARIABLE_VALUE",
-            "length": 1024,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1698,8 +1699,8 @@
     ],
     "rows": [
         [
-            "37a6d386-c8ca-11e7-b835-8e58114a4064",
-            "37a6d386-c8ca-11e7-b835-8e58114a4064"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c",
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c"
         ]
     ]
 },
@@ -1707,7 +1708,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 113,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '37a6d386-c8ca-11e7-b835-8e58114a4064'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '82e8281e-cf27-11e7-ae9b-8e88026f287c'"
 },
 {
     "type": "response",
@@ -1724,12 +1725,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
-            "length": 64,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": true
@@ -1855,12 +1856,12 @@
             "table_label": "session_status",
             "column_name": "Variable_name",
             "column_label": "Variable_name",
-            "length": 64,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1871,12 +1872,12 @@
             "table_label": "session_status",
             "column_name": "Value",
             "column_label": "Value",
-            "length": 1024,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1885,7 +1886,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "37a6d386-c8ca-11e7-b835-8e58114a4064"
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c"
         ]
     ]
 },
@@ -1910,12 +1911,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@group_replication_ssl_mode",
-            "length": 8,
+            "length": 32,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1931,7 +1932,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 123,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 7"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -1948,12 +1949,12 @@
             "table_label": "instances",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
-            "length": 40,
+            "length": 160,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1964,12 +1965,12 @@
             "table_label": "instances",
             "column_name": "instance_name",
             "column_label": "instance_name",
-            "length": 256,
+            "length": 1024,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1980,12 +1981,12 @@
             "table_label": "instances",
             "column_name": "role",
             "column_label": "role",
-            "length": 12,
+            "length": 48,
             "fractional": 0,
             "type": "Enum",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -1999,9 +2000,9 @@
             "length": 67108864,
             "fractional": 31,
             "type": "Bytes",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": true
@@ -2012,12 +2013,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
-            "length": 64,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": true
@@ -2025,17 +2026,17 @@
     ],
     "rows": [
         [
-            "37a6d386-c8ca-11e7-b835-8e58114a4064",
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317",
+            "82e8281e-cf27-11e7-ae9b-8e88026f287c",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316",
             "HA",
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316",
             "ONLINE"
         ],
         [
-            "4ecfde86-c8ca-11e7-8985-2bcd81201b28",
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3327",
+            "840c3ad2-cf27-11e7-9d1b-22ea32398902",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3326",
             "HA",
-            "dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3327",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3326",
             "ONLINE"
         ]
     ]

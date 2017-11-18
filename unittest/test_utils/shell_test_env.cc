@@ -187,7 +187,7 @@ void Shell_test_env::SetUpTestCase() {
   g_initialized_test = false;
 }
 
-std::string Shell_test_env::setup_recorder() {
+std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
   mysqlshdk::db::replay::set_mode(g_test_recording_mode);
   _recording_enabled = true;
 
@@ -201,7 +201,15 @@ std::string Shell_test_env::setup_recorder() {
   std::string context;
   context.append(test_info->test_case_name());
   context.append("/");
-  context.append(test_info->name());
+  if (sub_test_name) {
+    // test_info->name() can be in the form test/<index> if this is a
+    // parameterized test. For such cases, we replace the index with the
+    // given sub_test_name, so that we can have a stable test name that doesn't
+    // change if the execution order changes
+    context.append(shcore::path::dirname(test_info->name())+"/"+sub_test_name);
+  } else {
+    context.append(test_info->name());
+  }
 
   tracedir = shcore::path::join_path(
       {mysqlshdk::db::replay::g_recording_path_prefix, context});

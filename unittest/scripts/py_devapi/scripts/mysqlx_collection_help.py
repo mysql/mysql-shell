@@ -1,6 +1,6 @@
 # Assumptions: validate_crud_functions available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-mysqlx = require('mysqlx');
+#mysqlx = require('mysqlx');
 
 mySession = mysqlx.get_session(__uripwd);
 

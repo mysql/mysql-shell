@@ -33,6 +33,7 @@ static bool g_test_debug = getenv("TEST_DEBUG") != nullptr;
 std::vector<std::string> Shell_test_output_handler::log;
 ngcommon::Logger *Shell_test_output_handler::_logger;
 
+extern std::string g_mysql_version;
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 
 Shell_test_output_handler::Shell_test_output_handler() {
@@ -98,6 +99,7 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
     void *user_data, const char *prompt, std::string *ret) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
   std::string answer;
+  std::string expected_prompt;
 
   target->full_output << prompt;
   {
@@ -107,15 +109,26 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
 
   shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
   if (!target->prompts.empty()) {
-    answer = target->prompts.front();
+    std::tie(expected_prompt, answer) = target->prompts.front();
     target->prompts.pop_front();
 
-    target->debug_print(makegreen("\n--> prompt '" + answer + "'"));
-    target->full_output << answer << std::endl;
-
-    ret_val = shcore::Prompt_result::Ok;
+    if (expected_prompt == "*" || expected_prompt.compare(prompt) == 0) {
+      target->debug_print(makegreen(
+          shcore::str_format("\n--> prompt %s %s", prompt, answer.c_str())));
+      target->full_output << answer << std::endl;
+    } else {
+      ADD_FAILURE() << "Mismatched prompts. Expected: " << expected_prompt
+                    << "\n"
+                    << "actual: " << prompt;
+      target->debug_print(
+          makered(shcore::str_format("\n--> mismatched prompt '%s'", prompt)));
+    }
+    if (answer != "<<<CANCEL>>>")
+      ret_val = shcore::Prompt_result::Ok;
   } else {
-    target->debug_print(makegreen("\n--> prompt <nothing>"));
+    ADD_FAILURE() << "Unexpected prompt for '" << prompt << "'";
+    target->debug_print(
+        makered(shcore::str_format("\n--> unexpected prompt '%s'", prompt)));
   }
 
   *ret = answer;
@@ -126,6 +139,7 @@ shcore::Prompt_result Shell_test_output_handler::deleg_password(
     void *user_data, const char *prompt, std::string *ret) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
   std::string answer;
+  std::string expected_prompt;
 
   target->full_output << prompt;
   {
@@ -135,16 +149,27 @@ shcore::Prompt_result Shell_test_output_handler::deleg_password(
 
   shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
   if (!target->passwords.empty()) {
-    answer = target->passwords.front();
+    std::tie(expected_prompt, answer) = target->passwords.front();
     target->passwords.pop_front();
 
-    target->debug_print(makegreen("\n--> password '" + answer + "'"));
+    if (expected_prompt == "*" || expected_prompt.compare(prompt) == 0) {
+      target->debug_print(makegreen(
+          shcore::str_format("\n--> password %s %s", prompt, answer.c_str())));
+      target->full_output << answer << std::endl;
+    } else {
+      ADD_FAILURE() << "Mismatched pwd prompts. Expected: " << expected_prompt
+                    << "\n"
+                    << "actual: " << prompt;
+      target->debug_print(makered(
+          shcore::str_format("\n--> mismatched pwd prompt '%s'", prompt)));
+    }
 
-    target->full_output << answer << std::endl;
-
-    ret_val = shcore::Prompt_result::Ok;
+    if (answer != "<<<CANCEL>>>")
+      ret_val = shcore::Prompt_result::Ok;
   } else {
-    target->debug_print(makegreen("\n--> password <nothing>"));
+    ADD_FAILURE() << "Unexpected password prompt for '" << prompt << "'";
+    target->debug_print(makered(
+        shcore::str_format("\n--> unexpected pwd prompt '%s'", prompt)));
   }
 
   *ret = answer;
@@ -252,10 +277,16 @@ void Shell_test_output_handler::validate_log_content(const std::string &content,
 }
 
 void Shell_test_output_handler::debug_print(const std::string &line) {
+  if (debug || g_test_debug)
+    std::cout << line << std::endl;
+
   full_output << line.c_str() << std::endl;
 }
 
 void Shell_test_output_handler::debug_print_header(const std::string &line) {
+  if (debug || g_test_debug)
+    std::cerr << makebold(line) << std::endl;
+
   std::string splitter(line.length(), '-');
 
   full_output << splitter.c_str() << std::endl;
@@ -266,7 +297,7 @@ void Shell_test_output_handler::debug_print_header(const std::string &line) {
 void Shell_test_output_handler::flush_debug_log() {
   full_output.flush();
   std::cerr << full_output.str();
-  ;
+
   full_output.str(std::string());
   full_output.clear();
 }
@@ -320,6 +351,7 @@ void Shell_core_test_wrapper::TearDown() {
     _interactive_shell->set_global_object("testutil", {});
     testutil.reset();
   }
+  _interactive_shell.reset();
 
   ignore_session_notifications();
 
@@ -354,8 +386,19 @@ void Shell_core_test_wrapper::enable_testutil() {
   bool dummy_sandboxes =
       g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay;
 
-  testutil.reset(new tests::Testutils(_sandbox_dir,
-                                      _recording_enabled && dummy_sandboxes));
+  testutil.reset(new tests::Testutils(
+      _sandbox_dir, _recording_enabled && dummy_sandboxes,
+      {_mysql_sandbox_nport1, _mysql_sandbox_nport2, _mysql_sandbox_nport3},
+      _interactive_shell));
+  testutil->set_expected_boilerplate_version(g_mysql_version);
+  testutil->set_user_input_feeder(
+      [this](const std::string &prompt, const std::string &text) {
+        output_handler.prompts.push_back({prompt, text});
+      },
+      [this](const std::string &prompt, const std::string &pass) {
+        output_handler.passwords.push_back({prompt, pass});
+      });
+
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)
     testutil->set_sandbox_snapshot_dir(
         mysqlshdk::db::replay::current_recording_dir());
@@ -417,9 +460,6 @@ void Shell_core_test_wrapper::execute(const std::string& code) {
 
   std::string executed_input = makeblue("mysql---> " + _code);
   output_handler.debug_print(executed_input);
-
-  if (debug || g_test_debug)
-    std::cout << executed_input << std::endl;
 
   _interactive_shell->process_line(_code);
 }

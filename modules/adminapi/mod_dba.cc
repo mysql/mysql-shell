@@ -147,7 +147,6 @@ void Dba::init() {
   add_varargs_method(
       "rebootClusterFromCompleteOutage",
       std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
-  add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   if (_shell_core && _shell_core->get_dev_session()) {
     _metadata_storage.reset(new MetadataStorage(
@@ -265,6 +264,9 @@ Cluster Dba::get_cluster(str name) {}
 #endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   args.ensure_count(0, 1, get_function_name("getCluster").c_str());
+  // TODO(alfredo) - this should check if the metadata exists and GR is stopped
+  // if that is the case, suggest running dba.diagnose() in case it's a dead
+  // cluster that needs reboot
 
   // Point the metadata session to the dba session
   _metadata_storage->set_session(get_active_session());

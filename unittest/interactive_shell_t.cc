@@ -85,7 +85,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   // Invalid user/password
-  output_handler.passwords.push_back("whatever");
+  output_handler.passwords.push_back({"*", "whatever"});
   execute("\\connect -mx " + _uri_nopasswd);
   MY_EXPECT_STDERR_CONTAINS("MySQL Error 1045: Invalid user or password");
   output_handler.wipe_all();

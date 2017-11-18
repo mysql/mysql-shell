@@ -170,3 +170,16 @@ for that new server.
 Other variations may also be needed, like different trace file sets for servers running
 in Windows and Linux.
 
+
+4. Test Debugging Tips
+
+- export TEST_DEBUG=3 to execute tests with real-time tracing and make it stop on the
+1st error.
+- export TEST_REUSE_SANDBOX_BOILERPLATE=1 to make the tests reuse the same sandbox
+datadir for every test run.
+testutil.deploySandbox() implements a lazy sandbox deployment by deploying it once and
+then just copying and customizing the datadir for subsequent deployments, but the next
+time run_unit_tests is executed, it will delete the old datadir and deploy it again.
+This environment var makes the same sandbox datadir be reused between test runs, which
+makes multiple calls to run_unit_tests faster (but wrong if the server changes).
+- export COLOR_DEBUG=1 to enable color output highlighting

@@ -43,7 +43,8 @@ class Trace_writer {
 
   void set_metadata(const std::map<std::string, std::string>& meta);
 
-  void serialize_connect(const mysqlshdk::db::Connection_options& data);
+  void serialize_connect(const mysqlshdk::db::Connection_options& data,
+                         const std::string &protocol);
   void serialize_close();
   void serialize_query(const std::string& sql);
 

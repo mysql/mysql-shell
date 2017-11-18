@@ -3,14 +3,15 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@dhcp-whq-twvpn-1-vpnpool-10-159-130-27.vpn.oracle.com:3326?ssl-mode=PREFERRED"
+    "uri": "root:root@dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3326?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "ERROR",
     "index": 2,
     "code": "1045",
-    "msg": "Access denied for user 'root'@'dhcp-whq-twvpn-1-vpnpool-10-159-130-27.vpn.oracle.com' (using password: YES)",
+    "msg": "Access denied for user 'root'@'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com' (using password: YES)",
     "sqlstate": "28000"
 },
 null]

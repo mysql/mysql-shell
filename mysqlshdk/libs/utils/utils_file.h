@@ -45,6 +45,8 @@ void SHCORE_PUBLIC delete_file(const std::string& filename);
 bool SHCORE_PUBLIC create_file(const std::string& name,
                                const std::string& content);
 void SHCORE_PUBLIC copy_file(const std::string& from, const std::string& to);
+void SHCORE_PUBLIC copy_dir(const std::string& from, const std::string& to);
+void SHCORE_PUBLIC rename_file(const std::string& from, const std::string& to);
 std::string SHCORE_PUBLIC get_home_dir();
 std::vector<std::string> SHCORE_PUBLIC listdir(const std::string &path);
 

@@ -128,6 +128,18 @@ Cpp_function::Metadata &Cpp_object_bridge::get_metadata(
 void Cpp_object_bridge::set_metadata(
     Cpp_function::Metadata &meta, const std::string &name, Value_type rtype,
     const std::vector<std::pair<std::string, Value_type>> &ptypes) {
+
+  bool found_optional = false;
+  // validate optional parameter sanity
+  // func(p1, p2=opt, p3=opt) is ok
+  // func(p1=opt, p2=opt, p3) is not
+  for (const auto &ptype : ptypes) {
+    if (ptype.first[0] == '?')
+      found_optional = true;
+    else if (found_optional)
+      throw std::logic_error(
+          "optional parameters have to be at the end of param list");
+  }
   meta.set(name, rtype, ptypes);
 }
 
@@ -182,7 +194,6 @@ std::vector<std::string> Cpp_object_bridge::get_members() const {
 
   for (auto func : _funcs) {
     members.push_back(func.second->name(naming_style));
-    log_info("%s", func.second->name(naming_style).c_str());
   }
   return members;
 }

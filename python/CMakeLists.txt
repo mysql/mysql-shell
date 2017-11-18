@@ -14,14 +14,11 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 add_custom_command(OUTPUT mysqlprovision_zip
-    COMMAND ${CMAKE_COMMAND} -E make_directory mysql_gadgets
-    COMMAND ${CMAKE_COMMAND} -E make_directory share/mysqlsh
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/share/mysqlsh
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets mysql_gadgets
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/front_end/mysqlprovision.py __main__.py
-    COMMAND zip -qr mysqlprovision.zip *py mysql_gadgets
-    COMMAND ${CMAKE_COMMAND} -E copy mysqlprovision.zip share/mysqlsh
-    COMMAND ${CMAKE_COMMAND} -E remove mysqlprovision.zip
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMAND zip -qr ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip *py mysql_gadgets
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/python
     COMMENT "Creating mysqlprovision.zip"
 )
 

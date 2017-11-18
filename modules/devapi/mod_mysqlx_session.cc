@@ -743,10 +743,6 @@ std::string Session::db_object_exists(std::string &type,
   return "";
 }
 
-extern "C" {
-unsigned long mysql_get_client_version(void);
-}
-
 shcore::Value::Map_type_ref Session::get_status() {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
