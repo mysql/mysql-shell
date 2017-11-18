@@ -110,6 +110,7 @@ std::string SHCORE_PUBLIC expand_user(const std::string &path) {
   return detail::expand_user(path, sep);
 }
 
+// TODO(.) should use normpath() to match windows functionality
 std::string SHCORE_PUBLIC normalize(const std::string &path) {
   if (path.size() == 0) {
     return ".";
@@ -153,6 +154,12 @@ std::string SHCORE_PUBLIC normalize(const std::string &path) {
   return norm;
 }
 
+std::string SHCORE_PUBLIC dirname(const std::string &path) {
+  size_t xx = detail::span_dirname(path);
+  if (xx == std::string::npos)
+    return ".";
+  return path.substr(0, xx);
+}
 
 bool exists(const std::string &path) {
   return access(path.c_str(), F_OK) == 0;

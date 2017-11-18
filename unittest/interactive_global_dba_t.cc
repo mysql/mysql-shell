@@ -145,7 +145,7 @@ TEST_F(Interactive_dba_create_cluster, read_only_no_flag_prompt_yes) {
                              CLEAN_READ_ONLY_TRUE, true);
 
   // The answer to the prompt about continuing cleaning up the read only
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   _interactive_shell->process_line("var c = dba.createCluster('dev');");
 
@@ -191,7 +191,7 @@ TEST_F(Interactive_dba_create_cluster, read_only_no_flag_prompt_no) {
   _dba.expect_check_instance_configuration(_options->uri, "success");
 
   // The answer to the prompt about continuing cleaning up the read only
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back({"*", "n"});
 
   // Since no expectation is set for create_cluster, a call to it would raise
   // an exception
@@ -374,7 +374,7 @@ TEST_F(Interactive_dba_configure_local_instance, read_only_no_flag_prompt_yes) {
       true);
 
   // The answer to the prompt about continuing cleaning up the read only
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   _interactive_shell->process_line(
       "dba.configureLocalInstance('" + _options->uri +
@@ -416,7 +416,7 @@ TEST_F(Interactive_dba_configure_local_instance, read_only_no_flag_prompt_no) {
   init_mocks(true);
 
   // The answer to the prompt about continuing cleaning up the read only
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back({"*", "n"});
 
   _interactive_shell->process_line(
       "dba.configureLocalInstance('" + _options->uri +
@@ -557,7 +557,7 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_flag_prompt_yes) {
   _dba.expect_drop_metadata_schema(FORCE_TRUE, CLEAN_READ_ONLY_TRUE, true);
 
   // The answer to the prompt about continuing cleaning up the read only
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   _interactive_shell->process_line(
       "var c = dba.dropMetadataSchema({force: true});");
@@ -599,7 +599,7 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_no_flag_prompt_no) {
 
 
   // The answer to the prompt about continuing cleaning up the read only
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back({"*", "n"});
 
   // Since no expectation is set for create_cluster, a call to it would raise
   // an exception
@@ -711,239 +711,4 @@ TEST_F(Interactive_dba_drop_metadata_schema, read_only_flag_false) {
   _interactive_shell->shell_context()->get_dev_session()->close();
 }
 
-//---- Drop Metadata Schema Tests
-
-class Interactive_dba_reboot_cluster : public Interactive_global_dba {};
-
-TEST_F(Interactive_dba_reboot_cluster, read_only_no_prompts) {
-  // Sets the required statements for the session
-  add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
-
-  // super_read_only is OFF, no active sessions
-  add_super_read_only_queries(&_queries, false, false, {});
-
-  init_mocks(true);
-
-  _interactive_shell->connect(_options->connection_options());
-
-
-  EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
-  std::vector<std::pair<std::string, std::string>> status;
-  EXPECT_CALL(_dba, get_replicaset_instances_status(_, _))
-      .WillOnce(Return(status));
-
-  // It must call the Non Interactive rebootClusterFromCompleteOutage, we choose
-  // to Return success since the path we are covering is abouy super_read_only
-  _dba.expect_reboot_cluster(std::string("dev"), NO_REJOIN_LIST, NO_REMOVE_LIST,
-                             NO_CLEAN_READ_ONLY, true);
-
-  _interactive_shell->process_line(
-      "var c = dba.rebootClusterFromCompleteOutage('dev');");
-
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "Interactive_dba_reboot_cluster, read_only_no_prompts",
-      multiline({"Reconfiguring the cluster 'dev' from complete outage...", "",
-                 "", "The cluster was successfully rebooted."}),
-      output_handler.std_out);
-
-  _interactive_shell->shell_context()->get_dev_session()->close();
-}
-
-TEST_F(Interactive_dba_reboot_cluster, read_only_no_flag_prompt_yes) {
-  // Sets the required statements for the session
-  add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
-
-  // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&_queries, true, true, {{"root@localhost", "1"}});
-
-  init_mocks(true);
-
-  _interactive_shell->connect(_options->connection_options());
-
-
-  EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
-  std::vector<std::pair<std::string, std::string>> status;
-  EXPECT_CALL(_dba, get_replicaset_instances_status(_, _))
-      .WillOnce(Return(status));
-
-  // It must call the Non Interactive rebootClusterFromCompleteOutage, we choose
-  // to Return success since the path we are covering is abouy super_read_only
-  _dba.expect_reboot_cluster(std::string("dev"), NO_REJOIN_LIST, NO_REMOVE_LIST,
-                             CLEAN_READ_ONLY_TRUE, true);
-
-  // The answer to the prompt about continuing cleaning up the read only
-  output_handler.prompts.push_back("y");
-
-  _interactive_shell->process_line(
-      "var c = dba.rebootClusterFromCompleteOutage('dev');");
-
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "create_cluster_ro_server_no_clean_ro_flag_prompt_yes",
-      multiline(
-          {"Reconfiguring the cluster 'dev' from complete outage...", "",
-           "The MySQL instance at 'localhost:<<<sb_port_1>>>' currently has "
-           "the super_read_only ",
-           "system variable set to protect it from inadvertent updates from "
-           "applications.",
-           "You must first unset it to be able to perform any changes to this "
-           "instance.",
-           "For more information see: "
-           "https://dev.mysql.com/doc/refman/en/"
-           "server-system-variables.html#sysvar_super_read_only.",
-           "", "Note: there are open sessions to 'localhost:<<<sb_port_1>>>'.",
-           "You may want to kill these sessions to prevent them from "
-           "performing unexpected updates:",
-           "", "1 open session(s) of 'root@localhost'.", "",
-           "Do you want to disable super_read_only and continue? [y|N]:", "",
-           "The cluster was successfully rebooted."}),
-      output_handler.std_out);
-
-  _interactive_shell->shell_context()->get_dev_session()->close();
-}
-
-TEST_F(Interactive_dba_reboot_cluster, read_only_no_flag_prompt_no) {
-  // Sets the required statements for the session
-  add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
-
-  // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&_queries, true, true, {});
-
-  init_mocks(true);
-
-  _interactive_shell->connect(_options->connection_options());
-
-
-  EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
-  std::vector<std::pair<std::string, std::string>> status;
-  EXPECT_CALL(_dba, get_replicaset_instances_status(_, _))
-      .WillOnce(Return(status));
-
-  // The answer to the prompt about continuing cleaning up the read only
-  output_handler.prompts.push_back("n");
-
-  // Since no expectation is set for create_cluster, a call to it would raise
-  // an exception
-  _interactive_shell->process_line(
-      "var c = dba.rebootClusterFromCompleteOutage('dev');");
-
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "create_cluster_ro_server_no_clean_ro_flag_prompt_no",
-      multiline({"Reconfiguring the cluster 'dev' from complete outage...", "",
-                 "The MySQL instance at 'localhost:<<<sb_port_1>>>' currently "
-                 "has the super_read_only ",
-                 "system variable set to protect it from inadvertent updates "
-                 "from applications.",
-                 "You must first unset it to be able to perform any changes to "
-                 "this instance.",
-                 "For more information see: "
-                 "https://dev.mysql.com/doc/refman/en/"
-                 "server-system-variables.html#sysvar_super_read_only.",
-                 "",
-                 "Do you want to disable super_read_only and continue? [y|N]:",
-                 "Cancelled"}),
-      output_handler.std_out);
-
-  _interactive_shell->shell_context()->get_dev_session()->close();
-}
-
-TEST_F(Interactive_dba_reboot_cluster, read_only_invalid_flag_value) {
-  // Sets the required statements for the session
-  add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
-
-  init_mocks(true);
-
-  _interactive_shell->connect(_options->connection_options());
-
-
-  // Since no expectation is set for create_cluster, a call to it would raise
-  // an exception
-  _interactive_shell->process_line(
-      "var c = dba.rebootClusterFromCompleteOutage('dev', {clearReadOnly: "
-      "'NotABool'});");
-
-  MY_EXPECT_OUTPUT_CONTAINS(
-      "Dba.rebootClusterFromCompleteOutage: Argument 'clearReadOnly' is "
-      "expected to be a bool",
-      output_handler.std_err);
-
-  output_handler.wipe_all();
-
-  _interactive_shell->shell_context()->get_dev_session()->close();
-}
-
-TEST_F(Interactive_dba_reboot_cluster, read_only_flag_true) {
-  // Sets the required statements for the session
-  add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
-
-  // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&_queries, true, true, {{"root@localhost", "1"}});
-
-  init_mocks(true);
-
-  _interactive_shell->connect(_options->connection_options());
-
-
-  EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
-  std::vector<std::pair<std::string, std::string>> status;
-  EXPECT_CALL(_dba, get_replicaset_instances_status(_, _))
-      .WillOnce(Return(status));
-
-  // It must call the Non Interactive rebootClusterFromCompleteOutage, we choose
-  // to Return success since the path we are covering is abouy super_read_only
-  _dba.expect_reboot_cluster(std::string("dev"), NO_REJOIN_LIST, NO_REMOVE_LIST,
-                             CLEAN_READ_ONLY_TRUE, true);
-
-  _interactive_shell->process_line(
-      "var c = dba.rebootClusterFromCompleteOutage('dev', {clearReadOnly: "
-      "true});");
-
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "create_cluster_ro_server_no_clean_ro_flag_prompt_no",
-      multiline({"Reconfiguring the cluster 'dev' from complete outage...", "",
-                 "", "The cluster was successfully rebooted."}),
-      output_handler.std_out);
-
-  MY_EXPECT_OUTPUT_NOT_CONTAINS(
-      "The MySQL instance at 'localhost:<<<sb_port_1>>>' currently has the "
-      "super_read_only",
-      output_handler.std_out);
-
-  _interactive_shell->shell_context()->get_dev_session()->close();
-}
-
-TEST_F(Interactive_dba_reboot_cluster, read_only_flag_false) {
-  // Running on a standalone instance
-  add_precondition_queries(&_queries, mysqlsh::dba::Standalone, {});
-
-  // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&_queries, true, true, {{"root@localhost", "1"}});
-
-  init_mocks(true);
-
-  _interactive_shell->connect(_options->connection_options());
-
-
-  EXPECT_CALL(_dba, validate_instances_status_reboot_cluster(_));
-  std::vector<std::pair<std::string, std::string>> status;
-  EXPECT_CALL(_dba, get_replicaset_instances_status(_, _))
-      .WillOnce(Return(status));
-
-  // It must call the Non Interactive rebootClusterFromCompleteOutage, non
-  // interactive API will fail because the instance is read only
-  _dba.expect_reboot_cluster(std::string("dev"), NO_REJOIN_LIST, NO_REMOVE_LIST,
-                             CLEAN_READ_ONLY_FALSE, false);
-
-  _interactive_shell->process_line(
-      "var c = dba.rebootClusterFromCompleteOutage('dev', {clearReadOnly: "
-      "false});");
-
-  MY_EXPECT_OUTPUT_CONTAINS(
-      "Reconfiguring the cluster 'dev' from complete outage...",
-      output_handler.std_out);
-
-  MY_EXPECT_OUTPUT_NOT_CONTAINS("The cluster was successfully rebooted.",
-                                output_handler.std_out);
-
-  _interactive_shell->shell_context()->get_dev_session()->close();
-}
 }  // namespace testing

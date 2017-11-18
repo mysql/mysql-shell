@@ -396,6 +396,7 @@ TEST(modules_mod_utils,
   connection_options.set_host("localhost");
 
   try {
+    output_handler.passwords.push_back({"*", "<<<CANCEL>>>"});
     mysqlsh::resolve_connection_credentials(&connection_options,
                                             &output_handler.deleg);
   } catch (const std::exception& e) {
@@ -407,7 +408,7 @@ TEST(modules_mod_utils,
 TEST(modules_mod_utils, resolve_connection_credentials_resolve_password) {
   Shell_test_output_handler output_handler;
 
-  output_handler.passwords.push_back("resolved_password");
+  output_handler.passwords.push_back({"*", "resolved_password"});
 
   mysqlshdk::db::Connection_options connection_options;
   connection_options.set_host("localhost");

@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3336"
+    "uri": "mysql://root:root@localhost:3336",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -15,7 +16,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@datadir"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -31,8 +32,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@datadir",
-            "length": 264,
+            "column_label": "@@server_uuid",
+            "length": 144,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -45,7 +46,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gn/T/3336/sandboxdata/"
+            "ea4d9e26-cf27-11e7-b687-9d23d8d29572"
         ]
     ]
 },
@@ -53,7 +54,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SHOW MASTER STATUS"
+    "sql": "SELECT @@mysqlx_port"
 },
 {
     "type": "response",
@@ -69,24 +70,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "File",
-            "length": 2048,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Position",
-            "length": 20,
+            "column_label": "@@mysqlx_port",
+            "length": 21,
             "fractional": 0,
             "type": "UInteger",
             "collation": "binary",
@@ -95,63 +80,11 @@
             "unsigned": true,
             "zerofill": false,
             "binary": true
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Binlog_Do_DB",
-            "length": 1020,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Binlog_Ignore_DB",
-            "length": 1020,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Executed_Gtid_Set",
-            "length": 0,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
         }
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-130-27-bin.000004",
-            151,
-            "",
-            "",
-            ""
+            33360
         ]
     ]
 },
@@ -159,7 +92,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@global.require_secure_transport"
+    "sql": "SELECT @@group_replication_local_address"
 },
 {
     "type": "response",
@@ -175,70 +108,22 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@global.require_secure_transport",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
+            "column_label": "@@group_replication_local_address",
+            "length": 60,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": [
         [
-            0
+            "localhost:13336"
         ]
     ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 9,
-    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 10,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 11
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 12
 },
 null]

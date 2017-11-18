@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED"
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -573,7 +574,7 @@
     ],
     "rows": [
         [
-            1126310921
+            15661
         ]
     ]
 },
@@ -1495,9 +1496,9 @@
             0,
             0,
             "mysql_native_password",
-            "*6D13105913E92BE588B7D84C75263A955CD52068",
+            "*3FA39D56A32DEAB0E71D620BA07DC16EB86117F2",
             "N",
-            "2017-11-08 18:55:19",
+            "2017-11-21 17:59:48",
             null,
             "N",
             "N",
@@ -2479,7 +2480,7 @@
             "mysql_native_password",
             "*81F5E21E35407D884A6CD4A731AEBFB6AF209E1B",
             "N",
-            "2017-11-08 18:53:42",
+            "2017-11-21 17:38:31",
             null,
             "N",
             "Y",
@@ -3458,7 +3459,7 @@
     ],
     "rows": [
         [
-            1126310921
+            15661
         ]
     ]
 },
@@ -3496,7 +3497,7 @@
     ],
     "rows": [
         [
-            "6c08fb88-c4f9-11e7-8ef2-b2ceef4589e0"
+            "d262288a-cf28-11e7-abb6-046903d52434"
         ]
     ]
 },
@@ -3624,7 +3625,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = '6c08fb88-c4f9-11e7-8ef2-b2ceef4589e0'"
+    "sql": "SET GLOBAL group_replication_group_name = 'd262288a-cf28-11e7-abb6-046903d52434'"
 },
 {
     "type": "response",
@@ -3804,7 +3805,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SET GLOBAL auto_increment_offset = 2"
+    "sql": "SET GLOBAL auto_increment_offset = 3"
 },
 {
     "type": "response",
@@ -4164,7 +4165,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '|M/<4;~G|i#&=Y:6)>2k@$N^[$(v+d~}' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ 'T%<#$#|0%(9x(=P{);=g@I+)@3~_]+,l' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

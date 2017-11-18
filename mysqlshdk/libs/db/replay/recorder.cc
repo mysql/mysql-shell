@@ -33,13 +33,13 @@ namespace db {
 namespace replay {
 
 Recorder_mysql::Recorder_mysql() {
-  _trace.reset(Trace_writer::create(new_recording_path()));
+  _trace.reset(Trace_writer::create(new_recording_path("mysql_trace")));
 }
 
 void Recorder_mysql::connect(const mysqlshdk::db::Connection_options& data) {
   try {
     _port = data.get_port();
-    _trace->serialize_connect(data);
+    _trace->serialize_connect(data, "classic");
     super::connect(data);
     _trace->serialize_connect_ok(get_ssl_cipher());
   } catch (shcore::database_error& e) {
@@ -100,6 +100,79 @@ void Recorder_mysql::close() {
     throw;
   }
 }
+
+// ---
+
+
+Recorder_mysqlx::Recorder_mysqlx() {
+  _trace.reset(Trace_writer::create(new_recording_path("mysqlx_trace")));
+}
+
+void Recorder_mysqlx::connect(const mysqlshdk::db::Connection_options& data) {
+  try {
+    _port = data.get_port();
+    _trace->serialize_connect(data, "x");
+    super::connect(data);
+    _trace->serialize_connect_ok(get_ssl_cipher());
+  } catch (shcore::database_error& e) {
+    _trace->serialize_error(e);
+    throw;
+  } catch (db::Error& e) {
+    _trace->serialize_error(e);
+    throw;
+  }
+}
+
+std::shared_ptr<IResult> Recorder_mysqlx::query(const std::string& sql, bool) {
+  try {
+    if (getenv("TRACE_RECORD")) {
+      static std::ofstream ofs;
+      if (!ofs.good())
+        ofs.open(getenv("TRACE_RECORD"));
+
+      ofs << _trace->trace_path() << ": " << _trace->trace_index() << ": "
+          << sql << "\n"
+          << std::flush;
+    }
+
+    // todo - add synchronization points for error.log on every query
+    // assuming that error log contents change when a query is executed
+    // if (set_log_save_point) set_log_save_point(_port);
+
+    _trace->serialize_query(sql);
+    // Always buffer to make row serialization easier
+    std::shared_ptr<IResult> result(super::query(sql, true));
+    _trace->serialize_result(result);
+    std::dynamic_pointer_cast<mysql::Result>(result)->rewind();
+    return result;
+  } catch (shcore::database_error& e) {
+    _trace->serialize_error(e);
+    throw;
+  } catch (db::Error& e) {
+    _trace->serialize_error(e);
+    throw;
+  }
+}
+
+void Recorder_mysqlx::execute(const std::string& sql) {
+  query(sql, true);
+}
+
+void Recorder_mysqlx::close() {
+  try {
+    _trace->serialize_close();
+    super::close();
+    _trace->serialize_ok();
+    _trace.reset();
+  } catch (shcore::database_error& e) {
+    _trace->serialize_error(e);
+    throw;
+  } catch (db::Error& e) {
+    _trace->serialize_error(e);
+    throw;
+  }
+}
+
 
 }  // namespace replay
 }  // namespace db

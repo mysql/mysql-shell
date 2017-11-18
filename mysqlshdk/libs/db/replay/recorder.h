@@ -40,17 +40,66 @@ class Recorder_mysql : public mysql::Session {
     return std::shared_ptr<mysql::Session>{new Recorder_mysql()};
   }
 
-  void connect(const mysqlshdk::db::Connection_options& data) override;
+  void connect(const mysqlshdk::db::Connection_options &data) override;
 
-  std::shared_ptr<IResult> query(const std::string& sql,
+  std::shared_ptr<IResult> query(const std::string &sql,
                                  bool buffered) override;
 
-  void execute(const std::string& sql) override;
+  void execute(const std::string &sql) override;
 
   void close() override;
 
  private:
   Recorder_mysql();
+
+  std::unique_ptr<Trace_writer> _trace;
+  int _port;
+};
+
+class Recorder_mysqlx : public mysqlx::Session {
+ public:
+  using super = mysqlx::Session;
+
+  static std::shared_ptr<mysqlx::Session> create() {
+    return std::shared_ptr<mysqlx::Session>{new Recorder_mysqlx()};
+  }
+
+  void connect(const mysqlshdk::db::Connection_options &data) override;
+
+  std::shared_ptr<IResult> query(const std::string &sql,
+                                 bool buffered) override;
+
+  void execute(const std::string &sql) override;
+
+  void close() override;
+
+  std::shared_ptr<IResult> execute_stmt(const std::string & /*ns*/,
+                                        const std::string & /*stmt*/,
+                                        const ::xcl::Arguments & /*args*/) {
+    throw std::logic_error("not implemented for recording");
+  }
+
+  std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Insert & /*msg*/) {
+    throw std::logic_error("not implemented for recording");
+  }
+
+  std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Update & /*msg*/) {
+    throw std::logic_error("not implemented for recording");
+  }
+
+  std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Delete & /*msg*/) {
+    throw std::logic_error("not implemented for recording");
+  }
+
+  std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Find & /*msg*/) {
+    throw std::logic_error("not implemented for recording");
+  }
+
+ private:
+  Recorder_mysqlx();
 
   std::unique_ptr<Trace_writer> _trace;
   int _port;

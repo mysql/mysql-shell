@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com:3317"
+    "uri": "mysql://root:root@dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com:3316",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -32,12 +33,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "CURRENT_USER()",
-            "length": 93,
+            "length": 372,
             "fractional": 31,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -45,7 +46,7 @@
     ],
     "rows": [
         [
-            "root@dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com"
+            "root@dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com"
         ]
     ]
 },
@@ -53,7 +54,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'dhcp-whq-twvpn-1-vpnpool-10-159-154-157.vpn.oracle.com\\''"
+    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'dhcp-whq-twvpn-1-vpnpool-10-159-129-56.vpn.oracle.com\\''"
 },
 {
     "type": "response",
@@ -70,12 +71,12 @@
             "table_label": "user_privileges",
             "column_name": "PRIVILEGE_TYPE",
             "column_label": "privilege_type",
-            "length": 64,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -86,12 +87,12 @@
             "table_label": "user_privileges",
             "column_name": "IS_GRANTABLE",
             "column_label": "is_grantable",
-            "length": 3,
+            "length": 12,
             "fractional": 0,
             "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -209,6 +210,66 @@
         [
             "CREATE TABLESPACE",
             "YES"
+        ],
+        [
+            "CREATE ROLE",
+            "YES"
+        ],
+        [
+            "DROP ROLE",
+            "YES"
+        ],
+        [
+            "XA_RECOVER_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
         ]
     ]
 },
@@ -260,9 +321,9 @@
     "type": "response",
     "subtype": "ERROR",
     "index": 10,
-    "code": "1146",
-    "msg": "Table 'mysql_innodb_cluster_metadata.instances' doesn't exist",
-    "sqlstate": "42S02"
+    "code": "1049",
+    "msg": "Unknown database 'mysql_innodb_cluster_metadata'",
+    "sqlstate": "42000"
 },
 {
     "type": "request",

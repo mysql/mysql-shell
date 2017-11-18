@@ -35,6 +35,8 @@ namespace mysqlshdk {
 namespace db {
 namespace replay {
 
+class Replayer_impl;
+
 class Replayer_mysql : public mysql::Session {
  public:
   using super = mysql::Session;
@@ -52,26 +54,19 @@ class Replayer_mysql : public mysql::Session {
 
   void close() override;
 
-  bool is_open() const override {
-    return _open;
-  }
+  bool is_open() const override;
 
-  const char* get_ssl_cipher() const override {
-    return _ssl_cipher.empty() ? nullptr : _ssl_cipher.c_str();
-  }
+  const char* get_ssl_cipher() const override;
 
   const mysqlshdk::db::Connection_options& get_connection_options()
-      const override {
-    return _connection_options;
-  }
+      const override;
+
+  ~Replayer_mysql();
 
  private:
   Replayer_mysql();
 
-  mysqlshdk::db::Connection_options _connection_options;
-  std::string _ssl_cipher;
-  std::unique_ptr<Trace> _trace;
-  bool _open = false;
+  Replayer_impl* _impl;
 };
 
 class Result_mysql : public db::mysql::Result {
@@ -106,6 +101,102 @@ class Result_mysql : public db::mysql::Result {
   bool _has_resultset = false;
   bool _fetched_warnings = false;
 };
+
+// ---
+
+
+class Replayer_mysqlx : public mysqlx::Session {
+ public:
+  using super = mysqlx::Session;
+
+  static std::shared_ptr<mysqlx::Session> create() {
+    return std::shared_ptr<mysqlx::Session>{new Replayer_mysqlx()};
+  }
+
+  void connect(const mysqlshdk::db::Connection_options& data) override;
+
+  std::shared_ptr<IResult> query(const std::string& sql,
+                                 bool buffered) override;
+
+  void execute(const std::string& sql) override;
+
+  void close() override;
+
+  bool is_open() const override;
+
+  const char* get_ssl_cipher() const override;
+
+  const mysqlshdk::db::Connection_options& get_connection_options()
+      const override;
+
+  std::shared_ptr<IResult> execute_stmt(const std::string & /*ns*/,
+                                        const std::string & /*stmt*/,
+                                        const ::xcl::Arguments & /*args*/) {
+    throw std::logic_error("not implemented for replaying");
+  }
+
+  std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Insert & /*msg*/) {
+    throw std::logic_error("not implemented for replaying");
+  }
+
+  std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Update & /*msg*/) {
+    throw std::logic_error("not implemented for replaying");
+  }
+
+  std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Delete & /*msg*/) {
+    throw std::logic_error("not implemented for replaying");
+  }
+
+  std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Find & /*msg*/) {
+    throw std::logic_error("not implemented for replaying");
+  }
+
+  ~Replayer_mysqlx();
+
+ private:
+  Replayer_mysqlx();
+
+  Replayer_impl *_impl;
+};
+
+
+class Result_mysqlx : public db::mysqlx::Result {
+ public:
+  Result_mysqlx(uint64_t affected_rows, unsigned int warning_count,
+               uint64_t last_insert_id, const char* info);
+
+  const db::IRow* fetch_one() override {
+    if (_rows.size() > _fetched_row_count)
+      return &_rows[_fetched_row_count++];
+    return nullptr;
+  }
+
+  bool next_resultset() override {
+    return false;
+  }
+
+  std::unique_ptr<db::Warning> fetch_one_warning() override {
+    return {};
+  }
+
+  bool has_resultset() override {
+    return _has_resultset;
+  }
+
+ private:
+  friend class Trace;
+
+  std::vector<db::Row_copy> _rows;
+  uint64_t _affected_rows = 0;
+  uint64_t _last_insert_id = 0;
+  std::list<std::unique_ptr<Warning>> _warnings;
+  bool _has_resultset = false;
+  bool _fetched_warnings = false;
+};
+
 
 }  // namespace replay
 }  // namespace db

@@ -17,12 +17,14 @@
  * 02110-1301  USA
  */
 
-#include "utils_file.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 
+#include <cstdio>
 #include <cstring>
-#include <stdexcept>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
+
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "utils/utils_path.h"
@@ -38,7 +40,6 @@
 #  include <sys/types.h>
 #  include <dirent.h>
 #  include <sys/stat.h>
-#  include <stdio.h>
 #include <unistd.h>
 
 #ifdef __APPLE__
@@ -48,8 +49,6 @@
 #include <linux/limits.h>
 #endif
 #endif
-
-using namespace shcore;
 
 namespace shcore {
 /*
@@ -507,8 +506,8 @@ void remove_directory(const std::string& path, bool recursive) {
             remove_directory(dir_elem);
           } else {
             // It is a file, remove it.
-            int res = std::remove(dir_elem.c_str());
-            if (res) {
+            int res = ::remove(dir_elem.c_str());
+            if (res && errno != ENOENT) {
               throw std::runtime_error(str_format(
                   "Unable to remove directory %s. Error removing %s: %s",
                   dir_path, dir_elem.c_str(),
@@ -714,4 +713,29 @@ void copy_file(const std::string& from, const std::string& to) {
   ofile.close();
   ifile.close();
 }
+
+void rename_file(const std::string& from, const std::string& to) {
+  if (rename(from.c_str(), to.c_str()) < 0) {
+    throw std::runtime_error(
+        shcore::str_format("Could not rename '%s' to '%s': %s", from.c_str(),
+                           to.c_str(), strerror(errno)));
+  }
 }
+
+void copy_dir(const std::string& from, const std::string& to) {
+  create_directory(to);
+  iterdir(from, [from, to](const std::string &name) {
+    try {
+      if (is_folder(path::join_path(from, name)))
+        copy_dir(path::join_path(from, name), path::join_path(to, name));
+      else
+        copy_file(path::join_path(from, name), path::join_path(to, name));
+    } catch (std::runtime_error &e) {
+      if (errno != ENOENT)
+        throw;
+    }
+    return true;
+  });
+}
+
+}  // namespace shcore

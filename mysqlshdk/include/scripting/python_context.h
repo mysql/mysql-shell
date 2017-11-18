@@ -95,68 +95,11 @@ public:
   }
 };
 
-// The static member _instance needs to be in a class not exported (no TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
-class Python_init_singleton {
-public:
-
-  ~Python_init_singleton() {
-    if (_local_initialization)
-      Py_Finalize();
-  }
-
-  static std::string get_new_scope_name();
-
-  static void init_python();
-
-private:
-  static int cnt;
-  bool _local_initialization;
-  static std::unique_ptr<Python_init_singleton> _instance;
-
-  Python_init_singleton(const Python_init_singleton& py) {}
-
-  Python_init_singleton() : _local_initialization(false) {
-    if (!Py_IsInitialized()) {
-#ifdef _WINDOWS
-      Py_NoSiteFlag = 1;
-
-      char path[1000];
-      char *env_value;
-
-      // If PYTHONHOME is available, honors it
-      env_value = getenv("PYTHONHOME");
-      if (env_value)
-        strcpy(path, env_value);
-      else {
-        // If not will associate what should be the right path in
-        // a standard distribution
-        std::string python_path;
-        python_path = shcore::get_mysqlx_home_path();
-        if (!python_path.empty())
-          python_path.append("\\lib\\Python2.7");
-        else {
-          // Not a standard distribution
-          python_path = shcore::get_binary_folder();
-          python_path.append("\\Python2.7");
-        }
-
-        strcpy(path, python_path.c_str());
-      }
-
-      Py_SetPythonHome(path);
-#endif
-      Py_InitializeEx(0);
-
-      _local_initialization = true;
-    }
-  }
-};
-
 struct Interpreter_delegate;
 
 class TYPES_COMMON_PUBLIC Python_context {
 public:
-  Python_context(Interpreter_delegate *deleg) throw (Exception);
+  Python_context(Interpreter_delegate *deleg, bool redirect_stdio);
   ~Python_context();
 
   static Python_context *get();
@@ -167,7 +110,7 @@ public:
   PyObject *get_shell_python_support_module();
 
   Value execute(const std::string &code, const std::string& source = "",
-      const std::vector<std::string> &argv = {}) throw (Exception);
+      const std::vector<std::string> &argv = {});
   Value execute_interactive(const std::string &code,
                             Input_state &r_state) noexcept;
 

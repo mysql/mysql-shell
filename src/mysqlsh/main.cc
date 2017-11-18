@@ -385,7 +385,6 @@ int main(int argc, char **argv) {
   int ret_val = 0;
   Interrupt_helper sighelper;
   g_mysqlsh_argv0 = argv[0];
-
   shcore::Interrupts::init(&sighelper);
 
   std::shared_ptr<mysqlsh::Shell_options> shell_options =

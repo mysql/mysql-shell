@@ -326,62 +326,62 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
   execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Dba: checkInstanceConfiguration error
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@<OUT> Dba: checkInstanceConfiguration ok 1
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@<OUT> Dba: checkInstanceConfiguration report with errors
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   // TODO(rennox): This test case is not reliable since requires
   // that no my.cnf exist on the default paths
   //@<OUT> Dba: configureLocalInstance error 2
   //output_handler.passwords.push_back(_pwd);
-  //output_handler.prompts.push_back("");
+  //output_handler.prompts.push_back({"*", ""});
 
   //@<OUT> Dba: configureLocalInstance error 3
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@ Dba: configureLocalInstance not enough privileges 1
-  output_handler.passwords.push_back(""); // Please provide the password for missingprivileges@...
-  output_handler.prompts.push_back("1");  // Please select an option [1]: 1
-  output_handler.passwords.push_back(""); // Password for new account:
-  output_handler.passwords.push_back(""); // confirm password
+  output_handler.passwords.push_back({"*", ""}); // Please provide the password for missingprivileges@...
+  output_handler.prompts.push_back({"*", "1"});  // Please select an option [1]: 1
+  output_handler.passwords.push_back({"*", ""}); // Password for new account:
+  output_handler.passwords.push_back({"*", ""}); // confirm password
 
   //@ Dba: configureLocalInstance not enough privileges 2
-  output_handler.passwords.push_back(""); // Please provide the password for missingprivileges@...
+  output_handler.passwords.push_back({"*", ""}); // Please provide the password for missingprivileges@...
 
   //@ Dba: configureLocalInstance not enough privileges 3
-  output_handler.passwords.push_back(""); // Please provide the password for missingprivileges@...
-  output_handler.prompts.push_back("2");  // Please select an option [1]: 2
-  output_handler.prompts.push_back("missingprivileges@'%'"); // Please provide an account name (e.g: icroot@%) to have it created with the necessary privileges or leave empty and press Enter to cancel.
-  output_handler.passwords.push_back(""); // Password for new account:
-  output_handler.passwords.push_back(""); // confirm password
+  output_handler.passwords.push_back({"*", ""}); // Please provide the password for missingprivileges@...
+  output_handler.prompts.push_back({"*", "2"});  // Please select an option [1]: 2
+  output_handler.prompts.push_back({"*", "missingprivileges@'%'"}); // Please provide an account name (e.g: icroot@%) to have it created with the necessary privileges or leave empty and press Enter to cancel.
+  output_handler.passwords.push_back({"*", ""}); // Password for new account:
+  output_handler.passwords.push_back({"*", ""}); // confirm password
 
   //@<OUT> Dba: configureLocalInstance updating config file
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@<OUT> Dba: configureLocalInstance create different admin user
-  output_handler.passwords.push_back("");  // Pass for mydba
-  output_handler.prompts.push_back("2");  // Option (account with diff name)
-  output_handler.prompts.push_back("dba_test");  // account name
-  output_handler.passwords.push_back("");  // account pass
-  output_handler.passwords.push_back("");  // account pass confirmation
+  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
+  output_handler.prompts.push_back({"*", "2"});  // Option (account with diff name)
+  output_handler.prompts.push_back({"*", "dba_test"});  // account name
+  output_handler.passwords.push_back({"*", ""});  // account pass
+  output_handler.passwords.push_back({"*", ""});  // account pass confirmation
 
   //@<OUT> Dba: configureLocalInstance create existing valid admin user
-  output_handler.passwords.push_back("");  // Pass for mydba
-  output_handler.prompts.push_back("2");  // Option (account with diff name)
-  output_handler.prompts.push_back("dba_test");  // account name
-  output_handler.passwords.push_back("");  // account pass
-  output_handler.passwords.push_back("");  // account pass confirmation
+  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
+  output_handler.prompts.push_back({"*", "2"});  // Option (account with diff name)
+  output_handler.prompts.push_back({"*", "dba_test"});  // account name
+  output_handler.passwords.push_back({"*", ""});  // account pass
+  output_handler.passwords.push_back({"*", ""});  // account pass confirmation
 
   //@<OUT> Dba: configureLocalInstance create existing invalid admin user
-  output_handler.passwords.push_back("");  // Pass for mydba
-  output_handler.prompts.push_back("2");  // Option (account with diff name)
-  output_handler.prompts.push_back("dba_test");  // account name
-  output_handler.passwords.push_back("");  // account pass
-  output_handler.passwords.push_back("");  // account pass confirmation
+  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
+  output_handler.prompts.push_back({"*", "2"});  // Option (account with diff name)
+  output_handler.prompts.push_back({"*", "dba_test"});  // account name
+  output_handler.passwords.push_back({"*", ""});  // account pass
+  output_handler.passwords.push_back({"*", ""});  // account pass confirmation
 
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
@@ -395,13 +395,13 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
   execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back("n");
+  output_handler.passwords.push_back({"*", "n"});
 
   //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back("n");
+  output_handler.passwords.push_back({"*", "n"});
 
   //@<OUT> Cluster: rejoin_instance with interaction, ok
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   // Tests cluster functionality, adding, removing instances
   // error conditions
@@ -418,22 +418,22 @@ TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster_multimaster) {
   execute("\\connect -mc root:root@localhost:" + _mysql_sandbox_port1 + "");
 
   //@<OUT> Dba: createCluster multiMaster with interaction, cancel
-  output_handler.prompts.push_back("no");
+  output_handler.prompts.push_back({"*", "no"});
 
   //@<OUT> Dba: createCluster multiMaster with interaction, ok
-  output_handler.prompts.push_back("yes");
+  output_handler.prompts.push_back({"*", "yes"});
 
   //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
-  output_handler.prompts.push_back("yes");
+  output_handler.prompts.push_back({"*", "yes"});
 
   //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back("n");
+  output_handler.passwords.push_back({"*", "n"});
 
   //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back("n");
+  output_handler.passwords.push_back({"*", "n"});
 
   //@<OUT> Cluster: rejoin_instance with interaction, ok
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   output_handler.set_log_level(ngcommon::Logger::LOG_INFO);
 
@@ -489,10 +489,10 @@ TEST_F(Shell_py_dba_tests, force_quorum_interactive) {
   reset_shell();
 
   //@ Cluster.forceQuorumUsingPartitionOf error interactive
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@ Cluster.forceQuorumUsingPartitionOf success
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   validate_interactive("dba_cluster_force_quorum_interactive.py");
 }
@@ -509,8 +509,8 @@ TEST_F(Shell_py_dba_tests, reboot_cluster_interactive) {
   reset_shell();
 
   //@ Dba.rebootClusterFromCompleteOutage success
-  output_handler.prompts.push_back("y");
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
+  output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_reboot_cluster_interactive.py");
 }
@@ -541,10 +541,10 @@ TEST_F(Shell_py_dba_tests, cluster_misconfigurations_interactive) {
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   //@<OUT> Dba.createCluster: cancel
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back({"*", "n"});
 
   //@<OUT> Dba.createCluster: ok
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_cluster_misconfigurations_interactive.py");
 
@@ -620,13 +620,13 @@ TEST_F(Shell_py_dba_tests, interactive_drop_metadata_schema) {
   reset_shell();
 
   //@# drop metadata: no user response
-  output_handler.prompts.push_back("");
+  output_handler.prompts.push_back({"*", ""});
 
   //@# drop metadata: user response no
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back({"*", "n"});
 
   //@# drop metadata: user response yes
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_drop_metadata_interactive.py");
 }

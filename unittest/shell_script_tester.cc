@@ -14,16 +14,23 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "shell_script_tester.h"
-#include <memory>
 #include <string>
+#include <utility>
 #include "shellcore/ishell_core.h"
 #include "utils/process_launcher.h"
 #include "utils/utils_file.h"
+#include "utils/utils_path.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
-#include "shellcore/ishell_core.h"
 
 using namespace shcore;
+
+static int debug_level() {
+  if (const char *level = getenv("TEST_DEBUG")) {
+    return std::atoi(level);
+  }
+  return 0;
+}
 
 Shell_script_tester::Shell_script_tester() {
   _shell_scripts_home = MYSQLX_SOURCE_HOME;
@@ -35,7 +42,9 @@ void Shell_script_tester::SetUp() {
   Crud_test_wrapper::SetUp();
 }
 
-void Shell_script_tester::set_config_folder(const std::string &name) {
+void Shell_script_tester::set_config_folder(const std::string& name) {
+  _shell_scripts_home = MYSQLX_SOURCE_HOME;
+  _shell_scripts_home += "/unittest/scripts";
   _shell_scripts_home += "/" + name;
 
   // Currently hardcoded since scripts are on the shell repo
@@ -46,7 +55,8 @@ void Shell_script_tester::set_config_folder(const std::string &name) {
 }
 
 void Shell_script_tester::set_setup_script(const std::string& name) {
-  _setup_script = _shell_scripts_home + "/setup/" + name;
+  // if name is an absolute path, join_path will just return name
+  _setup_script = shcore::path::join_path(_shell_scripts_home, "setup", name);
 }
 
 std::string Shell_script_tester::resolve_string(const std::string& source) {
@@ -98,11 +108,11 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context,
 bool Shell_script_tester::validate(const std::string& context,
                                    const std::string& chunk_id) {
   bool ret_val = true;
+  std::string original_std_out = output_handler.std_out;
+  std::string original_std_err = output_handler.std_err;
+
   if (_chunk_validations.count(chunk_id)) {
     Validation_t validations = _chunk_validations[chunk_id];
-
-    std::string original_std_out = output_handler.std_out;
-    std::string original_std_err = output_handler.std_err;
 
     for (size_t valindex = 0; valindex < validations.size(); valindex++) {
       // Validation goes against validation code
@@ -110,9 +120,8 @@ bool Shell_script_tester::validate(const std::string& context,
         // Before cleaning up, prints any error found on the script execution
         if (valindex == 0 && !original_std_err.empty()) {
           ret_val = false;
-          SCOPED_TRACE("Unexpected Error: " + original_std_err);
-          SCOPED_TRACE("File: " + context);
-          ADD_FAILURE();
+          ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
+              << "\tUnexpected Error: " + original_std_err << "\n";
         }
 
         output_handler.wipe_all();
@@ -131,11 +140,9 @@ bool Shell_script_tester::validate(const std::string& context,
       if (validations[valindex].expected_error.empty() &&
           !original_std_err.empty()) {
         ret_val = false;
-        SCOPED_TRACE("File: " + context + ":" +
-                     std::to_string(_chunk_to_line[chunk_id]));
-        SCOPED_TRACE("Unexpected Error: " + original_std_err);
-        SCOPED_TRACE("Executing chunk: //@ " + chunk_id);
-        ADD_FAILURE();
+        ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
+            << "while executing chunk: //@ " + chunk_id << "\n"
+            << "\tUnexpected Error: " + original_std_err << "\n";
       }
 
       // Validates expected output if any
@@ -146,14 +153,12 @@ bool Shell_script_tester::validate(const std::string& context,
 
         if (out != "*") {
           if (validations[valindex].type == ValidationType::Simple) {
-            SCOPED_TRACE("File: " + context + ":" +
-                         std::to_string(_chunk_to_line[chunk_id]));
-            SCOPED_TRACE("Executing chunk: //@ " + chunk_id);
-            SCOPED_TRACE("STDOUT missing: " + out);
-            SCOPED_TRACE("STDOUT actual: " + original_std_out);
             if (original_std_out.find(out) == std::string::npos) {
               ret_val = false;
-              ADD_FAILURE();
+              ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
+                  << "while executing chunk: //@ " + chunk_id << "\n"
+                  << "\tSTDOUT missing: " + out << "\n"
+                  << "\tSTDOUT actual: " + original_std_out << "\n";
             }
           } else {
             ret_val = validate_line_by_line(context, chunk_id, "STDOUT", out,
@@ -168,14 +173,12 @@ bool Shell_script_tester::validate(const std::string& context,
 
         out = resolve_string(out);
 
-        SCOPED_TRACE("File: " + context + ":" +
-                     std::to_string(_chunk_to_line[chunk_id]));
-        SCOPED_TRACE("Executing chunk: //@ " + chunk_id);
-        SCOPED_TRACE("STDOUT unexpected: " + out);
-        SCOPED_TRACE("STDOUT actual: " + original_std_out);
         if (original_std_out.find(out) != std::string::npos) {
           ret_val = false;
-          ADD_FAILURE();
+          ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
+               << "while executing chunk: //@ " + chunk_id << "\n"
+               << "\tSTDOUT unexpected: " + out << "\n"
+               << "\tSTDOUT actual: " + original_std_out << "\n";
         }
       }
 
@@ -187,14 +190,12 @@ bool Shell_script_tester::validate(const std::string& context,
 
         if (error != "*") {
           if (validations[valindex].type == ValidationType::Simple) {
-            SCOPED_TRACE("File: " + context + ":" +
-                         std::to_string(_chunk_to_line[chunk_id]));
-            SCOPED_TRACE("Executing chunk: //@ " + chunk_id);
-            SCOPED_TRACE("STDERR missing: " + error);
-            SCOPED_TRACE("STDERR actual: " + original_std_err);
             if (original_std_err.find(error) == std::string::npos) {
               ret_val = false;
-              ADD_FAILURE();
+              ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
+                   << "while executing chunk: //@ " + chunk_id << "\n"
+                   << "\tSTDERR missing: " + error << "\n"
+                   << "\tSTDERR actual: " + original_std_err << "\n";
             }
           } else {
             ret_val = validate_line_by_line(context, chunk_id, "STDERR", error,
@@ -207,21 +208,30 @@ bool Shell_script_tester::validate(const std::string& context,
   } else {
     // Every defined validation chunk MUST have validations
     // or should not be defined as a validation chunk
-    if (chunk_id != "__global__") {
-      SCOPED_TRACE("File: " + context + ":" +
-                   std::to_string(_chunk_to_line[chunk_id]));
-      SCOPED_TRACE("Executing chunk: //@ " + chunk_id);
-      SCOPED_TRACE("MISSING VALIDATIONS!!!");
-      ADD_FAILURE();
+    // OTOH we always check for errors in global context
+    if (chunk_id != "__global__" || !original_std_err.empty()) {
+      if (chunk_id == "__global__") {
+        ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
+            << "while executing chunk: //@ " + chunk_id << "\n"
+            << "\tUnexpected Error: " + original_std_err << "\n";
+        output_handler.wipe_all();
+      } else {
+        ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
+            << "MISSING VALIDATIONS FOR CHUNK //@" << chunk_id << "\n"
+            << "\tSTDOUT: " << original_std_out << "\n"
+            << "\tSTDERR: " << original_std_err << "\n";
+      }
       ret_val = false;
-    } else
+    } else {
       output_handler.wipe_all();
+    }
   }
 
   return ret_val;
 }
 
 void Shell_script_tester::validate_interactive(const std::string& script) {
+  _filename = script;
   try {
     execute_script(script, true);
   } catch (std::exception& e) {
@@ -231,7 +241,7 @@ void Shell_script_tester::validate_interactive(const std::string& script) {
 
 void Shell_script_tester::load_source_chunks(std::istream& stream) {
   std::string chunk_id = "__global__";
-  std::vector<std::string> current_chunk;
+  std::vector<std::pair<size_t, std::string>> current_chunk;
   int linenum = 0;
 
   while (!stream.eof()) {
@@ -244,7 +254,6 @@ void Shell_script_tester::load_source_chunks(std::istream& stream) {
     if (line.find(get_chunk_token()) == 0) {
       if (!current_chunk.empty()) {
         _chunks[chunk_id] = current_chunk;
-        _chunk_to_line[chunk_id] = linenum;
         _chunk_order.push_back(chunk_id);
       }
 
@@ -261,18 +270,17 @@ void Shell_script_tester::load_source_chunks(std::istream& stream) {
       current_chunk = {};
     } else {
       if (current_chunk.empty())
-        current_chunk = std::vector<std::string>();
+        current_chunk = std::vector<std::pair<size_t, std::string>>();
 
       // Only adds the lines that are NO snippet specifier
       if (line.find("//! [") != 0)
-        current_chunk.push_back(line);
+        current_chunk.push_back({linenum, line});
     }
   }
 
   // Inserts the remaining code chunk
   if (!current_chunk.empty()) {
     _chunks[chunk_id] = current_chunk;
-    _chunk_to_line[chunk_id] = linenum;
     _chunk_order.push_back(chunk_id);
   }
 }
@@ -444,7 +452,7 @@ void Shell_script_tester::execute_script(const std::string& path,
         // Executes the file line by line
         for (size_t chunk_item = 0;
              chunk_item < _chunks[_chunk_order[index]].size(); chunk_item++) {
-          std::string line((_chunks[_chunk_order[index]])[chunk_item]);
+          std::string line((_chunks[_chunk_order[index]])[chunk_item].second);
 
           // Execution context is at line level
           _custom_context =
@@ -453,6 +461,9 @@ void Shell_script_tester::execute_script(const std::string& path,
           // There's chance to do preprocessing
           pre_process_line(path, line);
 
+          if (testutil)
+            testutil->set_test_execution_context(
+                _filename, (_chunks[_chunk_order[index]])[chunk_item].first);
           execute(line);
         }
 
@@ -462,6 +473,10 @@ void Shell_script_tester::execute_script(const std::string& path,
         // Validation contexts is at chunk level
         _custom_context = path + "@[" + _chunk_order[index] + " validation]";
         if (!validate(path, _chunk_order[index])) {
+          if (debug_level() >= 3) {
+            // Failure logs are printed on the fly in debug mode
+            FAIL();
+          }
           std::cerr << makeredbg(
                            "----------vvvv Failure Log Begin vvvv----------")
                     << std::endl;
@@ -469,8 +484,9 @@ void Shell_script_tester::execute_script(const std::string& path,
           std::cerr << makeredbg(
                            "----------^^^^ Failure Log End ^^^^------------")
                     << std::endl;
-        } else
+        } else {
           output_handler.whipe_debug_log();
+        }
       }
     } else {
       _options->interactive = false;
@@ -493,13 +509,18 @@ void Shell_script_tester::execute_script(const std::string& path,
         // If processing a tets script, performs the validations over it
         _options->interactive = true;
         if (!validate(script)) {
+          if (debug_level() >= 3) {
+            // Failure logs are printed on the fly in debug mode
+            FAIL();
+          }
           std::cerr << makeredbg("----------vvvv Failure Log vvvv----------")
                     << std::endl;
           output_handler.flush_debug_log();
           std::cerr << makeredbg("----------^^^^^^^^^^^^^^^^^^^^^----------")
                     << std::endl;
-        } else
+        } else {
           output_handler.whipe_debug_log();
+        }
       }
     }
 
@@ -563,7 +584,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
         // Executes the file line by line
         for (size_t chunk_item = 0;
              chunk_item < _chunks[_chunk_order[index]].size(); chunk_item++) {
-          std::string line((_chunks[_chunk_order[index]])[chunk_item]);
+          std::string line((_chunks[_chunk_order[index]])[chunk_item].second);
 
           // Execution context is at line level
           _custom_context =
@@ -572,6 +593,9 @@ void Shell_script_tester::validate_chunks(const std::string& path,
           // There's chance to do preprocessing
           pre_process_line(path, line);
 
+          if (testutil)
+            testutil->set_test_execution_context(
+                _filename, (_chunks[_chunk_order[index]])[chunk_item].first);
           execute(line);
         }
 
@@ -581,6 +605,10 @@ void Shell_script_tester::validate_chunks(const std::string& path,
         // Validation contexts is at chunk level
         _custom_context = path + "@[" + _chunk_order[index] + " validation]";
         if (!validate(path, _chunk_order[index])) {
+          if (debug_level() >= 3) {
+            // Failure logs are printed on the fly in debug mode
+            FAIL();
+          }
           std::cerr << makeredbg(
                            "----------vvvv Failure Log Begin vvvv----------")
                     << std::endl;
@@ -638,8 +666,9 @@ void Shell_script_tester::process_setup(std::istream& stream) {
             "the tested scripts.");
       else
         execute_script();  // Executes the active setup script
-    } else
+    } else {
       done = true;
+    }
   }
 
   // Once the assumptions are processed, rewinds the read position
@@ -649,6 +678,7 @@ void Shell_script_tester::process_setup(std::istream& stream) {
 }
 
 void Shell_script_tester::validate_batch(const std::string& script) {
+  _filename = script;
   execute_script(script, false);
 }
 

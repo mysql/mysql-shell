@@ -66,7 +66,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   uint64_t get_warning_count() const override;
   const std::vector<Column>& get_metadata() const override { return _metadata; }
 
- private:
+ protected:
   explicit Result(std::unique_ptr<xcl::XQuery_result> result);
   void fetch_metadata();
 
@@ -75,7 +75,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   std::deque<mysqlshdk::db::Row_copy> _pre_fetched_rows;
   std::unique_ptr<xcl::XQuery_result> _result;
   Row _row;
-  size_t _fetched_row_count;
+  size_t _fetched_row_count = 0;
   size_t _fetched_warning_count = 0;
   std::string _info;
   bool _stop_pre_fetch = false;

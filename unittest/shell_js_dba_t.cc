@@ -37,26 +37,6 @@
 
 namespace shcore {
 
-
-class Override_row_string : public mysqlshdk::db::replay::Row_hook {
-public:
-  Override_row_string(std::unique_ptr<mysqlshdk::db::IRow> source,
-                      uint32_t column, const std::string& value)
-    : mysqlshdk::db::replay::Row_hook(std::move(source)),
-    _column(column), _value(value) {
-  }
-
-  std::string get_string(uint32_t index) const override {
-    if (index == _column)
-      return _value;
-    return Row_hook::get_string(index);
-  }
-
-  uint32_t _column;
-  std::string _value;
-};
-
-
 class Shell_js_dba_tests : public Shell_js_script_tester {
  protected:
   bool _have_ssl;
@@ -126,7 +106,8 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
         datadir = str_replace(datadir, "/", "\\");
 #endif
         return std::unique_ptr<mysqlshdk::db::IRow>{
-          new Override_row_string(std::move(source), datadir_column, datadir)};
+            new tests::Override_row_string(std::move(source), datadir_column,
+                                           datadir)};
       }
 
       if (sql.find("@@datadir") != std::string::npos)
@@ -231,7 +212,7 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     exec_and_out_equals(code);
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
     if (!tokens.at(tokens.size() - 1).empty())
-      tokens.push_back("");
+      tokens.push_back({"*", ""});
 
     // The sandbox dir for C++
     _sandbox_dir = shcore::str_join(tokens, "\\");
@@ -367,7 +348,7 @@ TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
   // BUG 26830224
   // Please enter a MySQL root password for the new instance:
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
   validate_interactive("dba_deploy_sandbox.js");
   // BUG#26393614
   std::vector<std::string> log{
@@ -420,69 +401,69 @@ TEST_F(Shell_js_dba_tests, interactive) {
   reset_replayable_shell();
 
   //@# Dba: checkInstanceConfiguration error
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@<OUT> Dba: checkInstanceConfiguration ok 1
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@<OUT> Dba: checkInstanceConfiguration report with errors
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   // TODO(rennox): This test case is not reliable since requires
   // that no my.cnf exist on the default paths
   //@<OUT> Dba: configureLocalInstance error 2
   // output_handler.passwords.push_back(_pwd);
-  // output_handler.prompts.push_back("");
+  // output_handler.prompts.push_back({"*", ""});
 
   //@<OUT> Dba: configureLocalInstance error 3
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@ Dba: configureLocalInstance not enough privileges 1
   output_handler.passwords.push_back(
-      "");  // Please provide the password for missingprivileges@...
-  output_handler.prompts.push_back("1");   // Please select an option [1]: 1
-  output_handler.passwords.push_back("");  // Password for new account:
-  output_handler.passwords.push_back("");  // confirm password
+      {"*", ""});  // Please provide the password for missingprivileges@...
+  output_handler.prompts.push_back({"*", "1"});   // Please select an option [1]: 1
+  output_handler.passwords.push_back({"*", ""});  // Password for new account:
+  output_handler.passwords.push_back({"*", ""});  // confirm password
 
   //@ Dba: configureLocalInstance not enough privileges 2
   output_handler.passwords.push_back(
-      "");  // Please provide the password for missingprivileges@...
+      {"*", ""});  // Please provide the password for missingprivileges@...
 
   //@ Dba: configureLocalInstance not enough privileges 3
   output_handler.passwords.push_back(
-      "");  // Please provide the password for missingprivileges@...
-  output_handler.prompts.push_back("2");  // Please select an option [1]: 2
+      {"*", ""});  // Please provide the password for missingprivileges@...
+  output_handler.prompts.push_back({"*", "2"});  // Please select an option [1]: 2
   output_handler.prompts.push_back(
-      "missingprivileges@'%'");  // Please provide an account name (e.g:
+      {"*", "missingprivileges@'%'"});  // Please provide an account name (e.g:
                                  // icroot@%) to have it created with the
                                  // necessary privileges or leave empty and
                                  // press Enter to cancel.
-  output_handler.passwords.push_back("");  // Password for new account:
-  output_handler.passwords.push_back("");  // confirm password
+  output_handler.passwords.push_back({"*", ""});  // Password for new account:
+  output_handler.passwords.push_back({"*", ""});  // confirm password
 
   //@<OUT> Dba: configureLocalInstance updating config file
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@<OUT> Dba: configureLocalInstance create different admin user
-  output_handler.passwords.push_back("");  // Pass for mydba
-  output_handler.prompts.push_back("2");   // Option (account with diff name)
-  output_handler.prompts.push_back("dba_test");  // account name
-  output_handler.passwords.push_back("");        // account pass
-  output_handler.passwords.push_back("");        // account pass confirmation
+  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
+  output_handler.prompts.push_back({"*", "2"});   // Option (account with diff name)
+  output_handler.prompts.push_back({"*", "dba_test"});  // account name
+  output_handler.passwords.push_back({"*", ""});        // account pass
+  output_handler.passwords.push_back({"*", ""});        // account pass confirmation
 
   //@<OUT> Dba: configureLocalInstance create existing valid admin user
-  output_handler.passwords.push_back("");  // Pass for mydba
-  output_handler.prompts.push_back("2");   // Option (account with diff name)
-  output_handler.prompts.push_back("dba_test");  // account name
-  output_handler.passwords.push_back("");        // account pass
-  output_handler.passwords.push_back("");        // account pass confirmation
+  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
+  output_handler.prompts.push_back({"*", "2"});   // Option (account with diff name)
+  output_handler.prompts.push_back({"*", "dba_test"});  // account name
+  output_handler.passwords.push_back({"*", ""});        // account pass
+  output_handler.passwords.push_back({"*", ""});        // account pass confirmation
 
   //@<OUT> Dba: configureLocalInstance create existing invalid admin user
-  output_handler.passwords.push_back("");  // Pass for mydba
-  output_handler.prompts.push_back("2");   // Option (account with diff name)
-  output_handler.prompts.push_back("dba_test");  // account name
-  output_handler.passwords.push_back("");        // account pass
-  output_handler.passwords.push_back("");        // account pass confirmation
+  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
+  output_handler.prompts.push_back({"*", "2"});   // Option (account with diff name)
+  output_handler.prompts.push_back({"*", "dba_test"});  // account name
+  output_handler.passwords.push_back({"*", ""});        // account pass
+  output_handler.passwords.push_back({"*", ""});        // account pass confirmation
 
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
@@ -494,13 +475,13 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   reset_replayable_shell();
 
   //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back("n");
+  output_handler.passwords.push_back({"*", "n"});
 
   //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back("n");
+  output_handler.passwords.push_back({"*", "n"});
 
   //@<OUT> Cluster: rejoin_instance with interaction, ok
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   // Tests cluster functionality, adding, removing instances
   // error conditions
@@ -513,22 +494,22 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   reset_replayable_shell();
 
   //@<OUT> Dba: createCluster multiMaster with interaction, cancel
-  output_handler.prompts.push_back("no");
+  output_handler.prompts.push_back({"*", "no"});
 
   //@<OUT> Dba: createCluster multiMaster with interaction, ok
-  output_handler.prompts.push_back("yes");
+  output_handler.prompts.push_back({"*", "yes"});
 
   //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
-  output_handler.prompts.push_back("yes");
+  output_handler.prompts.push_back({"*", "yes"});
 
   //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back("n");
+  output_handler.passwords.push_back({"*", "n"});
 
   //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back("n");
+  output_handler.passwords.push_back({"*", "n"});
 
   //@<OUT> Cluster: rejoin_instance with interaction, ok
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   output_handler.set_log_level(ngcommon::Logger::LOG_INFO);
 
@@ -616,10 +597,10 @@ TEST_F(Shell_js_dba_tests, cluster_force_quorum_interactive) {
   reset_replayable_shell();
 
   //@ Cluster.forceQuorumUsingPartitionOf error interactive
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   //@ Cluster.forceQuorumUsingPartitionOf success
-  output_handler.passwords.push_back("root");
+  output_handler.passwords.push_back({"*", "root"});
 
   validate_interactive("dba_cluster_force_quorum_interactive.js");
 }
@@ -636,8 +617,8 @@ TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
   reset_replayable_shell();
 
   //@ Dba.rebootClusterFromCompleteOutage success
-  output_handler.prompts.push_back("y");
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
+  output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_reboot_cluster_interactive.js");
 }
@@ -671,10 +652,10 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations_interactive) {
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   //@<OUT> Dba.createCluster: cancel
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back({"*", "n"});
 
   //@<OUT> Dba.createCluster: ok
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_cluster_misconfigurations_interactive.js");
 
@@ -773,13 +754,13 @@ TEST_F(Shell_js_dba_tests, dba_drop_metadata_interactive) {
   reset_replayable_shell();
 
   //@# drop metadata: no user response
-  output_handler.prompts.push_back("");
+  output_handler.prompts.push_back({"*", ""});
 
   //@# drop metadata: user response no
-  output_handler.prompts.push_back("n");
+  output_handler.prompts.push_back({"*", "n"});
 
   //@# drop metadata: user response yes
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_drop_metadata_interactive.js");
 }
@@ -850,20 +831,20 @@ TEST_F(Shell_js_dba_tests, dba_cluster_help) {
 TEST_F(Shell_js_dba_tests, super_read_only_handling) {
   reset_replayable_shell();
   //@<OUT> Configures the instance, answers 'yes' on the read only prompt
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   //@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   //@ Reboot the cluster
   // Confirms addition of second instance
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   // Confirms addition of third instance
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   // Confirms clean up of read only
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_super_read_only_handling.js");
 }
@@ -878,11 +859,11 @@ TEST_F(Shell_js_dba_tests, adopt_from_gr) {
 TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
   reset_replayable_shell();
   // Are you sure you want to remove the Metadata? [y|N]:
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   // Do you want to setup an InnoDB cluster based on this replication
   // group? [Y|n]:
-  output_handler.prompts.push_back("y");
+  output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_adopt_from_gr_interactive.js");
 }

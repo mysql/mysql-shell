@@ -58,11 +58,11 @@ else
 
 //@ Add instance on port 2 to cluster with success.
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
-testutil.waitMemberState(__mysql_sandbox_port1, 'root', __mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Add instance on port 3 to cluster with success.
 add_instance_to_cluster(cluster, __mysql_sandbox_port3);
-testutil.waitMemberState(__mysql_sandbox_port1, 'root', __mysql_sandbox_port3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Remove instance on port 2 from cluster with success.
 cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port2);

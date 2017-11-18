@@ -123,11 +123,18 @@ int ProvisioningInterface::execute_mysqlprovision(
 #endif
       if (file_exists(tmp))
         _local_mysqlprovision_path = tmp;
+      log_debug("Using mysqlprovision package at %s",
+                _local_mysqlprovision_path.c_str());
     }
     assert(!_local_mysqlprovision_path.empty());
   }
 
+  std::string log_level =
+      "--log-level=" + std::to_string(static_cast<int>(
+                           ngcommon::Logger::singleton()->get_log_level()));
+
   args_script.push_back(g_mysqlsh_argv0);
+  args_script.push_back(log_level.c_str());
   args_script.push_back("--py");
   args_script.push_back("-f");
 
@@ -143,10 +150,21 @@ int ProvisioningInterface::execute_mysqlprovision(
                        " ");
   log_info("%s", message.c_str());
 
-  if (verbose > 1 ||
-      (getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") == 0)) {
+  if (getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0) {
+    std::cerr << message << "\n"
+      << value_from_argmap(kwargs).repr() << "\n";
+    for (int i = 0; i < args.size(); i++)
+      std::cerr << args[i].repr() << "\n";
+  }
+  if (verbose > 1) {
     message += "\n";
     _delegate->print(_delegate->user_data, message.c_str());
+    if (getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0) {
+      _delegate->print(_delegate->user_data,
+                       value_from_argmap(kwargs).repr().c_str());
+      for (int i = 0; i < args.size(); i++)
+        _delegate->print(_delegate->user_data, args[i].repr().c_str());
+    }
   }
 
   if (verbose) {
@@ -288,12 +306,9 @@ int ProvisioningInterface::execute_mysqlprovision(
     _delegate->print(_delegate->user_data, footer.c_str());
   }
 
-  if ((getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") == 0)) {
-    _delegate->print(
-        _delegate->user_data,
-        shcore::str_format("mysqlprovision exited with code %i\n", exit_code)
-            .c_str());
-    _delegate->print(_delegate->user_data, full_output.c_str());
+  if ((getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0)) {
+    std::cerr << "mysqlprovision exited with code " << exit_code << ":\n"
+      << full_output << "\n";
   }
 
   /*

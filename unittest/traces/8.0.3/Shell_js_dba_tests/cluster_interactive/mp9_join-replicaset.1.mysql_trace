@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336?ssl-mode=PREFERRED"
+    "uri": "root:root@localhost:3336?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -611,7 +612,7 @@
     ],
     "rows": [
         [
-            2291741899
+            15681
         ]
     ]
 },
@@ -1406,7 +1407,7 @@
     ],
     "rows": [
         [
-            2291741899
+            15681
         ]
     ]
 },
@@ -1624,7 +1625,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_group_name = 'e507b81c-c4f9-11e7-a65e-9b88d6997ca3'"
+    "sql": "SET GLOBAL group_replication_group_name = '140e952a-cf29-11e7-b91d-5961d91f0ee7'"
 },
 {
     "type": "response",

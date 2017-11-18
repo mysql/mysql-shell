@@ -81,7 +81,7 @@ std::string mysqlprovision_recording_path() {
   return path;
 }
 
-std::string new_recording_path() {
+std::string new_recording_path(const std::string &type) {
   g_session_create_index++;
   std::string path = g_recording_path_prefix;
   char* p = strrchr(g_recording_context, '/');
@@ -92,18 +92,18 @@ std::string new_recording_path() {
   if (!shcore::str_endswith(g_recording_context, "/"))
     path.append(".");
   path.append(std::to_string(g_session_create_index));
-  path.append(".mysql_trace");
+  path.append("." + type);
   return path;
 }
 
-std::string next_replay_path() {
+std::string next_replay_path(const std::string &type) {
   g_session_replay_index++;
   std::string path = g_recording_path_prefix;
   path.append(g_recording_context);
   if (!shcore::str_endswith(g_recording_context, "/"))
     path.append(".");
   path.append(std::to_string(g_session_replay_index));
-  path.append(".mysql_trace");
+  path.append("." + type);
   return path;
 }
 
@@ -150,19 +150,10 @@ void setup_from_env() {
 }
 
 
-
-static std::shared_ptr<mysqlx::Session> fail_create() {
-  // Ensure nobody is trying to record X sessions which are not supported yet.
-  // Some tests will also accidentally use X sessions, which should be fixed
-  // (for example, via protocol auto-detection)
-  throw std::logic_error(
-      "mysqlx::Session::create() called in recording mode, which is not "
-      "supported yet. If you're using shell.connect(), make sure to specify "
-      "the scheme type");
-}
-
+static Mode g_active_session_injector_mode = Mode::Direct;
 
 void setup_mysql_session_injector(Mode mode) {
+  g_active_session_injector_mode = mode;
   switch (mode) {
     case Mode::Direct:
       mysql::Session::set_factory_function({});
@@ -170,11 +161,11 @@ void setup_mysql_session_injector(Mode mode) {
       break;
     case Mode::Record:
       mysql::Session::set_factory_function(replay::Recorder_mysql::create);
-      mysqlx::Session::set_factory_function(fail_create);
+      mysqlx::Session::set_factory_function(replay::Recorder_mysqlx::create);
       break;
     case Mode::Replay:
       mysql::Session::set_factory_function(replay::Replayer_mysql::create);
-      mysqlx::Session::set_factory_function(fail_create);
+      mysqlx::Session::set_factory_function(replay::Replayer_mysqlx::create);
       break;
   }
 }
@@ -185,6 +176,17 @@ void set_replay_row_hook(Result_row_hook func) {
 
 void set_replay_query_hook(Query_hook func) {
   g_replay_query_hook = func;
+}
+
+No_replay::No_replay() {
+  _old_mode = g_active_session_injector_mode;
+  if (_old_mode != Mode::Direct)
+    setup_mysql_session_injector(Mode::Direct);
+}
+
+No_replay::~No_replay() {
+  if (g_active_session_injector_mode != _old_mode)
+    setup_mysql_session_injector(_old_mode);
 }
 
 }  // namespace replay
