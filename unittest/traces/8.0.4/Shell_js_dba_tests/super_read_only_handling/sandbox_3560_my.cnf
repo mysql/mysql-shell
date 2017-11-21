@@ -1,0 +1,32 @@
+[client]
+protocol = TCP
+port = 3560
+user = root
+
+[mysqld]
+transaction_write_set_extraction = XXHASH64
+disabled_storage_engines = BLACKHOLE,FEDERATED,ARCHIVE
+binlog_checksum = NONE
+gtid_mode = ON
+server_id = 3175558564
+auto_increment_offset = 4
+basedir = /home/kg/SERVERS/mysql-8.0.4-rc-linux-x86_64
+port = 3560
+datadir = /home/kg/repo/ngshell/bld-clang_head/unittest/3560/sandboxdata
+log_error = /home/kg/repo/ngshell/bld-clang_head/unittest/3560/sandboxdata/error.log
+pid_file = /home/kg/repo/ngshell/bld-clang_head/unittest/3560/3560.pid
+log_bin
+loose_mysqlx_socket = mysqlx.sock
+log_slave_updates = ON
+relay_log_info_repository = TABLE
+innodb_log_file_size = 4M
+secure_file_priv = /home/kg/repo/ngshell/bld-clang_head/unittest/3560/mysql-files
+master_info_repository = TABLE
+binlog_format = ROW
+plugin_load = mysqlx.so
+enforce_gtid_consistency = ON
+loose_mysqlx_port = 35600
+socket = mysqld.sock
+report_port = 3560
+log_syslog = OFF
+

@@ -1,0 +1,90 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "root:root@localhost:3550"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 3,
+    "sql": "SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'group_replication'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 4,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "PLUGINS",
+            "column_name": "PLUGIN_STATUS",
+            "column_label": "PLUGIN_STATUS",
+            "length": 40,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "ACTIVE"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "SELECT @@global.group_replication_ssl_mode"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 6,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@global.group_replication_ssl_mode",
+            "length": 32,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "DISABLED"
+        ]
+    ]
+},
+null]

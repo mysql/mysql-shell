@@ -176,7 +176,7 @@ Row::Row(std::shared_ptr<std::vector<std::string>> names_,
   for (uint32_t i = 0, c = row.num_fields(); i < c; i++) {
     const std::string &key = (*names_)[i];
     // Values would be available as properties if they are valid identifier
-    // and not base members like lenght and getField
+    // and not base members like length and getField
     // O on this case the values would be available as
     // row.property
     if (shcore::is_valid_identifier(key) && !has_member(key))

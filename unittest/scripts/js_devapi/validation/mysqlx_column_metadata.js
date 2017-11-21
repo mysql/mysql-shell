@@ -354,7 +354,7 @@
 |Column Name: eight|
 |Column Label: eight|
 |Type: <Type.SET>|
-|Length: 20|
+|Length: |
 |Fractional Digits: 0|
 |Is Number Signed: false|
 |Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|
@@ -368,7 +368,7 @@
 |Column Name: nine|
 |Column Label: nine|
 |Type: <Type.ENUM>|
-|Length: 4|
+|Length: |
 |Fractional Digits: 0|
 |Is Number Signed: false|
 |Collation Name: utf8mb4_general_ci//utf8mb4_0900_ai_ci|

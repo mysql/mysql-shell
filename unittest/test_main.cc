@@ -31,6 +31,7 @@
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mod_testutils.h"
 #include "utils/utils_path.h"
+#include "utils/utils_string.h"
 
 // Begin test configuration block
 
@@ -39,7 +40,7 @@ mysqlshdk::db::replay::Mode g_test_recording_mode =
     mysqlshdk::db::replay::Mode::Replay;
 
 // Default trace set (MySQL version) to be used for replay mode
-constexpr char k_default_replay_target[] = "8.0.3";
+std::string k_default_replay_target = "8.0.4";
 
 // End test configuration block
 
@@ -124,6 +125,8 @@ static void detect_mysql_environment(int port, const char *pwd) {
         MYSQL_RES *res = mysql_store_result(&mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           version = row[0];
+          auto ver_split = shcore::str_split(version, "-");
+          k_default_replay_target = ver_split[0];
           if (row[1] && strcmp(row[1], "1") == 0)
             have_ssl = true;
           if (row[2])
@@ -462,7 +465,7 @@ int main(int argc, char **argv) {
 #endif
   bool got_filter = false;
   bool reset_sandboxes = false;
-  const char *target = k_default_replay_target;
+  const char *target = k_default_replay_target.c_str();
 
   for (int index = 0; index < argc; index++) {
     if (shcore::str_beginswith(argv[index], "--gtest_filter")) {
@@ -480,10 +483,11 @@ int main(int argc, char **argv) {
     } else if (shcore::str_beginswith(argv[index], "--replay")) {
       g_test_recording_mode = mysqlshdk::db::replay::Mode::Replay;
       char *p = strchr(argv[index], '=');
-      if (p)
+      if (p) {
         target = p + 1;
-      else
-        target = k_default_replay_target;
+      } else {
+        target = k_default_replay_target.c_str();
+      }
     } else if (strcmp(argv[index], "--reset-sandboxes") == 0) {
       reset_sandboxes = true;
     }
