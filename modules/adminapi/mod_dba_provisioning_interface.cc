@@ -111,6 +111,11 @@ int ProvisioningInterface::execute_mysqlprovision(
 
     if (_local_mysqlprovision_path.empty()) {
       std::string tmp(get_mysqlx_home_path());
+
+      // If MYSQLX_HOME is unknown we try to get the binary dir
+      if (tmp.empty())
+        tmp = get_binary_folder();
+
 #ifdef _WIN32
       tmp.append("\\share\\mysqlsh\\mysqlprovision.zip");
 #else
