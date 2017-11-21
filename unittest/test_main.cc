@@ -528,8 +528,9 @@ int main(int argc, char **argv) {
   // On linux, we need to tell the UTs where the mysqlprovision executable is
   mppath.append("/../share/mysqlsh/mysqlprovision.zip");
 #else
+  // On windows mysqlprovision.zip, cmd and mysqlsh.exe need to be together
   mysqlsh_path = mppath + "\\mysqlshrec.exe";
-  mppath.append("\\share\\mysqlsh\\mysqlprovision.zip");
+  mppath.append("\\mysqlprovision.zip");
 #endif
   g_mysqlsh_argv0 = mysqlsh_path.c_str();
 

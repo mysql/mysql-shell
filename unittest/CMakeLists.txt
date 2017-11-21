@@ -142,7 +142,7 @@ if(WITH_TESTS)
       # Copies the mysqlprovision.zip to the binary folder
       add_custom_command(TARGET run_unit_tests PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy
-                          "${CMAKE_BINARY_DIR}/mysqlprovision.zip" $<TARGET_FILE_DIR:run_unit_tests>/mysqlprovision.zip)
+                          "${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip" $<TARGET_FILE_DIR:run_unit_tests>/mysqlprovision.zip)
 
       # Copies the mysqlsh.exe to the binary folder
       add_custom_command(TARGET run_unit_tests PRE_BUILD
