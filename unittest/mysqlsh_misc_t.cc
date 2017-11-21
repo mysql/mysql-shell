@@ -43,13 +43,16 @@ TEST_F(Mysqlsh_misc, trace_proto) {
   table: ""
   original_table: ""
   schema: ""
-  catalog: "def"
-  collation: 0
-  fractional_digits: 0
-  length: 1
+  catalog: "def")*";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected2);
+
+  // TODO(kg): optional fields are no longer send by X protocol. expected
+  // string split for test backward compatibility. Merge when testing with
+  // MySQL Server 8.0.3 will be dropped completely.
+  static const char *expected3 = R"*(length: 1
   flags: 16
 })*";
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected2);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected3);
 }
 
 TEST_F(Mysqlsh_misc, load_builtin_modules) {

@@ -118,7 +118,7 @@ same way no matter where they're executed.
 3. How to run tests
 
 By default, run_unit_tests will run in replay mode, using traces located in
-unittest/traces/8.0.3/
+unittest/traces/8.0.4/
 
 If --direct is given, the replayer will be disabled and the tests
 will run against the real database.
