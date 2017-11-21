@@ -24,8 +24,7 @@ except ImportError:
     from ordered_dict_backport import OrderedDict
 
 import datetime
-from mysql_gadgets.common import logging
-import os
+import logging
 import re
 import socket
 
@@ -47,11 +46,13 @@ from mysql_gadgets.common.req_checker import (ALL_OF,
                                               USER_PRIVILEGES,
                                               MTS_SETTINGS)
 from mysql_gadgets.common.config_parser import MySQLOptionsParser
+from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.common.server import get_server, generate_server_id
 from mysql_gadgets.common.user import (change_user_privileges, parse_user_host,
                                        User,)
 
 # Get common logger
+logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 # Four Column formatter
 _MAX_WIDTH = get_max_display_width()

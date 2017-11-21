@@ -19,6 +19,7 @@ Module to manage (read and write) MySQL option files.
 """
 
 from __future__ import print_function
+import logging
 import os
 import re
 import sys
@@ -29,8 +30,14 @@ try:
 except ImportError:
     from ordered_dict_backport import OrderedDict
 
-from mysql_gadgets.exceptions import GadgetConfigParserError
+from mysql_gadgets.exceptions import GadgetConfigParserError, GadgetError
 from mysql_gadgets.common.tools import get_abs_path
+from mysql_gadgets.common.logger import CustomLevelLogger
+
+# Get logger (must set class to custom logger to be used).
+logging.setLoggerClass(CustomLevelLogger)
+_LOGGER = logging.getLogger(__name__)
+
 
 PY2 = int(sys.version[0]) == 2
 # pylint: disable=F0401
@@ -98,6 +105,66 @@ def option_list_to_dictionary(opt_list):
             val = None
         res[opt_name] = val
     return res
+
+def create_option_file(section_dict, name, prefix_dir=None):
+    """ Create an option file from a dictionary of dictionaries.
+
+    :param section_dict: dictionary of dictionaries. The keys in the top level
+                         dictionary are sections and the values are
+                         dictionaries whose keys and values are the key:value
+                         pairs of the section.
+    :type section_dict:  {section1: {key: val, key2: val},
+                          section2: {key: val..}
+                          ..}
+    :param name: name of the config file.
+    :type name: str
+    :param prefix_dir: full path to a directory where we want the temporary
+                       file to be created. By default it uses the $HOME of the
+                       user.
+    :type prefix_dir: str
+    :return: string with full path to the created config file.
+    :rtype: str
+    """
+    if prefix_dir is None:
+        prefix_dir = os.path.expanduser("~")
+    else:  # check if prefix points to a valid folder
+        # normalize path and expand possible ~
+        prefix_dir = os.path.normpath(os.path.expanduser(prefix_dir))
+        if not os.path.isdir(prefix_dir):
+            raise GadgetError("prefix_dir '{0}' is not a valid folder. Check "
+                              "if it exists.".format(prefix_dir))
+    _LOGGER.debug("Creating option file under directory %s ...",
+                  prefix_dir)
+
+    f_path = os.path.join(prefix_dir, name)
+    if os.path.exists(f_path):
+        raise GadgetError("Unable to create option file '{0}' since a "
+                          "file of the same already exists."
+                          "".format(f_path))
+    try:
+        f_handler = os.open(f_path, os.O_CREAT | os.O_WRONLY | os.O_EXCL,
+                            0o600)
+    except (OSError, IOError) as err:
+        raise GadgetError("Unable to create named configuration "
+                          "file '{0}': {1}.".format(f_path, str(err)))
+    if f_handler:
+        os.close(f_handler)
+
+    _LOGGER.debug("Config file %s created successfully ", f_path)
+    # Create configuration file
+    config = MySQLOptionsParser(f_path)
+
+    _LOGGER.debug("Filling config parser object...")
+    # Fill it with contents from options
+    for section, section_d in section_dict.items():
+        config.add_section(section)
+        for key, val in section_d.items():
+            config.set(section, key, val)
+    _LOGGER.debug("Config parser object created.")
+    _LOGGER.debug("Writing contents of the configuration file")
+    config.write()
+    _LOGGER.debug("Config file %s successfully written.", f_path)
+    return f_path
 
 
 class MySQLOptionsParser(object):  # pylint: disable=R0901
@@ -280,9 +347,11 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                     comment_start = sys.maxsize
                     # strip inline comments
                     # pylint: disable=E1101
-                    inline_prefixes = {}
-                    for p in self._inline_comment_prefixes:
-                        inline_prefixes[p] = -1
+                    # Use dict comprehension syntax compatible with Python 2.6:
+                    # inline_prefixes = {p: -1 for p in
+                    #                    self._inline_comment_prefixes}
+                    inline_prefixes = dict(
+                        (p, -1) for p in self._inline_comment_prefixes)
                     while comment_start == sys.maxsize and inline_prefixes:
                         next_prefixes = {}
                         for prefix, index in inline_prefixes.items():
@@ -419,7 +488,10 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
         """
 
         if PY2:
-            kwargs = {'allow_no_value': True}
+            # NOTE: 'allow_no_value' parameter is not used due to compatibility
+            # with Python 2.6. However, we set self._optcre with a regexp that
+            # allow no value.
+            kwargs = {}
             # Monkey patch ConfigParser DEFAULTSECT value, in order to handle
             # the 'default' section like any other (not as a special one).
             import ConfigParser
@@ -988,8 +1060,8 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                                 "Write operation failed.  File '{0}' could "
                                 "not be parsed correctly, parsing error at "
                                 "line '{1}'.".format(self.filename, line))
-            # add missing options for last section
-            if not drop_section:
+            # add missing options for last section (if a section was read)
+            if not drop_section and cursect is not None:
                 parser_items = self._main_opt_parser.items(cursect)
                 written_new_options = False
                 for opt, val in parser_items:

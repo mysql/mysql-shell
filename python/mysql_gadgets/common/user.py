@@ -28,6 +28,7 @@ from mysql_gadgets.exceptions import (GadgetError,
                                       GadgetQueryError)
 from mysql_gadgets.common.connection_parser import (clean_IPv6,
                                                     parse_user_host,)
+from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.common.sql_utils import (is_quoted_with_backticks,
                                             quote_with_backticks,)
 
@@ -35,6 +36,8 @@ from mysql_gadgets.common.sql_utils import (is_quoted_with_backticks,
 ERROR_USER_WITHOUT_PRIVILEGES = ("User '{user}' on '{host}@{port}' does not "
                                  "have sufficient privileges to "
                                  "{operation} (required: {req_privileges}).")
+
+logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 
