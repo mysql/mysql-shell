@@ -15,15 +15,18 @@
 
 add_custom_command(OUTPUT mysqlprovision_zip
     COMMAND ${CMAKE_COMMAND} -E make_directory mysql_gadgets
+    COMMAND ${CMAKE_COMMAND} -E make_directory share/mysqlsh
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets mysql_gadgets
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/front_end/mysqlprovision.py __main__.py
     COMMAND zip -qr mysqlprovision.zip *py mysql_gadgets
+    COMMAND ${CMAKE_COMMAND} -E copy mysqlprovision.zip share/mysqlsh
+    COMMAND ${CMAKE_COMMAND} -E remove mysqlprovision.zip
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Creating mysqlprovision.zip"
 )
 
 add_custom_target(mysqlprovision ALL DEPENDS mysqlprovision_zip)
-install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
+install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
 IF (WITH_DEV)
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
 ENDIF()
