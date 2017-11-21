@@ -18,16 +18,13 @@
 Unit tests for mysql_gadgets.common.tools module.
 """
 import os
-import stat
 import subprocess
-import sys
 import time
 import unittest
 
 from mysql_gadgets.common import server
 
 from mysql_gadgets.common import tools
-from mysql_gadgets.common.config_parser import MySQLOptionsParser
 from mysql_gadgets.exceptions import GadgetError
 from unit_tests.utils import GadgetsTestCase, SERVER_CNX_OPT
 

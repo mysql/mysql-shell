@@ -144,8 +144,58 @@ int ProvisioningInterface::execute_mysqlprovision(
 
   setup_recorder_environment(cmd);
 
+  // Wrap arguments to be passed to mysqlprovision
+  shcore::Value wrapped_args(shcore::Value::new_array());
+  Argument_map kwargs_(kwargs);
+  kwargs_["verbose"] = shcore::Value(verbose);
+  wrapped_args.as_array()->push_back(value_from_argmap(kwargs_));
+  // Use a different wrapped args list with hidden passwords to show on the log
+  shcore::Value logged_wrapped_args(shcore::Value::new_array());
+  Argument_map logged_kwargs(kwargs_);
+  if (logged_kwargs.has_key("passwd"))
+    logged_kwargs["passwd"] = shcore::Value("****");
+  if (logged_kwargs.has_key("rep_user_passwd"))
+    logged_kwargs["rep_user_passwd"] = shcore::Value("****");
+  if (logged_kwargs.has_key("server")) {
+    Argument_map logged_server_opt(*logged_kwargs["server"].as_map());
+    if (logged_server_opt.has_key("passwd"))
+      logged_server_opt["passwd"] = shcore::Value("****");
+    if (logged_server_opt.has_key("password"))
+      logged_server_opt["password"] = shcore::Value("****");
+    logged_kwargs["server"] = value_from_argmap(logged_server_opt);
+  }
+  logged_wrapped_args.as_array()->push_back(value_from_argmap(logged_kwargs));
+  for (size_t i = 0; i < args.size(); i++) {
+    wrapped_args.as_array()->push_back(args[i]);
+    if (args[i].type == shcore::Map) {
+      Argument_map logged_args(*args[i].as_map());
+      if (logged_args.has_key("passwd"))
+        logged_args["passwd"] = shcore::Value("****");
+      if (logged_args.has_key("password"))
+        logged_args["password"] = shcore::Value("****");
+      logged_wrapped_args.as_array()->push_back(value_from_argmap(logged_args));
+    } else {
+      logged_wrapped_args.as_array()->push_back(args[i]);
+    }
+  }
+  // Create JSON string with wrapped arguments
+  std::string json = wrapped_args.json();
+  json += "\n.\n";
+
+  // Create JSON string with wrapped arguments to show in log (no passwords)
+  std::string logged_json = logged_wrapped_args.json();
+#ifndef NDEBUG
+#ifdef _WIN32
+  logged_json = "(echo(" +logged_json + "^&echo(.^&echo.)";
+#else
+  logged_json = "printf '" +logged_json + "\\n.\\n'";
+#endif
+#else
+  logged_json = "'" + logged_json + "\\n.\\n'";
+#endif
+
   std::string message =
-      "DBA: mysqlprovision: Executing " +
+      "DBA: mysqlprovision: Executing " + logged_json + " | " +
       shcore::str_join(&args_script[0], &args_script[args_script.size() - 1],
                        " ");
   log_info("%s", message.c_str());
@@ -176,17 +226,8 @@ int ProvisioningInterface::execute_mysqlprovision(
     stage_action = "starting";
     p.start();
 
-    shcore::Value wrapped_args(shcore::Value::new_array());
-    Argument_map kwargs_(kwargs);
-    kwargs_["verbose"] = shcore::Value(verbose);
-    wrapped_args.as_array()->push_back(value_from_argmap(kwargs_));
-    for (int i = 0; i < args.size(); i++)
-      wrapped_args.as_array()->push_back(args[i]);
-
     {
       stage_action = "executing";
-      std::string json = wrapped_args.json();
-      json += "\n.\n";
       p.write(json.c_str(), json.size());
     }
 

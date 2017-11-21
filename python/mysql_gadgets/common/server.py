@@ -34,9 +34,6 @@ import subprocess
 
 import mysqlsh
 
-CR_SERVER_LOST = 2013
-ER_OPTION_PREVENTS_STATEMENT = 1290
-
 from mysql_gadgets import MIN_MYSQL_VERSION, MAX_MYSQL_VERSION
 from mysql_gadgets.exceptions import (GadgetCnxInfoError, GadgetCnxError,
                                       GadgetQueryError, GadgetServerError,
@@ -44,15 +41,20 @@ from mysql_gadgets.exceptions import (GadgetCnxInfoError, GadgetCnxError,
 from mysql_gadgets.common.connection_parser import (parse_connection,
                                                     hostname_is_ip,
                                                     clean_IPv6,)
+from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.common.tools import (get_abs_path,
                                         is_executable, run_subprocess,
                                         shell_quote)
+
+CR_SERVER_LOST = 2013
+ER_OPTION_PREVENTS_STATEMENT = 1290
 
 _FOREIGN_KEY_SET = "SET foreign_key_checks = {0}"
 _AUTOCOMMIT_SET = "SET AUTOCOMMIT = {0}"
 _GTID_ERROR = ("The server {host}:{port} does not comply to the latest GTID "
                "feature support. Errors:")
 
+logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 

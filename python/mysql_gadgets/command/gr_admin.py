@@ -19,6 +19,7 @@
 This module contains the Group Replication Admin operation methods
 """
 
+import logging
 import random
 import textwrap
 import time
@@ -31,8 +32,7 @@ except ImportError:
 from mysql_gadgets.exceptions import GadgetError
 
 from mysql_gadgets.common.format import get_max_display_width
-from mysql_gadgets.common import logging
-from mysql_gadgets.common.logging import STEP_LOG_LEVEL_VALUE
+from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.common.server import get_server, LocalErrorLog
 from mysql_gadgets.common.group_replication import (
     check_gr_plugin_is_installed,
@@ -63,6 +63,7 @@ from mysql_gadgets.common.group_replication import (
     stop_gr_plugin, unset_bootstrap, validate_group_name)
 from mysql_gadgets.common.tools import is_listening
 
+logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 # Operations

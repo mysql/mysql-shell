@@ -29,8 +29,10 @@ try:
 except ImportError:
     from ordered_dict_backport import OrderedDict
 
+from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.exceptions import GadgetCnxFormatError
 
+logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 _BAD_CONN_FORMAT = (u"Connection '{0}' cannot be parsed. Please review the "

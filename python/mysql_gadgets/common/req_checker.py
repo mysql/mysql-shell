@@ -23,9 +23,11 @@ import logging
 
 from mysql_gadgets.exceptions import (GadgetError, GadgetQueryError)
 from mysql_gadgets.common.config_parser import MySQLOptionsParser
+from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.common.user import User
 
 # Get common logger
+logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SETTINGS = "CONFIG_SETTINGS"

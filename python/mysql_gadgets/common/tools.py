@@ -28,26 +28,17 @@ except ImportError:
     from pipes import quote
 
 import shlex
-from contextlib import closing
 import logging
 import os
 import signal
 import socket
 import subprocess
-import sys
-import tempfile
 
 from mysql_gadgets.common.constants import QUOTE_CHAR
+from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.exceptions import GadgetError
 
-# pylint: disable=C0411
-if sys.version_info > (3, 0):
-    # Python 3
-    import configparser  # pylint: disable=E0401,
-else:
-    # Python 2
-    import ConfigParser as configparser  # pylint: disable=E0401
-
+logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -225,74 +216,6 @@ def get_abs_path(path_string, relative_to=None):
                 relative_to = os.path.dirname(relative_to)
             return os.path.normpath(os.path.expanduser(
                 os.path.join(relative_to, path_string)))
-
-
-def create_option_file(section_dict, name=None, prefix_dir=None):
-    """ Create an option file from a dictionary of dictionaries.
-
-    :param section_dict: dictionary of dictionaries. The keys in the top level
-                         dictionary are sections and the values are
-                         dictionaries whose keys and values are the key:value
-                         pairs of the section.
-    :type section_dict:  {section1: {key: val, key2: val},
-                          section2: {key: val..}
-                          ..}
-    :param name: name of the config file. If no name is provided, a randomly
-                named option file is created.
-    :type name: str or None
-    :param prefix_dir: full path to a directory where we want the temporary
-                       file to be created. By default it uses the $HOME of the
-                       user.
-    :type prefix_dir: str
-    :return: string with full path to the created config file.
-    :rtype: str
-    """
-    if prefix_dir is None:
-        prefix_dir = os.path.expanduser("~")
-    else:  # check if prefix points to a valid folder
-        # normalize path and expand possible ~
-        prefix_dir = os.path.normpath(os.path.expanduser(prefix_dir))
-        if not os.path.isdir(prefix_dir):
-            raise GadgetError("prefix_dir '{0}' is not a valid folder. Check "
-                              "if it exists.".format(prefix_dir))
-    _LOGGER.debug("Creating option file under directory %s ...",
-                  prefix_dir)
-    if name:
-        f_path = os.path.join(prefix_dir, name)
-        if os.path.exists(f_path):
-            raise GadgetError("Unable to create option file '{0}' since a "
-                              "file of the same already exists."
-                              "".format(f_path))
-        try:
-            f_handler = os.open(f_path, os.O_CREAT | os.O_WRONLY | os.O_EXCL,
-                                0o600)
-        except (OSError, IOError) as err:
-            raise GadgetError("Unable to create named configuration "
-                              "file '{0}': {1}.".format(f_path, str(err)))
-    else:
-        try:
-            # create temporary file under prefix_dir
-            f_handler, f_path = tempfile.mkstemp(dir=prefix_dir, suffix=".cnf")
-        except (OSError, IOError) as err:
-            raise GadgetError("Unable to create randomly named configuration "
-                              "file in directory '{0}': {1}."
-                              "".format(prefix_dir, str(err)))
-    _LOGGER.debug("Config file %s created successfully ", f_path)
-    # Create configuration file
-    config = configparser.RawConfigParser(allow_no_value=True)
-
-    _LOGGER.debug("Filling config parser object...")
-    # Fill it with contents from options
-    for section, section_d in section_dict.items():
-        config.add_section(section)
-        for key, val in section_d.items():
-            config.set(section, key, val)
-    _LOGGER.debug("Config parser object created.")
-    _LOGGER.debug("Writing contents of the configuration file")
-    with closing(os.fdopen(f_handler, 'w')) as cnf_file:
-        config.write(cnf_file)
-    _LOGGER.debug("Config file %s successfully written.", f_path)
-    return f_path
 
 
 def get_subclass_dict(cls):
