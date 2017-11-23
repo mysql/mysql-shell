@@ -79,6 +79,76 @@ target_link_libraries(mysqlshrec
 
 install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
 
+if(WIN32 OR APPLE)
+
+  # In MySQL Server 8.0.4 and up, OpenSSL is linked dynamically and
+  # preferably linked against the system installed OpenSSL. But there
+  # is no standard system installed OpenSSL on macOS or Windows so we
+  # bundle the library copying it from the server install we link
+  # against.
+
+  set(OPENSSL_TO_BUNDLE_DIR)
+
+  if(WIN32)
+
+    if(EXISTS "${MYSQL_BUILD_DIR}/runtime_output_directory/RelWithDebInfo/ssleay32.dll")
+      set(OPENSSL_TO_BUNDLE_DIR "${MYSQL_BUILD_DIR}/runtime_output_directory/RelWithDebInfo")
+    elseif(WITH_SSL AND EXISTS "${WITH_SSL}/lib/ssleay32.dll")
+      set(OPENSSL_TO_BUNDLE_DIR "${WITH_SSL}/lib")
+    endif()
+
+    if(OPENSSL_TO_BUNDLE_DIR)
+      message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
+      install(FILES
+        "${OPENSSL_TO_BUNDLE_DIR}/ssleay32.dll"
+        "${OPENSSL_TO_BUNDLE_DIR}/libeay32.dll"
+        DESTINATION ${INSTALL_BINDIR}
+        COMPONENT main
+      )
+    endif()
+
+  elseif(APPLE)
+
+    if(EXISTS "${MYSQL_BUILD_DIR}/library_output_directory/libssl.dylib")
+      set(OPENSSL_TO_BUNDLE_DIR "${MYSQL_BUILD_DIR}/library_output_directory")
+    elseif(WITH_SSL AND EXISTS "${WITH_SSL}/lib/libssl.dylib")
+      set(OPENSSL_TO_BUNDLE_DIR "${WITH_SSL}/lib")
+    endif()
+
+    if(OPENSSL_TO_BUNDLE_DIR)
+      message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
+
+      # Find the "version" from the file name, it is the same
+      file(GLOB CRYPTO_VERSION  RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.*.*.*.dylib")
+      file(GLOB OPENSSL_VERSION RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libssl.*.*.*.dylib")
+
+      # Install/bundle the OpenSSL libraries including the soft links
+      install(FILES
+        "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.dylib"
+        "${OPENSSL_TO_BUNDLE_DIR}/libssl.dylib"
+        "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+        "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+        DESTINATION ${INSTALL_LIBDIR}
+        COMPONENT main
+      )
+
+      # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
+      add_custom_command(TARGET mysqlsh POST_BUILD
+        COMMAND install_name_tool -change
+                "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+                $<TARGET_FILE:mysqlsh>
+        COMMAND install_name_tool -change
+                "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
+                $<TARGET_FILE:mysqlsh>
+      )
+
+    endif()
+
+  endif()
+
+endif()
+
+
 if(WIN32)
   remove_definitions(-DUNICODE)
 
