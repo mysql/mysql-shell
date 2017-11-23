@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@parasol:3540"
+    "uri": "mysql://root:root@dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540"
 },
 {
     "type": "response",
@@ -45,7 +45,7 @@
     ],
     "rows": [
         [
-            "8f223b0c-cdca-11e7-bab3-f83441274313"
+            "200d97bb-d03b-11e7-a8fe-f83441274313"
         ]
     ]
 },

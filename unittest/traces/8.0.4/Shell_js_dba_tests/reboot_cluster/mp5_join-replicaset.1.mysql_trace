@@ -611,7 +611,7 @@
     ],
     "rows": [
         [
-            2110712051
+            1968255196
         ]
     ]
 },
@@ -1482,7 +1482,7 @@
     ],
     "rows": [
         [
-            2110712051
+            1968255196
         ]
     ]
 },
@@ -1700,7 +1700,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SET GLOBAL group_replication_group_name = 'a81bea3d-cdc6-11e7-b19e-f83441274313'"
+    "sql": "SET GLOBAL group_replication_group_name = 'bba9b1ca-d036-11e7-91be-f83441274313'"
 },
 {
     "type": "response",

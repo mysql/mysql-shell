@@ -573,7 +573,7 @@
     ],
     "rows": [
         [
-            2960379490
+            1239879695
         ]
     ]
 },
@@ -1571,9 +1571,9 @@
             0,
             0,
             "mysql_native_password",
-            "*F64760F37085C1817465C441FF238D8CB4229072",
+            "*7BDF8E4EC135D0A8398BB4F1EAF37F548B2D0BA8",
             "N",
-            "2017-11-20 08:41:08",
+            "2017-11-23 11:08:16",
             null,
             "N",
             "N",
@@ -2555,7 +2555,7 @@
             "mysql_native_password",
             "*81F5E21E35407D884A6CD4A731AEBFB6AF209E1B",
             "N",
-            "2017-11-20 08:40:28",
+            "2017-11-23 11:07:13",
             null,
             "N",
             "Y",
@@ -4022,7 +4022,7 @@
     ],
     "rows": [
         [
-            2960379490
+            1239879695
         ]
     ]
 },
@@ -4060,7 +4060,7 @@
     ],
     "rows": [
         [
-            "2c354208-cdc6-11e7-bb71-f83441274313"
+            "39219cbc-d036-11e7-86b0-f83441274313"
         ]
     ]
 },
@@ -4188,7 +4188,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "SET GLOBAL group_replication_group_name = '2c354208-cdc6-11e7-bb71-f83441274313'"
+    "sql": "SET GLOBAL group_replication_group_name = '39219cbc-d036-11e7-86b0-f83441274313'"
 },
 {
     "type": "response",
@@ -4728,7 +4728,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 183,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ 'h(-@>:V@w1s~*;*_+6D}@Z:]7;|n|W&/' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '0U>5_:I<.@#s=,K1(h^&%o$;[q-L=?+^' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

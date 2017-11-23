@@ -100,7 +100,7 @@
     ],
     "rows": [
         [
-            "0c8cdd36-cdc6-11e7-95de-f83441274313"
+            "0c3bf212-d036-11e7-a769-f83441274313"
         ]
     ]
 },
@@ -265,7 +265,7 @@
         ],
         [
             "group_replication_group_name",
-            "0c8cdd36-cdc6-11e7-95de-f83441274313"
+            "0c3bf212-d036-11e7-a769-f83441274313"
         ],
         [
             "group_replication_group_seeds",
@@ -416,7 +416,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "2"
         ]
     ]
 },

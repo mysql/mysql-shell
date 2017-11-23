@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@parasol:3540"
+    "uri": "mysql://root:root@dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540"
 },
 {
     "type": "response",
@@ -151,8 +151,8 @@
     ],
     "rows": [
         [
-            "8f223b0c-cdca-11e7-bab3-f83441274313",
-            "8f223b0c-cdca-11e7-bab3-f83441274313"
+            "200d97bb-d03b-11e7-a8fe-f83441274313",
+            "200d97bb-d03b-11e7-a8fe-f83441274313"
         ]
     ]
 },
@@ -160,7 +160,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8f223b0c-cdca-11e7-bab3-f83441274313'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '200d97bb-d03b-11e7-a8fe-f83441274313'"
 },
 {
     "type": "response",
@@ -385,11 +385,11 @@
     ],
     "rows": [
         [
-            "parasol-bin.000002",
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38-bin.000002",
             15475,
             "",
             "",
-            "8f223b0c-cdca-11e7-bab3-f83441274313:1-14,\n9616bbd0-cdca-11e7-b86a-f83441274313:1-11"
+            "200d97bb-d03b-11e7-a8fe-f83441274313:1-14,\n26e55881-d03b-11e7-84ca-f83441274313:1-11"
         ]
     ]
 },
@@ -611,7 +611,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '(t%&({5:G|,%p.I(h:%8m@F#;[3#*$;.' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '~@n=#Z*2S=?b?(7@<l%G1*:[u^&]<N<_' /*)*/ "
 },
 {
     "type": "response",
@@ -626,7 +626,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '(t%&({5:G|,%p.I(h:%8m@F#;[3#*$;.' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '~@n=#Z*2S=?b?(7@<l%G1*:[u^&]<N<_' /*)*/ "
 },
 {
     "type": "response",
@@ -745,7 +745,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 60,
-    "auto_increment_value": 4,
+    "auto_increment_value": 2,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -760,7 +760,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 62,
-    "auto_increment_value": 4,
+    "auto_increment_value": 2,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -792,13 +792,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 63,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (4, 'gr', 'pm', 'default', 1, IF('1', JSON_OBJECT('adopted', 'true'), '{}'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (2, 'gr', 'pm', 'default', 1, IF('1', JSON_OBJECT('adopted', 'true'), '{}'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 64,
-    "auto_increment_value": 4,
+    "auto_increment_value": 2,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -807,7 +807,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 65,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 4 WHERE cluster_id = 4"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 2 WHERE cluster_id = 2"
 },
 {
     "type": "response",
@@ -822,7 +822,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 67,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 4"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 2"
 },
 {
     "type": "response",
@@ -860,7 +860,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 69,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 4 AND addresses->'$.mysqlClassic' = 'parasol:3540'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 2 AND addresses->'$.mysqlClassic' = 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540'"
 },
 {
     "type": "response",
@@ -898,7 +898,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 71,
-    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '8f223b0c-cdca-11e7-bab3-f83441274313'"
+    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '200d97bb-d03b-11e7-a8fe-f83441274313'"
 },
 {
     "type": "response",
@@ -936,7 +936,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 73,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'parasol' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
@@ -1002,13 +1002,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 75,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('parasol', '', '')"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com', '', '')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 76,
-    "auto_increment_value": 4,
+    "auto_increment_value": 2,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -1017,13 +1017,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (4, 4, '8f223b0c-cdca-11e7-bab3-f83441274313', 'parasol:3540', 'HA', json_object('mysqlClassic', 'parasol:3540', 'mysqlX', 'parasol:35400', 'grLocal', 'localhost:13540'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (2, 2, '200d97bb-d03b-11e7-a8fe-f83441274313', 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540', 'HA', json_object('mysqlClassic', 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540', 'mysqlX', 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:35400', 'grLocal', 'localhost:13540'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 78,
-    "auto_increment_value": 4,
+    "auto_increment_value": 2,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -1038,7 +1038,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 80,
-    "auto_increment_value": 4,
+    "auto_increment_value": 2,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -1062,7 +1062,7 @@
     ],
     "rows": [
         [
-            "9616bbd0-cdca-11e7-b86a-f83441274313"
+            "26e55881-d03b-11e7-84ca-f83441274313"
         ]
     ]
 },
@@ -1070,7 +1070,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '9616bbd0-cdca-11e7-b86a-f83441274313') WHERE replicaset_id = 4"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '26e55881-d03b-11e7-84ca-f83441274313') WHERE replicaset_id = 2"
 },
 {
     "type": "response",
@@ -1115,10 +1115,10 @@
     ],
     "rows": [
         [
-            "8f223b0c-cdca-11e7-bab3-f83441274313"
+            "200d97bb-d03b-11e7-a8fe-f83441274313"
         ],
         [
-            "932e297d-cdca-11e7-8533-f83441274313"
+            "24066699-d03b-11e7-ac15-f83441274313"
         ]
     ]
 },
@@ -1126,7 +1126,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 4"
+    "sql": "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 2"
 },
 {
     "type": "response",
@@ -1156,7 +1156,7 @@
     ],
     "rows": [
         [
-            "8f223b0c-cdca-11e7-bab3-f83441274313"
+            "200d97bb-d03b-11e7-a8fe-f83441274313"
         ]
     ]
 },
@@ -1164,7 +1164,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 87,
-    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '932e297d-cdca-11e7-8533-f83441274313'"
+    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '24066699-d03b-11e7-ac15-f83441274313'"
 },
 {
     "type": "response",
@@ -1226,8 +1226,8 @@
     ],
     "rows": [
         [
-            "932e297d-cdca-11e7-8533-f83441274313",
-            "parasol",
+            "24066699-d03b-11e7-ac15-f83441274313",
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com",
             3550
         ]
     ]
@@ -1236,7 +1236,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 89,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'parasol' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
@@ -1298,8 +1298,8 @@
     ],
     "rows": [
         [
-            4,
-            "parasol",
+            2,
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com",
             ""
         ]
     ]
@@ -1308,13 +1308,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (4, 4, '932e297d-cdca-11e7-8533-f83441274313', 'parasol:3550', 'HA', json_object('mysqlClassic', 'parasol:3550', 'mysqlX', 'parasol:35500', 'grLocal', 'localhost:13550'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (2, 2, '24066699-d03b-11e7-ac15-f83441274313', 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3550', 'HA', json_object('mysqlClassic', 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3550', 'mysqlX', 'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:35500', 'grLocal', 'localhost:13550'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 92,
-    "auto_increment_value": 11,
+    "auto_increment_value": 9,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -1460,8 +1460,8 @@
     ],
     "rows": [
         [
-            "8f223b0c-cdca-11e7-bab3-f83441274313",
-            "8f223b0c-cdca-11e7-bab3-f83441274313"
+            "200d97bb-d03b-11e7-a8fe-f83441274313",
+            "200d97bb-d03b-11e7-a8fe-f83441274313"
         ]
     ]
 },
@@ -1469,7 +1469,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 101,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8f223b0c-cdca-11e7-bab3-f83441274313'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '200d97bb-d03b-11e7-a8fe-f83441274313'"
 },
 {
     "type": "response",
@@ -1647,7 +1647,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "8f223b0c-cdca-11e7-bab3-f83441274313"
+            "200d97bb-d03b-11e7-a8fe-f83441274313"
         ]
     ]
 },
@@ -1693,7 +1693,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 4"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 2"
 },
 {
     "type": "response",
@@ -1787,17 +1787,17 @@
     ],
     "rows": [
         [
-            "8f223b0c-cdca-11e7-bab3-f83441274313",
-            "parasol:3540",
+            "200d97bb-d03b-11e7-a8fe-f83441274313",
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540",
             "HA",
-            "parasol:3540",
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540",
             "ONLINE"
         ],
         [
-            "932e297d-cdca-11e7-8533-f83441274313",
-            "parasol:3550",
+            "24066699-d03b-11e7-ac15-f83441274313",
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3550",
             "HA",
-            "parasol:3550",
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3550",
             "ONLINE"
         ]
     ]

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "foo:bar@parasol:3560?ssl-mode=PREFERRED"
+    "uri": "foo:bar@dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3560?ssl-mode=PREFERRED"
 },
 {
     "type": "response",
@@ -100,7 +100,7 @@
     ],
     "rows": [
         [
-            3989927604
+            4232576633
         ]
     ]
 },

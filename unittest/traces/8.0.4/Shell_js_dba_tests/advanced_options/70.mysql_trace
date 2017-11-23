@@ -175,8 +175,8 @@
     ],
     "rows": [
         [
-            "a85ddf16-cdcb-11e7-9040-f83441274313",
-            "a85ddf16-cdcb-11e7-9040-f83441274313"
+            "4e89417b-d03c-11e7-b7d1-f83441274313",
+            "4e89417b-d03c-11e7-b7d1-f83441274313"
         ]
     ]
 },
@@ -184,7 +184,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a85ddf16-cdcb-11e7-9040-f83441274313'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4e89417b-d03c-11e7-b7d1-f83441274313'"
 },
 {
     "type": "response",
@@ -387,9 +387,9 @@
     ],
     "rows": [
         [
-            17,
+            21,
             "test",
-            17,
+            21,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -438,7 +438,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "SELECT replicaset_name, topology_type FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 17"
+    "sql": "SELECT replicaset_name, topology_type FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 21"
 },
 {
     "type": "response",
@@ -569,7 +569,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "SELECT JSON_UNQUOTE(JSON_EXTRACT(attributes, \"$.group_replication_group_name\")) AS group_replication_group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 17"
+    "sql": "SELECT JSON_UNQUOTE(JSON_EXTRACT(attributes, \"$.group_replication_group_name\")) AS group_replication_group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 21"
 },
 {
     "type": "response",
@@ -729,8 +729,8 @@
     ],
     "rows": [
         [
-            "a85ddf16-cdcb-11e7-9040-f83441274313",
-            "a85ddf16-cdcb-11e7-9040-f83441274313"
+            "4e89417b-d03c-11e7-b7d1-f83441274313",
+            "4e89417b-d03c-11e7-b7d1-f83441274313"
         ]
     ]
 },
@@ -738,7 +738,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a85ddf16-cdcb-11e7-9040-f83441274313'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4e89417b-d03c-11e7-b7d1-f83441274313'"
 },
 {
     "type": "response",
@@ -846,7 +846,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 17"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 21"
 },
 {
     "type": "response",
@@ -884,7 +884,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "SELECT mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host FROM performance_schema.replication_group_members g JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid WHERE g.member_state = 'ONLINE' AND replicaset_id = 17"
+    "sql": "SELECT mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host FROM performance_schema.replication_group_members g JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid WHERE g.member_state = 'ONLINE' AND replicaset_id = 21"
 },
 {
     "type": "response",
@@ -962,7 +962,7 @@
     ],
     "rows": [
         [
-            "a85ddf16-cdcb-11e7-9040-f83441274313",
+            "4e89417b-d03c-11e7-b7d1-f83441274313",
             "localhost:3560",
             "HA",
             "localhost:3560"
@@ -1011,7 +1011,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 17"
+    "sql": "SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 21"
 },
 {
     "type": "response",
@@ -1087,7 +1087,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 17"
+    "sql": "SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 21"
 },
 {
     "type": "response",
@@ -1117,7 +1117,7 @@
     ],
     "rows": [
         [
-            17
+            21
         ]
     ]
 },
@@ -1125,7 +1125,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 51,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = 17"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = 21"
 },
 {
     "type": "response",
@@ -1140,7 +1140,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 53,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances where replicaset_id = 17"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances where replicaset_id = 21"
 },
 {
     "type": "response",
@@ -1155,7 +1155,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 55,
-    "sql": "delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 17"
+    "sql": "delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 21"
 },
 {
     "type": "response",
@@ -1276,7 +1276,7 @@
     ],
     "rows": [
         [
-            17
+            21
         ]
     ]
 },
@@ -1352,7 +1352,7 @@
     ],
     "rows": [
         [
-            17
+            21
         ]
     ]
 },
@@ -1360,7 +1360,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 67,
-    "sql": "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = 17"
+    "sql": "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = 21"
 },
 {
     "type": "response",
@@ -1506,7 +1506,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 69,
-    "sql": "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = 17"
+    "sql": "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = 21"
 },
 {
     "type": "response",
@@ -1598,7 +1598,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "a85ddf16-cdcb-11e7-9040-f83441274313"
+            "4e89417b-d03c-11e7-b7d1-f83441274313"
         ]
     ]
 },
