@@ -90,6 +90,10 @@ TEST_F(Shell_js_mysqlx_tests, mysqlx_session) {
   validate_interactive("mysqlx_session.js");
 }
 
+TEST_F(Shell_js_mysqlx_tests, mysqlx_session_help) {
+  validate_interactive("mysqlx_session_help.js");
+}
+
 TEST_F(Shell_js_mysqlx_tests, mysqlx_schema) {
   validate_interactive("mysqlx_schema.js");
 }
