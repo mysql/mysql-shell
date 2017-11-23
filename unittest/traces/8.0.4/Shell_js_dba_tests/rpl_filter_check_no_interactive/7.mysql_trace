@@ -147,7 +147,7 @@
     ],
     "rows": [
         [
-            "parasol-bin.000003",
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38-bin.000003",
             151,
             "",
             "db1,mysql_innodb_cluster_metadata,db2,db1,mysql_innodb_cluster_metadata,db2",

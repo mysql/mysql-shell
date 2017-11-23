@@ -573,7 +573,7 @@
     ],
     "rows": [
         [
-            3642173803
+            2989449
         ]
     ]
 },
@@ -1571,9 +1571,9 @@
             0,
             0,
             "mysql_native_password",
-            "*7FB7C02F98515878E277857D93526A0D9343929A",
+            "*2BC36A51992F33DE6014D35CD6277C20EEC80017",
             "N",
-            "2017-11-20 08:49:13",
+            "2017-11-23 11:17:22",
             null,
             "N",
             "N",
@@ -2555,7 +2555,7 @@
             "mysql_native_password",
             "*81F5E21E35407D884A6CD4A731AEBFB6AF209E1B",
             "N",
-            "2017-11-20 08:48:57",
+            "2017-11-23 11:17:04",
             null,
             "N",
             "Y",
@@ -4022,7 +4022,7 @@
     ],
     "rows": [
         [
-            3642173803
+            2989449
         ]
     ]
 },
@@ -4060,7 +4060,7 @@
     ],
     "rows": [
         [
-            "4d690662-cdc7-11e7-b24f-f83441274313"
+            "7ef0f228-d037-11e7-83e2-f83441274313"
         ]
     ]
 },
@@ -4188,7 +4188,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "SET GLOBAL group_replication_group_name = '4d690662-cdc7-11e7-b24f-f83441274313'"
+    "sql": "SET GLOBAL group_replication_group_name = '7ef0f228-d037-11e7-83e2-f83441274313'"
 },
 {
     "type": "response",
@@ -4368,7 +4368,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 135,
-    "sql": "SET GLOBAL auto_increment_offset = 3"
+    "sql": "SET GLOBAL auto_increment_offset = 2"
 },
 {
     "type": "response",
@@ -4728,7 +4728,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 183,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '8J2~R(l]{1{>#(@c?T#u>b=|;+*(W[:}' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '>(G?&J{3m%e=&|[R_.+5%~;0:*+k>})v' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

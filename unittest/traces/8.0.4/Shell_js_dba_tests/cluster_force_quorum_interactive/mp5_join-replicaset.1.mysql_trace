@@ -611,7 +611,7 @@
     ],
     "rows": [
         [
-            3806913917
+            3060092158
         ]
     ]
 },
@@ -1482,7 +1482,7 @@
     ],
     "rows": [
         [
-            3806913917
+            3060092158
         ]
     ]
 },
@@ -1700,7 +1700,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SET GLOBAL group_replication_group_name = '6850c054-cdc6-11e7-bc72-f83441274313'"
+    "sql": "SET GLOBAL group_replication_group_name = '78f464ce-d036-11e7-a735-f83441274313'"
 },
 {
     "type": "response",

@@ -611,7 +611,7 @@
     ],
     "rows": [
         [
-            4182569263
+            984772030
         ]
     ]
 },
@@ -1482,7 +1482,7 @@
     ],
     "rows": [
         [
-            4182569263
+            984772030
         ]
     ]
 },
@@ -1700,7 +1700,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SET GLOBAL group_replication_group_name = 'e9421ad5-cdc6-11e7-851d-f83441274313'"
+    "sql": "SET GLOBAL group_replication_group_name = '0a2a5674-d037-11e7-924f-f83441274313'"
 },
 {
     "type": "response",

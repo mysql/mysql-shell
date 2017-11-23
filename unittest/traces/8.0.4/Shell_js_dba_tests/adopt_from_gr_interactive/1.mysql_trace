@@ -68,7 +68,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "CREATE USER 'root'@'parasol' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -83,7 +83,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'parasol' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com' WITH GRANT OPTION"
 },
 {
     "type": "response",

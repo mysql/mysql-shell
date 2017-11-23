@@ -1,6 +1,6 @@
 {
-    "hostname": "parasol",
-    "hostname_ip": "127.0.1.1",
+    "hostname": "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com",
+    "hostname_ip": "10.175.194.38",
     "sandbox_port1": "3540",
     "sandbox_port2": "3550",
     "sandbox_port3": "3560"

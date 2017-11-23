@@ -611,7 +611,7 @@
     ],
     "rows": [
         [
-            11023718
+            227546764
         ]
     ]
 },
@@ -1486,7 +1486,7 @@
     ],
     "rows": [
         [
-            11023718
+            227546764
         ]
     ]
 },
@@ -1704,7 +1704,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SET GLOBAL group_replication_group_name = '4c6d0ef8-cdcb-11e7-9e19-f83441274313'"
+    "sql": "SET GLOBAL group_replication_group_name = 'f7f9c613-d03b-11e7-acea-f83441274313'"
 },
 {
     "type": "response",
@@ -2244,7 +2244,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 157,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000008' /*)*/, MASTER_PASSWORD = /*(*/ ':#I}:4s=q5^?H+>D-#M-]2>a;.{*>t,;' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000008' /*)*/, MASTER_PASSWORD = /*(*/ '|;n/]Z=&#6>c7N1A|#][|~l_}R>?a|.>' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

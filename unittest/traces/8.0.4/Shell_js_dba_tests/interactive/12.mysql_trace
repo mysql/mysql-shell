@@ -321,11 +321,11 @@
     ],
     "rows": [
         [
-            "parasol-bin.000002",
-            18315,
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38-bin.000002",
+            18235,
             "",
             "",
-            "0d47ddf9-cdc5-11e7-a10e-f83441274313:1-3,\nf8f255dd-cdc4-11e7-827c-f83441274313:1-20,\nffe5e0ac-cdc4-11e7-a10e-f83441274313:1-3"
+            "01d89d54-d035-11e7-9385-f83441274313:1-3,\ned7526eb-d034-11e7-a77e-f83441274313:1-20,\nf486d613-d034-11e7-9385-f83441274313:1-3"
         ]
     ]
 },
@@ -416,7 +416,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ 'E;}(5Z+X[~&#~}:z}(8n?e;2)V;~|/m?' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '?C.&$t>5~Q.;u3>P*o%8,<Z#}c/*}(],' /*)*/ "
 },
 {
     "type": "response",
@@ -431,7 +431,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ 'E;}(5Z+X[~&#~}:z}(8n?e;2)V;~|/m?' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '?C.&$t>5~Q.;u3>P*o%8,<Z#}c/*}(],' /*)*/ "
 },
 {
     "type": "response",
@@ -550,7 +550,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 44,
-    "auto_increment_value": 12,
+    "auto_increment_value": 15,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -559,13 +559,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (12, 'gr', 'pm', 'default', 1, IF('0', JSON_OBJECT('adopted', 'true'), '{}'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (15, 'gr', 'pm', 'default', 1, IF('0', JSON_OBJECT('adopted', 'true'), '{}'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 46,
-    "auto_increment_value": 12,
+    "auto_increment_value": 15,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -574,7 +574,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 12 WHERE cluster_id = 12"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 15 WHERE cluster_id = 15"
 },
 {
     "type": "response",
@@ -589,7 +589,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 12"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 15"
 },
 {
     "type": "response",
@@ -627,7 +627,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 51,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 12 AND addresses->'$.mysqlClassic' = 'localhost:3540'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 15 AND addresses->'$.mysqlClassic' = 'localhost:3540'"
 },
 {
     "type": "response",
@@ -737,13 +737,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 55,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 12, 'f8f255dd-cdc4-11e7-827c-f83441274313', 'localhost:3540', 'HA', json_object('mysqlClassic', 'localhost:3540', 'mysqlX', 'localhost:35400', 'grLocal', 'localhost:13540'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 15, 'ed7526eb-d034-11e7-a77e-f83441274313', 'localhost:3540', 'HA', json_object('mysqlClassic', 'localhost:3540', 'mysqlX', 'localhost:35400', 'grLocal', 'localhost:13540'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 56,
-    "auto_increment_value": 12,
+    "auto_increment_value": 15,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -758,7 +758,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 58,
-    "auto_increment_value": 12,
+    "auto_increment_value": 15,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -782,7 +782,7 @@
     ],
     "rows": [
         [
-            "1a9e2ea9-cdc5-11e7-a10e-f83441274313"
+            "0f503bea-d035-11e7-9385-f83441274313"
         ]
     ]
 },
@@ -790,7 +790,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '1a9e2ea9-cdc5-11e7-a10e-f83441274313') WHERE replicaset_id = 12"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '0f503bea-d035-11e7-9385-f83441274313') WHERE replicaset_id = 15"
 },
 {
     "type": "response",

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@parasol:3540"
+    "uri": "mysql://root:root@dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540"
 },
 {
     "type": "response",
@@ -45,7 +45,7 @@
     ],
     "rows": [
         [
-            "root@localhost"
+            "root@dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com"
         ]
     ]
 },
@@ -53,7 +53,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'localhost\\''"
+    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com\\''"
 },
 {
     "type": "response",
@@ -219,18 +219,6 @@
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
-            "YES"
-        ],
-        [
-            "SYSTEM_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
-            "YES"
-        ],
-        [
             "ROLE_ADMIN",
             "YES"
         ],
@@ -239,19 +227,11 @@
             "YES"
         ],
         [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
             "REPLICATION_SLAVE_ADMIN",
             "YES"
         ],
         [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
+            "RESOURCE_GROUP_ADMIN",
             "YES"
         ],
         [
@@ -259,7 +239,11 @@
             "YES"
         ],
         [
-            "CONNECTION_ADMIN",
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
             "YES"
         ],
         [
@@ -267,7 +251,23 @@
             "YES"
         ],
         [
-            "BACKUP_ADMIN",
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "XA_RECOVER_ADMIN",
             "YES"
         ]
     ]

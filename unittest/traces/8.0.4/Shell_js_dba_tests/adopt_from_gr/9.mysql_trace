@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@parasol:3540"
+    "uri": "mysql://root:root@dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com:3540"
 },
 {
     "type": "response",
@@ -15,7 +15,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@datadir"
+    "sql": "select @@report_host, @@hostname"
 },
 {
     "type": "response",
@@ -31,8 +31,24 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@datadir",
-            "length": 252,
+            "column_label": "@@report_host",
+            "length": 0,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@hostname",
+            "length": 216,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -45,7 +61,8 @@
     ],
     "rows": [
         [
-            "/home/kg/repo/ngshell/bld-clang_head/unittest/3540/sandboxdata/"
+            null,
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com"
         ]
     ]
 },
@@ -147,11 +164,11 @@
     ],
     "rows": [
         [
-            "parasol-bin.000002",
-            26117,
+            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38-bin.000002",
+            26085,
             "",
             "",
-            "8f223b0c-cdca-11e7-bab3-f83441274313:1-14,\n9616bbd0-cdca-11e7-b86a-f83441274313:1-25"
+            "200d97bb-d03b-11e7-a8fe-f83441274313:1-14,\n26e55881-d03b-11e7-84ca-f83441274313:1-25"
         ]
     ]
 },
@@ -303,7 +320,7 @@
     ],
     "rows": [
         [
-            "8f223b0c-cdca-11e7-bab3-f83441274313"
+            "200d97bb-d03b-11e7-a8fe-f83441274313"
         ]
     ]
 },

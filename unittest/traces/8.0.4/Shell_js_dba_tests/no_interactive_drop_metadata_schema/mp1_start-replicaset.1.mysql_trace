@@ -573,7 +573,7 @@
     ],
     "rows": [
         [
-            4078700398
+            3216672884
         ]
     ]
 },
@@ -1571,9 +1571,9 @@
             0,
             0,
             "mysql_native_password",
-            "*FE1392A4263DC6CF65ACA675035C3C80EB295DDB",
+            "*A08B49F41F39D644AA56A020C421FFEF81DC43EB",
             "N",
-            "2017-11-20 08:50:21",
+            "2017-11-23 11:18:35",
             null,
             "N",
             "N",
@@ -2555,7 +2555,7 @@
             "mysql_native_password",
             "*81F5E21E35407D884A6CD4A731AEBFB6AF209E1B",
             "N",
-            "2017-11-20 08:50:21",
+            "2017-11-23 11:18:30",
             null,
             "N",
             "Y",
@@ -4022,7 +4022,7 @@
     ],
     "rows": [
         [
-            4078700398
+            3216672884
         ]
     ]
 },
@@ -4060,7 +4060,7 @@
     ],
     "rows": [
         [
-            "760d7a43-cdc7-11e7-b336-f83441274313"
+            "aa63db69-d037-11e7-85a9-f83441274313"
         ]
     ]
 },
@@ -4188,7 +4188,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "SET GLOBAL group_replication_group_name = '760d7a43-cdc7-11e7-b336-f83441274313'"
+    "sql": "SET GLOBAL group_replication_group_name = 'aa63db69-d037-11e7-85a9-f83441274313'"
 },
 {
     "type": "response",
@@ -4368,7 +4368,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 135,
-    "sql": "SET GLOBAL auto_increment_offset = 4"
+    "sql": "SET GLOBAL auto_increment_offset = 6"
 },
 {
     "type": "response",
@@ -4728,7 +4728,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 183,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '),&O:4P.$3%.(~b:%^%u$~+q[>K|,9y}' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '|R$g->$=*5,)j^I1^0/?-/)d,}Z&B(/~' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

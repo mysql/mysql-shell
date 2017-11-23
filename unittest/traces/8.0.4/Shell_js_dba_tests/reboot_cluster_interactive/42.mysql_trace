@@ -423,19 +423,19 @@
     ],
     "rows": [
         [
-            "c7645acf-cdc6-11e7-95ec-f83441274313",
+            "e0f3f432-d036-11e7-8890-f83441274313",
             "localhost:3540",
             "HA",
             "localhost:3540"
         ],
         [
-            "cb63db96-cdc6-11e7-a915-f83441274313",
+            "ec3fe1ce-d036-11e7-98aa-f83441274313",
             "localhost:3550",
             "HA",
             "localhost:3550"
         ],
         [
-            "e64a35b5-cdc6-11e7-8dec-f83441274313",
+            "014ebd52-d037-11e7-bf98-f83441274313",
             "localhost:3560",
             "HA",
             "localhost:3560"
@@ -740,19 +740,19 @@
     ],
     "rows": [
         [
-            "c7645acf-cdc6-11e7-95ec-f83441274313",
+            "e0f3f432-d036-11e7-8890-f83441274313",
             "localhost:3540",
             "HA",
             "localhost:3540"
         ],
         [
-            "cb63db96-cdc6-11e7-a915-f83441274313",
+            "ec3fe1ce-d036-11e7-98aa-f83441274313",
             "localhost:3550",
             "HA",
             "localhost:3550"
         ],
         [
-            "e64a35b5-cdc6-11e7-8dec-f83441274313",
+            "014ebd52-d037-11e7-bf98-f83441274313",
             "localhost:3560",
             "HA",
             "localhost:3560"
@@ -1463,19 +1463,19 @@
     ],
     "rows": [
         [
-            "c7645acf-cdc6-11e7-95ec-f83441274313",
+            "e0f3f432-d036-11e7-8890-f83441274313",
             "localhost:3540",
             "HA",
             "localhost:3540"
         ],
         [
-            "cb63db96-cdc6-11e7-a915-f83441274313",
+            "ec3fe1ce-d036-11e7-98aa-f83441274313",
             "localhost:3550",
             "HA",
             "localhost:3550"
         ],
         [
-            "e64a35b5-cdc6-11e7-8dec-f83441274313",
+            "014ebd52-d037-11e7-bf98-f83441274313",
             "localhost:3560",
             "HA",
             "localhost:3560"
@@ -1856,19 +1856,19 @@
     ],
     "rows": [
         [
-            "c7645acf-cdc6-11e7-95ec-f83441274313",
+            "e0f3f432-d036-11e7-8890-f83441274313",
             "localhost:3540",
             "HA",
             "localhost:3540"
         ],
         [
-            "cb63db96-cdc6-11e7-a915-f83441274313",
+            "ec3fe1ce-d036-11e7-98aa-f83441274313",
             "localhost:3550",
             "HA",
             "localhost:3550"
         ],
         [
-            "e64a35b5-cdc6-11e7-8dec-f83441274313",
+            "014ebd52-d037-11e7-bf98-f83441274313",
             "localhost:3560",
             "HA",
             "localhost:3560"
@@ -2173,19 +2173,19 @@
     ],
     "rows": [
         [
-            "c7645acf-cdc6-11e7-95ec-f83441274313",
+            "e0f3f432-d036-11e7-8890-f83441274313",
             "localhost:3540",
             "HA",
             "localhost:3540"
         ],
         [
-            "cb63db96-cdc6-11e7-a915-f83441274313",
+            "ec3fe1ce-d036-11e7-98aa-f83441274313",
             "localhost:3550",
             "HA",
             "localhost:3550"
         ],
         [
-            "e64a35b5-cdc6-11e7-8dec-f83441274313",
+            "014ebd52-d037-11e7-bf98-f83441274313",
             "localhost:3560",
             "HA",
             "localhost:3560"
@@ -2226,7 +2226,7 @@
     ],
     "rows": [
         [
-            "c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29"
+            "0a2a5674-d037-11e7-924f-f83441274313:1-29,\ne0f3f432-d036-11e7-8890-f83441274313:1-20"
         ]
     ]
 },
@@ -2234,7 +2234,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 71,
-    "sql": "SELECT GTID_SUBSET('c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29', 'c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29')"
+    "sql": "SELECT GTID_SUBSET('0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20', '0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20')"
 },
 {
     "type": "response",
@@ -2250,7 +2250,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29', 'c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29')",
+            "column_label": "GTID_SUBSET('0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20', '0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -2272,7 +2272,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 73,
-    "sql": "SELECT GTID_SUBSET('c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29', 'c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29')"
+    "sql": "SELECT GTID_SUBSET('0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20', '0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20')"
 },
 {
     "type": "response",
@@ -2288,7 +2288,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29', 'c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29')",
+            "column_label": "GTID_SUBSET('0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20', '0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -2310,7 +2310,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 75,
-    "sql": "SELECT GTID_SUBSET('c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29', 'c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29')"
+    "sql": "SELECT GTID_SUBSET('0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20', '0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20')"
 },
 {
     "type": "response",
@@ -2326,7 +2326,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29', 'c7645acf-cdc6-11e7-95ec-f83441274313:1-20,\\ne9421ad5-cdc6-11e7-851d-f83441274313:1-29')",
+            "column_label": "GTID_SUBSET('0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20', '0a2a5674-d037-11e7-924f-f83441274313:1-29,\\ne0f3f432-d036-11e7-8890-f83441274313:1-20')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -2454,7 +2454,7 @@
     ],
     "rows": [
         [
-            "e9421ad5-cdc6-11e7-851d-f83441274313"
+            "0a2a5674-d037-11e7-924f-f83441274313"
         ]
     ]
 },
@@ -2583,7 +2583,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 93,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000006'@'%' IDENTIFIED BY /*(*/ '<^q_%0f<*m.7$@,*-&Q?[()J}1+<+[.G' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000006'@'%' IDENTIFIED BY /*(*/ '>?q5@=0^@r/7{^M./#,I$/=d]P.?e+*>' /*)*/ "
 },
 {
     "type": "response",
@@ -2598,7 +2598,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 95,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000006'@'localhost' IDENTIFIED BY /*(*/ '<^q_%0f<*m.7$@,*-&Q?[()J}1+<+[.G' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000006'@'localhost' IDENTIFIED BY /*(*/ '>?q5@=0^@r/7{^M./#,I$/=d]P.?e+*>' /*)*/ "
 },
 {
     "type": "response",
