@@ -968,7 +968,12 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
       {"getUri", ""},
       {"close", ""},
       {"help", ""},
-      {"quoteName", ""}};
+      {"quoteName", ""},
+      {"startTransaction", "()"},
+      {"setSavepoint", "('name')"},
+      {"rollbackTo", "('name')"},
+      {"releaseSavepoint", "('name')"},
+      {"rollback", "()"}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 
   std::vector<std::pair<std::string, std::string>> db_calls{

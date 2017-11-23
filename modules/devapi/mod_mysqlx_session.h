@@ -87,6 +87,9 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
   SqlExecute sql(String sql);
   String quoteName(String id);
+  String setSavepoint(String name = "");
+  Undefined releaseSavepoint(String name);
+  Undefined rollbackTo(String name);
  private:
 #elif DOXYGEN_PY
   str uri;                //!< Same as get_uri()
@@ -110,6 +113,9 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
   SqlExecute sql(str sql);
   str quote_name(str id);
+  str set_savepoint(str name = "");
+  None release_savepoint(str name);
+  None rollback_to(str name);
  private:
 #endif
 
@@ -155,6 +161,9 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   shcore::Value sql(const shcore::Argument_list &args);
   shcore::Value quote_name(const shcore::Argument_list &args);
 
+  shcore::Value _set_savepoint(const shcore::Argument_list &args);
+  shcore::Value _release_savepoint(const shcore::Argument_list &args);
+  shcore::Value _rollback_to(const shcore::Argument_list &args);
 
   virtual bool is_open() const;
   virtual shcore::Value::Map_type_ref get_status();
@@ -241,6 +250,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   bool _case_sensitive_table_names;
   void init();
   uint64_t _connection_id;
+  uint64_t _savepoint_counter;
 
  private:
   void reset_session();

@@ -82,7 +82,7 @@ REGISTER_HELP(SESSION_DETAIL6, "@li Retrieval of connection information.");
 REGISTER_HELP(SESSION_INTERACTIVE_BRIEF,
               "Represents the currently open MySQL session.");
 
-Session::Session() : _case_sensitive_table_names(false) {
+Session::Session() : _case_sensitive_table_names(false), _savepoint_counter(0) {
   init();
 }
 
@@ -120,7 +120,8 @@ shcore::Value Session::_is_open(const shcore::Argument_list &args) {
 Session::Session(const Session &s)
     : ShellBaseSession(s),
       std::enable_shared_from_this<Session>(s),
-      _case_sensitive_table_names(false) {
+      _case_sensitive_table_names(false),
+      _savepoint_counter(0) {
   init();
 }
 
@@ -146,6 +147,11 @@ void Session::init() {
              NULL);
   add_method("dropSchema", std::bind(&Session::_drop_schema, this, _1),
              "data");
+  add_method("setSavepoint", std::bind(&Session::_set_savepoint, this, _1),
+             NULL);
+  add_method("releaseSavepoint",
+             std::bind(&Session::_release_savepoint, this, _1), NULL);
+  add_method("rollbackTo", std::bind(&Session::_rollback_to, this, _1), NULL);
   add_property("uri", "getUri");
   add_property("defaultSchema", "getDefaultSchema");
   add_property("currentSchema", "getCurrentSchema");
@@ -458,6 +464,146 @@ shcore::Value Session::_rollback(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rollback"));
 
   return ret_val;
+}
+
+REGISTER_HELP(
+    SESSION_SETSAVEPOINT_BRIEF,
+    "Creates or replaces a transaction savepoint with the given name.");
+REGISTER_HELP(SESSION_SETSAVEPOINT_PARAM,
+              "@param name Optional string with the name to be assigned to the "
+              "transaction save point.");
+REGISTER_HELP(SESSION_SETSAVEPOINT_RETURNS,
+              "@returns The name of the transaction savepoint.");
+REGISTER_HELP(
+    SESSION_SETSAVEPOINT_DETAIL,
+    "When working with transactions, using savepoints allows rolling back "
+    "operations executed after the savepoint without terminating the "
+    "transaction.");
+REGISTER_HELP(SESSION_SETSAVEPOINT_DETAIL1,
+              "Use this function to set a savepoint within a transaction.");
+REGISTER_HELP(
+    SESSION_SETSAVEPOINT_DETAIL2,
+    "If this function is called with the same name of another savepoint set "
+    "previously, the original savepoint will be deleted and a new one will be "
+    "created.");
+REGISTER_HELP(
+    SESSION_SETSAVEPOINT_DETAIL3,
+    "If the name is not provided an auto-generated name as 'TXSP#' will "
+    "be assigned, where # is a consecutive number that guarantees uniqueness "
+    "of the savepoint at Session level.");
+/**
+ * $(SESSION_SETSAVEPOINT_BRIEF)
+ *
+ * $(SESSION_SETSAVEPOINT_PARAM)
+ *
+ * $(SESSION_SETSAVEPOINT_RETURNS)
+ *
+ * $(SESSION_SETSAVEPOINT_DETAIL)
+ *
+ * $(SESSION_SETSAVEPOINT_DETAIL1)
+ *
+ * $(SESSION_SETSAVEPOINT_DETAIL2)
+ *
+ * $(SESSION_SETSAVEPOINT_DETAIL3)
+ */
+#if DOXYGEN_JS
+String Session::setSavepoint(String name) {}
+#elif DOXYGEN_PY
+str Session::set_savepoint(str name) {}
+#endif
+shcore::Value Session::_set_savepoint(const shcore::Argument_list &args) {
+  args.ensure_count(0, 1, get_function_name("setSavepoint").c_str());
+
+  std::string new_name;
+  try {
+    if (args.size() == 1)
+      new_name = args.string_at(0);
+    else
+      new_name = "TXSP" + std::to_string(++_savepoint_counter);
+
+    _session->execute(sqlstring("savepoint !", 0) << new_name);
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setSavepoint"));
+
+  return shcore::Value(new_name);
+}
+
+REGISTER_HELP(SESSION_RELEASESAVEPOINT_BRIEF,
+              "Removes a savepoint defined on a transaction.");
+REGISTER_HELP(
+    SESSION_RELEASESAVEPOINT_PARAM,
+    "@param name string with the name of the savepoint to be removed.");
+REGISTER_HELP(
+    SESSION_RELEASESAVEPOINT_DETAIL,
+    "Removes a named savepoint from the set of savepoints defined on "
+    "the current transaction. This does not affect the operations executed on "
+    "the transaction since no commit or rollback occurs.");
+REGISTER_HELP(
+    SESSION_RELEASESAVEPOINT_DETAIL1,
+    "It is an error trying to remove a savepoint that does not exist.");
+/**
+ * $(SESSION_RELEASESAVEPOINT_BRIEF)
+ *
+ * $(SESSION_RELEASESAVEPOINT_PARAM)
+ *
+ * $(SESSION_RELEASESAVEPOINT_DETAIL)
+ *
+ * $(SESSION_RELEASESAVEPOINT_DETAIL1)
+ */
+#if DOXYGEN_JS
+Undefined Session::releaseSavepoint(String name) {
+}
+#elif DOXYGEN_PY
+None Session::release_savepoint(str name) {
+}
+#endif
+shcore::Value Session::_release_savepoint(const shcore::Argument_list &args) {
+  args.ensure_count(1, get_function_name("releaseSavepoint").c_str());
+  try {
+    _session->execute(sqlstring("release savepoint !", 0) << args.string_at(0));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("releaseSavepoint"));
+
+  return shcore::Value();
+}
+
+REGISTER_HELP(SESSION_ROLLBACKTO_BRIEF,
+  "Rolls back the transaction to the named savepoint without terminating the "
+  "transaction.");
+REGISTER_HELP(SESSION_ROLLBACKTO_PARAM,
+  "@param name string with the name of the savepoint for the rollback "
+  "operation.");
+REGISTER_HELP(SESSION_ROLLBACKTO_DETAIL,
+  "Modifications that the current transaction made to rows after the savepoint "
+  "was defined will be rolled back.");
+REGISTER_HELP(SESSION_ROLLBACKTO_DETAIL1,
+  "The given savepoint will not be removed, but any savepoint defined after "
+  "the given savepoint was defined will be removed.");
+REGISTER_HELP(SESSION_ROLLBACKTO_DETAIL2,
+  "It is an error calling this operation with an unexisting savepoint.");
+/**
+ * $(SESSION_ROLLBACKTO_BRIEF)
+ *
+ * $(SESSION_ROLLBACKTO_PARAM)
+ *
+ * $(SESSION_ROLLBACKTO_DETAIL)
+ *
+ * $(SESSION_ROLLBACKTO_DETAIL1)
+ *
+ * $(SESSION_ROLLBACKTO_DETAIL2)
+ */
+
+#if DOXYGEN_JS
+Undefined Session::rollbackTo(String name) {}
+#elif DOXYGEN_PY
+None Session::rollback_to(str name) {}
+#endif
+shcore::Value Session::_rollback_to(const shcore::Argument_list &args) {
+  args.ensure_count(1, get_function_name("rollbackTo").c_str());
+  try {
+    _session->execute(sqlstring("rollback to !", 0) << args.string_at(0));
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rollbackTo"));
+
+  return shcore::Value();
 }
 
 // Documentation of getDefaultSchema function

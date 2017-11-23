@@ -81,6 +81,10 @@ TEST_F(Shell_py_mysqlx_tests, mysqlx_session) {
   validate_interactive("mysqlx_session.py");
 }
 
+TEST_F(Shell_py_mysqlx_tests, mysqlx_session_help) {
+  validate_interactive("mysqlx_session_help.py");
+}
+
 TEST_F(Shell_py_mysqlx_tests, mysqlx_schema) {
   validate_interactive("mysqlx_schema.py");
 }

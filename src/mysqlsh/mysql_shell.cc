@@ -1122,7 +1122,10 @@ void Mysql_shell::add_devapi_completions() {
                                   {"setCurrentSchema", "Schema", true},
                                   {"setFetchWarnings", "Result", true},
                                   {"sql", "SqlOperation*", true},
-                                  {"startTransaction", "SqlResult", true}});
+                                  {"startTransaction", "SqlResult", true},
+                                  {"setSavepoint", "", true},
+                                  {"releaseSavepoint", "", true},
+                                  {"rollbackTo", "", true}});
 
   registry->add_completable_type("Schema",
                                  {{"name", "name", false},
