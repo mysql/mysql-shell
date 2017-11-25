@@ -212,7 +212,7 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     exec_and_out_equals(code);
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
     if (!tokens.at(tokens.size() - 1).empty())
-      tokens.push_back({"*", ""});
+      tokens.push_back("");
 
     // The sandbox dir for C++
     _sandbox_dir = shcore::str_join(tokens, "\\");

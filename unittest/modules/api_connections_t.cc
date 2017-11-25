@@ -69,11 +69,12 @@ class Api_connections : public Shell_js_script_tester {
 
     // Deploys the sandbox instance to be used on this tests
     Shell_test_wrapper shell;
-    shell.execute("dba.deploySandboxInstance(" + get_sandbox_classic_port() +
-                  ", "
-                  "{password: 'root', "
+    std::string script =
+      "dba.deploySandboxInstance(" + get_sandbox_classic_port() +
+                ", {password: 'root', "
                   "sandboxDir: '" + get_scripting_path(sandbox_path) + "', "
-                  "ignoreSslError: false});");
+                  "ignoreSslError: false});";
+    shell.execute(script);
 
     ASSERT_STREQ("", shell.get_output_handler().std_err.c_str());
   }
@@ -106,15 +107,13 @@ class Api_connections : public Shell_js_script_tester {
 
   static std::string get_scripting_path(const std::string& path) {
     std::string ret_val = path;
-#ifdef WIN32
-    auto tokens = shcore::split_string(path, "\\");
-    ret_val = shcore::str_join(tokens, "\\\\");
+#ifdef _WIN32
+    ret_val = shcore::str_replace(ret_val, "\\", "/");
 #endif
-
     return ret_val;
   }
 
-    static std::string get_sandbox_path() {
+  static std::string get_sandbox_path() {
     std::string ret_val;
 
     const char *tmpdir = getenv("TMPDIR");
@@ -125,7 +124,9 @@ class Api_connections : public Shell_js_script_tester {
       // binary folder
       ret_val = shcore::get_binary_folder();
     }
-
+#ifdef _WIN32
+    ret_val = shcore::str_replace(ret_val, "\\", "/");
+#endif
     return ret_val;
   }
 

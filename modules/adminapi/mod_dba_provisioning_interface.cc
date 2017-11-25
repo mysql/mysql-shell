@@ -159,12 +159,6 @@ int ProvisioningInterface::execute_mysqlprovision(
   if (verbose > 1) {
     message += "\n";
     _delegate->print(_delegate->user_data, message.c_str());
-    if (getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0) {
-      _delegate->print(_delegate->user_data,
-                       value_from_argmap(kwargs).repr().c_str());
-      for (int i = 0; i < args.size(); i++)
-        _delegate->print(_delegate->user_data, args[i].repr().c_str());
-    }
   }
 
   if (verbose) {
@@ -308,7 +302,8 @@ int ProvisioningInterface::execute_mysqlprovision(
 
   if ((getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0)) {
     std::cerr << "mysqlprovision exited with code " << exit_code << ":\n"
-      << full_output << "\n";
+      << "\t" << shcore::str_join(shcore::str_split(full_output, "\n"), "\n\t")
+      << "\n";
   }
 
   /*

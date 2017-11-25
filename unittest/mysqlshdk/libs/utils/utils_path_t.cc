@@ -296,8 +296,11 @@ TEST(utils_path, dirname) {
   EXPECT_EQ("/", dirname("/foo"));
   EXPECT_EQ("/", dirname("/foo/"));
   EXPECT_EQ("/", dirname("/foo//"));
+  // In windows, //host/path
+#ifndef _WIN32
   EXPECT_EQ("/", dirname("//foo/"));
   EXPECT_EQ("/", dirname("//foo//"));
+#endif
   EXPECT_EQ("//foo", dirname("//foo//bar"));
   EXPECT_EQ("//foo", dirname("//foo//bar//"));
   EXPECT_EQ("//foo//bar", dirname("//foo//bar//."));
@@ -320,15 +323,15 @@ TEST(utils_path, dirname) {
   EXPECT_EQ("./bla", dirname("./bla/ble"));
 
 #ifdef _WIN32
-  // EXPECT_EQ("c:\\", dirname("c:\\foo"));
+  EXPECT_EQ("c:\\", dirname("c:\\foo"));
   EXPECT_EQ("\\", dirname("\\foo"));
   EXPECT_EQ("\\", dirname("\\"));
   EXPECT_EQ("\\", dirname("\\\\"));
   EXPECT_EQ("\\", dirname("\\foo"));
   EXPECT_EQ("\\", dirname("\\foo\\"));
   EXPECT_EQ("\\", dirname("\\foo\\\\"));
-  EXPECT_EQ("\\", dirname("\\\\foo\\"));
-  EXPECT_EQ("\\", dirname("\\\\foo\\\\"));
+  EXPECT_EQ("c:\\", dirname("c:\\foo\\"));
+  EXPECT_EQ("c:\\", dirname("c:\\foo\\\\"));
 
   EXPECT_EQ("\\..", dirname("\\..\\.."));
   EXPECT_EQ("\\..", dirname("\\..\\..\\"));
@@ -343,10 +346,9 @@ TEST(utils_path, dirname) {
   EXPECT_EQ("bla/foo", dirname("bla/foo\\bar"));
   EXPECT_EQ("foo\\bar", dirname("foo\\bar\\bla/"));
   EXPECT_EQ("f/oo\\bar", dirname("f/oo\\bar\\bla"));
-  EXPECT_EQ("foo\\\\bar/ble", dirname("foo\\\\bar\\bla/ble/bli"));
   EXPECT_EQ("..\\bla/..", dirname("..\\bla/..\\ble"));
   EXPECT_EQ(".\\bla", dirname(".\\bla/ble"));
-  EXPECT_EQ(".\\bla", dirname(".\\bla/"));
+  EXPECT_EQ(".", dirname(".\\bla/"));
 #endif
 }
 

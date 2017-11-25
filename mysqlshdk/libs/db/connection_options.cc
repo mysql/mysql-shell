@@ -79,10 +79,16 @@ void Connection_options::_set_fixed(const std::string& key,
 }
 
 void Connection_options::set_pipe(const std::string& pipe) {
+#ifdef _WIN32
+  const bool win32 = true;
+#else
+  const bool win32 = false;
+#endif
   if ((!_transport_type.is_null() && *_transport_type == Socket) ||
       !_port.is_null() ||
       (Nullable_options::has_value(kHost) &&
-       !shcore::is_local_host(get_value(kHost), false)))
+       (!shcore::is_local_host(get_value(kHost), false) && 
+        !(get_value(kHost) == "." && win32))))
     raise_connection_type_error("pipe connection to '" + pipe + "'");
 
   Nullable_options::set(kSocket, pipe, Set_mode::UPDATE_NULL);

@@ -38,6 +38,8 @@
 // used to identify a proper SHELL context object as a PyCObject
 static const char *SHELLTypeSignature = "SHELLCONTEXT";
 
+extern const char *g_mysqlsh_argv0;
+
 namespace shcore {
 bool Python_context::exit_error = false;
 bool Python_context::module_processing = false;
@@ -88,10 +90,15 @@ private:
           python_path = shcore::get_binary_folder();
           python_path.append("\\Python2.7");
         }
+        static char path[1000];
+        if (python_path.size() >= sizeof(path)-1)
+          throw std::runtime_error("mysqlsh path too long");
+        snprintf(path, sizeof(path), "%s", python_path.c_str());
         log_info("Setting PythonHome to %s", python_path.c_str());
-        Py_SetPythonHome(const_cast<char*>(python_path.c_str()));
+        Py_SetPythonHome(path);
       }
 #endif
+      Py_SetProgramName(const_cast<char*>(g_mysqlsh_argv0));
       Py_InitializeEx(0);
 
       _local_initialization = true;

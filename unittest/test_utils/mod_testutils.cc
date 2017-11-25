@@ -97,12 +97,15 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "option");
   expose("getSandboxConfPath", &Testutils::get_sandbox_conf_path, "port");
 
+  expose("getShellLogPath", &Testutils::get_shell_log_path);
+
   expose("waitMemberState", &Testutils::wait_member_state, "port", "states");
 
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value");
   expose("expectPassword", &Testutils::expect_password, "prompt", "value");
 
   expose("makeFileReadOnly", &Testutils::make_file_readonly, "path");
+  expose("grepFile", &Testutils::grep_file, "path", "pattern");
 
   expose("isReplaying", &Testutils::is_replaying);
   expose("fail", &Testutils::fail, "context");
@@ -129,6 +132,10 @@ std::string Testutils::get_sandbox_conf_path(int port) {
 std::string Testutils::get_sandbox_log_path(int port) {
   return shcore::path::join_path(
       {_sandbox_dir, std::to_string(port), "sandboxdata", "error.log"});
+}
+
+std::string Testutils::get_shell_log_path() {
+  return ngcommon::Logger::singleton()->logfile_name();
 }
 
 bool Testutils::is_replaying() {
@@ -362,7 +369,19 @@ static int os_file_lock(int fd) {
 
 void Testutils::wait_sandbox_dead(int port) {
 #ifdef _WIN32
-// In Windows, it should be enough to see if the ibdata file is locked
+  // In Windows, it should be enough to see if the ibdata file is locked
+  std::string ibdata = _sandbox_dir + "/" + std::to_string(port) +
+    "/sandboxdata/ibdata1";
+  while (true) {
+    FILE *f = fopen(ibdata.c_str(), "a");
+    if (f) {
+      fclose(f);
+      break;
+    }
+    if (errno == ENOENT)
+      break;
+    shcore::sleep_ms(500);
+  }
 #else
   while (mysqlshdk::utils::check_lock_file(_sandbox_dir + "/" +
                                            std::to_string(port) +
@@ -494,6 +513,21 @@ int Testutils::make_file_readonly(const std::string &path) {
 #endif
 }
 
+shcore::Array_t Testutils::grep_file(const std::string &path,
+  const std::string &pattern) {
+  std::ifstream f(path);
+  if (!f.good())
+    throw std::runtime_error("grep error: " + path + ": " + strerror(errno));
+  shcore::Array_t result = shcore::make_array();
+  while (!f.eof()) {
+    std::string line;
+    std::getline(f, line);
+    if (shcore::match_glob("*" + pattern + "*", line))
+      result->push_back(shcore::Value(line));
+  }
+  return result;
+}
+
 void Testutils::expect_prompt(const std::string &prompt,
                               const std::string &text) {
   _feed_prompt(prompt, text);
@@ -551,18 +585,14 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
     session->connect(options);
     auto result = session->query("select @@version");
     std::string version = result->fetch_one()->get_string(0);
-    shcore::create_file(shcore::path::join_path(boilerplate, "version.txt"),
-                        version);
+    shcore::create_file(
+      shcore::path::join_path(_sandbox_dir, std::to_string(port),
+                             "version.txt"),
+      version);
   }
 
-  _mp->stop_sandbox(port, _sandbox_dir, rootpass, &errors);
-  if (errors && !errors->empty()) {
-    for (const auto &e : *errors) {
-      if ((*e.as_map())["type"].descr() != "WARNING")
-        std::cerr << "During stop of boilerplate sandbox " << port << ": "
-        << e.descr() << "\n";
-    }
-  }
+  stop_sandbox(port, rootpass);
+
   remove_from_sandbox_conf(port, "port");
   remove_from_sandbox_conf(port, "server_id");
   remove_from_sandbox_conf(port, "datadir");
@@ -605,7 +635,7 @@ bool Testutils::deploy_sandbox_from_boilerplate(int port) {
   } catch (std::exception &e) {
     std::cerr << "Error copying boilerplate for sandbox " << port << ": "
               << e.what() << "\n";
-    throw std::logic_error("During deployment of sandbox " +
+    throw std::logic_error("During lazy deployment of sandbox " +
                            std::to_string(port) + ": " + e.what());
   }
   // Customize

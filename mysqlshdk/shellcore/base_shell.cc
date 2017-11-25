@@ -48,8 +48,8 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
   Base_shell::shell_options =  cmdline_options;
   shcore::Interrupts::setup();
 
-  std::string log_path = shcore::get_user_config_path();
-  log_path += "mysqlsh.log";
+  std::string log_path = shcore::path::join_path(shcore::get_user_config_path(),
+        "mysqlsh.log");
 
   ngcommon::Logger::setup_instance(log_path.c_str(), options().log_to_stderr,
                                    options().log_level);
