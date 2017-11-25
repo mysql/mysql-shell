@@ -111,8 +111,12 @@ public:
   static bool is_level_none(const std::string& tag);
 
   static std::string get_level_range_info();
-  
+
   ~Logger();
+
+  const std::string &logfile_name() const {
+    return out_name;
+  }
 
 private:
   struct Case_insensitive_comp

@@ -290,6 +290,7 @@ void Logger::setup_instance(const char* filename, bool use_stderr,
         throw std::logic_error(
             std::string("Error in Logger::Logger when opening file '") +
             filename + "' for writing");
+      instance->out_name = filename;
     }
     instance->set_log_level(log_level);
     instance->use_stderr = use_stderr;

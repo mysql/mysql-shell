@@ -160,12 +160,12 @@ std::pair<std::string, std::string> SHCORE_PUBLIC splitdrive(
     std::string first_two_chars, third_char;
     try {
       first_two_chars = norm_path.substr(0, 2);
-    } catch (std::out_of_range &e) {
+    } catch (std::out_of_range &) {
       first_two_chars = "";
     }
     try {
       third_char = norm_path.substr(2, 1);
-    } catch (std::out_of_range &e) {
+    } catch (std::out_of_range &) {
       third_char = "";
     }
     if (first_two_chars == std::string(2, '\\') && third_char != "\\") {
@@ -242,6 +242,23 @@ std::string SHCORE_PUBLIC dirname(const std::string &path) {
   if (xx == std::string::npos)
     return drive.empty() ? "." : drive;
   return drive + dir.substr(0, xx);
+}
+
+std::string SHCORE_PUBLIC basename(const std::string &path) {
+  std::string drive, dir;
+  std::tie(drive, dir) = splitdrive(path);
+
+  size_t end = dir.find_last_not_of(k_valid_path_separators);
+  if (end == std::string::npos)  // only separators
+    return dir.substr(0, 1);
+  end++;  // go to after the last char
+  size_t p = detail::span_dirname(dir);
+  if (p == std::string::npos || p == dir.size() || p == 0 || p == end)
+    return dir.substr(0, end);
+  size_t pp = dir.find_first_not_of(k_valid_path_separators, p);
+  if (pp != std::string::npos)
+    p = pp;
+  return dir.substr(p, end - p);
 }
 
 bool exists(const std::string& filename) {

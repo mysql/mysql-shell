@@ -10,7 +10,8 @@ var cluster = dba.createCluster('Cluster');
 testutil.makeFileReadOnly(testutil.getSandboxConfPath(__mysql_sandbox_port1));
 
 //@<OUT> Error no write privileges
-var cnfPath = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+var cnfPath = testutil.getSandboxConfPath(__mysql_sandbox_port1).split("\\").join("\\\\");
+var __sandbox1_conf_path = cnfPath;
 dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {mycnfPath:cnfPath, password:'root'});
 
 // Close session

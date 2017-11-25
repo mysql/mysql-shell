@@ -85,6 +85,11 @@ class Testutils : public shcore::Cpp_object_bridge {
   // Misc utility stuff
   int make_file_readonly(const std::string &path);
 
+  std::string get_shell_log_path();
+
+  shcore::Array_t grep_file(const std::string &path,
+    const std::string &pattern);
+
  public:
   // These should produce test failure output similar to that of gtest,
   // possibly including a stacktrace in the target language

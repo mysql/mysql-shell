@@ -65,8 +65,12 @@ static std::string make_socket_absolute_path(const std::string &datadir,
   if (socket.empty()) {
     return std::string{};
   }
+#ifdef _WIN32
+  return socket;
+#else
   return shcore::path::normalize(
       shcore::path::join_path(std::vector<std::string>{datadir, socket}));
+#endif
 }
 
 static void detect_mysql_environment(int port, const char *pwd) {
@@ -416,8 +420,16 @@ int main(int argc, char **argv) {
 #else
   setenv("MYSQLSH_USER_CONFIG_HOME", ".", 1);
 #endif
+  // Setup logger with default configs
+  std::string log_path = shcore::path::join_path(shcore::get_user_config_path(),
+        "mysqlsh.log");
+  if (shcore::file_exists(log_path)) {
+    std::cerr << "Deleting old " << log_path << " file\n";
+    shcore::delete_file(log_path);
+  }
+  ngcommon::Logger::setup_instance(log_path.c_str(), false);
+
   bool got_filter = false;
-  bool reset_sandboxes = false;
   std::string target_version = g_target_server_version.base();
   const char *target = target_version.c_str();
 
@@ -479,7 +491,7 @@ int main(int argc, char **argv) {
     if (p)
       mppath = std::string(argv[0], p - argv[0]);
     else
-      mppath = argv[0];
+      mppath = ".";
   }
   std::string mysqlsh_path;
 #ifndef _WIN32

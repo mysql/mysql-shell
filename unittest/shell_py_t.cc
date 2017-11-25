@@ -60,6 +60,9 @@ TEST_F(Shell_python, stdin_read) {
   MY_EXPECT_STDOUT_CONTAINS("TEXT");
 }
 
+// help() doesn't work in Windows because Python 2.7 doens't like
+// cp65001
+#ifndef _WIN32
 TEST_F(Shell_python, help) {
   // Regression test for Bug #24554329
   // CALLING HELP() IN MYSQLSH --PY RESULTS IN ATTRIBUTEERROR
@@ -76,5 +79,6 @@ TEST_F(Shell_python, help) {
   MY_EXPECT_STDOUT_CONTAINS(
       "You are now leaving help and returning to the Python interpreter");
 }
+#endif
 
 }  // namespace mysqlsh
