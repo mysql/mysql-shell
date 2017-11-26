@@ -59,6 +59,30 @@ extern "C" const char* g_argv0;
 
 
 namespace tests {
+class Version {
+public:
+  Version();
+  explicit Version(const std::string& version);
+
+  int major() { return _major; }
+  int minor() { return _minor; }
+  int patch() { return _patch; }
+  std::string extra() { return _extra; }
+
+  std::string base();
+  std::string full();
+
+  bool operator < (const Version& other);
+  bool operator <= (const Version& other);
+  bool operator > (const Version& other);
+  bool operator >= (const Version& other);
+
+private:
+  int _major;
+  int _minor;
+  int _patch;
+  std::string _extra;
+};
 
 
 class Override_row_string : public mysqlshdk::db::replay::Row_hook {
@@ -106,6 +130,8 @@ class Shell_test_env : public ::testing::Test {
   std::string _mysql_uri_nopasswd;
   std::string _socket;  //< env:MYSQLX_SOCKET
   std::string _mysql_socket;  //< env:MYSQL_SOCKET
+  Version _target_server_version;
+  std::string _test_context;
 
   bool _recording_enabled = false;
 

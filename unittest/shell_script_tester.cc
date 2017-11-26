@@ -112,7 +112,11 @@ bool Shell_script_tester::validate(const std::string& context,
   std::string original_std_err = output_handler.std_err;
 
   if (_chunk_validations.count(chunk_id)) {
-    Validation_t validations = _chunk_validations[chunk_id];
+    Validation_t validations;
+    if (_chunk_validations[chunk_id].count(_test_context))
+      validations = _chunk_validations[chunk_id][_test_context];
+    else
+      validations = _chunk_validations[chunk_id]["*"];
 
     for (size_t valindex = 0; valindex < validations.size(); valindex++) {
       // Validation goes against validation code
@@ -286,23 +290,30 @@ void Shell_script_tester::load_source_chunks(std::istream& stream) {
 }
 
 void Shell_script_tester::add_validation(const std::string& chunk_id,
+                                         const std::string& version_id,
                                          const std::vector<std::string>& source,
                                          ValidationType type) {
   if (source.size() == 3) {
     if (!_chunk_validations.count(chunk_id))
-      _chunk_validations[chunk_id] = Validation_t();
+      _chunk_validations[chunk_id] = Context_validation_t();
+
+    if (!_chunk_validations[chunk_id].count(version_id))
+      _chunk_validations[chunk_id][version_id] = Validation_t();
 
     // Line by line validation may be complement of an existing validation
     if (type == ValidationType::LineByLine) {
-      if (_chunk_validations[chunk_id].size() == 0)
-        _chunk_validations[chunk_id].push_back(Validation(source, type));
-      else if (_chunk_validations[chunk_id].size() == 1) {
-        if (_chunk_validations[chunk_id].at(0).type ==
+      if (_chunk_validations[chunk_id][version_id].size() == 0)
+        _chunk_validations[chunk_id][version_id].push_back(
+            Validation(source, type));
+      else if (_chunk_validations[chunk_id][version_id].size() == 1) {
+        if (_chunk_validations[chunk_id][version_id].at(0).type ==
             ValidationType::LineByLine) {
           if (source[1].size() > 0)
-            _chunk_validations[chunk_id].at(0).expected_output = source[1];
+            _chunk_validations[chunk_id][version_id].at(0).expected_output =
+                source[1];
           if (source[2].size() > 0)
-            _chunk_validations[chunk_id].at(0).expected_error = source[2];
+            _chunk_validations[chunk_id][version_id].at(0).expected_error =
+                source[2];
         } else
           throw std::runtime_error(
               "Unable to mix Single and Line by Line validations");
@@ -311,7 +322,8 @@ void Shell_script_tester::add_validation(const std::string& chunk_id,
             "Unable to mix Single and Line by Line validations");
       }
     } else {
-      _chunk_validations[chunk_id].push_back(Validation(source, type));
+      _chunk_validations[chunk_id][version_id].push_back(
+          Validation(source, type));
     }
   }
 }
@@ -320,6 +332,7 @@ void Shell_script_tester::load_validations(const std::string& path,
                                            bool in_chunks) {
   std::ifstream file(path.c_str());
   std::string chunk_id = "__global__";
+  std::string version_id = "*";
   std::string format;
   std::vector<std::string> format_lines;
 
@@ -339,10 +352,10 @@ void Shell_script_tester::load_validations(const std::string& path,
           value = str_strip(value);
 
           if (format == "OUT")
-            add_validation(chunk_id, {"", value, ""},
+            add_validation(chunk_id, version_id, {"", value, ""},
                            ValidationType::LineByLine);
           else if (format == "ERR")
-            add_validation(chunk_id, {"", "", value},
+            add_validation(chunk_id, version_id, {"", "", value},
                            ValidationType::LineByLine);
 
           format_lines.clear();
@@ -351,6 +364,19 @@ void Shell_script_tester::load_validations(const std::string& path,
           chunk_id = line.substr(get_chunk_token().size());
           if (chunk_id[0] == '#')
             chunk_id = chunk_id.substr(1);
+
+          // Identifies the version for the chunk expectations
+          // If no version is specified assigns '*'
+          auto start = chunk_id.find("{");
+          auto end = chunk_id.find("}");
+          if (start != std::string::npos &&
+              end != std::string::npos &&
+              start < end) {
+            version_id = chunk_id.substr(start + 1, end - start - 1);
+            chunk_id = chunk_id.substr(0, start);
+          } else {
+            version_id = "*";
+          }
 
           chunk_id = str_strip(chunk_id);
 
@@ -371,7 +397,7 @@ void Shell_script_tester::load_validations(const std::string& path,
           if (!line.empty()) {
             std::vector<std::string> tokens;
             tokens = split_string(line, "|", false);
-            add_validation(chunk_id, tokens);
+            add_validation(chunk_id, version_id, tokens);
           }
         } else {
           format_lines.push_back(line);
@@ -386,9 +412,11 @@ void Shell_script_tester::load_validations(const std::string& path,
       value = str_strip(value);
 
       if (format == "OUT")
-        add_validation(chunk_id, {"", value, ""}, ValidationType::LineByLine);
+        add_validation(chunk_id, version_id, {"", value, ""},
+                       ValidationType::LineByLine);
       else if (format == "ERR")
-        add_validation(chunk_id, {"", "", value}, ValidationType::LineByLine);
+        add_validation(chunk_id, version_id, {"", "", value},
+                       ValidationType::LineByLine);
     }
 
     file.close();

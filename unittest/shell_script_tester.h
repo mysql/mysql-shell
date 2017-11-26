@@ -15,6 +15,7 @@
 
 #include <map>
 #include <utility>
+#include <vector>
 #include "test_utils.h"
 
 enum class ValidationType {
@@ -50,6 +51,7 @@ struct Validation {
 };
 
 typedef std::vector<Validation> Validation_t;
+typedef std::map<std::string, Validation_t> Context_validation_t;
 
 #define NEW_TEST_SCRIPT(x) _shell_scripts_home+"/"+x+"."+_extension
 #define PRE_SCRIPT(x) _shell_scripts_home+"/"+x+".pre"
@@ -102,7 +104,8 @@ private:
   std::string _filename;
   std::map<std::string, std::vector<std::pair<size_t, std::string>>> _chunks;
   std::vector<std::string> _chunk_order;
-  std::map<std::string, Validation_t> _chunk_validations;
+  std::map<std::string, Context_validation_t> _chunk_validations;
+  std::map<std::string, int> _chunk_to_line;
 
   void execute_script(const std::string& path = "", bool in_chunks = false, bool is_pre_script = false);
   void process_setup(std::istream & stream);
@@ -112,7 +115,9 @@ private:
   virtual void pre_process_line(const std::string &path, std::string & line) {};
 
   void load_source_chunks(std::istream & stream);
-  void add_validation(const std::string &chunk, const std::vector<std::string>& source, ValidationType type = ValidationType::Simple);
+  void add_validation(const std::string &chunk, const std::string &version,
+                      const std::vector<std::string>& source,
+                      ValidationType type = ValidationType::Simple);
   void load_validations(const std::string& path, bool in_chunks = false);
 };
 

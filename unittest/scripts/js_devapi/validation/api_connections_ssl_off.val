@@ -7,10 +7,10 @@
 ||SSL connection error: SSL is required but the server doesn't support it
 
 //@ shell.connect, with classic URI, no ssl-mode (Use Preferred)
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, ssl-mode=PREFERRED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
 ||SSL connection error: SSL is required but the server doesn't support it
@@ -19,10 +19,10 @@
 ||SSL connection error: SSL is required but the server doesn't support it
 
 //@ getClassicSession with URI, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ shell.connect, with classic URI, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
@@ -48,10 +48,10 @@
 ||SSL connection error: SSL is required but the server doesn't support it
 
 //@ shell.connect, with classic Dict, no ssl-mode (Use Preferred)
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, ssl-mode=PREFERRED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
 ||SSL connection error: SSL is required but the server doesn't support it
@@ -60,10 +60,10 @@
 ||SSL connection error: SSL is required but the server doesn't support it
 
 //@ getClassicSession with Dict, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ shell.connect, with classic Dict, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
@@ -89,10 +89,10 @@
 ||Capability prepare failed for 'tls'
 
 //@ shell.connect, with X URI, no ssl-mode (Use Preferred)
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getSession with URI, ssl-mode=PREFERRED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
 ||Capability prepare failed for 'tls'
@@ -101,10 +101,10 @@
 ||Capability prepare failed for 'tls'
 
 //@ getSession with URI, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ shell.connect, with X URI, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getSession with URI, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
@@ -128,10 +128,10 @@
 ||Capability prepare failed for 'tls'
 
 //@ shell.connect, with X Dict, no ssl-mode (Use Preferred)
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getSession with Dict, ssl-mode=PREFERRED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getSession with Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
 ||Capability prepare failed for 'tls'
@@ -140,10 +140,10 @@
 ||Capability prepare failed for 'tls'
 
 //@ getSession with Dict, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ shell.connect, with X Dict, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getSession with Dict, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
