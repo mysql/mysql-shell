@@ -4,19 +4,19 @@
 // ---------------- CLASSIC TESTS URI -------------------------
 
 //@ getClassicSession with URI, no ssl-mode (Use Required)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with classic URI, no ssl-mode (Use Preferred)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, ssl-mode=PREFERRED
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with classic URI, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, ssl-mode=DISABLED
 ||Connections using insecure transport are prohibited while --require_secure_transport=ON.
@@ -46,19 +46,19 @@
 // ---------------- CLASSIC TESTS DICT -------------------------
 
 //@ getClassicSession with Dict, no ssl-mode (Use Required)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with classic Dict, no ssl-mode (Use Preferred)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, ssl-mode=PREFERRED
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with classic Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, ssl-mode=DISABLED
 ||Connections using insecure transport are prohibited while --require_secure_transport=ON.
@@ -87,19 +87,19 @@
 // ---------------- X TESTS URI -------------------------
 
 //@ getSession with URI, no ssl-mode (Use Required)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with X URI, no ssl-mode (Use Preferred)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with URI, ssl-mode=PREFERRED
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with X URI, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with URI, ssl-mode=DISABLED
 ||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.
@@ -125,19 +125,19 @@
 // ---------------- X TESTS DICT -------------------------
 
 //@ getSession with Dict, no ssl-mode (Use Required)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with X Dict, no ssl-mode (Use Preferred)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with Dict, ssl-mode=PREFERRED
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with X Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with Dict, ssl-mode=DISABLED
 ||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.

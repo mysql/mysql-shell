@@ -4,25 +4,25 @@
 // ---------------- CLASSIC TESTS URI -------------------------
 
 //@ getClassicSession with URI, no ssl-mode (Use Required)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with classic URI, no ssl-mode (Use Preferred)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, ssl-mode=PREFERRED
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with classic URI, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ shell.connect, with classic URI, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getClassicSession with URI, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
@@ -45,25 +45,25 @@
 // ---------------- CLASSIC TESTS DICT -------------------------
 
 //@ getClassicSession with Dict, no ssl-mode (Use Required)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with classic Dict, no ssl-mode (Use Preferred)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, ssl-mode=PREFERRED
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with classic Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ shell.connect, with classic Dict, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getClassicSession with Dict, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
@@ -86,25 +86,25 @@
 // ---------------- X TESTS URI -------------------------
 
 //@ getSession with URI, no ssl-mode (Use Required)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with X URI, no ssl-mode (Use Preferred)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with URI, ssl-mode=PREFERRED
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with X URI, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with URI, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ shell.connect, with X URI, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getSession with URI, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
@@ -124,25 +124,25 @@
 // ---------------- X TESTS DICT -------------------------
 
 //@ getSession with Dict, no ssl-mode (Use Required)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with X Dict, no ssl-mode (Use Preferred)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with Dict, ssl-mode=PREFERRED
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ shell.connect, with X Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
-|DHE-RSA-AES256-SHA|
+|<<<__default_cipher>>>|
 
 //@ getSession with Dict, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ shell.connect, with X Dict, ssl-mode=DISABLED
-|~DHE-RSA-AES256-SHA|
+|~<<<__default_cipher>>>|
 
 //@ getSession with Dict, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.

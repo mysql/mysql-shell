@@ -40,7 +40,7 @@ mysqlshdk::db::replay::Mode g_test_recording_mode =
     mysqlshdk::db::replay::Mode::Replay;
 
 // Default trace set (MySQL version) to be used for replay mode
-std::string k_default_replay_target = "8.0.4";
+tests::Version g_target_server_version = tests::Version("8.0.4");
 
 // End test configuration block
 
@@ -126,9 +126,8 @@ static void detect_mysql_environment(int port, const char *pwd) {
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
-          version = row[0];
+          g_target_server_version = tests::Version(row[0]);
           auto ver_split = shcore::str_split(version, "-");
-          k_default_replay_target = ver_split[0];
           if (row[1] && strcmp(row[1], "1") == 0)
             have_ssl = true;
           if (row[2])
@@ -418,7 +417,9 @@ int main(int argc, char **argv) {
   setenv("MYSQLSH_USER_CONFIG_HOME", ".", 1);
 #endif
   bool got_filter = false;
-  const char *target = k_default_replay_target.c_str();
+  bool reset_sandboxes = false;
+  std::string target_version = g_target_server_version.base();
+  const char *target = target_version.c_str();
 
   for (int index = 0; index < argc; index++) {
     if (shcore::str_beginswith(argv[index], "--gtest_filter")) {
@@ -439,7 +440,7 @@ int main(int argc, char **argv) {
       if (p) {
         target = p + 1;
       } else {
-        target = k_default_replay_target.c_str();
+        target = target_version.c_str();
       }
     }
   }
