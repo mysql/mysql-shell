@@ -50,12 +50,14 @@ tests::Version g_target_server_version = tests::Version("8.0.4");
 #endif
 
 extern "C" {
-const char *g_argv0 = nullptr;
+const char *g_test_home = nullptr;
+const char *g_mysqlsh_bin_folder = nullptr;
 }
 const char *g_mysqlsh_argv0;
 char *g_mppath = nullptr;
 
 std::string g_mysql_version;  // NOLINT
+std::string g_test_home_value;  // NOLINT
 
 std::vector<std::pair<std::string, std::string> > g_skipped_tests;
 std::vector<std::pair<std::string, std::string> > g_pending_fixes;
@@ -303,7 +305,24 @@ int main(int argc, char **argv) {
   SetConsoleMode(handle, mode | 0x004);
 #endif
 
-#ifdef __APPLE__
+  // Allows customizing the path where the test data files are, if customized
+  // it should be a path that contains the next folders:
+  // - scripts: with all the tests that go through the Shell_script_tester
+  // - data: additional test files
+  // - traces: tre recorded trace files
+  // - prompt files
+  // If not customized it will point to the unit test folder in the source code
+  g_test_home = getenv("MYSQLSH_TEST_HOME");
+  if (!g_test_home) {
+    g_test_home_value = shcore::path::join_path(MYSQLX_SOURCE_HOME, "unittest").c_str();
+    g_test_home = g_test_home_value.c_str();
+  }
+
+  // This variable holds the path to the mysqlsh container, in case the tests
+  // are being executed vs a shell package rather than the build directory
+  g_mysqlsh_bin_folder = getenv("MYSQLSH_BIN_FOLDER");
+
+  #ifdef __APPLE__
   struct rlimit rlp;
   getrlimit(RLIMIT_NOFILE, &rlp);
   if (rlp.rlim_cur < 10000) {
@@ -317,7 +336,6 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  g_argv0 = argv[0];
 #ifdef HAVE_V8
   extern void JScript_context_init();
 
@@ -460,8 +478,7 @@ int main(int argc, char **argv) {
   }
 
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
-    std::string tracedir = MYSQLX_SOURCE_HOME;
-    tracedir.append("/unittest/traces/").append(target).append("/");
+    std::string tracedir = shcore::path::join_path(g_test_home, "traces", target, "");
     mysqlshdk::db::replay::set_recording_path_prefix(tracedir);
   }
 
@@ -485,26 +502,41 @@ int main(int argc, char **argv) {
     ::testing::GTEST_FLAG(filter) = new_filter.c_str();
 
   std::string mppath;
-  char *p = strrchr(argv[0], '/');
-  if (p) {
-    mppath = std::string(argv[0], p - argv[0]);
+  // If using a custom shell package, initial path is the binary folder
+  if (g_mysqlsh_bin_folder) {
+    mppath.assign(g_mysqlsh_bin_folder);
   } else {
-    p = strrchr(argv[0], '\\');
-    if (p)
-      mppath = std::string(argv[0], p - argv[0]);
-    else
-      mppath = ".";
+  // If running on the build dir then initial path is the tests binary folder
+    mppath = shcore::get_binary_folder();
   }
-  std::string mysqlsh_path;
+
 #ifndef _WIN32
-  mysqlsh_path = mppath + "/../mysqlshrec";
   // On linux, we need to tell the UTs where the mysqlprovision executable is
-  mppath.append("/../share/mysqlsh/mysqlprovision.zip");
-#else
-  // On windows mysqlprovision.zip, cmd and mysqlsh.exe need to be together
-  mysqlsh_path = mppath + "\\mysqlshrec.exe";
-  mppath.append("\\mysqlprovision.zip");
+  mppath = shcore::path::dirname(mppath);
+  mppath = shcore::path::join_path(mppath, "share", "mysqlsh");
 #endif
+  mppath = shcore::path::join_path(mppath, "mysqlprovision.zip");
+
+  std::string mysqlsh_path;
+
+  // If using the test package g_test_home_value is empty but g_test_home
+  // points to the test package folder and it contains mysqlshrec
+  if (g_test_home_value.empty()) {
+    mysqlsh_path = shcore::path::join_path(g_test_home, "mysqlshrec");
+  } else {
+    // On this case we are on the build folders, the path is calculated
+    // from the the binary folder
+    mysqlsh_path = shcore::get_binary_folder();
+#ifndef _WIN32
+    mysqlsh_path = shcore::path::dirname(mysqlsh_path);
+#endif
+    mysqlsh_path = shcore::path::join_path(mysqlsh_path, "mysqlshrec");
+  }
+
+#ifdef _WIN32
+  mysqlsh_path.append(".exe");
+#endif
+
   g_mysqlsh_argv0 = mysqlsh_path.c_str();
 
   g_mppath = strdup(mppath.c_str());
@@ -513,6 +545,14 @@ int main(int argc, char **argv) {
   if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
     check_zombie_sandboxes(true);
   }
+
+  if (!g_test_home_value.empty())
+    std::cout << "Testing: Shell Build." << std::endl;
+  else
+    std::cout << "Testing: Shell Package." << std::endl;
+  std::cout << "Shell Binary: " << g_mysqlsh_argv0 << std::endl;
+  std::cout << "MySQL Provision: " << g_mppath << std::endl;
+  std::cout << "Test Data Home: " << g_test_home << std::endl;
 
   switch (g_test_recording_mode) {
     case mysqlshdk::db::replay::Mode::Direct:

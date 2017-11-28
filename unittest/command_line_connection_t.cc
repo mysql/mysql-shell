@@ -17,8 +17,6 @@
 #include "unittest/test_utils/command_line_test.h"
 #include "utils/utils_string.h"
 
-extern "C" const char* g_argv0;
-
 namespace tests {
 
 class Command_line_connection_test : public Command_line_test {

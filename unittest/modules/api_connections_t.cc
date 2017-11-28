@@ -21,8 +21,6 @@
 #include "utils/utils_string.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
 
-extern "C" const char *g_argv0;
-
 namespace tests {
 
 class Api_connections : public Shell_js_script_tester {

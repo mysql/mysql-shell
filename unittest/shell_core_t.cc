@@ -32,6 +32,9 @@
 #include "shellcore/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+
+extern "C" const char *g_test_home;
 
 namespace shcore {
 namespace shell_core_tests {
@@ -58,8 +61,7 @@ protected:
   void process(const std::string& path) {
     wipe_all();
 
-    _file_name = MYSQLX_SOURCE_HOME;
-    _file_name += "/unittest/data/" + path;
+    _file_name = shcore::path::join_path(g_test_home, "data", path);
 
     std::ifstream stream(_file_name.c_str());
     if (stream.fail())
@@ -125,8 +127,7 @@ TEST_F(Shell_core_test, test_process_js_file_with_params) {
 
   _interactive_shell->process_line("\\js");
 
-  std::string file_name = MYSQLX_SOURCE_HOME;
-  file_name += "/unittest/data/js/script.js";
+  std::string file_name = shcore::path::join_path(g_test_home, "data", "js", "script.js");
 
   _file_name = file_name + " one two";
   _interactive_shell->process_line("\\. " + _file_name);
@@ -159,8 +160,7 @@ TEST_F(Shell_core_test, test_process_py_file_with_params) {
 
   _interactive_shell->process_line("\\py");
 
-  std::string file_name = MYSQLX_SOURCE_HOME;
-  file_name += "/unittest/data/py/script.py";
+  std::string file_name = shcore::path::join_path(g_test_home, "data", "py", "script.py");
 
   _file_name = file_name + " one two";
   _interactive_shell->process_line("\\. " + _file_name);

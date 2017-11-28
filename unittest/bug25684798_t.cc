@@ -19,13 +19,12 @@
 #include <string>
 #include <iostream>
 
+#include "test_utils/shell_test_env.h"
 #include "gtest_clean.h"
 
 #ifndef _WIN32
 #include <unistd.h>
 #endif
-
-extern "C" const char *g_argv0;
 
 namespace tests {
 
@@ -33,32 +32,15 @@ namespace tests {
 
 TEST(Bug25684798, regression_python_cmdline) {
 
-  std::string prefix = g_argv0;
-  // strip unittest/run_unit_tests
-  auto pos = prefix.rfind('/');
-  ASSERT_TRUE(pos != std::string::npos);
-  prefix = prefix.substr(0, pos);
-  pos = prefix.rfind('/');
-  if (pos == std::string::npos) {
-    if (prefix == ".") {
-      prefix = "..";
-    } else {
-      prefix = ".";
-    }
-  } else {
-    prefix = prefix.substr(0, pos);
-  }
-  std::string cmd = prefix+"/mysqlsh";
-  cmd.append(" --py -e '1'");
+  std::string mysqlsh_path = Shell_test_env::get_path_to_mysqlsh();
+  std::string cmd = mysqlsh_path + " --py -e '1'";
 
   EXPECT_EQ(0, system(cmd.c_str()));
 
-  cmd = prefix+"/mysqlsh";
-  cmd.append(" --js -e '1'");
+  cmd = mysqlsh_path + " --js -e '1'";
   EXPECT_EQ(0, system(cmd.c_str()));
 
-  cmd = prefix+"/mysqlsh";
-  cmd.append(" --sql -e '1'");
+  cmd = mysqlsh_path + " --sql -e '1'";
   EXPECT_EQ(256, system(cmd.c_str()));
 }
 

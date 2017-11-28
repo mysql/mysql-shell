@@ -26,9 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 
-extern "C" const char* g_argv0;
-
-
 #define ASSERT_THROW_LIKE(expr, exc, msg)                              \
   try {                                                                \
     expr;                                                              \
