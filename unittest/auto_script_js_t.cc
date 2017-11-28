@@ -25,6 +25,8 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/shell_script_tester.h"
 
+extern "C" const char *g_test_home;
+
 namespace tests {
 
 class Auto_script_js : public Shell_js_script_tester,
@@ -38,7 +40,7 @@ class Auto_script_js : public Shell_js_script_tester,
     Shell_js_script_tester::SetUp();
 
     // Common setup script
-    set_setup_script(MYSQLX_SOURCE_HOME "/unittest/scripts/setup_js/setup.js");
+    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_js", "setup.js"));
   }
 
   void reset_replayable_shell(const char *sub_test_name) {
@@ -187,7 +189,7 @@ TEST_P(Auto_script_js, run_and_check) {
 
 std::vector<std::string> find_tests(const std::string& subdir) {
   std::string path = shcore::path::join_path(
-      MYSQLX_SOURCE_HOME, "unittest", "scripts", subdir, "scripts");
+      g_test_home, "scripts", subdir, "scripts");
   if (!shcore::is_folder(path))
     return {};
   auto tests = shcore::listdir(path);

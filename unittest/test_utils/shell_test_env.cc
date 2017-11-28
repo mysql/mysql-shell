@@ -26,9 +26,12 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern tests::Version g_target_server_version;
+extern "C" const char *g_test_home;
+extern "C" const char *g_mysqlsh_bin_folder;
 
 namespace tests {
 
@@ -362,27 +365,26 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
 std::string Shell_test_env::get_path_to_mysqlsh() {
   std::string command;
 
+  // If MYSQLSH_BIN_FOLDER is set, it indicates the tests are being run outside
+  // of the development environment vs a shell package
+  if (g_mysqlsh_bin_folder) {
 #ifdef _WIN32
-  // For now, on windows the executable is expected to be on the same path as
-  // the unit tests
-  char buf[MAX_PATH];
-  GetModuleFileNameA(NULL, buf, MAX_PATH);
-  command = buf;
-  command.resize(command.rfind('\\') + 1);
-  command += "mysqlsh.exe";
+    command = shcore::path::join_path(g_mysqlsh_bin_folder, "mysqlsh.exe");
 #else
-  std::string prefix = g_argv0;
-  // strip unittest/run_unit_tests
-  size_t pos = prefix.rfind('/');
-  prefix = prefix.substr(0, pos);
-  pos = prefix.rfind('/');
-  if (pos == std::string::npos)
-    prefix = ".";
-  else
-    prefix = prefix.substr(0, pos);
-
-  command = prefix + "/mysqlsh";
+    command = shcore::path::join_path(g_mysqlsh_bin_folder, "mysqlsh");
 #endif
+  } else {
+    command = shcore::get_binary_folder();
+#ifdef _WIN32
+    // For now, on windows the executable is expected to be on the same path as
+    // the unit tests
+    command = shcore::path::join_path(command, "mysqlsh.exe");
+#else
+    // strip unittest
+    command = shcore::path::dirname(command);
+    command = shcore::path::join_path(command, "mysqlsh");
+#endif
+  }
 
   return command;
 }
@@ -487,9 +489,7 @@ void run_test_data_sql_file(const std::string &uri,
   std::string cmd = tests::Shell_test_env::get_path_to_mysqlsh();
   cmd.append(" ").append(uri);
   cmd.append(" --sql -f ")
-      .append(MYSQLX_SOURCE_HOME)
-      .append("/unittest/data/sql/")
-      .append(filename);
+      .append(shcore::path::join_path(g_test_home, "data", "sql", filename));
   int rc = system(cmd.c_str());
   ASSERT_EQ(0, rc);
 }

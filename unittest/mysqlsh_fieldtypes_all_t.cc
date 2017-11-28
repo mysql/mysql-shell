@@ -20,6 +20,9 @@
 #include <cstring>
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+
+extern "C" const char *g_test_home;
 
 namespace tests {
 
@@ -29,8 +32,7 @@ class Mysqlsh_fieldtypes_all : public Command_line_test {
                           const std::string& uri) {
     // Set up test database
     std::stringstream cmd;
-    cmd << shell_binary << " " << uri << " --sql -f " << MYSQLX_SOURCE_HOME
-        << "/unittest/data/sql/fieldtypes_all.sql";
+    cmd << shell_binary << " " << uri << " --sql -f " << shcore::path::join_path(g_test_home, "data", "sql", "fieldtypes_all.sql").c_str();
     return system(cmd.str().c_str());
   }
 

@@ -24,6 +24,7 @@
 #include "utils/utils_string.h"
 
 using namespace shcore;
+extern "C" const char *g_test_home;
 
 static int debug_level() {
   if (const char *level = getenv("TEST_DEBUG")) {
@@ -33,8 +34,7 @@ static int debug_level() {
 }
 
 Shell_script_tester::Shell_script_tester() {
-  _shell_scripts_home = MYSQLX_SOURCE_HOME;
-  _shell_scripts_home += "/unittest/scripts";
+  _shell_scripts_home = shcore::path::join_path(g_test_home, "scripts");
   _new_format = false;
 }
 
@@ -43,9 +43,8 @@ void Shell_script_tester::SetUp() {
 }
 
 void Shell_script_tester::set_config_folder(const std::string& name) {
-  _shell_scripts_home = MYSQLX_SOURCE_HOME;
-  _shell_scripts_home += "/unittest/scripts";
-  _shell_scripts_home += "/" + name;
+  // Weird that this variable was just set above with a different value
+  _shell_scripts_home = shcore::path::join_path(g_test_home, "scripts", name);
 
   // Currently hardcoded since scripts are on the shell repo
   // but can easily be updated to be setup on an ENV VAR so
