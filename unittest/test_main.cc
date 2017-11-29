@@ -131,7 +131,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           g_target_server_version = tests::Version(row[0]);
-          auto ver_split = shcore::str_split(version, "-");
+          version = g_target_server_version.full();
           if (row[1] && strcmp(row[1], "1") == 0)
             have_ssl = true;
           if (row[2])

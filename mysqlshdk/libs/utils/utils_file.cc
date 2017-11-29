@@ -712,6 +712,21 @@ void copy_file(const std::string& from, const std::string& to) {
 
   ofile.close();
   ifile.close();
+
+#ifndef _WIN32
+  // Now fix the permissions
+  struct stat result;
+  if (stat(from.c_str(), &result) == 0) {
+    if (chmod(to.c_str(), result.st_mode) != 0) {
+      throw std::runtime_error(str_format("Unable to set file mode to %s: %s",
+                                          to.c_str(), strerror(errno)));
+    }
+  } else {
+    throw std::runtime_error(str_format("Unable to get file mode from %s: %s",
+                                        from.c_str(), strerror(errno)));
+  }
+#endif
+
 }
 
 void rename_file(const std::string& from, const std::string& to) {

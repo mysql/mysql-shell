@@ -620,6 +620,39 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
     shcore::path::join_path(boilerplate, "sandboxdata", "error.log"));
 }
 
+void Testutils::copy_boilerplate_sandbox(const std::string &from,
+                                         const std::string& to) {
+  shcore::create_directory(to);
+  shcore::iterdir(from, [this, from, to](const std::string &name) {
+    try {
+      std::string item_from = shcore::path::join_path(from, name);
+      std::string item_to = shcore::path::join_path(to, name);
+
+      if (shcore::is_folder(item_from)) {
+        copy_boilerplate_sandbox(item_from, item_to);
+      } else {
+        if (name == "mysqld") {
+#ifndef _WIN32
+          if (symlink(item_from.c_str(), item_to.c_str()) != 0) {
+            throw std::runtime_error(shcore::str_format("Unable create symlink %s to %s: %s", item_to.c_str(), item_from.c_str(), strerror(errno)));
+          }
+        } else {
+#endif
+          shcore::copy_file(shcore::path::join_path(from, name),
+                            shcore::path::join_path(to, name));
+#ifndef _WIN32
+        }
+#endif
+      }
+    } catch (std::runtime_error &e) {
+      if (errno != ENOENT)
+        throw;
+    }
+    return true;
+  });
+}
+
+
 bool Testutils::deploy_sandbox_from_boilerplate(int port) {
   if (_debug)
     std::cerr << "Deploying sandbox " << port << " from boilerplate\n";
@@ -631,7 +664,7 @@ bool Testutils::deploy_sandbox_from_boilerplate(int port) {
 
   // Copy basics
   try {
-    shcore::copy_dir(boilerplate, basedir);
+    copy_boilerplate_sandbox(boilerplate, basedir);
   } catch (std::exception &e) {
     std::cerr << "Error copying boilerplate for sandbox " << port << ": "
               << e.what() << "\n";
