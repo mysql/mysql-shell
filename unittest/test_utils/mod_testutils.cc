@@ -620,10 +620,10 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
     shcore::path::join_path(boilerplate, "sandboxdata", "error.log"));
 }
 
-void Testutils::copy_boilerplate_sandbox(const std::string &from,
+void copy_boilerplate_sandbox(const std::string &from,
                                          const std::string& to) {
   shcore::create_directory(to);
-  shcore::iterdir(from, [this, from, to](const std::string &name) {
+  shcore::iterdir(from, [from, to](const std::string &name) {
     try {
       std::string item_from = shcore::path::join_path(from, name);
       std::string item_to = shcore::path::join_path(to, name);

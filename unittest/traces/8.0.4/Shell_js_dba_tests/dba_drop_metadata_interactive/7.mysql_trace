@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3540"
+    "uri": "mysql://root:root@localhost:3316",
+    "protocol": "classic"
 },
 {
     "type": "response",
@@ -32,7 +33,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 252,
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -45,7 +46,7 @@
     ],
     "rows": [
         [
-            "/home/kg/repo/ngshell/bld-clang_head/unittest/3540/sandboxdata/"
+            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -147,11 +148,11 @@
     ],
     "rows": [
         [
-            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38-bin.000002",
+            "dhcp-whq-twvpn-1-vpnpool-10-159-152-204-bin.000003",
             10691,
             "",
             "",
-            "e0aeaa96-d038-11e7-880b-f83441274313:1-14"
+            "bf1eccd0-d55c-11e7-9530-c6309f8bdaa6:1-14"
         ]
     ]
 },

@@ -1,7 +1,7 @@
 {
-    "hostname": "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com",
-    "hostname_ip": "10.175.194.38",
-    "sandbox_port1": "3540",
-    "sandbox_port2": "3550",
-    "sandbox_port3": "3560"
+    "hostname": "dhcp-whq-twvpn-1-vpnpool-10-159-133-210.vpn.oracle.com",
+    "hostname_ip": "10.159.133.210",
+    "sandbox_port1": "3316",
+    "sandbox_port2": "3326",
+    "sandbox_port3": "3336"
 }

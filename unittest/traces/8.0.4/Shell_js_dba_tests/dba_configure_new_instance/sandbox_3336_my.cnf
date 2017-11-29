@@ -1,0 +1,34 @@
+[client]
+protocol = TCP
+user = root
+
+[mysqld]
+transaction_write_set_extraction = XXHASH64
+disabled_storage_engines = BLACKHOLE,FEDERATED,ARCHIVE
+binlog_checksum = NONE
+gtid_mode = ON
+auto_increment_offset = 5
+basedir = /Users/rennox/dev/deps/mysql-8.0.4-rc-osx10.13-x86_64
+log_bin
+loose_mysqlx_socket = mysqlx.sock
+log_slave_updates = ON
+relay_log_info_repository = TABLE
+innodb_log_file_size = 1M
+master_info_repository = TABLE
+binlog_format = ROW
+innodb_log_buffer_size = 1M
+plugin_load = mysqlx.so
+enforce_gtid_consistency = ON
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+log_syslog = OFF
+
+port=3336
+server_id=15681
+datadir=/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3336/sandboxdata
+log_error=/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3336/sandboxdata/error.log
+pid_file=/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3336/3336.pid
+secure_file_priv=/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3336/mysql-files
+loose_mysqlx_port=33360
+report_port=3336
+general_log=1
