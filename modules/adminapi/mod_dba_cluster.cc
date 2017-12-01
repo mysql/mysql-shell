@@ -23,7 +23,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "common/uuid/include/uuid_gen.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"

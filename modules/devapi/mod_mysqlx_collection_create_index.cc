@@ -22,10 +22,8 @@
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "uuid_gen.h"
 #include "db/mysqlx/mysqlx_parser.h"
 #include "shellcore/utils_help.h"
-#include "uuid_gen.h"
 
 #include <iomanip>
 #include <memory>
