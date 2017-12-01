@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:2000",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "26",
+    "connection_id": "28",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "gtid_executed",
-            "1e3b947a-dfab-11e7-8bbf-282e6fa1db68:1-14,\n2043a096-dfab-11e7-8bbf-282e6fa1db68:1-2"
+            "113e4476-e10a-11e7-88f0-5ce0c50b9d66:1-2,\nccaece55-e109-11e7-a2bf-5ce0c50b9d66:1-14"
         ],
         [
             "gtid_purged",

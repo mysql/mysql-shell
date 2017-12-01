@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:2001",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
+            "length": 164,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-log Source distribution"
+            "8.0.4-rc-log MySQL Community Server (GPL)"
         ]
     ]
 },
@@ -73,7 +73,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "DROP USER 'mydba'@'localhost'"
+    "sql": "REVOKE REPLICATION SLAVE ON *.* FROM 'dba_test'@'%'"
 },
 {
     "type": "response",
@@ -88,7 +88,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "DROP USER 'dba_test'@'%'"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -101,65 +101,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 11,
-    "sql": "SET SQL_LOG_BIN=1"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 12,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 13,
-    "sql": "SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 14,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "COUNT(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 15
+    "index": 11
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 16
+    "index": 12
 },
 null]

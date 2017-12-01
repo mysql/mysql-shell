@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://test_user:@dhcp-10-159-251-25.vpn.oracle.com:3316",
+    "uri": "mysql://test_user:@pjesus-TECRA-Z40-B:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "15",
-    "connection_info": "dhcp-10-159-251-25.vpn.oracle.com via TCP/IP",
+    "connection_id": "17",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.4-rc-log",
-    "server_version": "1.56.132",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
+            "length": 164,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-log Source distribution"
+            "8.0.4-rc-log MySQL Community Server (GPL)"
         ]
     ]
 },

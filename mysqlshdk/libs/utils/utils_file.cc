@@ -692,7 +692,8 @@ bool create_file(const std::string& name, const std::string& content) {
   return ret_val;
 }
 
-void copy_file(const std::string& from, const std::string& to) {
+void copy_file(const std::string& from, const std::string& to,
+               bool copy_attributes) {
   std::ofstream ofile;
   std::ifstream ifile;
 
@@ -713,21 +714,29 @@ void copy_file(const std::string& from, const std::string& to) {
   ofile.close();
   ifile.close();
 
+  if (copy_attributes) {
 #ifndef _WIN32
-  // Now fix the permissions
-  struct stat result;
-  if (stat(from.c_str(), &result) == 0) {
-    if (chmod(to.c_str(), result.st_mode) != 0) {
-      throw std::runtime_error(str_format("Unable to set file mode to %s: %s",
-                                          to.c_str(),
-                                          errno_to_string(errno).c_str()));
+    // Change the destination file ownership and permissions to match the ones
+    // from the source file.
+    struct stat result;
+    if (stat(from.c_str(), &result) == 0) {
+      if (getuid() == 0) {
+        // Only change file ownership if executed by the root user.
+        if (chown(to.c_str(), result.st_uid, result.st_gid) != 0) {
+          throw std::runtime_error("Unable to change ownership for file " + to +
+                                   " : " + errno_to_string(errno));
+        }
+      }
+      if (chmod(to.c_str(), result.st_mode) != 0) {
+        throw std::runtime_error("Unable to set file mode to " + to + ": " +
+                                 errno_to_string(errno));
+      }
+    } else {
+      throw std::runtime_error("Unable to get file mode from " + from + ": " +
+                               errno_to_string(errno));
     }
-  } else {
-    throw std::runtime_error(str_format("Unable to get file mode from %s: %s",
-                                        from.c_str(),
-                                        errno_to_string(errno).c_str()));
-  }
 #endif
+  }
 }
 
 void rename_file(const std::string& from, const std::string& to) {

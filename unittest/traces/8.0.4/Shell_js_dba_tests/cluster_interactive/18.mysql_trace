@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:2002",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "8",
+    "connection_id": "35",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@group_replication_group_name"
+    "sql": "SELECT @@datadir"
 },
 {
     "type": "response",
@@ -36,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@group_replication_group_name",
-            "length": 0,
+            "column_label": "@@datadir",
+            "length": 316,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            null
+            "/home/workspace/git/work/bugs/26796118/ngshell/BUILD/unittest/3350/sandboxdata/"
         ]
     ]
 },
@@ -58,88 +58,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@server_uuid"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 144,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "1565bada-dfae-11e7-a92e-6ba2ecb7d2f6"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 0,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            ""
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 9,
     "sql": "SHOW MASTER STATUS"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 10,
+    "index": 6,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -228,24 +152,24 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-141-218-bin.000004",
-            231,
+            "pjesus-TECRA-Z40-B-bin.000002",
+            18399,
             "",
             "",
-            "13299d22-dfae-11e7-8fea-658878c36ac7:1-14,\n161f17a0-dfae-11e7-8fea-658878c36ac7:1-35"
+            "2618529f-e10f-11e7-aab3-5ce0c50b9d66:1-14,\n8c483a43-e10f-11e7-ba16-5ce0c50b9d66:1-19"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 11,
+    "index": 7,
     "sql": "SELECT @@global.have_ssl"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 12,
+    "index": 8,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -277,8 +201,84 @@
 {
     "type": "request",
     "subtype": "QUERY",
+    "index": 9,
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "plugins",
+            "column_name": "PLUGIN_STATUS",
+            "column_label": "plugin_status",
+            "length": 40,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "ACTIVE"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
     "index": 13,
-    "sql": "STOP GROUP_REPLICATION"
+    "sql": "SET PERSIST group_replication_recovery_get_public_key=1"
 },
 {
     "type": "response",
@@ -288,5 +288,15 @@
     "affected_rows": 0,
     "warning_count": 0,
     "info": ""
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 15
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 16
 },
 null]

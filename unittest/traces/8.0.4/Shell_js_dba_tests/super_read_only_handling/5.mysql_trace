@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:2000",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "10",
+    "connection_id": "12",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -227,47 +227,7 @@
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
             "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
-            "YES"
-        ],
-        [
-            "CONNECTION_ADMIN",
-            "YES"
-        ],
-        [
-            "SYSTEM_VARIABLES_ADMIN",
             "YES"
         ],
         [
@@ -275,7 +235,47 @@
             "YES"
         ],
         [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
+            "YES"
+        ],
+        [
             "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "XA_RECOVER_ADMIN",
             "YES"
         ]
     ]

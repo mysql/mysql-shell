@@ -31,6 +31,8 @@
 #include "utils/utils_string.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysql/instance.h"
+#include "db/mysql/session.h"
 #include "modules/mod_utils.h"
 
 using namespace std::placeholders;
@@ -298,6 +300,37 @@ shcore::Value Interactive_dba_cluster::remove_instance(
     "' was successfully removed from the cluster.");
 
   println();
+
+  // User and pass might not be specified in args and in that case we need to
+  // get them from the metadata session.
+  if (!instance_def.has_user() || !instance_def.has_password()) {
+
+    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
+    auto cluster_session = cluster->get_group_session();
+    auto cluster_cnx_opts = cluster_session->get_connection_options();
+
+    if (!instance_def.has_user() && cluster_cnx_opts.has_user())
+      instance_def.set_user(cluster_cnx_opts.get_user());
+
+    if (!instance_def.has_password() && cluster_cnx_opts.has_password())
+      instance_def.set_password(cluster_cnx_opts.get_password());
+  }
+  // Issue a warning for user to manually disable GR in the configuration file
+  // for servers that do not support the SET PERSIST feature (< 8.0.4).
+  // NOTE: Supported version to use SET PERSIST must be >= 8.0.4 due to
+  //       BUG#26495619.
+  std::shared_ptr<mysqlshdk::db::ISession> _session =
+      mysqlshdk::db::mysql::Session::create();
+  _session->connect(instance_def);
+  mysqlshdk::mysql::Instance *instance =
+      new mysqlshdk::mysql::Instance(_session);
+  if (!instance->check_server_version(8, 0, 4)) {
+    println("WARNING: The 'group_replication_start_on_boot' variable must be "
+            "set to 'OFF' in the server configuration file, otherwise it might "
+            "silently rejoin the cluster upon restart.");
+    println();
+  }
+  _session->close();
 
   return ret_val;
 }

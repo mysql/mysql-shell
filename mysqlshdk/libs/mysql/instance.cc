@@ -40,7 +40,7 @@ Instance::Instance(std::shared_ptr<db::ISession> session) : _session(session) {
 }
 
 utils::nullable<bool> Instance::get_sysvar_bool(const std::string &name,
-                                                const VarScope &scope) const {
+                                                const Var_qualifier &scope) const {
   utils::nullable<bool> ret_val;
 
   std::map<std::string, utils::nullable<std::string>> variables =
@@ -65,12 +65,12 @@ utils::nullable<bool> Instance::get_sysvar_bool(const std::string &name,
 }
 
 utils::nullable<std::string> Instance::get_sysvar_string(
-    const std::string &name, const VarScope &scope) const {
+    const std::string& name, const Var_qualifier &scope) const {
   return get_system_variables({name}, scope)[name];
 }
 
-utils::nullable<int64_t> Instance::get_sysvar_int(const std::string &name,
-                                                  const VarScope &scope) const {
+utils::nullable<int64_t> Instance::get_sysvar_int(
+    const std::string& name, const Var_qualifier &scope) const {
   utils::nullable<int64_t> ret_val;
 
   auto variables = get_system_variables({name}, scope);
@@ -98,13 +98,18 @@ utils::nullable<int64_t> Instance::get_sysvar_int(const std::string &name,
  *
  * @param name string with the name of the system variable to set.
  * @param value string with the value to set for the variable.
- * @param scope VarScope with the scope of the system variable to set.
+ * @param qualifier Var_qualifier with the qualifier to set the system variable.
  */
-void Instance::set_sysvar(const std::string &name, const std::string &value,
-                          const VarScope &scope) const {
+void Instance::set_sysvar(const std::string &name,
+                          const std::string &value,
+                          const Var_qualifier &qualifier) const {
   std::string set_stmt_fmt;
-  if (scope == VarScope::GLOBAL)
+  if (qualifier == Var_qualifier::GLOBAL)
     set_stmt_fmt = "SET GLOBAL ! = ?";
+  else if (qualifier == Var_qualifier::PERSIST)
+    set_stmt_fmt = "SET PERSIST ! = ?";
+  else if (qualifier == Var_qualifier::PERSIST_ONLY)
+    set_stmt_fmt = "SET PERSIST_ONLY ! = ?";
   else
     set_stmt_fmt = "SET SESSION ! = ?";
 
@@ -120,13 +125,18 @@ void Instance::set_sysvar(const std::string &name, const std::string &value,
  *
  * @param name string with the name of the system variable to set.
  * @param value integer value to set for the variable.
- * @param scope VarScope with the scope of the system variable to set.
+ * @param qualifier Var_qualifier with the qualifier to set the system variable.
  */
-void Instance::set_sysvar(const std::string &name, const int64_t value,
-                          const VarScope &scope) const {
+void Instance::set_sysvar(const std::string &name,
+                          const int64_t value,
+                          const Var_qualifier &qualifier) const {
   std::string set_stmt_fmt;
-  if (scope == VarScope::GLOBAL)
+  if (qualifier == Var_qualifier::GLOBAL)
     set_stmt_fmt = "SET GLOBAL ! = ?";
+  else if (qualifier == Var_qualifier::PERSIST)
+    set_stmt_fmt = "SET PERSIST ! = ?";
+  else if (qualifier == Var_qualifier::PERSIST_ONLY)
+    set_stmt_fmt = "SET PERSIST_ONLY ! = ?";
   else
     set_stmt_fmt = "SET SESSION ! = ?";
 
@@ -142,14 +152,19 @@ void Instance::set_sysvar(const std::string &name, const int64_t value,
  *
  * @param name string with the name of the system variable to set.
  * @param value boolean value to set for the variable.
- * @param scope VarScope with the scope of the system variable to set.
+ * @param qualifier Var_qualifier with the qualifier to set the system variable.
  */
-void Instance::set_sysvar(const std::string &name, const bool value,
-                          const VarScope &scope) const {
+void Instance::set_sysvar(const std::string &name,
+                          const bool value,
+                          const Var_qualifier &qualifier) const {
   std::string str_value = value ? "ON" : "OFF";
   std::string set_stmt_fmt;
-  if (scope == VarScope::GLOBAL)
+  if (qualifier == Var_qualifier::GLOBAL)
     set_stmt_fmt = "SET GLOBAL ! = ?";
+  else if (qualifier == Var_qualifier::PERSIST)
+    set_stmt_fmt = "SET PERSIST ! = ?";
+  else if (qualifier == Var_qualifier::PERSIST_ONLY)
+    set_stmt_fmt = "SET PERSIST_ONLY ! = ?";
   else
     set_stmt_fmt = "SET SESSION ! = ?";
 
@@ -160,17 +175,20 @@ void Instance::set_sysvar(const std::string &name, const bool value,
   _session->execute(set_stmt);
 }
 
-std::map<std::string, utils::nullable<std::string>>
-Instance::get_system_variables(const std::vector<std::string> &names,
-                               const VarScope &scope) const {
-  std::map<std::string, utils::nullable<std::string>> ret_val;
+std::map<std::string, utils::nullable<std::string> >
+Instance::get_system_variables(const std::vector<std::string>& names,
+                               const Var_qualifier &scope) const {
+  std::map<std::string, utils::nullable<std::string> > ret_val;
 
   if (!names.empty()) {
     std::string query_format;
-    if (scope == VarScope::GLOBAL)
+    if (scope == Var_qualifier::GLOBAL)
       query_format = "show GLOBAL variables where ! in (?";
-    else
+    else if (scope == Var_qualifier::SESSION)
       query_format = "show SESSION variables where ! in (?";
+    else
+      throw std::runtime_error("Invalid variable scope to get variables value, "
+                               "only GLOBAL and SESSION is supported.");
 
     ret_val[names[0]] = utils::nullable<std::string>();
 
@@ -548,6 +566,7 @@ std::tuple<bool, std::string, bool> Instance::check_user(
   return result;
 }
 
+
 bool Instance::is_read_only(bool super) const {
   // Check if the member is not read_only
   std::shared_ptr<mysqlshdk::db::IResult> result(
@@ -565,6 +584,34 @@ utils::Version Instance::get_version() const {
     _version = utils::Version(get_sysvar_string("version"));
   }
   return _version;
+}
+
+/**
+ * Check the server version compatibility.
+ *
+ * Verify the server version compatibility against the specified one,
+ * returning true if it is greater or equal (compatible).
+ *
+ * @param major positive integer with the target major version number.
+ * @param minor positive integer with the target minor version number.
+ * @param patch positive integer with the target patch version number.
+ * @return True if server version is greater or equal (>=) than the specified
+ *         version. False if server version is lower (<) than the specified
+ *         version.
+ */
+bool Instance::check_server_version(uint64_t major, uint64_t minor,
+                                    uint64_t patch) const {
+  auto resultset = _session->query("SELECT sys.version_major(), "
+                                   "sys.version_minor(), "
+                                   "sys.version_patch()");
+  auto row = resultset->fetch_one();
+  uint64_t srv_major = row->get_uint(0);
+  uint64_t srv_minor = row->get_uint(1);
+  uint64_t srv_patch = row->get_uint(2);
+  // Retun true if server version >= than the specified one.
+  return (srv_major > major ||
+          (srv_major == major &&
+           (srv_minor > minor || (srv_minor == minor && srv_patch >= patch))));
 }
 
 }  // namespace mysql

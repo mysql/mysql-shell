@@ -1077,6 +1077,30 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
       }
       // If force is used do not add the instance back to the metadata,
       // and ignore any leave-replicaset error.
+    } else {
+      // Create and open an instance session.
+      log_debug("Opening a new session to instance: '%s' to disable and "
+                "persist 'group_replication_start_on_boot', if supported by "
+                "the server.", instance_address.c_str());
+      std::shared_ptr<mysqlshdk::db::ISession> _session =
+          mysqlshdk::db::mysql::Session::create();
+      _session->connect(instance_def);
+      mysqlshdk::mysql::Instance instance_session(_session);
+
+      // Disable and persist GR start on boot if leave-replicaset succeed.
+      // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.4
+      //       due to BUG#26495619.
+      if (instance_session.check_server_version(8, 0, 4))
+        instance_session.set_sysvar("group_replication_start_on_boot", false,
+                                    mysqlshdk::mysql::Var_qualifier::PERSIST);
+      else
+        // NOTE: mysqlprovision already set group_replication_start_on_boot=OFF
+        log_warning(
+            "The 'group_replication_start_on_boot' variable must be set "
+            "to 'OFF' in the server configuration file, otherwise it might "
+            "rejoin the cluster upon restart.");
+
+      _session->close();
     }
   } else {
     // Remove instance from the MD anyway in case it is standalone.
@@ -1181,13 +1205,13 @@ void ReplicaSet::remove_instance_from_gr(
   if (!cluster)
     throw shcore::Exception::runtime_error("Cluster object is no longer valid");
 
-  auto instance = shcore::get_connection_options(instance_str, false);
-  instance.set_user(data.get_user());
-  instance.set_password(data.get_password());
+  auto instance_cnx_opts = shcore::get_connection_options(instance_str, false);
+  instance_cnx_opts.set_user(data.get_user());
+  instance_cnx_opts.set_password(data.get_password());
 
   if (data.get_ssl_options().has_data()) {
     auto cluster_ssl = data.get_ssl_options();
-    auto instance_ssl = instance.get_ssl_options();
+    auto instance_ssl = instance_cnx_opts.get_ssl_options();
 
     if (cluster_ssl.has_ca())
       instance_ssl.set_ca(cluster_ssl.get_ca());
@@ -1201,10 +1225,36 @@ void ReplicaSet::remove_instance_from_gr(
 
   // Leave the replicaset
   int exit_code = cluster->get_provisioning_interface()->leave_replicaset(
-      instance, &errors);
-  if (exit_code != 0)
+      instance_cnx_opts, &errors);
+  if (exit_code != 0) {
     throw shcore::Exception::runtime_error(
         get_mysqlprovision_error_string(errors));
+  } else {
+    // Create and open an instance session.
+    std::string instance_address = instance_cnx_opts.as_uri(only_transport());
+    log_debug("Opening a new session to instance: '%s' to disable and "
+              "persist 'group_replication_start_on_boot', if supported by the "
+              "server.", instance_address.c_str());
+    std::shared_ptr<mysqlshdk::db::ISession> _session =
+        mysqlshdk::db::mysql::Session::create();
+    _session->connect(instance_cnx_opts);
+    mysqlshdk::mysql::Instance instance(_session);
+
+    // Disable and persist GR start on boot if leave-replicaset succeed.
+    // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.4
+    //       due to BUG#26495619.
+    if (instance.check_server_version(8, 0, 4))
+      instance.set_sysvar("group_replication_start_on_boot", false,
+                          mysqlshdk::mysql::Var_qualifier::PERSIST);
+    else
+      // NOTE: mysqlprovision already set group_replication_start_on_boot=OFF
+      log_warning(
+          "The 'group_replication_start_on_boot' variable must be set "
+          "to 'OFF' in the server configuration file, otherwise it might "
+          "rejoin the cluster upon restart.");
+
+    _session->close();
+  }
 }
 
 shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "missingprivileges:@localhost:2001",
+    "uri": "missingprivileges:@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -14,13 +14,13 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@super_read_only"
+    "sql": "SELECT CURRENT_USER()"
 },
 {
     "type": "response",
@@ -36,32 +36,36 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@super_read_only",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
+            "column_label": "CURRENT_USER()",
+            "length": 372,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": [
         [
-            0
+            "missingprivileges@localhost"
         ]
     ]
 },
 {
     "type": "request",
-    "subtype": "CLOSE",
-    "index": 5
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "SELECT COUNT(*) from mysql.user WHERE User = 'missingprivileges' AND Host = '%'"
 },
 {
     "type": "response",
-    "subtype": "OK",
-    "index": 6
+    "subtype": "ERROR",
+    "index": 6,
+    "code": "1142",
+    "msg": "SELECT command denied to user 'missingprivileges'@'localhost' for table 'user'",
+    "sqlstate": "42000"
 },
 null]

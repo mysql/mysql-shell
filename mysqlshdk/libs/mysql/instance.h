@@ -39,11 +39,14 @@ namespace mysqlshdk {
 namespace mysql {
 
 /**
- * Supported system variables scopes: SESSION (default), GLOBAL.
+ * Supported system variables qualifiers: SESSION (default), GLOBAL, PERSIST,
+ * and PERSIST_ONLY.
  */
-enum class VarScope {
+enum class Var_qualifier {
   SESSION,
-  GLOBAL
+  GLOBAL,
+  PERSIST,
+  PERSIST_ONLY,
 };
 
 /**
@@ -54,20 +57,22 @@ class IInstance {
   virtual ~IInstance() {}
   virtual utils::nullable<bool> get_sysvar_bool(
       const std::string& name,
-      const VarScope &scope = VarScope::SESSION) const = 0;
+      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
   virtual utils::nullable<std::string> get_sysvar_string(
       const std::string& name,
-      const VarScope &scope = VarScope::SESSION) const = 0;
+      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
   virtual utils::nullable<int64_t> get_sysvar_int(
       const std::string& name,
-      const VarScope &scope = VarScope::SESSION) const = 0;
-  virtual void set_sysvar(const std::string &name,
-                          const std::string &value,
-                          const VarScope &scope = VarScope::SESSION) const = 0;
-  virtual void set_sysvar(const std::string &name, const int64_t value,
-                          const VarScope &scope = VarScope::SESSION) const = 0;
-  virtual void set_sysvar(const std::string &name, const bool value,
-                          const VarScope &scope = VarScope::SESSION) const = 0;
+      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+  virtual void set_sysvar(
+      const std::string &name, const std::string &value,
+      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+  virtual void set_sysvar(
+      const std::string &name, const int64_t value,
+      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+  virtual void set_sysvar(
+      const std::string &name, const bool value,
+      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
 
   virtual bool is_read_only(bool super) const = 0;
   virtual utils::Version get_version() const = 0;
@@ -87,6 +92,8 @@ class IInstance {
       const std::string &user, const std::string &host,
       const std::vector<std::string> &privileges,
       const std::string &on_db, const std::string &on_obj) const = 0;
+  virtual bool check_server_version(uint64_t major, uint64_t minor,
+                                    uint64_t patch) const = 0;
 };
 
 /**
@@ -98,26 +105,28 @@ class Instance : public IInstance {
 
   utils::nullable<bool> get_sysvar_bool(
       const std::string& name,
-      const VarScope &scope = VarScope::SESSION) const override;
+      const Var_qualifier &scope = Var_qualifier::SESSION) const override;
   utils::nullable<std::string> get_sysvar_string(
       const std::string& name,
-      const VarScope &scope = VarScope::SESSION) const override;
+      const Var_qualifier &scope = Var_qualifier::SESSION) const override;
   utils::nullable<int64_t> get_sysvar_int(
       const std::string& name,
-      const VarScope &scope = VarScope::SESSION) const override;
-  void set_sysvar(const std::string &name,
-                  const std::string &value,
-                  const VarScope &scope = VarScope::SESSION) const override;
-  void set_sysvar(const std::string &name, const int64_t value,
-                  const VarScope &scope = VarScope::SESSION) const override;
-  void set_sysvar(const std::string &name, const bool value,
-                  const VarScope &scope = VarScope::SESSION) const override;
+      const Var_qualifier &scope = Var_qualifier::SESSION) const override;
+  void set_sysvar(
+      const std::string &name, const std::string &value,
+      const Var_qualifier &qualifier = Var_qualifier::SESSION) const override;
+  void set_sysvar(
+      const std::string &name, const int64_t value,
+      const Var_qualifier &qualifier = Var_qualifier::SESSION) const override;
+  void set_sysvar(
+      const std::string &name, const bool value,
+      const Var_qualifier &qualifier = Var_qualifier::SESSION) const override;
   std::shared_ptr<db::ISession> get_session() const override {
     return _session;
   }
   std::map<std::string, utils::nullable<std::string> > get_system_variables(
       const std::vector<std::string>& names,
-      const VarScope &scope = VarScope::SESSION) const;
+      const Var_qualifier &scope = Var_qualifier::SESSION) const;
   void install_plugin(const std::string &plugin_name) const override;
   void uninstall_plugin(const std::string &plugin_name) const override;
   utils::nullable<std::string> get_plugin_status(
@@ -132,6 +141,8 @@ class Instance : public IInstance {
       const std::string &user, const std::string &host,
       const std::vector<std::string> &privileges,
       const std::string &on_db, const std::string &on_obj) const override;
+  bool check_server_version(uint64_t major, uint64_t minor,
+                            uint64_t patch) const override;
 
   bool is_read_only(bool super) const override;
   utils::Version get_version() const override;
