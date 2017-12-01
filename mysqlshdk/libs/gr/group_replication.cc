@@ -30,7 +30,7 @@
 
 #include "gr/group_replication.h"
 
-#include "common/uuid/include/uuid_gen.h"
+#include "mysqlshdk/libs/utils/uuid_gen.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"

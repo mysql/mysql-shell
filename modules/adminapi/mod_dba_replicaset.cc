@@ -30,7 +30,6 @@
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mod_shell.h"
 #include "shellcore/base_session.h"
-#include "common/uuid/include/uuid_gen.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mysqlxtest_utils.h"

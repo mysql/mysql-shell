@@ -26,7 +26,6 @@ ENDIF()
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/cmake
-    ${CMAKE_SOURCE_DIR}/common/cmake
     ${CMAKE_MODULE_PATH}
 )
 

@@ -15,7 +15,6 @@
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
-  ${CMAKE_SOURCE_DIR}/common/uuid/include
   )
 
 set(utils_SOURCE
@@ -38,7 +37,7 @@ set(utils_SOURCE
     debug.cc
     dtoa.cc
     options.cc
-    "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
+    uuid_gen.cc
 )
 
 # platform dependent implementations

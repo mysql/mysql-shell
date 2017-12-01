@@ -19,8 +19,8 @@
 
 #include <ctime>
 #include <random>
-#include "utils_uuid.h"
-#include "common/uuid/include/uuid_gen.h"
+#include "mysqlshdk/libs/utils/utils_uuid.h"
+#include "mysqlshdk/libs/utils/uuid_gen.h"
 
 namespace shcore {
 
@@ -73,4 +73,4 @@ std::string Id_generator::new_document_id() {
 }
 
 
-}
+}  // namespace shcore
