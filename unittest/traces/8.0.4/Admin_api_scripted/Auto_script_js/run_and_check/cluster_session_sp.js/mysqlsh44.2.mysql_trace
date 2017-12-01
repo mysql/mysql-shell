@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:2001",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "66",
+    "connection_id": "68",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -208,9 +208,9 @@
     ],
     "rows": [
         [
-            "c1c0019e-df83-11e7-b381-58b06b05da34",
+            "621a0202-e101-11e7-8891-5ce0c50b9d66",
             1,
-            "c02ea808-df83-11e7-8dcf-d439a07876e8",
+            "2a1dd47b-e101-11e7-95f6-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -291,7 +291,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = 'c1c0019e-df83-11e7-b381-58b06b05da34'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '621a0202-e101-11e7-8891-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -385,18 +385,18 @@
     ],
     "rows": [
         [
-            "bef84674-df83-11e7-b381-58b06b05da34",
-            "localhost:2000",
+            "0b606092-e101-11e7-b393-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:2000",
-            "localhost:20000"
+            "localhost:3340",
+            "localhost:33400"
         ],
         [
-            "c02ea808-df83-11e7-8dcf-d439a07876e8",
-            "localhost:2001",
+            "2a1dd47b-e101-11e7-95f6-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:2001",
-            "localhost:20010"
+            "localhost:3350",
+            "localhost:33500"
         ]
     ]
 },
@@ -553,17 +553,17 @@
     ],
     "rows": [
         [
-            "bef84674-df83-11e7-b381-58b06b05da34",
+            "0b606092-e101-11e7-b393-5ce0c50b9d66",
             "ONLINE",
-            "dhcp-10-159-141-218.vpn.oracle.com",
-            2000,
+            "pjesus-TECRA-Z40-B",
+            3340,
             "PRIMARY"
         ],
         [
-            "c02ea808-df83-11e7-8dcf-d439a07876e8",
+            "2a1dd47b-e101-11e7-95f6-5ce0c50b9d66",
             "ONLINE",
-            "dhcp-10-159-141-218.vpn.oracle.com",
-            2001,
+            "pjesus-TECRA-Z40-B",
+            3350,
             "SECONDARY"
         ]
     ]

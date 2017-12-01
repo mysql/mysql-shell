@@ -580,3 +580,18 @@ function ensure_plugin_disabled(plugin_name) {
   }
   sess.close();
 }
+
+// Check the server compatibility with the specified version numbers.
+// Return true if the server version is >= than the one specified one, otherwise
+// false.
+function check_server_version(major, minor, patch) {
+    var result = session.runSql("SELECT sys.version_major(), sys.version_minor(), sys.version_patch()");
+    var row = result.fetchOne();
+    var srv_major = row[0];
+    var srv_minor = row[1];
+    var srv_patch = row[2];
+    return (srv_major > major ||
+        (srv_major == major &&
+            (srv_minor > minor || (srv_minor == minor && srv_patch >= patch))));
+}
+

@@ -10,6 +10,15 @@
 //@ Adding instance
 ||
 
+//@ Configure instance on port1.
+||
+
+//@ Configure instance on port2.
+||
+
+//@<OUT> Number of instance according to GR.
+2
+
 //@ Failure: remove_instance - invalid uri
 ||Invalid URI: Missing user information
 
@@ -98,6 +107,24 @@
     },
     "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
+
+//@<OUT> Number of instance according to GR after removal.
+1
+
+//@ Stop instance on port2.
+||
+
+//@ Restart instance on port2.
+||
+
+//@ Connect to restarted instance.
+||
+
+//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.4)}.
+OFF
+
+//@ Connect back to seed instance and get cluster.
+||
 
 //@ Adding instance on port2 back
 ||

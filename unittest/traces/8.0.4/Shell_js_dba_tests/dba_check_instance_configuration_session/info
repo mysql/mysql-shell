@@ -1,7 +1,7 @@
 {
-    "hostname": "dhcp-10-159-251-25.vpn.oracle.com",
-    "hostname_ip": "10.159.251.25",
-    "sandbox_port1": "3316",
-    "sandbox_port2": "3326",
-    "sandbox_port3": "3336"
+    "hostname": "pjesus-TECRA-Z40-B",
+    "hostname_ip": "127.0.1.1",
+    "sandbox_port1": "3340",
+    "sandbox_port2": "3350",
+    "sandbox_port3": "3360"
 }

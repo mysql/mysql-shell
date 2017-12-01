@@ -556,7 +556,7 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
                              const uint16_t read_only_timeout) {
   if (bootstrap)
     instance.set_sysvar("group_replication_bootstrap_group", true,
-                        mysqlshdk::mysql::VarScope::GLOBAL);
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
   try {
     auto session = instance.get_session();
     session->execute("START GROUP_REPLICATION");
@@ -566,7 +566,7 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
     try {
       if (bootstrap)
         instance.set_sysvar("group_replication_bootstrap_group", false,
-                            mysqlshdk::mysql::VarScope::GLOBAL);
+                            mysqlshdk::mysql::Var_qualifier::GLOBAL);
       // Ignore any error trying to set the bootstrap variable to OFF.
     } catch (...) {
     }
@@ -574,17 +574,17 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
   }
   if (bootstrap) {
     instance.set_sysvar("group_replication_bootstrap_group", false,
-                        mysqlshdk::mysql::VarScope::GLOBAL);
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
     // Wait for SUPER READ ONLY to be OFF.
     // Required for MySQL versions < 5.7.20.
     mysqlshdk::utils::nullable<bool> read_only = instance.get_sysvar_bool(
-        "super_read_only", mysqlshdk::mysql::VarScope::GLOBAL);
+        "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
     uint16_t waiting_time = 0;
     while (*read_only && waiting_time < read_only_timeout) {
       shcore::sleep_ms(1000);
       waiting_time += 1;
-      read_only = instance.get_sysvar_bool("super_read_only",
-                                           mysqlshdk::mysql::VarScope::GLOBAL);
+      read_only = instance.get_sysvar_bool(
+          "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
     }
     // Throw an error is SUPPER READ ONLY is ON.
     if (*read_only)

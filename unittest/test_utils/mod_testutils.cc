@@ -92,10 +92,11 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
     std::cerr << "tetutils using dummy sandboxes\n";
 
   expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass");
-  expose("destroySandbox", &Testutils::destroy_sandbox, "port");
+  expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
+         false);
   expose("startSandbox", &Testutils::start_sandbox, "port");
   expose("stopSandbox", &Testutils::stop_sandbox, "port", "rootpass");
-  expose("killSandbox", &Testutils::kill_sandbox, "port");
+  expose("killSandbox", &Testutils::kill_sandbox, "port", "?quiet", false);
   expose("restartSandbox", &Testutils::restart_sandbox, "port", "rootpass");
 
   expose("snapshotSandboxConf", &Testutils::snapshot_sandbox_conf, "port");
@@ -340,22 +341,15 @@ void Testutils::end_snapshot_sandbox_error_log(int port) {
 void Testutils::deploy_sandbox(int port, const std::string &rootpass) {
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
-    if (true) {
-      // Sandbox from a boilerplate
-      if (!_boilerplate_rootpass.empty() && _boilerplate_rootpass == rootpass &&
-          !_expected_boilerplate_version.empty()) {
+    // Sandbox from a boilerplate
+    if (!_boilerplate_rootpass.empty() && _boilerplate_rootpass == rootpass &&
+        !_expected_boilerplate_version.empty()) {
+      if (!deploy_sandbox_from_boilerplate(port)) {
+        prepare_sandbox_boilerplate(rootpass, port);
         if (!deploy_sandbox_from_boilerplate(port)) {
-          prepare_sandbox_boilerplate(rootpass);
-          if (!deploy_sandbox_from_boilerplate(port)) {
-            std::cerr << "Unable to deploy boilerplate sandbox\n";
-            abort();
-          }
+          std::cerr << "Unable to deploy boilerplate sandbox\n";
+          abort();
         }
-      } else {
-        prepare_sandbox_boilerplate(rootpass);
-        _boilerplate_rootpass = rootpass;
-
-        deploy_sandbox_from_boilerplate(port);
       }
     } else {
       // Sandbox from scratch
@@ -394,9 +388,9 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass) {
   None Testutils::destroy_sandbox(int port);
 #endif
 ///@}
-void Testutils::destroy_sandbox(int port) {
+void Testutils::destroy_sandbox(int port, bool quiet_kill) {
   mysqlshdk::db::replay::No_replay dont_record;
-  kill_sandbox(port);
+  kill_sandbox(port, quiet_kill);
 #ifdef _WIN32
   // Make config file (and backups) readable in case it was made RO by some test
   std::string dirname = shcore::path::dirname(get_sandbox_conf_path(port));
@@ -565,11 +559,12 @@ void Testutils::restart_sandbox(int port, const std::string &rootpass) {
   None Testutils::kill_sandbox(int port);
 #endif
 ///@}
-void Testutils::kill_sandbox(int port) {
+void Testutils::kill_sandbox(int port, bool quiet) {
   if (!_dummy_sandboxes) {
     shcore::Value::Array_type_ref errors;
     _mp->kill_sandbox(port, _sandbox_dir, &errors);
-    if (errors && !errors->empty())
+    // Only output errors to stderr if quiet mode is disabled (default).
+    if (!quiet && errors && !errors->empty())
       std::cerr << "During kill of " << port << ": "
                 << shcore::Value(errors).descr() << "\n";
     wait_sandbox_dead(port);
@@ -912,7 +907,8 @@ std::string Testutils::fetch_captured_stderr() {
   return _fetch_stderr();
 }
 
-void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
+void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
+                                            int port) {
   if (g_test_trace_scripts)
     std::cerr << "Preparing sandbox boilerplate...\n";
 
@@ -929,8 +925,6 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
 
   // Create a sandbox, shut it down and then keep a copy of its basedir
   // to be reused for future deployments
-  int port =
-      _default_sandbox_ports.empty() ? 3300 : _default_sandbox_ports.front();
 
   shcore::Value::Array_type_ref errors;
   shcore::Value mycnf_options = shcore::Value::new_array();

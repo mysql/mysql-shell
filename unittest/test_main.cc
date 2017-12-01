@@ -408,13 +408,26 @@ int main(int argc, char **argv) {
   // init the ^C handler, so it knows what's the main thread
   shcore::Interrupts::init(nullptr);
 
-  if (!getenv("TMPDIR")) {  // for windows
-    const char *tmpdir = getenv("TEMP");
-    if (tmpdir) {
-      static std::string temp;
-      temp.append("TMPDIR=").append(tmpdir);
-      putenv(&temp[0]);
+  // Check TMPDIR environment variable for windows and other platforms without
+  // TMPDIR defined.
+  // NOTE: Required to be used as location for sandbox deployment.
+  const char *tmpdir = getenv("TMPDIR");
+  if (tmpdir == nullptr || strlen(tmpdir) == 0) {
+    tmpdir = getenv("TEMP");  // TEMP usually used on Windows.
+    static std::string temp("TMPDIR=");
+    if (tmpdir == nullptr || strlen(tmpdir) == 0) {
+      // Use the binary folder as default for the TMPDIR.
+      std::string bin_folder = shcore::get_binary_folder();
+      temp.append(bin_folder);
+      std::cout << std::endl
+                << "WARNING: TMPDIR environment variable is "
+                   "empty or not defined. It will be set with the binary "
+                   "folder path: "
+                << temp << std::endl << std::endl;
+    } else {
+      temp.append(tmpdir);
     }
+    putenv(&temp[0]);
   }
 
   bool show_help = false;
@@ -571,8 +584,7 @@ int main(int argc, char **argv) {
 
   std::string filter = ::testing::GTEST_FLAG(filter);
   std::string new_filter = filter;
-  std::cout << makered("ATTENTION: currently overriding manually specified filters\n");
-  if (!got_filter || 1)
+  if (!got_filter)
     new_filter = k_default_test_filter;
   if (new_filter != filter) {
     std::cout << "Executing defined filter: " << new_filter.c_str()

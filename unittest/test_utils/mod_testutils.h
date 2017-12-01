@@ -119,11 +119,11 @@ class Testutils : public shcore::Cpp_object_bridge {
  public:
   // Sandbox routines
   void deploy_sandbox(int port, const std::string &rootpass);
-  void destroy_sandbox(int port);
+  void destroy_sandbox(int port, bool quiet_kill=false);
 
   void start_sandbox(int port);
   void stop_sandbox(int port, const std::string &rootpass);
-  void kill_sandbox(int port);
+  void kill_sandbox(int port, bool quiet=false);
 
   void restart_sandbox(int port, const std::string &rootpass);
 
@@ -196,7 +196,7 @@ class Testutils : public shcore::Cpp_object_bridge {
 
   void wait_sandbox_dead(int port);
 
-  void prepare_sandbox_boilerplate(const std::string &rootpass);
+  void prepare_sandbox_boilerplate(const std::string &rootpass, int port);
   bool deploy_sandbox_from_boilerplate(int port);
 };
 

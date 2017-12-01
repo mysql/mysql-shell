@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:2001",
+    "uri": "root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "dc4a84f2-dfac-11e7-8de0-0d2fc44922ce"
+            "cc4ee70c-e10d-11e7-855d-5ce0c50b9d66"
         ]
     ]
 },
@@ -228,11 +228,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-141-218-bin.000004",
+            "pjesus-TECRA-Z40-B-bin.000003",
             231,
             "",
             "",
-            "dafbd2b8-dfac-11e7-80a3-2e1af78acc61:1-14,\ndde35fbe-dfac-11e7-80a3-2e1af78acc61:1-18"
+            "0b4ea7f0-e10e-11e7-8daa-5ce0c50b9d66:1-18,\nabe35db9-e10d-11e7-806e-5ce0c50b9d66:1-14"
         ]
     ]
 },

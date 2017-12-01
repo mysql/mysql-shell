@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:2001",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "29",
+    "connection_id": "31",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -122,7 +122,7 @@
     "rows": [
         [
             "Ssl_version",
-            "TLSv1.2"
+            "TLSv1.1"
         ]
     ]
 },
@@ -211,7 +211,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 128,
+            "length": 164,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -259,7 +259,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 316,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -276,10 +276,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.4-rc-log Source distribution",
+            "8.0.4-rc-log MySQL Community Server (GPL)",
             "mysqld.sock",
-            2001,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/2001/sandboxdata/"
+            3350,
+            "/home/workspace/git/work/bugs/26796118/ngshell/BUILD/unittest/3350/sandboxdata/"
         ]
     ]
 },

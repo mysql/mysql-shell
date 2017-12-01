@@ -152,7 +152,7 @@ TEST_F(Group_replication_Test, start_stop_gr) {
   // NOTE: START and STOP GROUP_REPLICATION is slow.
 
   using mysqlshdk::utils::nullable;
-  using mysqlshdk::mysql::VarScope;
+  using mysqlshdk::mysql::Var_qualifier;
   using mysqlshdk::gr::Member_state;
 
   // Check if used server meets the requirements.
@@ -237,17 +237,17 @@ TEST_F(Group_replication_Test, start_stop_gr) {
   // Set GR variable to start GR.
   std::string group_name = mysqlshdk::gr::generate_group_name();
   instance->set_sysvar("group_replication_group_name", group_name,
-                       VarScope::GLOBAL);
+                       Var_qualifier::GLOBAL);
   std::string local_address = "localhost:13013";
   instance->set_sysvar("group_replication_local_address", local_address,
-                       VarScope::GLOBAL);
+                       Var_qualifier::GLOBAL);
 
   // Test: Start Group Replication.
   mysqlshdk::gr::start_group_replication(*instance, true);
 
   // SUPER READ ONLY must be OFF (verify wait for it to be disable).
   nullable<bool> read_only = instance->get_sysvar_bool("super_read_only",
-                                                       VarScope::GLOBAL);
+                                                       Var_qualifier::GLOBAL);
   EXPECT_FALSE(*read_only);
 
   // Test: member is part of GR group, state must be RECOVERING or ONLINE.
@@ -284,8 +284,8 @@ TEST_F(Group_replication_Test, start_stop_gr) {
 
   // Starting from MySQL 5.7.20 GR automatically enables super_read_only after
   // stop. Thus, always disable read_only ro consider this situation.
-  instance->set_sysvar("super_read_only", false, VarScope::GLOBAL);
-  instance->set_sysvar("read_only", false, VarScope::GLOBAL);
+  instance->set_sysvar("super_read_only", false, Var_qualifier::GLOBAL);
+  instance->set_sysvar("read_only", false, Var_qualifier::GLOBAL);
 
   // Test: member is still part of the group, but its state is OFFLINE.
   res = mysqlshdk::gr::is_member(*instance);
@@ -299,9 +299,9 @@ TEST_F(Group_replication_Test, start_stop_gr) {
   if (!(*gr_group_name).empty())
     // NOTE: The group_name cannot be set with an empty value.
     instance->set_sysvar("group_replication_group_name", *gr_group_name,
-                         VarScope::GLOBAL);
+                         Var_qualifier::GLOBAL);
   instance->set_sysvar("group_replication_local_address", *gr_local_address,
-                       VarScope::GLOBAL);
+                       Var_qualifier::GLOBAL);
   if (init_plugin_state.is_null()) {
     mysqlshdk::gr::uninstall_plugin(*instance);
   }

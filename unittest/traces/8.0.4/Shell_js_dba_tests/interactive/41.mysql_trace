@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "missingprivileges:@localhost:2001",
+    "uri": "missingprivileges:@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -14,13 +14,13 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT DISTINCT grantee FROM information_schema.user_privileges WHERE grantee like '\\'missingprivileges\\'@%'"
+    "sql": "SELECT CURRENT_USER()"
 },
 {
     "type": "response",
@@ -32,13 +32,13 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "GRANTEE",
-            "column_label": "grantee",
-            "length": 324,
-            "fractional": 0,
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "CURRENT_USER()",
+            "length": 372,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "'missingprivileges'@'localhost'"
+            "missingprivileges@localhost"
         ]
     ]
 },
@@ -58,48 +58,14 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@super_read_only"
+    "sql": "SELECT COUNT(*) from mysql.user WHERE User = 'missingprivileges' AND Host = '%'"
 },
 {
     "type": "response",
-    "subtype": "RESULT",
+    "subtype": "ERROR",
     "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@super_read_only",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 7
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 8
+    "code": "1142",
+    "msg": "SELECT command denied to user 'missingprivileges'@'localhost' for table 'user'",
+    "sqlstate": "42000"
 },
 null]

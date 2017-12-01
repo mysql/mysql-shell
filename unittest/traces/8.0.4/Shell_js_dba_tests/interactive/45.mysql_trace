@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:2001",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "26",
+    "connection_id": "27",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT DISTINCT grantee FROM information_schema.user_privileges WHERE grantee like '\\'root\\'@%'"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -32,13 +32,13 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "GRANTEE",
-            "column_label": "grantee",
-            "length": 324,
-            "fractional": 0,
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 164,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -50,10 +50,7 @@
     ],
     "rows": [
         [
-            "'root'@'localhost'"
-        ],
-        [
-            "'root'@'%'"
+            "8.0.4-rc-log MySQL Community Server (GPL)"
         ]
     ]
 },
@@ -61,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'%\\''"
+    "sql": "select COUNT(*) from mysql.user where user='missingprivileges' and host='%'"
 },
 {
     "type": "response",
@@ -73,210 +70,25 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "PRIVILEGE_TYPE",
-            "column_label": "privilege_type",
-            "length": 256,
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "COUNT(*)",
+            "length": 21,
             "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "IS_GRANTABLE",
-            "column_label": "is_grantable",
-            "length": 12,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "SELECT",
-            "YES"
-        ],
-        [
-            "INSERT",
-            "YES"
-        ],
-        [
-            "UPDATE",
-            "YES"
-        ],
-        [
-            "DELETE",
-            "YES"
-        ],
-        [
-            "CREATE",
-            "YES"
-        ],
-        [
-            "DROP",
-            "YES"
-        ],
-        [
-            "RELOAD",
-            "YES"
-        ],
-        [
-            "SHUTDOWN",
-            "YES"
-        ],
-        [
-            "PROCESS",
-            "YES"
-        ],
-        [
-            "FILE",
-            "YES"
-        ],
-        [
-            "REFERENCES",
-            "YES"
-        ],
-        [
-            "INDEX",
-            "YES"
-        ],
-        [
-            "ALTER",
-            "YES"
-        ],
-        [
-            "SHOW DATABASES",
-            "YES"
-        ],
-        [
-            "SUPER",
-            "YES"
-        ],
-        [
-            "CREATE TEMPORARY TABLES",
-            "YES"
-        ],
-        [
-            "LOCK TABLES",
-            "YES"
-        ],
-        [
-            "EXECUTE",
-            "YES"
-        ],
-        [
-            "REPLICATION SLAVE",
-            "YES"
-        ],
-        [
-            "REPLICATION CLIENT",
-            "YES"
-        ],
-        [
-            "CREATE VIEW",
-            "YES"
-        ],
-        [
-            "SHOW VIEW",
-            "YES"
-        ],
-        [
-            "CREATE ROUTINE",
-            "YES"
-        ],
-        [
-            "ALTER ROUTINE",
-            "YES"
-        ],
-        [
-            "CREATE USER",
-            "YES"
-        ],
-        [
-            "EVENT",
-            "YES"
-        ],
-        [
-            "TRIGGER",
-            "YES"
-        ],
-        [
-            "CREATE TABLESPACE",
-            "YES"
-        ],
-        [
-            "CREATE ROLE",
-            "YES"
-        ],
-        [
-            "DROP ROLE",
-            "YES"
-        ],
-        [
-            "XA_RECOVER_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
-            "YES"
-        ],
-        [
-            "CONNECTION_ADMIN",
-            "YES"
-        ],
-        [
-            "SYSTEM_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "BINLOG_ADMIN",
-            "YES"
+            0
         ]
     ]
 },
@@ -284,12 +96,57 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@super_read_only"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "DROP USER missingprivileges@localhost"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SET SQL_LOG_BIN=1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -300,8 +157,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@super_read_only",
-            "length": 1,
+            "column_label": "COUNT(*)",
+            "length": 21,
             "fractional": 0,
             "type": "Integer",
             "collation": "binary",
@@ -321,11 +178,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 9
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 10
+    "index": 16
 },
 null]

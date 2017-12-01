@@ -75,7 +75,7 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
             {{"character_set_server", "latin1"}}}});
   mysqlshdk::utils::nullable<std::string> char_set_server =
       instance.get_sysvar_string("character_set_server",
-                                 mysqlshdk::mysql::VarScope::SESSION);
+                                 mysqlshdk::mysql::Var_qualifier::SESSION);
   EXPECT_FALSE(char_set_server.is_null());
   EXPECT_STREQ("latin1", (*char_set_server).c_str());
 
@@ -90,7 +90,7 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
             {Type::String, Type::String},
             {{"character_set_server", "latin1"}}}});
   char_set_server = instance.get_sysvar_string(
-      "character_set_server", mysqlshdk::mysql::VarScope::GLOBAL);
+      "character_set_server", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_FALSE(char_set_server.is_null());
   EXPECT_STREQ("latin1", (*char_set_server).c_str());
 
@@ -157,8 +157,8 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_warnings", "OFF"}}}});
-  sql_warnings = instance.get_sysvar_bool("sql_warnings",
-                                          mysqlshdk::mysql::VarScope::SESSION);
+  sql_warnings = instance.get_sysvar_bool(
+      "sql_warnings", mysqlshdk::mysql::Var_qualifier::SESSION);
   EXPECT_FALSE(sql_warnings.is_null());
   EXPECT_FALSE(*sql_warnings);
 
@@ -170,8 +170,8 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_warnings", "OFF"}}}});
-  sql_warnings = instance.get_sysvar_bool("sql_warnings",
-                                          mysqlshdk::mysql::VarScope::GLOBAL);
+  sql_warnings = instance.get_sysvar_bool(
+      "sql_warnings", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_FALSE(sql_warnings.is_null());
   EXPECT_FALSE(*sql_warnings);
 
@@ -265,7 +265,7 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
                      {Type::String, Type::String},
                      {{"wait_timeout", "28800"}}}});
   mysqlshdk::utils::nullable<int64_t> wait_timeout = instance.get_sysvar_int(
-      "wait_timeout", mysqlshdk::mysql::VarScope::SESSION);
+      "wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION);
   EXPECT_FALSE(wait_timeout.is_null());
   EXPECT_EQ(28800, *wait_timeout);
 
@@ -278,8 +278,8 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"wait_timeout", "28800"}}}});
-  wait_timeout = instance.get_sysvar_int("wait_timeout",
-                                         mysqlshdk::mysql::VarScope::GLOBAL);
+  wait_timeout = instance.get_sysvar_int(
+      "wait_timeout", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_FALSE(wait_timeout.is_null());
   EXPECT_EQ(28800, *wait_timeout);
 
@@ -339,6 +339,40 @@ TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
   _session->close();
 }
 
+TEST_F(Instance_test, get_sysvar_invalid_qualifier) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+
+  mysqlshdk::mysql::Instance instance(_session);
+  EXPECT_THROW(
+      instance.get_sysvar_string("character_set_server",
+                                 mysqlshdk::mysql::Var_qualifier::PERSIST),
+      std::runtime_error);
+  EXPECT_THROW(
+      instance.get_sysvar_string("character_set_server",
+                                 mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
+      std::runtime_error);
+  EXPECT_THROW(
+      instance.get_sysvar_bool("sql_warnings",
+                               mysqlshdk::mysql::Var_qualifier::PERSIST),
+      std::runtime_error);
+  EXPECT_THROW(
+      instance.get_sysvar_bool("sql_warnings",
+                               mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
+      std::runtime_error);
+  EXPECT_THROW(
+      instance.get_sysvar_int("wait_timeout",
+                              mysqlshdk::mysql::Var_qualifier::PERSIST),
+      std::runtime_error);
+  EXPECT_THROW(
+      instance.get_sysvar_int("wait_timeout",
+                               mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
+      std::runtime_error);
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
 TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
@@ -359,7 +393,7 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_STREQ("fr_FR", (*new_value).c_str());
   EXPECT_CALL(session, execute("SET GLOBAL `lc_messages` = 'pt_PT'"));
   instance.set_sysvar("lc_messages", (std::string) "pt_PT",
-                      mysqlshdk::mysql::VarScope::GLOBAL);
+                      mysqlshdk::mysql::Var_qualifier::GLOBAL);
   session.expect_query(
           "show GLOBAL variables where `variable_name` in ('lc_messages')")
       .then_return({{"show GLOBAL variables "
@@ -367,12 +401,12 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lc_messages", "pt_PT"}}}});
-  new_value = instance.get_sysvar_string("lc_messages",
-                                         mysqlshdk::mysql::VarScope::GLOBAL);
+  new_value = instance.get_sysvar_string(
+      "lc_messages", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_STREQ("pt_PT", (*new_value).c_str());
   EXPECT_CALL(session, execute("SET SESSION `lc_messages` = 'es_MX'"));
   instance.set_sysvar("lc_messages", (std::string) "es_MX",
-                      mysqlshdk::mysql::VarScope::SESSION);
+                      mysqlshdk::mysql::Var_qualifier::SESSION);
   session.expect_query(
           "show SESSION variables where `variable_name` in ('lc_messages')")
       .then_return({{"show SESSION variables "
@@ -380,8 +414,8 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lc_messages", "es_MX"}}}});
-  new_value = instance.get_sysvar_string("lc_messages",
-                                         mysqlshdk::mysql::VarScope::SESSION);
+  new_value = instance.get_sysvar_string(
+      "lc_messages", mysqlshdk::mysql::Var_qualifier::SESSION);
   EXPECT_STREQ("es_MX", (*new_value).c_str());
 
   // Test set int system variable with different scopes (GLOBAL and SESSION).
@@ -400,7 +434,7 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_EQ(86400, *new_i_value);
   EXPECT_CALL(session, execute("SET GLOBAL `lock_wait_timeout` = 172800"));
   instance.set_sysvar("lock_wait_timeout", (int64_t) 172800,
-                      mysqlshdk::mysql::VarScope::GLOBAL);
+                      mysqlshdk::mysql::Var_qualifier::GLOBAL);
   session.expect_query(
           "show GLOBAL variables "
           "where `variable_name` in ('lock_wait_timeout')")
@@ -409,12 +443,12 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lock_wait_timeout", "172800"}}}});
-  new_i_value = instance.get_sysvar_int("lock_wait_timeout",
-                                        mysqlshdk::mysql::VarScope::GLOBAL);
+  new_i_value = instance.get_sysvar_int(
+      "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_EQ(172800, *new_i_value);
   EXPECT_CALL(session, execute("SET SESSION `lock_wait_timeout` = 43200"));
   instance.set_sysvar("lock_wait_timeout", (int64_t) 43200,
-                      mysqlshdk::mysql::VarScope::SESSION);
+                      mysqlshdk::mysql::Var_qualifier::SESSION);
   session.expect_query(
           "show SESSION variables "
           "where `variable_name` in ('lock_wait_timeout')")
@@ -423,8 +457,8 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lock_wait_timeout", "43200"}}}});
-  new_i_value = instance.get_sysvar_int("lock_wait_timeout",
-                                        mysqlshdk::mysql::VarScope::SESSION);
+  new_i_value = instance.get_sysvar_int(
+      "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION);
   EXPECT_EQ(43200, *new_i_value);
 
   // Test set bool system variable with different scopes (GLOBAL and SESSION).
@@ -441,7 +475,8 @@ TEST_F(Instance_test, set_sysvar) {
       "sql_log_off");
   EXPECT_TRUE(*new_b_value);
   EXPECT_CALL(session, execute("SET GLOBAL `sql_log_off` = 'ON'"));
-  instance.set_sysvar("sql_log_off", true, mysqlshdk::mysql::VarScope::GLOBAL);
+  instance.set_sysvar("sql_log_off", true,
+                      mysqlshdk::mysql::Var_qualifier::GLOBAL);
   session.expect_query(
           "show GLOBAL variables where `variable_name` in ('sql_log_off')")
       .then_return({{"show GLOBAL variables "
@@ -449,12 +484,12 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_log_off", "ON"}}}});
-  new_b_value = instance.get_sysvar_bool("sql_log_off",
-                                         mysqlshdk::mysql::VarScope::GLOBAL);
+  new_b_value = instance.get_sysvar_bool(
+      "sql_log_off", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_TRUE(*new_b_value);
   EXPECT_CALL(session, execute("SET SESSION `sql_log_off` = 'OFF'"));
   instance.set_sysvar("sql_log_off", false,
-                      mysqlshdk::mysql::VarScope::SESSION);
+                      mysqlshdk::mysql::Var_qualifier::SESSION);
   session.expect_query(
           "show SESSION variables where `variable_name` in ('sql_log_off')")
       .then_return({{"show SESSION variables "
@@ -462,9 +497,171 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_log_off", "OFF"}}}});
-  new_b_value = instance.get_sysvar_bool("sql_log_off",
-                                         mysqlshdk::mysql::VarScope::SESSION);
+  new_b_value = instance.get_sysvar_bool(
+      "sql_log_off", mysqlshdk::mysql::Var_qualifier::SESSION);
   EXPECT_FALSE(*new_b_value);
+
+  // NOTE: Tests using PERSIST and PERSIT_ONLY are only supported by server
+  //       versions >= 8.0.2
+  // Set string with PERSIST_ONLY.
+  EXPECT_CALL(session, execute("SET PERSIST_ONLY `lc_messages` = 'en_US'"));
+  instance.set_sysvar("lc_messages", (std::string) "en_US",
+                      mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
+  session.expect_query(
+          "show GLOBAL variables where `variable_name` in ('lc_messages')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('lc_messages')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"lc_messages", "pt_PT"}}}});
+  new_value = instance.get_sysvar_string(
+      "lc_messages", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_STREQ("pt_PT", (*new_value).c_str());
+  std::string persited_var_value_stmt =
+      "SELECT VARIABLE_VALUE "
+      "FROM performance_schema.persisted_variables "
+      "WHERE VARIABLE_NAME = 'lc_messages'";
+  session.expect_query(persited_var_value_stmt)
+      .then_return({{persited_var_value_stmt,
+                     {"VARIABLE_VALUE"},
+                     {Type::String},
+                     {{"en_US"}}}});
+  auto resultset = session.query(persited_var_value_stmt, false);
+  std::string persisted_value = resultset->fetch_one()->get_string(0);
+  EXPECT_STREQ("en_US", persisted_value.c_str());
+  EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
+  session.execute("RESET PERSIST lc_messages");
+  // Set string with PERSIST.
+  EXPECT_CALL(session, execute("SET PERSIST `lc_messages` = 'en_US'"));
+  instance.set_sysvar("lc_messages", (std::string) "en_US",
+                      mysqlshdk::mysql::Var_qualifier::PERSIST);
+  session.expect_query(
+          "show GLOBAL variables where `variable_name` in ('lc_messages')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('lc_messages')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"lc_messages", "en_US"}}}});
+  new_value = instance.get_sysvar_string(
+      "lc_messages", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_STREQ("en_US", (*new_value).c_str());
+  session.expect_query(persited_var_value_stmt)
+      .then_return({{persited_var_value_stmt,
+                     {"VARIABLE_VALUE"},
+                     {Type::String},
+                     {{"en_US"}}}});
+  resultset = session.query(persited_var_value_stmt, false);
+  persisted_value = resultset->fetch_one()->get_string(0);
+  EXPECT_STREQ("en_US", persisted_value.c_str());
+  EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
+  session.execute("RESET PERSIST lc_messages");
+  // Set int with PERSIST_ONLY.
+  EXPECT_CALL(session, execute(
+      "SET PERSIST_ONLY `lock_wait_timeout` = 172801"));
+  instance.set_sysvar("lock_wait_timeout", (int64_t) 172801,
+                      mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
+  session.expect_query(
+          "show GLOBAL variables "
+              "where `variable_name` in ('lock_wait_timeout')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('lock_wait_timeout')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"lock_wait_timeout", "172800"}}}});
+  new_i_value = instance.get_sysvar_int(
+      "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_EQ(172800, *new_i_value);
+  persited_var_value_stmt =
+      "SELECT VARIABLE_VALUE "
+      "FROM performance_schema.persisted_variables "
+      "WHERE VARIABLE_NAME = 'lock_wait_timeout'";
+  session.expect_query(persited_var_value_stmt)
+      .then_return({{persited_var_value_stmt,
+                     {"VARIABLE_VALUE"},
+                     {Type::Integer},
+                     {{"172801"}}}});
+  resultset = session.query(persited_var_value_stmt, false);
+  int64_t persisted_i_value = resultset->fetch_one()->get_int(0);
+  EXPECT_EQ(172801, persisted_i_value);
+  EXPECT_CALL(session, execute("RESET PERSIST lock_wait_timeout"));
+  session.execute("RESET PERSIST lock_wait_timeout");
+  // Set int with PERSIST.
+  EXPECT_CALL(session, execute("SET PERSIST `lock_wait_timeout` = 172801"));
+  instance.set_sysvar("lock_wait_timeout", (int64_t) 172801,
+                      mysqlshdk::mysql::Var_qualifier::PERSIST);
+  session.expect_query(
+          "show GLOBAL variables "
+              "where `variable_name` in ('lock_wait_timeout')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('lock_wait_timeout')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"lock_wait_timeout", "172801"}}}});
+  new_i_value = instance.get_sysvar_int(
+      "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_EQ(172801, *new_i_value);
+  session.expect_query(persited_var_value_stmt)
+      .then_return({{persited_var_value_stmt,
+                     {"VARIABLE_VALUE"},
+                     {Type::Integer},
+                     {{"172801"}}}});
+  resultset = session.query(persited_var_value_stmt, false);
+  persisted_i_value = resultset->fetch_one()->get_int(0);
+  EXPECT_EQ(172801, persisted_i_value);
+  EXPECT_CALL(session, execute("RESET PERSIST lock_wait_timeout"));
+  session.execute("RESET PERSIST lock_wait_timeout");
+  // Set boolean with PERSIST_ONLY.
+  EXPECT_CALL(session, execute("SET PERSIST_ONLY `sql_log_off` = 'OFF'"));
+  instance.set_sysvar("sql_log_off", false,
+                      mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
+  session.expect_query(
+          "show GLOBAL variables where `variable_name` in ('sql_log_off')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('sql_log_off')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"sql_log_off", "ON"}}}});
+  new_b_value = instance.get_sysvar_bool(
+      "sql_log_off", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_TRUE(*new_b_value);
+  persited_var_value_stmt =
+      "SELECT VARIABLE_VALUE "
+      "FROM performance_schema.persisted_variables "
+      "WHERE VARIABLE_NAME = 'sql_log_off'";
+  session.expect_query(persited_var_value_stmt)
+      .then_return({{persited_var_value_stmt,
+                     {"VARIABLE_VALUE"},
+                     {Type::Integer},
+                     {{"OFF"}}}});
+  resultset = session.query(persited_var_value_stmt, false);
+  std::string persisted_b_value = resultset->fetch_one()->get_string(0);
+  EXPECT_STREQ("OFF", persisted_b_value.c_str());
+  EXPECT_CALL(session, execute("RESET PERSIST sql_log_off"));
+  session.execute("RESET PERSIST sql_log_off");
+  // Set boolean with PERSIST.
+  EXPECT_CALL(session, execute("SET PERSIST `sql_log_off` = 'OFF'"));
+  instance.set_sysvar("sql_log_off", false,
+                      mysqlshdk::mysql::Var_qualifier::PERSIST);
+  session.expect_query(
+          "show GLOBAL variables where `variable_name` in ('sql_log_off')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('sql_log_off')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"sql_log_off", "OFF"}}}});
+  new_b_value = instance.get_sysvar_bool(
+      "sql_log_off", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_FALSE(*new_b_value);
+  session.expect_query(persited_var_value_stmt)
+      .then_return({{persited_var_value_stmt,
+                     {"VARIABLE_VALUE"},
+                     {Type::Integer},
+                     {{"OFF"}}}});
+  resultset = session.query(persited_var_value_stmt, false);
+  persisted_b_value = resultset->fetch_one()->get_string(0);
+  EXPECT_STREQ("OFF", persisted_b_value.c_str());
+  EXPECT_CALL(session, execute("RESET PERSIST sql_log_off"));
+  session.execute("RESET PERSIST sql_log_off");
 
   EXPECT_CALL(session, close());
   _session->close();
@@ -2500,6 +2697,100 @@ TEST_F(Instance_test, drop_user) {
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.drop_user("dba_user", "dba_host"), std::exception);
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
+TEST_F(Instance_test, check_server_version) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+
+  mysqlshdk::mysql::Instance instance(_session);
+
+  // Check version - compatible (server major value is greater).
+  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
+                       "sys.version_patch()")
+      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
+                     "sys.version_patch()",
+                     {"sys.version_major()", "sys.version_minor()",
+                      "sys.version_patch()"},
+                     {Type::String, Type::String, Type::String},
+                     {{"5", "7", "20"}}}});
+  bool result = instance.check_server_version(4, 8, 21);
+  EXPECT_TRUE(result);
+
+  // Check version - compatible (server minor value is greater).
+  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
+                       "sys.version_patch()")
+      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
+                         "sys.version_patch()",
+                     {"sys.version_major()", "sys.version_minor()",
+                      "sys.version_patch()"},
+                     {Type::String, Type::String, Type::String},
+                     {{"5", "7", "20"}}}});
+  result = instance.check_server_version(5, 6, 21);
+  EXPECT_TRUE(result);
+
+  // Check version - compatible (server patch value is greater).
+  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
+                       "sys.version_patch()")
+      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
+                         "sys.version_patch()",
+                     {"sys.version_major()", "sys.version_minor()",
+                      "sys.version_patch()"},
+                     {Type::String, Type::String, Type::String},
+                     {{"5", "7", "20"}}}});
+  result = instance.check_server_version(5, 7, 19);
+  EXPECT_TRUE(result);
+
+  // Check version - compatible (same version).
+  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
+                       "sys.version_patch()")
+      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
+                         "sys.version_patch()",
+                     {"sys.version_major()", "sys.version_minor()",
+                      "sys.version_patch()"},
+                     {Type::String, Type::String, Type::String},
+                     {{"5", "7", "20"}}}});
+  result = instance.check_server_version(5, 7, 20);
+  EXPECT_TRUE(result);
+
+  // Check version - not compatible (server major value is lower).
+  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
+                       "sys.version_patch()")
+      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
+                         "sys.version_patch()",
+                     {"sys.version_major()", "sys.version_minor()",
+                      "sys.version_patch()"},
+                     {Type::String, Type::String, Type::String},
+                     {{"5", "7", "20"}}}});
+  result = instance.check_server_version(6, 6, 19);
+  EXPECT_FALSE(result);
+
+  // Check version - not compatible (server minor value is lower).
+  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
+                       "sys.version_patch()")
+      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
+                         "sys.version_patch()",
+                     {"sys.version_major()", "sys.version_minor()",
+                      "sys.version_patch()"},
+                     {Type::String, Type::String, Type::String},
+                     {{"5", "7", "20"}}}});
+  result = instance.check_server_version(5, 8, 19);
+  EXPECT_FALSE(result);
+
+  // Check version - not compatible (server patch value is lower).
+  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
+                       "sys.version_patch()")
+      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
+                         "sys.version_patch()",
+                     {"sys.version_major()", "sys.version_minor()",
+                      "sys.version_patch()"},
+                     {Type::String, Type::String, Type::String},
+                     {{"5", "7", "20"}}}});
+  result = instance.check_server_version(5, 7, 21);
+  EXPECT_FALSE(result);
 
   EXPECT_CALL(session, close());
   _session->close();
