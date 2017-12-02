@@ -193,16 +193,17 @@
 |   age: 13|
 |gender: male|
 
-//@ Table.Select Check switching between table and vertical mode
+//@ Table.Select Check switching between table and vertical mode 1
 |vertical|
 |*************************** 1. row ***************************|
 |name: jack|
 |table|
-|+------+|
-|| name ||
-|+------+|
-|| jack ||
-|+------+|
+//@<OUT> Table.Select Check switching between table and vertical mode 2
++------+
+| name |
++------+
+| jack |
++------+
 
 //@ Table.Select Zerofill field as variable
 |Variable value : 1|

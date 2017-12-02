@@ -2,8 +2,8 @@
 |Member Count: 18|
 
 |name: OK|
-|session: OK|
 |schema: OK|
+|session: OK|
 |add: OK|
 |add_or_replace_one: OK|
 |create_index: OK|

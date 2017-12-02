@@ -119,34 +119,34 @@
 
 #@# CollectionModify: Set Execution
 |Set Affected Rows: 1|
-|name|
+|age|
 |alias|
 |last_name|
-|age|
+|name|
 
 #@# CollectionModify: Set Execution Binding Array
 |Set Affected Rows: 1|
-|name|
+|age|
 |alias|
 |last_name|
-|age|
+|name|
 |soccer|
 |dance|
 |reading|
 
 #@ CollectionModify: Simple Unset Execution
-|Unset Affected Rows: 1|
-|name|
-|alias|
 |~last_name|
+|Unset Affected Rows: 1|
 |age|
+|alias|
+|name|
 
 #@ CollectionModify: List Unset Execution
-|Unset Affected Rows: 1|
-|name|
 |~alias|
 |~last_name|
 |~age|
+|Unset Affected Rows: 1|
+|name|
 
 
 #@ CollectionModify: Merge Execution
@@ -159,12 +159,11 @@
 |Brian's second girlfriend: karen|
 
 #@ CollectionModify: array_append Execution
+|Array Append Affected Rows: 1|
 |last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
 |get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
 |last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
 |get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
-
-|Array Append Affected Rows: 1|
 |Brian's girlfriends: 3|
 |Brian's last: cloe|
 
@@ -182,28 +181,28 @@
 |Affected Rows: 2|
 
 #@ CollectionModify: sorting and limit Execution - 1
-|name|
 |age|
 |gender|
+|name|
 |sample|
 
 #@ CollectionModify: sorting and limit Execution - 2
-|name|
 |age|
 |gender|
+|name|
 |sample|
 
 #@ CollectionModify: sorting and limit Execution - 3
-|name|
+|~sample|
 |age|
 |gender|
-|~sample|
+|name|
 
 #@ CollectionModify: sorting and limit Execution - 4
-|name|
+|~sample|
 |age|
 |gender|
-|~sample|
+|name|
 
 #@<OUT> CollectionModify: Patch initial documents
 [

@@ -60,8 +60,8 @@ crud = table.insert(45)
 crud = table.insert('name', 28)
 crud = table.insert(['name', 28])
 
-crud = table.insert(['name', 'age', 'gender']).values([5])
-crud = table.insert(['name', 'age', 'gender']).values('carol', mySession)
+crud = table.insert(['name', 'age', 'gender']).values([5]).execute()
+crud = table.insert(['name', 'age', 'gender']).values('carol', mySession).execute()
 crud = table.insert(['name', 'id', 'gender']).values('carol', 20, 'female').execute()
 
 

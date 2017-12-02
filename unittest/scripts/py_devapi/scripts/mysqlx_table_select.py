@@ -235,9 +235,10 @@ shell.options.outputFormat = "vertical"
 table.insert({ 'name': 'john\ndoe', 'age': 13, 'gender': 'male' }).execute();
 table.select('*').where('age = 13')
 
-#@ Table.Select Check switching between table and vertical mode
+#@ Table.Select Check switching between table and vertical mode 1
 shell.options.outputFormat = "vertical"
 table.select('name').where('age > 16')
+#@<OUT> Table.Select Check switching between table and vertical mode 2
 shell.options.outputFormat = "table"
 table.select('name').where('age > 16')
 

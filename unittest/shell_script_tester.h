@@ -85,6 +85,7 @@ protected:
   // The name of the active setup script, should be set after the config folder
   void set_setup_script(const std::string &name);
 
+  virtual std::string get_comment_token() = 0;
   virtual std::string get_chunk_token() = 0;
   virtual std::string get_chunk_by_line_token() = 0;
   virtual std::string get_assumptions_token() = 0;
@@ -126,6 +127,7 @@ protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void set_defaults();
 
+  virtual std::string get_comment_token() { return "//"; };
   virtual std::string get_chunk_token() { return "//@"; }
   virtual std::string get_chunk_by_line_token() { return "//@#"; }
   virtual std::string get_assumptions_token() { return "// Assumptions:"; }
@@ -137,6 +139,7 @@ protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void set_defaults();
 
+  virtual std::string get_comment_token() { return "#"; };
   virtual std::string get_chunk_token() { return "#@"; }
   virtual std::string get_chunk_by_line_token() { return "#@#"; }
   virtual std::string get_assumptions_token() { return "# Assumptions:"; }

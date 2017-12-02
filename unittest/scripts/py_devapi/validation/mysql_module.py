@@ -169,4 +169,4 @@ For additional information on connection data use \? connection.
 ||Invalid number of arguments in mysql.get_session, expected 1 to 2 but got 0
 ||Invalid number of arguments in mysql.get_session, expected 1 to 2 but got 3
 ||mysql.get_session: Invalid connection options, expected either a URI or a Dictionary.
-mysql.get_session: Argument #2 is expected to be a string
+||mysql.get_session: Argument #2 is expected to be a string

@@ -124,35 +124,35 @@
 |lastDocumentIds: Result.getLastDocumentIds: document ids are not available.|
 |getLastDocumentIds(): Result.getLastDocumentIds: document ids are not available.|
 
-|name|
+|age|
 |alias|
 |last_name|
-|age|
+|name|
 
 //@# CollectionModify: Set Execution Binding Array
 |Set Affected Rows: 1|
-|name|
-|alias|
-|last_name|
 |age|
+|alias|
 |hobbies|
+|last_name|
+|name|
 |soccer|
 |dance|
 |read|
 
 //@ CollectionModify: Simple Unset Execution
-|Unset Affected Rows: 1|
-|name|
-|alias|
 |~last_name|
+|Unset Affected Rows: 1|
 |age|
+|alias|
+|name|
 
 //@ CollectionModify: List Unset Execution
-|Unset Affected Rows: 1|
-|name|
 |~alias|
 |~last_name|
 |~age|
+|Unset Affected Rows: 1|
+|name|
 
 
 //@ CollectionModify: Merge Execution
@@ -183,28 +183,28 @@
 |Affected Rows: 2|
 
 //@ CollectionModify: sorting and limit Execution - 1
-|name|
 |age|
 |gender|
+|name|
 |sample|
 
 //@ CollectionModify: sorting and limit Execution - 2
-|name|
 |age|
 |gender|
+|name|
 |sample|
 
 //@ CollectionModify: sorting and limit Execution - 3
-|name|
+|~sample|
 |age|
 |gender|
-|~sample|
+|name|
 
 //@ CollectionModify: sorting and limit Execution - 4
-|name|
+|~sample|
 |age|
 |gender|
-|~sample|
+|name|
 
 //@<OUT> CollectionModify: Patch initial documents
 [
