@@ -29,7 +29,7 @@ extern "C" const char *g_test_home;
 
 namespace tests {
 
-class Auto_script_js : public Shell_js_script_tester,
+class Auto_script_py : public Shell_py_script_tester,
                            public ::testing::WithParamInterface<std::string> {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
@@ -37,10 +37,10 @@ class Auto_script_js : public Shell_js_script_tester,
     // Force reset_shell() to happen when reset_shell() is called explicitly
     // in each test case
     _delay_reset_shell = true;
-    Shell_js_script_tester::SetUp();
+    Shell_py_script_tester::SetUp();
 
     // Common setup script
-    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_js", "setup.js"));
+    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_py", "setup.py"));
   }
 
   void reset_replayable_shell(const char *sub_test_name) {
@@ -90,7 +90,7 @@ class Auto_script_js : public Shell_js_script_tester,
   }
 
   virtual void set_defaults() {
-    Shell_js_script_tester::set_defaults();
+    Shell_py_script_tester::set_defaults();
 
     std::string user, host, password;
     auto connection_options = shcore::get_connection_options(_uri);
@@ -119,58 +119,58 @@ class Auto_script_js : public Shell_js_script_tester,
       _mysql_port = "3306";
     }
 
-    std::string code = "var hostname = '" + _hostname + "';";
+    std::string code = "hostname = '" + _hostname + "';";
     exec_and_out_equals(code);
-    code = "var hostname_ip = '" + _hostname_ip + "';";
+    code = "hostname_ip = '" + _hostname_ip + "';";
     exec_and_out_equals(code);
-    code = "var __user = '" + user + "';";
+    code = "__user = '" + user + "';";
     exec_and_out_equals(code);
-    code = "var __pwd = '" + password + "';";
+    code = "__pwd = '" + password + "';";
     exec_and_out_equals(code);
-    code = "var __host = '" + host + "';";
+    code = "__host = '" + host + "';";
     exec_and_out_equals(code);
-    code = "var __port = " + _port + ";";
+    code = "__port = " + _port + ";";
     exec_and_out_equals(code);
-    code = "var __schema = 'mysql';";
+    code = "__schema = 'mysql';";
     exec_and_out_equals(code);
-    code = "var __uri = '" + user + "@" + host + ":" + _port + "';";
+    code = "__uri = '" + user + "@" + host + ":" + _port + "';";
     exec_and_out_equals(code);
-    code = "var __xhost_port = '" + host + ":" + _port + "';";
+    code = "__xhost_port = '" + host + ":" + _port + "';";
     exec_and_out_equals(code);
-    code = "var __host_port = '" + host + ":" + _mysql_port + "';";
+    code = "__host_port = '" + host + ":" + _mysql_port + "';";
     exec_and_out_equals(code);
-    code = "var __mysql_port = " + _mysql_port + ";";
+    code = "__mysql_port = " + _mysql_port + ";";
     exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
+    code = "__mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
     exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port2 = " + _mysql_sandbox_port2 + ";";
+    code = "__mysql_sandbox_port2 = " + _mysql_sandbox_port2 + ";";
     exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
+    code = "__mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
     exec_and_out_equals(code);
-    code = "var __sandbox_uri1 = 'mysql://root:root@localhost:" +
+    code = "__sandbox_uri1 = 'mysql://root:root@localhost:" +
            _mysql_sandbox_port1 + "';";
     exec_and_out_equals(code);
-    code = "var __sandbox_uri2 = 'mysql://root:root@localhost:" +
+    code = "__sandbox_uri2 = 'mysql://root:root@localhost:" +
            _mysql_sandbox_port2 + "';";
     exec_and_out_equals(code);
-    code = "var __sandbox_uri3 = 'mysql://root:root@localhost:" +
+    code = "__sandbox_uri3 = 'mysql://root:root@localhost:" +
            _mysql_sandbox_port3 + "';";
     exec_and_out_equals(code);
 
-    code = "var localhost = 'localhost'";
+    code = "localhost = 'localhost'";
     exec_and_out_equals(code);
 
-    code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" +
+    code = "__uripwd = '" + user + ":" + password + "@" + host + ":" +
            _port + "';";
     exec_and_out_equals(code);
-    code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
+    code = "__mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
            _mysql_port + "';";
     exec_and_out_equals(code);
   }
 };
 
-TEST_P(Auto_script_js, run_and_check) {
-  // Enable interactive/wizard mode if the test file ends with _interactive.js
+TEST_P(Auto_script_py, run_and_check) {
+  // Enable interactive/wizard mode if the test file ends with _interactive.py
   _options->wizards =
       strstr(GetParam().c_str(), "_interactive.") ? true : false;
 
@@ -180,17 +180,17 @@ TEST_P(Auto_script_js, run_and_check) {
 
   // Does not enable recording engine for the devapi tests
   // Recording for CRUD is not available
-  if (folder != "js_devapi")
+  if (folder != "py_devapi")
     reset_replayable_shell(name.c_str());
 
   fprintf(stdout, "Test script: %s\n", GetParam().c_str());
-  exec_and_out_equals("const __script_file = '" + GetParam() + "'");
+  exec_and_out_equals("__script_file = '" + GetParam() + "'");
 
   set_config_folder("auto/" + folder);
   validate_interactive(name);
 }
 
-std::vector<std::string> find_js_tests(const std::string& subdir) {
+std::vector<std::string> find_py_tests(const std::string& subdir) {
   std::string path = shcore::path::join_path(
       g_test_home, "scripts", "auto", subdir, "scripts");
   if (!shcore::is_folder(path))
@@ -204,13 +204,13 @@ std::vector<std::string> find_js_tests(const std::string& subdir) {
 }
 
 // General test cases
-INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_adminapi")));
+INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_py,
+                        testing::ValuesIn(find_py_tests("py_adminapi")));
 
-INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_shell")));
+INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_py,
+                        testing::ValuesIn(find_py_tests("py_shell")));
 
-INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_devapi")));
+INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_py,
+                        testing::ValuesIn(find_py_tests("py_devapi")));
 
 }  // namespace tests

@@ -1,5 +1,4 @@
 //@ Validating collection members
-var members = dir(collection);
 |name: OK|
 |session: OK|
 |schema: OK|

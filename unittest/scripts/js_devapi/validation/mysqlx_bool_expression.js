@@ -108,7 +108,9 @@ true IN [1-5/2*2 > 3-2/1*2]
 ||CONT_IN expression requires operator that produce a JSON value.
 ||CONT_IN expression requires operator that produce a JSON value.
 ||CONT_IN expression requires operator that produce a JSON value.
-||CONT_IN expression requires operator that produce a JSON value.
+
+// TODO(rennox): This is actually producing valid result
+//||CONT_IN expression requires operator that produce a JSON value.
 
 //@<OUT> IN basic - collection modify
 (1>5) in (true, false)

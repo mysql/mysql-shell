@@ -6,6 +6,7 @@
 |createCluster: OK|
 |deleteSandboxInstance: OK|
 |deploySandboxInstance: OK|
+|dropMetadataSchema: OK|
 |getCluster: OK|
 |help: OK|
 |killSandboxInstance: OK|
@@ -13,7 +14,6 @@
 |startSandboxInstance: OK|
 |checkInstanceConfiguration: OK|
 |stopSandboxInstance: OK|
-|dropMetadataSchema: OK|
 |configureLocalInstance: OK|
 |verbose: OK|
 |rebootClusterFromCompleteOutage: OK|
@@ -113,11 +113,11 @@ Please fix these issues and try again.
 // TODO(rennox): This test case is not reliable since requires
 // that no my.cnf exist on the default paths
 //--@<OUT> Dba: configureLocalInstance error 2
-Please provide the password for 'root@localhost:<<<__mysql_port>>>':
-Detecting the configuration file...
-Default file not found at the standard locations.
-Please specify the path to the MySQL configuration file:
-The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
+// Please provide the password for 'root@localhost:<<<__mysql_port>>>':
+// Detecting the configuration file...
+// Default file not found at the standard locations.
+// Please specify the path to the MySQL configuration file:
+// The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
 
 //@<OUT> Dba: configureLocalInstance error 3
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':

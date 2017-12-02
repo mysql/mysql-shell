@@ -34,6 +34,7 @@ static int debug_level() {
 }
 
 Shell_script_tester::Shell_script_tester() {
+  // Default home folder for scripts
   _shell_scripts_home = shcore::path::join_path(g_test_home, "scripts");
   _new_format = false;
 }
@@ -43,7 +44,7 @@ void Shell_script_tester::SetUp() {
 }
 
 void Shell_script_tester::set_config_folder(const std::string& name) {
-  // Weird that this variable was just set above with a different value
+  // Custom home folder for scripts
   _shell_scripts_home = shcore::path::join_path(g_test_home, "scripts", name);
 
   // Currently hardcoded since scripts are on the shell repo
@@ -109,6 +110,8 @@ bool Shell_script_tester::validate(const std::string& context,
   bool ret_val = true;
   std::string original_std_out = output_handler.std_out;
   std::string original_std_err = output_handler.std_err;
+  size_t out_position = 0;
+  size_t err_position = 0;
 
   if (_chunk_validations.count(chunk_id)) {
     Validation_t validations;
@@ -135,6 +138,8 @@ bool Shell_script_tester::validate(const std::string& context,
 
         original_std_err = output_handler.std_err;
         original_std_out = output_handler.std_out;
+        out_position = 0;
+        err_position = 0;
 
         output_handler.wipe_all();
       }
@@ -156,12 +161,17 @@ bool Shell_script_tester::validate(const std::string& context,
 
         if (out != "*") {
           if (validations[valindex].type == ValidationType::Simple) {
-            if (original_std_out.find(out) == std::string::npos) {
+            auto pos = original_std_out.find(out, out_position);
+            if (pos == std::string::npos) {
               ret_val = false;
               ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
                   << "while executing chunk: //@ " + chunk_id << "\n"
                   << "\tSTDOUT missing: " + out << "\n"
-                  << "\tSTDOUT actual: " + original_std_out << "\n";
+                  << "\tSTDOUT actual: " + original_std_out.substr(out_position) << "\n"
+                  << "\tSTDOUT original: " + original_std_out << "\n";
+            } else {
+              // Consumes the already found output
+              out_position = pos + out.length();
             }
           } else {
             ret_val = validate_line_by_line(context, chunk_id, "STDOUT", out,
@@ -193,12 +203,17 @@ bool Shell_script_tester::validate(const std::string& context,
 
         if (error != "*") {
           if (validations[valindex].type == ValidationType::Simple) {
-            if (original_std_err.find(error) == std::string::npos) {
+            auto pos = original_std_err.find(error, err_position);
+            if (pos == std::string::npos) {
               ret_val = false;
               ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
                    << "while executing chunk: //@ " + chunk_id << "\n"
                    << "\tSTDERR missing: " + error << "\n"
-                   << "\tSTDERR actual: " + original_std_err << "\n";
+                   << "\tSTDERR actual: " + original_std_err.substr(err_position) << "\n"
+                   << "\tSTDERR original: " + original_std_err << "\n";
+            } else {
+              // Consumes the already found error
+              err_position = pos + error.length();
             }
           } else {
             ret_val = validate_line_by_line(context, chunk_id, "STDERR", error,
@@ -220,7 +235,7 @@ bool Shell_script_tester::validate(const std::string& context,
         output_handler.wipe_all();
       } else {
         ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id][0].first)
-            << "MISSING VALIDATIONS FOR CHUNK //@" << chunk_id << "\n"
+            << "MISSING VALIDATIONS FOR CHUNK //@ " << chunk_id << "\n"
             << "\tSTDOUT: " << original_std_out << "\n"
             << "\tSTDERR: " << original_std_err << "\n";
       }
@@ -324,6 +339,11 @@ void Shell_script_tester::add_validation(const std::string& chunk_id,
       _chunk_validations[chunk_id][version_id].push_back(
           Validation(source, type));
     }
+  } else {
+      std::string text("WRONG VALIDATION FORMAT FOR CHUNK //@ " + chunk_id);
+      text += "\nLine: " + shcore::str_join(source, "|");
+      SCOPED_TRACE(text.c_str());
+      ADD_FAILURE();
   }
 }
 
@@ -392,11 +412,16 @@ void Shell_script_tester::load_validations(const std::string& path,
         }
       } else {
         if (format.empty()) {
-          line = str_strip(line);
-          if (!line.empty()) {
-            std::vector<std::string> tokens;
-            tokens = split_string(line, "|", false);
-            add_validation(chunk_id, version_id, tokens);
+          // When processing single line validations, lines as comments are
+          // ignored
+          if (!shcore::str_beginswith(line.c_str(),
+                                      get_comment_token().c_str())) {
+            line = str_strip(line);
+            if (!line.empty()) {
+              std::vector<std::string> tokens;
+              tokens = split_string(line, "|", false);
+              add_validation(chunk_id, version_id, tokens);
+            }
           }
         } else {
           format_lines.push_back(line);

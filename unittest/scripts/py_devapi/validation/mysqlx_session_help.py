@@ -1,8 +1,6 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
-import mysqlx;
-mySession = mysqlx.get_session(__uripwd);
 
 #@<OUT> Session: help
 Document Store functionality can be used through this object, in addition to

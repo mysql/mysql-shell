@@ -3,6 +3,7 @@
 |createCluster: OK|
 |deleteSandboxInstance: OK|
 |deploySandboxInstance: OK|
+|dropMetadataSchema: OK|
 |getCluster: OK|
 |help: OK|
 |killSandboxInstance: OK|
@@ -10,7 +11,6 @@
 |startSandboxInstance: OK|
 |checkInstanceConfiguration: OK|
 |stopSandboxInstance: OK|
-|dropMetadataSchema: OK|
 |configureLocalInstance: OK|
 |verbose: OK|
 |rebootClusterFromCompleteOutage: OK|

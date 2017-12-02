@@ -30,7 +30,7 @@
 |affectedItemCount: OK|
 |autoIncrementValue: OK|
 |lastDocumentId: OK|
-|lastDocumentId: OK|
+|lastDocumentIds: OK|
 |getAffectedItemCount: OK|
 |getAutoIncrementValue: OK|
 |getLastDocumentId: OK|
