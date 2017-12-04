@@ -29,6 +29,9 @@
 
 namespace testing {
 
+/**
+ * Mock for the dba.Cluster class
+ */
 class Mock_cluster : public mysqlsh::dba::Cluster {
  public:
   Mock_cluster() {}

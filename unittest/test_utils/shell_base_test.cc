@@ -39,6 +39,25 @@ void Shell_base_test::create_file(const std::string& name,
   }
 }
 
+/**
+ * Validates a string expectation.
+ * @param file The name of the test file using this verification.
+ * @param line The line where the verification is called.
+ * @param expected_str A string expectation.
+ * @param actual The actual string to be used on the verification.
+ * @param expected Determines whether the string is expected or not.
+ *
+ * This function will do the string resolution on the expected string and then
+ * will verify against the actual string.
+ *
+ * If expected is true and the expected string is not found on the actual string
+ * a failure will be added to the test.
+ *
+ * If expected is false and the expected string is found on the actual string
+ * a failure will be added to the test.
+ *
+ * In any other case no failures will be added.
+ */
 void Shell_base_test::check_string_expectation(const char* file, int line,
                                                const std::string& expected_str,
                                                const std::string& actual,
@@ -56,6 +75,25 @@ void Shell_base_test::check_string_expectation(const char* file, int line,
   }
 }
 
+/**
+ * Validates multiple string expectations.
+ * @param file The name of the test file using this verification.
+ * @param line The line where the verification is called.
+ * @param expected_strs A vector with string expectations.
+ * @param actual The actual string to be used on the verification.
+ * @param expected Determines whether the expected strings are expected or not.
+ *
+ * This function will do the string resolution on each expected string and then
+ * will verify against the actual string.
+ *
+ * If expected is true and any of expected strings is not found on the actual
+ * string a failure will be added to the test.
+ *
+ * If expected is false and any of the expected string is found on the actual
+ * string a failure will be added to the test.
+ *
+ * In any other case no failures will be added.
+ */
 void Shell_base_test::check_string_list_expectation(
     const char *file, int line,
     const std::vector<std::string>& expected_strs, const std::string& actual,
@@ -84,12 +122,16 @@ void Shell_base_test::check_string_list_expectation(
  * Line may have an entry that may have one of several values, i.e. on an
  * expected line like:
  *
+ * \code
  * My text line is {{empty|full}}
+ * \endcode
  *
  * Ths function would return true whenever the actual line is any of
  *
+ * \code
  * My text line is empty
  * My text line is full
+ * \endcode
  */
 bool Shell_base_test::multi_value_compare(const std::string& expected,
                                           const std::string &actual) {
@@ -121,6 +163,40 @@ bool Shell_base_test::multi_value_compare(const std::string& expected,
   return ret_val;
 }
 
+/**
+ * Validates a string expectation that spans over multiple lines.
+ * @param context Context information that identifies where the verification is
+ * done.
+ * @param stream The stream to which the failure will be reported.
+ * @param expected A multiline string expectation.
+ * @param actual The actual string to be used on the verification.
+ *
+ * This function will split the expected and actual strings in lines and then
+ * for each line on the expected stringit will do the string resolution and then
+ * will verify against the actual string.
+ *
+ * The process starts by first identifying the first line on the expected string
+ * on the actual string, once found it will verify every single line on the
+ * expected string comes on the actual string in the exact same order and with
+ * the exact same content.
+ *
+ * If an inconsistency is found, a failure will be added including the failed
+ * expected string and the line that failed the verification will include the
+ * next suffix:
+ *
+ * \code
+ * <------ INCONSISTENCY
+ * \endcode
+ *
+ * If the first expected line is not found, a failure will be added including
+ * the next suffix on the first expected line:
+ *
+ * \code
+ * <------ MISSING
+ * \endcode
+ *
+ * In any other case no failures will be added.
+ */
 bool Shell_base_test::check_multiline_expect(const std::string& context,
                                              const std::string &stream,
                                              const std::string& expected,
@@ -193,6 +269,13 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
   return ret_val;
 }
 
+/**
+ * Starts a server mock.
+ * @param port The port where the server mock will be listening for connections.
+ * @param data An array containing sql and results to be used by the mock.
+ *
+ * Mock servers are available only for MySQL sessions.
+ */
 std::string Shell_base_test::start_server_mock(
     int port, const std::vector<testing::Fake_result_data>& data) {
   std::string ret_val;
@@ -210,6 +293,9 @@ std::string Shell_base_test::start_server_mock(
   return ret_val;
 }
 
+/**
+ * Joins all the lines on the vector using the new line character
+ */
 std::string Shell_base_test::multiline(const std::vector<std::string> input) {
   return shcore::str_join(input, "\n");
 }

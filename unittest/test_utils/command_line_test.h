@@ -44,6 +44,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 namespace tests {
 
+/**
+ * \ingroup UTFramework
+ * Base class for tests that call the mysqlsh binary.
+ */
 class Command_line_test : public Shell_base_test {
  public:
   virtual void SetUp();

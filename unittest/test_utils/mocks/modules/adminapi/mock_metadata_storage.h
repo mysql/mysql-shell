@@ -28,7 +28,9 @@
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace testing {
-
+/**
+  * Mock for the MetadataStorage class.
+  */
 class Mock_metadata_storage : public mysqlsh::dba::MetadataStorage {
  public:
   MOCK_METHOD0(metadata_schema_exists, bool());

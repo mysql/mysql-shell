@@ -25,7 +25,9 @@
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace testing {
-
+/**
+ * Mock for the ProvisioningInterface class.
+ */
 class Mock_provisioning_interface : public mysqlsh::dba::ProvisioningInterface {
  public:
   MOCK_METHOD4(check,

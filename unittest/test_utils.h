@@ -72,6 +72,10 @@ struct SharedDoNotDelete {
 };
 }  // namespace testing
 
+/**
+ * \ingroup UTFramework
+ * Interface to process shell output and feed prompt data.
+ */
 class Shell_test_output_handler {
  public:
   // You can define per-test set-up and tear-down logic as usual.
@@ -188,6 +192,10 @@ class Shell_test_output_handler {
     output_handler.validate_log_content(x, false, ##__VA_ARGS__);       \
   } while (0)
 
+ /**
+  * \ingroup UTFramework
+  * Base class for tests that use an instance of the shell library.
+  */
 class Shell_core_test_wrapper : public tests::Shell_base_test,
                                 public shcore::NotificationObserver {
  protected:
@@ -279,8 +287,11 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   std::map<shcore::Object_bridge_ref, std::string> _open_sessions;
 };
 
-// Helper class to ease the creation of tests on the CRUD operations
-// Specially on the chained methods
+/**
+ * \ingroup UTFramework
+ * Helper class to ease the creation of tests on the CRUD operations specially
+ * on the chained methods
+ */
 class Crud_test_wrapper : public ::Shell_core_test_wrapper {
  protected:
   std::set<std::string> _functions;

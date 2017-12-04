@@ -18,11 +18,17 @@
 #include <vector>
 #include "test_utils.h"
 
+/**
+ * Defines the type of validations available on the script testing engine.
+ */
 enum class ValidationType {
   Simple = 0,
   LineByLine = 1
 };
 
+/**
+ * Defines a validation to be done on the shell script testing engine.
+ */
 struct Validation {
   Validation(const std::vector<std::string>& source, ValidationType vtype = ValidationType::Simple) {
     if (source.size() < 3) {
@@ -43,11 +49,11 @@ struct Validation {
     type = vtype;
   }
 
-  ValidationType type;
-  std::string code;
-  std::string expected_output;
-  std::string unexpected_output;
-  std::string expected_error;
+  ValidationType type;  //!< Defines the validation type.
+  std::string code;  //!< Defines code that must be executed before the validation takes place
+  std::string expected_output;  //!< Defines the expected output
+  std::string unexpected_output;  //!< Defines unexpected output
+  std::string expected_error;  //!< Defines the expected error
 };
 
 typedef std::vector<Validation> Validation_t;
@@ -61,6 +67,9 @@ typedef std::map<std::string, Validation_t> Context_validation_t;
 #define SETUP_SCRIPT(x) _shell_scripts_home+"/setup/"+x
 #define VALIDATION_SCRIPT(x) _shell_scripts_home+"/validation/"+x
 
+/**
+ * Base class for the Shell Script Testing engine.
+ */
 class Shell_script_tester : public Crud_test_wrapper {
 public:
   // You can define per-test set-up and tear-down logic as usual.
@@ -122,6 +131,9 @@ private:
   void load_validations(const std::string& path, bool in_chunks = false);
 };
 
+/**
+ * Base class for the JavaScript Script Testing Engine.
+ */
 class Shell_js_script_tester : public Shell_script_tester {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
@@ -134,6 +146,9 @@ protected:
   virtual std::string get_variable_prefix() { return "var "; };
 };
 
+/**
+ * Base class for the Python Script Testing Engine.
+ */
 class Shell_py_script_tester : public Shell_script_tester {
 protected:
   // You can define per-test set-up and tear-down logic as usual.

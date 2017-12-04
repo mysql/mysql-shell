@@ -30,10 +30,11 @@
 #include "unittest/test_utils.h"
 
 namespace tests {
-/*
- * This class wrapps a Mysql_shell instance providing the required
- * hooks to feed input and retrieve output for validation
+/**
+ * \ingroup UTFramework
  *
+ * This class wrapps a Mysql_shell instance providing the required
+ * hooks to feed input and retrieve output for validation.
  */
 class Shell_test_wrapper {
  public:

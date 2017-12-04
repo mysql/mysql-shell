@@ -44,6 +44,10 @@ namespace tests {
 
 #define START_SERVER_MOCK(P, D) ASSERT_EQ("", start_server_mock(P, D))
 
+/**
+ * \ingroup UTFramework
+ * Base utilities class for the test framework.
+ */
 class Shell_base_test : public Shell_test_env {
  public:
   Shell_base_test();

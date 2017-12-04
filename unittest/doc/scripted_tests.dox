@@ -1,0 +1,415 @@
+/*!
+\page script_testing The Script Based Testing Framework
+
+The Shell testing framework includes a component called Shell Script Tester.
+This component enables processing test scripts written either in JavaScript or
+Python.
+
+Support for testing scripts is required for two main reasons:
+
+@li Unit/System Testing: to verify the APIs exposed on the shell work as
+expected.
+@li Testing sample code snippets: to verify the code snippets used in the
+documentation remain valid as the APIs exposed on the shell evolve.
+
+Script based testing is done on three phases:
+
+@li Setup of the required test environment
+@li Execution of the test code
+@li Validation of the test code
+
+At a glance, the shell script tester will initially perform the setup of the
+test environment once at the beginning and then will enter a cycle where it
+executes test code and then validates the executed test code.
+
+\section test_script Test Script
+
+A test script is pure JavaScript or Python that contains the code to be executed
+to perform the test.
+
+\subsection basic_chunk Basic Chunks
+A test script can be divided in sections called 'chunks'.
+
+A chunk is defined by a comment that starts with the next sequence:
+\if DOXYGEN_JS
+\code
+//@
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@
+\endcode
+\endif
+
+Example:
+\if DOXYGEN_JS
+\code
+//@ This comment defines a new chunk in a JavaScript file
+shell.connect('root:@localhost:33060');
+var schema = session.getSchema('unexisting');
+var schema = session.getSchema('mysql');
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@ This comment defines a new chunk in a Python file
+shell.connect('root:@localhost:3306')
+schema = session.get_schema('unexisting')
+schema = session.get_schema('mysql')
+\endcode
+\endif
+
+A basic chunk should be used when the verification will be done by ensuring the
+\a STDOUT or \a STDERR contain or not a specific string.
+
+\subsection multiline_validation_chunk Multiline Validation Chunk
+
+There are cases where the test code produces multiline output (either to \a
+STDOUT or \a STDERR) and it is required to verify such output contains specific
+content.
+
+Instead of having to add several \ref single_line_validation a
+\ref multiline_validation_chunk can be used instead.
+
+A \ref multiline_validation_chunk can be used to ensure multiple lines exist
+either on \a STDOUT or \a STDERR, validations on both streams are not allowed
+on these chunks.
+
+A \ref multiline_validation_chunk chunk is defined with comment that starts with
+any of the next sequences, depending on what is being validated, either
+\a STDOUT or \a STDERR:
+
+\if DOXYGEN_JS
+\code
+//@<OUT>
+//@<ERR>
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@<OUT>
+#@<ERR>
+\endcode
+\endif
+
+Example:
+\if DOXYGEN_JS
+\code
+//@<OUT> Verifying the existing schemas
+session.sql('show databases').execute();
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@<OUT> Verifying the existing schemas
+session.sql('show databases').execute()
+\endcode
+\endif
+
+When using a \ref multiline_validation_chunk on a \ref test_script a
+\ref multiline_validation should be added to the \ref validation_file
+
+
+\section validation_file Validation File
+
+A validation file contains validation configuration for the different chunks
+defined on the corresponding \ref test_script.
+
+To define the validation for a chunk, copy the chunk identification line first
+and define the validation logic after.
+
+\subsection single_line_validation Single Line Validation
+
+A single line validation can be used to:
+
+@li Verify a specific text is present in the \a STDOUT
+@li Verify a specific text is NOT present in the \a STDOUT
+@li Verify a specific text is present in the \a STDERR
+@li Verify a specific text is NOT present in the \a STDERR
+
+A single line validation has the next format:
+
+\code
+<code>|<stdout>|<stdin>
+\endcode
+
+Where:
+@li \a \<code\> : is code that should be executed before the actual validation
+takes place. A use for this is when the Test Code does not let enough
+information on \a STDOUT or \a STDERR to perform the validation, i.e. printing
+a variable.
+@li \a \<stdout\> : is some text that should be verified to be part of the
+\a STDOUT resulting from executing the test code (or the \a \<code\>).
+@li \a \<stderr\> : is some text that should be verified to be part of the
+\a STDERR resulting from executing the test code (or the \a \<code\>).
+
+If it is required to verify a specific text is NOT part of \a STDOUT or \a STDERR
+then prepend \a \<stdout\> or \a \<stderr\> with the \a ~ symbol.
+
+Example:
+\if DOXYGEN_JS
+\code
+//@ This comment defines a new chunk in a JavaScript file
+session|<Session:root@localhost:33060>|
+||Session.getSchema: Unknown database 'unexisting'
+schema|<Schema:mysql>|~Unknown database 'mysql'
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@ This comment defines a new chunk in a Python file
+session|<Session:root@localhost:33060>|
+||Session.get_schema: Unknown database 'unexisting'
+schema|<Schema:mysql>|~Unknown database 'mysql'
+\endcode
+\endif
+
+On the example above, the first validation line executes the \a session
+instruction which will cause its value to be printed, then ensures the right
+value is printed on the \a STDOUT.
+
+The second validation line ensures the error "Unknown database 'unexisting'" is
+generated and found on \a STDERR.
+
+The third validation line executes the \a schema instruction which will cause
+it's value to be printed, then ensures the right value is printed on \a STDOUT
+and finally ensures the error "Unknown database 'mysql'" is NOT generated.
+
+\subsection multiline_validation Multiline Validation
+
+A \ref multiline_validation should be used when a \ref multiline_validation_chunk
+is present on the \ref test_script.
+
+As in \ref single_line_validation, a \ref multiline_validation begins with the
+identification line that defined the \ref multiline_validation_chunk.
+
+The text lines following the identification line are the text that must be found
+on the \a STDOUT or \a STDERR.
+
+Example:
+
+\if DOXYGEN_JS
+\code
+//@<OUT> Verifying the existing schemas
++------------------------+
+| Database               |
++------------------------+
+| information_schema     |
+| mysql                  |
+| performance_schema     |
++------------------------+
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@<OUT> Verifying the existing schemas
++------------------------+
+| Database               |
++------------------------+
+| information_schema     |
+| mysql                  |
+| performance_schema     |
++------------------------+
+\endcode
+\endif
+
+This validation will verify that the text is found exactly as defined, every
+single line must have the exact same content and they should come on the exact
+same order.
+
+The \a STDOUT and \a STDERR may contain extra text both at the beginning or at
+the end, as long as the expected text is found.
+
+should be used when a \ref multiline_validation_chunk
+is present on the \ref test_script.
+
+\subsection contextual_validation Contextual Validation
+
+There are cases where different contexts may lead to different results. In such
+cases it is possible to define specific validations for such contexts.
+
+The context is defined at runtime and despite it can be changed on C++ tests,
+changes are not possible from scripted texts.
+
+A default context is defined using the version of the MySQL Server being used
+for the test execution and so it is possible to define custom validations for
+specific server versions.
+
+\ref contextual_validation is available for both \ref single_line_validation
+and \ref multiline_validation.
+
+To define a \ref contextual_validation simply append the context information to
+the chunk identification line in the format of:
+
+\code
+{<context>}
+\endcode
+
+Example:
+
+Let's assume the next chunk is defined on the \ref test_script
+
+\if DOXYGEN_JS
+\code
+//@<OUT> Verifying the default cipher
+session.sql("show status like 'Mysqlx_ssl_cipher'").execute();
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@<OUT> Verifying the default cipher
+session.sql("show status like 'Mysqlx_ssl_cipher'").execute()
+\endcode
+\endif
+
+And that the default cipher has been always DHE-RSA-AES256-SHA, the
+\ref validation_file would have a validation as follows:
+
+\if DOXYGEN_JS
+\code
+//@<OUT> Verifying the default cipher
++-------------------+--------------------+
+| Variable_name     | Value              |
++-------------------+--------------------+
+| Mysqlx_ssl_cipher | DHE-RSA-AES256-SHA |
++-------------------+--------------------+
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@<OUT> Verifying the default cipher
++-------------------+--------------------+
+| Variable_name     | Value              |
++-------------------+--------------------+
+| Mysqlx_ssl_cipher | DHE-RSA-AES256-SHA |
++-------------------+--------------------+
+\endcode
+\endif
+
+But then in 8.0.4 the default cipher changed to DHE-RSA-AES128-GCM-SHA256, then
+we can set a \ref contextual_validation for 8.0.4 as follows
+
+\if DOXYGEN_JS
+\code
+//@<OUT> Verifying the default cipher {8.0.4}
++-------------------+---------------------------+
+| Variable_name     | Value                     |
++-------------------+---------------------------+
+| Mysqlx_ssl_cipher | DHE-RSA-AES128-GCM-SHA256 |
++-------------------+---------------------------+
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@<OUT> Verifying the default cipher {8.0.4}
++-------------------+---------------------------+
+| Variable_name     | Value                     |
++-------------------+---------------------------+
+| Mysqlx_ssl_cipher | DHE-RSA-AES128-GCM-SHA256 |
++-------------------+---------------------------+
+\endcode
+\endif
+
+The proper validation will be executed based on the context where the tests
+are executed.
+
+\subsection dynamic_expectation Dynamic Expectations
+
+Sometimes the information to be set as expectations on the validations depends
+on the runtime environment and the values can't be determined when working on
+the tests.
+
+There are 2 ways to overcome this problem:
+
+@li Dynamic Variable Resolution
+@li Multivalue Support
+
+\subsubsection dynamic_variables Dynamic Variables
+
+It is possible to use \ref dynamic_variables on the text that is used on
+the different validations, when they are used, a variable resolution step
+will replace the variables with the value of the same variable which should
+be defined on the test script.
+
+For example, assume the next text is generated when creating a test on your
+environment and it has to be included on a validation:
+
+\code
+Creating InnoDB cluster 'dev' on 'root@localhost:3316'...
+\endcode
+
+But the port is only valid for your environment (because you are running the
+MySQL Server at that port), but it can change if a different port is used.
+
+To overcome this and be able to define a validation that is successfully
+processed in any environment you need to do 2 things:
+
+@li Add in the test code, some code that defines the right value for the port.
+@li Use a dynamic variable with the same name as part of the text used on the
+validation.
+
+Example:
+
+Update the test code to define a custom port variable:
+\if DOXYGEN_JS
+\code
+var dynamic_port = _sandbox_port_1;
+\endcode
+\elseif DOXYGEN_PY
+\code
+dynamic_port = _sandbox_port_1
+\endcode
+\endif
+
+Use a dynamic variable with the same name on the text used for the validation,
+a dynamic variable is set by enclosing the \a variable_name between \a \<\<\<
+and \a \>\>\> on the validation text as \a \<\<\<variable_name\>\>\>.
+
+Example:
+
+\if DOXYGEN_JS
+\code
+//@ Verifying cluster creation message
+|Creating InnoDB cluster 'dev' on 'root@localhost:<<<dynamic_port>>>'...|
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@ Verifying cluster creation message
+|Creating InnoDB cluster 'dev' on 'root@localhost:<<<dynamic_port>>>'...|
+\endcode
+\endif
+
+
+When the validation is processed, it will first replace the variable
+\a \<\<\<dynamic_port\>\>\> with the value assigned to the \a dynamic_port
+variable on the test code.
+
+Once the variable is replaced, the validation will be performed.
+
+\subsubsection multi_value Multi Value Support
+
+Sometimes the values used on the validations are not deterministic and can't be
+defined even using test code, but it is possible that a small set of values
+can be considered valid for the expectation.
+
+In such cases, the \ref multi_value can be used.
+
+For example, assume you are verifying the state of a cluster member after a
+rejoin operation, and depending on the speed of the server where the tests are
+being executed you may be one of two possible outputs and both are valid:
+
+\code
+The instance is an active (ONLINE) member of the ReplicaSet.
+The instance is an active (RECOVERING) member of the ReplicaSet.
+\endcode
+
+The state of the instance does not depend on the test environment but depends
+on external factors, to define a validation that succeeds in both cases use
+\ref multi_value on the text by enclosing the valid values between \a {{ and
+\a }} as follows:
+
+\if DOXYGEN_JS
+\code
+//@ Verifying cluster member state
+|The instance is an active ({{ONLINE|RECOVERING}}) member of the ReplicaSet.|
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@ Verifying cluster member state
+|The instance is an active ({{ONLINE|RECOVERING}}) member of the ReplicaSet.|
+\endcode
+\endif
+
+*/

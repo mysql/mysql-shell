@@ -30,6 +30,16 @@ void Command_line_test::SetUp() {
   Shell_base_test::SetUp();
 }
 
+/**
+ * Execute the mysqlsh binary passing the provided command line arguments.
+ * @param args array of command line arguments to be passed on the call to the
+ * mysqlsh.
+ * @param password password to be given to the mysqlsh when prompted.
+ * @returns the return code from the mysqlsh call.
+ * This function calls the mysqlsh binary with the provided parameters and saves
+ * the output coming from the mysqlsh.
+ *
+ */
 int Command_line_test::execute(const std::vector<const char *> &args,
               const char *password) {
   // There MUST be arguments (at least _mysqlsh, and the last must be NULL
@@ -88,11 +98,17 @@ int Command_line_test::execute(const std::vector<const char *> &args,
   return exit_code;
 }
 
+/**
+ * Verifies if the received string is present on the grabbed output.
+ */
 bool Command_line_test::grep_stdout(const std::string &s) {
   std::lock_guard<std::mutex> lock(_output_mutex);
   return _output.find(s) != std::string::npos;
 }
 
+/**
+ * Sends the interruption signal to the mysqlsh process.
+ */
 void Command_line_test::send_ctrlc() {
 #ifdef _WIN32
   std::lock_guard<std::mutex> lock(_process_mutex);

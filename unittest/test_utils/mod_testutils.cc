@@ -124,25 +124,92 @@ void Testutils::set_test_execution_context(const std::string &file, int line) {
   _test_line = line;
 }
 
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Gets the path to the configuration file for the specific sandbox.
+ * @param port The port of the sandbox owning the configuration file being searched.
+ *
+ * This function will return the path to the configuration file for the sandbox
+ * listening at the specified port.
+ */
+#if DOXYGEN_JS
+  String Testutils::getSandboxConfPath(Integer port);
+#elif DOXYGEN_PY
+  str Testutils::get_sandbox_conf_path(int port);
+#endif
+///@}
 std::string Testutils::get_sandbox_conf_path(int port) {
   return shcore::path::join_path(
       {_sandbox_dir, std::to_string(port), "my.cnf"});
 }
 
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Gets the path to the error log for the specific sandbox.
+ * @param port The port of the sandbox which error log file path will be retrieved.
+ *
+ * This function will return the path to the error log for the sandbox
+ * listening at the specified port.
+ */
+#if DOXYGEN_JS
+  String Testutils::getSandboxLogPath(Integer port);
+#elif DOXYGEN_PY
+  str Testutils::get_sandbox_log_path(int port);
+#endif
+///@}
 std::string Testutils::get_sandbox_log_path(int port) {
   return shcore::path::join_path(
       {_sandbox_dir, std::to_string(port), "sandboxdata", "error.log"});
 }
 
+//!<  @name Misc Utilities
+///@{
+/**
+ * Gets the path to the shell log.
+ */
+#if DOXYGEN_JS
+  String Testutils::getShellLogPath();
+#elif DOXYGEN_PY
+  str Testutils::get_shell_log_path();
+#endif
+///@}
 std::string Testutils::get_shell_log_path() {
   return ngcommon::Logger::singleton()->logfile_name();
 }
 
+//!<  @name Testing Utilities
+///@{
+/**
+ * Identifies if the test suite is being executed in reply mode.
+ */
+#if DOXYGEN_JS
+  Bool Testutils::isReplying();
+#elif DOXYGEN_PY
+  bool Testutils::is_replying();
+#endif
+///@}
 bool Testutils::is_replaying() {
   return mysqlshdk::db::replay::g_replay_mode ==
          mysqlshdk::db::replay::Mode::Replay;
 }
 
+//!<  @name Testing Utilities
+///@{
+/**
+ * Causes the test to fail.
+ *
+ * This function can be used directly on the test script to cause a failure,
+ * it is useful if the test validation should be done using pure code rather
+ * than falling to the standard validation methods.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::fail();
+#elif DOXYGEN_PY
+  None Testutils::fail();
+#endif
+///@}
 void Testutils::fail(const std::string &context) {
   ADD_FAILURE_AT(_test_file.c_str(), _test_line) << context << "\n";
 }
@@ -214,6 +281,31 @@ void Testutils::end_snapshot_sandbox_error_log(int port) {
   }
 }
 
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Deploys a sandbox using the indicated password and port
+ * @param port The port where the sandbox wlil be listening for mysql protocol
+ * connections.
+ * @param pwd The password to be assigned to the root user.
+ *
+ * This functions works when using either --record or --direct mode of the test
+ * suite. It is an improved version of the deploySandboxInstance function of the
+ * Admin API which will speed up the process of deploying a new sandbox.
+ *
+ * First time it is called, it will create a boilerplate sandbox using the normal
+ * sandbox deployment procedure.
+ *
+ * It creates a new sandbox by copying the data on the boilerplate sandbox.
+ *
+ * When using --replay mode, the function does nothing.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::deploySandbox(Integer port, String pwd);
+#elif DOXYGEN_PY
+  None Testutils::deploy_sandbox(int port, str pwd);
+#endif
+///@}
 void Testutils::deploy_sandbox(int port, const std::string &rootpass) {
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
@@ -250,6 +342,27 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass) {
   }
 }
 
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Destroys the sandbox listening at the indicated port
+ * @param port The port where the sandbox is listening for mysql protocol
+ * connections.
+ *
+ * This function also works when using the --direct and --record modes of the
+ * test suite.
+ *
+ * It will delete the sandbox listening at the indicated port. This function
+ * must be called after stopping or killing the sandbox.
+ *
+ * When using --replay mode, the function does nothing.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::destroySandbox(Integer port);
+#elif DOXYGEN_PY
+  None Testutils::destroy_sandbox(int port);
+#endif
+///@}
 void Testutils::destroy_sandbox(int port) {
   mysqlshdk::db::replay::No_replay dont_record;
   kill_sandbox(port);
@@ -283,6 +396,29 @@ void Testutils::destroy_sandbox(int port) {
   }
 }
 
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Starts the sandbox created at the indicated port
+ * @param port The port where the sandbox listens for mysql protocol connections.
+ *
+ * This function also works when using the --direct and --record modes of the
+ * test suite.
+ *
+ * It will retry up to 5 times starting the sandbox at the indicated port,
+ * improving the success rate of the operation.
+ *
+ * This function will verify that any other sandbox running previously at the
+ * same port is completely dead before each start attempt.
+ *
+ * When using --replay mode, the function does nothing.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::startSandbox(Integer port);
+#elif DOXYGEN_PY
+  None Testutils::start_sandbox(int port);
+#endif
+///@}
 void Testutils::start_sandbox(int port) {
   int retries = k_max_start_sandbox_retries;
   if (!_dummy_sandboxes) {
@@ -322,6 +458,26 @@ void Testutils::start_sandbox(int port) {
   }
 }
 
+
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Stops the sandbox listening at the indicated port
+ * @param port The port where the sandbox listens for mysql protocol connections.
+ *
+ * This function works when using the --direct and --record modes of the test
+ * suite.
+ *
+ * This function performs the normal stop sandbox operation of the Admin API
+ *
+ * When using --replay mode, the function does nothing.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::stopSandbox(Integer port);
+#elif DOXYGEN_PY
+  None Testutils::stop_sandbox(int port);
+#endif
+///@}
 void Testutils::stop_sandbox(int port, const std::string &rootpass) {
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
@@ -333,11 +489,51 @@ void Testutils::stop_sandbox(int port, const std::string &rootpass) {
   }
 }
 
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Restarts the sandbox listening at the specified port.
+ * @param port The port where the sandbox listens for mysql protocol connections.
+ *
+ * This function works when using the --direct and --record modes of the test
+ * suite.
+ *
+ * This function executes the stop sandbox operation of this module followed
+ * by the start sandbox operation.
+ *
+ * When using --replay mode, the function does nothing.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::restartSandbox(Integer port);
+#elif DOXYGEN_PY
+  None Testutils::restart_sandbox(int port);
+#endif
+///@}
 void Testutils::restart_sandbox(int port, const std::string &rootpass) {
   stop_sandbox(port, rootpass);
   start_sandbox(port);
 }
 
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Kills the sandbox listening at the indicated port
+ * @param port The port where the sandbox listens for mysql protocol connections.
+ *
+ * This function works when using the --direct and --record modes of the test
+ * suite.
+ *
+ * This function performs the normal kill sandbox operation of the Admin API but
+ * also verifies that the sandbox is completely dead.
+ *
+ * When using --replay mode, the function does nothing.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::killSandbox(Integer port);
+#elif DOXYGEN_PY
+  None Testutils::kill_sandbox(int port);
+#endif
+///@}
 void Testutils::kill_sandbox(int port) {
   if (!_dummy_sandboxes) {
     shcore::Value::Array_type_ref errors;
@@ -402,7 +598,22 @@ void Testutils::wait_sandbox_dead(int port) {
 #endif
 }
 
-// Delete lines with the option from the given config file.
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Delete lines with the option from the given config file.
+ * @param port The port of the sandbox where the configuration will be updated.
+ * @param option The option name that will be removed from the configuration file.
+ *
+ * This function will remove any configuration option containing the provided
+ * string from the configuration file.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::removeFromSandboxConf(Integer port, String option);
+#elif DOXYGEN_PY
+  None Testutils::remove_from_sandbox_conf(int port, str option);
+#endif
+///@}
 void Testutils::remove_from_sandbox_conf(int port, const std::string &option) {
   std::string cfgfile_path = get_sandbox_conf_path(port);
   std::string new_cfgfile_path = cfgfile_path + ".new";
@@ -419,7 +630,23 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option) {
   shcore::rename_file(new_cfgfile_path, cfgfile_path);
 }
 
-// Change sandbox config option and add it if it's not in the my.cnf yet
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Change sandbox config option and add it if it's not in the my.cnf yet
+ * @param port The port of the sandbox where the configuration will be updated.
+ * @param option The new option value in the format of "option=value".
+ *
+ * This function will replace the value of the configuration option from the
+ * [mysqld] section of the configuration file. If the option does not exist it
+ * will be added.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::changeSandboxConf(Integer port, String option);
+#elif DOXYGEN_PY
+  None Testutils::change_sandbox_conf(int port, str option);
+#endif
+///@}
 void Testutils::change_sandbox_conf(int port, const std::string &option) {
   std::string cfgfile_path = get_sandbox_conf_path(port);
   std::string new_cfgfile_path = cfgfile_path + ".new";
@@ -452,8 +679,26 @@ void Testutils::change_sandbox_conf(int port, const std::string &option) {
   shcore::rename_file(new_cfgfile_path, cfgfile_path);
 }
 
-// InnoDB cluster stuff
-
+//!<  @name InnoDB Cluster Utilities
+///@{
+/**
+ * Waits until a cluster member reaches one of the specified states.
+ * @param port The port of the instance to be polled listens for MySQL connections.
+ * @param states An array containing the states that would cause the poll cycle to finish.
+ * @returns 0 if the member reaches one of the specified states, -1 if the timeout happens before any of the states is reached.
+ *
+ * This function is to be used with the members of a cluster.
+ *
+ * It will start a polling cycle verifying the member state, the cycle will end
+ * when one of the expected states is reached or if the timeout of 60 seconds
+ * occurs.
+ */
+#if DOXYGEN_JS
+  Integer Testutils::waitMemberState(Integer port, String[] states);
+#elif DOXYGEN_PY
+  int Testutils::wait_member_state(int port, str[] states);
+#endif
+///@}
 int Testutils::wait_member_state(int member_port, const std::string &states) {
   if (states.empty())
     throw std::invalid_argument(
@@ -497,8 +742,19 @@ int Testutils::wait_member_state(int member_port, const std::string &states) {
   return -1;
 }
 
-// Misc Utilities
-
+//!<  @name Misc Utilities
+///@{
+/**
+ * Changes access attributes to a file to be read only.
+ * @param path The path to the file to be made read only.
+ * @returns 0 on success, -1 on failure
+ */
+#if DOXYGEN_JS
+  Integer Testutils::makeFileReadonly(String path);
+#elif DOXYGEN_PY
+  int Testutils::make_file_readonly(str path);
+#endif
+///@}
 int Testutils::make_file_readonly(const std::string &path) {
 #ifndef _WIN32
   // Set permissions on configuration file to 444 (chmod only works on
@@ -513,6 +769,27 @@ int Testutils::make_file_readonly(const std::string &path) {
 #endif
 }
 
+//!<  @name Misc Utilities
+///@{
+/**
+ * Search for a pattern on a file.
+ * @param path The path to the file where the pattern will be searched.
+ * @param pattern The pattern to be searched on the file.
+ * @returns Array containing the matching lines.
+ *
+ * This function will read each line of the file and match it using the provided
+ * glob-like pattern using backtracking.
+ *
+ * Note: works with ASCII only, no utf8 support.
+ *
+ * This function will return all the lines that matched the given pattern.
+ */
+#if DOXYGEN_JS
+  List Testutils::grepFile(String path, String pattern);
+#elif DOXYGEN_PY
+  list Testutils::grep_file(str path, str pattern);
+#endif
+///@}
 shcore::Array_t Testutils::grep_file(const std::string &path,
   const std::string &pattern) {
   std::ifstream f(path);
@@ -528,11 +805,67 @@ shcore::Array_t Testutils::grep_file(const std::string &path,
   return result;
 }
 
+//!<  @name Testing Utilities
+///@{
+/**
+ * Sets an expected prompt as well as the response to be given.
+ * @param prompt The prompt to be expected.
+ * @param answer The answer to be given when the prompt is received.
+ *
+ * Some of the interative functions of the shell require information from the
+ * user, this is done through prompts.
+ *
+ * This function can be used to identify an expected prompt as well as defining
+ * the response that should be given to that prompt.
+ *
+ * If something different than the expected is prompted, will cause the test to
+ * fail.
+ *
+ * If the prompt matches the expected prompt, the answer associated to the
+ * prompt will be given.
+ *
+ * Use * on the prompt to cause any prompt to be valid (bypass the expected
+ * prompt validation).
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::expectPrompt(String prompt, String answer);
+#elif DOXYGEN_PY
+  None Testutils::expect_prompt(str prompt, str answer);
+#endif
+///@}
 void Testutils::expect_prompt(const std::string &prompt,
                               const std::string &text) {
   _feed_prompt(prompt, text);
 }
 
+//!<  @name Testing Utilities
+///@{
+/**
+ * Sets an expected password prompt as well as the password to be given as response.
+ * @param prompt The prompt to be expected.
+ * @param password The password to be given when the password prompt is received.
+ *
+ * Some of the interative functions of the shell require a password from the
+ * user, this is done through password prompts.
+ *
+ * This function can be used to identify an expected password prompt as well as
+ * defining the password that should be given to that prompt.
+ *
+ * If something different than the expected is prompted, will cause the test to
+ * fail.
+ *
+ * If the password prompt matches the expected password prompt, the password
+ * associated to the prompt will be given.
+ *
+ * Use * on the prompt to cause any password prompt to be valid (bypass the
+ * expected password prompt validation).
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::expectPassword(String prompt, String password);
+#elif DOXYGEN_PY
+  None Testutils::expect_password(str prompt, str password);
+#endif
+///@}
 void Testutils::expect_password(const std::string &prompt,
                                 const std::string &text) {
   _feed_password(prompt, text);
@@ -714,5 +1047,33 @@ bool Testutils::deploy_sandbox_from_boilerplate(int port) {
   }
   return true;
 }
+
+/**  @name Sandbox Operations
+ *
+ * Utilities that provide a reliable handling of sandboxes.
+ */
+///@{
+///@}
+
+/**  @name InnoDB Cluster Utilities
+ *
+ * Utilities specific for InnoDB Cluster Tests.
+ */
+///@{
+///@}
+
+/**  @name Testing Utilities
+ *
+ * Utilities related to the testing framework.
+ */
+///@{
+///@}
+
+/**  @name Misc Utilities
+ *
+ * Other utilities.
+ */
+///@{
+///@}
 
 }  // namespace tests

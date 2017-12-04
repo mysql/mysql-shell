@@ -46,6 +46,11 @@ std::string random_json_name(std::string::size_type length) {
 
 Server_mock::Server_mock() {}
 
+/**
+ * Creates the data file that defines the queries and data to be processed by
+ * the mock server.
+ * @param data A vector of Fake_result_data instances.
+ */
 std::string Server_mock::create_data_file(
     const std::vector<testing::Fake_result_data> &data) {
   shcore::JSON_dumper dumper;
@@ -143,6 +148,9 @@ std::string Server_mock::map_column_type(mysqlshdk::db::Type type) {
   return "";
 }
 
+/**
+ * Retrieves the path to the mock server binary.
+ */
 std::string Server_mock::get_path_to_binary() {
   std::string command;
 
@@ -157,6 +165,17 @@ std::string Server_mock::get_path_to_binary() {
   return command;
 }
 
+/**
+ * Starts a mock server.
+ * @param port the port where the mock server listens for MySQL connections.
+ * @param data vector of queries and the data to be processed by the mock
+ * server.
+ *
+ * This function will use create_data_file to setup the input file for the mock
+ * server using the provided data, then will create a new thread that will
+ * launch the actual mock server listening for connections on the indicated
+ * port.
+ */
 void Server_mock::start(int port,
                         const std::vector<testing::Fake_result_data> &data) {
   std::string binary_path = get_path_to_binary();
@@ -225,6 +244,9 @@ void Server_mock::start(int port,
              : 0));
 }
 
+/**
+ * Completes the execution of the mock server.
+ */
 void Server_mock::stop() {
   _thread->join();
 }

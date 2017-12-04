@@ -1,0 +1,34 @@
+/*!
+\defgroup Testutils Test Utils
+Module with a variety of testing utilities to be used on testing scripts.
+
+\defgroup UTFramework Unit Test Framework
+The Unit Test framework to be used in general for unit tests written in C++.
+
+*/
+/*!
+\mainpage
+This document describes the framework available on the MySQL Shell for testing
+purposes.
+
+The test framework is based on Google Test, Google's C++ test framework.
+
+A number of tools have been developed to ease the creation of tests for the
+MySQL Shell and is split in two main areas:
+
+  - The \ref UTFramework - The Unit Test framework to be used for tests written
+    in C++.
+  - The <a class ="el" href="script_testing.html">The Script Based Testing
+    Framework</a>: which is for use when creating JavaScript or Python tests
+    using the different API's exposed by the shell.
+
+To start creating C++ based unit tests, refer either to the \ref UTFramework to
+get familiar with the available tools and to Google Test, as it contains the
+building blocks for the test environment for the shell.
+
+To start creating script based tests using the APIs exposed by the shell, refer
+to <a class ="el" href="script_unit_testing.html">Unit/System Testing Using
+Scripts</a> but is required that you understand how the
+<a class ="el" href="script_testing.html">The Script Based Testing Framework</a>
+works.
+*/
