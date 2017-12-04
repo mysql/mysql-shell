@@ -179,12 +179,15 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "", password: "root"});
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {ipWhitelist: " ", password: "root"});
 
-//@#: Dba: rejoin instance 3 ok
+//@#: Dba: rejoin instance 3 ok {VER(<8.0.4)}
 if (__have_ssl)
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"});
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, "password":"root"});
 
+wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
+
+//@#: Dba: Wait instance 3 ONLINE {VER(>=8.0.4)}
 wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
 
 // Verify if the cluster is OK

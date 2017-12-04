@@ -1,16 +1,22 @@
 
-function create_root_from_anywhere(session) {
+function create_root_from_anywhere(session, clear_super_read_only) {
+  var super_read_only = get_sysvar(session, "super_read_only");
+  var super_read_only_enabled = super_read_only === "ON";
   session.runSql("SET SQL_LOG_BIN=0");
+  if (clear_super_read_only && super_read_only_enabled)
+    set_sysvar(session, "super_read_only", 0);
   session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
   session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
+  if (clear_super_read_only && super_read_only_enabled)
+    set_sysvar(session, "super_read_only", 1);
   session.runSql("SET SQL_LOG_BIN=1");
 }
 
-function set_sysvar(variable, value) {
+function set_sysvar(session, variable, value) {
   session.runSql("SET GLOBAL "+variable+" = ?", [value]);
 }
 
-function get_sysvar(variable) {
+function get_sysvar(session, variable) {
   return session.runSql("SHOW GLOBAL VARIABLES LIKE ?", [variable]).fetchOne()[1];
 }
 
@@ -94,6 +100,19 @@ function EXPECT_STDERR_CONTAINS(text) {
     var context = "<red>Missing error output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
+}
+function EXPECT_SHELL_LOG_CONTAINS(text) {
+  var log_path = testutil.getShellLogPath();
+  var match_list = testutil.grepFile(log_path, text);
+  if (match_list.length === 0){
+    var log_out = testutil.catFile(log_path);
+    var context = "<red>Missing log output:</red> " + text + "\n<yellow>Actual log output:</yellow> " + log_out;
+    testutil.fail(context);
+  }
+}
+function WIPE_SHELL_LOG() {
+  var log_path = testutil.getShellLogPath();
+  testutil.wipeFileContents(log_path);
 }
 
 function EXPECT_STDOUT_EMPTY() {

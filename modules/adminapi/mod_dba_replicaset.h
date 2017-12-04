@@ -54,7 +54,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
  public:
   ReplicaSet(const std::string &name, const std::string &topology_type,
              const std::string &group_name,
-             std::shared_ptr<MetadataStorage> metadata_storage);
+             std::shared_ptr<MetadataStorage> metadata_storage,
+             std::shared_ptr<IConsole> console_handler);
   virtual ~ReplicaSet();
 
   static std::set<std::string> _add_instance_opts;
@@ -216,6 +217,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::weak_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
+  std::shared_ptr<IConsole> m_console_handler;
   std::shared_ptr<mysqlshdk::db::ISession> get_session(
     const mysqlshdk::db::Connection_options &args);
 };

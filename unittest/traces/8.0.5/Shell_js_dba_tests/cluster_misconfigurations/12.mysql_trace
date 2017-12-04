@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://ca:ca@localhost:3340",
+    "uri": "mysql://ca:ca@localhost:3311",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "31",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-log",
+    "server_info": "8.0.5-debug-log",
     "server_version": "8.0.5",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -228,11 +228,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000005",
-            5135,
+            "T460-bin.000005",
+            5132,
             "",
             "",
-            "aa20fa75-134b-11e8-872f-5ce0c50b9d66:1-21,\nad833d61-134b-11e8-92b4-5ce0c50b9d66:1-3"
+            "71922352-168a-11e8-a4bb-4485005154dc:1-21,\n7492ef2b-168a-11e8-89e1-4485005154dc:1-3"
         ]
     ]
 },
@@ -323,7 +323,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ ']K7;|-4l{0f$<%_o_c(.T),K?+/U+>.|' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '@>T/h#~0:%e*;$<($o6F&:2:~Z^-T$|[' /*)*/ "
 },
 {
     "type": "response",
@@ -338,7 +338,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ ']K7;|-4l{0f$<%_o_c(.T),K?+/U+>.|' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '@>T/h#~0:%e*;$<($o6F&:2:~Z^-T$|[' /*)*/ "
 },
 {
     "type": "response",
@@ -457,7 +457,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 34,
-    "auto_increment_value": 13,
+    "auto_increment_value": 12,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -466,13 +466,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (13, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (12, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 36,
-    "auto_increment_value": 13,
+    "auto_increment_value": 12,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -481,7 +481,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 13 WHERE cluster_id = 13"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 12 WHERE cluster_id = 12"
 },
 {
     "type": "response",
@@ -496,7 +496,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 13"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 12"
 },
 {
     "type": "response",
@@ -534,7 +534,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 13 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 12 AND addresses->'$.mysqlClassic' = 'localhost:3311'"
 },
 {
     "type": "response",
@@ -572,7 +572,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 13 AND g.member_state IN ('ONLINE','RECOVERING')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 12 AND g.member_state IN ('ONLINE','RECOVERING')"
 },
 {
     "type": "response",

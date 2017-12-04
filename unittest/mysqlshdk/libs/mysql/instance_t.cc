@@ -667,6 +667,103 @@ TEST_F(Instance_test, set_sysvar) {
   _session->close();
 }
 
+TEST_F(Instance_test, set_sysvar_default) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+  // Test set_sysvar_default with different scopes (GLOBAL and SESSION).
+  EXPECT_CALL(session, execute("SET SESSION `max_user_connections` = DEFAULT"));
+  instance.set_sysvar_default("max_user_connections",
+                              mysqlshdk::mysql::Var_qualifier::SESSION);
+  session.expect_query(
+          "show SESSION variables where `variable_name` in "
+          "('max_user_connections')")
+      .then_return({{"show SESSION variables "
+                         "where `variable_name` in ('max_user_connections')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"max_user_connections", "0"}}}});
+  mysqlshdk::utils::nullable<std::string> new_value =
+      instance.get_sysvar_string("max_user_connections",
+                                 mysqlshdk::mysql::Var_qualifier::SESSION);
+  EXPECT_STREQ("0", (*new_value).c_str());
+
+  // Test set_sysvar_default with different scopes (GLOBAL and SESSION).
+  EXPECT_CALL(session, execute("SET GLOBAL `max_user_connections` = DEFAULT"));
+  instance.set_sysvar_default("max_user_connections",
+                              mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  session.expect_query(
+          "show GLOBAL variables where `variable_name` in "
+              "('max_user_connections')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('max_user_connections')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"max_user_connections", "0"}}}});
+  new_value = instance.get_sysvar_string(
+      "max_user_connections",
+      mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_STREQ("0", (*new_value).c_str());
+
+  // NOTE: Tests using PERSIST and PERSIST_ONLY are only supported by server
+  //       versions >= 8.0.2
+  // Set sysvar_default with PERSIST_ONLY.
+  EXPECT_CALL(session, execute("SET PERSIST_ONLY `lc_messages` = DEFAULT"));
+  instance.set_sysvar_default("lc_messages",
+                              mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
+  session.expect_query(
+          "show GLOBAL variables where `variable_name` in ('lc_messages')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('lc_messages')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"lc_messages", "en_US"}}}});
+  new_value = instance.get_sysvar_string(
+      "lc_messages", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_STREQ("en_US", (*new_value).c_str());
+  std::string persisted_var_value_stmt =
+      "SELECT VARIABLE_VALUE "
+          "FROM performance_schema.persisted_variables "
+          "WHERE VARIABLE_NAME = 'lc_messages'";
+  session.expect_query(persisted_var_value_stmt)
+      .then_return({{persisted_var_value_stmt,
+                     {"VARIABLE_VALUE"},
+                     {Type::String},
+                     {{"en_US"}}}});
+  auto resultset = session.query(persisted_var_value_stmt, false);
+  std::string persisted_value = resultset->fetch_one()->get_string(0);
+  EXPECT_STREQ("en_US", persisted_value.c_str());
+  EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
+  session.execute("RESET PERSIST lc_messages");
+  // Set string with PERSIST.
+  EXPECT_CALL(session, execute("SET PERSIST `lc_messages` = DEFAULT"));
+  instance.set_sysvar_default("lc_messages",
+                              mysqlshdk::mysql::Var_qualifier::PERSIST);
+  session.expect_query(
+          "show GLOBAL variables where `variable_name` in ('lc_messages')")
+      .then_return({{"show GLOBAL variables "
+                         "where `variable_name` in ('lc_messages')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"lc_messages", "en_US"}}}});
+  new_value = instance.get_sysvar_string(
+      "lc_messages", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  EXPECT_STREQ("en_US", (*new_value).c_str());
+  session.expect_query(persisted_var_value_stmt)
+      .then_return({{persisted_var_value_stmt,
+                     {"VARIABLE_VALUE"},
+                     {Type::String},
+                     {{"en_US"}}}});
+  resultset = session.query(persisted_var_value_stmt, false);
+  persisted_value = resultset->fetch_one()->get_string(0);
+  EXPECT_STREQ("en_US", persisted_value.c_str());
+  EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
+  session.execute("RESET PERSIST lc_messages");
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
 TEST_F(Instance_test, get_system_variables) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mydba:@localhost:3350",
+    "uri": "mydba:@localhost:3321",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "29",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-log",
+    "server_info": "8.0.5-debug-log",
     "server_version": "8.0.5",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -262,27 +262,7 @@
             "YES"
         ],
         [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
+            "PERSIST_RO_VARIABLES_ADMIN",
             "YES"
         ],
         [
@@ -290,11 +270,11 @@
             "YES"
         ],
         [
-            "BINLOG_ADMIN",
+            "ENCRYPTION_KEY_ADMIN",
             "YES"
         ],
         [
-            "PERSIST_RO_VARIABLES_ADMIN",
+            "REPLICATION_SLAVE_ADMIN",
             "YES"
         ],
         [
@@ -302,11 +282,31 @@
             "YES"
         ],
         [
-            "SET_USER_ID",
+            "GROUP_REPLICATION_ADMIN",
             "YES"
         ],
         [
             "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
             "YES"
         ],
         [

@@ -67,9 +67,15 @@ testutil.killSandbox(__mysql_sandbox_port1);
 
 // Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
+//the timeout for GR plugin to install a new view is 60s, so it should be at
+// least that value the parameter for the timeout for the waitForDelayedGRStart
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 100);
 
 // Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
+//the timeout for GR plugin to install a new view is 60s, so it should be at
+// least that value the parameter for the timeout for the waitForDelayedGRStart
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 100);
 
 session.close();
 

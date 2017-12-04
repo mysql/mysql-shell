@@ -29,6 +29,24 @@
 //@ Add instance 3
 ||
 
+//@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.4)}
+||
+
+//@ Disable group_replication_start_on_boot on third instance {VER(>=8.0.4)}
+||
+
+//@ Kill instance 2
+||
+
+//@ Kill instance 3
+||
+
+//@ Start instance 2
+||
+
+//@ Start instance 3
+||
+
 //@<OUT> Cluster status
 {
     "clusterName": "dev",

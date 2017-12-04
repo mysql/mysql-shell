@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "remo_blank:@localhost:33160?ssl-mode=DISABLED",
+    "uri": "remo_blank:@localhost:33110?ssl-mode=DISABLED",
     "protocol": "x"
 },
 {

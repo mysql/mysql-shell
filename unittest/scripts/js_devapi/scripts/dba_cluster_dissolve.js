@@ -109,6 +109,9 @@ single2.dissolve({force: true});
 
 // start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
+//the timeout for GR plugin to install a new view is 60s, so it should be at
+// least that value the parameter for the timeout for the waitForDelayedGRStart
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 100);
 
 //@ Create multi-primary cluster 2
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});

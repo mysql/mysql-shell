@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
  public:
   Cluster(const std::string &name,
           std::shared_ptr<mysqlshdk::db::ISession> group_session,
-          std::shared_ptr<MetadataStorage> metadata_storage);
+          std::shared_ptr<MetadataStorage> metadata_storage,
+          std::shared_ptr<IConsole> console_handler);
   virtual ~Cluster();
 
   virtual std::string class_name() const { return "Cluster"; }
@@ -69,7 +70,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   std::shared_ptr<ReplicaSet> get_default_replicaset() {
       return _default_replica_set;
   }
-  void set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs);
+  void set_default_replicaset(const std::string &name,
+                              const std::string &topology_type,
+                              const std::string &group_name);
   std::string get_name() { return _name; }
   std::string get_description() { return _description; }
   void assert_valid(const std::string &option_name) const;
@@ -110,6 +113,10 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
   std::shared_ptr<mysqlshdk::db::ISession> get_group_session() {
     return _group_session;
+  }
+
+  std::shared_ptr<mysqlsh::IConsole> get_console_handler() const {
+    return m_console_handler;
   }
 
  public:
@@ -171,6 +178,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   // stuff from pfs
   std::shared_ptr<mysqlshdk::db::ISession> _group_session;
   std::shared_ptr<MetadataStorage> _metadata_storage;
+  std::shared_ptr<IConsole> m_console_handler;
   void init();
 
  private:

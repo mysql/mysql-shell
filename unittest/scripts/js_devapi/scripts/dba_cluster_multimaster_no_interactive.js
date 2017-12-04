@@ -8,13 +8,13 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port3);
-create_root_from_anywhere(session);
+create_root_from_anywhere(session, true);
 
 shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port2);
-create_root_from_anywhere(session);
+create_root_from_anywhere(session, true);
 
 shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port1);
-create_root_from_anywhere(session);
+create_root_from_anywhere(session, true);
 
 //@ Dba: createCluster multiMaster, ok
 if (__have_ssl)

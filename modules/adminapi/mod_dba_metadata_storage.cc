@@ -583,35 +583,6 @@ void MetadataStorage::set_replicaset_group_name(
   execute_sql(query);
 }
 
-std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id) {
-  if (!metadata_schema_exists())
-    throw Exception::metadata_error("Metadata Schema does not exist.");
-
-  shcore::sqlstring query(
-      "SELECT replicaset_name, topology_type, "
-      "     attributes->>'$.group_replication_group_name' as group_name"
-      " FROM mysql_innodb_cluster_metadata.replicasets"
-      " WHERE replicaset_id = ?",
-      0);
-  query << rs_id;
-  auto result = execute_sql(query);
-  auto row = result->fetch_one();
-  if (row) {
-    std::string rs_name = row->get_string(0);
-    std::string topo = row->get_string(1);
-    std::string group_name = row->get_string(2);
-
-    // Create a ReplicaSet Object to match the Metadata
-    std::shared_ptr<ReplicaSet> rs(
-        new ReplicaSet(rs_name, topo, group_name, shared_from_this()));
-    // Get and set the Metadata data
-    rs->set_id(rs_id);
-    return rs;
-  }
-  throw Exception::metadata_error("Unknown replicaset " +
-                                  std::to_string(rs_id));
-}
-
 bool MetadataStorage::get_cluster_from_query(
     const std::string &query, std::shared_ptr<Cluster> cluster) {
 
@@ -624,7 +595,7 @@ bool MetadataStorage::get_cluster_from_query(
 
       cluster->set_name(row->get_string(1));
 
-      cluster->set_id(row->get_int(0));
+      cluster->set_id(row->get_uint(0));
 
       if (!row->is_null(3))
         cluster->set_description(row->get_string(3));
@@ -635,8 +606,29 @@ bool MetadataStorage::get_cluster_from_query(
       if (!row->is_null(4))
         cluster->set_options(row->get_string(4));
 
-      if (!row->is_null(2))
-        cluster->set_default_replicaset(get_replicaset(row->get_int(2)));
+      if (!row->is_null(2)) {
+        uint64_t rs_id = row->get_uint(2);
+        shcore::sqlstring replicaset_query(
+            "SELECT replicaset_name, topology_type, "
+            "     attributes->>'$.group_replication_group_name' as group_name"
+            " FROM mysql_innodb_cluster_metadata.replicasets"
+            " WHERE replicaset_id = ?",
+            0);
+        replicaset_query << rs_id;
+        auto res = execute_sql(replicaset_query);
+        auto rep_row = res->fetch_one();
+        if (rep_row) {
+          std::string rs_name = rep_row->get_string(0);
+          std::string topo = rep_row->get_string(1);
+          std::string group_name = rep_row->get_string(2);
+
+          cluster->set_default_replicaset(rs_name, topo, group_name);
+          cluster->get_default_replicaset()->set_id(rs_id);
+        } else {
+          throw Exception::metadata_error("Unknown replicaset " +
+              std::to_string(rs_id));
+        }
+      }
 
       return true;
     }

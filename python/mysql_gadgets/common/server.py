@@ -840,9 +840,10 @@ class Server(object):
                      By default: False.
         :type  full: boolean
 
-        :return: version string or None if an error occurs when trying to get
+        :return: List of version numbers(ints) if full = False or a string if
+                 full = True or None if an error occurs when trying to get
                  the version information from the server.
-        :rtype:  string or None
+        :rtype:  string or int list or None
         """
         # Return the local version value if already known.
         if self._version:
@@ -1106,13 +1107,14 @@ class Server(object):
         :type  var_name: str
         :param var_value: value to which we want to set the variable.
         :type  var_value: str
-        :param var_type: Type of the variable ('session' or 'global'). By
-                         default session is used.
+        :param var_type: Type of the variable ('session', 'global', 'persist'
+                         'persist_only'). By default session is used.
         :type  var_type: str
         :raises GadgetDBError: if an invalid var_type is provided as argument.
         """
 
-        if var_type.lower() in ('global', 'session'):
+        if var_type.lower() in ('global', 'session', 'persist',
+                                'persist_only'):
             var_type = '{0}.'.format(var_type)  # Add dot (.)
         else:
             raise GadgetError("Invalid variable type: {0}. Supported types: "

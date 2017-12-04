@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://remo_pass:pass@localhost:33160?ssl-mode=DISABLED",
+    "uri": "mysqlx://remo_pass:pass@localhost:33110?ssl-mode=DISABLED",
     "protocol": "x"
 },
 {

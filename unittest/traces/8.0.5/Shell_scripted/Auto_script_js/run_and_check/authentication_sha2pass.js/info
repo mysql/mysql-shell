@@ -1,7 +1,7 @@
 {
-    "hostname": "vm-ubuntu",
-    "hostname_ip": "10.0.2.15",
-    "sandbox_port1": "3316",
-    "sandbox_port2": "3326",
-    "sandbox_port3": "3336"
+    "hostname": "T460",
+    "hostname_ip": "192.168.1.66",
+    "sandbox_port1": "3311",
+    "sandbox_port2": "3321",
+    "sandbox_port3": "3331"
 }

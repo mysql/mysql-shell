@@ -191,7 +191,9 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL4,
 
 Dba::Dba(shcore::IShell_core *owner,
     std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode)
-    : _shell_core(owner) {
+    : _shell_core(owner),
+      m_console_handler(console_handler),
+      m_wizards_mode(wizards_mode) {
   init();
 }
 
@@ -544,7 +546,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     std::shared_ptr<mysqlshdk::db::ISession> group_session) const {
 
   std::shared_ptr<mysqlsh::dba::Cluster> cluster(
-      new Cluster("", group_session, metadata));
+      new Cluster("", group_session, metadata, m_console_handler));
 
   if (!name) {
     // Reloads the cluster (to avoid losing _default_cluster in case of error)
@@ -949,7 +951,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     MetadataStorage::Transaction tx(metadata);
 
     std::shared_ptr<Cluster> cluster(
-        new Cluster(cluster_name, group_session, metadata));
+        new Cluster(cluster_name, group_session, metadata, m_console_handler));
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
@@ -1013,11 +1015,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
                                adopt_from_gr, replication_user,
                                replication_pwd, group_name);
 
-    // If it reaches here, it means there are no exceptions
-    ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
-
     if (adopt_from_gr)
       cluster->get_default_replicaset()->adopt_from_gr();
+
+    // If it reaches here, it means there are no exceptions
+    ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
 
     tx.commit();
     // We catch whatever to do final processing before bubbling up the exception
@@ -2664,7 +2666,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
     }
 
-    cluster.reset(new Cluster(cluster_name, group_session, metadata));
+    cluster.reset(new Cluster(cluster_name, group_session, metadata,
+                              m_console_handler));
 
     // Getting the cluster from the metadata already complies with:
     // 1. Ensure that a Metadata Schema exists on the current session instance.

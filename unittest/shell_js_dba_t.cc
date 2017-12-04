@@ -590,10 +590,6 @@ TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
   _options->interactive = true;
   reset_replayable_shell();
 
-  //@ Dba.rebootClusterFromCompleteOutage success
-  output_handler.prompts.push_back({"*", "y"});
-  output_handler.prompts.push_back({"*", "y"});
-
   validate_interactive("dba_reboot_cluster_interactive.js");
 }
 

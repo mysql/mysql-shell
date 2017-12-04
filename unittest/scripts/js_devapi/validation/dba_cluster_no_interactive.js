@@ -372,7 +372,10 @@
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist, string value cannot be empty.
 
-//@#: Dba: rejoin instance 3 ok
+//@#: Dba: rejoin instance 3 ok {VER(<8.0.4)}
+||
+
+//@#: Dba: Wait instance 3 ONLINE {VER(>=8.0.4)}
 ||
 
 //@<OUT> Cluster: status for rejoin: success

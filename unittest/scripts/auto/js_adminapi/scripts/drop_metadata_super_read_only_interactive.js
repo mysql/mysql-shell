@@ -21,7 +21,7 @@ function rebuild_cluster() {
 // Sets the required statements for the session
 
 // super_read_only is OFF, no active sessions
-set_sysvar("super_read_only", 0);
+set_sysvar(session, "super_read_only", 0);
 
 dba.dropMetadataSchema({force: true});
 
@@ -31,7 +31,7 @@ EXPECT_OUTPUT_CONTAINS("Metadata Schema successfully removed.");
 //@ prepare Interactive_dba_drop_metadata_schemaread_only_no_flag_prompt_yes
 rebuild_cluster();
 // super_read_only is ON, no active sessions
-set_sysvar("super_read_only", 1);
+set_sysvar(session, "super_read_only", 1);
 
 // The answer to the prompt about continuing cleaning up the read only
 testutil.expectPrompt("*", "y");
@@ -42,7 +42,7 @@ dba.dropMetadataSchema({force: true});
 //@ prepare Interactive_dba_drop_metadata_schemaread_only_no_flag_prompt_no
 rebuild_cluster();
 // super_read_only is ON, no active sessions
-set_sysvar("super_read_only", 1);
+set_sysvar(session, "super_read_only", 1);
 
 // The answer to the prompt about continuing cleaning up the read only
 testutil.expectPrompt("*", "n");
@@ -65,7 +65,7 @@ dba.dropMetadataSchema({force: true, clearReadOnly: 'NotABool'});
 rebuild_cluster();
 
 // super_read_only is ON, no active sessions
-set_sysvar("super_read_only", 1);
+set_sysvar(session, "super_read_only", 1);
 
 //@ Interactive_dba_drop_metadata_schemaread_only_flag_true
 
@@ -80,7 +80,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:<<<sb_port_1>>>' cu
 //@ prepare Interactive_dba_drop_metadata_schemaread_only_flag_false
 rebuild_cluster();
 // super_read_only is ON, no active sessions
-set_sysvar("super_read_only", 1);
+set_sysvar(session, "super_read_only", 1);
 
 //@# Interactive_dba_drop_metadata_schemaread_only_flag_false
 dba.dropMetadataSchema({force: true, clearReadOnly: false});
