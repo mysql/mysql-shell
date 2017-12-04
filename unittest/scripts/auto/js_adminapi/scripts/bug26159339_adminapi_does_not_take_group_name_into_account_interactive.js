@@ -16,7 +16,13 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Cluster state
 cluster.status();
 
-// Take one down, change group_name, start it back
+//@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.4)}
+var s3 = mysql.getSession(__sandbox_uri3);
+s3.runSql("RESET PERSIST IF EXISTS group_replication_start_on_boot");
+s3.runSql("RESET PERSIST IF EXISTS group_replication_group_name");
+s3.close();
+
+//@ Take third sandbox down, change group_name, start it back
 testutil.stopSandbox(__mysql_sandbox_port3, "root");
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 

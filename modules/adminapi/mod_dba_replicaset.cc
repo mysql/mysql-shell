@@ -26,6 +26,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 #include <memory>
 #include "modules/adminapi/mod_dba_replicaset.h"
@@ -72,14 +73,22 @@ char const *ReplicaSet::kTopologyMultiMaster = "mm";
 
 static const std::string kSandboxDatadir = "sandboxdata";
 
+enum class Gr_seeds_change_type {
+  ADD,
+  REMOVE,
+  OVERRIDE,
+};
+
 ReplicaSet::ReplicaSet(const std::string &name,
                        const std::string &topology_type,
                        const std::string &group_name,
-                       std::shared_ptr<MetadataStorage> metadata_storage)
+                       std::shared_ptr<MetadataStorage> metadata_storage,
+                       std::shared_ptr<IConsole> m_console_handler)
     : _name(name),
       _topology_type(topology_type),
       _group_name(group_name),
-      _metadata_storage(metadata_storage) {
+      _metadata_storage(metadata_storage),
+      m_console_handler(m_console_handler) {
   assert(topology_type == kTopologyMultiMaster ||
          topology_type == kTopologyPrimaryMaster);
   init();
@@ -219,6 +228,102 @@ void ReplicaSet::adopt_from_gr() {
 }
 
 /**
+ * Auxiliary function to update the group_replication_group_seeds variable.
+ *
+ * @param gr_address address to override or add/remove from the
+ * instance's group_replication_group_seeds variable
+ * @param Change_type Type of change we want to do to the group_seeds
+ * variable. If Add or Remove, we respectively add or remove the gr_address
+ * value received as argument to the group_replication_group_seeds variable of
+ * the instance whose session we got. If Override, we set the
+ * group_replication_group_seeds with the value of gr_address received as
+ * argument.
+ * @param session to the instance whose group_replication_group_seeds variable
+ * is to be changed.
+ * @param naming_style Naming style being used, required for the logged
+ * warning messages.
+ */
+static void update_group_replication_group_seeds(
+    const std::string &gr_address, const Gr_seeds_change_type change_type,
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const NamingStyle naming_style,
+    std::shared_ptr<mysqlsh::IConsole> console_handler) {
+  std::string gr_group_seeds_new_value;
+  std::string address =
+      session->get_connection_options().as_uri(only_transport());
+  // create an instance object for the provided session
+  auto instance = mysqlshdk::mysql::Instance(session);
+  auto gr_group_seeds = instance.get_sysvar_string(
+      "group_replication_group_seeds", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  auto gr_group_seeds_vector = shcore::split_string(*gr_group_seeds, ",");
+
+  switch (change_type) {
+    case Gr_seeds_change_type::ADD :
+      // get the group_replication_group_seeds value from the instance
+      if (!gr_group_seeds->empty()) {
+        // if the group_seeds value is not empty, add the gr_address to it.
+        // if it is not already there.
+        if (std::find(gr_group_seeds_vector.begin(),
+                      gr_group_seeds_vector.end(),
+                      gr_address) == gr_group_seeds_vector.end()) {
+          gr_group_seeds_vector.push_back(gr_address);
+        }
+        gr_group_seeds_new_value = shcore::str_join(gr_group_seeds_vector, ",");
+      } else {
+        // If the instance had no group_seeds yet defined, just set it as the
+        // value the gr_address argument.
+        gr_group_seeds_new_value = gr_address;
+      }
+      break;
+    case Gr_seeds_change_type::REMOVE:
+      gr_group_seeds_vector.erase(
+          std::remove(gr_group_seeds_vector.begin(),
+                      gr_group_seeds_vector.end(),
+                      gr_address),
+          gr_group_seeds_vector.end());
+      gr_group_seeds_new_value = shcore::str_join(gr_group_seeds_vector, ",");
+      break;
+    case Gr_seeds_change_type::OVERRIDE:
+      gr_group_seeds_new_value = gr_address;
+      break;
+  }
+
+  // Update group_replication_group_seeds variable
+  // If server version >= 8.0.4 use set persist, otherwise use set global
+  // and warn users that they should use configureLocalInstance to persist
+  // the value of the variables
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 4)) {
+    bool persist_load = *instance.get_sysvar_bool(
+        "persisted_globals_load", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    if (!persist_load) {
+      std::string warn_msg = "On instance '" + address +
+        "' the persisted cluster configuration will not be loaded upon "
+        "reboot since 'persisted-globals-load' is set "
+        "to 'OFF'. Please use the <Dba>." +
+        get_member_name("configureLocalInstance", naming_style) +
+        " command locally to persist the changes or set "
+        "'persisted-globals-load' to 'ON' on the configuration file.";
+      console_handler->print_warning(warn_msg);
+    }
+    instance.set_sysvar("group_replication_group_seeds",
+                        gr_group_seeds_new_value,
+                        mysqlshdk::mysql::Var_qualifier::PERSIST);
+  } else {
+    instance.set_sysvar("group_replication_group_seeds",
+                        gr_group_seeds_new_value,
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    std::string warn_msg =
+      "On instance '" + address + "' membership change cannot "
+      "be persisted since MySQL version " + instance.get_version().get_base() +
+      " does not support the SET PERSIST command "
+      "(MySQL version >= 8.0.4 required). Please use the <Dba>." +
+      get_member_name("configureLocalInstance", naming_style) + " command "
+      "locally to persist the changes.";
+    console_handler->print_warning(warn_msg);
+  }
+}
+
+/**
  * Adds a Instance to the ReplicaSet
  * \param conn The Connection String or URI of the Instance to be added
  */
@@ -349,6 +454,7 @@ shcore::Value ReplicaSet::add_instance(
     const std::string &existing_replication_password, bool overwrite_seed,
     const std::string &group_name) {
   shcore::Value ret_val;
+  bool success = false;
 
   bool seed_instance = false;
   std::string ssl_mode = dba::kMemberSSLModeAuto;  // SSL Mode AUTO by default
@@ -368,7 +474,7 @@ shcore::Value ReplicaSet::add_instance(
     seed_instance = true;
 
   // Retrieves the instance definition
-  auto instance_def = connection_options;
+  auto instance_cnx_opt = connection_options;
 
   // Retrieves the add options
   if (args.size() == 1) {
@@ -407,23 +513,23 @@ shcore::Value ReplicaSet::add_instance(
   }
 
   // Sets a default user if not specified
-  mysqlsh::resolve_connection_credentials(&instance_def, nullptr);
-  std::string user = instance_def.get_user();
-  std::string super_user_password = instance_def.get_password();
-  std::string joiner_host = instance_def.get_host();
+  mysqlsh::resolve_connection_credentials(&instance_cnx_opt, nullptr);
+  std::string user = instance_cnx_opt.get_user();
+  std::string super_user_password = instance_cnx_opt.get_password();
+  std::string joiner_host = instance_cnx_opt.get_host();
 
   std::string instance_address =
-      instance_def.as_uri(only_transport());
+      instance_cnx_opt.as_uri(only_transport());
 
   bool is_instance_on_md =
       _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
 
   mysqlshdk::db::Scoped_session<mysqlshdk::db::ISession> session(
       mysqlshdk::db::mysql::Session::create());
-  session->connect(instance_def);
+  session->connect(instance_cnx_opt);
 
   // Check whether the address being used is not in a known not-good case
-  validate_instance_address(session, joiner_host, instance_def.get_port());
+  validate_instance_address(session, joiner_host, instance_cnx_opt.get_port());
 
   // Check replication filters before creating the Metadata.
   validate_replication_filters(session);
@@ -521,9 +627,10 @@ shcore::Value ReplicaSet::add_instance(
       set_group_replication_member_options(session, ssl_mode);
 
       // Call mysqlprovision to bootstrap the group using "start"
-      do_join_replicaset(instance_def, nullptr, super_user_password,
-                         replication_user, replication_user_password, ssl_mode,
-                         ip_whitelist, group_name, local_address, group_seeds);
+      success = do_join_replicaset(
+          instance_cnx_opt, nullptr, super_user_password, replication_user,
+          replication_user_password, ssl_mode, ip_whitelist, group_name,
+          local_address, group_seeds);
     } else {
       // We need to retrieve a peer instance, so let's use the Seed one
       // NOTE(rennox): In add instance this function is not used, the peer
@@ -554,21 +661,55 @@ shcore::Value ReplicaSet::add_instance(
 
       set_group_replication_member_options(session, ssl_mode);
 
+      // if no group_seeds value was provided by the user, then,
+      // before joining instance to cluster, get the values of the
+      // gr_local_address from all the active members of the cluster
+      if (group_seeds.empty())
+        group_seeds = get_cluster_group_seeds();
       log_info("Joining '%s' to group using account %s@%s to peer '%s'",
                instance_address.c_str(), user.c_str(), instance_address.c_str(),
                peer_instance.c_str());
       // Call mysqlprovision to do the work
-      do_join_replicaset(instance_def, &peer, super_user_password,
+      success = do_join_replicaset(instance_cnx_opt, &peer, super_user_password,
                          replication_user, replication_user_password, ssl_mode,
                          ip_whitelist, group_name, local_address, group_seeds);
     }
   }
+  if (success) {
+    // If the instance is not on the Metadata, we must add it
+    if (!is_instance_on_md)
+      add_instance_metadata(instance_cnx_opt, instance_label);
 
-  // If the instance is not on the Metadata, we must add it
-  if (!is_instance_on_md)
-    add_instance_metadata(instance_def, instance_label);
-
-  log_debug("Instance add finished");
+    // Get the gr_address of the instance being added
+    auto added_instance = mysqlshdk::mysql::Instance(session);
+    std::string added_instance_address =
+        session->get_connection_options().as_uri(only_transport());
+    std::string added_instance_gr_address = *added_instance.get_sysvar_string(
+        "group_replication_local_address",
+        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    // Update the group_seeds of the instance that was just added
+    // If the groupSeeds option was used (not empty), we use
+    // that value, otherwise we use the value of all the
+    // group_replication_local_address of all the active instances
+    update_group_replication_group_seeds(group_seeds,
+                                         Gr_seeds_change_type::OVERRIDE,
+                                         session, naming_style,
+                                         m_console_handler);
+    // Update the group_replication_group_seeds of the members that
+    // already belonged to the cluster and are either ONLINE or recovering
+    // by adding the gr_local_address of the instance that was just added.
+    std::vector<std::string> ignore_instances_vec = {instance_address};
+    Gr_seeds_change_type change_type = Gr_seeds_change_type::ADD;
+    execute_in_members(
+        {"'ONLINE'", "'RECOVERING'"}, instance_cnx_opt, ignore_instances_vec,
+        [added_instance_gr_address, change_type, this]
+            (std::shared_ptr<mysqlshdk::db::ISession> session) {
+          update_group_replication_group_seeds(
+              added_instance_gr_address, change_type,
+              session, this->naming_style, this->m_console_handler);
+        });
+    log_debug("Instance add finished");
+  }
 
   return ret_val;
 }
@@ -757,7 +898,7 @@ std::string ReplicaSet::get_cluster_group_seeds(
     if (std::find(gr_group_seeds_list.begin(),
                   gr_group_seeds_list.end(),
                   local_address) == gr_group_seeds_list.end()) {
-      // Only add the local addres if not already in the group seed list,
+      // Only add the local address if not already in the group seed list,
       // avoiding duplicates.
       gr_group_seeds_list.push_back(local_address);
     }
@@ -1040,7 +1181,12 @@ static void reenable_super_read_only(
  *
  * This function perform operations to finalize the removal of an instance
  * after leaving the replicaset (GR is stopped), more specifically:
+ *   - Update ghe group_replication_group_seeds on the other members of the
+ *     cluster;
  *   - Disable GR start on boot (to avoid instance from rejoining the group);
+ *   - Reset and persist the values for group_replication_bootstrap_group,
+ *     group_replication_force_members, group_replication_group_seeds and
+ *     group_replication_local_address.
  *   - Remove replication (recovery) users;
  *
  * @param instance_cnx_opts Connection options for the instance to remove.
@@ -1061,22 +1207,72 @@ void ReplicaSet::finalize_instance_removal(
             "persist 'group_replication_start_on_boot', if supported by "
             "the server.", instance_address.c_str());
   std::shared_ptr<mysqlshdk::db::ISession> _session =
-      mysqlshdk::db::mysql::Session::create();
-  _session->connect(instance_cnx_opts);
+      get_session(instance_cnx_opts);
   mysqlshdk::mysql::Instance instance(_session);
 
-  // Disable and persist GR start on boot if leave-replicaset succeed.
+  // get the group_replication_local address value of the instance we will
+  // remove from the replicaset
+  std::string local_gr_address = *instance.get_sysvar_string(
+      "group_replication_local_address",
+      mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  // if remove operation went well, iterate through all ONLINE and
+  // RECOVERING cluster members and update their
+  // group_replication_group_seeds value by removing the gr_local_address
+  // of the instance that was removed
+  std::vector<std::string> ignore_instances_vec;
+  Gr_seeds_change_type change_type = Gr_seeds_change_type::REMOVE;
+  execute_in_members(
+      {"'ONLINE'", "'RECOVERING'"}, instance_cnx_opts, ignore_instances_vec,
+      [local_gr_address, change_type, this]
+          (std::shared_ptr<mysqlshdk::db::ISession> session) {
+        update_group_replication_group_seeds(local_gr_address, change_type,
+                                             session, this->naming_style,
+                                             this->m_console_handler);
+      });
+  const std::vector<std::string> kGRRemoveInstanceVarsDefault {
+      "group_replication_bootstrap_group", "group_replication_force_members",
+      "group_replication_group_seeds", "group_replication_local_address"};
+  // Disable and persist GR start on boot if leave-replicaset succeed and
+  // reset values for group_replication_bootstrap_group,
+  // group_replication_force_members, group_replication_group_seeds and
+  // group_replication_local_address
   // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.4
   //       due to BUG#26495619.
-  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 4))
+
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 4)) {
     instance.set_sysvar("group_replication_start_on_boot", false,
                         mysqlshdk::mysql::Var_qualifier::PERSIST);
-  else
+    for (auto gr_var : kGRRemoveInstanceVarsDefault) {
+      instance.set_sysvar_default(gr_var,
+                                  mysqlshdk::mysql::Var_qualifier::PERSIST);
+    }
+
+    bool persist_load = *instance.get_sysvar_bool(
+        "persisted_globals_load", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    if (!persist_load) {
+      std::string warn_msg =
+        "On instance '" + instance_address +
+        "' the persisted cluster configuration will not be loaded upon "
+        "reboot since 'persisted-globals-load' is set "
+        "to 'OFF'. Please set 'persisted-globals-load' to 'ON' on the "
+        "configuration file or set the 'group_replication_start_on_boot' "
+        "variable to 'OFF' in the server configuration file, otherwise it "
+        "might rejoin the cluster upon restart.";
+      m_console_handler->print_warning(warn_msg);
+    }
+  } else {
     // NOTE: mysqlprovision already set group_replication_start_on_boot=OFF
-    log_warning(
-        "The 'group_replication_start_on_boot' variable must be set "
-        "to 'OFF' in the server configuration file, otherwise it might "
-        "rejoin the cluster upon restart.");
+    std::string warn_msg =
+        "On instance '" + instance_address +
+        "' configuration cannot be persisted since MySQL version " +
+        _session->get_server_version().get_base() +
+        " does not support the SET "
+        "PERSIST command (MySQL version >= 8.0.4 required). Please set the "
+        "'group_replication_start_on_boot' variable to 'OFF' in the server "
+        "configuration file, otherwise it might rejoin the cluster upon "
+        "restart.";
+    m_console_handler->print_warning(warn_msg);
+  }
 
   // Check if super_read_only is enabled and disable it to remove
   // replication users.
@@ -1155,11 +1351,11 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   bool force = false;  // By default force is false.
 
-  auto instance_def =
+  auto instance_cnx_opt =
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
-  if (!instance_def.has_port())
-    instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
+  if (!instance_cnx_opt.has_port())
+    instance_cnx_opt.set_port(mysqlshdk::db::k_default_mysql_port);
 
   // Retrieve and validate options.
   if (args.size() == 2) {
@@ -1171,22 +1367,24 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
       force = remove_options->get_bool("force");
   }
 
-  // If missing, get instance admin and user information from the metadata
-  // session which is the session saved on the cluster
-  if (!instance_def.has_user() || !instance_def.has_password()) {
-    auto instance_session = _metadata_storage->get_session();
-    auto connection_options = instance_session->get_connection_options();
+  // If missing, get instance admin and user information from the session
+  // saved on the cluster
+  if (!instance_cnx_opt.has_user() || !instance_cnx_opt.has_password()) {
+    std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
+        cluster->get_group_session();
+    Connection_options cluster_cnx_opt =
+        cluster_session->get_connection_options();
 
-    if (!instance_def.has_user() && connection_options.has_user())
-      instance_def.set_user(connection_options.get_user());
+    if (!instance_cnx_opt.has_user() && cluster_cnx_opt.has_user())
+      instance_cnx_opt.set_user(cluster_cnx_opt.get_user());
 
-    if (!instance_def.has_password() && connection_options.has_password())
-      instance_def.set_password(connection_options.get_password());
+    if (!instance_cnx_opt.has_password() && cluster_cnx_opt.has_password())
+      instance_cnx_opt.set_password(cluster_cnx_opt.get_password());
   }
 
   // Check if the instance was already added
   std::string instance_address =
-      instance_def.as_uri(only_transport());
+      instance_cnx_opt.as_uri(only_transport());
 
   bool is_instance_on_md =
       _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
@@ -1251,7 +1449,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     // remove (if ONLINE). This avoid issues removing and adding an instance
     // again (error adding the instance because it is already in the MD).
     MetadataStorage::Transaction tx(_metadata_storage);
-    remove_instance_metadata(instance_def);
+    remove_instance_metadata(instance_cnx_opt);
     tx.commit();
 
     // Call provisioning to remove the instance from the replicaset
@@ -1262,8 +1460,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     shcore::Value::Array_type_ref errors;
 
     exit_code = cluster->get_provisioning_interface()->leave_replicaset(
-        instance_def, &errors);
-
+        instance_cnx_opt, &errors);
     // Only add the metadata back if the force option was not used.
     if (exit_code != 0) {
       if (!force) {
@@ -1281,7 +1478,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
             get_instance_state(session, instance_address);
         if (state == ManagedInstance::Unreachable ||
             state == ManagedInstance::Missing) {
-          // Send a diferent error if the instance is not reachable
+          // Send a different error if the instance is not reachable
           // (and the force option was not used).
           std::string message = "The instance '" + instance_address + "'";
           message.append(" cannot be removed because it is on a '");
@@ -1309,14 +1506,14 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
       // Finalize instance removal after successfully leaving replicaset.
       // - Disable and persist GR start on boot;
       // - Remove replication (recovery) users;
-      finalize_instance_removal(instance_def, true);
+      finalize_instance_removal(instance_cnx_opt, true);
     }
   } else {
     // Remove instance from the MD anyway in case it is standalone.
     // NOTE: Added for safety and completness, this situation should not happen
     //       (covered by preconditions).
     MetadataStorage::Transaction tx(_metadata_storage);
-    remove_instance_metadata(instance_def);
+    remove_instance_metadata(instance_cnx_opt);
     tx.commit();
   }
 
@@ -2347,6 +2544,54 @@ std::vector<Instance_definition> ReplicaSet::get_instances_from_metadata() {
   return _metadata_storage->get_replicaset_instances(get_id());
 }
 
+/** Iterates through all the cluster members in a given state calling the given
+ * function on each of then.
+ * @param states Vector of strings with the states of members on which the
+ * functor will be called.
+ * @param cnx_opt Connection options to be used to connect to the cluster
+ * members
+ * @param ignore_instances_vector Vector with addresses of instances to be
+ * ignored even if their state is specified in the states vector.
+ * @param functor Function that is called on each member of the cluster whose
+ * state is specified in the states vector.
+ */
+
+void ReplicaSet::execute_in_members(
+    const std::vector<std::string> &states,
+    const mysqlshdk::db::Connection_options &cnx_opt,
+    const std::vector<std::string> &ignore_instances_vector,
+    std::function<void(std::shared_ptr<mysqlshdk::db::ISession> session)>
+    functor) {
+  std::shared_ptr<mysqlshdk::db::ISession> instance_session;
+  // Note (nelson): should we handle the super_read_only behavior here or should
+  // it be the responsibility of the functor?
+  auto instance_definitions =
+      _metadata_storage->get_replicaset_instances(_id, false, states);
+
+  for (auto &instance_def : instance_definitions) {
+    std::string instance_address = instance_def.endpoint;
+    // if instance is on the list of instances to be ignored, skip it
+    if (std::find(ignore_instances_vector.begin(),
+                  ignore_instances_vector.end(),
+                  instance_address) != ignore_instances_vector.end())
+      continue;
+    auto instance_cnx_opt =
+        shcore::get_connection_options(instance_address, false);
+
+    instance_cnx_opt.set_login_options_from(cnx_opt);
+    try {
+      log_debug("Opening a new session to instance '%s' while iterating "
+                "cluster members", instance_address.c_str());
+      instance_session = get_session(instance_cnx_opt);
+    } catch (std::exception &e) {
+      log_error("Could not open connection to '%s': %s",
+                instance_address.c_str(), e.what());
+      throw;
+    }
+    functor(instance_session);
+    instance_session->close();
+  }
+}
 
 void ReplicaSet::set_group_name(const std::string &group_name) {
   _group_name = group_name;

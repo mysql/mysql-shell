@@ -152,7 +152,8 @@ class Testutils : public shcore::Cpp_object_bridge {
                  const std::vector<std::string> &schemas);
   void import_data(const std::string &uri, const std::string &path,
                    const std::string &schema = "");
-
+  void wait_for_delayed_gr_start(int port, const std::string &root_pass,
+                                 int timeout = 100);
  public:
   // InnoDB cluster routines
   std::string wait_member_state(int member_port, const std::string &states);
@@ -165,6 +166,9 @@ class Testutils : public shcore::Cpp_object_bridge {
 
   shcore::Array_t grep_file(const std::string &path,
                             const std::string &pattern);
+  std::string cat_file(const std::string &path);
+
+  void wipe_file_contents(const std::string &path);
 
  public:
   // These should produce test failure output similar to that of gtest,

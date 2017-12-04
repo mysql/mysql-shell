@@ -49,11 +49,11 @@
 //@# Dba_preconditions_innodb, create_cluster_fails
 ||Dba.createCluster: Unable to create cluster. The instance 'localhost:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use <Dba>.getCluster() to access it.
 
-//@# Dba_preconditions_innodb, drop_metadata_schema_succeeds
+//@# Dba_preconditions_innodb, drop_metadata_schema_fails
 ||Dba.dropMetadataSchema: No operation executed, use the 'force' option
 
-//@# Dba_preconditions_innodb, reboot_cluster_from_complete_outage_succeeds
-||Dba.rebootClusterFromCompleteOutage: The MySQL instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.forceQuorumUsingPartitionOf() to restore from the quorum loss.
+//@# Dba_preconditions_innodb, reboot_cluster_from_complete_outage_fails
+||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.forceQuorumUsingPartitionOf() to restore from the quorum loss.
 
 //@ Cleanup
 ||

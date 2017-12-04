@@ -89,7 +89,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const char *name, std::shared_ptr<MetadataStorage> metadata,
       std::shared_ptr<mysqlshdk::db::ISession> group_session) const;
 
-  std::shared_ptr<mysqlsh::IConsole> get_console_handler() {
+  std::shared_ptr<mysqlsh::IConsole> get_console_handler() const {
     return m_console_handler;
   }
 

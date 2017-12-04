@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <memory>
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
@@ -64,11 +65,13 @@ REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 
 Cluster::Cluster(const std::string &name,
                  std::shared_ptr<mysqlshdk::db::ISession> group_session,
-                 std::shared_ptr<MetadataStorage> metadata_storage)
+                 std::shared_ptr<MetadataStorage> metadata_storage,
+                 std::shared_ptr<IConsole> console_handler)
     : _name(name),
       _dissolved(false),
       _group_session(group_session),
-      _metadata_storage(metadata_storage) {
+      _metadata_storage(metadata_storage),
+      m_console_handler(console_handler) {
   DEBUG_OBJ_ALLOC2(Cluster, [](void *ptr) {
     return "refs:" + std::to_string(reinterpret_cast<Cluster *>(ptr)
                                         ->shared_from_this()
@@ -231,9 +234,7 @@ shcore::Value Cluster::add_seed_instance(
     }
     // Create the Default ReplicaSet and assign it to the Cluster's
     // default_replica_set var
-    _default_replica_set.reset(
-        new ReplicaSet("default", topology_type, "", _metadata_storage));
-    _default_replica_set->set_cluster(shared_from_this());
+    set_default_replicaset("default", topology_type, "");
 
     // If we reached here without errors we can update the Metadata
 
@@ -846,8 +847,11 @@ shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-void Cluster::set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs) {
-  _default_replica_set = default_rs;
+void Cluster::set_default_replicaset(const std::string &name,
+                                     const std::string &topology_type,
+                                     const std::string &group_name) {
+  _default_replica_set = std::make_shared<ReplicaSet>(
+      name, topology_type, group_name, _metadata_storage, m_console_handler);
 
   if (_default_replica_set)
     _default_replica_set->set_cluster(shared_from_this());

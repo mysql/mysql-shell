@@ -45,15 +45,22 @@ dba.dropMetadataSchema({});
 dba.rebootClusterFromCompleteOutage("");
 
 //@# Dba_preconditions_unmanaged_gr, create_cluster_adopt
+create_root_from_anywhere(session, true);
 dba.createCluster("bla", {adoptFromGR:true});
 
 //@# Dba_preconditions_innodb, create_cluster_fails
 dba.createCluster("duplicate");
 
-//@# Dba_preconditions_innodb, drop_metadata_schema_succeeds
+//@# Dba_preconditions_innodb, drop_metadata_schema_fails
 dba.dropMetadataSchema({});
 
-//@# Dba_preconditions_innodb, reboot_cluster_from_complete_outage_succeeds
+//@# Dba_preconditions_innodb, reboot_cluster_from_complete_outage_fails
+//Using adoptFromGR option when we create a cluster, means that the hostname
+//of the machine will be added to the metadata, instead of localhost, so we
+//must use that hostname on the session
+session.close();
+var uri = "mysql://root:root@"+ hostname + ":" + __mysql_sandbox_port1;
+shell.connect(uri);
 dba.rebootClusterFromCompleteOutage("bla");
 
 //@ Cleanup

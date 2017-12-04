@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
+    "uri": "mysql://root:root@T460:3311",
     "protocol": "classic"
 },
 {
@@ -11,16 +11,16 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "47",
-    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
-    "server_info": "8.0.5-log",
+    "connection_info": "T460 via TCP/IP",
+    "server_info": "8.0.5-debug-log",
     "server_version": "8.0.5",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select @@report_host, @@hostname"
+    "sql": "SELECT CURRENT_USER()"
 },
 {
     "type": "response",
@@ -36,24 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@report_host",
-            "length": 0,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@hostname",
-            "length": 72,
+            "column_label": "CURRENT_USER()",
+            "length": 372,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -66,8 +50,7 @@
     ],
     "rows": [
         [
-            null,
-            "pjesus-TECRA-Z40-B"
+            "root@192.168.1.66"
         ]
     ]
 },
@@ -75,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SHOW MASTER STATUS"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'192.168.1.66\\''"
 },
 {
     "type": "response",
@@ -87,45 +70,13 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "File",
-            "length": 2048,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Position",
-            "length": 20,
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "USER_PRIVILEGES",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "PRIVILEGE_TYPE",
+            "length": 256,
             "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Binlog_Do_DB",
-            "length": 1020,
-            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -135,29 +86,13 @@
             "binary": false
         },
         {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Binlog_Ignore_DB",
-            "length": 1020,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Executed_Gtid_Set",
-            "length": 336,
-            "fractional": 31,
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "USER_PRIVILEGES",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "IS_GRANTABLE",
+            "length": 12,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -169,11 +104,176 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000003",
-            39447,
-            "",
-            "",
-            "65deee5c-1349-11e8-a60b-5ce0c50b9d66:1-14,\n6985a630-1349-11e8-a60b-5ce0c50b9d66:1-41"
+            "SELECT",
+            "YES"
+        ],
+        [
+            "INSERT",
+            "YES"
+        ],
+        [
+            "UPDATE",
+            "YES"
+        ],
+        [
+            "DELETE",
+            "YES"
+        ],
+        [
+            "CREATE",
+            "YES"
+        ],
+        [
+            "DROP",
+            "YES"
+        ],
+        [
+            "RELOAD",
+            "YES"
+        ],
+        [
+            "SHUTDOWN",
+            "YES"
+        ],
+        [
+            "PROCESS",
+            "YES"
+        ],
+        [
+            "FILE",
+            "YES"
+        ],
+        [
+            "REFERENCES",
+            "YES"
+        ],
+        [
+            "INDEX",
+            "YES"
+        ],
+        [
+            "ALTER",
+            "YES"
+        ],
+        [
+            "SHOW DATABASES",
+            "YES"
+        ],
+        [
+            "SUPER",
+            "YES"
+        ],
+        [
+            "CREATE TEMPORARY TABLES",
+            "YES"
+        ],
+        [
+            "LOCK TABLES",
+            "YES"
+        ],
+        [
+            "EXECUTE",
+            "YES"
+        ],
+        [
+            "REPLICATION SLAVE",
+            "YES"
+        ],
+        [
+            "REPLICATION CLIENT",
+            "YES"
+        ],
+        [
+            "CREATE VIEW",
+            "YES"
+        ],
+        [
+            "SHOW VIEW",
+            "YES"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES"
+        ],
+        [
+            "ALTER ROUTINE",
+            "YES"
+        ],
+        [
+            "CREATE USER",
+            "YES"
+        ],
+        [
+            "EVENT",
+            "YES"
+        ],
+        [
+            "TRIGGER",
+            "YES"
+        ],
+        [
+            "CREATE TABLESPACE",
+            "YES"
+        ],
+        [
+            "CREATE ROLE",
+            "YES"
+        ],
+        [
+            "DROP ROLE",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "XA_RECOVER_ADMIN",
+            "YES"
         ]
     ]
 },
@@ -181,7 +281,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@global.have_ssl"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'192.168.1.66\\'' ORDER BY TABLE_SCHEMA"
 },
 {
     "type": "response",
@@ -193,13 +293,45 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@global.have_ssl",
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "SCHEMA_PRIVILEGES",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "PRIVILEGE_TYPE",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "SCHEMA_PRIVILEGES",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "IS_GRANTABLE",
             "length": 12,
-            "fractional": 31,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "SCHEMA_PRIVILEGES",
+            "column_name": "TABLE_SCHEMA",
+            "column_label": "TABLE_SCHEMA",
+            "length": 256,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -209,22 +341,100 @@
             "binary": false
         }
     ],
-    "rows": [
-        [
-            "YES"
-        ]
-    ]
+    "rows": []
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'192.168.1.66\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "TABLE_PRIVILEGES",
+            "table_label": "TABLE_PRIVILEGES",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "PRIVILEGE_TYPE",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "TABLE_PRIVILEGES",
+            "table_label": "TABLE_PRIVILEGES",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "IS_GRANTABLE",
+            "length": 12,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "TABLE_PRIVILEGES",
+            "table_label": "TABLE_PRIVILEGES",
+            "column_name": "TABLE_SCHEMA",
+            "column_label": "TABLE_SCHEMA",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "TABLE_PRIVILEGES",
+            "table_label": "TABLE_PRIVILEGES",
+            "column_name": "TABLE_NAME",
+            "column_label": "TABLE_NAME",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": []
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -256,142 +466,25 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 11,
+    "index": 13,
     "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid"
 },
 {
     "type": "response",
-    "subtype": "RESULT",
-    "index": 12,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 13,
-    "sql": "SELECT @@server_uuid"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
+    "subtype": "ERROR",
     "index": 14,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 144,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "65deee5c-1349-11e8-a60b-5ce0c50b9d66"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 15,
-    "sql": "show GLOBAL variables where `variable_name` in ('server_uuid')"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 16,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "server_uuid",
-            "65deee5c-1349-11e8-a60b-5ce0c50b9d66"
-        ]
-    ]
+    "code": "1049",
+    "msg": "Unknown database 'mysql_innodb_cluster_metadata'",
+    "sqlstate": "42000"
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 17
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 18
+    "index": 16
 },
 null]

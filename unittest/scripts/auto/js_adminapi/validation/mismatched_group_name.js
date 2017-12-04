@@ -41,6 +41,12 @@
 //@ Preparation
 ||
 
+//@ Remove the persist group_replication_group_name {VER(>=8.0.4)}
+||
+
+//@ Kill instance 2, change the group_name and start it back
+||
+
 //@<OUT> status() on no-quorum
 {
     "clusterName": "clus",

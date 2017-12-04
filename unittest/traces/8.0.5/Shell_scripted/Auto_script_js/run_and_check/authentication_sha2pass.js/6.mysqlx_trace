@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "local_pass:pass@localhost:33160?ssl-mode=REQUIRED",
+    "uri": "local_pass:pass@localhost:33110?ssl-mode=REQUIRED",
     "protocol": "x"
 },
 {
@@ -12,8 +12,8 @@
     "index": 2,
     "connection_id": "13",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.5-log",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "server_version": "8.0.5-debug-log",
+    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",

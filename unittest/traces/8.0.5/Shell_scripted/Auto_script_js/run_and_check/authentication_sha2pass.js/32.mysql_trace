@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://local_blank:@localhost:3316?ssl-mode=DISABLED",
+    "uri": "mysql://local_blank:@localhost:3311?ssl-mode=DISABLED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "51",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-log",
+    "server_info": "8.0.5-debug-log",
     "server_version": "8.0.5"
 },
 {
@@ -36,7 +36,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 176,
+            "length": 140,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -49,7 +49,7 @@
     ],
     "rows": [
         [
-            "8.0.5-log MySQL Commercial Server (Advanced)"
+            "8.0.5-debug-log Source distribution"
         ]
     ]
 },

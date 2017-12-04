@@ -80,7 +80,7 @@ utils::nullable<int64_t> Instance::get_sysvar_int(
 
     if (!value.empty()) {
       size_t end_pos;
-      int64_t int_val = std::stoi(value, &end_pos);
+      int64_t int_val = std::stol(value, &end_pos);
 
       if (end_pos == value.size())
         ret_val = int_val;
@@ -116,6 +116,30 @@ void Instance::set_sysvar(const std::string &name,
   shcore::sqlstring set_stmt = shcore::sqlstring(set_stmt_fmt.c_str(), 0);
   set_stmt << name;
   set_stmt << value;
+  set_stmt.done();
+  _session->execute(set_stmt);
+}
+
+/**
+ * Set the specified system variable with DEFAULT value.
+ *
+ * @param name string with the name of the system variable to set.
+ * @param qualifier Var_qualifier with the qualifier to set the system variable.
+ */
+void Instance::set_sysvar_default(const std::string &name,
+                                  const Var_qualifier qualifier) const {
+  std::string set_stmt_fmt;
+  if (qualifier == Var_qualifier::GLOBAL)
+    set_stmt_fmt = "SET GLOBAL ! = DEFAULT";
+  else if (qualifier == Var_qualifier::PERSIST)
+    set_stmt_fmt = "SET PERSIST ! = DEFAULT";
+  else if (qualifier == Var_qualifier::PERSIST_ONLY)
+    set_stmt_fmt = "SET PERSIST_ONLY ! = DEFAULT";
+  else
+    set_stmt_fmt = "SET SESSION ! = DEFAULT";
+
+  shcore::sqlstring set_stmt = shcore::sqlstring(set_stmt_fmt.c_str(), 0);
+  set_stmt << name;
   set_stmt.done();
   _session->execute(set_stmt);
 }

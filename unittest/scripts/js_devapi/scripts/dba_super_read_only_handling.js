@@ -93,12 +93,15 @@ testutil.stopSandbox(__mysql_sandbox_port3, 'root');
 
 //@ Start sandbox 1
 testutil.startSandbox(__mysql_sandbox_port1);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 100);
 
 //@ Start sandbox 2
 testutil.startSandbox(__mysql_sandbox_port2);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 100);
 
 //@ Start sandbox 3
 testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 100);
 
 //@<OUT> Reboot the cluster
 shell.connect(connection1);

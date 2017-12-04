@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,10 +43,9 @@ class Mock_cluster : public mysqlsh::dba::Cluster {
   Mock_cluster(const std::string &name,
                std::shared_ptr<mysqlshdk::db::ISession> group_session,
                std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata_storage)
-      : Cluster(name, group_session, metadata_storage) {
-    _default_replica_set.reset(new mysqlsh::dba::ReplicaSet(
-        name, mysqlsh::dba::ReplicaSet::kTopologyPrimaryMaster, "",
-        metadata_storage));
+      : Cluster(name, group_session, metadata_storage, nullptr) {
+    set_default_replicaset(
+        name, mysqlsh::dba::ReplicaSet::kTopologyPrimaryMaster, "");
     _default_replica_set->set_id(1);
   }
 

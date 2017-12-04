@@ -1,4 +1,8 @@
-// Assumptions: smart deployment rountines available
+// Assumptions: smart deployment routines available
+
+//@<> Skip tests in 8.0.4 to not trigger GR plugin deadlock {VER(==8.0.4)}
+testutil.skip("Reboot tests freeze in 8.0.4 because of bug in GR");
+
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
@@ -17,6 +21,7 @@ if (__have_ssl)
 else
   var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
 
+session.close();
 // session is stored on the cluster object so changing the global session should not affect cluster operations
 shell.connect({scheme:'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 
@@ -61,9 +66,13 @@ testutil.killSandbox(__mysql_sandbox_port1);
 
 // Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
+//the timeout for GR plugin to install a new view is 60s, so it should be at
+// least that value the parameter for the timeout for the waitForDelayedGRStart
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 100);
 
 // Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 100);
 
 session.close();
 cluster.disconnect();
@@ -81,6 +90,10 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance2]});
 
 //@ Dba.rebootClusterFromCompleteOutage success
+// The answers to the prompts of the rebootCluster command
+testutil.expectPrompt("Would you like to rejoin it to the cluster? [y|N]: ", "y");
+testutil.expectPrompt("Would you like to remove it from the cluster's metadata? [y|N]: ", "y");
+
 cluster = dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: true});
 
 // Waiting for the second added instance to become online
@@ -91,9 +104,28 @@ cluster.status();
 
 // Start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 100);
 
+//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.4)}
+// if server version is greater than 8.0.4 then the GR settings will be
+// persisted on instance 3 and it will rejoin the cluster that has been
+// rebooted. We just need to add it back to the metadata.
+testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y|n]: ", "y");
+testutil.expectPassword("Please provide the password for 'root@" + hostname + ":" + __mysql_sandbox_port3 + "': ", "root");
+// TODO Remove this user creation as soon as issue with cluster.rescan is fixed
+// Create root@% user since the rescan wizard will try to authenticate using the
+// hostname read from Group Replication as there is no metadata, i.e.
+// root@<hostname> but that user does not exist, so the cluster.rescan will fail
+var s3 = mysql.getSession("mysql://root:root@localhost:"+__mysql_sandbox_port3);
+create_root_from_anywhere(s3, true);
+s3.close();
+uri3 = hostname + ":"  + __mysql_sandbox_port3;
+cluster.rescan();
 
-//@ Add instance 3 back to the cluster
+//@ Add instance 3 back to the cluster {VER(<8.0.4)}
+// if server version is smaller than 8.0.4 then no GR settings will be persisted
+// on instance 3, such as gr_start_on_boot and gr_group_seeds so it will not
+// automatically rejoin the cluster. We need to manually add it back.
 add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 
 // Waiting for the third added instance to become online
@@ -125,18 +157,21 @@ testutil.killSandbox(__mysql_sandbox_port1);
 
 // Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 100);
 
 // Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 100);
 
 // Start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 100);
 
 // Re-establish the connection to instance 1
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 cluster.disconnect();
-cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [localhost + ":"+ __mysql_sandbox_port2, localhost + ":"+ __mysql_sandbox_port3]});
+cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [uri2, uri3]});
 
 session.close();
 

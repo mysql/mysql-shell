@@ -41,24 +41,40 @@ add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 // Waiting for the third added instance to become online
 wait_slave_state(cluster, uri3, "ONLINE");
 
-// Kill instance 2
+//@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.4)}
+// If we don't set the start_on_boot variable to OFF, it is possible that instance 2 will
+// be still trying to join the cluster from the moment it was started again until
+// the cluster is unlocked after the forceQuorumUsingPartitionOf command
+var s2 = mysql.getSession({host:localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+s2.runSql("SET PERSIST group_replication_start_on_boot = 0");
+s2.close();
+
+//@ Disable group_replication_start_on_boot on third instance {VER(>=8.0.4)}
+// If we don't set the start_on_boot variable to OFF, it is possible that instance 3 will
+// be still trying to join the cluster from the moment it was started again until
+// the cluster is unlocked after the forceQuorumUsingPartitionOf command
+var s3 = mysql.getSession({host:localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+s3.runSql("SET PERSIST group_replication_start_on_boot = 0");
+s3.close();
+
+//@ Kill instance 2
 testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
 wait_slave_state(cluster, uri2, "(MISSING)");
 
-// Kill instance 3
+//@ Kill instance 3
 testutil.killSandbox(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable
 // Will remain unreachable since there's no quorum to kick it off
 wait_slave_state(cluster, uri3, "UNREACHABLE");
 
-// Start instance 2
+//@ Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
 
-// Start instance 3
+//@ Start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@<OUT> Cluster status

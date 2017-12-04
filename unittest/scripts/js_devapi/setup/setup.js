@@ -545,12 +545,27 @@ function update_have_ssl(port) {
 }
 
 
-function create_root_from_anywhere(session) {
-  session.runSql("SET SQL_LOG_BIN=0");
-  session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
-  session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
-  session.runSql("SET SQL_LOG_BIN=1");
+function set_sysvar(session, variable, value) {
+    session.runSql("SET GLOBAL "+variable+" = ?", [value]);
 }
+
+function get_sysvar(session, variable) {
+    return session.runSql("SHOW GLOBAL VARIABLES LIKE ?", [variable]).fetchOne()[1];
+}
+
+function create_root_from_anywhere(session, clear_super_read_only) {
+    var super_read_only = get_sysvar(session, "super_read_only");
+    var super_read_only_enabled = super_read_only === "ON";
+    session.runSql("SET SQL_LOG_BIN=0");
+    if (clear_super_read_only && super_read_only_enabled)
+        set_sysvar(session, "super_read_only", 0);
+    session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
+    session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
+    if (clear_super_read_only && super_read_only_enabled)
+        set_sysvar(session, "super_read_only", 1);
+    session.runSql("SET SQL_LOG_BIN=1");
+}
+
 
 function ensure_plugin_enabled(plugin_name) {
   // For function signature simplicity I use `plugin_name` also as shared library name.

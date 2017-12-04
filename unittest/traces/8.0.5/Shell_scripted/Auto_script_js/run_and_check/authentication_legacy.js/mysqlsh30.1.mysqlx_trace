@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://remo_blank:@localhost:33160?ssl-mode=REQUIRED",
+    "uri": "mysqlx://remo_blank:@localhost:33110?ssl-mode=REQUIRED",
     "protocol": "x"
 },
 {
@@ -12,8 +12,8 @@
     "index": 2,
     "connection_id": "98",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.5-log",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "server_version": "8.0.5-debug-log",
+    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -210,7 +210,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 132,
+            "length": 105,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -258,7 +258,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 174,
+            "length": 66,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -275,10 +275,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.5-log MySQL Commercial Server (Advanced)",
+            "8.0.5-debug-log Source distribution",
             "mysqlx.sock",
-            33160,
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/"
+            33110,
+            "/tmp/3311/sandboxdata/"
         ]
     ]
 },
@@ -333,7 +333,7 @@
     "rows": [
         [
             "Uptime",
-            "19"
+            "16"
         ]
     ]
 },

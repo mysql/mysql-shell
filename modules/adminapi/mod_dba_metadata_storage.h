@@ -89,7 +89,6 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   virtual void load_default_cluster(std::shared_ptr<Cluster> cluster);
   bool has_default_cluster();
 
-  std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
   bool is_replicaset_empty(uint64_t rs_id);
   virtual bool is_instance_on_replicaset(uint64_t rs_id,
                                          const std::string &address);

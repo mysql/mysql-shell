@@ -88,7 +88,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   _sandbox_dir = sandbox_dir;
   _dummy_sandboxes = dummy_mode;
   if (g_test_trace_scripts > 0 && dummy_mode)
-    std::cerr << "tetutils using dummy sandboxes\n";
+    std::cerr << "testutils using dummy sandboxes\n";
 
   expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
          "?options");
@@ -129,11 +129,15 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("makeFileReadOnly", &Testutils::make_file_readonly, "path");
   expose("grepFile", &Testutils::grep_file, "path", "pattern");
+  expose("catFile", &Testutils::cat_file, "path");
+  expose("wipeFileContents", &Testutils::wipe_file_contents, "path");
 
   expose("isReplaying", &Testutils::is_replaying);
   expose("fail", &Testutils::fail, "context");
   expose("skip", &Testutils::skip, "reason");
   expose("versionCheck", &Testutils::version_check, "v1", "op", "v2");
+  expose("waitForDelayedGRStart",
+         &Testutils::wait_for_delayed_gr_start, "port", "rootpass", "timeout");
 
   _delegate.print = print;
   _delegate.print_error = print;
@@ -396,6 +400,66 @@ void Testutils::import_data(const std::string &uri, const std::string &path,
   if (rc != 0) {
     throw std::runtime_error("mysql exited with code " + std::to_string(rc) +
                              ": " + output);
+  }
+}
+
+//!<  @name InnoDB Cluster Utilities
+///@{
+/**
+ * Upon starting a mysql server, if the group_replication_start_on_boot flag is
+ * enabled, the GR plugin is started. While the plugin is starting, the user
+ * cannot run any operations to modify GR variables as it results in an error.
+ *
+ * The purpose of this method is upon starting a server, to work as
+ * synchronization point for the tests, waiting until the GR plugin starts.
+ *
+ * @param port The port of the instance where we will wait until the GR plugin
+ * starts.
+ * @param rootpass The password to be assigned to the root user.
+ * @param timeout How many seconds we will wait for the plugin to start. If
+ *        timeout value is 0, the method waits indefinitely. By default
+ *        100 seconds. Negative timeout values will be converted to 0.
+ *
+ */
+#if DOXYGEN_JS
+Undefined Testutils::waitForDelayedGRStart(Integer port, String rootpass,
+                                           Integer timeout = 60);
+#elif DOXYGEN_PY
+None Testutils::wait_for_delayed_gr_start(int port, str rootpass,
+                                          int timeout = 60)
+#endif
+///@}
+void Testutils::wait_for_delayed_gr_start(int port,
+                                          const std::string &root_pass,
+                                          int timeout) {
+  mysqlshdk::db::Connection_options cnx_opt;
+  cnx_opt.set_user("root");
+  cnx_opt.set_password(root_pass);
+  cnx_opt.set_host("localhost");
+  cnx_opt.set_port(port);
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  session = mysqlshdk::db::mysql::Session::create();
+  session->connect(cnx_opt);
+
+  std::string count_query =
+      "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
+          "'thread/group_rpl/THD_delayed_initialization'";
+  int elapsed_time = 0;
+  uint64_t thread_count = 1;
+  // Convert negative timeout values to 0
+  timeout = timeout >= 0 ? timeout : 0;
+  while (!timeout || elapsed_time < timeout) {
+    thread_count = session->query(count_query)->fetch_one()->get_uint(0);
+    if (0 == thread_count) {
+      break;
+    }
+    elapsed_time += 1;
+    shcore::sleep_ms(1000);
+  }
+  session->close();
+  if (0 != thread_count) {
+    throw std::runtime_error(
+        "Timeout waiting for the Group Replication Plugin to start/stop");
   }
 }
 
@@ -1097,6 +1161,11 @@ std::string Testutils::wait_member_state(int member_port,
 
     int curtime = 0;
     std::string current_state;
+    if (!session || !session->is_open()) {
+      throw std::logic_error(
+          "The testutil.waitMemberState method uses the active shell "
+          "session and requires it to be open.");
+    }
     while (curtime < k_wait_member_timeout) {
       auto result = session->query(
           "SELECT member_state FROM "
@@ -1187,7 +1256,65 @@ shcore::Array_t Testutils::grep_file(const std::string &path,
     if (shcore::match_glob("*" + pattern + "*", line))
       result->push_back(shcore::Value(line));
   }
+  f.close();
   return result;
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Reads a file line by line into an array, much like Unix's cat tool.
+ * @param path The path to the file.
+ * @returns Array containing the contents of the file.
+ *
+ * This function will read each line of the file and store it in the result
+ * array.
+ *
+ * This function will return all the content of the given file.
+ */
+#if DOXYGEN_JS
+List Testutils::catFile(String path);
+#elif DOXYGEN_PY
+list Testutils::cat_file(str path);
+#endif
+///@}
+std::string Testutils::cat_file(const std::string &path) {
+  std::ifstream in(path, std::ios::in | std::ios::binary);
+  if (!in.good()) {
+    throw std::runtime_error("cat error: " + path + ": " + strerror(errno));
+  } else {
+    std::string contents;
+    in.seekg(0, std::ios::end);
+    contents.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&contents[0], contents.size());
+    in.close();
+    return(contents);
+  }
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Wipes the contents of a file.
+ * @param path The path to the file.
+ *
+ * This function will truncate a file, wiping its content.
+ */
+#if DOXYGEN_JS
+List Testutils::wipeFileContents(String path);
+#elif DOXYGEN_PY
+list Testutils::wipe_file_contents(str path);
+#endif
+///@}
+void Testutils::wipe_file_contents(const std::string &path) {
+  std::ifstream f(path);
+  if (!f.good())
+    throw std::runtime_error("wipe_file_contents error: " + path + ": " +
+                             strerror(errno));
+  f.close();
+  std::ofstream out(path, std::ios::out | std::ios::trunc);  // truncating file
+  out.close();
 }
 
 //!<  @name Testing Utilities

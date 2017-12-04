@@ -8,7 +8,7 @@ session.runSql("create user bla@localhost");
 session.runSql("set global super_read_only=1");
 var s = mysql.getSession("bla:@localhost:" + __mysql_sandbox_port1);
 
-EXPECT_EQ('ON', get_sysvar("super_read_only"));
+EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 
 //@# Dba_create_cluster.clear_read_only_invalid
 dba.createCluster("dev", {clearReadOnly:"NotABool"});
@@ -20,7 +20,7 @@ dba.createCluster("dev");
 dba.createCluster("dev", {clearReadOnly:false});
 
 //@ Check unchanged
-EXPECT_EQ('ON', get_sysvar("super_read_only"));
+EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 
 // --- Configure Local Instance Tests ---
 

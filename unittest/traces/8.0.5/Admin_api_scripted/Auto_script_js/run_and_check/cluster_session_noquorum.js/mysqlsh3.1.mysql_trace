@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3311",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "35",
+    "connection_id": "37",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-log",
+    "server_info": "8.0.5-debug-log",
     "server_version": "8.0.5",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "706d4d2c-1346-11e8-af94-5ce0c50b9d66",
+            "632a1458-1684-11e8-a042-4485005154dc",
             1,
-            "6d1d292d-1346-11e8-af94-5ce0c50b9d66",
+            "6105d695-1684-11e8-a042-4485005154dc",
             "ONLINE"
         ]
     ]

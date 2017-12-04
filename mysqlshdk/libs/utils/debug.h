@@ -30,6 +30,7 @@
 #include <set>
 #include <functional>
 #include <string>
+#include <functional>
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {

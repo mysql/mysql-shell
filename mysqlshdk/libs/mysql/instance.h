@@ -74,6 +74,8 @@ class IInstance {
   virtual void set_sysvar(
       const std::string &name, const bool value,
       const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+  virtual void set_sysvar_default(const std::string &name,
+      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
 
   virtual bool is_read_only(bool super) const = 0;
   virtual utils::Version get_version() const = 0;
@@ -118,6 +120,8 @@ class Instance : public IInstance {
       const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
   void set_sysvar(
       const std::string &name, const bool value,
+      const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
+  void set_sysvar_default(const std::string &name,
       const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
   std::shared_ptr<db::ISession> get_session() const override {
     return _session;

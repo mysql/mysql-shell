@@ -35,8 +35,8 @@ try:
 except ImportError:
     from mysql_gadgets.common.ordered_dict_backport import OrderedDict
 
+from mysql_gadgets import MIN_PERSIST_MYSQL_VERSION
 from mysql_gadgets.exceptions import GadgetError
-
 from mysql_gadgets.common.format import get_max_display_width
 from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.common.server import get_server, LocalErrorLog
@@ -58,7 +58,12 @@ from mysql_gadgets.common.group_replication import (
     get_gr_local_address_from,
     get_gr_name_from_peer,
     setup_gr_config,
-    GR_IP_WHITELIST)
+    GR_IP_WHITELIST,
+    GR_START_ON_BOOT,
+    GR_FORCE_MEMBERS,
+    GR_BOOTSTRAP_GROUP,
+    GR_LOCAL_ADDRESS)
+
 from mysql_gadgets.common.connection_parser import clean_IPv6
 from mysql_gadgets.common.group_replication import (
     do_change_master, check_peer_ssl_compatibility,
@@ -283,6 +288,8 @@ def check(**kwargs):
                                      file when modifying the options file.
                         server:     Connection information (dict | Server |
                                     str)
+                        remote: True if we are using configureInstance and
+                        False if we are using ConfigureLocalInstance
     :type kwargs:     dict
 
     :raise GadgetError:  If the file cannot be updated.
@@ -297,7 +304,7 @@ def check(**kwargs):
     option_file = kwargs.get("option_file", None)
     skip_backup = kwargs.get("skip_backup", False)
     server_info = kwargs.get("server", None)
-
+    remote = kwargs.get("remote", False)
     # Get the server instance
     server = get_server(server_info=server_info)
 
@@ -311,7 +318,6 @@ def check(**kwargs):
     else:
         msg = "Running {0} command.".format(CHECK)
     _LOGGER.step(msg)
-
     try:
         # if server already belongs to a group and the update option
         # was provided, dump its GR configurations to the option file
@@ -345,16 +351,14 @@ def check(**kwargs):
             else:
                 req_dict = get_req_dict_for_opt_file(option_file)
                 skip_schema_checks = True
-
-            _LOGGER.step("Checking Group Replication "
-                         "prerequisites.")
+            _LOGGER.step("Checking Group Replication prerequisites.")
 
             # set dry_run to avoid changes on server as replication user
             # creation.
             result = check_server_requirements(
                 server, req_dict, None, verbose=verbose, dry_run=True,
                 skip_schema_checks=skip_schema_checks, update=update,
-                skip_backup=skip_backup)
+                skip_backup=skip_backup, remote=remote)
 
             # verify the group replication is installed and not disabled.
             if server is not None:
@@ -411,8 +415,7 @@ def start(server_info, **kwargs):
     option_file = kwargs.get("option_file", None)
     skip_backup = kwargs.get("skip_backup", False)
 
-    _LOGGER.step("Checking Group Replication "
-                                      "prerequisites.")
+    _LOGGER.step("Checking Group Replication prerequisites.")
     try:
         # Throw an error in case server doesn't support SSL and the ssl_mode
         # option was provided a value other than DISABLED
@@ -468,7 +471,10 @@ def start(server_info, **kwargs):
             gr_config_vars[GR_SINGLE_PRIMARY_MODE] = '"ON"'
 
         _LOGGER.step("Group Replication group name: %s",
-                    gr_config_vars[GR_GROUP_NAME])
+                     gr_config_vars[GR_GROUP_NAME])
+
+        gr_config_vars[GR_START_ON_BOOT] = "ON"
+
         setup_gr_config(server, gr_config_vars, dry_run=dry_run)
 
         # Run the change master to store MySQL replication user name or
@@ -917,6 +923,8 @@ def join(server_info, peer_server_info, **kwargs):
         if gr_config_vars[GR_IP_WHITELIST] is None:
             gr_config_vars.pop(GR_IP_WHITELIST)
 
+        gr_config_vars[GR_START_ON_BOOT] = "ON"
+
         setup_gr_config(server, gr_config_vars, dry_run=dry_run)
 
         if not skip_rpl_user:
@@ -984,7 +992,6 @@ def leave(server_info, **kwargs):
              False.
     :rtype: boolean
     """
-
     # get the server instance
     server = get_server(server_info=server_info)
 
@@ -1007,11 +1014,10 @@ def leave(server_info, **kwargs):
             if not dry_run:
                 stop_gr_plugin(server)
             _LOGGER.info("Server state: %s", get_member_state(server))
-            _LOGGER.step("Server %s has left the group.",
-                        server)
+            _LOGGER.step("Server %s has left the group.", server)
 
             # Update the Group Replication options on defaults file.
-            # Note: Set group_replication_start_on_boot=ON
+            # Note: Set group_replication_start_on_boot=OFF
             if option_file is not None and option_file != "":
                 persist_gr_config(option_file, None, set_on=False,
                                   dry_run=dry_run, skip_backup=skip_backup)
@@ -1024,7 +1030,7 @@ def leave(server_info, **kwargs):
                             server)
             _LOGGER.info("Server state: %s", get_member_state(server))
             _LOGGER.step("Server %s is "
-                        "not active in the group.", server)
+                         "not active in the group.", server)
 
             # Update the group_replication_start_on_boot option on defaults
             # file.
