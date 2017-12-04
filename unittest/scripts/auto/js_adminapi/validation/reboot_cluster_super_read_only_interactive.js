@@ -11,7 +11,7 @@
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:3316": {
+            "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},

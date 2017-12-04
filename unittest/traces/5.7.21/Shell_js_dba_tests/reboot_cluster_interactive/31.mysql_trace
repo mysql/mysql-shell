@@ -1,0 +1,25 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "root:root@localhost:3350",
+    "protocol": "classic"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 3
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 4
+},
+null]

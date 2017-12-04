@@ -28,6 +28,8 @@
 
 extern "C" const char *g_test_home;
 
+using Version = mysqlshdk::utils::Version;
+
 namespace tests {
 
 class Mysqlsh_fieldtypes_all : public Command_line_test {
@@ -316,16 +318,20 @@ TEST_F(Mysqlsh_fieldtypes_all, Floating_point_types_classic) {
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Date_types_X) {
-  execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
-           "SELECT * FROM t_date;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "SELECT * FROM t_date;",
-      multiline({"c1\tc2\tc3\tc4\tc5",
-                 "2015-07-23\t16:34:12\t2015-07-23 16:34:12\t"
-                 "2015-07-23 16:34:12\t2015",
-                 "0000-01-01\t-01:00:00\t2000-01-01 00:00:02\t"
-                 "0000-01-01 00:00:00\t1999"}),
-      _output);
+  if (_target_server_version < Version("8.0")) {
+    PENDING_BUG_TEST("BUG#27169735 DATETIME libmysqlxclient regression");
+  } else {
+    execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
+             "SELECT * FROM t_date;", NULL});
+    MY_EXPECT_MULTILINE_OUTPUT(
+        "SELECT * FROM t_date;",
+        multiline({"c1\tc2\tc3\tc4\tc5",
+                   "2015-07-23\t16:34:12\t2015-07-23 16:34:12\t"
+                   "2015-07-23 16:34:12\t2015",
+                   "0000-01-01\t-01:00:00\t2000-01-01 00:00:02\t"
+                   "0000-01-01 00:00:00\t1999"}),
+        _output);
+  }
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Date_types_classic) {

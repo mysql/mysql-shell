@@ -1021,7 +1021,6 @@ bool Shell_script_tester::context_enabled(const std::string& context) {
 
       code = shcore::str_replace(code, old_func, new_func);
       function_pos = code.find("VER(");
-      shcore::get_member_name("versionCheck", get_naming_style());
     }
 
     output_handler.wipe_out();

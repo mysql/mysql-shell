@@ -21,6 +21,8 @@
 
 #include "unittest/mysqlshdk/libs/db/db_common.h"
 
+using Version = mysqlshdk::utils::Version;
+
 namespace mysqlshdk {
 namespace db {
 
@@ -140,18 +142,31 @@ TEST_F(Db_tests, metadata_columns_alltypes) {
     {
       TABLE("t_char");
       ASSERT_EQ(5, columns.size());
-      CHECK(0, Type::String, 128, false, false, false);
-      CHECK(1, Type::String, 128, false, false, false);
+
       if (is_classic) {
+        if (_target_server_version < Version("8.0")) {
+          CHECK(0, Type::String, 32, false, false, false);
+          CHECK(1, Type::String, 32, false, false, false);
+        } else {
+          CHECK(0, Type::String, 128, false, false, false);
+          CHECK(1, Type::String, 128, false, false, false);
+        }
         CHECK(2, Type::String, 32, false, false, true);
         CHECK(3, Type::String, 32, false, false, true);
       } else {
+        CHECK(0, Type::String, 128, false, false, false);
+        CHECK(1, Type::String, 128, false, false, false);
         CHECK(2, Type::Bytes, 32, false, false, true);
         CHECK(3, Type::Bytes, 32, false, false, true);
       }
+
       if (is_classic) {
         // In classic, the length is for the data in UTF8
-        CHECK(4, Type::String, 128, false, false, false);
+        if (_target_server_version < Version("8.0")) {
+          CHECK(4, Type::String, 32, false, false, false);
+        } else {
+          CHECK(4, Type::String, 128, false, false, false);
+        }
       } else {
         // In xproto, the length is for the raw latin1 data (for now, at least)
         CHECK(4, Type::String, 32, false, false, false);
@@ -169,7 +184,11 @@ TEST_F(Db_tests, metadata_columns_alltypes) {
       TABLE("t_enum");
       ASSERT_EQ(2, columns.size());
       if (is_classic) {
-        CHECK(0, Type::Enum, 8, false, false, false);
+        if (_target_server_version < Version("8.0")) {
+          CHECK(0, Type::Enum, 2, false, false, false);
+        } else {
+          CHECK(0, Type::Enum, 8, false, false, false);
+        }
       } else {
           // X Protocol: SQL Type ENUM doesn't have .length
         CHECK(0, Type::Enum, 0, false, false, false);
@@ -181,7 +200,11 @@ TEST_F(Db_tests, metadata_columns_alltypes) {
       TABLE("t_set");
       ASSERT_EQ(2, columns.size());
       if (is_classic) {
-        CHECK(0, Type::Set, 32, false, false, false);
+        if (_target_server_version < Version("8.0")) {
+          CHECK(0, Type::Set, 8, false, false, false);
+        } else {
+          CHECK(0, Type::Set, 32, false, false, false);
+        }
       } else {
         // X Protocol: SQL Type SET doesn't have .length
         CHECK(0, Type::Set, 0, false, false, false);

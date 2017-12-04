@@ -24,6 +24,8 @@
 #include "unittest/shell_script_tester.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
+using Version = mysqlshdk::utils::Version;
+
 namespace shcore {
 class Shell_js_mysqlx_tests : public Shell_js_script_tester {
  protected:
@@ -163,7 +165,9 @@ TEST_F(Shell_js_mysqlx_tests, mysqlx_column_metadata) {
 }
 
 TEST_F(Shell_js_mysqlx_tests, mysqlx_bool_expression) {
-  validate_interactive("mysqlx_bool_expression.js");
+  if (_target_server_version >= Version("8.0")) {
+    validate_interactive("mysqlx_bool_expression.js");
+  }
 }
 
 TEST_F(Shell_js_mysqlx_tests, bug25789575_escape_quotes) {

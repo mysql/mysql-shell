@@ -13,6 +13,11 @@ testutil.removeFromSandboxConf(__mysql_sandbox_port1, "server_id");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "server_id");
 testutil.removeFromSandboxConf(__mysql_sandbox_port3, "server_id");
 
+// In MySQL 5.7, a server ID had to be specified when binary logging was enabled, or the server would not start. {VER(<8.0)}
+testutil.removeFromSandboxConf(__mysql_sandbox_port1, "log_bin");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "log_bin");
+testutil.removeFromSandboxConf(__mysql_sandbox_port3, "log_bin");
+
 // Restart sandbox instances.
 testutil.stopSandbox(__mysql_sandbox_port1, "root");
 testutil.stopSandbox(__mysql_sandbox_port2, "root");

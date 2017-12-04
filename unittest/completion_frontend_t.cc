@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
  *
@@ -30,6 +31,9 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
+
+#include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/devapi/mod_mysqlx_schema.h"
 
 namespace mysqlsh {
 
@@ -165,16 +169,22 @@ class Completer_frontend : public Shell_core_test_wrapper {
          "create schema if not exists zombie;",
          "create schema if not exists zoo;", "drop schema if exists actest;",
          "create schema actest;", "use actest;",
-         "create table people (`doc` json DEFAULT NULL, "
-         " `_id` varchar(32) GENERATED ALWAYS AS ("
-         "json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,"
-         " PRIMARY KEY (`_id`));",
-         "create table person (`doc` json DEFAULT NULL, "
-         " `_id` varchar(32) GENERATED ALWAYS AS ("
-         "json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,"
-         " PRIMARY KEY (`_id`));",
          "create table productTable (id int, name varchar(20));",
          "create table creature (a int);", "create table croissant (a int);"});
+
+    // Explicit create collections for 5.7
+    {
+      auto x = mysqlsh::mysqlx::Session();
+      x.connect(mysqlshdk::db::Connection_options(shell_test_server_uri('x')));
+
+      shcore::Dictionary_t options = shcore::make_dict();
+      options->set("schema", shcore::Value("actest"));
+      options->set("name", shcore::Value("people"));
+      x.execute_mysqlx_stmt("create_collection", options);
+
+      options->set("name", shcore::Value("person"));
+      x.execute_mysqlx_stmt("create_collection", options);
+    }
   }
 
   static void TearDownTestCase() {
@@ -245,7 +255,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
 
   void check_object_member_completions(
       const std::string &expr,
-      const std::vector<std::pair<std::string, std::string>> &method_args) {
+      std::vector<std::pair<std::string, std::string>> method_args) {
     {
       SCOPED_TRACE("Autocompletion table completeness for result of " + expr);
       check_object_completions(expr);
@@ -260,6 +270,22 @@ class Completer_frontend : public Shell_core_test_wrapper {
 
     // first evaluate and list members of the object
     std::vector<std::string> completions(complete("checkvar.").second);
+
+    // remove methods unsupported by 5.7
+    if (_target_server_version < mysqlshdk::utils::Version("8.0")) {
+      method_args.erase(
+          remove_if(method_args.begin(), method_args.end(),
+                    [](const decltype(method_args)::value_type &other) {
+                      return other.first.compare("replaceOne") == 0;
+                    }),
+          method_args.end());
+      completions.erase(
+          remove_if(completions.begin(), completions.end(),
+                    [](const decltype(completions)::value_type &other) {
+                      return other.compare("replaceOne()") == 0;
+                    }),
+          completions.end());
+    }
 
     // first execute the methods with special handling given by the test
     for (const auto &method : method_args) {

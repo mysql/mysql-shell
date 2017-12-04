@@ -325,6 +325,10 @@ std::string errno_to_string(int err) {
   auto i = strerror_s(&ret[0], ret.size(), err);
   assert(i == 0);
   (void)i;
+#elif _GNU_SOURCE
+  auto i = strerror_r(err, &ret[0], ret.size());
+  assert(i != nullptr);
+  (void)i;
 #else
   auto i = strerror_r(err, &ret[0], ret.size());
   assert(i == 0);

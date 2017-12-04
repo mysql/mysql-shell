@@ -118,7 +118,8 @@ class Shell_test_env : public ::testing::Test {
   std::string _mysql_uri_nopasswd;  //!< A password-less URI for MySQL protocol sessions
   std::string _socket;  //!< env:MYSQLX_SOCKET
   std::string _mysql_socket;  //!< env:MYSQL_SOCKET
-  mysqlshdk::utils::Version _target_server_version;  //!< Used MySQL Server
+  mysqlshdk::utils::Version _target_server_version;  //!< The version of the used MySQL Server
+  mysqlshdk::utils::Version _highest_tls_version;  //!< The highest TLS version supported by MySQL Server
   std::string _test_context;  //!< Context for script validation engine
 
   bool _recording_enabled = false;
