@@ -39,6 +39,8 @@
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
 
+using Version = mysqlshdk::utils::Version;
+
 // Begin test configuration block
 
 // Default execution mode for replayable tests
@@ -47,8 +49,8 @@ mysqlshdk::db::replay::Mode g_test_recording_mode =
 
 bool g_generate_validation_file = false;
 // Default trace set (MySQL version) to be used for replay mode
-mysqlshdk::utils::Version
-  g_target_server_version = mysqlshdk::utils::Version("8.0.4");
+mysqlshdk::utils::Version g_target_server_version = Version("8.0.4");
+mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 // End test configuration block
 
@@ -135,7 +137,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
 
     {
       const char *query =
-          "select @@version, (@@have_ssl = 'YES' or @have_openssl = 'YES'), "
+          "select @@version, (@@have_ssl = 'YES' or @@have_openssl = 'YES'), "
           "@@mysqlx_port, @@server_id";
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
@@ -149,6 +151,24 @@ static void detect_mysql_environment(int port, const char *pwd) {
           server_id = atoi(row[3]);
         }
         mysql_free_result(res);
+      }
+    }
+
+    {
+      char const *const query = "SELECT @@tls_version";
+      if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(mysql);
+        if (MYSQL_ROW row = mysql_fetch_row(res)) {
+          auto tls_versions = shcore::str_split(row[0], ",");
+          for (auto i = tls_versions.crbegin(); i != tls_versions.crend();
+               i++) {
+            if (shcore::str_beginswith(tls_versions.back(), "TLSv")) {
+              std::string ver((*i).begin() + 4, (*i).end());
+              g_highest_tls_version = Version(ver);
+              break;
+            }
+          }
+        }
       }
     }
   }
@@ -169,7 +189,9 @@ static void detect_mysql_environment(int port, const char *pwd) {
   std::cout << "Target MySQL server:\n";
   std::cout << "version=" << version << "\n";
   std::cout << "hostname=" << hostname << ", ip=" << hostname_ip << "\n";
-  std::cout << "server_id=" << server_id << ", ssl=" << have_ssl << "\n";
+  std::cout << "server_id=" << server_id << ", ssl=" << have_ssl
+            << ", highest_tls_version=" << g_highest_tls_version.get_full()
+            << "\n";
 
   std::cout << "Classic protocol:\n";
   std::cout << "  port=" << port << '\n';

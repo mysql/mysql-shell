@@ -30,6 +30,10 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 #include <gtest/gtest.h>
+#include <vector>
+#include <utility>
+#include <string>
+#include "utils/utils_string.h"
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -46,8 +50,9 @@ extern std::vector<std::pair<std::string, std::string>> g_pending_fixes;
     return;                                                                    \
   }
 
-#define PENDING_BUG_TEST(note) \
-  g_pending_fixes.push_back({__FILE__ ":" STRINGIFY(__LINE__), note})
-
+#define PENDING_BUG_TEST(note)                                           \
+  do {                                                                   \
+    g_pending_fixes.push_back({__FILE__ ":" STRINGIFY(__LINE__), note}); \
+  } while (0)
 
 #endif  // UNITTEST_INCLUDE_GTEST_H_

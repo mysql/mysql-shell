@@ -83,38 +83,38 @@ col.addOrReplaceOne('document_002', {name:'basic'});
 col.find();
 
 // WL10849-FR6.3.1
-//@ addOrReplaceOne: replacing an existing document
+//@ addOrReplaceOne: replacing an existing document {VER(>=8.0.3)}
 col.addOrReplaceOne('document_001', {name:'complex', state:'updated'});
 
-//@<OUT> addOrReplaceOne: Verify replaced document
+//@<OUT> addOrReplaceOne: Verify replaced document {VER(>=8.0.3)}
 col.find();
 
 // WL10849-FR8.1
-//@ addOrReplaceOne: replacing an existing document, ignoring new _id
+//@ addOrReplaceOne: replacing an existing document, ignoring new _id {VER(>=8.0.3)}
 col.addOrReplaceOne('document_001', {_id:'ignored_id', name:'medium'});
 
-//@<OUT> addOrReplaceOne: Verify replaced document with ignored _id
+//@<OUT> addOrReplaceOne: Verify replaced document with ignored _id {VER(>=8.0.3)}
 col.find();
 
 // WL10849-FR6.2.1
-//@ addOrReplaceOne: adding with key
+//@ addOrReplaceOne: adding with key {VER(>=8.0.3)}
 var result = col.createIndex('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", true).execute();
 col.addOrReplaceOne('document_003', {name:'high'});
 
 // WL10849-FR6.2.2
-//@ addOrReplaceOne: error adding with key (BUG#27013165)
+//@ addOrReplaceOne: error adding with key (BUG#27013165) {VER(>=8.0.3)}
 col.addOrReplaceOne('document_004', {name:'basic'});
 
 // WL10849-FR6.5.1
-//@ addOrReplaceOne: error replacing with key
+//@ addOrReplaceOne: error replacing with key {VER(>=8.0.3)}
 col.addOrReplaceOne('document_001', {name:'basic'});
 
 // WL10849-FR6.4.1
-//@ addOrReplaceOne: replacing document matching id and key
+//@ addOrReplaceOne: replacing document matching id and key {VER(>=8.0.3)}
 col.addOrReplaceOne('document_001', {name:'medium', sample:true});
 
 // WL10849-EX2
-//@ addOrReplaceOne: attempt on dropped collection
+//@ addOrReplaceOne: attempt on dropped collection {VER(>=8.0.3)}
 schema.dropCollection('add_or_replace_one')
 col.addOrReplaceOne('document_001', {name:'medium', sample:true});
 
@@ -167,13 +167,13 @@ schema.dropCollection('remove_one')
 col.removeOne('document_001');
 
 //================= replaceOne ======================
-//@<OUT> replaceOne: initialization
+//@<OUT> replaceOne: initialization {VER(>=8.0.3)}
 var col = schema.createCollection('replace_one');
 col.add({_id: 'document_001', name:'simple'});
 col.add({_id: 'document_002', name:'simple'});
 col.find();
 
-//@ replaceOne parameter error conditions
+//@ replaceOne parameter error conditions {VER(>=8.0.3)}
 col.replaceOne();
 
 // WL10849-FR2.5
@@ -183,36 +183,36 @@ col.replaceOne(1,1);
 col.replaceOne("identifier",1);
 
 // WL10849-FR1.1
-//@ replaceOne: replacing an existing document
+//@ replaceOne: replacing an existing document {VER(>=8.0.3)}
 col.replaceOne('document_001', {name:'complex', state:'updated'});
 
 // WL10849-FR1.2
-//@<OUT> replaceOne: Verify replaced document
+//@<OUT> replaceOne: Verify replaced document {VER(>=8.0.3)}
 col.find();
 
 // WL10849-FR2.2
-//@ replaceOne: replacing unexisting document
+//@ replaceOne: replacing unexisting document {VER(>=8.0.3)}
 col.replaceOne('document_003', {name:'complex', state:'updated'});
 
 // WL10849-FR5.1
-//@ replaceOne: replacing an existing document, ignoring new _id
+//@ replaceOne: replacing an existing document, ignoring new _id {VER(>=8.0.3)}
 col.replaceOne('document_001', {_id:'ignored_id', name:'medium'});
 
-//@<OUT> replaceOne: Verify replaced document with ignored _id
+//@<OUT> replaceOne: Verify replaced document with ignored _id {VER(>=8.0.3)}
 col.find();
 
-//@ replaceOne: error replacing with key
+//@ replaceOne: error replacing with key {VER(>=8.0.3)}
 var result = col.createIndex('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", true).execute();
 col.replaceOne('document_001', {name:'simple'});
 
-//@ replaceOne: replacing document matching id and key
+//@ replaceOne: replacing document matching id and key {VER(>=8.0.3)}
 col.replaceOne('document_001', {name:'medium', sample:true});
 
-//@<OUT> Verify replaced document with id and key
+//@<OUT> Verify replaced document with id and key {VER(>=8.0.3)}
 col.find();
 
 // WL10849-EX1.1
-//@ replaceOne: attempt on dropped collection
+//@ replaceOne: attempt on dropped collection {VER(>=8.0.3)}
 schema.dropCollection('replace_one')
 col.replaceOne('document_001', {name:'medium', sample:true});
 

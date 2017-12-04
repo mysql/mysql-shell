@@ -295,76 +295,76 @@ print(dir(doc));
 //@<OUT> CollectionModify: Patch initial documents
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch adding fields to multiple documents (WL10856-FR1_1)
+//@<OUT> CollectionModify: Patch adding fields to multiple documents (WL10856-FR1_1) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({hobbies:[], address:"TBD"})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch updating field on multiple documents (WL10856-FR1_4)
+//@<OUT> CollectionModify: Patch updating field on multiple documents (WL10856-FR1_4) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address:{street:"TBD"}})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch updating field on multiple nested documents (WL10856-FR1_5)
+//@<OUT> CollectionModify: Patch updating field on multiple nested documents (WL10856-FR1_5) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address:{street:"Main"}})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch adding field on multiple nested documents (WL10856-FR1_2)
+//@<OUT> CollectionModify: Patch adding field on multiple nested documents (WL10856-FR1_2) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address:{number:0}})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch removing field on multiple nested documents (WL10856-FR1_8)
+//@<OUT> CollectionModify: Patch removing field on multiple nested documents (WL10856-FR1_8) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address:{number:null}})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch removing field on multiple documents (WL10856-FR1_7)
+//@<OUT> CollectionModify: Patch removing field on multiple documents (WL10856-FR1_7) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address:null})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch adding field with multiple calls to patch (WL10856-FR2.1_1)
+//@<OUT> CollectionModify: Patch adding field with multiple calls to patch (WL10856-FR2.1_1) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({last_name:'doe'}).patch({address:{}})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch adding field with multiple calls to patch on nested documents (WL10856-FR2.1_2)
+//@<OUT> CollectionModify: Patch adding field with multiple calls to patch on nested documents (WL10856-FR2.1_2) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address:{street:'main'}}).patch({address:{number:0}})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch updating fields with multiple calls to patch (WL10856-FR2.1_3, WL10856-FR2.1_4)
+//@<OUT> CollectionModify: Patch updating fields with multiple calls to patch (WL10856-FR2.1_3, WL10856-FR2.1_4) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address:{street:'riverside'}}).patch({last_name:'houston'})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch removing fields with multiple calls to patch (WL10856-FR2.1_5, WL10856-FR2.1_6)
+//@<OUT> CollectionModify: Patch removing fields with multiple calls to patch (WL10856-FR2.1_5, WL10856-FR2.1_6) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address:{number:null}}).patch({hobbies:null})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch adding field to multiple documents using expression (WL10856-ET_13)
+//@<OUT> CollectionModify: Patch adding field to multiple documents using expression (WL10856-ET_13) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({last_update: mysqlx.expr("curdate()")})
 var records = collection.find('gender="female"').execute().fetchAll()
 var last_update = records[0].last_update
 println(records)
 
-//@<OUT> CollectionModify: Patch adding field to multiple nested documents using expression (WL10856-ET_14)
+//@<OUT> CollectionModify: Patch adding field to multiple nested documents using expression (WL10856-ET_14) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address: {street_short: mysqlx.expr("right(address.street, 3)")}})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch updating field to multiple documents using expression (WL10856-ET_15)
+//@<OUT> CollectionModify: Patch updating field to multiple documents using expression (WL10856-ET_15) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({name:mysqlx.expr("concat(ucase(left(name,1)), right(name, length(name)-1))")})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch updating field to multiple nested documents using expression (WL10856-ET_16)
+//@<OUT> CollectionModify: Patch updating field to multiple nested documents using expression (WL10856-ET_16) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({address: {street_short: mysqlx.expr("left(address.street, 3)")}})
 collection.find('gender="female"')
 
-//@<OUT> CollectionModify: Patch including _id, ignores _id applies the rest (WL10856-ET_17)
+//@<OUT> CollectionModify: Patch including _id, ignores _id applies the rest (WL10856-ET_17) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({_id:'new_id', city:'Washington'})
 collection.find('gender="female"')
 
-//@ CollectionModify: Patch adding field with null value coming from an expression (WL10856-ET_19)
+//@ CollectionModify: Patch adding field with null value coming from an expression (WL10856-ET_19) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({another:mysqlx.expr("null")})
 
-//@<OUT> CollectionModify: Patch updating field with null value coming from an expression (WL10856-ET_20)
+//@<OUT> CollectionModify: Patch updating field with null value coming from an expression (WL10856-ET_20) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({last_update:mysqlx.expr("null")})
 collection.find('gender="female"')
 
-//@ CollectionModify: Patch removing the _id field (WL10856-ET_25)
+//@ CollectionModify: Patch removing the _id field (WL10856-ET_25) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({_id:null})
 
 // Cleanup

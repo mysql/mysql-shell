@@ -32,10 +32,10 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern mysqlshdk::utils::Version g_target_server_version;
+extern mysqlshdk::utils::Version g_highest_tls_version;
 extern "C" const char *g_test_home;
 extern "C" const char *g_mysqlsh_bin_folder;
 
@@ -205,6 +205,7 @@ Shell_test_env::Shell_test_env() {
   // Enabling test context for expectations, the default context is the server
   // version
   _target_server_version = g_target_server_version;
+  _highest_tls_version = g_highest_tls_version;
   _test_context = _target_server_version.get_base();
 }
 

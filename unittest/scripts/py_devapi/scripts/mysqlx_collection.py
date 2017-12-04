@@ -45,7 +45,6 @@ validateMember(members, 'replace_one')
 print 'get_name(): ' + collection.get_name()
 print 'name: ' + collection.name
 
-
 #@ Testing session retrieving
 print 'get_session():', collection.get_session()
 print 'session:', collection.session
@@ -93,34 +92,34 @@ col.add_or_replace_one('document_002', {'name':'basic'});
 col.find();
 
 # WL10849-FR6.3.1
-#@ add_or_replace_one: replacing an existing document
+#@ add_or_replace_one: replacing an existing document {VER(>=8.0.3)}
 col.add_or_replace_one('document_001', {'name':'complex', 'state':'updated'});
 
-#@<OUT> add_or_replace_one: Verify replaced document
+#@<OUT> add_or_replace_one: Verify replaced document {VER(>=8.0.3)}
 col.find();
 
 # WL10849-FR8.1
-#@ add_or_replace_one: replacing an existing document, ignoring new _id
+#@ add_or_replace_one: replacing an existing document, ignoring new _id {VER(>=8.0.3)}
 col.add_or_replace_one('document_001', {'_id':'ignored_id', 'name':'medium'});
 
-#@<OUT> add_or_replace_one: Verify replaced document with ignored _id
+#@<OUT> add_or_replace_one: Verify replaced document with ignored _id {VER(>=8.0.3)}
 col.find();
 
 # WL10849-FR6.2.1
-#@ add_or_replace_one: adding with key
+#@ add_or_replace_one: adding with key {VER(>=8.0.3)}
 result = col.create_index('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", True).execute();
 col.add_or_replace_one('document_003', {'name':'high'});
 
 # WL10849-FR6.2.2
-#@ add_or_replace_one: error adding with key (BUG#27013165)
+#@ add_or_replace_one: error adding with key (BUG#27013165) {VER(>=8.0.3)}
 col.add_or_replace_one('document_004', {'name':'basic'});
 
 # WL10849-FR6.5.1
-#@ add_or_replace_one: error replacing with key
+#@ add_or_replace_one: error replacing with key {VER(>=8.0.3)}
 col.add_or_replace_one('document_001', {'name':'basic'});
 
 # WL10849-FR6.4.1
-#@ add_or_replace_one: replacing document matching id and key
+#@ add_or_replace_one: replacing document matching id and key {VER(>=8.0.3)}
 col.add_or_replace_one('document_001', {'name':'medium', 'sample':True});
 
 # WL10849-EX2
@@ -193,36 +192,36 @@ col.replace_one(1,1);
 col.replace_one("identifier",1);
 
 # WL10849-FR1.1
-#@ replace_one: replacing an existing document
+#@ replace_one: replacing an existing document {VER(>=8.0.3)}
 col.replace_one('document_001', {'name':'complex', 'state':'updated'});
 
 # WL10849-FR1.2
-#@<OUT> replace_one: Verify replaced document
+#@<OUT> replace_one: Verify replaced document {VER(>=8.0.3)}
 col.find();
 
 # WL10849-FR2.2
-#@ replace_one: replacing unexisting document
+#@ replace_one: replacing unexisting document {VER(>=8.0.3)}
 col.replace_one('document_003', {'name':'complex', 'state':'updated'});
 
 # WL10849-FR5.1
-#@ replace_one: replacing an existing document, ignoring new _id
+#@ replace_one: replacing an existing document, ignoring new _id {VER(>=8.0.3)}
 col.replace_one('document_001', {'_id':'ignored_id', 'name':'medium'});
 
-#@<OUT> replace_one: Verify replaced document with ignored _id
+#@<OUT> replace_one: Verify replaced document with ignored _id {VER(>=8.0.3)}
 col.find();
 
-#@ replace_one: error replacing with key
+#@ replace_one: error replacing with key {VER(>=8.0.3)}
 result = col.create_index('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", True).execute();
 col.replace_one('document_001', {'name':'simple'});
 
-#@ replace_one: replacing document matching id and key
+#@ replace_one: replacing document matching id and key {VER(>=8.0.3)}
 col.replace_one('document_001', {'name':'medium', 'sample':True});
 
-#@<OUT> Verify replaced document with id and key
+#@<OUT> Verify replaced document with id and key {VER(>=8.0.3)}
 col.find();
 
 # WL10849-EX1.1
-#@ replace_one: attempt on dropped collection
+#@ replace_one: attempt on dropped collection {VER(>=8.0.3)}
 schema.drop_collection('replace_one')
 col.replace_one('document_001', {'name':'medium', 'sample':True});
 

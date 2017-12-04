@@ -21,6 +21,8 @@
 
 #include "unittest/mysqlshdk/libs/db/db_common.h"
 
+using Version = mysqlshdk::utils::Version;
+
 namespace mysqlshdk {
 namespace db {
 
@@ -47,19 +49,30 @@ TEST_F(Db_tests, row_getters_date) {
 
       CHECK_EQ(0, "2015-07-23", get_string);
       CHECK_EQ(1, "16:34:12", get_string);
-      CHECK_EQ(2, "2015-07-23 16:34:12", get_string);
-      CHECK_EQ(3, "2015-07-23 16:34:12", get_string);
+      if (_target_server_version < Version("8.0.4")) {
+        PENDING_BUG_TEST("BUG#27169735 DATETIME libmysqlxclient regression");
+      } else {
+        CHECK_EQ(2, "2015-07-23 16:34:12", get_string);
+        CHECK_EQ(3, "2015-07-23 16:34:12", get_string);
+      }
       CHECK_EQ(4, 2015, get_int);
       NEXT_ROW();
       CHECK_EQ(0, "0000-01-01", get_string);
       CHECK_EQ(1, "-01:00:00", get_string);
-      CHECK_EQ(2, "2000-01-01 00:00:02", get_string);
-      CHECK_EQ(3, "0000-01-01 00:00:00", get_string);
+      if (_target_server_version < Version("8.0.4")) {
+        PENDING_BUG_TEST("BUG#27169735 DATETIME libmysqlxclient regression");
+      } else {
+        CHECK_EQ(2, "2000-01-01 00:00:02", get_string);
+        CHECK_EQ(3, "0000-01-01 00:00:00", get_string);
+      }
       CHECK_EQ(4, 1999, get_int);
       NEXT_ROW();
       CHECK_NULL(0);
       CHECK_NULL(1);
-      CHECK_NULL(2);
+      if (_target_server_version >= Version("8.0")) {
+        // TIMESTAMP field in MySQL Server 5.7.21 is not null
+        CHECK_NULL(2);
+      }
       CHECK_FAIL_NUMBER(2);
       CHECK_NULL(3);
       CHECK_NULL(4);
@@ -90,31 +103,75 @@ TEST_F(Db_tests, row_getters_str) {
       CHECK_STREQ(3, "varbinary", get_string);
       CHECK_STREQ(4, "accent", get_string);
       NEXT_ROW();
-      CHECK_STREQ(0, "chár™€", get_string);
-      CHECK_STREQ(1, "varchár™€", get_string);
-      CHECK_STREQ(2, "bínary™€\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
-      CHECK_STREQ(3, "varbínary™€", get_string);
+      if (is_classic) {
+        CHECK_STREQ(0, "chár™€", get_string);
+        CHECK_STREQ(1, "varchár™€", get_string);
+        CHECK_STREQ(2, "bínary™€\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
+        CHECK_STREQ(3, "varbínary™€", get_string);
+      } else {
+          if (_target_server_version < Version("8.0")) {
+            PENDING_BUG_TEST("missing client side charset conversion to utf8");
+          } else {
+            CHECK_STREQ(0, "chár™€", get_string);
+            CHECK_STREQ(1, "varchár™€", get_string);
+            CHECK_STREQ(2, "bínary™€\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
+            CHECK_STREQ(3, "varbínary™€", get_string);
+          }
+      }
+
       if (is_classic) {
         CHECK_STREQ(4, "bíñáry", get_string);
       } else {
         PENDING_BUG_TEST("missing client side charset conversion to utf8");
       }
+
       NEXT_ROW();
-      CHECK_STREQ(0, "chár™€", get_string);
-      CHECK_STREQ(1, "varchár™€", get_string);
-      CHECK_STREQ(2, "bínary™€\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
-      CHECK_STREQ(3, "varbínary™€", get_string);
       if (is_classic) {
-        CHECK_STREQ(4, "bíñáry", get_string);
+        CHECK_STREQ(0, "chár™€", get_string);
+        CHECK_STREQ(1, "varchár™€", get_string);
+        CHECK_STREQ(2, "bínary™€\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
+        CHECK_STREQ(3, "varbínary™€", get_string);
+      } else {
+          if (_target_server_version < Version("8.0")) {
+            PENDING_BUG_TEST("missing client side charset conversion to utf8");
+          } else {
+              CHECK_STREQ(0, "chár™€", get_string);
+              CHECK_STREQ(1, "varchár™€", get_string);
+              CHECK_STREQ(2, "bínary™€\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
+              CHECK_STREQ(3, "varbínary™€", get_string);
+          }
+      }
+
+      if (is_classic) {
+        if (_target_server_version < Version("8.0")) {
+          // expect latin-1 encoding
+          CHECK_STREQ(4, "b\xED\xF1\xE1ry", get_string);
+        } else {
+          // expect utf-8 encoding
+          CHECK_STREQ(4, "bíñáry", get_string);
+        }
       } else {
         PENDING_BUG_TEST("missing client side charset conversion to utf8");
       }
       NEXT_ROW();
-      CHECK_STREQ(0, "⚽️", get_string);
-      CHECK_STREQ(1, "🏀", get_string);
-      CHECK_STREQ(2, "🏈\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
-      CHECK_STREQ(3, "⚾️", get_string);
-      CHECK_STREQ(4, "", get_string);
+      if (is_classic) {
+        CHECK_STREQ(0, "⚽️", get_string);
+        CHECK_STREQ(1, "🏀", get_string);
+        CHECK_STREQ(2, "🏈\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
+        CHECK_STREQ(3, "⚾️", get_string);
+        CHECK_STREQ(4, "", get_string);
+      } else {
+          if (_target_server_version < Version("8.0")) {
+            PENDING_BUG_TEST("missing client side charset conversion to utf8");
+          } else {
+              CHECK_STREQ(0, "⚽️", get_string);
+              CHECK_STREQ(1, "🏀", get_string);
+              CHECK_STREQ(2, "🏈\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", get_string);  // NOLINT
+              CHECK_STREQ(3, "⚾️", get_string);
+              CHECK_STREQ(4, "", get_string);
+          }
+      }
+
       NEXT_ROW();
       CHECK_STREQ(0, "", get_string);
       CHECK_STREQ(1, "", get_string);
