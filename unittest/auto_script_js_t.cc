@@ -107,8 +107,6 @@ class Auto_script_js : public Shell_js_script_tester,
     if (connection_options.has_password())
       password = connection_options.get_password();
 
-    std::string mysql_uri = "mysql://";
-
     if (_port.empty())
       _port = "33060";
 
@@ -134,6 +132,8 @@ class Auto_script_js : public Shell_js_script_tester,
     code = "var __schema = 'mysql';";
     exec_and_out_equals(code);
     code = "var __uri = '" + user + "@" + host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "var __mysql_uri = '" + user + "@" + host + ":" + _mysql_port + "';";
     exec_and_out_equals(code);
     code = "var __xhost_port = '" + host + ":" + _port + "';";
     exec_and_out_equals(code);

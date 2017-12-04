@@ -1,0 +1,99 @@
+/*!
+\page script_unit_testing Unit/System Testing Using Scripts
+
+Creating of Unit/System tests based on scripts follows the rules defined on the
+\ref script_testing.
+
+To achieve this, two separate files will have to be created:
+
+@li The test script which will contain the test code.
+@li The validation file which will contain the validations.
+
+\section auto_load_scripts Automatic Script Loading
+The Shell test suite automatically identifies and executes the test scripts
+existing at \a \<shell_src_root\>/unittest/scripts/auto
+
+Inside of that folder, the next sub-folder will be scanned for test scripts:
+
+For JavaScript:
+@li js_adminapi: should contain tests for the Admin API
+@li js_devapi: should contain tests for the X Dev API
+@li js_shell: should contain tests for the Shell API
+
+For Python:
+@li py_adminapi: should contain tests for the Admin API
+@li py_devapi: should contain tests for the X Dev API
+@li py_shell: should contain tests for the Shell API
+
+These folders must contain two sub-folders:
+@li scripts: which contain the scripts with the test code
+@li validation: which contains the validation files
+
+For every script added to the \a scripts folder, a validation file with the
+exact same name should exist on the \a validation folder.
+
+\subsection auto_environment Unit Test Environment
+
+The constructor of the
+<a class ="el" href="classtests_1_1_shell__test__env.html">Shell_test_env</a>
+class describes the environment variables required to setup a testing
+environment for the shell.
+
+The attributes on that class are set based on the configured environment, and a
+similar set of variables is available when the test scripts are executed.
+
+The list of variables available out of the box on test scripts are:
+
+@li \a __user: The user as defined in \a MYSQL_URI.
+@li \a __host: The host as defined in \a MYSQL_URI.
+@li \a __port: The port as defined in \a MYSQLX_PORT.
+@li \a __mysql_port: The port as defined in \a MYSQL_PORT.
+@li \a __pwd: The password if defined in \a MYSQL_PWD.
+@li \a __uri: A password-less URI for X protocol sessions.
+@li \a __uripwd: A full URI for X protocol sessions (password included).
+@li \a __mysql_uri: A password-less URI for MySQL protocol sessions.
+@li \a __mysql_uripwd: A full URI for MySQL protocol sessions (password included).
+@li \a __xhost_port: \a __host + ":" + \a _port
+@li \a __host_port: \a __host + ":" + \a _mysql_port
+@li \a __schema: 'mysql'
+@li \a __mysql_sandbox_port1: Port for the first sandbox.
+@li \a __mysql_sandbox_port2: Port for the second sandbox.
+@li \a __mysql_sandbox_port3: Port for the third sandbox.
+@li \a __sandbox_uri1 = URI for the first sandbox.
+@li \a __sandbox_uri2 = URI for the second sandbox.
+@li \a __sandbox_uri3 = URI for the third sandbox.
+@li \a localhost: 'localhost'";
+@li \a hostname_ip: TBD
+@li \a testutil: An instance of the
+<a class ="el" href="classtests_1_1_testutils.html">Testutils</a> class.
+
+From the variables listed above, \a testutil deserves special mention as it is
+a testing module with lots of utility functions that make it easier to create
+tests.
+
+\subsection good_practices Testing Good Practices
+The next recommendations are considered good practices while creating new tests.
+
+@li Reuse existing tests: it is very common that existing tests already setup
+the context required to verify enhancements, bug fixes or new features, instead
+of creating a whole new test for such scenarios, reuse the existing test code
+to reduce the amount of work required, as well as to keep the test suite in a
+maintainable state.
+
+@li Design integral tests: When a new feature is added, rather than creating
+a bunch of tests that execute the same setup steps once and again and again
+and again, create a bigger test that executes the initial setup once and then
+use code to evolve the test to get new conditions for additional checks, that's
+why the chunk logic has been created.
+
+@li File names for tests should identify what the content is about,for example
+collection_create_index.js would contain tests that are related to the
+Collection.createIndex function (and all its variants). A good practice is to
+use filenames in the format as \a \<api\>_\<object\>.js or
+\a \<api\>_\<api_object\>_\<function\>. for Unit Tests, for system tests which
+are more complex the next format is suggested \a system_\<description\>.js where
+\<description\> describes what the test is about.
+
+@li Create self contained tests: every single test must be designed in a way
+that can be executed isolated from the rest of the test suite.
+*/

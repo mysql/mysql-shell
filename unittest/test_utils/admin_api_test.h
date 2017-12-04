@@ -27,6 +27,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 using mysqlshdk::utils::nullable;
 
 namespace tests {
+/**
+ * \ingroup UTFramework
+ * Helper class for Admin API tests that use the Server Mock.
+ *
+ * This class contains helper functions that will add sql statements and data
+ * that should be processed by the tests that use a Server Mock.
+ * \todo The functions in this class must be documented.
+ */
 class Admin_api_test : public Shell_core_test_wrapper {
  public:
   virtual void SetUp();

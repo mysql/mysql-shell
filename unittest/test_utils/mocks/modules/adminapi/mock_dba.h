@@ -57,7 +57,9 @@
 using mysqlshdk::utils::nullable;
 
 namespace testing {
-
+/**
+ * Mock foe the Dba class.
+ */
 class Mock_dba : public mysqlsh::dba::Dba {
  public:
   Mock_dba() {

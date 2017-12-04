@@ -56,6 +56,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 
 namespace tests {
+/**
+ * \ingroup UTFramework
+ * Handles a version as defined for MySQL products.
+ * \todo This class should maybe be moved to real shell code.
+ */
 class Version {
 public:
   Version();
@@ -82,6 +87,10 @@ private:
 };
 
 
+/**
+ * \ingroup UTFramework
+ * \todo This class must be documented.
+ */
 class Override_row_string : public mysqlshdk::db::replay::Row_hook {
  public:
   Override_row_string(std::unique_ptr<mysqlshdk::db::IRow> source,
@@ -100,7 +109,13 @@ class Override_row_string : public mysqlshdk::db::replay::Row_hook {
   std::string _value;
 };
 
-
+/**
+ * \ingroup UTFramework
+ * Defines a base environment for unit tests.
+ *
+ * The attribues of this class are configured based on the environment where
+ * the tests are executed, the values are available through all the test suite.
+ */
 class Shell_test_env : public ::testing::Test {
  public:
   Shell_test_env();
@@ -112,27 +127,27 @@ class Shell_test_env : public ::testing::Test {
   std::string setup_recorder(const char *sub_test_name = nullptr);
 
  protected:
-  std::string _host;
-  std::string _port;
-  std::string _user;
-  int _port_number;
-  std::string _hostname;
-  std::string _hostname_ip;
-  std::string _uri;
-  std::string _uri_nopasswd;
-  std::string _pwd;
-  std::string _mysql_port;
-  int _mysql_port_number;
-  std::string _mysql_uri;
-  std::string _mysql_uri_nopasswd;
-  std::string _socket;  //< env:MYSQLX_SOCKET
-  std::string _mysql_socket;  //< env:MYSQL_SOCKET
-  Version _target_server_version;
-  std::string _test_context;
+  std::string _host;  //!< The host name configured in MYSQL_URI
+  std::string _port;  //!< The port for X protocol sessions, env:MYSQLX_PORT
+  std::string _user;  //!< The user configured in env:MYSQL_URI
+  int _port_number;  //!< The port for X protocol sessions, env:MYSQLX_PORT
+  std::string _hostname;  //!< TBD
+  std::string _hostname_ip;  //!< TBD
+  std::string _uri;  //!< A full URI for X protocol sessions
+  std::string _uri_nopasswd;  //!< A password-less URI for X protocol sessions
+  std::string _pwd;  //!< The password as configured in env:MYSQL_PWD
+  std::string _mysql_port;  //!< The port for MySQL protocol sessions, env:MYSQL_PORT
+  int _mysql_port_number;  //!< The port for MySQL protocol sessions, env:MYSQL_PORT
+  std::string _mysql_uri;  //!< A full URI for MySQL protocol sessions
+  std::string _mysql_uri_nopasswd;  //!< A password-less URI for MySQL protocol sessions
+  std::string _socket;  //!< env:MYSQLX_SOCKET
+  std::string _mysql_socket;  //!< env:MYSQL_SOCKET
+  Version _target_server_version;  //!< The version of the used MySQL Server
+  std::string _test_context;  //!< Context for script validation engine
 
   bool _recording_enabled = false;
 
-  std::map<std::string, std::string> _output_tokens;
+  std::map<std::string, std::string> _output_tokens; //!< Tokens for string resolution
   std::string resolve_string(const std::string& source);
 
   void SetUp() override;
@@ -141,26 +156,26 @@ class Shell_test_env : public ::testing::Test {
  public:
   static std::string get_path_to_mysqlsh();
 
-  std::string _mysql_sandbox_port1;
-  std::string _mysql_sandbox_port2;
-  std::string _mysql_sandbox_port3;
+  std::string _mysql_sandbox_port1;  //!< Port of the first sandbox
+  std::string _mysql_sandbox_port2;  //!< Port of the second sandbox
+  std::string _mysql_sandbox_port3;  //!< Port of the third sandbox
 
-  int _mysql_sandbox_nport1;
-  int _mysql_sandbox_nport2;
-  int _mysql_sandbox_nport3;
+  int _mysql_sandbox_nport1;  //!< Port of the first sandbox
+  int _mysql_sandbox_nport2;  //!< Port of the second sandbox
+  int _mysql_sandbox_nport3;  //!< Port of the third sandbox
 
   // Paths to the 3 commonly used sandboxes configuration files
-  std::string _sandbox_cnf_1;
-  std::string _sandbox_cnf_2;
-  std::string _sandbox_cnf_3;
+  std::string _sandbox_cnf_1;  //!< Path to the first sandbox cfg file
+  std::string _sandbox_cnf_2;  //!< Path to the second sandbox cfg file
+  std::string _sandbox_cnf_3;  //!< Path to the third sandbox cfg file
 
-  std::string _sandbox_cnf_1_bkp;
-  std::string _sandbox_cnf_2_bkp;
-  std::string _sandbox_cnf_3_bkp;
+  std::string _sandbox_cnf_1_bkp;  //!< Path to the first sandbox cfg file backup
+  std::string _sandbox_cnf_2_bkp;  //!< Path to the second sandbox cfg file backup
+  std::string _sandbox_cnf_3_bkp;  //!< Path to the third sandbox cfg file backup
 
-  static std::string _path_splitter;
+  static std::string _path_splitter;  //!< OS path separator
 
-  std::string _sandbox_dir;
+  std::string _sandbox_dir;  //!< Path to the configured sandbox directory
 };
 }  // namespace tests
 

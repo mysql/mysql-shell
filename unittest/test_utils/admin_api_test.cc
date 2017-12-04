@@ -315,6 +315,8 @@ void Admin_api_test::add_is_gtid_subset_query(
 /**
  * Adds the queries about cluster admin privileges based on the received
  * parameters
+ * @param data result vector that will hold the queries and data added by this
+ * function.
  * @param user: the user to be used on the queries
  * @param host: the host to be used on the queries
  * @param non_grantable: a formatted string with the privileges to

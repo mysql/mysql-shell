@@ -46,7 +46,7 @@ std::unique_ptr<mysqlshdk::db::Warning> Fake_result::fetch_one_warning() {
 
 /**
  * Inserts a row on this fake result.
- * @param a formatted string with the colnames of each column.
+ * @param data The values for each field on this result.
  *
  * A row is defined with a string with the format of:
  *
@@ -102,7 +102,8 @@ bool Mock_result::fake_next_resultset() {
  * @param names a formatted string with the column names to be included on the
  * result.
  * @param types a vector with int identifiers of the data types on each column
- *
+ * @param rows a vector of string vectors that contain the values to be added
+ * for each column in the row.
  * The names string should have the next format
  *
  * "colname1|colname2|colname3|...|colnameN"

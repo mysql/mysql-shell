@@ -110,7 +110,43 @@ bool Version::operator >= (const Version& other) {
 }
 
 
-
+/**
+ * Initializes the variables that serve as base environment for the Unit Tests.
+ *
+ * The Unit Tests have the following requirements:
+ * @li A MySQL Server setup and running.
+ * @li PATH must include the path to the binary folder of the MySQL Server that
+ * will be used for sandbox operations (if required).
+ * @li A set of environment variables that configure the way the Unit Tests will
+ * be executed.
+ *
+ * At least the following environment variables are required:
+ * @li MYSQL_URI An URI containing ONLY MySQL user and host where the base MySQL
+ * Server is running. The usual value for this variable is root\@localhost.
+ * @li MYSQL_PORT The port where the base MySQL Server listens for connections
+ * through the MySQL protocol.
+ * @li MYSQLX_PORT The port where the base MySQL Server listens for connections
+ * through the X protocol.
+ *
+ * Optionally, the next environment variables can be defined:
+ * @li MYSQL_PWD The password for the root account if required. Since it's
+ * common that the server is initialized with --initialize-insecure most of the
+ * time this is not required.
+ * @li MYSQL_SOCKET
+ * @li MYSQLX_SOCKET
+ * @li MYSQL_HOSTNAME
+ * @li MYSQL_SANDBOX_PORT1 The port to be used for the first sandbox on tests
+ * that require it, if not specified it will be calculated as the value of
+ * MYSQL_PORT + 10
+ * @li MYSQL_SANDBOX_PORT2 The port to be used for the first sandbox on tests
+ * that require it, if not specified it will be calculated as the value of
+ * MYSQL_PORT + 20
+ * @li MYSQL_SANDBOX_PORT3 The port to be used for the first sandbox on tests
+ * that require it, if not specified it will be calculated as the value of
+ * MYSQL_PORT + 30
+ * @li TMPDIR The path that will be used to create sandboxes if required, if not
+ * specified the path where run_unit_tests binary will be used.
+ */
 Shell_test_env::Shell_test_env() {
   const char *uri = getenv("MYSQL_URI");
   if (uri == NULL)
@@ -362,6 +398,9 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
   return tracedir;
 }
 
+/**
+ * Returns the path to the mysqlsh binary being used on the tests.
+ */
 std::string Shell_test_env::get_path_to_mysqlsh() {
   std::string command;
 
@@ -389,6 +428,41 @@ std::string Shell_test_env::get_path_to_mysqlsh() {
   return command;
 }
 
+/**
+ * Dynamically resolves strings based on predefined output tokens.
+ *
+ * Sometimes the expected strings do not contain fixed values, but contain
+ * information that change depending on the environment being used to execute
+ * the tests.
+ *
+ * It is possible to dynamically define a sort "variables" with thos values
+ * that depend on the environment while executing the test, this is done by
+ * adding such variable on the _output_tokens as:
+ *
+ * \code
+ * _output_tokens[<variable>]=<value>
+ * \endcode
+ *
+ * Those variables can be used on string expectations as follows:
+ *
+ * \code
+ * This is <<<variable>>> defined at runtime.
+ * \endcode
+ *
+ * If we assume that an output token was defined as:
+ *
+ * \code
+ * _output_tokens["variable"] = "some value";
+ * \endcode
+ *
+ * The string above will be converted to:
+ *
+ * \code
+ * This is some value defined at runtime.
+ * \endcode
+ *
+ * And the resolved string can then be used as the final expectation.
+ */
 std::string Shell_test_env::resolve_string(const std::string &source) {
   std::string updated(source);
 
@@ -451,6 +525,18 @@ void run_script_classic(const std::vector<std::string> &sql) {
   session->close();
 }
 
+/**
+ * Returns a URI string for the given protocol.
+ * @param proto Identifies the protocol for which the URI is required.
+ *
+ * This function create a URI for the given protocol, use either 'x' or 'c' for
+ * the protocol type.
+ *
+ * The URI is created reading MYSQL_URI and the corresponding MYSQL_PORT or
+ * MYSQLX_PORT environment variables.
+ *
+ * I MYSQL_URI is not defined, it will use 'root@localhost'.
+ */
 std::string shell_test_server_uri(int proto) {
   const char *uri = getenv("MYSQL_URI");
   if (!uri)

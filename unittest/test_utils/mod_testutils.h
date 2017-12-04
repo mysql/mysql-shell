@@ -29,8 +29,10 @@
 
 namespace tests {
 
-// C++ utility routines for use within scripted tests
-
+/**
+ * \ingroup Testutils
+ * Class with test utilities
+*/
 class Testutils : public shcore::Cpp_object_bridge {
  private:
   virtual std::string class_name() const {
@@ -38,6 +40,46 @@ class Testutils : public shcore::Cpp_object_bridge {
   }
 
  public:
+#if DOXYGEN_JS
+  Undefined deploySandbox(Integer port, String pwd);
+  Undefined destroySandbox(Integer port);
+  Undefined startSandbox(Integer port);
+  Undefined stopSandbox(Integer port);
+  Undefined killSandbox(Integer port);
+  Undefined restartSandbox(Integer port);
+  Undefined changeSandboxConf(Integer port, String option);
+  Undefined removeFromSandboxConf(Integer port, String option);
+  String getSandboxConfPath(Integer port);
+  String getSandboxLogPath(Integer port);
+  String getShellLogPath();
+  Integer waitMemberState(Integer port, String[] states);
+  Undefined expectPrompt(String prompt, String answer);
+  Undefined expectPassword(String prompt, String password);
+  Integer makeFileReadonly(String path);
+  List grepFile(String path, String pattern);
+  Bool isReplying();
+  Undefined fail();
+#elif DOXYGEN_PY
+  None deploy_sandbox(int port, str pwd);
+  None destroy_sandbox(int port);
+  None start_sandbox(int port);
+  None stop_sandbox(int port);
+  None kill_sandbox(int port);
+  None restart_sandbox(int port);
+  None change_sandbox_conf(int port, str option);
+  None remove_from_sandbox_conf(int port, str option);
+  str get_sandbox_conf_path(int port);
+  str get_sandbox_log_path(int port);
+  str get_shell_log_path();
+  int wait_member_state(int port, str[] states);
+  None expect_prompt(str prompt, str answer);
+  None expect_password(str prompt, str password);
+  int make_file_readonly(str path);
+  list grep_file(str path, str pattern);
+  bool is_replying();
+  None fail();
+#endif
+
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
             const std::vector<int> &default_sandbox_ports = {},
             std::shared_ptr<mysqlsh::Mysql_shell> shell = {});

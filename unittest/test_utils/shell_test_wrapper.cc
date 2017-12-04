@@ -29,6 +29,10 @@ Shell_test_wrapper::Shell_test_wrapper() {
   reset();
 }
 
+/**
+ * Causes the enclosed instance of Mysql_shell to be re-created with using the
+ * options defined at _opts.
+ */
 void Shell_test_wrapper::reset() {
   _opts = std::make_shared<mysqlsh::Shell_options>();
   const_cast<mysqlsh::Shell_options::Storage&>(_opts->get()).gadgets_path =
@@ -39,14 +43,25 @@ void Shell_test_wrapper::reset() {
   _interactive_shell->finish_init();
 }
 
+/**
+ * Turns on debugging on the inner Shell_test_output_handler
+ */
 void Shell_test_wrapper::enable_debug() {
   output_handler.debug = true;
 }
 
+/**
+ * Returns the inner instance of the Shell_test_output_handler
+ */
 Shell_test_output_handler& Shell_test_wrapper::get_output_handler() {
   return output_handler;
 }
 
+/**
+ * Executes the given instruction.
+ * @param line the instruction to be executed as would be given i.e. using
+ * the mysqlsh application.
+ */
 void Shell_test_wrapper::execute(const std::string& line) {
   if (output_handler.debug)
     std::cout << line << std::endl;
@@ -54,10 +69,16 @@ void Shell_test_wrapper::execute(const std::string& line) {
   _interactive_shell->process_line(line);
 }
 
+/**
+ * Returns a reference to the options that configure the inner Mysql_shell
+ */
 mysqlsh::Shell_options::Storage& Shell_test_wrapper::get_options() {
   return const_cast<mysqlsh::Shell_options::Storage&>(_opts->get());
 }
 
+/**
+ * Enables X protocol tracing.
+ */
 void Shell_test_wrapper::trace_protocol() {
   _interactive_shell->shell_context()->get_dev_session()->set_option(
       "trace_protocol", 1);

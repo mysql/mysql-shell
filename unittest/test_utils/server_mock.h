@@ -29,6 +29,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #include "mysqlshdk/libs/db/column.h"
 
 namespace tests {
+/**
+ * \ingroup UTFramework
+ * Wraps a server mock and handles it's life cycle
+ */
 class Server_mock {
 public:
   Server_mock();
