@@ -401,6 +401,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     execute("session.close()");
   }
 
+#ifndef _WIN32
   {
     auto data = shcore::get_connection_options(_uri);
     std::string user = data.get_user();
@@ -459,12 +460,16 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
         execute("\\connect -mx " +
                 data.as_uri(mysqlshdk::db::uri::formats::full()));
         MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to ");
-        MY_EXPECT_STDERR_CONTAINS("MySQL Error 2027");
-        MY_EXPECT_STDERR_CONTAINS(
-            "Requested session assumes MySQL X Protocol but");
-        MY_EXPECT_STDERR_CONTAINS("seems to speak the classic MySQL protocol");
-        output_handler.wipe_all();
-
+        // wrong protocol can manifest as this error or a 2006 'gone away' error
+        if (output_handler.std_err.find("MySQL Error 2006") ==
+            std::string::npos) {
+          MY_EXPECT_STDERR_CONTAINS("MySQL Error 2027");
+          MY_EXPECT_STDERR_CONTAINS(
+              "Requested session assumes MySQL X Protocol but");
+          MY_EXPECT_STDERR_CONTAINS(
+              "seems to speak the classic MySQL protocol");
+          output_handler.wipe_all();
+        }
         execute("session");
         MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:disconnected>");
         output_handler.wipe_all();
@@ -522,6 +527,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
       // Test omitted due to long time to discover wrong protocol
     }
   }
+#endif  // !_WIN32
 }
 
 TEST_F(Interactive_shell_test, shell_function_connect_node) {

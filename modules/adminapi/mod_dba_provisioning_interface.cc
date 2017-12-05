@@ -129,9 +129,11 @@ int ProvisioningInterface::execute_mysqlprovision(
     assert(!_local_mysqlprovision_path.empty());
   }
 
-  std::string log_level =
-      "--log-level=" + std::to_string(static_cast<int>(
-                           ngcommon::Logger::singleton()->get_log_level()));
+  std::string log_level = "--log-level=";
+  if (mysqlsh::Base_shell::options().log_to_stderr)
+    log_level.append("@");
+  log_level.append(std::to_string(
+      static_cast<int>(ngcommon::Logger::singleton()->get_log_level())));
 
   args_script.push_back(g_mysqlsh_argv0);
   args_script.push_back(log_level.c_str());

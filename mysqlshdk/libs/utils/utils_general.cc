@@ -314,6 +314,22 @@ std::string get_system_user() {
   return ret_val;
 }
 
+std::string errno_to_string(int err) {
+  std::string ret;
+  ret.resize(256);
+#ifdef _WIN32
+  auto i = strerror_s(&ret[0], ret.size(), err);
+  assert(i == 0);
+  (void)i;
+#else
+  auto i = strerror_r(err, &ret[0], ret.size());
+  assert(i == 0);
+  (void)i;
+#endif
+  ret.resize(strlen(&ret[0]));
+  return ret;
+}
+
 std::vector<std::string> split_string(const std::string &input,
                                       const std::string &separator,
                                       bool compress) {

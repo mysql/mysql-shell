@@ -72,6 +72,8 @@ std::string SHCORE_PUBLIC fmttime(const char *fmt);
 std::string SHCORE_PUBLIC to_camel_case(const std::string &name);
 std::string SHCORE_PUBLIC from_camel_case(const std::string &name);
 
+std::string SHCORE_PUBLIC errno_to_string(int err);
+
 void SHCORE_PUBLIC split_account(const std::string &account,
                                  std::string *out_user,
                                  std::string *out_host,
