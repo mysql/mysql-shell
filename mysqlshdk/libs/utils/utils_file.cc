@@ -695,17 +695,13 @@ void copy_file(const std::string& from, const std::string& to) {
   ofile.open(to,
              std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
   if (ofile.fail()) {
-    char error[1024];
-    strerror_r(errno, error, sizeof(error));
     throw std::runtime_error("Could not create file '" + to +
-                             "': " + error);
+                             "': " + errno_to_string(errno));
   }
   ifile.open(from, std::ofstream::in | std::ofstream::binary);
   if (ifile.fail()) {
-    char error[1024];
-    strerror_r(errno, error, sizeof(error));
     throw std::runtime_error("Could not open file '" + from +
-                             "': " + error);
+                             "': " + errno_to_string(errno));
   }
 
   ofile << ifile.rdbuf();
@@ -719,14 +715,15 @@ void copy_file(const std::string& from, const std::string& to) {
   if (stat(from.c_str(), &result) == 0) {
     if (chmod(to.c_str(), result.st_mode) != 0) {
       throw std::runtime_error(str_format("Unable to set file mode to %s: %s",
-                                          to.c_str(), strerror(errno)));
+                                          to.c_str(),
+                                          errno_to_string(errno).c_str()));
     }
   } else {
     throw std::runtime_error(str_format("Unable to get file mode from %s: %s",
-                                        from.c_str(), strerror(errno)));
+                                        from.c_str(),
+                                        errno_to_string(errno).c_str()));
   }
 #endif
-
 }
 
 void rename_file(const std::string& from, const std::string& to) {

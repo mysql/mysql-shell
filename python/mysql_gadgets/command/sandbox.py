@@ -570,6 +570,14 @@ def create_sandbox(**kwargs):
             _LOGGER.debug("Copying mysqld binary '%s' to '%s'", mysqld_path,
                           sandbox_dir)
             shutil.copy(mysqld_path, local_mysqld_path)
+            bindir = os.path.dirname(mysqld_path)
+            # Symlink possibly bundled OpenSSL shared libs
+            for name in os.listdir(bindir):
+                if name.startswith("lib") and ".so" in name:
+                    path = os.path.join(bindir, name)
+                    _LOGGER.debug("Symlinking '%s' to '%s'", path,
+                                  sandbox_dir)
+                    os.symlink(path, os.path.join(sandbox_dir, name))
         except (IOError, shutil.Error) as err:
             raise exceptions.GadgetError(
                 "Unable to copy mysqld binary '{0}' to '{1}': '{2}'."

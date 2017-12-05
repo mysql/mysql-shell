@@ -963,19 +963,18 @@ void copy_boilerplate_sandbox(const std::string &from,
 
       if (shcore::is_folder(item_from)) {
         copy_boilerplate_sandbox(item_from, item_to);
-      } else {
+      } else if (shcore::file_exists(item_from)) {
 #ifndef _WIN32
         if (name == "mysqld") {
           if (symlink(item_from.c_str(), item_to.c_str()) != 0) {
-            throw std::runtime_error(shcore::str_format("Unable create symlink %s to %s: %s", item_to.c_str(), item_from.c_str(), strerror(errno)));
+            throw std::runtime_error(shcore::str_format(
+                "Unable to create symlink %s to %s: %s", item_to.c_str(),
+                item_from.c_str(), strerror(errno)));
           }
-        } else {
-#endif
-          shcore::copy_file(shcore::path::join_path(from, name),
-                            shcore::path::join_path(to, name));
-#ifndef _WIN32
+          return true;
         }
 #endif
+        shcore::copy_file(item_from, item_to);
       }
     } catch (std::runtime_error &e) {
       if (errno != ENOENT)
