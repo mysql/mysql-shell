@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:2001",
+    "uri": "root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "53f9ed62-dfad-11e7-9f06-ad8697642eb9"
+            "d48d1336-e18e-11e7-80c9-5ce0c50b9d66"
         ]
     ]
 },
@@ -96,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
+    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
 },
 {
     "type": "response",
@@ -109,12 +109,28 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 0,
-            "fractional": 31,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 4096,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -126,6 +142,7 @@
     ],
     "rows": [
         [
+            "group_replication_group_seeds",
             ""
         ]
     ]
@@ -228,11 +245,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-141-218-bin.000004",
+            "pjesus-TECRA-Z40-B-bin.000003",
             231,
             "",
             "",
-            "52b78234-dfad-11e7-adb4-db8e386d7919:1-14,\n558c7244-dfad-11e7-adb4-db8e386d7919:1-18"
+            "1063d90e-e18f-11e7-b08f-5ce0c50b9d66:1-18,\nb11622c5-e18e-11e7-81d5-5ce0c50b9d66:1-14"
         ]
     ]
 },

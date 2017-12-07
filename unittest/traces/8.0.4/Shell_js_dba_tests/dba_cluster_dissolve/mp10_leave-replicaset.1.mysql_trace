@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3360?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "68",
+    "connection_id": "46",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "99a38ef4-e104-11e7-a88b-5ce0c50b9d66"
+            "58d80ee4-e185-11e7-ac20-5ce0c50b9d66"
         ]
     ]
 },

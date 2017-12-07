@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            1466293079
+            2834661673
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$|1f'D\u0010VZFW\u0010;t4*v\u0001\fdYOUh2niS2t62d2CKcKDG8A1yEIoCEySLJe8N2YNp0lj6",
+            "$A$005$\u0005%qm\u0003<=\b/\u001B8EY'E0>\u001C`\u0010G.3Ok3bOWltJ7YY4/wzuiEKu9pmhhKNcx3D1kYgLJ15",
             "N",
-            "2017-12-14 20:38:08",
+            "2017-12-15 12:01:19",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$I&x-f\u001D\u000FS#\u000F~v7\nrv6V_7GhGBtfJKv1sWbG7fkRYHfKDRb.FTSA5s6ctQ9Ldisq9",
+            "$A$005$\u0001ZV6TSZrwqr@ulBZ*t\u0013JLYKlLmvjxk4iCpnKOtAN94Kqk6UbOXGVIrLhYFBmC77",
             "N",
-            "2017-12-14 20:36:15",
+            "2017-12-15 11:59:25",
             null,
             "N",
             "Y",
@@ -3466,7 +3466,7 @@
     ],
     "rows": [
         [
-            1466293079
+            2834661673
         ]
     ]
 },
@@ -3504,7 +3504,7 @@
     ],
     "rows": [
         [
-            "b2316e46-e10e-11e7-b697-5ce0c50b9d66"
+            "a9bc336b-e18f-11e7-b805-5ce0c50b9d66"
         ]
     ]
 },
@@ -3632,7 +3632,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = 'b2316e46-e10e-11e7-b697-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = 'a9bc336b-e18f-11e7-b805-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -3812,7 +3812,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SET GLOBAL auto_increment_offset = 7"
+    "sql": "SET GLOBAL auto_increment_offset = 5"
 },
 {
     "type": "response",
@@ -4172,7 +4172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '8c><O=^+&?4&_{7l:M+|#a|#W[{@[]~N' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '#a>U2>@l3^)f(.).^6C<*z{Y.I#<:^{:' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

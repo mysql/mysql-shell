@@ -142,8 +142,8 @@
     ],
     "rows": [
         [
-            "cc4ee70c-e10d-11e7-855d-5ce0c50b9d66",
-            "abe35db9-e10d-11e7-806e-5ce0c50b9d66"
+            "a3b64cca-e18d-11e7-8f34-5ce0c50b9d66",
+            "80c71c73-e18d-11e7-a3be-5ce0c50b9d66"
         ]
     ]
 },
@@ -151,7 +151,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'cc4ee70c-e10d-11e7-855d-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a3b64cca-e18d-11e7-8f34-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -469,7 +469,7 @@
         [
             "default",
             "pm",
-            "0b4ea7f0-e10e-11e7-8daa-5ce0c50b9d66"
+            "e3a941f2-e18d-11e7-816b-5ce0c50b9d66"
         ]
     ]
 },
@@ -515,7 +515,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances  WHERE replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i  WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -529,7 +529,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
             "length": 160,
@@ -545,7 +545,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "instance_name",
             "column_label": "instance_name",
             "length": 1024,
@@ -561,7 +561,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "role",
             "column_label": "role",
             "length": 48,
@@ -593,19 +593,19 @@
     ],
     "rows": [
         [
-            "abe35db9-e10d-11e7-806e-5ce0c50b9d66",
+            "80c71c73-e18d-11e7-a3be-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340"
         ],
         [
-            "cc4ee70c-e10d-11e7-855d-5ce0c50b9d66",
+            "a3b64cca-e18d-11e7-8f34-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350"
         ],
         [
-            "ec131e03-e10d-11e7-bd10-5ce0c50b9d66",
+            "c627b9fe-e18d-11e7-bdd9-5ce0c50b9d66",
             "localhost:3360",
             "HA",
             "localhost:3360"

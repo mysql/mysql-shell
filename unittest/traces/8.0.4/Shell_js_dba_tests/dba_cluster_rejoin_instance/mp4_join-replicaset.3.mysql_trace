@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "43",
+    "connection_id": "44",
     "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            3216023094
+            95313307
         ]
     ]
 },

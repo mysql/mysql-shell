@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            2916538949
+            1088130495
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0016!%n\u000F\u0019\u000F\u000F\u001D'ik&7zG>>\u0001mD1v1LBGrxTDHFksrYSYMwo9HoQuWAQypIsW3.hfko4",
+            "$A$005$QR\u000E\bG}Q9]/O\u0011fkM-K^\u0010/BfOFNwJ7qTD65rTRxqcgk/MxBWZ0.7ZIgQm7Hv/SwS3",
             "N",
-            "2017-12-14 19:20:22",
+            "2017-12-15 10:41:25",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$;\u00128\u00120%R)\u0012b\u000F?\u0019\u0003\bC+U\u0005fBqk8tv.XUSN8HZB1.NpPsrhiw9asmh0yyTEacl9g8n/",
+            "$A$005$\u0002A!{\u0001-#HWTix\bYh~\\&_{53E/6HzXbRmg/3buERuQbCizaZcWmVRxh6tHwOEg57B",
             "N",
-            "2017-12-14 19:12:26",
+            "2017-12-15 10:33:24",
             null,
             "N",
             "Y",
@@ -3470,7 +3470,7 @@
     ],
     "rows": [
         [
-            2916538949
+            1088130495
         ]
     ]
 },
@@ -3868,7 +3868,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 131,
-    "sql": "SET GLOBAL auto_increment_offset = 3"
+    "sql": "SET GLOBAL auto_increment_offset = 5"
 },
 {
     "type": "response",
@@ -4228,7 +4228,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 179,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000026' /*)*/, MASTER_PASSWORD = /*(*/ '~+V;~G[t0?<^<%H&:x.7;8h^]D/]>_+m' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000026' /*)*/, MASTER_PASSWORD = /*(*/ ']3.&/R)}(/8@-J^k[7[]=X_<-~*i|<|*' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

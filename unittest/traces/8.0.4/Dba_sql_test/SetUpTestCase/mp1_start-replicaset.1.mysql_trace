@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3317?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "12",
+    "connection_id": "14",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -295,7 +295,7 @@
     ],
     "rows": [
         [
-            3317
+            3340
         ]
     ]
 },
@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            15662
+            3568785591
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0007\u0011\u001Bod`iDK\u001BzvC\u0003\u001C\u001Er\u0016\u0018jqdVeMOCUR1M6s8kSni//ORDIRSa3a4daG81DhZp2EW4",
+            "$A$005$&\u001A\u0011`'#n\u0014\u001Ar`\u000BYLe=\u0014@H\u0010KRRmgmDbch00fDxrvzJYCpqV8w5SPM99teyCdhbyyf5",
             "N",
-            "2017-12-14 18:09:15",
+            "2017-12-15 18:20:06",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$Q@\u0017@|\u00192C/Iy/\n\r\\\u0011\u0007\u0019o^QBTQ4SVl7.Zblc6mgmJJ6aj59DcRGNuhKrlgEZqemO9",
+            "$A$005$\u0001~\u0011S\\\u00069\u0013e8\u0001INk\u0010F\u0019zRhbhmTLo4uycTejH5roUWt67xCxDiyuGNKbuar75d6NEA",
             "N",
-            "2017-12-14 15:15:14",
+            "2017-12-15 18:18:05",
             null,
             "N",
             "Y",
@@ -3069,6 +3069,34 @@
             "GPL"
         ],
         [
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3251,14 +3279,7 @@
             "GPL"
         ],
         [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MRG_MYISAM",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3272,22 +3293,8 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3302,13 +3309,6 @@
         [
             "ARCHIVE",
             "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "FEDERATED",
-            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3466,7 +3466,7 @@
     ],
     "rows": [
         [
-            15662
+            3568785591
         ]
     ]
 },
@@ -3504,7 +3504,7 @@
     ],
     "rows": [
         [
-            "30554763-e12c-11e7-848f-5c514ff38144"
+            "93a5e79c-e1c4-11e7-aa65-5ce0c50b9d66"
         ]
     ]
 },
@@ -3632,7 +3632,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = '30554763-e12c-11e7-848f-5c514ff38144'"
+    "sql": "SET GLOBAL group_replication_group_name = '93a5e79c-e1c4-11e7-aa65-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -3812,7 +3812,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SET GLOBAL auto_increment_offset = 4"
+    "sql": "SET GLOBAL auto_increment_offset = 1"
 },
 {
     "type": "response",
@@ -3992,7 +3992,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13317'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13340'"
 },
 {
     "type": "response",
@@ -4172,7 +4172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ ';u-/N%|)2~,(,|+K5W[/3l}D<|$+;a@)' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '|u_:^S;7j8*.*{o$}=M;>+)i?,0W*<X;' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

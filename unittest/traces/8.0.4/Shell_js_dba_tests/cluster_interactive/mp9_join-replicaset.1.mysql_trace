@@ -616,7 +616,7 @@
     ],
     "rows": [
         [
-            1258225799
+            3373950252
         ]
     ]
 },
@@ -1308,7 +1308,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26796118/ngshell/BUILD/unittest/3360/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3360/sandboxdata/error.log"
         ]
     ]
 },
@@ -1346,7 +1346,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26796118/ngshell/BUILD/unittest/3360/sandboxdata/"
+            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3360/sandboxdata/"
         ]
     ]
 },
@@ -1418,7 +1418,7 @@
     ],
     "rows": [
         [
-            1258225799
+            3373950252
         ]
     ]
 },
@@ -1456,7 +1456,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:13340'"
+    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:13340,localhost:13350'"
 },
 {
     "type": "response",
@@ -1636,7 +1636,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_group_name = '8c483a43-e10f-11e7-ba16-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = 'a13daf2f-e190-11e7-a353-5ce0c50b9d66'"
 },
 {
     "type": "response",

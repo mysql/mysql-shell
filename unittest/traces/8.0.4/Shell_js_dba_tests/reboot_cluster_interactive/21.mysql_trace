@@ -283,7 +283,7 @@
         [
             "default",
             "pm",
-            "5a9dbe71-e10d-11e7-bf77-5ce0c50b9d66"
+            "2cebcb26-e18d-11e7-bee1-5ce0c50b9d66"
         ]
     ]
 },
@@ -367,7 +367,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances  WHERE replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i  WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -381,7 +381,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
             "length": 160,
@@ -397,7 +397,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "instance_name",
             "column_label": "instance_name",
             "length": 1024,
@@ -413,7 +413,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "role",
             "column_label": "role",
             "length": 48,
@@ -445,19 +445,19 @@
     ],
     "rows": [
         [
-            "ff5641e9-e10c-11e7-9e3e-5ce0c50b9d66",
+            "cc21f0d7-e18c-11e7-bf17-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340"
         ],
         [
-            "1dcfa80a-e10d-11e7-82e4-5ce0c50b9d66",
+            "ebce9940-e18c-11e7-8605-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350"
         ],
         [
-            "3c635fbb-e10d-11e7-b31d-5ce0c50b9d66",
+            "0ce9d29a-e18d-11e7-98ab-5ce0c50b9d66",
             "localhost:3360",
             "HA",
             "localhost:3360"

@@ -252,8 +252,8 @@
     ],
     "rows": [
         [
-            "f997fc03-e10f-11e7-b64a-5ce0c50b9d66",
-            "f997fc03-e10f-11e7-b64a-5ce0c50b9d66"
+            "0fc8cc90-e191-11e7-8f74-5ce0c50b9d66",
+            "0fc8cc90-e191-11e7-8f74-5ce0c50b9d66"
         ]
     ]
 },
@@ -261,7 +261,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f997fc03-e10f-11e7-b64a-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '0fc8cc90-e191-11e7-8f74-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -464,9 +464,9 @@
     ],
     "rows": [
         [
-            9,
+            11,
             "devCluster",
-            9,
+            11,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -515,7 +515,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 9"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 11"
 },
 {
     "type": "response",
@@ -579,7 +579,7 @@
         [
             "default",
             "pm",
-            "5375ac80-e110-11e7-9dda-5ce0c50b9d66"
+            "6b89f451-e191-11e7-964e-5ce0c50b9d66"
         ]
     ]
 },
@@ -617,7 +617,7 @@
     ],
     "rows": [
         [
-            "5375ac80-e110-11e7-9dda-5ce0c50b9d66"
+            "6b89f451-e191-11e7-964e-5ce0c50b9d66"
         ]
     ]
 },
@@ -747,8 +747,8 @@
     ],
     "rows": [
         [
-            "f997fc03-e10f-11e7-b64a-5ce0c50b9d66",
-            "f997fc03-e10f-11e7-b64a-5ce0c50b9d66"
+            "0fc8cc90-e191-11e7-8f74-5ce0c50b9d66",
+            "0fc8cc90-e191-11e7-8f74-5ce0c50b9d66"
         ]
     ]
 },
@@ -756,7 +756,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f997fc03-e10f-11e7-b64a-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '0fc8cc90-e191-11e7-8f74-5ce0c50b9d66'"
 },
 {
     "type": "response",

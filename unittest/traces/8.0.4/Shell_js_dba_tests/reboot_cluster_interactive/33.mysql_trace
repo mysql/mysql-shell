@@ -11,7 +11,7 @@
     "subtype": "ERROR",
     "index": 2,
     "code": "2003",
-    "msg": "Can't connect to MySQL server on 'localhost' (111)",
+    "msg": "Can't connect to MySQL server on 'localhost' (99)",
     "sqlstate": "HY000"
 },
 null]

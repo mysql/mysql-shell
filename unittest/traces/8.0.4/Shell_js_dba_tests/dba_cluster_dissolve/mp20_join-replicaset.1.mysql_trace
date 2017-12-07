@@ -616,7 +616,7 @@
     ],
     "rows": [
         [
-            1076363755
+            3870531607
         ]
     ]
 },
@@ -1308,7 +1308,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26796118/ngshell/BUILD/unittest/3360/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3360/sandboxdata/error.log"
         ]
     ]
 },
@@ -1346,7 +1346,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26796118/ngshell/BUILD/unittest/3360/sandboxdata/"
+            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3360/sandboxdata/"
         ]
     ]
 },
@@ -1418,7 +1418,7 @@
     ],
     "rows": [
         [
-            1076363755
+            3870531607
         ]
     ]
 },
@@ -1636,7 +1636,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_group_name = 'f1e54e65-e104-11e7-a88b-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = 'ad9d4621-e185-11e7-ac20-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2176,7 +2176,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 153,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000012' /*)*/, MASTER_PASSWORD = /*(*/ '<m{.(2{L:[b{@6?=*%S2#:z+T]?(}*&w' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000012' /*)*/, MASTER_PASSWORD = /*(*/ '/*[v/-9~]0;8;_/U?O$&]z(Y#|{s~=?=' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

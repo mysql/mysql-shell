@@ -206,10 +206,10 @@
     "rows": [
         [
             "pjesus-TECRA-Z40-B-bin.000002",
-            19904,
+            19900,
             "",
             "",
-            "52064703-e10e-11e7-b28e-5ce0c50b9d66:1-14,\nb2316e46-e10e-11e7-b697-5ce0c50b9d66:1-21"
+            "47b14d42-e18f-11e7-81b6-5ce0c50b9d66:1-14,\na9bc336b-e18f-11e7-b805-5ce0c50b9d66:1-21"
         ]
     ]
 },
@@ -300,7 +300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '^B#*9H<6>)|h-#o/^&Z={+m@4./y{@^B' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '=^V+)+K3:6_%}f>~:_.S?+~w9]#a&)M-' /*)*/ "
 },
 {
     "type": "response",
@@ -315,7 +315,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '^B#*9H<6>)|h-#o/^&Z={+m@4./y{@^B' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '=^V+)+K3:6_%}f>~:_.S?+~w9]#a&)M-' /*)*/ "
 },
 {
     "type": "response",
@@ -434,7 +434,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 34,
-    "auto_increment_value": 7,
+    "auto_increment_value": 5,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -443,13 +443,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (7, 'gr', 'mm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (5, 'gr', 'mm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 36,
-    "auto_increment_value": 7,
+    "auto_increment_value": 5,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -458,7 +458,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 7 WHERE cluster_id = 7"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 5 WHERE cluster_id = 5"
 },
 {
     "type": "response",
@@ -473,7 +473,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 7"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 5"
 },
 {
     "type": "response",
@@ -511,7 +511,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 7 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 5 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",
@@ -621,13 +621,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 7, '52064703-e10e-11e7-b28e-5ce0c50b9d66', 'localhost:3340', 'HA', json_object('mysqlClassic', 'localhost:3340', 'mysqlX', 'localhost:33400', 'grLocal', 'localhost:13340'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 5, '47b14d42-e18f-11e7-81b6-5ce0c50b9d66', 'localhost:3340', 'HA', json_object('mysqlClassic', 'localhost:3340', 'mysqlX', 'localhost:33400', 'grLocal', 'localhost:13340'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 46,
-    "auto_increment_value": 21,
+    "auto_increment_value": 19,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -642,7 +642,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 48,
-    "auto_increment_value": 21,
+    "auto_increment_value": 19,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -666,7 +666,7 @@
     ],
     "rows": [
         [
-            "e3763194-e10e-11e7-b697-5ce0c50b9d66"
+            "db045f91-e18f-11e7-b805-5ce0c50b9d66"
         ]
     ]
 },
@@ -674,7 +674,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'e3763194-e10e-11e7-b697-5ce0c50b9d66') WHERE replicaset_id = 7"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'db045f91-e18f-11e7-b805-5ce0c50b9d66') WHERE replicaset_id = 5"
 },
 {
     "type": "response",

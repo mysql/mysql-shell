@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            2357336040
+            984219099
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$)=o^Qup\u001E\tg@\u0014 ?\u0003o{\nkInx0PFFZ1.Fkc8tqHBUNaAFq5v/W6zGG.7RH/v/4MEA",
+            "$A$005$UT\u0001C)n\u0013>oZ \u0019BT \u0006u^6(YfLwQf7BK76KspBK4azA6u67qus85KjVvK4sQTCk/T5",
             "N",
-            "2017-12-14 19:25:52",
+            "2017-12-15 10:47:29",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$<>%\u001C\u0011{gqxLY\u0002L\u0013d\u0017k,8\tF6FaLWZcORKEF0dUKpJOiu0u5bm36OJrkHoUriwkWP0",
+            "$A$005$;W\u000Fbs=%XEQA\u001Fz<t\u000E\\\u0007ctC03UzbQIXQONoHyPfl4/DwQt70gLaa4NbKVev4pVM72",
             "N",
-            "2017-12-14 19:22:47",
+            "2017-12-15 10:44:08",
             null,
             "N",
             "Y",
@@ -3470,7 +3470,7 @@
     ],
     "rows": [
         [
-            2357336040
+            984219099
         ]
     ]
 },
@@ -3508,7 +3508,7 @@
     ],
     "rows": [
         [
-            "99a38ef4-e104-11e7-a88b-5ce0c50b9d66"
+            "58d80ee4-e185-11e7-ac20-5ce0c50b9d66"
         ]
     ]
 },
@@ -3636,7 +3636,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = '99a38ef4-e104-11e7-a88b-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '58d80ee4-e185-11e7-ac20-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -4176,7 +4176,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '=&/E_5Q~+.^i&k#0}[H[c#]9)&,z|[*I' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '|E;.;.;9@g@_-e*})6(W>s8(}(z~.;)T' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

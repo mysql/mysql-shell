@@ -197,6 +197,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::string &hostname, int port);
 
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
+  std::string get_cluster_group_seeds(
+      std::shared_ptr<mysqlshdk::db::ISession> instance_session);
 
   std::weak_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;

@@ -1,6 +1,6 @@
 {
     "hostname": "pjesus-TECRA-Z40-B",
-    "hostname_ip": "127.0.1.1",
+    "hostname_ip": "192.168.1.72",
     "sandbox_port1": "3340",
     "sandbox_port2": "3350",
     "sandbox_port3": "3360"

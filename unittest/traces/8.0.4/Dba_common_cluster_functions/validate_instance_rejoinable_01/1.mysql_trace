@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3317",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "36",
+    "connection_id": "38",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -20,13 +20,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, '19bd4b75-e12c-11e7-ad42-5c514ff38144', 'localhost:3337', 'HA', NULL, '{\"mysqlX\": \"localhost:33370\", \"grLocal\": \"localhost:13337\", \"mysqlClassic\": \"localhost:3337\"}', NULL, NULL, NULL)"
+    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, 'a279c952-e1b7-11e7-9586-5ce0c50b9d66', 'localhost:3360', 'HA', NULL, '{\"mysqlX\": \"localhost:33600\", \"grLocal\": \"localhost:13360\", \"mysqlClassic\": \"localhost:3360\"}', NULL, NULL, NULL)"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 4,
-    "auto_increment_value": 4,
+    "auto_increment_value": 5,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -41,7 +41,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
-    "auto_increment_value": 4,
+    "auto_increment_value": 5,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -65,10 +65,10 @@
     ],
     "rows": [
         [
-            "1650bf47-e12c-11e7-b7ee-5c514ff38144"
+            "5c3edf98-e1b7-11e7-acce-5ce0c50b9d66"
         ],
         [
-            "180644fb-e12c-11e7-8338-5c514ff38144"
+            "7f1d51f6-e1b7-11e7-9cf1-5ce0c50b9d66"
         ]
     ]
 },
@@ -82,7 +82,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
-    "auto_increment_value": 4,
+    "auto_increment_value": 5,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -106,13 +106,13 @@
     ],
     "rows": [
         [
-            "1650bf47-e12c-11e7-b7ee-5c514ff38144"
+            "5c3edf98-e1b7-11e7-acce-5ce0c50b9d66"
         ],
         [
-            "180644fb-e12c-11e7-8338-5c514ff38144"
+            "7f1d51f6-e1b7-11e7-9cf1-5ce0c50b9d66"
         ],
         [
-            "19bd4b75-e12c-11e7-ad42-5c514ff38144"
+            "a279c952-e1b7-11e7-9586-5ce0c50b9d66"
         ]
     ]
 },
@@ -120,13 +120,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = '19bd4b75-e12c-11e7-ad42-5c514ff38144'"
+    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = 'a279c952-e1b7-11e7-9586-5ce0c50b9d66'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 10,
-    "auto_increment_value": 4,
+    "auto_increment_value": 5,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -182,9 +182,9 @@
     ],
     "rows": [
         [
-            "19bd4b75-e12c-11e7-ad42-5c514ff38144",
-            "localhost:3337",
-            "localhost:3337"
+            "a279c952-e1b7-11e7-9586-5ce0c50b9d66",
+            "localhost:3360",
+            "localhost:3360"
         ]
     ]
 },
@@ -192,7 +192,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '19bd4b75-e12c-11e7-ad42-5c514ff38144'"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = 'a279c952-e1b7-11e7-9586-5ce0c50b9d66'"
 },
 {
     "type": "response",
