@@ -78,7 +78,6 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
   void reset_replayable_shell() {
     setup_recorder();  // must be called before set_defaults()
     reset_shell();
-    enable_testutil();
 
 #ifdef _WIN32
     mysqlshdk::db::replay::set_replay_query_hook([](const std::string &sql) {

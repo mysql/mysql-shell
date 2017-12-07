@@ -4,6 +4,9 @@
 //@ Connect
 ||
 
+//@ create cluster
+||
+
 //@<OUT> checkInstanceState: two arguments
 {
     "reason": "{{recoverable|new}}",
@@ -21,9 +24,6 @@
 
 //@ Failure: more than two arguments
 ||Invalid number of arguments in Cluster.checkInstanceState, expected 1 to 2 but got 3 (ArgumentError)
-
-//@ create cluster
-||
 
 //@ Adding instance
 ||
@@ -48,4 +48,3 @@
 
 //@ Finalization
 ||
-

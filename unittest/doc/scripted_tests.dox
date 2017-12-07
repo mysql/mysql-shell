@@ -27,17 +27,20 @@ executes test code and then validates the executed test code.
 A test script is pure JavaScript or Python that contains the code to be executed
 to perform the test.
 
-\subsection basic_chunk Basic Chunks
+\subsection basic_chunk Chunks
 A test script can be divided in sections called 'chunks'.
 
-A chunk is defined by a comment that starts with the next sequence:
+A chunk is created using a \a Chunk \a Identification \a Line. A \a Chunk
+\a Identification \a Line is a comment on the script that has the next
+structure:
+
 \if DOXYGEN_JS
 \code
-//@
+//@ \<Some text describing what is being tested in the chunk\> [{\<context\>}]
 \endcode
 \elseif DOXYGEN_PY
 \code
-#@
+#@ \<Some text describing what is being tested in the chunk\> [{\<context\>}]
 \endcode
 \endif
 
@@ -48,6 +51,9 @@ Example:
 shell.connect('root:@localhost:33060');
 var schema = session.getSchema('unexisting');
 var schema = session.getSchema('mysql');
+
+//@ This chunk will be executed if server version is > 8.0.3 {VER(>8.0.3)}
+print ('Running on a server > 8.0.3');
 \endcode
 \elseif DOXYGEN_PY
 \code
@@ -55,65 +61,23 @@ var schema = session.getSchema('mysql');
 shell.connect('root:@localhost:3306')
 schema = session.get_schema('unexisting')
 schema = session.get_schema('mysql')
+
+#@ This chunk will be executed if server version is > 8.0.3 {VER(>8.0.3)}
+print 'Running on a server > 8.0.3'
 \endcode
 \endif
 
-A basic chunk should be used when the verification will be done by ensuring the
-\a STDOUT or \a STDERR contain or not a specific string.
+Test execution occurs in a loop where the code in a Chunk is executed line by
+line, and then the corresponding set of validations is executed.
 
-\subsection multiline_validation_chunk Multiline Validation Chunk
-
-There are cases where the test code produces multiline output (either to \a
-STDOUT or \a STDERR) and it is required to verify such output contains specific
-content.
-
-Instead of having to add several \ref single_line_validation a
-\ref multiline_validation_chunk can be used instead.
-
-A \ref multiline_validation_chunk can be used to ensure multiple lines exist
-either on \a STDOUT or \a STDERR, validations on both streams are not allowed
-on these chunks.
-
-A \ref multiline_validation_chunk chunk is defined with comment that starts with
-any of the next sequences, depending on what is being validated, either
-\a STDOUT or \a STDERR:
-
-\if DOXYGEN_JS
-\code
-//@<OUT>
-//@<ERR>
-\endcode
-\elseif DOXYGEN_PY
-\code
-#@<OUT>
-#@<ERR>
-\endcode
-\endif
-
-Example:
-\if DOXYGEN_JS
-\code
-//@<OUT> Verifying the existing schemas
-session.sql('show databases').execute();
-\endcode
-\elseif DOXYGEN_PY
-\code
-#@<OUT> Verifying the existing schemas
-session.sql('show databases').execute()
-\endcode
-\endif
-
-When using a \ref multiline_validation_chunk on a \ref test_script a
-\ref multiline_validation should be added to the \ref validation_file
-
+The next section describes the how the validation methods.
 
 \section validation_file Validation File
 
-A validation file contains validation configuration for the different chunks
-defined on the corresponding \ref test_script.
+A validation file contains validation rules for each chunk defined
+on the corresponding \ref test_script.
 
-To define the validation for a chunk, copy the chunk identification line first
-and define the validation logic after.
+Validation rules are defined as chunks in the validation file.
 
 \subsection single_line_validation Single Line Validation
 
@@ -124,7 +88,21 @@ A single line validation can be used to:
 @li Verify a specific text is present in the \a STDERR
 @li Verify a specific text is NOT present in the \a STDERR
 
-A single line validation has the next format:
+To define the validations for a chunk, start by defining a \a Chunk
+\a Identification \a Line similar to the one for the chunks.
+
+The way the validation chunk is associated to the chunk, is by matching the
+description you use in both.
+
+\b IMPORTANT: the context information is NOT considered on this matching, this
+means you could have a code chunk using context information and the validation
+could omit it, the same way, you could have a code chunk without context
+information and the validation could have it.
+
+Once the \a Chunk \a Identification \a Line is defined, the next lines should
+contain the single line validation rules.
+
+A single line validation rule has the next format:
 
 \code
 <code>|<stdout>|<stdin>
@@ -146,14 +124,14 @@ then prepend \a \<stdout\> or \a \<stderr\> with the \a ~ symbol.
 Example:
 \if DOXYGEN_JS
 \code
-//@ This comment defines a new chunk in a JavaScript file
+//@ This comment defines a new validation chunk in a JavaScript file
 session|<Session:root@localhost:33060>|
 ||Session.getSchema: Unknown database 'unexisting'
 schema|<Schema:mysql>|~Unknown database 'mysql'
 \endcode
 \elseif DOXYGEN_PY
 \code
-#@ This comment defines a new chunk in a Python file
+#@ This comment defines a new validation chunk in a Python file
 session|<Session:root@localhost:33060>|
 ||Session.get_schema: Unknown database 'unexisting'
 schema|<Schema:mysql>|~Unknown database 'mysql'
@@ -173,14 +151,13 @@ and finally ensures the error "Unknown database 'mysql'" is NOT generated.
 
 \subsection multiline_validation Multiline Validation
 
-A \ref multiline_validation should be used when a \ref multiline_validation_chunk
-is present on the \ref test_script.
+A \ref multiline_validation is helpful when you want to verify several lines
+of text on either the \a STDOUT or the \a STDERR, instead of creating a
+validation rule for each line, you simply define the multiline validation chunk
+and paste the expected output under the \a Chunk \a Identification \a Line.
 
-As in \ref single_line_validation, a \ref multiline_validation begins with the
-identification line that defined the \ref multiline_validation_chunk.
-
-The text lines following the identification line are the text that must be found
-on the \a STDOUT or \a STDERR.
+To define a multiline validation chunk, simply append \<OUT\> or \<ERR\> to the
+token that creates the \a Chunk \a Identification \a Line.
 
 Example:
 
@@ -215,34 +192,42 @@ same order.
 The \a STDOUT and \a STDERR may contain extra text both at the beginning or at
 the end, as long as the expected text is found.
 
-should be used when a \ref multiline_validation_chunk
-is present on the \ref test_script.
-
 \subsection contextual_validation Contextual Validation
 
-There are cases where different contexts may lead to different results. In such
-cases it is possible to define specific validations for such contexts.
+There are cases where it is desired to execute chunks or validations only if
+specific conditions are met, the way to determine this is by using the optional
+\a {\<context\>} element of the \a Chunk \a Identification \a Line.
 
-The context is defined at runtime and despite it can be changed on C++ tests,
-changes are not possible from scripted texts.
+This \<context\> will be executed on the scripting environment and it is
+expected that evaluates to a boolean expression.
+If the result of the expression is TRUE then the chunk or validation chunk will
+be executed, if it evaluates to FALSE then the chunk or validation will be
+skipped.
 
-A default context is defined using the version of the MySQL Server being used
-for the test execution and so it is possible to define custom validations for
-specific server versions.
+\subsubsection The Version Macro (VER).
 
-\ref contextual_validation is available for both \ref single_line_validation
-and \ref multiline_validation.
-
-To define a \ref contextual_validation simply append the context information to
-the chunk identification line in the format of:
-
+To provide a handy method for version based context evaluation, the \a VER macro
+has been created. The purpose of this macro is to validate the version of the
+MySQL Server being used for the tests, usage is as follows:
 \code
-{<context>}
+VER([op]<version>)
 \endcode
 
-Example:
+Where \a op is any of: >=, >, <=, <, ==, !=
 
-Let's assume the next chunk is defined on the \ref test_script
+If \a op is omitted it will act as a '==''.
+
+Examples:
+\code
+VER(8.0.4)    // Returns TRUE if the server being used is 8.0.4
+VER(<8.0)     // Returns TRUE if the server being used is < 8.0
+VER(!=5.7.21) // Returns TRUE if the server being used is not 5.7.21
+\endcode
+
+
+The next example will use the context information to use different validations
+based on the server being used. Let's assume the next chunk is defined on the
+\ref test_script
 
 \if DOXYGEN_JS
 \code
@@ -280,11 +265,18 @@ And that the default cipher has been always DHE-RSA-AES256-SHA, the
 \endif
 
 But then in 8.0.4 the default cipher changed to DHE-RSA-AES128-GCM-SHA256, then
-we can set a \ref contextual_validation for 8.0.4 as follows
+we can update our validations as follows:
 
 \if DOXYGEN_JS
 \code
-//@<OUT> Verifying the default cipher {8.0.4}
+//@<OUT> Verifying the default cipher {VER(<8.0.4)}
++-------------------+--------------------+
+| Variable_name     | Value              |
++-------------------+--------------------+
+| Mysqlx_ssl_cipher | DHE-RSA-AES256-SHA |
++-------------------+--------------------+
+
+//@<OUT> Verifying the default cipher {VER(>=8.0.4)}
 +-------------------+---------------------------+
 | Variable_name     | Value                     |
 +-------------------+---------------------------+
@@ -293,7 +285,14 @@ we can set a \ref contextual_validation for 8.0.4 as follows
 \endcode
 \elseif DOXYGEN_PY
 \code
-#@<OUT> Verifying the default cipher {8.0.4}
+#@<OUT> Verifying the default cipher {VER(<8.0.4)}
++-------------------+--------------------+
+| Variable_name     | Value              |
++-------------------+--------------------+
+| Mysqlx_ssl_cipher | DHE-RSA-AES256-SHA |
++-------------------+--------------------+
+
+#@<OUT> Verifying the default cipher {VER(>=8.0.4)}
 +-------------------+---------------------------+
 | Variable_name     | Value                     |
 +-------------------+---------------------------+
@@ -302,8 +301,12 @@ we can set a \ref contextual_validation for 8.0.4 as follows
 \endcode
 \endif
 
-The proper validation will be executed based on the context where the tests
-are executed.
+The proper validation will be executed based on the server version being used.
+
+\b IMPORTANT:
+- Context validation supports ANY expression that evaluates to a boolean result
+- Context validation can be used to enable/disable both code chunks and
+  validation chunks.
 
 \subsection dynamic_expectation Dynamic Expectations
 

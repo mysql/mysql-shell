@@ -38,7 +38,6 @@
 ||Unsupported value received: <Session
 ||Unknown column 'id' in 'field list'
 
-#@ Collection.add single document
 #@ Table.insert execution
 |Affected Rows No Columns: 1|
 |Affected Rows Columns: 1|

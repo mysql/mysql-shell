@@ -415,7 +415,6 @@ void Shell_core_test_wrapper::enable_testutil() {
 void Shell_core_test_wrapper::enable_replay() {
   // Assumes reset_mysql() was already called
   setup_recorder();
-  enable_testutil();
 }
 
 void Shell_core_test_wrapper::observe_session_notifications() {

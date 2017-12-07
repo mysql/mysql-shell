@@ -49,26 +49,6 @@ The outputFormat option supports the following values:
  - vertical: displays the outputs vertically, one line per column value
 
 
-
-//@<OUT> Custom Prompt
-Callback to modify the default shell prompt.
-
-DESCRIPTION
-
-This property can be used to customize the shell prompt, i.e. to make it
-include more information than the default implementation.
-
-This property acts as a place holder for a function that would create the
-desired prompt.
-
-To modify the default shell prompt, follow the next steps:
-
- - Define a function that receives no parameters and returns a string which is
-   the desired prompt.
- - Assign the function to this property.
-
-The new prompt function will be automatically used to create the shell prompt.
-
 //@<OUT> Connect
 Establishes the shell global session.
 

@@ -35,7 +35,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
-extern tests::Version g_target_server_version;
+extern mysqlshdk::utils::Version g_target_server_version;
 extern "C" const char *g_test_home;
 extern "C" const char *g_mysqlsh_bin_folder;
 
@@ -56,65 +56,6 @@ std::string Shell_test_env::_path_splitter = "\\";
 #else
 std::string Shell_test_env::_path_splitter = "/";
 #endif
-
-Version::Version(): _major(0), _minor(0), _patch(0) {
-}
-
-// Minimal implementation of version parsing, no need for something more complex
-// for now
-Version::Version(const std::string& version): _major(0), _minor(0), _patch(0) {
-  auto tokens = shcore::str_split(version, "-", 1);
-
-  if (tokens.size() == 2)
-    _extra = tokens[1];
-  auto base_tokens = shcore::str_split(tokens[0], ".");
-
-  if (!base_tokens.empty())
-    _major = atoi(base_tokens[0].c_str());
-
-  if (base_tokens.size() >= 1)
-    _minor = atoi(base_tokens[1].c_str());
-
-  if (base_tokens.size() >= 2)
-    _patch = atoi(base_tokens[2].c_str());
-}
-
-std::string Version::base() {
-  std::string ret_val = shcore::str_format("%d.%d.%d", _major, _minor, _patch);
-
-  return ret_val;
-}
-
-std::string Version::full() {
-  if (_extra.empty())
-    return base();
-  else
-    return shcore::str_format("%d.%d.%d-%s", _major, _minor, _patch, _extra.c_str());
-}
-
-
-bool Version::operator < (const Version& other) {
-  return _major < other._major ||
-         (_major == other._major &&
-         (_minor < other._minor ||
-         (_minor == other._minor &&
-         _patch < other._patch)));
-}
-
-bool Version::operator <= (const Version& other) {
-  return *this < other || (_major == other._major &&
-                           _minor == other._minor &&
-                           _patch == other._patch);
-
-}
-bool Version::operator > (const Version& other) {
-  return !(*this <= other);
-}
-
-bool Version::operator >= (const Version& other) {
-  return !(*this < other);
-}
-
 
 /**
  * Initializes the variables that serve as base environment for the Unit Tests.

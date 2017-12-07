@@ -8,7 +8,7 @@
 |IndexType: <mysqlx.IndexType>|
 
 #@# mysqlx module: expression errors
-||Invalid number of arguments in mysqlx.expr, expected 1 but got 0
+||TypeError: expr() takes 1 arguments (0 given)
 ||mysqlx.expr: Argument #1 is expected to be a string
 
 #@ mysqlx module: expression

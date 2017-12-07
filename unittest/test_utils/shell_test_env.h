@@ -31,6 +31,7 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 #include <memory>
 #include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 #define ASSERT_THROW_LIKE(expr, exc, msg)                              \
   try {                                                                \
@@ -62,37 +63,6 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 
 
 namespace tests {
-/**
- * \ingroup UTFramework
- * Handles a version as defined for MySQL products.
- * \todo This class should maybe be moved to real shell code.
- */
-class Version {
-public:
-  Version();
-  explicit Version(const std::string& version);
-
-  int major() { return _major; }
-  int minor() { return _minor; }
-  int patch() { return _patch; }
-  std::string extra() { return _extra; }
-
-  std::string base();
-  std::string full();
-
-  bool operator < (const Version& other);
-  bool operator <= (const Version& other);
-  bool operator > (const Version& other);
-  bool operator >= (const Version& other);
-
-private:
-  int _major;
-  int _minor;
-  int _patch;
-  std::string _extra;
-};
-
-
 /**
  * \ingroup UTFramework
  * \todo This class must be documented.
@@ -148,7 +118,7 @@ class Shell_test_env : public ::testing::Test {
   std::string _mysql_uri_nopasswd;  //!< A password-less URI for MySQL protocol sessions
   std::string _socket;  //!< env:MYSQLX_SOCKET
   std::string _mysql_socket;  //!< env:MYSQL_SOCKET
-  Version _target_server_version;  //!< The version of the used MySQL Server
+  mysqlshdk::utils::Version _target_server_version;  //!< Used MySQL Server
   std::string _test_context;  //!< Context for script validation engine
 
   bool _recording_enabled = false;

@@ -79,9 +79,6 @@
 //@ Dissolve cluster (FR2-TS-1-2)
 ||
 
-//@ Create cluster
-||
-
 //@ Create cluster specifying aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa for groupName (FR3-TS-1-1)
 ||
 

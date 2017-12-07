@@ -62,7 +62,7 @@ class Api_connections : public Shell_js_script_tester {
     execute("var __my_ca_file_uri = '" + _my_ca_file_uri + "';");
     execute("var __sandbox_dir = '" + get_scripting_path(sandbox_path) + "';");
 
-    if (_target_server_version >= Version("8.0.4"))
+    if (_target_server_version >= mysqlshdk::utils::Version("8.0.4"))
       execute("var __default_cipher = 'DHE-RSA-AES128-GCM-SHA256';");
     else
       execute("var __default_cipher = 'DHE-RSA-AES256-SHA';");

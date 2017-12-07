@@ -45,8 +45,10 @@
 mysqlshdk::db::replay::Mode g_test_recording_mode =
     mysqlshdk::db::replay::Mode::Replay;
 
+bool g_generate_validation_file = false;
 // Default trace set (MySQL version) to be used for replay mode
-tests::Version g_target_server_version = tests::Version("8.0.4");
+mysqlshdk::utils::Version
+  g_target_server_version = mysqlshdk::utils::Version("8.0.4");
 
 // End test configuration block
 
@@ -138,7 +140,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
-          g_target_server_version = tests::Version(row[0]);
+          g_target_server_version = mysqlshdk::utils::Version(row[0]);
           version = g_target_server_version.full();
           if (row[1] && strcmp(row[1], "1") == 0)
             have_ssl = true;
@@ -480,6 +482,8 @@ int main(int argc, char **argv) {
       } else {
         target = target_version.c_str();
       }
+    } else if (shcore::str_caseeq(argv[index], "--generate-validation-file")) {
+      g_generate_validation_file = true;
     }
   }
 

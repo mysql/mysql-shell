@@ -50,7 +50,6 @@ class Auto_script_js : public Shell_js_script_tester,
   void reset_replayable_shell(const char *sub_test_name) {
     setup_recorder(sub_test_name);  // must be called before set_defaults()
     reset_shell();
-    enable_testutil();
     execute_setup();
 
 #ifdef _WIN32
