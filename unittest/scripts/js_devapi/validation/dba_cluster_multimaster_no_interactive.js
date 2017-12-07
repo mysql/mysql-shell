@@ -129,10 +129,10 @@
 //@ Dba: createCluster multiMaster 2, ok
 ||
 
-//@ Cluster: addInstance 2
+//@ Cluster: addInstance 2 again
 ||
 
-//@ Cluster: addInstance 3
+//@ Cluster: addInstance 3 again
 ||
 
 //@<OUT> Cluster: status: success

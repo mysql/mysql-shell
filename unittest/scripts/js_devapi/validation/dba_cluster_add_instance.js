@@ -15,9 +15,6 @@
 //@ Restore the quorum
 ||
 
-//@ Success adding another instance
-||
-
 //@ Success adding instance to the single cluster
 ||
 

@@ -26,15 +26,15 @@
 |All expected functions are available|
 |No additional functions are available|
 
-//@ CollectionFind: valid operations after bind
-|All expected functions are available|
-|No additional functions are available|
-
 //@ CollectionFind: valid operations after lockShared
 |All expected functions are available|
 |No additional functions are available|
 
 //@ CollectionFind: valid operations after lockExclusive
+|All expected functions are available|
+|No additional functions are available|
+
+//@ CollectionFind: valid operations after bind
 |All expected functions are available|
 |No additional functions are available|
 

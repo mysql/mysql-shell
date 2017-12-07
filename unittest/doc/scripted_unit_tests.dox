@@ -44,13 +44,7 @@ similar set of variables is available when the test scripts are executed.
 
 The list of variables available out of the box on test scripts are:
 
-@li \a __user: The user as defined in \a MYSQL_URI.
-@li \a __host: The host as defined in \a MYSQL_URI.
-@li \a __port: The port as defined in \a MYSQLX_PORT.
-@li \a __mysql_port: The port as defined in \a MYSQL_PORT.
-@li \a __pwd: The password if defined in \a MYSQL_PWD.
-@li \a __uri: A password-less URI for X protocol sessions.
-@li \a __uripwd: A full URI for X protocol sessions (password included).
+@li \a __user: The user as defined in \a MYSQL_URI.folders
 @li \a __mysql_uri: A password-less URI for MySQL protocol sessions.
 @li \a __mysql_uripwd: A full URI for MySQL protocol sessions (password included).
 @li \a __xhost_port: \a __host + ":" + \a _port
@@ -66,10 +60,112 @@ The list of variables available out of the box on test scripts are:
 @li \a hostname_ip: TBD
 @li \a testutil: An instance of the
 <a class ="el" href="classtests_1_1_testutils.html">Testutils</a> class.
+@li \a __version: The version of the MySQL Server being used for the tests.
 
 From the variables listed above, \a testutil deserves special mention as it is
 a testing module with lots of utility functions that make it easier to create
 tests.
+
+\subsection creating_tests Creating New Tests
+Creating a new test file is as simle as creating the test script divided in
+chunks as described in <a class ="el" href="script_testing.html">The Script
+Based Testing Framework</a>.
+
+To do this, you can simply use the shell and start trowing instructions there
+and copy/paste the ones that make sense on your script file, choose wisely how
+to create the chunks, in general, each chunk should be a very simple test.
+
+Once you are happy with the script, copy it into the one of the folders
+described at \ref auto_load_scripts.
+
+Now identify the filter required to execute that test, use:
+\code
+run_unit_tests --gtest_list_tests
+\endcode
+
+This will list all the tests available, you can use a starting filter to
+identify the ones of your interest:
+
+@li For JS AdminAPI Tests use: --gtest_filter=Admin_api_scripted/Auto_script_js*
+@li For JS DevAPI Tests use: --gtest_filter=Dev_api_scripted/Auto_script_js*
+@li For JS Shell Tests use: --gtest_filter=Shell_scripted/Auto_script_js*
+@li For PY AdminAPI Tests use: --gtest_filter=Admin_api_scripted/Auto_script_py*
+@li For PY DevAPI Tests use: --gtest_filter=Dev_api_scripted/Auto_script_py*
+@li For PY Shell Tests use: --gtest_filter=Shell_scripted/Auto_script_py*
+
+For example to list the Admin API tests, execute:
+
+\code
+run_unit_tests --gtest_list_tests --gtest_filter=Admin_api_scripted/Auto_script_js*
+
+At the end you will get the listing as follows:
+
+Admin_api_scripted/Auto_script_js.
+  run_and_check/0  # GetParam() = "js_adminapi/bug26159339_adminapi_does_not_take_group_name_into_account_interactive.js"
+  run_and_check/1  # GetParam() = "js_adminapi/clear_read_only.js"
+  run_and_check/2  # GetParam() = "js_adminapi/mismatched_group_name.js"
+  run_and_check/3  # GetParam() = "js_adminapi/reboot_cluster_super_read_only_interactive.js"
+\endcode
+
+There you can identify the \a run_and_check/# that belongs to the script
+you just created, use it as follows to execute your test:
+
+\code
+run_unit_tests --gtest_filter=Admin_api_scripted/Auto_script_js.run_and_check/1
+\endcode
+
+\subsubsection automatic_validations Automatic Validation File Generation
+
+If you tried executing your brand new test, most probably you got a errors like:
+
+\code
+MISSING VALIDATIONS FOR CHUNK
+\endcode
+
+This is because you have not created the validation file. This process can be
+done by hand, as explained in <a class ="el" href="script_testing.html">The Script
+Based Testing Framework</a>, but there is an easier way.
+
+Append \a --generate-validation-file to the command you used to execute your
+test, as follows:
+
+\code
+run_unit_tests --gtest_filter=Admin_api_scripted/Auto_script_js.run_and_check/1 --generate-validation-file
+
+You will see something like this:
+
+[==========] Running 1 test from 1 test case.
+[----------] Global test environment set-up.
+[----------] 1 test from Admin_api_scripted/Auto_script_js
+[ RUN      ] Admin_api_scripted/Auto_script_js.run_and_check/1
+Test script: js_adminapi/clear_read_only.js
+[       OK ] Admin_api_scripted/Auto_script_js.run_and_check/1 (524 ms)
+[----------] 1 test from Admin_api_scripted/Auto_script_js (524 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test case ran. (524 ms total)
+[  PASSED  ] 1 test.
+\endcode
+
+This mode of execution will cause every chunk on your script file to be executed
+and then for each chunk, it will grab all the content of \a STDOUT and \a STDERR
+and create the validation file.
+
+\b IMPORTANT: Most probably a lot of the information on this validation file
+is valid only for your environment, but if it is used on a different environment
+most probably the validations will fail.
+
+To fix this, you must edit the validation rules and properly set single line
+validations where it applies, also replace all the data that depends on your
+environment like hostnames, ports, connection strings and so on with dynamic
+variables available on the test environment so they automatically take the right
+values before the validation occurs.
+
+\b NOTE: the automatically generated validation file will have the same name as
+the script, but on the validation folder. If you execute the recording mode
+again a new file will be generated on the same location but appending the .new
+extension to it, if you execute the recording once again, the previous .new file
+will be overwritten.
 
 \subsection good_practices Testing Good Practices
 The next recommendations are considered good practices while creating new tests.

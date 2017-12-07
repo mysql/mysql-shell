@@ -82,13 +82,13 @@ session.close();
 // anymore, but the x-protocol port may take a bit longer. As so, we must use
 // testutil.startSandbox() to make sure the instance is restarted.
 
-//@<OUT> Stop sandbox 1
+//@ Stop sandbox 1
 testutil.stopSandbox(__mysql_sandbox_port1, 'root');
 
-//@<OUT> Stop sandbox 2
+//@ Stop sandbox 2
 testutil.stopSandbox(__mysql_sandbox_port2, 'root');
 
-//@<OUT> Stop sandbox 3
+//@ Stop sandbox 3
 testutil.stopSandbox(__mysql_sandbox_port3, 'root');
 
 //@ Start sandbox 1

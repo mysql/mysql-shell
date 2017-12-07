@@ -183,7 +183,10 @@
 #@ release after rollback (WL10869-ET1_9)
 ||SAVEPOINT TXSP5 does not exist
 
-
+#@ Session: test for drop schema functions
+||unknown attribute: drop_collection
+||unknown attribute: drop_table
+||unknown attribute: drop_view
 
 #@ Session: Testing dropping existing schema
 |None|
@@ -191,25 +194,8 @@
 #@ Session: Testing if the schema is actually dropped
 ||Unknown database 'node_session_schema'
 
-#@<OUT> Session: Testing drop_schema help
-Drops the schema with the specified name.
-
-SYNTAX
-
-  <Session>.drop_schema()
-
-RETURNS
-
- Nothing.
-
-
 #@ Session: Testing dropping non-existing schema
 |None|
-
-#@ Session: test for drop schema functions
-||unknown attribute: drop_collection
-||unknown attribute: drop_table
-||unknown attribute: drop_view
 
 #@ Session: current schema validations: nodefault, mysql
 |None|

@@ -1,5 +1,3 @@
-//@<OUT> Cluster: getCluster with interaction
-
 //@ Initialization
 ||
 

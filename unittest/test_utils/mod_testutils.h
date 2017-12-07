@@ -63,6 +63,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   List grepFile(String path, String pattern);
   Bool isReplying();
   Undefined fail();
+  Boolean versionCheck(String v1, String op, String v2);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd);
   None destroy_sandbox(int port);
@@ -82,6 +83,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   list grep_file(str path, str pattern);
   bool is_replying();
   None fail();
+  bool version_check(str v1, str op, str v2);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -122,6 +124,10 @@ class Testutils : public shcore::Cpp_object_bridge {
   void remove_from_sandbox_conf(int port, const std::string &option);
   std::string get_sandbox_conf_path(int port);
   std::string get_sandbox_log_path(int port);
+
+  bool version_check(const std::string &v1,
+                     const std::string &op,
+                     const std::string &v2);
 
  public:
   // InnoDB cluster routines

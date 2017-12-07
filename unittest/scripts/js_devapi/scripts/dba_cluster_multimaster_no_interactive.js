@@ -67,12 +67,12 @@ else
 var Cluster = dba.getCluster('devCluster');
 
 
-//@ Cluster: addInstance 2
+//@ Cluster: addInstance 2 again
 add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
 
 wait_slave_state(Cluster, uri2, "ONLINE");
 
-//@ Cluster: addInstance 3
+//@ Cluster: addInstance 3 again
 add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 
 wait_slave_state(Cluster, uri3, "ONLINE");

@@ -260,6 +260,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
 
     _interactive_shell->finish_init();
     set_defaults();
+    enable_testutil();
   }
 
   void connect_classic();

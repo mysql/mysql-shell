@@ -78,11 +78,14 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoi
 
 The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the MySQL Cluster.
 
-//@<OUT> Stop sandbox 2
+//@ Stop sandbox 1
+||
 
-//@<OUT> Stop sandbox 3
+//@ Stop sandbox 2
+||
 
-//@<OUT> Stop sandbox 1
+//@ Stop sandbox 3
+||
 
 //@ Start sandbox 1
 ||

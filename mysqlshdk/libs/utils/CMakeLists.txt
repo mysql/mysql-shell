@@ -44,6 +44,7 @@ set(utils_SOURCE
     dtoa.cc
     options.cc
     uuid_gen.cc
+    version.cc
 )
 
 # platform dependent implementations

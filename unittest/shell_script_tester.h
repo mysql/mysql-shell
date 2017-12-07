@@ -22,26 +22,35 @@
 #include <map>
 #include <utility>
 #include <vector>
-#include "test_utils.h"
+#include "unittest/test_utils.h"
 
 /**
  * Defines the type of validations available on the script testing engine.
  */
 enum class ValidationType {
   Simple = 0,
-  LineByLine = 1
+  Multiline = 1
+};
+
+// Note(rennox) the chunk lines in a test script and the ones on the validation
+// file have different needs: the validation type and stream are only needed for
+// validation, those things will start being ignored on the test scripts until
+// they are cleaned up
+struct Chunk_definition{
+  std::string line;           // The line as read from the file
+  std::string id;             // The ID of the chunk.
+  std::string context;        // The context if defined.
+  ValidationType validation;  // The validation type: single or multiline.
+  std::string stream;         // The stream for multiline validation.
+  int linenum;                // The line number
 };
 
 /**
  * Defines a validation to be done on the shell script testing engine.
  */
 struct Validation {
-  Validation(const std::vector<std::string>& source, ValidationType vtype = ValidationType::Simple) {
-    if (source.size() < 3) {
-      std::string a;
-      a = "asads";
-      std::cout << a;
-    }
+  Validation(const std::vector<std::string>& source,
+             const std::shared_ptr<Chunk_definition> &chunk_def) {
     code = source.size() >= 1 ? source[0] : "";
     expected_output = source.size() >= 2 ? source[1] : "";
     expected_error = source.size() >= 3 ? source[2] : "";
@@ -52,18 +61,18 @@ struct Validation {
       expected_output = "";
     }
 
-    type = vtype;
+    def = chunk_def;
   }
 
-  ValidationType type;  //!< Defines the validation type.
   std::string code;  //!< Defines code that must be executed before the validation takes place
   std::string expected_output;  //!< Defines the expected output
   std::string unexpected_output;  //!< Defines unexpected output
   std::string expected_error;  //!< Defines the expected error
+
+  std::shared_ptr<Chunk_definition> def;
 };
 
-typedef std::vector<Validation> Validation_t;
-typedef std::map<std::string, Validation_t> Context_validation_t;
+typedef std::vector<std::shared_ptr<Validation>> Chunk_validations;
 
 #define NEW_TEST_SCRIPT(x) _shell_scripts_home+"/"+x+"."+_extension
 #define PRE_SCRIPT(x) _shell_scripts_home+"/"+x+".pre"
@@ -72,6 +81,16 @@ typedef std::map<std::string, Validation_t> Context_validation_t;
 #define TEST_SCRIPT(x) _scripts_home+"/"+x
 #define SETUP_SCRIPT(x) _shell_scripts_home+"/setup/"+x
 #define VALIDATION_SCRIPT(x) _shell_scripts_home+"/validation/"+x
+
+typedef std::pair<size_t, std::string> Chunk_line_t;
+
+struct Chunk_t {
+  Chunk_t() {
+    def.reset(new Chunk_definition());
+  }
+  std::vector<Chunk_line_t> code;
+  std::shared_ptr<Chunk_definition> def;
+};
 
 /**
  * Base class for the Shell Script Testing engine.
@@ -105,6 +124,8 @@ protected:
   virtual std::string get_chunk_by_line_token() = 0;
   virtual std::string get_assumptions_token() = 0;
   virtual std::string get_variable_prefix() = 0;
+  virtual std::string get_true_token() = 0;
+  virtual std::string get_false_token() = 0;
 
   std::string _extension;
   bool _new_format;
@@ -118,9 +139,9 @@ protected:
 private:
   // Chunks of code will be stored here
   std::string _filename;
-  std::map<std::string, std::vector<std::pair<size_t, std::string>>> _chunks;
+  std::map<std::string, Chunk_t> _chunks;
   std::vector<std::string> _chunk_order;
-  std::map<std::string, Context_validation_t> _chunk_validations;
+  std::map<std::string, Chunk_validations> _chunk_validations;
   std::map<std::string, int> _chunk_to_line;
 
   void execute_script(const std::string& path = "", bool in_chunks = false, bool is_pre_script = false);
@@ -130,11 +151,13 @@ private:
   std::string resolve_string(const std::string& source);
   virtual void pre_process_line(const std::string &path, std::string & line) {};
 
-  void load_source_chunks(std::istream & stream);
-  void add_validation(const std::string &chunk, const std::string &version,
-                      const std::vector<std::string>& source,
-                      ValidationType type = ValidationType::Simple);
-  void load_validations(const std::string& path, bool in_chunks = false);
+  std::shared_ptr<Chunk_definition> load_chunk_definition(const std::string &line);
+  void load_source_chunks(const std::string& path, std::istream & stream);
+  void add_source_chunk(const std::string& path, const Chunk_t& chunk);
+  void add_validation(const std::shared_ptr<Chunk_definition> &chunk,
+                      const std::vector<std::string>& source);
+  void load_validations(const std::string& path);
+  bool context_enabled(const std::string& context);
 };
 
 /**
@@ -145,11 +168,13 @@ protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void set_defaults();
 
-  virtual std::string get_comment_token() { return "//"; };
+  virtual std::string get_comment_token() { return "//"; }
   virtual std::string get_chunk_token() { return "//@"; }
   virtual std::string get_chunk_by_line_token() { return "//@#"; }
   virtual std::string get_assumptions_token() { return "// Assumptions:"; }
-  virtual std::string get_variable_prefix() { return "var "; };
+  virtual std::string get_variable_prefix() { return "var "; }
+  virtual std::string get_true_token()  { return "true"; }
+  virtual std::string get_false_token() { return "false"; }
 };
 
 /**
@@ -165,4 +190,6 @@ protected:
   virtual std::string get_chunk_by_line_token() { return "#@#"; }
   virtual std::string get_assumptions_token() { return "# Assumptions:"; }
   virtual std::string get_variable_prefix() { return ""; }
+  virtual std::string get_true_token()  { return "True"; }
+  virtual std::string get_false_token() { return "False"; }
 };

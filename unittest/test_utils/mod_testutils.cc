@@ -51,6 +51,7 @@
 #include "mysqlshdk/libs/utils/utils_process.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
@@ -113,6 +114,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("isReplaying", &Testutils::is_replaying);
   expose("fail", &Testutils::fail, "context");
+  expose("versionCheck", &Testutils::version_check, "v1", "op", "v2");
 
   _delegate.print = print;
   _delegate.print_error = print;
@@ -1049,6 +1051,55 @@ bool Testutils::deploy_sandbox_from_boilerplate(int port) {
     }
   }
   return true;
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Compares two version strings.
+ *
+ * @param v1 the first version to be compared.
+ * @param op the comparison operator to be used.
+ * @param v2 the second version to be compared.
+ *
+ * This function performs the comparison operation at op.
+ *
+ * If op is empty, an == operation will be done
+ */
+#if DOXYGEN_JS
+Boolean Testutils::versionCheck(String v1, String op, String v2);
+#elif DOXYGEN_PY
+bool Testutils::version_check(str v1, str op, str v2);
+#endif
+///@}
+bool Testutils::version_check(const std::string &v1, const std::string &op,
+                              const std::string &v2) {
+  bool ret_val = true;
+
+  mysqlshdk::utils::Version ver1, ver2;
+
+  ver1 = mysqlshdk::utils::Version(v1);
+  ver2 = mysqlshdk::utils::Version(v2);
+
+  if (ret_val) {
+    if (op.empty() || op == "==")
+      ret_val = ver1 == ver2;
+    else if (op == "!=")
+      ret_val = ver1 != ver2;
+    else if (op == ">=")
+      ret_val = ver1 >= ver2;
+    else if (op == "<=")
+      ret_val = ver1 <= ver2;
+    else if (op == ">")
+      ret_val = ver1 > ver2;
+    else if (op == "<")
+      ret_val = ver1 < ver2;
+    else
+      throw std::logic_error(get_function_name("versionCheck") +
+                             ": Invalid operator: " + op);
+  }
+
+  return ret_val;
 }
 
 /**  @name Sandbox Operations

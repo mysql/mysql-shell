@@ -184,6 +184,10 @@
 ||SAVEPOINT TXSP5 does not exist
 
 
+//@ Session: test for drop schema functions
+||Invalid object member dropCollection (AttributeError)
+||Invalid object member dropTable (AttributeError)
+||Invalid object member dropView (AttributeError)
 
 
 //@ Session: Testing dropping existing schema
@@ -195,10 +199,6 @@
 //@ Session: Testing dropping non-existing schema
 |undefined|
 
-//@ Session: test for drop schema functions
-||Invalid object member dropCollection (AttributeError)
-||Invalid object member dropTable (AttributeError)
-||Invalid object member dropView (AttributeError)
 
 //@ Session: current schema validations: nodefault, mysql
 |null|
