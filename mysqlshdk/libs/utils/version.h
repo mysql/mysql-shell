@@ -34,21 +34,21 @@ class Version {
   Version();
   explicit Version(const std::string& version);
 
-  int major() const {
+  int get_major() const {
     return _major;
   }
-  int minor() const {
+  int get_minor() const {
     return _minor ? *_minor : 0;
   }
-  int patch() const {
+  int get_patch() const {
     return _patch ? *_patch : 0;
   }
-  std::string extra() const {
+  std::string get_extra() const {
     return _extra ? *_extra : "";
   }
 
-  std::string base() const;
-  std::string full() const;
+  std::string get_base() const;
+  std::string get_full() const;
 
   bool operator<(const Version& other);
   bool operator<=(const Version& other);

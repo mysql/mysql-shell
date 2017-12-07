@@ -72,7 +72,7 @@ int Version::parse_token(const std::string& data) {
   return value;
 }
 
-std::string Version::base() const {
+std::string Version::get_base() const {
   std::string ret_val = std::to_string(_major);
 
   if (_minor) {
@@ -85,8 +85,8 @@ std::string Version::base() const {
   return ret_val;
 }
 
-std::string Version::full() const {
-  std::string ret_val = base();
+std::string Version::get_full() const {
+  std::string ret_val = get_base();
 
   if (_extra)
     ret_val.append("-" + *_extra);
@@ -97,13 +97,15 @@ std::string Version::full() const {
 bool Version::operator<(const Version& other) {
   return _major < other._major ||
          (_major == other._major &&
-          (minor() < other.minor() ||
-           (minor() == other.minor() && patch() < other.patch())));
+          (get_minor() < other.get_minor() ||
+           (get_minor() == other.get_minor() &&
+            get_patch() < other.get_patch())));
 }
 
 bool Version::operator<=(const Version& other) {
-  return *this < other || (_major == other._major && minor() == other.minor() &&
-                           patch() == other.patch());
+  return *this < other || (_major == other._major &&
+                           get_minor() == other.get_minor() &&
+                           get_patch() == other.get_patch());
 }
 bool Version::operator>(const Version& other) {
   return !(*this <= other);
@@ -114,8 +116,9 @@ bool Version::operator>=(const Version& other) {
 }
 
 bool Version::operator==(const Version& other) {
-  return _major == other._major && minor() == other.minor() &&
-         patch() == other.patch();
+  return _major == other._major &&
+         get_minor() == other.get_minor() &&
+         get_patch() == other.get_patch();
 }
 
 bool Version::operator!=(const Version& other) {

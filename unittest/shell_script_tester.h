@@ -124,8 +124,7 @@ protected:
   virtual std::string get_chunk_by_line_token() = 0;
   virtual std::string get_assumptions_token() = 0;
   virtual std::string get_variable_prefix() = 0;
-  virtual std::string get_true_token() = 0;
-  virtual std::string get_false_token() = 0;
+  virtual shcore::NamingStyle get_naming_style() = 0;
 
   std::string _extension;
   bool _new_format;
@@ -173,8 +172,7 @@ protected:
   virtual std::string get_chunk_by_line_token() { return "//@#"; }
   virtual std::string get_assumptions_token() { return "// Assumptions:"; }
   virtual std::string get_variable_prefix() { return "var "; }
-  virtual std::string get_true_token()  { return "true"; }
-  virtual std::string get_false_token() { return "false"; }
+  virtual shcore::NamingStyle get_naming_style() { return shcore::LowerCamelCase; }
 };
 
 /**
@@ -190,6 +188,5 @@ protected:
   virtual std::string get_chunk_by_line_token() { return "#@#"; }
   virtual std::string get_assumptions_token() { return "# Assumptions:"; }
   virtual std::string get_variable_prefix() { return ""; }
-  virtual std::string get_true_token()  { return "True"; }
-  virtual std::string get_false_token() { return "False"; }
+  virtual shcore::NamingStyle get_naming_style() { return shcore::LowerCaseUnderscores; }
 };

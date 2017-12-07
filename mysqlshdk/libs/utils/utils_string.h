@@ -174,10 +174,11 @@ inline std::vector<std::string> str_split(
   size_t index = 0, new_find = 0;
 
   while (new_find != std::string::npos) {
-    if (maxsplit < 0 || maxsplit-- > 0)
+    if (maxsplit--)
       new_find = input.find_first_of(separator_chars, index);
     else
       new_find = std::string::npos;
+
     if (new_find != std::string::npos) {
       // When compress is enabled, consecutive separators
       // do not generate new elements

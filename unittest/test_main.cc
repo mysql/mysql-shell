@@ -141,7 +141,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           g_target_server_version = mysqlshdk::utils::Version(row[0]);
-          version = g_target_server_version.full();
+          version = g_target_server_version.get_full();
           if (row[1] && strcmp(row[1], "1") == 0)
             have_ssl = true;
           if (row[2])
@@ -458,7 +458,7 @@ int main(int argc, char **argv) {
   ngcommon::Logger::setup_instance(log_path.c_str(), false);
 
   bool got_filter = false;
-  std::string target_version = g_target_server_version.base();
+  std::string target_version = g_target_server_version.get_base();
   const char *target = target_version.c_str();
 
   for (int index = 0; index < argc; index++) {
