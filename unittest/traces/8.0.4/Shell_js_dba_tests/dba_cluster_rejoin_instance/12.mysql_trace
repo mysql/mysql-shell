@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "406e203e-e10a-11e7-b08f-5ce0c50b9d66"
+            "615941bf-e18a-11e7-9749-5ce0c50b9d66"
         ]
     ]
 },
@@ -96,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
+    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
 },
 {
     "type": "response",
@@ -109,12 +109,28 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 0,
-            "fractional": 31,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 4096,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -126,6 +142,7 @@
     ],
     "rows": [
         [
+            "group_replication_group_seeds",
             ""
         ]
     ]
@@ -232,7 +249,7 @@
             231,
             "",
             "",
-            "1fcd2c61-e10a-11e7-a614-5ce0c50b9d66:1-14,\n7d572514-e10a-11e7-a4c6-5ce0c50b9d66:1-18"
+            "40e0276c-e18a-11e7-8d67-5ce0c50b9d66:1-14,\na179f6f8-e18a-11e7-83ab-5ce0c50b9d66:1-18"
         ]
     ]
 },

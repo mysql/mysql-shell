@@ -67,7 +67,7 @@
     "rows": [
         [
             "gtid_executed",
-            "113e4476-e10a-11e7-88f0-5ce0c50b9d66:1-2,\nccaece55-e109-11e7-a2bf-5ce0c50b9d66:1-14"
+            "31149604-e18a-11e7-aed7-5ce0c50b9d66:1-2,\neb0d74c5-e189-11e7-af86-5ce0c50b9d66:1-14"
         ],
         [
             "gtid_purged",

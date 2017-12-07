@@ -31,6 +31,7 @@
 
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 #include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 
@@ -795,8 +796,8 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
   return seed_address;
 }
 
-std::vector<Instance_definition>
-    MetadataStorage::get_replicaset_instances(uint64_t rs_id, bool with_state) {
+std::vector<Instance_definition> MetadataStorage::get_replicaset_instances(
+    uint64_t rs_id, bool with_state, const std::vector<std::string> &states) {
   std::vector<Instance_definition> ret_val;
   std::string statement;
   shcore::sqlstring query;
@@ -807,13 +808,18 @@ std::vector<Instance_definition>
   if (with_state)
     statement.append(", MEMBER_STATE");
 
-  statement.append(" from mysql_innodb_cluster_metadata.instances ");
+  statement.append(" from mysql_innodb_cluster_metadata.instances i ");
 
-  if (with_state)
-    statement.append("LEFT JOIN performance_schema.replication_group_members "
-                 "ON `mysql_server_uuid`=`MEMBER_ID` ");
+  if (with_state || !states.empty())
+    statement.append("LEFT JOIN performance_schema.replication_group_members g "
+                     "ON g.member_id = i.mysql_server_uuid ");
 
   statement.append(" WHERE replicaset_id = ?");
+  if (!states.empty()) {
+    statement.append(" AND g.member_state IN (");
+    statement.append(shcore::str_join(states, ","));
+    statement.append(")");
+  }
 
   query = shcore::sqlstring(statement.c_str(), 0);
   query << rs_id;
@@ -840,33 +846,22 @@ std::vector<Instance_definition>
 
 std::vector<Instance_definition>
     MetadataStorage::get_replicaset_online_instances(uint64_t rs_id) {
-  std::vector<Instance_definition> ret_val;
-  shcore::sqlstring query;
+  return get_replicaset_instances(rs_id, false, {"'ONLINE'"});
+}
 
-  query = shcore::sqlstring(
-      "SELECT mysql_server_uuid, instance_name, role,"
-      " JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host"
-      " FROM performance_schema.replication_group_members g"
-      " JOIN mysql_innodb_cluster_metadata.instances i"
-      " ON g.member_id = i.mysql_server_uuid"
-      " WHERE g.member_state = 'ONLINE'"
-      " AND replicaset_id = ?", 0);
-  query << rs_id;
-  query.done();
-
-  auto result = execute_sql(query);
-  auto row = result->fetch_one();
-  while (row) {
-    Instance_definition instance;
-    instance.uuid = row->get_string(0);
-    instance.label = row->get_string(1);
-    instance.role = row->get_string(2);
-    instance.endpoint = row->get_string(3);
-    ret_val.push_back(instance);
-    row = result->fetch_one();
-  }
-
-  return ret_val;
+/**
+ * Retrieve the list of active instance in an specific replicaset.
+ *
+ * The list of active instance includes all instance with the status (ONLINE
+ * or RECOVERING). The instance definitions are returned.
+ *
+ * @param rs_id ID of the target replicaset.
+ * @return vector with the instance definitions of all active instance in the
+ *         specified replicaset.
+ */
+std::vector<Instance_definition>
+MetadataStorage::get_replicaset_active_instances(uint64_t rs_id) {
+  return get_replicaset_instances(rs_id, false, {"'ONLINE'", "'RECOVERING'"});
 }
 
 Instance_definition MetadataStorage::get_instance(

@@ -194,7 +194,7 @@
             5153,
             "",
             "",
-            "bfd42a4a-e10c-11e7-a659-5ce0c50b9d66:1-21,\nde69bd88-e10c-11e7-8b45-5ce0c50b9d66:1-3"
+            "85520c0b-e18c-11e7-92c3-5ce0c50b9d66:1-21,\na66e7e10-e18c-11e7-9237-5ce0c50b9d66:1-3"
         ]
     ]
 },
@@ -285,7 +285,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '#R@;,-4_<l+&7=?v,$x~$L:&3@(K*P?%' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ ';N)?(r9~j]@5[<y)$v>*-G+@F9J%/:?^' /*)*/ "
 },
 {
     "type": "response",
@@ -300,7 +300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '#R@;,-4_<l+&7=?v,$x~$L:&3@(K*P?%' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ ';N)?(r9~j]@5[<y)$v>*-G+@F9J%/:?^' /*)*/ "
 },
 {
     "type": "response",
@@ -419,7 +419,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 32,
-    "auto_increment_value": 9,
+    "auto_increment_value": 12,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -428,13 +428,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (9, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (12, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 34,
-    "auto_increment_value": 9,
+    "auto_increment_value": 12,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -443,7 +443,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 9 WHERE cluster_id = 9"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 12 WHERE cluster_id = 12"
 },
 {
     "type": "response",
@@ -458,7 +458,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 9"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 12"
 },
 {
     "type": "response",
@@ -496,7 +496,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 9 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 12 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",

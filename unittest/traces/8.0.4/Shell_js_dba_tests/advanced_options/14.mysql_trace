@@ -191,10 +191,10 @@
     "rows": [
         [
             "pjesus-TECRA-Z40-B-bin.000002",
-            16446,
+            16450,
             "",
             "",
-            "a16683ec-e102-11e7-ad48-5ce0c50b9d66:1-36"
+            "45d0635a-e183-11e7-a364-5ce0c50b9d66:1-36"
         ]
     ]
 },
@@ -285,7 +285,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000005'@'%' IDENTIFIED BY /*(*/ '~,z$*#Q1)8}f*(H?(B;@]>n+-[@5,{x/' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000005'@'%' IDENTIFIED BY /*(*/ '|:^t:(.O>6c?%&.C2&@J=>;l{#?H0j~>' /*)*/ "
 },
 {
     "type": "response",
@@ -300,7 +300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000005'@'localhost' IDENTIFIED BY /*(*/ '~,z$*#Q1)8}f*(H?(B;@]>n+-[@5,{x/' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000005'@'localhost' IDENTIFIED BY /*(*/ '|:^t:(.O>6c?%&.C2&@J=>;l{#?H0j~>' /*)*/ "
 },
 {
     "type": "response",
@@ -419,7 +419,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 32,
-    "auto_increment_value": 24,
+    "auto_increment_value": 26,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -428,13 +428,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (24, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (26, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 34,
-    "auto_increment_value": 24,
+    "auto_increment_value": 26,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -443,7 +443,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 24 WHERE cluster_id = 24"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 26 WHERE cluster_id = 26"
 },
 {
     "type": "response",
@@ -458,7 +458,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 24"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 26"
 },
 {
     "type": "response",
@@ -496,7 +496,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 24 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 26 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",

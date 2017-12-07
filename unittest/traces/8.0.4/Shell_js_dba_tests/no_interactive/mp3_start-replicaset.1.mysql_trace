@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            2931491708
+            1171000066
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0014uCJ5\u0017\u0017e%!qR[Q\u001Co\u0011XNFuwU4cTUkj9Y40Yp/Y4W3bDduqYqNIyW1ONX6mWQAHU/",
+            "$A$005$7j2\u001Aoz\n\u001C#\u000B\r1\u0019IxmsW/R9qPpWyL8hxO7AkcZPSaapS9XZjlrVZc/AyqwGY5w4W5",
             "N",
-            "2017-12-14 21:03:13",
+            "2017-12-15 12:28:09",
             null,
             "N",
             "Y",
@@ -2694,9 +2694,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$EH>3\bHR%b\u000F5Q\u0001y\u00050XXN=JqImtHmTTKn1biYUKPuXfq1jUZeVlyglyvMkw7l9dL8",
+            "$A$005$t\u0003ciel\u0006n%\u0019\u00042I5Y\\b{\u0001\nDLOmjYVrgVGIHBLtgH4zVztogpvBgRCK9rwtm0RuCs.",
             "N",
-            "2017-12-14 21:04:32",
+            "2017-12-15 12:29:30",
             null,
             "N",
             "N",
@@ -3470,7 +3470,7 @@
     ],
     "rows": [
         [
-            2931491708
+            1171000066
         ]
     ]
 },
@@ -3508,7 +3508,7 @@
     ],
     "rows": [
         [
-            "622a6932-e112-11e7-b36a-5ce0c50b9d66"
+            "9968949a-e193-11e7-b6b4-5ce0c50b9d66"
         ]
     ]
 },
@@ -3636,7 +3636,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = '622a6932-e112-11e7-b36a-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '9968949a-e193-11e7-b6b4-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -4176,7 +4176,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '6~%;-[}2%@+m.*p#[&P[,{Q;@5_%~}G-' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '6I&l*=|(1(j>?k>^.4=]U[~)^@<a:*R%' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

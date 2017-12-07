@@ -142,8 +142,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -151,7 +151,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -469,7 +469,7 @@
         [
             "default",
             "pm",
-            "bcea021c-e10b-11e7-af21-5ce0c50b9d66"
+            "ebd24a71-e18b-11e7-8841-5ce0c50b9d66"
         ]
     ]
 },
@@ -507,7 +507,7 @@
     ],
     "rows": [
         [
-            "bcea021c-e10b-11e7-af21-5ce0c50b9d66"
+            "ebd24a71-e18b-11e7-8841-5ce0c50b9d66"
         ]
     ]
 },
@@ -637,8 +637,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -646,7 +646,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -824,7 +824,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -870,7 +870,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -884,7 +884,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
             "length": 160,
@@ -900,7 +900,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "instance_name",
             "column_label": "instance_name",
             "length": 1024,
@@ -916,7 +916,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "role",
             "column_label": "role",
             "length": 48,
@@ -948,7 +948,7 @@
         {
             "schema": "performance_schema",
             "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
+            "table_label": "g",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
             "length": 256,
@@ -964,14 +964,14 @@
     ],
     "rows": [
         [
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340",
             "ONLINE"
         ],
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350",
@@ -1105,8 +1105,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -1114,7 +1114,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1292,7 +1292,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -1338,7 +1338,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 55,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -1352,7 +1352,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
             "length": 160,
@@ -1368,7 +1368,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "instance_name",
             "column_label": "instance_name",
             "length": 1024,
@@ -1384,7 +1384,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "role",
             "column_label": "role",
             "length": 48,
@@ -1416,7 +1416,7 @@
         {
             "schema": "performance_schema",
             "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
+            "table_label": "g",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
             "length": 256,
@@ -1432,14 +1432,14 @@
     ],
     "rows": [
         [
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340",
             "ONLINE"
         ],
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350",
@@ -1573,8 +1573,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -1582,7 +1582,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 63,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1760,7 +1760,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -1806,7 +1806,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 73,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -1820,7 +1820,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
             "length": 160,
@@ -1836,7 +1836,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "instance_name",
             "column_label": "instance_name",
             "length": 1024,
@@ -1852,7 +1852,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "role",
             "column_label": "role",
             "length": 48,
@@ -1884,7 +1884,7 @@
         {
             "schema": "performance_schema",
             "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
+            "table_label": "g",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
             "length": 256,
@@ -1900,14 +1900,14 @@
     ],
     "rows": [
         [
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340",
             "ONLINE"
         ],
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350",
@@ -2041,8 +2041,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -2050,7 +2050,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2228,7 +2228,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -2274,7 +2274,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -2288,7 +2288,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
             "length": 160,
@@ -2304,7 +2304,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "instance_name",
             "column_label": "instance_name",
             "length": 1024,
@@ -2320,7 +2320,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "role",
             "column_label": "role",
             "length": 48,
@@ -2352,7 +2352,7 @@
         {
             "schema": "performance_schema",
             "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
+            "table_label": "g",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
             "length": 256,
@@ -2368,14 +2368,14 @@
     ],
     "rows": [
         [
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340",
             "ONLINE"
         ],
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350",
@@ -2509,8 +2509,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -2518,7 +2518,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 99,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2696,7 +2696,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -2742,7 +2742,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 109,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -2756,7 +2756,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
             "length": 160,
@@ -2772,7 +2772,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "instance_name",
             "column_label": "instance_name",
             "length": 1024,
@@ -2788,7 +2788,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "role",
             "column_label": "role",
             "length": 48,
@@ -2820,7 +2820,7 @@
         {
             "schema": "performance_schema",
             "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
+            "table_label": "g",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
             "length": 256,
@@ -2836,14 +2836,14 @@
     ],
     "rows": [
         [
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340",
             "ONLINE"
         ],
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350",
@@ -2977,8 +2977,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -2986,7 +2986,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 117,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -3164,7 +3164,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -3210,7 +3210,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 127,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances LEFT JOIN performance_schema.replication_group_members ON `mysql_server_uuid`=`MEMBER_ID`  WHERE replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -3224,7 +3224,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "mysql_server_uuid",
             "column_label": "mysql_server_uuid",
             "length": 160,
@@ -3240,7 +3240,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "instance_name",
             "column_label": "instance_name",
             "length": 1024,
@@ -3256,7 +3256,7 @@
         {
             "schema": "mysql_innodb_cluster_metadata",
             "table_name": "instances",
-            "table_label": "instances",
+            "table_label": "i",
             "column_name": "role",
             "column_label": "role",
             "length": 48,
@@ -3288,7 +3288,7 @@
         {
             "schema": "performance_schema",
             "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
+            "table_label": "g",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
             "length": 256,
@@ -3304,14 +3304,14 @@
     ],
     "rows": [
         [
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340",
             "UNREACHABLE"
         ],
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350",
@@ -3445,8 +3445,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66"
         ]
     ]
 },
@@ -3454,7 +3454,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 135,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -3585,7 +3585,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 141,
-    "sql": "SELECT mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host FROM performance_schema.replication_group_members g JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid WHERE g.member_state = 'ONLINE' AND replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 1 AND g.member_state IN ('ONLINE')"
 },
 {
     "type": "response",
@@ -3663,7 +3663,7 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350"
@@ -3796,8 +3796,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66"
         ]
     ]
 },
@@ -3805,7 +3805,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 149,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -4057,7 +4057,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 165,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ ']M,u,1|~m&5^@x(%z.~.8>&J(|K^Q*?/' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '{);H=k9p%|q-#<#](f#5M^6N<-:(+/S&' /*)*/ "
 },
 {
     "type": "response",
@@ -4072,7 +4072,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 167,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ ']M,u,1|~m&5^@x(%z.~.8>&J(|K^Q*?/' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '{);H=k9p%|q-#<#](f#5M^6N<-:(+/S&' /*)*/ "
 },
 {
     "type": "response",
@@ -4179,7 +4179,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66"
         ]
     ]
 },
@@ -4187,7 +4187,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 177,
-    "sql": "SELECT mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host FROM performance_schema.replication_group_members g JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid WHERE g.member_state = 'ONLINE' AND replicaset_id = 1"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 1 AND g.member_state IN ('ONLINE')"
 },
 {
     "type": "response",
@@ -4265,7 +4265,7 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350"
@@ -4363,7 +4363,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 183,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '9f1c8719-e10b-11e7-b09a-5ce0c50b9d66', 'localhost:3360', 'HA', json_object('mysqlClassic', 'localhost:3360', 'mysqlX', 'localhost:33600', 'grLocal', 'localhost:13360'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, 'cdd33f28-e18b-11e7-83d3-5ce0c50b9d66', 'localhost:3360', 'HA', json_object('mysqlClassic', 'localhost:3360', 'mysqlX', 'localhost:33600', 'grLocal', 'localhost:13360'))"
 },
 {
     "type": "response",
@@ -4515,8 +4515,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66"
         ]
     ]
 },
@@ -4524,7 +4524,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 193,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -4993,7 +4993,7 @@
         [
             1,
             1,
-            "9f1c8719-e10b-11e7-b09a-5ce0c50b9d66",
+            "cdd33f28-e18b-11e7-83d3-5ce0c50b9d66",
             "localhost:3360",
             "HA",
             null,
@@ -5178,8 +5178,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66"
         ]
     ]
 },
@@ -5187,7 +5187,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 219,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -5394,7 +5394,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 229,
-    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '9f1c8719-e10b-11e7-b09a-5ce0c50b9d66'"
+    "sql": "select count(*) from performance_schema.replication_group_members where member_id = 'cdd33f28-e18b-11e7-83d3-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -5554,8 +5554,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66"
         ]
     ]
 },
@@ -5563,7 +5563,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 237,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -5770,7 +5770,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 247,
-    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '9f1c8719-e10b-11e7-b09a-5ce0c50b9d66'"
+    "sql": "select count(*) from performance_schema.replication_group_members where member_id = 'cdd33f28-e18b-11e7-83d3-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -5930,8 +5930,8 @@
     ],
     "rows": [
         [
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66",
-            "7cec22d5-e10b-11e7-9a39-5ce0c50b9d66"
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66",
+            "aa143510-e18b-11e7-996d-5ce0c50b9d66"
         ]
     ]
 },
@@ -5939,7 +5939,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 255,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -6146,7 +6146,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 265,
-    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '7cec22d5-e10b-11e7-9a39-5ce0c50b9d66'"
+    "sql": "select count(*) from performance_schema.replication_group_members where member_id = 'aa143510-e18b-11e7-996d-5ce0c50b9d66'"
 },
 {
     "type": "response",

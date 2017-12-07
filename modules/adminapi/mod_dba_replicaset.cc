@@ -667,6 +667,98 @@ shcore::Value ReplicaSet::rejoin_instance_(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+/**
+ * Get an up-to-date group seeds value based on the current list of active
+ * members.
+ *
+ * An optional instance_session parameter can be provide that will be used to
+ * get its current GR group seeds value and add the local address from the
+ * active members (avoiding duplicates) to that initial value, allowing to
+ * preserve the GR group seeds of the specified instance. If no
+ * instance_session is given (nullptr) then the returned groups seeds value
+ * will only be based on the currently active members, disregarding any current
+ * GR group seed value on any instance (allowing to reset the group seed only
+ * based on the currently active members).
+ *
+ * @param instance_session Session to the target instance to get the group
+ *                         seeds for.
+ * @return a string with a comma separated list of all the GR local address
+ *         values of the currently active (ONLINE or RECOVERING) instances in
+ *         the replicaset.
+ */
+std::string ReplicaSet::get_cluster_group_seeds(
+    std::shared_ptr<mysqlshdk::db::ISession> instance_session) {
+  // Get connection option for the metadata.
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+  std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
+      cluster->get_group_session();
+  Connection_options cluster_cnx_opt =
+      cluster_session->get_connection_options();
+
+  // Get list of active instances (ONLINE or RECOVERING)
+  std::vector<Instance_definition> active_instances =
+      _metadata_storage->get_replicaset_active_instances(_id);
+
+  std::vector<std::string> gr_group_seeds_list;
+  // If the target instance is provided, use its current GR group seed variable
+  // value as starting point to append new (missing) values to it.
+  if (instance_session) {
+    auto instance = mysqlshdk::mysql::Instance(instance_session);
+    // Get the instance GR group seeds and save it to the GR group seeds list.
+    std::string gr_group_seeds = instance.get_sysvar_string(
+        "group_replication_group_seeds",
+        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    if (!gr_group_seeds.empty()) {
+      gr_group_seeds_list = shcore::split_string(gr_group_seeds, ",");
+    }
+  }
+
+  // Get the update GR group seed from local address of all active instances.
+  for (Instance_definition &instance_def : active_instances) {
+    std::string instance_address = instance_def.endpoint;
+    Connection_options instance_cnx_opt =
+        shcore::get_connection_options(instance_address, false);
+    // It is assumed that the same user and password is used by all members.
+    if (cluster_cnx_opt.has_user())
+      instance_cnx_opt.set_user(cluster_cnx_opt.get_user());
+    if (cluster_cnx_opt.has_password())
+      instance_cnx_opt.set_password(cluster_cnx_opt.get_password());
+    // Connect to the instance.
+    std::shared_ptr<mysqlshdk::db::ISession> session;
+    try {
+      log_debug(
+          "Connecting to instance '%s' to get its value for the "
+           "group_replication_local_address variable.",
+          instance_address.c_str());
+      session = get_session(instance_cnx_opt);
+    } catch (std::exception &e) {
+      // Do not issue an error if we are unable to connect to the instance,
+      // it might have failed in the meantime, just skip the use of its GR
+      // local address.
+      log_info("Could not connect to instance '%s', its local address will not "
+               "be used for the group seeds: %s",
+               instance_address.c_str(), e.what());
+      break;
+    }
+    auto instance = mysqlshdk::mysql::Instance(session);
+    // Get the instance GR local address and add it to the GR group seeds list.
+    std::string local_address = instance.get_sysvar_string(
+        "group_replication_local_address",
+        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+    if (std::find(gr_group_seeds_list.begin(),
+                  gr_group_seeds_list.end(),
+                  local_address) == gr_group_seeds_list.end()) {
+      // Only add the local addres if not already in the group seed list,
+      // avoiding duplicates.
+      gr_group_seeds_list.push_back(local_address);
+    }
+    session->close();
+  }
+  return shcore::str_join(gr_group_seeds_list, ",");
+}
+
 shcore::Value ReplicaSet::rejoin_instance(
     mysqlshdk::db::Connection_options *instance_def,
     const shcore::Value::Map_type_ref &rejoin_options) {
@@ -829,10 +921,9 @@ shcore::Value ReplicaSet::rejoin_instance(
     }
   }
 
-  // Get @@group_replication_local_address
-  std::string seed_instance_xcom_address;
-  get_server_variable(session, "group_replication_local_address",
-                      seed_instance_xcom_address);
+  // Get the up-to-date GR group seeds values (with the GR local address from
+  // all currently active instances).
+  std::string gr_group_seeds = get_cluster_group_seeds(session);
 
   // join Instance to cluster
   {
@@ -862,7 +953,7 @@ shcore::Value ReplicaSet::rejoin_instance(
     // use mysqlprovision to rejoin the cluster.
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         *instance_def, seed_instance_def, "", instance_password, "", ssl_mode,
-        ip_whitelist, "", seed_instance_xcom_address, true, &errors);
+        ip_whitelist, "", gr_group_seeds, true, &errors);
     if (exit_code == 0) {
       ret_val = shcore::Value("The instance '" + instance_address +
                               "' was successfully added to the MySQL "

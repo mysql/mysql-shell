@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3337",
+    "uri": "root:root@localhost:3360",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "8",
+    "connection_id": "10",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "server_uuid",
-            "50f2b4a5-e12a-11e7-8d56-5c514ff38144"
+            "6adbdcd2-e1c3-11e7-9657-5ce0c50b9d66"
         ]
     ]
 },

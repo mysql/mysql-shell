@@ -252,8 +252,8 @@
     ],
     "rows": [
         [
-            "e127d8ad-e102-11e7-b3e0-5ce0c50b9d66",
-            "e127d8ad-e102-11e7-b3e0-5ce0c50b9d66"
+            "86bf4c02-e183-11e7-8264-5ce0c50b9d66",
+            "86bf4c02-e183-11e7-8264-5ce0c50b9d66"
         ]
     ]
 },
@@ -261,7 +261,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e127d8ad-e102-11e7-b3e0-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '86bf4c02-e183-11e7-8264-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -464,9 +464,9 @@
     ],
     "rows": [
         [
-            94,
+            96,
             "test",
-            94,
+            96,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -515,7 +515,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 94"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 96"
 },
 {
     "type": "response",
@@ -747,8 +747,8 @@
     ],
     "rows": [
         [
-            "e127d8ad-e102-11e7-b3e0-5ce0c50b9d66",
-            "e127d8ad-e102-11e7-b3e0-5ce0c50b9d66"
+            "86bf4c02-e183-11e7-8264-5ce0c50b9d66",
+            "86bf4c02-e183-11e7-8264-5ce0c50b9d66"
         ]
     ]
 },
@@ -756,7 +756,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e127d8ad-e102-11e7-b3e0-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '86bf4c02-e183-11e7-8264-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -864,7 +864,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 94"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 96"
 },
 {
     "type": "response",
@@ -902,7 +902,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host FROM performance_schema.replication_group_members g JOIN mysql_innodb_cluster_metadata.instances i ON g.member_id = i.mysql_server_uuid WHERE g.member_state = 'ONLINE' AND replicaset_id = 94"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 96 AND g.member_state IN ('ONLINE')"
 },
 {
     "type": "response",
@@ -980,7 +980,7 @@
     ],
     "rows": [
         [
-            "e127d8ad-e102-11e7-b3e0-5ce0c50b9d66",
+            "86bf4c02-e183-11e7-8264-5ce0c50b9d66",
             "localhost:3360",
             "HA",
             "localhost:3360"
@@ -1029,7 +1029,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 94"
+    "sql": "SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 96"
 },
 {
     "type": "response",
@@ -1105,7 +1105,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 94"
+    "sql": "SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 96"
 },
 {
     "type": "response",
@@ -1135,7 +1135,7 @@
     ],
     "rows": [
         [
-            94
+            96
         ]
     ]
 },
@@ -1143,7 +1143,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = 94"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = 96"
 },
 {
     "type": "response",
@@ -1158,7 +1158,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 51,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances where replicaset_id = 94"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances where replicaset_id = 96"
 },
 {
     "type": "response",
@@ -1173,7 +1173,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 53,
-    "sql": "delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 94"
+    "sql": "delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 96"
 },
 {
     "type": "response",
@@ -1294,7 +1294,7 @@
     ],
     "rows": [
         [
-            94
+            96
         ]
     ]
 },
@@ -1370,7 +1370,7 @@
     ],
     "rows": [
         [
-            94
+            96
         ]
     ]
 },
@@ -1378,7 +1378,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 65,
-    "sql": "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = 94"
+    "sql": "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = 96"
 },
 {
     "type": "response",
@@ -1524,7 +1524,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 67,
-    "sql": "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = 94"
+    "sql": "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = 96"
 },
 {
     "type": "response",
@@ -1616,7 +1616,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "e127d8ad-e102-11e7-b3e0-5ce0c50b9d66"
+            "86bf4c02-e183-11e7-8264-5ce0c50b9d66"
         ]
     ]
 },

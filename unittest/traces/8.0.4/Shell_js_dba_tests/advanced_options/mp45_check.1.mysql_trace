@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "298",
+    "connection_id": "297",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -429,7 +429,7 @@
         ],
         [
             "auto_increment_offset",
-            "3"
+            "5"
         ]
     ]
 },

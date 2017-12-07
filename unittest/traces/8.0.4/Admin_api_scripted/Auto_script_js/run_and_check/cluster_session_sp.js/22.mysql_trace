@@ -317,7 +317,7 @@
             "8.0.4-rc-log MySQL Community Server (GPL)",
             "mysqld.sock",
             3350,
-            "/home/workspace/git/work/bugs/26796118/ngshell/BUILD/unittest/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3350/sandboxdata/"
         ]
     ]
 },

@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "7",
+    "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "91c59b50-e111-11e7-9114-5ce0c50b9d66"
+            "c4f7c7d6-e192-11e7-b03b-5ce0c50b9d66"
         ]
     ]
 },
@@ -96,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
+    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
 },
 {
     "type": "response",
@@ -109,12 +109,28 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 0,
-            "fractional": 31,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 4096,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -126,6 +142,7 @@
     ],
     "rows": [
         [
+            "group_replication_group_seeds",
             ""
         ]
     ]
@@ -232,7 +249,7 @@
             247,
             "",
             "",
-            "4c855492-e111-11e7-aa27-5ce0c50b9d66:1-14,\nb04fe65e-e111-11e7-bb96-5ce0c50b9d66:1-39:1000026-1000031"
+            "7f473389-e192-11e7-8edf-5ce0c50b9d66:1-14,\ne59d1a9c-e192-11e7-8097-5ce0c50b9d66:1-39:1000026-1000031"
         ]
     ]
 },

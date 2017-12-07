@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "e517b0a2-e0fc-11e7-98f2-5ce0c50b9d66",
+            "32482285-e180-11e7-ac71-5ce0c50b9d66",
             0,
-            "aba1db32-e0fc-11e7-9b37-5ce0c50b9d66",
+            "f21c45d4-e17f-11e7-b028-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -550,7 +550,7 @@
             "8.0.4-rc-log MySQL Community Server (GPL)",
             "mysqld.sock",
             3350,
-            "/home/workspace/git/work/bugs/26796118/ngshell/BUILD/unittest/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3350/sandboxdata/"
         ]
     ]
 },

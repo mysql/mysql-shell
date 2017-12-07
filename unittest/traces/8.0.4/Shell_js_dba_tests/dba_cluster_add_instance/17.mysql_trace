@@ -209,7 +209,7 @@
             18581,
             "",
             "",
-            "5a43be9c-e10b-11e7-af2a-5ce0c50b9d66:1-14,\nbcea021c-e10b-11e7-af21-5ce0c50b9d66:1-13:1000009-1000014"
+            "88b51088-e18b-11e7-b3c3-5ce0c50b9d66:1-14,\nebd24a71-e18b-11e7-8841-5ce0c50b9d66:1-13:1000009-1000014"
         ]
     ]
 },
@@ -300,7 +300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ 'T^0=V<4/~o*]^;Q*-[$^$5.-x#E^)$#}' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ 'A-,-<?2M)(<3.{,l^+Y}^$+0|#+u/(M}' /*)*/ "
 },
 {
     "type": "response",
@@ -315,7 +315,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ 'T^0=V<4/~o*]^;Q*-[$^$5.-x#E^)$#}' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ 'A-,-<?2M)(<3.{,l^+Y}^$+0|#+u/(M}' /*)*/ "
 },
 {
     "type": "response",
@@ -621,7 +621,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 2, '9f1c8719-e10b-11e7-b09a-5ce0c50b9d66', 'localhost:3360', 'HA', json_object('mysqlClassic', 'localhost:3360', 'mysqlX', 'localhost:33600', 'grLocal', 'localhost:13360'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 2, 'cdd33f28-e18b-11e7-83d3-5ce0c50b9d66', 'localhost:3360', 'HA', json_object('mysqlClassic', 'localhost:3360', 'mysqlX', 'localhost:33600', 'grLocal', 'localhost:13360'))"
 },
 {
     "type": "response",
@@ -666,7 +666,7 @@
     ],
     "rows": [
         [
-            "d97ac32e-e10b-11e7-a69a-5ce0c50b9d66"
+            "0a2e256f-e18c-11e7-a153-5ce0c50b9d66"
         ]
     ]
 },
@@ -674,7 +674,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'd97ac32e-e10b-11e7-a69a-5ce0c50b9d66') WHERE replicaset_id = 2"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '0a2e256f-e18c-11e7-a153-5ce0c50b9d66') WHERE replicaset_id = 2"
 },
 {
     "type": "response",
