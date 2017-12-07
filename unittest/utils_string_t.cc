@@ -398,8 +398,18 @@ TEST(UtilsString, split) {
     EXPECT_EQ(expect, s);
   }
   {
+    const auto s = str_split("//", "/", -1, true);
+    const std::vector<std::string> expect = { "", "" };
+    EXPECT_EQ(expect, s);
+  }
+  {
     const auto s = str_split("//a", "/");
     const std::vector<std::string> expect = {"", "", "a"};
+    EXPECT_EQ(expect, s);
+  }
+  {
+    const auto s = str_split("a.b.c.d.e.f", ".", 3);
+    const std::vector<std::string> expect = { "a", "b", "c", "d.e.f" };
     EXPECT_EQ(expect, s);
   }
 }

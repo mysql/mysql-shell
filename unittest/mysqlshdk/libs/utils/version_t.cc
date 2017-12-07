@@ -29,45 +29,45 @@ TEST(Version, version_parsing) {
   // Full version
   {
     Version v("5.7.3-uno-dos");
-    ASSERT_EQ(5, v.major());
-    ASSERT_EQ(7, v.minor());
-    ASSERT_EQ(3, v.patch());
-    ASSERT_STREQ("uno-dos", v.extra().c_str());
-    ASSERT_STREQ("5.7.3", v.base().c_str());
-    ASSERT_STREQ("5.7.3-uno-dos", v.full().c_str());
+    ASSERT_EQ(5, v.get_major());
+    ASSERT_EQ(7, v.get_minor());
+    ASSERT_EQ(3, v.get_patch());
+    ASSERT_STREQ("uno-dos", v.get_extra().c_str());
+    ASSERT_STREQ("5.7.3", v.get_base().c_str());
+    ASSERT_STREQ("5.7.3-uno-dos", v.get_full().c_str());
   }
 
   // No patch
   {
     Version v("5.7-uno-dos");
-    ASSERT_EQ(5, v.major());
-    ASSERT_EQ(7, v.minor());
-    ASSERT_EQ(0, v.patch());
-    ASSERT_STREQ("uno-dos", v.extra().c_str());
-    ASSERT_STREQ("5.7", v.base().c_str());
-    ASSERT_STREQ("5.7-uno-dos", v.full().c_str());
+    ASSERT_EQ(5, v.get_major());
+    ASSERT_EQ(7, v.get_minor());
+    ASSERT_EQ(0, v.get_patch());
+    ASSERT_STREQ("uno-dos", v.get_extra().c_str());
+    ASSERT_STREQ("5.7", v.get_base().c_str());
+    ASSERT_STREQ("5.7-uno-dos", v.get_full().c_str());
   }
 
   // No patch and minor
   {
     Version v("5-uno-dos");
-    ASSERT_EQ(5, v.major());
-    ASSERT_EQ(0, v.minor());
-    ASSERT_EQ(0, v.patch());
-    ASSERT_STREQ("uno-dos", v.extra().c_str());
-    ASSERT_STREQ("5", v.base().c_str());
-    ASSERT_STREQ("5-uno-dos", v.full().c_str());
+    ASSERT_EQ(5, v.get_major());
+    ASSERT_EQ(0, v.get_minor());
+    ASSERT_EQ(0, v.get_patch());
+    ASSERT_STREQ("uno-dos", v.get_extra().c_str());
+    ASSERT_STREQ("5", v.get_base().c_str());
+    ASSERT_STREQ("5-uno-dos", v.get_full().c_str());
   }
 
-  // No extra
+  // No get_extra
   {
     Version v("5.7");
-    ASSERT_EQ(5, v.major());
-    ASSERT_EQ(7, v.minor());
-    ASSERT_EQ(0, v.patch());
-    ASSERT_STREQ("", v.extra().c_str());
-    ASSERT_STREQ("5.7", v.base().c_str());
-    ASSERT_STREQ("5.7", v.full().c_str());
+    ASSERT_EQ(5, v.get_major());
+    ASSERT_EQ(7, v.get_minor());
+    ASSERT_EQ(0, v.get_patch());
+    ASSERT_STREQ("", v.get_extra().c_str());
+    ASSERT_STREQ("5.7", v.get_base().c_str());
+    ASSERT_STREQ("5.7", v.get_full().c_str());
   }
 
   // Comparisons

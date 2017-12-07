@@ -671,12 +671,14 @@ void Shell_script_tester::execute_script(const std::string& path,
 
           if (g_generate_validation_file) {
             if (!output_handler.std_out.empty()) {
-              ofile << get_chunk_token() << "<OUT> " << _chunk_order[index];
+              ofile << get_chunk_token() << "<OUT> " << _chunk_order[index]
+                    << std::endl;
               ofile << output_handler.std_out << std::endl;
             }
 
             if (!output_handler.std_err.empty()) {
-              ofile << get_chunk_token() << "<ERR> " << _chunk_order[index];
+              ofile << get_chunk_token() << "<ERR> " << _chunk_order[index]
+                    << std::endl;
               ofile << output_handler.std_err << std::endl;
             }
 
@@ -937,7 +939,7 @@ void Shell_js_script_tester::set_defaults() {
 
   output_handler.wipe_all();
 
-  std::string code = "var __version = '" + _target_server_version.base() + "'";
+  std::string code = "var __version = '" + _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 }
 
@@ -948,7 +950,7 @@ void Shell_py_script_tester::set_defaults() {
 
   output_handler.wipe_all();
 
-  std::string code = "__version = '" + _target_server_version.base() + "'";
+  std::string code = "__version = '" + _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 }
 
@@ -1012,11 +1014,14 @@ bool Shell_script_tester::context_enabled(const std::string& context) {
           code.substr(function_pos + 4, version_pos - function_pos - 4));
       std::string ver = shcore::str_strip(
           code.substr(version_pos, closing_pos - version_pos));
-      std::string new_func =
-          "testutil.versionCheck(__version, '" + op + "', '" + ver + "')";
+      std::string fname = shcore::get_member_name("versionCheck",
+                                                  get_naming_style());
+      std::string new_func = "testutil." + fname +
+                             "(__version, '" + op + "', '" + ver + "')";
 
       code = shcore::str_replace(code, old_func, new_func);
       function_pos = code.find("VER(");
+      shcore::get_member_name("versionCheck", get_naming_style());
     }
 
     output_handler.wipe_out();
@@ -1026,9 +1031,9 @@ bool Shell_script_tester::context_enabled(const std::string& context) {
     value = output_handler.std_out;
     value = str_strip(value);
 
-    if (value == get_true_token()) {
+    if (value == "true") {
       ret_val = true;
-    } else if (value == get_false_token()) {
+    } else if (value == "false") {
       ret_val = false;
     } else {
       if (!output_handler.std_err.empty()) {

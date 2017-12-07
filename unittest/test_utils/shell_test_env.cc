@@ -205,7 +205,7 @@ Shell_test_env::Shell_test_env() {
   // Enabling test context for expectations, the default context is the server
   // version
   _target_server_version = g_target_server_version;
-  _test_context = _target_server_version.base();
+  _test_context = _target_server_version.get_base();
 }
 
 static bool g_initialized_test = false;
