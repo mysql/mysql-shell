@@ -42,9 +42,17 @@ namespace dba {
 */
 #endif
 class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
+ protected:
+  // Added for minimal gmock support
+  MetadataStorage() : _tx_deep(0) {}
+
  public:
+  MetadataStorage(const MetadataStorage &other) = delete;
+  MetadataStorage(MetadataStorage &&other) = delete;
+  MetadataStorage &operator=(const MetadataStorage &other) = delete;
+  MetadataStorage &operator=(MetadataStorage &&other) = delete;
   explicit MetadataStorage(std::shared_ptr<mysqlshdk::db::ISession> session);
-  ~MetadataStorage();
+  virtual ~MetadataStorage();
 
   bool metadata_schema_exists();
   virtual void create_metadata_schema();
@@ -129,10 +137,6 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    private:
     std::shared_ptr<MetadataStorage> _md;
   };
-
-  // Added for minimal gmock support
- protected:
-  MetadataStorage() {}
 
  private:
   std::shared_ptr<mysqlshdk::db::ISession> _session;
