@@ -519,15 +519,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_FALSE(options.has_connection_data());
   EXPECT_TRUE(options.host.empty());
 
-#ifdef HAVE_V8
-  EXPECT_EQ(options.initial_mode, IShell_core::Mode::JavaScript);
-#else
-#ifdef HAVE_PYTHON
-  EXPECT_EQ(options.initial_mode, IShell_core::Mode::Python);
-#else
-  EXPECT_EQ(options.initial_mode, IShell_core::Mode::SQL);
-#endif
-#endif
+  EXPECT_EQ(options.initial_mode, IShell_core::Mode::None);
 
   EXPECT_FALSE(options.interactive);
   EXPECT_EQ(options.log_level, ngcommon::Logger::LOG_INFO);

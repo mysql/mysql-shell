@@ -54,16 +54,7 @@ namespace mysqlsh {
 class Shell_options : protected shcore::Options {
  public:
   struct Storage {
-    shcore::IShell_core::Mode initial_mode =
-#ifdef HAVE_V8
-        shcore::IShell_core::Mode::JavaScript;
-#else
-#ifdef HAVE_PYTHON
-        shcore::IShell_core::Mode::Python;
-#else
-        shcore::IShell_core::Mode::SQL;
-#endif
-#endif
+    shcore::IShell_core::Mode initial_mode = shcore::IShell_core::Mode::None;
     std::string run_file;
 
     // Individual connection parameters

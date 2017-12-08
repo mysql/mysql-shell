@@ -497,7 +497,8 @@ int main(int argc, char **argv) {
         std::stringstream stream(options.execute_statement);
         ret_val = shell.process_stream(stream, "(command line)", {});
       } else if (!options.execute_dba_statement.empty()) {
-        if (options.initial_mode != shcore::IShell_core::Mode::JavaScript) {
+        if (options.initial_mode != shcore::IShell_core::Mode::JavaScript
+            && options.initial_mode != shcore::IShell_core::Mode::None) {
           shell.print_error(
               "The --dba option can only be used in JavaScript mode\n");
           ret_val = 1;

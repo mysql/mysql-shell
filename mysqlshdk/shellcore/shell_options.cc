@@ -443,6 +443,15 @@ bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
     print_cmd_line_version_extra = true;
   } else if (cmdline_arg_with_value(argv, argi, "--file", "-f", &value)) {
     storage.run_file = value;
+    if (storage.initial_mode == shcore::IShell_core::Mode::None) {
+      if (shcore::str_endswith(value, ".js")) {
+        storage.initial_mode = shcore::IShell_core::Mode::JavaScript;
+      } else if (shcore::str_endswith(value, ".py")) {
+        storage.initial_mode = shcore::IShell_core::Mode::Python;
+      } else if (shcore::str_endswith(value, ".sql")) {
+        storage.initial_mode = shcore::IShell_core::Mode::SQL;
+      }
+    }
     // the rest of the cmdline options, starting from here are all passed
     // through to the script
     storage.script_argv.push_back(value);

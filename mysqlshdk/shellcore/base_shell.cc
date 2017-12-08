@@ -76,8 +76,20 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
 }
 
 void Base_shell::finish_init() {
+  shcore::IShell_core::Mode initial_mode = shell_options->get().initial_mode;
+  if (initial_mode == shcore::IShell_core::Mode::None) {
+#ifdef HAVE_V8
+    initial_mode = shcore::IShell_core::Mode::JavaScript;
+#else
+#ifdef HAVE_PYTHON
+    initial_mode = shcore::IShell_core::Mode::Python;
+#else
+    initial_mode = shcore::IShell_core::Mode::SQL;
+#endif
+#endif
+  }
   // Final initialization that must happen outside the constructor
-  switch_shell_mode(shell_options->get().initial_mode, {}, true);
+  switch_shell_mode(initial_mode, {}, true);
 
   // Pre-init the SQL completer, since it's used in places other than SQL mode
   _provider_sql.reset(new shcore::completer::Provider_sql());

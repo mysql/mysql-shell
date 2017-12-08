@@ -24,6 +24,7 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 
 // Misc tests via calling the executable
 
@@ -150,4 +151,34 @@ TEST_F(Mysqlsh_misc, autocompletion_options) {
       "        shell.options['autocomplete.nameCache'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("false false");
   wipe_out();
+}
+
+TEST_F(Mysqlsh_misc, autodetect_script_type) {
+  shcore::create_file("bla.js", "println('JavaScript works');\n");
+  shcore::create_file("bla.py", "print 'Python works'\n");
+  shcore::create_file("bla.sql", "select 'SQL works';\n");
+
+  execute({_mysqlsh, "-f", "bla.js", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("JavaScript works");
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "bla.py", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works");
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "bla.sql", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Not connected");
+  wipe_out();
+
+  execute({_mysqlsh, "--js", "-f", "bla.py", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("SyntaxError: Unexpected string");
+  wipe_out();
+
+  execute({_mysqlsh, "--py", "-f", "bla.sql", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("File \"<string>\", line 1");
+  wipe_out();
+
+  shcore::delete_file("bla.js");
+  shcore::delete_file("bla.py");
+  shcore::delete_file("bla.sql");
 }
