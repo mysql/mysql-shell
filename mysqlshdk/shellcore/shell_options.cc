@@ -234,7 +234,7 @@ Shell_options::Shell_options(int argc, char** argv)
   add_named_options()
     (&storage.output_format, "", SHCORE_OUTPUT_FORMAT,
         "Determines output format",
-        [this](const std::string &val, shcore::opts::Source) {
+        [](const std::string &val, shcore::opts::Source) {
           if (val != "table" && val != "json" && val != "json/raw" &&
               val != "vertical" && val != "tabbed")
             throw shcore::Exception::value_error(

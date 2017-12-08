@@ -39,6 +39,13 @@ namespace completer {
 /** Interface for objects that have a member that can be completed */
 class Object {
  public:
+  Object() = default;
+  Object(const Object &other) = default;
+  Object(Object &&other) = default;
+  Object &operator=(const Object &other) = default;
+  Object &operator=(Object &&other) = default;
+  virtual ~Object() = default;
+
   virtual std::string get_type() const = 0;
   virtual bool is_member_callable(const std::string &name) const = 0;
   virtual std::shared_ptr<Object> get_member(const std::string &name) const = 0;

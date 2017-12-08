@@ -96,23 +96,29 @@ class Options_test : public Shell_core_test_wrapper, public Options {
 };
 
 TEST_F(Options_test, basic_type_validation) {
-  bool resb = false;
-
   // Boolean
   EXPECT_THROW(Basic_type<bool>()("foo", Source::User), std::invalid_argument);
   EXPECT_THROW(Basic_type<bool>()("2", Source::User), std::invalid_argument);
 
-  EXPECT_NO_THROW(resb = Basic_type<bool>()("1", Source::User));
-  EXPECT_TRUE(resb);
+  EXPECT_NO_THROW({
+    bool resb = Basic_type<bool>()("1", Source::User);
+    EXPECT_TRUE(resb);
+  });
 
-  EXPECT_NO_THROW(resb = Basic_type<bool>()("0", Source::User));
-  EXPECT_FALSE(resb);
+  EXPECT_NO_THROW({
+    bool resb = Basic_type<bool>()("0", Source::User);
+    EXPECT_FALSE(resb);
+  });
 
-  EXPECT_NO_THROW(resb = Basic_type<bool>()("true", Source::User));
-  EXPECT_TRUE(resb);
+  EXPECT_NO_THROW({
+    bool resb = Basic_type<bool>()("true", Source::User);
+    EXPECT_TRUE(resb);
+  });
 
-  EXPECT_NO_THROW(resb = Basic_type<bool>()("false", Source::User));
-  EXPECT_FALSE(resb);
+  EXPECT_NO_THROW({
+    bool resb = Basic_type<bool>()("false", Source::User);
+    EXPECT_FALSE(resb);
+  });
 
   // Integer
   EXPECT_THROW(Basic_type<int>()("foo", Source::User), std::invalid_argument);

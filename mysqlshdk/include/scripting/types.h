@@ -491,7 +491,14 @@ public:
 };
 
 class SHCORE_PUBLIC Function_base {
-public:
+ public:
+  Function_base() = default;
+  Function_base(const Function_base &other) = default;
+  Function_base(Function_base &&other) = default;
+  Function_base &operator=(const Function_base &other) = default;
+  Function_base &operator=(Function_base &&other) = default;
+  virtual ~Function_base() = default;
+
   //! The name of the function
   virtual const std::string &name() const = 0;
 
