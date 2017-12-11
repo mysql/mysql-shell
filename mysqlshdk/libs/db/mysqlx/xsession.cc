@@ -182,9 +182,9 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Allowed_tls,
                                ssl_options.get_tls_version());
 
-    if (ssl_options.has_ciphers())
+    if (ssl_options.has_cipher())
       _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_cipher,
-                               ssl_options.get_ciphers());
+                               ssl_options.get_cipher());
   }
   if (ssl_options.has_mode())
     _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_mode,

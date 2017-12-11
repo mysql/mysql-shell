@@ -356,7 +356,7 @@ Shell_options::Shell_options(int argc, char** argv)
     (cmdline("--ssl-capath=dir"), "CA directory.",
         std::bind(&Ssl_options::set_capath, &storage.ssl_options, _2))
     (cmdline("--ssl-cipher=name"), "SSL Cipher to use.",
-        std::bind(&Ssl_options::set_ciphers, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_cipher, &storage.ssl_options, _2))
     (cmdline("--ssl-crl=name"), "Certificate revocation list.",
         std::bind(&Ssl_options::set_crl, &storage.ssl_options, _2))
     (cmdline("--ssl-crlpath=dir"), "Certificate revocation list path.",

@@ -562,12 +562,12 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   {
     execute(
         {_mysqlsh, "-e",
-         "shell.connect({user:'root',password:'',host:'localhost',sslCiphers:"
+         "shell.connect({user:'root',password:'',host:'localhost',sslCipher:"
          "'whatever'})",
          NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Shell.connect: Invalid values in connection options: sslCiphers");
+        "Shell.connect: Invalid values in connection options: sslCipher");
   }
 
   {

@@ -32,7 +32,7 @@ using mysqlshdk::utils::nullable_options::Comparison_mode;
 
 const std::set<std::string> Ssl_options::option_str_list = {
     kSslCa,      kSslCaPath,  kSslCert,       kSslKey, kSslCrl,
-    kSslCrlPath, kSslCiphers, kSslTlsVersion, kSslMode};
+    kSslCrlPath, kSslCipher, kSslTlsVersion, kSslMode};
 
 Ssl_options::Ssl_options(Comparison_mode mode)
     : Nullable_options(mode, "SSL Connection") {
@@ -86,8 +86,8 @@ void Ssl_options::set_crlpath(const std::string& value) {
   Nullable_options::set(kSslCrlPath, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::set_ciphers(const std::string& value) {
-  Nullable_options::set(kSslCiphers, value, Set_mode::UPDATE_NULL);
+void Ssl_options::set_cipher(const std::string& value) {
+  Nullable_options::set(kSslCipher, value, Set_mode::UPDATE_NULL);
 }
 
 void Ssl_options::set_tls_version(const std::string& value) {

@@ -197,8 +197,8 @@ shcore::Value::Map_type_ref get_connection_map(
     if (ssl.has_cert())
       (*map)[mysqlshdk::db::kSslCert] = shcore::Value(ssl.get_cert());
 
-    if (ssl.has_ciphers())
-      (*map)[mysqlshdk::db::kSslCiphers] = shcore::Value(ssl.get_ciphers());
+    if (ssl.has_cipher())
+      (*map)[mysqlshdk::db::kSslCipher] = shcore::Value(ssl.get_cipher());
 
     if (ssl.has_crl())
       (*map)[mysqlshdk::db::kSslCrl] = shcore::Value(ssl.get_crl());
@@ -267,9 +267,9 @@ shcore::Value(ssl.get_value(mysqlshdk::db::kSslMode)); if (ssl.has_ca())
         (*options)[mysqlshdk::db::kSslCert] = shcore::Value(ssl.get_cert());
       if (ssl.has_key())
         (*options)[mysqlshdk::db::kSslKey] = shcore::Value(ssl.get_key());
-      if (ssl.has_ciphers())
-        (*options)[mysqlshdk::db::kSslCiphers] =
-shcore::Value(ssl.get_ciphers()); if (ssl.has_crl())
+      if (ssl.has_cipher())
+        (*options)[mysqlshdk::db::kSslCipher] =
+shcore::Value(ssl.get_cipher()); if (ssl.has_crl())
         (*options)[mysqlshdk::db::kSslCrl] = shcore::Value(ssl.get_crl());
       if (ssl.has_crlpath())
         (*options)[mysqlshdk::db::kSslCrlPath] =

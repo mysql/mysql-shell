@@ -59,7 +59,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   bool has_key() const { return has_value(kSslKey); }
   bool has_crl() const { return has_value(kSslCrl); }
   bool has_crlpath() const { return has_value(kSslCrlPath); }
-  bool has_ciphers() const { return has_value(kSslCiphers); }
+  bool has_cipher() const { return has_value(kSslCipher); }
   bool has_tls_version() const { return has_value(kSslTlsVersion); }
 
   Ssl_mode get_mode() const;
@@ -70,7 +70,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   const std::string& get_key() const { return _get(kSslKey); }
   const std::string& get_crl() const { return _get(kSslCrl); }
   const std::string& get_crlpath() const { return _get(kSslCrlPath); }
-  const std::string& get_ciphers() const { return _get(kSslCiphers); }
+  const std::string& get_cipher() const { return _get(kSslCipher); }
   const std::string& get_tls_version() const { return _get(kSslTlsVersion); }
 
   void clear_mode() { clear_value(kSslMode); }
@@ -80,7 +80,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void clear_key() { clear_value(kSslKey); }
   void clear_crl() { clear_value(kSslCrl); }
   void clear_crlpath() { clear_value(kSslCrlPath); }
-  void clear_ciphers() { clear_value(kSslCiphers); }
+  void clear_cipher() { clear_value(kSslCipher); }
   void clear_tls_version() { clear_value(kSslTlsVersion); }
 
   void set_mode(Ssl_mode value);
@@ -88,7 +88,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void set_capath(const std::string& value);
   void set_crl(const std::string& value);
   void set_crlpath(const std::string& value);
-  void set_ciphers(const std::string& value);
+  void set_cipher(const std::string& value);
   void set_tls_version(const std::string& value);
   void set_cert(const std::string& value);
   void set_key(const std::string& value);

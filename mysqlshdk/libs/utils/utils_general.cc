@@ -229,10 +229,10 @@ void update_connection_data
         ssl_options.get_crlpath());
   }
 
-  if (ssl_options.has_ciphers()) {
-    connection_options->get_ssl_options().clear_ciphers();
-    connection_options->get_ssl_options().set_ciphers(
-        ssl_options.get_ciphers());
+  if (ssl_options.has_cipher()) {
+    connection_options->get_ssl_options().clear_cipher();
+    connection_options->get_ssl_options().set_cipher(
+        ssl_options.get_cipher());
   }
 
   if (ssl_options.has_tls_version()) {

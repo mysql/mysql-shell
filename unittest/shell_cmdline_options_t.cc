@@ -106,7 +106,7 @@ class Shell_cmdline_options : public ::testing::Test {
     else if (option == "ssl-crlpath")
       return options->ssl_options.get_crlpath();
     else if (option == "ssl-cipher")
-      return options->ssl_options.get_ciphers();
+      return options->ssl_options.get_cipher();
     else if (option == "tls-version")
       return options->ssl_options.get_tls_version();
     else if (option == "uri")
@@ -540,7 +540,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(!options.ssl_options.has_capath());
   EXPECT_TRUE(!options.ssl_options.has_crl());
   EXPECT_TRUE(!options.ssl_options.has_crlpath());
-  EXPECT_TRUE(!options.ssl_options.has_ciphers());
+  EXPECT_TRUE(!options.ssl_options.has_cipher());
   EXPECT_TRUE(!options.ssl_options.has_tls_version());
   EXPECT_FALSE(options.trace_protocol);
   EXPECT_TRUE(options.uri.empty());
