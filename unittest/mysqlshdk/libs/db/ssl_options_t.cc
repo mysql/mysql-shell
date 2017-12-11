@@ -64,7 +64,7 @@ TEST(Ssl_options, initialization) {
   EXPECT_FALSE(options.has_ca());
   EXPECT_FALSE(options.has_capath());
   EXPECT_FALSE(options.has_cert());
-  EXPECT_FALSE(options.has_ciphers());
+  EXPECT_FALSE(options.has_cipher());
   EXPECT_FALSE(options.has_crl());
   EXPECT_FALSE(options.has_crlpath());
   EXPECT_FALSE(options.has_key());
@@ -75,7 +75,7 @@ TEST(Ssl_options, initialization) {
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslCa));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslCaPath));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslCert));
-  EXPECT_TRUE(options.has(mysqlshdk::db::kSslCiphers));
+  EXPECT_TRUE(options.has(mysqlshdk::db::kSslCipher));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslCrl));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslCrlPath));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslKey));
@@ -86,7 +86,7 @@ TEST(Ssl_options, initialization) {
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCa));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCaPath));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCert));
-  EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCiphers));
+  EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCipher));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCrl));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCrlPath));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslKey));
@@ -150,23 +150,23 @@ TEST(Ssl_options, cert_functions) {
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_cert());
 }
 
-TEST(Ssl_options, ciphers_functions) {
+TEST(Ssl_options, cipher_functions) {
   Ssl_options options;
   std::string msg;
 
-  EXPECT_NO_THROW(options.set_ciphers("value"));
+  EXPECT_NO_THROW(options.set_cipher("value"));
   msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslCiphers);
+  msg.append(mysqlshdk::db::kSslCipher);
   msg.append("' is already defined as 'value'.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_ciphers("value2"));
-  EXPECT_TRUE(options.has_ciphers());
-  EXPECT_STREQ("value", options.get_ciphers().c_str());
-  EXPECT_NO_THROW(options.clear_ciphers());
-  EXPECT_FALSE(options.has_ciphers());
+                  options.set_cipher("value2"));
+  EXPECT_TRUE(options.has_cipher());
+  EXPECT_STREQ("value", options.get_cipher().c_str());
+  EXPECT_NO_THROW(options.clear_cipher());
+  EXPECT_FALSE(options.has_cipher());
   msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslCiphers).append("' has no value.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_ciphers());
+  msg.append(mysqlshdk::db::kSslCipher).append("' has no value.");
+  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_cipher());
 }
 
 TEST(Ssl_options, crl_functions) {
@@ -249,7 +249,7 @@ TEST(Ssl_options, generic_functions) {
   test_option(mysqlshdk::db::kSslCa);
   test_option(mysqlshdk::db::kSslCaPath);
   test_option(mysqlshdk::db::kSslCert);
-  test_option(mysqlshdk::db::kSslCiphers);
+  test_option(mysqlshdk::db::kSslCipher);
   test_option(mysqlshdk::db::kSslCrl);
   test_option(mysqlshdk::db::kSslCrlPath);
   test_option(mysqlshdk::db::kSslKey);

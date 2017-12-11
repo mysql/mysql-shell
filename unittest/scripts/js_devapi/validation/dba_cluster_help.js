@@ -118,7 +118,7 @@ The following options are valid for use either in a URI or in a dictionary:
  - ssl-crl: The path to file that contains certificate revocation lists.
  - ssl-crlpath: The path of directory that contains certificate revocation list
    files.
- - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - ssl-cipher: SSL Cipher to use.
  - tls-version: List of protocols permitted for secure connections
  - auth-method: Authentication method
 
@@ -239,7 +239,7 @@ The following options are valid for use either in a URI or in a dictionary:
  - ssl-crl: The path to file that contains certificate revocation lists.
  - ssl-crlpath: The path of directory that contains certificate revocation list
    files.
- - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - ssl-cipher: SSL Cipher to use.
  - tls-version: List of protocols permitted for secure connections
  - auth-method: Authentication method
 
@@ -432,7 +432,7 @@ The following options are valid for use either in a URI or in a dictionary:
  - ssl-crl: The path to file that contains certificate revocation lists.
  - ssl-crlpath: The path of directory that contains certificate revocation list
    files.
- - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - ssl-cipher: SSL Cipher to use.
  - tls-version: List of protocols permitted for secure connections
  - auth-method: Authentication method
 
@@ -550,7 +550,7 @@ The following options are valid for use either in a URI or in a dictionary:
  - ssl-crl: The path to file that contains certificate revocation lists.
  - ssl-crlpath: The path of directory that contains certificate revocation list
    files.
- - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - ssl-cipher: SSL Cipher to use.
  - tls-version: List of protocols permitted for secure connections
  - auth-method: Authentication method
 
@@ -655,7 +655,7 @@ The following options are valid for use either in a URI or in a dictionary:
  - ssl-crl: The path to file that contains certificate revocation lists.
  - ssl-crlpath: The path of directory that contains certificate revocation list
    files.
- - ssl-ciphers: List of permitted ciphers to use for connection encryption.
+ - ssl-cipher: SSL Cipher to use.
  - tls-version: List of protocols permitted for secure connections
  - auth-method: Authentication method
 

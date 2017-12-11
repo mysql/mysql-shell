@@ -347,7 +347,7 @@ REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS3, "@li ssl-cert: The path to the X509
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS4, "@li ssl-key: The path to the X509 key in PEM format.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS5, "@li ssl-crl: The path to file that contains certificate revocation lists.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS6, "@li ssl-crlpath: The path of directory that contains certificate revocation list files.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7, "@li ssl-ciphers: List of permitted ciphers to use for connection encryption.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7, "@li ssl-cipher: SSL Cipher to use.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS8, "@li tls-version: List of protocols permitted for secure connections");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9, "@li auth-method: Authentication method");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS10, "When these options are defined in a URI, their values must be URL encoded.");

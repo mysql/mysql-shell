@@ -73,7 +73,7 @@ const char kSslCert[] = "ssl-cert";
 const char kSslKey[] = "ssl-key";
 const char kSslCrl[] = "ssl-crl";
 const char kSslCrlPath[] = "ssl-crlpath";
-const char kSslCiphers[] = "ssl-ciphers";
+const char kSslCipher[] = "ssl-cipher";
 const char kSslTlsVersion[] = "tls-version";
 const char kSslMode[] = "ssl-mode";
 const char kAuthMethod[] = "auth-method";
@@ -88,11 +88,11 @@ const std::set<std::string> connection_attributes = {
     kHost,       kPort,          kSocket,   kScheme,     kSchema,
     kUser,       kDbUser,        kPassword, kDbPassword, kSslCa,
     kSslCaPath,  kSslCert,       kSslKey,   kSslCrl,     kSslCrlPath,
-    kSslCiphers, kSslTlsVersion, kSslMode,  kAuthMethod};
+    kSslCipher, kSslTlsVersion, kSslMode,  kAuthMethod};
 
 const std::set<std::string> uri_connection_attributes = {
     kSslCa,      kSslCaPath,  kSslCert,       kSslKey,  kSslCrl,
-    kSslCrlPath, kSslCiphers, kSslTlsVersion, kSslMode, kAuthMethod};
+    kSslCrlPath, kSslCipher, kSslTlsVersion, kSslMode, kAuthMethod};
 
 const std::vector<std::string> ssl_modes = {"",
                                             kSslModeDisabled,

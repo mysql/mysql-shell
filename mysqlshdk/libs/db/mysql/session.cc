@@ -144,9 +144,9 @@ bool Session_impl::setup_ssl(
       mysql_options(_mysql, MYSQL_OPT_SSL_CRLPATH,
                     (ssl_options.get_crlpath().c_str()));
 
-    if (ssl_options.has_ciphers())
+    if (ssl_options.has_cipher())
       mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER,
-                    (ssl_options.get_ciphers().c_str()));
+                    (ssl_options.get_cipher().c_str()));
 
     if (ssl_options.has_tls_version())
       mysql_options(_mysql, MYSQL_OPT_TLS_VERSION,

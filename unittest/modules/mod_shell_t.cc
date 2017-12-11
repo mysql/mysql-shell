@@ -134,7 +134,7 @@ TEST_F(mod_shell_test, parse_uri) {
                       "ssl-key=%2fpath%2fto%2fkey%2epem&"
                       "ssl-crl=%2fpath%2fto%2fcrl%2etxt&"
                       "ssl-crlPATH=%2fpath%2fto%2fcrlpath&"
-                      "Ssl-Ciphers=%2fpath%2fto%2fciphers&"
+                      "Ssl-Cipher=%2fpath%2fto%2fcipher&"
                       "Tls-VERSION=TLSv1%2e0"));
 
     auto value = _shell->parse_uri(args);
@@ -166,9 +166,9 @@ TEST_F(mod_shell_test, parse_uri) {
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslCrlPath));
     EXPECT_STREQ("/path/to/crlpath",
                  dict->get_string(mysqlshdk::db::kSslCrlPath).c_str());
-    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslCiphers));
-    EXPECT_STREQ("/path/to/ciphers",
-                 dict->get_string(mysqlshdk::db::kSslCiphers).c_str());
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslCipher));
+    EXPECT_STREQ("/path/to/cipher",
+                 dict->get_string(mysqlshdk::db::kSslCipher).c_str());
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSslTlsVersion));
     EXPECT_STREQ("TLSv1.0",
                  dict->get_string(mysqlshdk::db::kSslTlsVersion).c_str());

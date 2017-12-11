@@ -261,7 +261,7 @@ TEST(Connection_options, uri_constructor) {
   ASSERT_FALSE(ssl_options.has_ca());
   ASSERT_FALSE(ssl_options.has_capath());
   ASSERT_FALSE(ssl_options.has_cert());
-  ASSERT_FALSE(ssl_options.has_ciphers());
+  ASSERT_FALSE(ssl_options.has_cipher());
   ASSERT_FALSE(ssl_options.has_crl());
   ASSERT_FALSE(ssl_options.has_crlpath());
   ASSERT_FALSE(ssl_options.has_key());
@@ -523,7 +523,7 @@ TEST(Connection_options, invalid_options_after_WL10912) {
 
   std::set<std::string> invalid_options = {
       "sslMode",    "sslCa",   "sslCaPath", "sslCrl",     "sslCrlPath",
-      "sslCiphers", "sslCert", "sslKey",    "authMethod", "sslTlsVersion"};
+      "sslCipher", "sslCert", "sslKey",    "authMethod", "sslTlsVersion"};
 
   for (auto property : invalid_options)
     combine(property, "", 0, callback);
