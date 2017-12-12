@@ -314,7 +314,18 @@ TEST_F(Options_test, cmd_line_handling) {
 
   char *argv14[] = {const_cast<char *>("ut"),
                     const_cast<char *>("--deprecated"), NULL};
-  ASSERT_THROW(handle_cmdline_options(2, argv14), std::invalid_argument);
+  // Redirect cout.
+  std::streambuf *cout_backup = std::cout.rdbuf();
+  std::ostringstream cout;
+  std::cout.rdbuf(cout.rdbuf());
+
+  ASSERT_NO_THROW(handle_cmdline_options(2, argv14));
+
+  // Restore old cout.
+  std::cout.rdbuf(cout_backup);
+
+  MY_EXPECT_OUTPUT_CONTAINS("The --deprecated option has been deprecated.",
+                            cout.str());
 }
 
 TEST_F(Options_test, access_from_code) {

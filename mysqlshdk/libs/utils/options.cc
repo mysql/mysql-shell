@@ -21,6 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <iostream>
 #include "mysqlshdk/libs/utils/options.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -148,13 +149,80 @@ std::vector<std::string> Proxy_option::get_cmdline_names() {
   return Generic_option::get_cmdline_names();
 }
 
-Proxy_option::Handler deprecated(const char *replacement) {
-  return [replacement](const std::string &opt, const char *) {
+bool icomp(const std::string& lhs, const std::string& rhs) {
+  return shcore::str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
+}
+
+/**
+ * Deprecation handler, to be used for any option being deprecated.
+ * @param replacement: Replacement option name if any.
+ * @param target: function handler of new option if any.
+ * @param def: default value to be set if no value is provided
+ * @param map: mapping of old option values to new option values.
+ *
+ * This function does the deprecation handling, it supports:
+ * - Ignoring an option (tho is not desired or it would be better removed)
+ * - Renaming an option, for the case a new option replaced the deprecated one
+ * - Inserting default value if none specified, in case the deprecated one did
+ *   this and the new option does not
+ * - Mapping old values to new values, in case the deprecated option uses
+ *   different values than new option.
+ *
+ * For each deprecated option used, a warning will be generated
+ *
+ */
+Proxy_option::Handler deprecated(const char *replacement,
+    Proxy_option::Handler target, const char *def,
+    const std::map<std::string, std::string> &map) {
+  return [replacement, target, def, map](const std::string &opt,
+                                                  const char *value) {
     std::stringstream ss;
     ss << "The " << opt << " option has been deprecated";
-    if (replacement != nullptr)
+    if (replacement != nullptr) {
       ss << ", please use " << replacement << " instead.";
-    throw std::invalid_argument(ss.str());
+
+      if (target) {
+        std::string final_val;
+
+        // A value is provided, let's see if a value mapping exists
+        if (value) {
+          if (!map.empty()) {
+            std::map<std::string, std::string,
+                     bool (*)(const std::string &, const std::string &)>
+                imap(icomp);
+
+            for (const auto &element : map) {
+              imap.emplace(element.first, element.second);
+            }
+
+            if (imap.find(value) != imap.end())
+              final_val = imap.at(value);
+            else
+              final_val.assign(value);
+          } else {
+            final_val.assign(value);
+          }
+        } else {
+          // If no value is provided and a default value is, it gets used
+          if (def)
+            final_val.assign(def);
+        }
+
+        ss << " (Option has been processed as " << replacement;
+        if (!final_val.empty())
+          ss << "=" << final_val;
+        ss << ").";
+
+        target(replacement, (value || def) ? final_val.c_str() : value);
+      } else {
+        ss << " (Option has been ignored).";
+      }
+
+    } else {
+      ss << ".";
+    }
+
+    std::cout << "WARNING: " << ss.str() << std::endl;
   };
 }
 

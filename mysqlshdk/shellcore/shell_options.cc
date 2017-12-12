@@ -363,14 +363,7 @@ Shell_options::Shell_options(int argc, char** argv)
         std::bind(&Ssl_options::set_crlpath, &storage.ssl_options, _2))
     (cmdline("--ssl-mode=mode"), "SSL mode to use, allowed values: DISABLED,"
         "PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
-        [this](const std::string& opt, const char* value) {
-          int mode = mysqlshdk::db::MapSslModeNameToValue::get_value(value);
-          if (mode == 0)
-            throw std::invalid_argument(opt +
-                " must be any any of [DISABLED, PREFERRED, REQUIRED, "
-                         "VERIFY_CA, VERIFY_IDENTITY]");
-          storage.ssl_options.set_mode(
-              static_cast<mysqlshdk::db::Ssl_mode>(mode));})
+        std::bind(&Shell_options::set_ssl_mode, this, _1, _2))
     (cmdline("--tls-version=version"),
         "TLS version to use, permitted values are: TLSv1, TLSv1.1.",
         std::bind(&Ssl_options::set_tls_version,
@@ -382,10 +375,20 @@ Shell_options::Shell_options(int argc, char** argv)
         "in the server connected to. Must be used with --mysql.")
     (cmdline("--trace-proto"),
         assign_value(&storage.trace_protocol, true))
-    (cmdline("--ssl[=opt]"), deprecated("--ssl-mode"))
-    (cmdline("--node"), deprecated("--mysqlx or -mx"))
-    (cmdline("--classic"), deprecated("--mysql or -mc"))
-    (cmdline("--sqln"), deprecated("--sqlx"));
+    (cmdline("--ssl[=opt]"), deprecated("--ssl-mode",
+      std::bind(&Shell_options::set_ssl_mode, this, _1, _2), "REQUIRED",
+     {
+       {"1", "REQUIRED"},
+       {"YES", "REQUIRED"},
+       {"0", "DISABLED"},
+       {"NO", "DISABLED"}
+     }))
+    (cmdline("--node"), deprecated("--mysqlx", std::bind(
+            &Shell_options::override_session_type, this, _1, _2)))
+    (cmdline("--classic"), deprecated("--mysql", std::bind(
+            &Shell_options::override_session_type, this, _1, _2)))
+    (cmdline("--sqln"), deprecated("--sqlx", std::bind(
+            &Shell_options::override_session_type, this, _1, _2)));
   // clang-format on
 
   try {
@@ -606,6 +609,18 @@ void Shell_options::override_session_type(const std::string& option,
   storage.default_session_type = false;
 }
 
+void Shell_options::set_ssl_mode(const std::string& option, const char* value) {
+  int mode = mysqlshdk::db::MapSslModeNameToValue::get_value(value);
+
+  if (mode == 0) {
+    throw std::invalid_argument(option +
+        " must be any any of [DISABLED, PREFERRED, REQUIRED, "
+                  "VERIFY_CA, VERIFY_IDENTITY]");
+  }
+
+  storage.ssl_options.set_mode(static_cast<mysqlshdk::db::Ssl_mode>(mode));
+}
+
 void Shell_options::check_session_type_conflicts() {
   if (storage.session_type != mysqlsh::SessionType::Auto &&
       uri_data.has_scheme()) {
@@ -707,4 +722,5 @@ void Shell_options::check_port_socket_conflicts() {
     throw std::runtime_error(error);
   }
 }
+
 }  // namespace mysqlsh
