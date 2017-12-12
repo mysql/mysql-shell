@@ -164,6 +164,7 @@ class Shell_options : protected shcore::Options {
   bool custom_cmdline_handler(char** argv, int* argi);
 
   void override_session_type(const std::string& option, const char* value);
+  void set_ssl_mode(const std::string& option, const char* value);
 
   void check_session_type_conflicts();
   void check_user_conflicts();

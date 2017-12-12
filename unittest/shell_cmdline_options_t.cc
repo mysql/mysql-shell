@@ -28,6 +28,7 @@
 #include "gtest_clean.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "utils/utils_general.h"
+#include "unittest/test_utils/shell_base_test.h"
 
 using mysqlsh::Shell_options;
 
@@ -75,7 +76,7 @@ std::string shell_mode_name(IShell_core::Mode mode) {
   return ret_val;
 }
 
-class Shell_cmdline_options : public ::testing::Test {
+class Shell_cmdline_options : public tests::Shell_base_test {
  public:
   Shell_cmdline_options() {}
 
@@ -369,26 +370,36 @@ class Shell_cmdline_options : public ::testing::Test {
 
   void test_deprecated_ssl(const std::string &scope,
                            std::vector<char *> *args,
+                           const std::string &warning,
                            const std::string &error,
                            int expected_exit_code,
                            mysqlshdk::db::Ssl_mode mode) {
     // Redirect cerr.
-    std::streambuf *backup = std::cerr.rdbuf();
+    std::streambuf *cerr_backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
+
+    // Redirect cout.
+    std::streambuf *cout_backup = std::cout.rdbuf();
+    std::ostringstream cout;
+    std::cout.rdbuf(cout.rdbuf());
 
     SCOPED_TRACE("TESTING: " + scope);
     Shell_options options(args->size() - 1, &(args->at(0)));
 
-    EXPECT_STREQ(error.c_str(), cerr.str().c_str());
-
     EXPECT_EQ(expected_exit_code, options.get().exit_code);
+
     if (!expected_exit_code) {
+      MY_EXPECT_OUTPUT_CONTAINS(warning.c_str(), cout.str());
       EXPECT_EQ(mode, options.get().ssl_options.get_mode());
+    } else {
+      EXPECT_STREQ(error.c_str(), cerr.str().c_str());
     }
 
     // Restore old cerr.
-    std::cerr.rdbuf(backup);
+    std::cerr.rdbuf(cerr_backup);
+    // Restore old cout.
+    std::cout.rdbuf(cout_backup);
   }
 
   void test_option_with_value(const std::string &option,
@@ -682,10 +693,6 @@ TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
 }
 
 TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
-  // Redirect cerr.
-  std::streambuf* backup = std::cerr.rdbuf();
-  std::ostringstream cerr;
-  std::cerr.rdbuf(cerr.rdbuf());
   std::string firstArg, secondArg;
 
   SCOPED_TRACE("TESTING: deprecated --node argument");
@@ -695,32 +702,45 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
   char *argv[] = {const_cast<char *>("ut"),
                   const_cast<char *>(firstArg.c_str()),
                   const_cast<char *>(secondArg.c_str()), NULL};
+
+  // Redirect cout.
+  std::streambuf *cout_backup = std::cout.rdbuf();
+  std::ostringstream cout;
+  std::cout.rdbuf(cout.rdbuf());
+
   Shell_options cmd_options(3, argv);
 
-  EXPECT_EQ(1, cmd_options.get().exit_code);
+  // Restore old cout.
+  std::cout.rdbuf(cout_backup);
+
+  EXPECT_EQ(0, cmd_options.get().exit_code);
   EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
-  EXPECT_STREQ("The --node option has been deprecated, "
-               "please use --mysqlx or -mx instead.\n", cerr.str().c_str());
+  MY_EXPECT_OUTPUT_CONTAINS("The --node option has been deprecated, "
+               "please use --mysqlx instead. (Option has been processed "
+               "as --mysqlx).", cout.str());
 
   SCOPED_TRACE("TESTING: deprecated --classic argument");
   firstArg = "root@localhost:3301";
   secondArg = "--classic";
-  cerr.str("");
-  cerr.clear();
 
   char *argv2[] = {const_cast<char *>("ut"),
                    const_cast<char *>(firstArg.c_str()),
                    const_cast<char *>(secondArg.c_str()),
                    NULL};
+  // Redirect cout.
+  cout_backup = std::cout.rdbuf();
+  std::cout.rdbuf(cout.rdbuf());
+
   Shell_options cmd_options2(3, argv2);
 
-  EXPECT_EQ(1, cmd_options2.get().exit_code);
-  EXPECT_STREQ(cmd_options2.get().uri.c_str(), "root@localhost:3301");
-  EXPECT_STREQ("The --classic option has been deprecated, "
-               "please use --mysql or -mc instead.\n", cerr.str().c_str());
+  // Restore old cout.
+  std::cout.rdbuf(cout_backup);
 
-  // Restore old cerr.
-  std::cerr.rdbuf(backup);
+  EXPECT_EQ(0, cmd_options2.get().exit_code);
+  EXPECT_STREQ(cmd_options2.get().uri.c_str(), "root@localhost:3301");
+  MY_EXPECT_OUTPUT_CONTAINS("The --classic option has been deprecated, "
+               "please use --mysql instead. (Option has been processed as "
+               "--mysql).", cout.str());
 }
 
 TEST_F(Shell_cmdline_options, test_positional_argument) {
@@ -1151,15 +1171,19 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 }
 
 TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
-  std::string error =
-      "The --ssl option has been deprecated, please use --ssl-mode instead.\n";
+  std::string warning =
+      "The --ssl option has been deprecated, please use --ssl-mode instead. ";
   {
     std::vector<char *> options = {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl"),
       const_cast<char *>("something"),
       NULL};
-    test_deprecated_ssl("--ssl=something", &options, error, 1,
+
+    std::string error = "--ssl-mode must be any any of [DISABLED, PREFERRED, "
+                        "REQUIRED, VERIFY_CA, VERIFY_IDENTITY]\n";
+
+    test_deprecated_ssl("--ssl=something", &options, "", error, 1,
                         mysqlshdk::db::Ssl_mode::Preferred);
     // This last param is
     // ignored on this case
@@ -1169,7 +1193,9 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl"),
       NULL};
-    test_deprecated_ssl("--ssl", &options, error, 1,
+    std::string mywarning(warning);
+    mywarning.append("(Option has been processed as --ssl-mode=REQUIRED).");
+    test_deprecated_ssl("--ssl", &options, mywarning, "", 0,
                         mysqlshdk::db::Ssl_mode::Required);
   }
   {
@@ -1177,7 +1203,9 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl=1"),
       NULL};
-    test_deprecated_ssl("--ssl=1", &options, error, 1,
+    std::string mywarning(warning);
+    mywarning.append("(Option has been processed as --ssl-mode=REQUIRED).");
+    test_deprecated_ssl("--ssl=1", &options, mywarning, "", 0,
                         mysqlshdk::db::Ssl_mode::Required);
   }
   {
@@ -1185,7 +1213,9 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl=yes"),
       NULL};
-    test_deprecated_ssl("--ssl=yes", &options, error, 1,
+    std::string mywarning(warning);
+    mywarning.append("(Option has been processed as --ssl-mode=REQUIRED).");
+    test_deprecated_ssl("--ssl=yes", &options, mywarning, "", 0,
                         mysqlshdk::db::Ssl_mode::Required);
   }
 
@@ -1194,7 +1224,9 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl=0"),
       NULL};
-    test_deprecated_ssl("--ssl=0", &options, error, 1,
+    std::string mywarning(warning);
+    mywarning.append("(Option has been processed as --ssl-mode=DISABLED).");
+    test_deprecated_ssl("--ssl=0", &options, mywarning, "", 0,
                         mysqlshdk::db::Ssl_mode::Disabled);
   }
   {
@@ -1202,7 +1234,9 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
       const_cast<char *>("ut"),
       const_cast<char *>("--ssl=no"),
       NULL};
-    test_deprecated_ssl("--ssl=no", &options, error, 1,
+    std::string mywarning(warning);
+    mywarning.append("(Option has been processed as --ssl-mode=DISABLED).");
+    test_deprecated_ssl("--ssl=no", &options, mywarning, "", 0,
                         mysqlshdk::db::Ssl_mode::Disabled);
   }
 }

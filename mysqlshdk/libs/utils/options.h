@@ -37,6 +37,7 @@
 #include "mysqlshdk/include/scripting/common.h"
 
 namespace shcore {
+  class Options;
 
 namespace opts {
 
@@ -173,7 +174,9 @@ class Proxy_option : public Generic_option {
   Handler handler;
 };
 
-Proxy_option::Handler deprecated(const char *replacement = nullptr);
+Proxy_option::Handler deprecated(const char *replacement = nullptr,
+    Proxy_option::Handler handler = {}, const char *def_value = nullptr,
+    const std::map<std::string, std::string> &map = {});
 
 template <class T, class S>
 Proxy_option::Handler assign_value(T *landing_spot, S value) {
